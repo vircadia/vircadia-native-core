@@ -1,0 +1,71 @@
+Ttest_c_plus
+v7
+r0
+t322982393.975896
+cCheck dependencies
+cCompileC build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
+cLd /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus normal x86_64
+
+N/Developer/SDKs/MacOSX10.6.sdk
+c000000004CAA740B00000000000000EE
+t1286239243
+s238
+
+N/System/Library/Frameworks/GLUT.framework/GLUT
+c000000004B5FAB1A00000000001A2920
+t1264560922
+s1714464
+
+N/System/Library/Frameworks/OpenGL.framework/OpenGL
+c000000004D22BC490000000000043330
+t1294122057
+s275248
+
+N/Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus
+t1301289593
+s25240
+
+N/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o
+t1301289593
+s98180
+
+N/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/test_c_plus.LinkFileList
+c000000004D900895000000000000006F
+t1301285013
+s111
+
+N/Users/philip/Desktop/test_c_plus/main.cpp
+c000000004D901A79000000000000317E
+t1301289593
+s12670
+i<iostream>
+i<fstream>
+i<string>
+
+CCheck dependencies
+r0
+lSLF07#2@18"Check dependencies322982393#322982393#0(0"0(0#1#0"8611291200#0"0#
+
+CCompileC build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
+s322982393.573246
+e322982393.953401
+r1
+xCompileC
+xbuild/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o
+x/Users/philip/Desktop/test_c_plus/main.cpp
+xnormal
+xx86_64
+xc++
+xcom.apple.compilers.gcc.4_2
+lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp322982393#322982393#0(706"/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void init_cells()':/Users/philip/Desktop/test_c_plus/main.cpp:131: warning: unused variable 'centersize'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void update_cells()':/Users/philip/Desktop/test_c_plus/main.cpp:165: warning: unused variable 'neighborsum'/Users/philip/Desktop/test_c_plus/main.cpp:167: warning: unused variable 'io_char_counter'/Users/philip/Desktop/test_c_plus/main.cpp:174: warning: unused variable 'UPDATE_MEMORY_DECAY'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/test_c_plus/main.cpp:361: warning: deprecated conversion from string constant to 'char*'5(22@28"Unused variable 'centersize'322982393#77#86#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp322982393#131#0#131#0#19"unused variable '*'0(22@29"Unused variable 'neighborsum'322982393#242#87#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp322982393#165#0#165#0#19"unused variable '*'0(22@33"Unused variable 'io_char_counter'322982393#329#91#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp322982393#167#0#167#0#19"unused variable '*'0(22@37"Unused variable 'UPDATE_MEMORY_DECAY'322982393#420#95#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp322982393#174#0#174#0#19"unused variable '*'0(22@53"Deprecated conversion from string constant to 'char*'322982393#595#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp322982393#361#0#361#0#49"deprecated conversion from string constant to '*'0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8611182272#1308"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch x86_64 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -O0 -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -mfix-and-continue -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Debug -I/Users/philip/Desktop/test_c_plus/build/Debug/include -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/DerivedSources/x86_64 -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o0#
+
+CLd /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus normal x86_64
+s322982393.953467
+e322982393.975851
+r1
+xLd
+x/Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus
+xnormal
+xx86_64
+lSLF07#2@62"Link /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus322982393#322982393#0(0"0(0#0#0"8612011840#523"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch x86_64 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Debug -F/Users/philip/Desktop/test_c_plus/build/Debug -filelist /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/test_c_plus.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus0#
+

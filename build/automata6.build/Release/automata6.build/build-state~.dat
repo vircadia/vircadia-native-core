@@ -1,0 +1,229 @@
+Tautomata6
+v7
+r0
+t325212981.320645
+cCheck dependencies
+cCompileC build/automata6.build/Release/automata6.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
+cCompileC build/automata6.build/Release/automata6.build/Objects-normal/i386/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal i386 c++ com.apple.compilers.gcc.4_2
+cLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6 normal i386
+cLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6 normal x86_64
+cCompileC build/automata6.build/Release/automata6.build/Objects-normal/ppc/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal ppc c++ com.apple.compilers.gcc.4_2
+cLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6 normal ppc
+cCreateUniversalBinary /Users/philip/Desktop/test_c_plus/build/Release/automata6 normal "x86_64 i386 ppc"
+cGenerateDSYMFile /Users/philip/Desktop/test_c_plus/build/Release/automata6.dSYM /Users/philip/Desktop/test_c_plus/build/Release/automata6
+
+N/Developer/SDKs/MacOSX10.6.sdk
+c000000004CAA740B00000000000000EE
+t1286239243
+s238
+
+N/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h
+c000000004C23CCCC000000000000578C
+t1277414604
+s22412
+
+N/Developer/SDKs/MacOSX10.6.sdk/usr/include/math.h
+c000000004A5C14A000000000000004F1
+t1247548576
+s1265
+
+N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdio.h
+c000000004BBD2CE90000000000004174
+t1270689001
+s16756
+
+N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdlib.h
+c000000004BBD2CE90000000000002DF5
+t1270689001
+s11765
+
+N/Developer/SDKs/MacOSX10.6.sdk/usr/include/string.h
+c000000004BBD2CE90000000000001731
+t1270689001
+s5937
+
+N/System/Library/Frameworks/GLUT.framework/GLUT
+c000000004B5FAB1A00000000001A2920
+t1264560922
+s1714464
+
+N/System/Library/Frameworks/OpenGL.framework/OpenGL
+c000000004D7713DA0000000000043330
+t1299649498
+s275248
+
+N/Users/philip/Desktop/test_c_plus/build/Release/automata6
+t1303520181
+s71104
+
+N/Users/philip/Desktop/test_c_plus/build/Release/automata6.dSYM
+t1303520181
+s102
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6
+t1303520179
+s19408
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6.LinkFileList
+c000000004DB223B3000000000000006B
+t1303520179
+s107
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/main.o
+t1303520179
+s98868
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6
+t1303520181
+s21952
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6.LinkFileList
+c000000004DB223B3000000000000006A
+t1303520179
+s106
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/main.o
+t1303520180
+s103740
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6
+t1303520179
+s24312
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6.LinkFileList
+c000000004DB223B3000000000000006D
+t1303520179
+s109
+
+N/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/main.o
+t1303520179
+s103624
+
+N/Users/philip/Desktop/test_c_plus/main.cpp
+c000000004DB216950000000000003523
+t1303516821
+s13603
+i<iostream>
+i<fstream>
+i<string>
+i<stdlib.h>
+i<GLUT/glut.h>
+i<iostream>
+i<fstream>
+i<math.h>
+i<string.h>
+i<stdio.h>
+
+CCheck dependencies
+r0
+lSLF07#2@18"Check dependencies325212979#325212979#0(0"0(0#1#0"8605821280#0"0#
+
+CCompileC build/automata6.build/Release/automata6.build/Objects-normal/i386/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal i386 c++ com.apple.compilers.gcc.4_2
+s325212979.064154
+e325212979.774767
+r1
+xCompileC
+xbuild/automata6.build/Release/automata6.build/Objects-normal/i386/main.o
+x/Users/philip/Desktop/test_c_plus/main.cpp
+xnormal
+xi386
+xc++
+xcom.apple.compilers.gcc.4_2
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'
+lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp325212979#325212979#0(490"/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'325212979#80#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#401#0#401#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212979#268#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#412#0#412#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212979#379#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#414#0#414#0#49"deprecated conversion from string constant to '*'0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8603018720#1302"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch i386 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Release -I/Users/philip/Desktop/test_c_plus/build/Release/include -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources/i386 -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/main.o0#
+
+CCompileC build/automata6.build/Release/automata6.build/Objects-normal/ppc/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal ppc c++ com.apple.compilers.gcc.4_2
+s325212979.838430
+e325212980.998926
+r1
+xCompileC
+xbuild/automata6.build/Release/automata6.build/Objects-normal/ppc/main.o
+x/Users/philip/Desktop/test_c_plus/main.cpp
+xnormal
+xppc
+xc++
+xcom.apple.compilers.gcc.4_2
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'
+lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp325212979#325212980#0(490"/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'325212980#80#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#401#0#401#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212980#268#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#412#0#412#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212980#379#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#414#0#414#0#49"deprecated conversion from string constant to '*'0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8607898080#1309"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch ppc -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -mtune=G5 -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Release -I/Users/philip/Desktop/test_c_plus/build/Release/include -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources/ppc -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/main.o0#
+
+CCompileC build/automata6.build/Release/automata6.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
+s325212979.062758
+e325212979.811548
+r1
+xCompileC
+xbuild/automata6.build/Release/automata6.build/Objects-normal/x86_64/main.o
+x/Users/philip/Desktop/test_c_plus/main.cpp
+xnormal
+xx86_64
+xc++
+xcom.apple.compilers.gcc.4_2
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':
+o/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'
+o/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'
+lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp325212979#325212979#0(490"/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'325212979#80#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#401#0#401#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212979#268#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#412#0#412#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212979#379#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#414#0#414#0#49"deprecated conversion from string constant to '*'0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8605807840#1308"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch x86_64 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/automata6-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Release -I/Users/philip/Desktop/test_c_plus/build/Release/include -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources/x86_64 -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/main.o0#
+
+CCreateUniversalBinary /Users/philip/Desktop/test_c_plus/build/Release/automata6 normal "x86_64 i386 ppc"
+s325212981.199258
+e325212981.232548
+r1
+xCreateUniversalBinary
+x/Users/philip/Desktop/test_c_plus/build/Release/automata6
+xnormal
+xx86_64 i386 ppc
+lSLF07#2@70"CreateUniversalBinary build/Release/automata6 normal "x86_64 i386 ppc"325212981#325212981#0(0"0(0#0#49"/Users/philip/Desktop/test_c_plus/x86_64 i386 ppc8606179168#464"    cd /Users/philip/Desktop/test_c_plus    /usr/bin/lipo -create /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6 /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6 /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6 -output /Users/philip/Desktop/test_c_plus/build/Release/automata60#
+
+CGenerateDSYMFile /Users/philip/Desktop/test_c_plus/build/Release/automata6.dSYM /Users/philip/Desktop/test_c_plus/build/Release/automata6
+s325212981.232633
+e325212981.320604
+r1
+xGenerateDSYMFile
+x/Users/philip/Desktop/test_c_plus/build/Release/automata6.dSYM
+x/Users/philip/Desktop/test_c_plus/build/Release/automata6
+lSLF07#2@69"GenerateDSYMFile build/Release/automata6.dSYM build/Release/automata6325212981#325212981#0(0"0(0#0#57"/Users/philip/Desktop/test_c_plus/build/Release/automata68606138464#197"    cd /Users/philip/Desktop/test_c_plus    /Developer/usr/bin/dsymutil /Users/philip/Desktop/test_c_plus/build/Release/automata6 -o /Users/philip/Desktop/test_c_plus/build/Release/automata6.dSYM0#
+
+CLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6 normal i386
+s325212979.774860
+e325212979.838344
+r1
+xLd
+x/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6
+xnormal
+xi386
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found
+lSLF07#2@114"Link /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6325212979#325212979#0(192"ld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not foundld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found2(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found325212979#0#96#0(6@0"325212979#0#0#0#0#0"0(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found325212979#96#96#0(6@0"325212979#0#0#0#0#0"0(0#0#0"8606340384#571"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch i386 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Release -F/Users/philip/Desktop/test_c_plus/build/Release -filelist /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata6.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/i386/automata60#
+
+CLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6 normal ppc
+s325212980.999045
+e325212981.199160
+r1
+xLd
+x/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6
+xnormal
+xppc
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found
+lSLF07#2@113"Link /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6325212980#325212981#0(192"ld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not foundld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found2(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found325212981#0#96#0(6@0"325212981#0#0#0#0#0"0(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found325212981#96#96#0(6@0"325212981#0#0#0#0#0"0(0#0#0"8606342784#568"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch ppc -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Release -F/Users/philip/Desktop/test_c_plus/build/Release -filelist /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata6.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/ppc/automata60#
+
+CLd /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6 normal x86_64
+s325212979.811638
+e325212979.842318
+r1
+xLd
+x/Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6
+xnormal
+xx86_64
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found
+old: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found
+lSLF07#2@116"Link /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6325212979#325212979#0(192"ld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not foundld: warning: directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found2(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -L not found325212979#0#96#0(6@0"325212979#0#0#0#0#0"0(22@82"Directory '/Users/philip/Desktop/test_c_plus/build/Release' following -F not found325212979#96#96#0(6@0"325212979#0#0#0#0#0"0(0#0#0"8608111424#577"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch x86_64 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Release -F/Users/philip/Desktop/test_c_plus/build/Release -filelist /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata6.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Release/automata6.build/Objects-normal/x86_64/automata60#
+

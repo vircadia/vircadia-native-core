@@ -1,0 +1,7 @@
+Boxing balance surface project 
+
+Low latency high FPS display of exact balance point of a standing person, 
+detected by pressure sensors at corners of a 4' by 4' platform. 
+Sensors read and processed by Maple ret6 board, sent to MacBook via serial USB. 
+
+
