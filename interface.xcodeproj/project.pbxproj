@@ -15,6 +15,7 @@
 		B6BDADE215F44AA5002A07DF /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADD815F444C1002A07DF /* CoreAudio.framework */; };
 		B6BDADE315F44AB0002A07DF /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */; };
 		B6BDADE415F44AC7002A07DF /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDC15F444D3002A07DF /* AudioUnit.framework */; };
+		B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6BDAE4315F6BE53002A07DF /* particle.cpp */; };
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
 		D4EE3BBC15E45FFE00EE4C89 /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */; };
@@ -46,6 +47,8 @@
 		B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		B6BDADDC15F444D3002A07DF /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
 		B6BDADDE15F444DB002A07DF /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
+		B6BDAE4115F6BE4D002A07DF /* particle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = particle.h; sourceTree = "<group>"; };
+		B6BDAE4315F6BE53002A07DF /* particle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = particle.cpp; sourceTree = "<group>"; };
 		C6859E8B029090EE04C91782 /* test_c_plus.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = test_c_plus.1; sourceTree = "<group>"; };
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
@@ -99,6 +102,8 @@
 			isa = PBXGroup;
 			children = (
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
+				B6BDAE4115F6BE4D002A07DF /* particle.h */,
+				B6BDAE4315F6BE53002A07DF /* particle.cpp */,
 				D4EE3BC015E746E900EE4C89 /* world.h */,
 				D4EE3BC415EBD90C00EE4C89 /* network.h */,
 				D4EE3BC515EBD93400EE4C89 /* network.cpp */,
@@ -189,6 +194,7 @@
 				D4EE3BC215E761B000EE4C89 /* util.cpp in Sources */,
 				D4EE3BC615EBD93600EE4C89 /* network.cpp in Sources */,
 				B6BDADD415F4085B002A07DF /* audio.cpp in Sources */,
+				B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
