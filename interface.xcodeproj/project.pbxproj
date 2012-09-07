@@ -216,6 +216,10 @@
 					"\"$(SRCROOT)\"",
 					/usr/local/lib,
 				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-O3",
+					"$(OTHER_CFLAGS)",
+				);
 				PRODUCT_NAME = interface;
 			};
 			name = Debug;
@@ -232,6 +236,10 @@
 					"$(inherited)",
 					"\"$(SRCROOT)\"",
 					/usr/local/lib,
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-O3",
+					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
 			};

@@ -14,6 +14,24 @@
 // Note: main documentation in audio.cpp
 
 /**
+ * If enabled, direct the audio callback to write the audio input buffer 
+ * directly into the audio output buffer.
+ */
+#define WRITE_AUDIO_INPUT_TO_OUTPUT 1
+/**
+ * If enabled, create an additional buffer to store audio input
+ * and direct the audio callback to write the audio input to this buffer.
+ */
+#define WRITE_AUDIO_INPUT_TO_BUFFER 0
+
+// Note: I initially used static const bools within the Audio class and normal
+// 'if' blocks instead of preprocessor - under the assumption that the compiler
+// would optimize out the redundant code.
+// However, as that apparently did not work (for some reason or another - even
+// with full compiler optimization turned on), I've switched to using preprocessor
+// macros instead (which is probably faster anyways (at compile-time)).
+
+/**
  * Low level audio interface.
  * 
  * Contains static methods that write to an internal audio buffer, which 
@@ -30,11 +48,15 @@ public:
     static bool terminate ();
     
     // Write methods: write to internal audio buffer.
-    static void writeAudio  (unsigned int offset, unsigned int length, float *left, float *right);
-    static void addAudio    (unsigned int offset, unsigned int length, float *left, float *right);
-    static void writeTone   (unsigned int offset, unsigned int length, float left, float right);
-    static void addTone     (unsigned int offset, unsigned int length, float left, float right);
+    static void writeAudio  (unsigned int offset, unsigned int length, float const *left, float const *right);
+    static void addAudio    (unsigned int offset, unsigned int length, float const *left, float const *right);
+    static void writeTone   (unsigned int offset, unsigned int length, float const left, float const right);
+    static void addTone     (unsigned int offset, unsigned int length, float const left, float const right);
     static void clearAudio  (unsigned int offset, unsigned int length);
+    
+    // Read data from internal 'input' audio buffer to an external audio buffer.
+    // (*only* works if WRITE_AUDIO_INPUT_TO_BUFFER is enabled).
+    static void readAudioInput (unsigned int offset, unsigned int length, float *left, float *right);
     
     /**
      * Set the audio input gain. (multiplier applied to mic input)
@@ -69,7 +91,7 @@ private:
          */
         struct BufferFrame{
             float l, r;
-        } *buffer;
+        } *buffer, *inputBuffer;
         /**
          * Length of the audio buffer.
          */
@@ -88,14 +110,20 @@ private:
         AudioData () : bufferPos(0) {
             inputGain = 1.0f;
             buffer = new BufferFrame[bufferLength];
-            for (unsigned int i = 0; i < bufferLength; ++i) {
-                buffer[i].l = buffer[i].r = 0;
-            }
+            memset((float*)buffer, 0, sizeof(float) * bufferLength * 2);
+            #if WRITE_AUDIO_INPUT_TO_BUFFER
+            inputBuffer = new BufferFrame[bufferLength];
+            memset((float*)inputBuffer, 0, sizeof(float) * bufferLength * 2);
+            #else
+            inputBuffer = NULL;
+            #endif
         }
         ~AudioData () {
             delete[] buffer;
+            #if WRITE_AUDIO_INPUT_TO_BUFFER
+            delete[] inputBuffer;
+            #endif
         }
-        
     }*data;
     /**
      * Internal audio stream handle.

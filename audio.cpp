@@ -8,7 +8,7 @@
     
 /**
  * @file audio.cpp
- * Low level audio i/o wrapper around portaudio.
+ * Low level audio i/o portaudio wrapper.
  *
  * @author Seiji Emery
  *
@@ -56,25 +56,56 @@ int audioCallback (const void *inputBuffer,
     float *input = (float*)inputBuffer;
     float *output = (float*)outputBuffer;
     
-    if (input != NULL) {
+    #if WRITE_AUDIO_INPUT_TO_OUTPUT
+    if (input != NULL) {// && Audio::writeAudioInputToOutput) {
             // combine input into data buffer
         
             // temp variables (frames and bufferPos need to remain untouched so they can be used in the second block of code)
         unsigned int f = (unsigned int)frames,  
         p = data->bufferPos;
         for (; p < data->bufferLength && f > 0; --f, ++p) {
+        #if WRITE_AUDIO_INPUT_TO_BUFFER
+            data->buffer[p].l +=
+                data->inputBuffer[p].l = (*input++) * data->inputGain;
+            data->buffer[p].r +=
+                data->inputBuffer[p].r = (*input++) * data->inputGain;
+        #else
             data->buffer[p].l += (*input++) * data->inputGain;
             data->buffer[p].r += (*input++) * data->inputGain;
+        #endif
         }
         if (f > 0) {
                 // handle data->buffer wraparound
             for (p = 0; f > 0; --f, ++p) {
+            #if WRITE_AUDIO_INPUT_TO_BUFFER
+                data->buffer[p].l +=
+                    data->inputBuffer[p].l = (*input++) * data->inputGain;
+                data->buffer[p].r +=
+                    data->inputBuffer[p].r = (*input++) * data->inputGain;
+            #else
                 data->buffer[p].l += (*input++) * data->inputGain;
                 data->buffer[p].r += (*input++) * data->inputGain;
+            #endif
+            }
+        }
+    } 
+    #elif WRITE_AUDIO_INPUT_TO_BUFFER
+    if (input != NULL) {// && Audio::writeAudioInputToBuffer) {
+        unsigned int f = (unsigned int)frames,  
+        p = data->bufferPos;
+        for (; p < data->bufferLength && f > 0; --f, ++p) {
+            data->inputBuffer[p].l = (*input++) * data->inputGain;
+            data->inputBuffer[p].r = (*input++) * data->inputGain;
+        }
+        if (f > 0) {
+                // handle data->buffer wraparound
+            for (p = 0; f > 0; --f, ++p) {
+                data->inputBuffer[p].l = (*input++) * data->inputGain;
+                data->inputBuffer[p].r = (*input++) * data->inputGain;
             }
         }
     }
-    
+    #endif
         // Write data->buffer into outputBuffer
     if (data->bufferPos + frames >= data->bufferLength) {
             // wraparound: write first section (end of buffer) first
@@ -143,7 +174,8 @@ error:
  */
 bool Audio::terminate ()
 {
-    if (!initialized) return;
+    if (!initialized) 
+        return true;
     initialized = false;
         //  err = Pa_StopStream(stream);
         //  if (err != paNoError) goto error;
@@ -171,7 +203,9 @@ error:
  * @param[in]   left    Left channel of the audio stream.
  * @param[in]   right   Right channel of the audio stream.
  */
-void Audio::writeAudio (unsigned int offset, unsigned int length, float *left, float *right) {
+void Audio::writeAudio (unsigned int offset, unsigned int length, float const *left, float const *right) {
+    if (data->buffer == NULL)
+        return;
     if (length > data->bufferLength) {
         fprintf(stderr, "Audio::writeAudio length exceeded (%d). Truncating to %d.\n", length, data->bufferLength);
         length = data->bufferLength;
@@ -200,7 +234,9 @@ void Audio::writeAudio (unsigned int offset, unsigned int length, float *left, f
  * @param[in]   left    Left component.
  * @param[in]   right   Right component.
  */
-void Audio::writeTone (unsigned int offset, unsigned int length, float left, float right) {
+void Audio::writeTone (unsigned int offset, unsigned int length, float const left, float const right) {
+    if (data->buffer == NULL)
+        return;
     if (length > data->bufferLength) {
         fprintf(stderr, "Audio::writeTone length exceeded (%d). Truncating to %d.\n", length, data->bufferLength);
         length = data->bufferLength;
@@ -230,7 +266,9 @@ void Audio::writeTone (unsigned int offset, unsigned int length, float left, flo
  * @param[in]   left    Left channel of the audio stream.
  * @param[in]   right   Right channel of the audio stream.
  */
-void Audio::addAudio (unsigned int offset, unsigned int length, float *left, float *right) {
+void Audio::addAudio (unsigned int offset, unsigned int length, float const *left, float const *right) {
+    if (data->buffer == NULL)
+        return;
     if (length > data->bufferLength) {
         fprintf(stderr, "Audio::addAudio length exceeded (%d). Truncating to %d.\n", length, data->bufferLength);
         length = data->bufferLength;
@@ -260,7 +298,9 @@ void Audio::addAudio (unsigned int offset, unsigned int length, float *left, flo
  * @param[in]   left    Left component.
  * @param[in]   right   Right component.
  */
-void Audio::addTone (unsigned int offset, unsigned int length, float left, float right) {
+void Audio::addTone (unsigned int offset, unsigned int length, float const left, float const right) {
+    if (data->buffer == NULL)
+        return;
     if (length > data->bufferLength) {
         fprintf(stderr, "Audio::writeTone length exceeded (%d). Truncating to %d.\n", length, data->bufferLength);
         length = data->bufferLength;
@@ -286,6 +326,8 @@ void Audio::addTone (unsigned int offset, unsigned int length, float left, float
  * @param[in]   length  Length of section to clear.
  */
 void Audio::clearAudio(unsigned int offset, unsigned int length) {
+    if (data->buffer == NULL)
+        return;
     if (length > data->bufferLength) {
         fprintf(stderr, "Audio::clearAudio length exceeded (%d). Truncating to %d.\n", length, data->bufferLength);
         length = data->bufferLength;
@@ -304,7 +346,39 @@ void Audio::clearAudio(unsigned int offset, unsigned int length) {
     }
 }
 
-
+/**
+ * Read audio input into the target buffer.
+ * @param[in]   offset  Offset from the start of the input audio buffer to read from.
+ * @param[in]   length  Length of the target buffer.
+ * @param[out]  left    Left channel of the target buffer.
+ * @param[out]  right   Right channel of the target buffer.
+ */
+void Audio::readAudioInput (unsigned int offset, unsigned int length, float *left, float *right) {
+#if WRITE_AUDIO_INPUT_TO_BUFFER
+    if (data->inputBuffer == NULL)
+        return;
+    if (length + offset > data->bufferLength) {
+        fprintf(stderr, "Audio::readAudioInput length exceeded (%d + %d). Truncating to %d + %d.\n", offset, length, offset, data->bufferLength - offset);
+        length = data->bufferLength - offset;
+    }
+    unsigned int p = data->bufferPos + offset;
+    if (p > data->bufferLength) 
+        p -= data->bufferLength;
+    for (; p < data->bufferLength && length > 0; --length, ++p) {
+        *left++ = data->inputBuffer[p].l;
+        *right++ = data->inputBuffer[p].r;
+    }
+    if (length > 0) {
+        p = 0;
+        for (; length > 0; --length, ++p) {
+            *left++ = data->inputBuffer[p].l;
+            *right++ = data->inputBuffer[p].r;
+        }
+    }
+#else
+    return;
+#endif
+}
 
 
 
