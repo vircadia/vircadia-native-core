@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <stdio.h>
 #include "network.h"
  
 
