@@ -766,7 +766,7 @@ void key(unsigned char k, int x, int y)
         field_add(add, pos);
     }
     if (k == 't') {
-        Audio::writeTone(0, 150, 0.5f, 0.5f);
+        Audio::writeTone(0, 400, 1.0f, 0.5f);
     }
 }
 
