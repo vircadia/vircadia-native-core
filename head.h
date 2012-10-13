@@ -15,14 +15,45 @@
 #include <GLUT/glut.h>
 
 class Head {
-    float pitch;
-    float yaw;
-    float roll;
+    float Pitch;
+    float Yaw;
+    float Roll;
+    float PitchRate;
+    float YawRate;
+    float RollRate;
+    float EyeballPitch[2];
+    float EyeballYaw[2];
+    float EyebrowPitch[2];
+    float EyebrowRoll[2];
+    float interPupilDistance;
+    float interBrowDistance;
+    float NominalPupilSize;
+    float PupilSize;
+    float MouthPitch;
+    float MouthYaw;
+    float MouthWidth;
+    float MouthHeight;
+    
+    float PitchTarget; 
+    float YawTarget; 
+    
+    float NoiseEnvelope;
+    
+    float PupilConverge;
+    
 public:
-    void setPitch(float);
+    Head(void);
+    void reset();
+    void setPitch(float p) {Pitch = p; }
+    void setYaw(float y) {Yaw = y; }
+    void addPitch(float p) {Pitch -= p; }
+    void addYaw(float y){Yaw -= y; }
     void getPitch(float);
     void render();
-    void update();
+    void simulate(float);
+    int transmit(char*);
+    void receive(float);
+    void SetNewHeadTarget(float, float);
 };
 
 #endif

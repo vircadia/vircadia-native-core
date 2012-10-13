@@ -9,7 +9,7 @@
 #ifndef interface_field_h
 #define interface_field_h
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 

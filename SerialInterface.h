@@ -1,15 +1,13 @@
 //
 //  SerialInterface.h
-//  interface
-//
-//  Created by Seiji Emery on 8/10/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-//
+//  
+
 
 #ifndef interface_SerialInterface_h
 #define interface_SerialInterface_h
 
-void init_port (int *fd, int baud);
+int init_port (int baud);
+int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels);
 
 const int CHANNEL_COUNT = 4;
 

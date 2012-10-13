@@ -10,6 +10,7 @@
 
 void ParticleSystem::simulate (float deltaTime) {
     for (unsigned int i = 0; i < particleCount; ++i) {
+        
         // Move particles
         particles[i].position += particles[i].velocity * deltaTime;
         

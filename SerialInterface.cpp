@@ -1,9 +1,7 @@
 //
 //  SerialInterface.cpp
-//  interface
 //
-//  Created by Seiji Emery on 8/10/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Used to read Arduino/Maple ADC data from an external device using a serial port (over USB)
 //
 
 #include "SerialInterface.h"
@@ -14,12 +12,22 @@
 #include <fcntl.h>
 #include <termios.h>
 
+char SERIAL_PORT_NAME[] = "/dev/tty.usbmodem411";
+int serial_fd;
+
+const int MAX_BUFFER = 100;
+char serial_buffer[MAX_BUFFER];
+int serial_buffer_pos = 0;
 
 //  For accessing the serial port 
-void init_port(int *fd, int baud)
+int init_port(int baud)
 {
+    serial_fd = open(SERIAL_PORT_NAME, O_RDWR | O_NOCTTY | O_NDELAY); 
+
+    if (serial_fd == -1) return -1;     //  Failed to open port 
+    
     struct termios options;
-    tcgetattr(*fd,&options);
+    tcgetattr(serial_fd,&options);
     switch(baud)
     {
 		case 9600: cfsetispeed(&options,B9600);
@@ -43,8 +51,59 @@ void init_port(int *fd, int baud)
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
-    tcsetattr(*fd,TCSANOW,&options);
+    tcsetattr(serial_fd,TCSANOW,&options);
+    
+    return 0;                   //  Success!
 }
+
+int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels)
+{
+    int samples_read = 0;
+    const float AVG_RATE =  0.001;  // 0.00001;
+    char bufchar[1];
+    while (read(serial_fd, bufchar, 1) > 0)
+    {
+        serial_buffer[serial_buffer_pos] = bufchar[0];
+        serial_buffer_pos++;
+        //  Have we reached end of a line of input?
+        if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER))
+        {
+            samples_read++;
+            //  At end - Extract value from string to variables
+            if (serial_buffer[0] != 'p')
+            {
+                sscanf(serial_buffer, "%d %d %d %d", &adc_channels[0], 
+                       &adc_channels[1], 
+                       &adc_channels[2], 
+                       &adc_channels[3]);
+                for (int i = 0; i < 4; i++)
+                {
+                    if (!first_measurement)
+                        avg_adc_channels[i] = (1.f - AVG_RATE)*avg_adc_channels[i] + 
+                        AVG_RATE*(float)adc_channels[i];
+                    else
+                    {
+                        avg_adc_channels[i] = (float)adc_channels[i];
+                    }
+                }
+            }
+            //  Clear rest of string for printing onscreen
+            while(serial_buffer_pos++ < MAX_BUFFER) serial_buffer[serial_buffer_pos] = ' ';
+            serial_buffer_pos = 0;
+        }
+        /*
+        if (bufchar[0] == 'p')
+        {
+            gettimeofday(&end_ping, NULL);
+            ping = diffclock(begin_ping,end_ping);
+            display_ping = 1; 
+        }
+         */
+    }
+   
+    return samples_read;
+}
+
 
 bool SerialInterface::enable () {
     if (!_enabled) {
@@ -76,7 +135,7 @@ int SerialInterface::initInterface () {
             _enabled = false;
 			return 1;
 		} else {
-			init_port(&_serial_fd, 115200);
+			//init_port(&_serial_fd, 115200);
 		}
 	}
     return 0;

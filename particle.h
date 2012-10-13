@@ -9,7 +9,7 @@
 #ifndef interface_particle_h
 #define interface_particle_h
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 class ParticleSystem {
 public:

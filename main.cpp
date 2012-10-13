@@ -37,19 +37,14 @@
 #include "util.h"
 #include "network.h"
 #include "audio.h"
+#include "head.h"
 
 //TGAImg Img;
 
 using namespace std;
 
 //   Junk for talking to the Serial Port 
-int serial_fd;
-const int MAX_BUFFER = 100;
-char serial_buffer[MAX_BUFFER];
-int serial_buffer_pos = 0;
-int serial_on = 0;                  //  Are we using serial port for I/O
-int ping_test = 1; 
-int display_ping = 0; 
+int serial_on = 0;                  //  Are we using serial port for I/O?
 
 timeval begin_ping, end_ping;
 timeval timer_start, timer_end;
@@ -71,16 +66,13 @@ double ping = 0;
 //clock_t begin_ping, end_ping;
 
 
-#define WIDTH 1000					//  Width,Height of simulation area in cells
-#define HEIGHT 600
+#define WIDTH 1280					//  Width,Height of simulation area in cells
+#define HEIGHT 800
 #define BOTTOM_MARGIN 0				
 #define RIGHT_MARGIN 0
 #define TEXT_HEIGHT 14
 
-
-//#define NUM_TRIS 1000000
-//float tris[NUM_TRIS * 9];
-//float tri_colors[NUM_TRIS * 3];
+Head myHead;                        //  The rendered head of oneself or others 
 
 //  Test data for creating fields that affect particles 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
@@ -101,12 +93,13 @@ struct {
     float vel     [NUM_TRIS * 3];
     glm::vec3 vel1[NUM_TRIS];
     glm::vec3 vel2[NUM_TRIS];
+    int element[NUM_TRIS];
 }tris;
 
 float twiddles[NUM_TRIS * 9];
 
-float yaw =0.f;
-float pitch = 0.f;
+float yaw =0.f;                         //  The yaw, pitch for the avatar head 
+float pitch = 0.f;                      //      
 float start_yaw = 90.0;
 float render_yaw = start_yaw;
 float render_pitch = 0.f;
@@ -127,9 +120,11 @@ int stats_on = 1;					//  Whether to show onscreen text overlay with stats
 int noise_on = 0;					//  Whether to fire randomly
 int step_on = 0;                    
 int display_levels = 1;
-int display_head = 1;
+int display_head = 0;
 int display_field = 0;
-int reset_sensors = 0;
+
+int display_head_mouse = 1;              //  Display sample mouse pointer controlled by head movement
+int head_mouse_x, head_mouse_y;     
 
 int mouse_x, mouse_y;				//  Where is the mouse 
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
@@ -173,56 +168,6 @@ double diffclock(timeval clock1,timeval clock2)
 	return diffms;
 }
 
-// Collect sensor data from serial port, return number of lines of I/O data read 
-int read_sensors(int first_measurement)
-{
-    int lines_read = 0;
-    const float AVG_RATE = 0.00001;
-    if (serial_on)
-    {
-        char bufchar[1];
-        while (read(serial_fd, bufchar, 1) > 0)
-        {
-            serial_buffer[serial_buffer_pos] = bufchar[0];
-            serial_buffer_pos++;
-            //  Have we reached end of a line of input?
-            if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER))
-            {
-                lines_read++;
-                //  At end - Extract value from string to variables
-                if (serial_buffer[0] != 'p')
-                {
-                    samplecount++;
-                    sscanf(serial_buffer, "%d %d %d %d", &adc_channels[0], 
-                           &adc_channels[1], 
-                           &adc_channels[2], 
-                           &adc_channels[3]);
-                    for (int i = 0; i < 4; i++)
-                    {
-                        if (!first_measurement)
-                            avg_adc_channels[i] = (1.f - AVG_RATE)*avg_adc_channels[i] + 
-                            AVG_RATE*(float)adc_channels[i];
-                        else
-                        {
-                            avg_adc_channels[i] = (float)adc_channels[i];
-                        }
-                    }
-                }
-                //  Clear rest of string for printing onscreen
-                while(serial_buffer_pos++ < MAX_BUFFER) serial_buffer[serial_buffer_pos] = ' ';
-                serial_buffer_pos = 0;
-            }
-            if (bufchar[0] == 'p')
-            {
-                gettimeofday(&end_ping, NULL);
-                ping = diffclock(begin_ping,end_ping);
-                display_ping = 1; 
-            }
-        }
-    }
-    return lines_read;
-}
-
 //  Every second, check the frame rates and other stuff 
 void Timer(int extra)
 {
@@ -240,14 +185,6 @@ void Timer(int extra)
     samplecount = 0; 
     bytes_in = 0;
     
-    if (serial_on && ping_test)
-    {
-        char buf[] = "ping";
-        write(serial_fd,buf,4);
-        write(serial_fd, "\r", 1);
-        gettimeofday(&begin_ping, NULL);
-        display_ping = 2;
-    }
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
 }
@@ -258,16 +195,6 @@ void display_stats(void)
 	glColor3f(1.0f, 1.0f, 1.0f);
     char legend[] = "/ - toggle this display, Q - exit, N - toggle noise, M - toggle map, T - test audio";
 	output(10,15,legend);
-    if (serial_on)
-    {
-        /*char stuff[50];
-        if (bytes_read > 0)
-        {
-            sprintf(stuff, "bytes=%i", bytes_read);
-            output(10,60,stuff);
-        }*/
-        //output(100,60,serial_buffer);
-    }
 	char mouse[50];
 	sprintf(mouse, "mouse_x = %i, mouse_y = %i, pressed = %i, key = %i", mouse_x, mouse_y, mouse_pressed, last_key);
 	output(10,35,mouse);
@@ -302,6 +229,9 @@ void init(void)
 
     avg_adc_channels[0] = avg_adc_channels[1] = avg_adc_channels[2] = avg_adc_channels[3] = 0.f;
         
+    head_mouse_x = WIDTH/2;
+    head_mouse_y = HEIGHT/2; 
+    
     int i, j;
     
     //  Initialize Field values 
@@ -326,13 +256,6 @@ void init(void)
         else if (r > 0.90) tri_scale = 0.1;
         else tri_scale = 0.05; 
         
-        tris.colors[i*3] = randFloat();
-        tris.colors[i*3+1] = randFloat();
-        tris.colors[i*3+2] = randFloat();
-
-        tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
 
         glm::vec3 pos (randFloat() * WORLD_SIZE,
                        randFloat() * WORLD_SIZE,
@@ -351,7 +274,26 @@ void init(void)
         tris.normals[i*3] = pos.x;
         tris.normals[i*3+1] = pos.y;
         tris.normals[i*3+2] = pos.z;
+        
+        //  Decide what kind of element this particle is to be, color accordingly
+        if (randFloat() < 0.10)
+        {
+            //  Fixed - blue
+            tris.element[i] = 0;
+            tris.colors[i*3] = 0.0;  tris.colors[i*3+1] = 0.0; tris.colors[i*3+2] = 1.0;
+            tris.vel[i*3] = tris.vel[i*3+1] = tris.vel[i*3+2] = 0.0;
+        }
+        else
+        {
+            //  Moving - white
+            tris.element[i] = 1;
+            tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
+            tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
+            tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
+            tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
 
+        }
+        
     }
     
     const float TWIDDLE_SCALE = 0.01;
@@ -364,11 +306,11 @@ void init(void)
      
     //  Call readsensors for a while to get stable initial values on sensors    
     gettimeofday(&timer_start, NULL);
-    read_sensors(1);
+    read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
     int done = 0;
     while (!done)
     {
-        read_sensors(0);
+        read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
         gettimeofday(&timer_end, NULL);
         if (diffclock(timer_start,timer_end) > 1000) done = 1;
     }
@@ -378,7 +320,7 @@ void init(void)
 
 void terminate () {
     // Close serial port
-    close(serial_fd);
+    //close(serial_fd);
 
     Audio::terminate();
     exit(EXIT_SUCCESS);
@@ -397,51 +339,57 @@ void update_tris()
     
     for (i = 0; i < NUM_TRIS; i++)
     {
-        // Update position
-        tris.vertices[i*9+0] += tris.vel[i*3];
-        tris.vertices[i*9+3] += tris.vel[i*3];
-        tris.vertices[i*9+6] += tris.vel[i*3];
-        
-        tris.vertices[i*9+1] += tris.vel[i*3+1];
-        tris.vertices[i*9+4] += tris.vel[i*3+1];
-        tris.vertices[i*9+7] += tris.vel[i*3+1]; 
-        
-        tris.vertices[i*9+2] += tris.vel[i*3+2];
-        tris.vertices[i*9+5] += tris.vel[i*3+2];
-        tris.vertices[i*9+8] += tris.vel[i*3+2]; 
-        
-        if (0)
+        if (tris.element[i] == 1)          //  If moving object, move and drag
         {
-            dist_sqrd = tris.vertices[i*9+0]*tris.vertices[i*9+0] +
-                        tris.vertices[i*9+1]*tris.vertices[i*9+1] + 
-                        tris.vertices[i*9+2]*tris.vertices[i*9+2];
+            // Update position
+            tris.vertices[i*9+0] += tris.vel[i*3];
+            tris.vertices[i*9+3] += tris.vel[i*3];
+            tris.vertices[i*9+6] += tris.vel[i*3];
             
-            if (dist_sqrd > 1.0)
+            tris.vertices[i*9+1] += tris.vel[i*3+1];
+            tris.vertices[i*9+4] += tris.vel[i*3+1];
+            tris.vertices[i*9+7] += tris.vel[i*3+1]; 
+            
+            tris.vertices[i*9+2] += tris.vel[i*3+2];
+            tris.vertices[i*9+5] += tris.vel[i*3+2];
+            tris.vertices[i*9+8] += tris.vel[i*3+2]; 
+            
+            if (0)
             {
-                glm::vec3 pos (tris.vertices[i*9+0],tris.vertices[i*9+1], tris.vertices[i*9+2]);
-                glm::normalize(pos);
-                pos*=-1/dist_sqrd*0.0001;
-            
-                tris.vel[i*3] += pos.x;
-                tris.vel[i*3+1] += pos.y;
-                tris.vel[i*3+2] += pos.z;
+                dist_sqrd = tris.vertices[i*9+0]*tris.vertices[i*9+0] +
+                            tris.vertices[i*9+1]*tris.vertices[i*9+1] + 
+                            tris.vertices[i*9+2]*tris.vertices[i*9+2];
+                
+                if (dist_sqrd > 1.0)
+                {
+                    glm::vec3 pos (tris.vertices[i*9+0],tris.vertices[i*9+1], tris.vertices[i*9+2]);
+                    glm::normalize(pos);
+                    pos*=-1/dist_sqrd*0.0001;
+                
+                    tris.vel[i*3] += pos.x;
+                    tris.vel[i*3+1] += pos.y;
+                    tris.vel[i*3+2] += pos.z;
+                }
             }
+            
+            // Add a little gravity 
+            const float GRAVITY = 0.0001;
+            tris.vel[i*3+1] -= GRAVITY;
+           
+            // Drag:  Decay velocity
+            tris.vel[i*3] *= 0.99;
+            tris.vel[i*3+1] *= 0.99;
+            tris.vel[i*3+2] *= 0.99;
         }
-        
-        // Add a little gravity 
-        const float GRAVITY = 0.0001;
-        tris.vel[i*3+1] -= GRAVITY;
-       
-        // Drag:  Decay velocity
-        tris.vel[i*3] *= 0.99;
-        tris.vel[i*3+1] *= 0.99;
-        tris.vel[i*3+2] *= 0.99;
                  
-        // Read and add velocity from field 
-        field_value(field_val, &tris.vertices[i*9]);
-        tris.vel[i*3] += field_val[0];
-        tris.vel[i*3+1] += field_val[1];
-        tris.vel[i*3+2] += field_val[2];
+        if (tris.element[i] == 1) 
+        {
+            // Read and add velocity from field 
+            field_value(field_val, &tris.vertices[i*9]);
+            tris.vel[i*3] += field_val[0];
+            tris.vel[i*3+1] += field_val[1];
+            tris.vel[i*3+2] += field_val[2];
+        }
 
         // bounce at edge of world 
         // X-Direction
@@ -463,6 +411,22 @@ void update_tris()
     }
 }
 
+void reset_sensors()
+{
+    render_yaw = start_yaw;
+    yaw = render_yaw_rate = 0; 
+    pitch = render_pitch = render_pitch_rate = 0;
+    lateral_vel = 0;
+    location[0] = start_location[0];
+    location[1] = start_location[1];
+    location[2] = start_location[2];
+    fwd_vel = 0.0;
+    head_mouse_x = WIDTH/2;
+    head_mouse_y = HEIGHT/2; 
+    myHead.reset();
+    read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
+}
+
 void update_pos(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
@@ -472,13 +436,27 @@ void update_pos(float frametime)
     float measured_fwd_accel = avg_adc_channels[3] - adc_channels[3];
     
     //  Update avatar head position based on measured gyro rates
-    yaw += measured_yaw_rate * 1.20 * frametime;
-    pitch += measured_pitch_rate * -1.0 * frametime;
+    myHead.addYaw(measured_yaw_rate * 1.20 * frametime);
+    myHead.addPitch(measured_pitch_rate * -1.0 * frametime);
     //  Decay avatar head back toward zero
-    pitch *= (1.f - 5.0*frametime); 
-    yaw *= (1.f - 7.0*frametime);
+    //pitch *= (1.f - 5.0*frametime); 
+    //yaw *= (1.f - 7.0*frametime);
 
+    //  Update head_mouse model 
+    const float MIN_MOUSE_RATE = 30.0;
+    const float MOUSE_SENSITIVITY = 0.1;
+    if (powf(measured_yaw_rate*measured_yaw_rate + 
+             measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
+    {
+        head_mouse_x -= measured_yaw_rate*MOUSE_SENSITIVITY;
+        head_mouse_y += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
+    }
+    head_mouse_x = max(head_mouse_x, 0);
+    head_mouse_x = min(head_mouse_x, WIDTH);
+    head_mouse_y = max(head_mouse_y, 0);
+    head_mouse_y = min(head_mouse_y, HEIGHT);
     
+                       
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 300;
     const float YAW_SENSITIVITY = 0.03;
@@ -551,21 +529,6 @@ void update_pos(float frametime)
     //  Slide location sideways
     location[0] += fwd_vec[2]*-lateral_vel;
     location[2] += fwd_vec[0]*lateral_vel;
-    
-    if (reset_sensors)
-    {
-        render_yaw = start_yaw;
-        yaw = render_yaw_rate = 0; 
-        pitch = render_pitch = render_pitch_rate = 0;
-        lateral_vel = 0;
-        location[0] = start_location[0];
-        location[1] = start_location[1];
-        location[2] = start_location[2];
-        fwd_vel = 0.0;
-        reset_sensors = 0; 
-        read_sensors(1);
-    }
-    
 }
 
 void display(void)
@@ -649,35 +612,11 @@ void display(void)
     // Display floating head in front of viewer
     if (display_head)
     {
-        glDisable(GL_DEPTH_TEST);
-        glPushMatrix();
-        glTranslatef(0.f, -4.f, -15.f);
-        glRotatef(yaw/2.0, 0, 1, 0);
-        glRotatef(pitch/2.0, 1, 0, 0);
-        glScalef(0.5, 1.0, 1.1);
-        glColor3f(1.0, 0.84, 0.66);
-        glutSolidSphere(1.f, 15, 15);           //  Head
-        
-        glTranslatef(1.f, 0.f, 0.f);
-        glPushMatrix();
-        glScalef(0.5, 0.75, 1.0);
-        glutSolidSphere(0.5f, 15, 15);          //  Ears
-        glPopMatrix();
-        glTranslatef(-2.f, 0.f, 0.f);
-        glPushMatrix();
-        glScalef(0.5, 0.75, 1.0);
-        glutSolidSphere(0.5f, 15, 15);
-        glPopMatrix();
-        glTranslatef(1.f, 1.f, 0.f);
-        glScalef(2.5, 0.5, 2.2);
-        glColor3f(0.5, 0.5, 0.5);
-        glutSolidSphere(0.25f, 15, 15);         //  Beanie
-        glPopMatrix();
+        myHead.render();
     }
     
     glEnd();
     glPopMatrix();
-    
     
     //  Render 2D overlay:  I/O level bar graphs and text  
     
@@ -697,6 +636,16 @@ void display(void)
         glVertex2f(target_x, target_y);
         glEnd();
     }
+    if (display_head_mouse)
+    {
+        glPointSize(20.f);
+        glColor4f(1.0, 1.0, 0.0, 0.8);
+        glEnable(GL_POINT_SMOOTH);
+        glBegin(GL_POINTS);
+        glVertex2f(head_mouse_x, head_mouse_y);
+        glEnd();
+    }
+    /*
     if (display_ping)
     {
         //  Draw a green dot to indicate receipt of ping signal 
@@ -710,6 +659,7 @@ void display(void)
         glEnd();
         display_ping = 0;
     }
+     */
     if (display_levels)
     {
         glColor4f(1.f, 1.f, 1.f, 1.f);
@@ -751,7 +701,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'c') location[1] += WORLD_SIZE/100.0;
     if (k == 'w') fwd_vel += 0.05;
     if (k == 's') fwd_vel -= 0.05;
-    if (k == ' ') reset_sensors = 1;   
+    if (k == ' ') reset_sensors();
     if (k == 'a') render_yaw_rate -= 0.25;
     if (k == 'd') render_yaw_rate += 0.25;
     if (k == 'p') 
@@ -763,6 +713,10 @@ void key(unsigned char k, int x, int y)
     }
     if (k == 't') {
         Audio::writeTone(0, 400, 1.0f, 0.5f);
+    }
+    if (k == '1')
+    {
+        myHead.SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*20.0);
     }
 }
 
@@ -786,9 +740,10 @@ void idle(void)
 {
     if (!step_on) glutPostRedisplay();
     read_network();
-    read_sensors(0);
+    samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
     update_pos(1.f/FPS); 
     update_tris();
+    myHead.simulate(1.f/FPS);
     if (SLEEP)
     {
         usleep(SLEEP);
@@ -868,15 +823,14 @@ int main(int argc, char** argv)
     //  Try to setup the serial port I/O 
     if (serial_on)
     {
-        serial_fd = open("/dev/tty.usbmodem411", O_RDWR | O_NOCTTY | O_NDELAY); // List usbSerial devices using Terminal ls /dev/tty.*
+        //serial_fd = open(SERIAL_PORT_NAME, O_RDWR | O_NOCTTY | O_NDELAY); 
+        // List usbSerial devices using Terminal ls /dev/tty.*
     
     
-        if(serial_fd == -1) {				// Check for port errors
-            cout << serial_fd;
+        if(init_port(115200) == -1) {				// Check for port errors
             perror("Unable to open serial port\n");
             return (0);
-        }
-        else init_port(&serial_fd, 115200);        
+        }    
     }
 
     glutInit(&argc, argv);

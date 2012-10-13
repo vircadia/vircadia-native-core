@@ -18,6 +18,7 @@
 		B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6BDAE4315F6BE53002A07DF /* particle.cpp */; };
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
+		D4B96D4915FF967C00CE6E8B /* head.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4B96D4815FF967C00CE6E8B /* head.cpp */; };
 		D4EE3BBC15E45FFE00EE4C89 /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */; };
 		D4EE3BBE15E7465700EE4C89 /* field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBD15E7465700EE4C89 /* field.cpp */; };
 		D4EE3BC215E761B000EE4C89 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BC115E761B000EE4C89 /* util.cpp */; };
@@ -52,6 +53,8 @@
 		C6859E8B029090EE04C91782 /* test_c_plus.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = test_c_plus.1; sourceTree = "<group>"; };
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
+		D4B96D4715FF966200CE6E8B /* head.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = head.h; sourceTree = "<group>"; };
+		D4B96D4815FF967C00CE6E8B /* head.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = head.cpp; sourceTree = "<group>"; };
 		D4EE3BBA15E45FFE00EE4C89 /* SerialInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SerialInterface.h; sourceTree = "<group>"; };
 		D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialInterface.cpp; sourceTree = "<group>"; };
 		D4EE3BBD15E7465700EE4C89 /* field.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = field.cpp; sourceTree = "<group>"; };
@@ -108,6 +111,8 @@
 				D4EE3BC415EBD90C00EE4C89 /* network.h */,
 				D4EE3BC515EBD93400EE4C89 /* network.cpp */,
 				D4EE3BBD15E7465700EE4C89 /* field.cpp */,
+				D4B96D4715FF966200CE6E8B /* head.h */,
+				D4B96D4815FF967C00CE6E8B /* head.cpp */,
 				D4EE3BBF15E7467600EE4C89 /* field.h */,
 				D4EE3BBA15E45FFE00EE4C89 /* SerialInterface.h */,
 				D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */,
@@ -195,6 +200,7 @@
 				D4EE3BC615EBD93600EE4C89 /* network.cpp in Sources */,
 				B6BDADD415F4085B002A07DF /* audio.cpp in Sources */,
 				B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */,
+				D4B96D4915FF967C00CE6E8B /* head.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,6 +216,7 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				"HEADER_SEARCH_PATHS[arch=*]" = /Users/philip/Desktop/automata/portaudio/include;
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -231,6 +238,7 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
+				"HEADER_SEARCH_PATHS[arch=*]" = /Users/philip/Desktop/automata/portaudio/include;
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
