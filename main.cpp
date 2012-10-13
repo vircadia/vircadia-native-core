@@ -176,7 +176,6 @@ double diffclock(timeval clock1,timeval clock2)
 void Timer(int extra)
 {
 	char title[100];
-    
     gettimeofday(&timer_end, NULL);
     FPS = (float)framecount / ((float)diffclock(timer_start,timer_end) / 1000.f);
     
@@ -230,6 +229,8 @@ void initDisplay(void)
 void init(void)
 {
     Audio::init();
+    printf( "Audio started.\n" );
+
 
     avg_adc_channels[0] = avg_adc_channels[1] = avg_adc_channels[2] = avg_adc_channels[3] = 0.f;
         
@@ -240,6 +241,8 @@ void init(void)
     
     //  Initialize Field values 
     field_init();
+    printf( "Field Initilialized.\n" );
+
     
     /*
     const float FIELD_SCALE = 0.00005;
@@ -308,15 +311,21 @@ void init(void)
         twiddles[i*3 + 2] = (randFloat() - 0.5)*TWIDDLE_SCALE;
     }
      
-    //  Call readsensors for a while to get stable initial values on sensors    
-    gettimeofday(&timer_start, NULL);
-    read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
-    int done = 0;
-    while (!done)
+    if (serial_on)
     {
-        read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
-        gettimeofday(&timer_end, NULL);
-        if (diffclock(timer_start,timer_end) > 1000) done = 1;
+        //  Call readsensors for a while to get stable initial values on sensors    
+        printf( "Stabilizing sensors... " );
+        gettimeofday(&timer_start, NULL);
+        read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
+        int done = 0;
+        while (!done)
+        {
+            read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
+            gettimeofday(&timer_end, NULL);
+            if (diffclock(timer_start,timer_end) > 1000) done = 1;
+        }
+        printf( "Done.\n" );
+
     }
     
     gettimeofday(&timer_start, NULL);
@@ -428,7 +437,7 @@ void reset_sensors()
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
     myHead.reset();
-    read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
+    if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
 }
 
 void update_pos(float frametime)
@@ -744,7 +753,7 @@ void idle(void)
 {
     if (!step_on) glutPostRedisplay();
     read_network();
-    samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
+    if (serial_on) samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
     update_pos(1.f/FPS); 
     update_tris();
     myHead.simulate(1.f/FPS);
@@ -838,12 +847,11 @@ int main(int argc, char** argv)
     }
 
     glutInit(&argc, argv);
-    
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-	
     glutInitWindowSize(RIGHT_MARGIN + WIDTH, BOTTOM_MARGIN + HEIGHT);
-    
     glutCreateWindow("Interface Test");
+    
+    printf( "Created Display Window.\n" );
     
     initDisplay();
     
@@ -854,9 +862,14 @@ int main(int argc, char** argv)
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
 	
+    printf( "Initialized Display.\n" );
+
     init();
     
+    printf( "Init() complete.\n" );
+    
     glutTimerFunc(1000,Timer,0);
+    
     glutMainLoop();
     
     ::terminate();
