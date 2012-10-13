@@ -6,10 +6,14 @@
 //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 //
 
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 #include <iostream>
 #include "field.h"
 #include "world.h"
-#include <GLUT/glut.h>
 
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 

@@ -14,13 +14,17 @@
 //  s = clear cells to zero but preserve synapse weights
 //
 
-#include <stdlib.h>
+#ifdef __APPLE__
 #include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 #include <iostream>
 #include <fstream>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/time.h>
 
 //  These includes are for the serial port reading/writing
