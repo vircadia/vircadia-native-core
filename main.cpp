@@ -42,6 +42,7 @@
 #include "network.h"
 #include "audio.h"
 #include "head.h"
+#include "hand.h"
 
 //TGAImg Img;
 
@@ -52,6 +53,8 @@ int serial_on = 0;                  //  Are we using serial port for I/O?
 
 timeval begin_ping, end_ping;
 timeval timer_start, timer_end;
+timeval last_frame;
+
 double elapsedTime;
 
 //  Socket operation stuff 
@@ -77,6 +80,7 @@ double ping = 0;
 #define TEXT_HEIGHT 14
 
 Head myHead;                        //  The rendered head of oneself or others 
+Hand myHand;                        //  My hand (used to manipulate things in world)
 
 //  Test data for creating fields that affect particles 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
@@ -88,8 +92,9 @@ Head myHead;                        //  The rendered head of oneself or others
 //  y = (int)(i % 100 / 10)
 //  x = (int)(i % 10)
 
+#define RENDER_FRAME_MSECS 10
 #define SLEEP 0
-#define NUM_TRIS 100000
+#define NUM_TRIS 20000   //000
 struct {
     float vertices[NUM_TRIS * 9];
     float normals [NUM_TRIS * 3];
@@ -121,7 +126,10 @@ float fwd_vel = 0.0f;
 #define MAX_FILE_CHARS 100000		//  Biggest file size that can be read to the system
 
 int stats_on = 1;					//  Whether to show onscreen text overlay with stats
-int noise_on = 0;					//  Whether to fire randomly
+
+int noise_on = 0;					//  Whether to add random noise 
+float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
+
 int step_on = 0;                    
 int display_levels = 1;
 int display_head = 0;
@@ -139,13 +147,23 @@ int speed;
 
 float mag_imbalance = 0.f;
 
-int adc_channels[4];                //  Measured input values for gyros, accelerometers
+//  
+//  Serial I/O channel mapping:
+//  
+//  0   Head Gyro Pitch 
+//  1   Head Gyro Yaw 
+//  2   Head Accelerometer X
+//  3   Head Accelerometer Z 
+//  
+
+int adc_channels[4];                
 float avg_adc_channels[4];
-
 int first_measurement = 1;
-
-int framecount = 0;                 //  Measure timing for framerate 
 int samplecount = 0;
+
+//  Frame rate Measurement
+
+int framecount = 0;                  
 float FPS = 120.f;
 
 void output(int x, int y, char *string)
@@ -243,6 +261,11 @@ void init(void)
     field_init();
     printf( "Field Initilialized.\n" );
 
+    if (noise_on) 
+    {   
+        myHand.setNoise(noise);
+        myHead.setNoise(noise);
+    }
     
     /*
     const float FIELD_SCALE = 0.00005;
@@ -329,6 +352,7 @@ void init(void)
     }
     
     gettimeofday(&timer_start, NULL);
+    gettimeofday(&last_frame, NULL);
 }
 
 void terminate () {
@@ -437,14 +461,15 @@ void reset_sensors()
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
     myHead.reset();
+    myHand.reset();
     if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
 }
 
 void update_pos(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
     float measured_pitch_rate = adc_channels[0] - avg_adc_channels[0];
+    float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
     float measured_lateral_accel = adc_channels[2] - avg_adc_channels[2];
     float measured_fwd_accel = avg_adc_channels[3] - adc_channels[3];
     
@@ -554,7 +579,6 @@ void display(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glPushMatrix();
     
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -563,7 +587,6 @@ void display(void)
     glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
     GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    //GLfloat diffuse_color[] = { 1.0, 0.84, 0.66};  
     GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
     GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
@@ -571,10 +594,7 @@ void display(void)
     
     glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
-
-   
-    glPushMatrix();
-    
+       
     //  Rotate, translate to camera location 
     glRotatef(render_pitch, 1, 0, 0);
     glRotatef(render_yaw, 0, 1, 0);
@@ -620,79 +640,77 @@ void display(void)
     
     render_world_box();
         
-    glPopMatrix();
     
     // Display floating head in front of viewer
     if (display_head)
     {
         myHead.render();
     }
+    myHand.render();
     
-    glEnd();
-    glPopMatrix();
     
     //  Render 2D overlay:  I/O level bar graphs and text  
     
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity(); 
-    gluOrtho2D(0, WIDTH, HEIGHT, 0);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
+        glLoadIdentity(); 
+        gluOrtho2D(0, WIDTH, HEIGHT, 0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
 
-    if (mouse_pressed == 1)
-    {
-        glPointSize(20.f);
-        glColor3f(1,1,1);
-        glEnable(GL_POINT_SMOOTH);
-        glBegin(GL_POINTS);
-        glVertex2f(target_x, target_y);
-        glEnd();
-    }
-    if (display_head_mouse)
-    {
-        glPointSize(20.f);
-        glColor4f(1.0, 1.0, 0.0, 0.8);
-        glEnable(GL_POINT_SMOOTH);
-        glBegin(GL_POINTS);
-        glVertex2f(head_mouse_x, head_mouse_y);
-        glEnd();
-    }
-    /*
-    if (display_ping)
-    {
-        //  Draw a green dot to indicate receipt of ping signal 
-        glPointSize(10.f);
-        if (display_ping == 2)
-            glColor4f(1.f, 0.f, 0.f, 1.f);
-        else 
-            glColor4f(0.f, 1.f, 0.f, 1.f);
-        glBegin(GL_POINTS);
-        glVertex2f(50, 400);
-        glEnd();
-        display_ping = 0;
-    }
-     */
-    if (display_levels)
-    {
-        glColor4f(1.f, 1.f, 1.f, 1.f);
-        glBegin(GL_LINES);
-        glVertex2f(10, HEIGHT*0.95);
-        glVertex2f(10, HEIGHT*(0.25 + 0.75f*adc_channels[0]/4096));
-        
-        glVertex2f(20, HEIGHT*0.95);
-        glVertex2f(20, HEIGHT*(0.25 + 0.75f*adc_channels[1]/4096));
-        
-        glVertex2f(30, HEIGHT*0.95);
-        glVertex2f(30, HEIGHT*(0.25 + 0.75f*adc_channels[2]/4096));
-        
-        glVertex2f(40, HEIGHT*0.95);
-        glVertex2f(40, HEIGHT*(0.25 + 0.75f*adc_channels[3]/4096));
-        glEnd();
-        
-    }
+        if (mouse_pressed == 1)
+        {
+            glPointSize(20.f);
+            glColor3f(1,1,1);
+            glEnable(GL_POINT_SMOOTH);
+            glBegin(GL_POINTS);
+            glVertex2f(target_x, target_y);
+            glEnd();
+        }
+        if (display_head_mouse)
+        {
+            glPointSize(20.f);
+            glColor4f(1.0, 1.0, 0.0, 0.8);
+            glEnable(GL_POINT_SMOOTH);
+            glBegin(GL_POINTS);
+            glVertex2f(head_mouse_x, head_mouse_y);
+            glEnd();
+        }
+        /*
+        if (display_ping)
+        {
+            //  Draw a green dot to indicate receipt of ping signal 
+            glPointSize(10.f);
+            if (display_ping == 2)
+                glColor4f(1.f, 0.f, 0.f, 1.f);
+            else 
+                glColor4f(0.f, 1.f, 0.f, 1.f);
+            glBegin(GL_POINTS);
+            glVertex2f(50, 400);
+            glEnd();
+            display_ping = 0;
+        }
+         */
+        if (display_levels)
+        {
+            glColor4f(1.f, 1.f, 1.f, 1.f);
+            glBegin(GL_LINES);
+            glVertex2f(10, HEIGHT*0.95);
+            glVertex2f(10, HEIGHT*(0.25 + 0.75f*adc_channels[0]/4096));
+            
+            glVertex2f(20, HEIGHT*0.95);
+            glVertex2f(20, HEIGHT*(0.25 + 0.75f*adc_channels[1]/4096));
+            
+            glVertex2f(30, HEIGHT*0.95);
+            glVertex2f(30, HEIGHT*(0.25 + 0.75f*adc_channels[2]/4096));
+            
+            glVertex2f(40, HEIGHT*0.95);
+            glVertex2f(40, HEIGHT*(0.25 + 0.75f*adc_channels[3]/4096));
+            glEnd();
+            
+        }
 
-   	if (stats_on) display_stats(); 
+        if (stats_on) display_stats(); 
     glPopMatrix();
     
     glutSwapBuffers();
@@ -707,7 +725,21 @@ void key(unsigned char k, int x, int y)
 	
 	if (k == 'q')  ::terminate();
 	if (k == '/')  stats_on = !stats_on;		// toggle stats
-	if (k == 'n') noise_on = !noise_on;			//  toggle random mutation
+	if (k == 'n') 
+    {
+        noise_on = !noise_on;			// Toggle noise 
+        if (noise_on)
+        {
+            myHand.setNoise(noise);
+            myHead.setNoise(noise);
+        }
+        else 
+        {
+            myHand.setNoise(0);
+            myHead.setNoise(0);
+        }
+
+    }
     if (k == 'h') display_head = !display_head;
     if (k == 'f') display_field = !display_field;
     if (k == 'e') location[1] -= WORLD_SIZE/100.0;
@@ -751,17 +783,31 @@ void read_network()
 
 void idle(void)
 {
-    if (!step_on) glutPostRedisplay();
+    timeval check;
+    gettimeofday(&check, NULL);
+    
+    //  Check and render display frame 
+    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS) 
+    {
+        //  Simulation
+        update_pos(1.f/FPS); 
+        update_tris();
+        myHead.simulate(1.f/FPS);
+        myHand.simulate(1.f/FPS);
+
+        if (!step_on) glutPostRedisplay();
+        last_frame = check;
+    }
+    
+    //  Read network packets
     read_network();
+    //  Read serial data 
     if (serial_on) samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
-    update_pos(1.f/FPS); 
-    update_tris();
-    myHead.simulate(1.f/FPS);
+    
     if (SLEEP)
     {
         usleep(SLEEP);
     }
-
 }
 
 void reshape(int width, int height)

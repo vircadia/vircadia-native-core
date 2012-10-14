@@ -15,6 +15,7 @@
 #include <GLUT/glut.h>
 
 class Head {
+    float noise;
     float Pitch;
     float Yaw;
     float Roll;
@@ -44,6 +45,7 @@ class Head {
 public:
     Head(void);
     void reset();
+    void setNoise (float mag) { noise = mag; }
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
     void addPitch(float p) {Pitch -= p; }

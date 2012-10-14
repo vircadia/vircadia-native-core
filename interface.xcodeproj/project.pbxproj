@@ -23,6 +23,7 @@
 		D4EE3BBE15E7465700EE4C89 /* field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBD15E7465700EE4C89 /* field.cpp */; };
 		D4EE3BC215E761B000EE4C89 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BC115E761B000EE4C89 /* util.cpp */; };
 		D4EE3BC615EBD93600EE4C89 /* network.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BC515EBD93400EE4C89 /* network.cpp */; };
+		D4EFE3D0162A2DA000DC5C59 /* hand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EFE3CF162A2DA000DC5C59 /* hand.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,6 +65,8 @@
 		D4EE3BC315E7625000EE4C89 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		D4EE3BC415EBD90C00EE4C89 /* network.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = network.h; sourceTree = "<group>"; };
 		D4EE3BC515EBD93400EE4C89 /* network.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = network.cpp; sourceTree = "<group>"; };
+		D4EFE3CE162A2D7300DC5C59 /* hand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hand.h; sourceTree = "<group>"; };
+		D4EFE3CF162A2DA000DC5C59 /* hand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hand.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +116,8 @@
 				D4EE3BBD15E7465700EE4C89 /* field.cpp */,
 				D4B96D4715FF966200CE6E8B /* head.h */,
 				D4B96D4815FF967C00CE6E8B /* head.cpp */,
+				D4EFE3CE162A2D7300DC5C59 /* hand.h */,
+				D4EFE3CF162A2DA000DC5C59 /* hand.cpp */,
 				D4EE3BBF15E7467600EE4C89 /* field.h */,
 				D4EE3BBA15E45FFE00EE4C89 /* SerialInterface.h */,
 				D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */,
@@ -201,6 +206,7 @@
 				B6BDADD415F4085B002A07DF /* audio.cpp in Sources */,
 				B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */,
 				D4B96D4915FF967C00CE6E8B /* head.cpp in Sources */,
+				D4EFE3D0162A2DA000DC5C59 /* hand.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
