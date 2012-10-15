@@ -8,6 +8,10 @@
 
 #include "hand.h"
 
+const float DEFAULT_X = 0.0; 
+const float DEFAULT_Y = 0.0; 
+const float DEFAULT_Z = -7.0; 
+
 Hand::Hand()
 {
     reset();
@@ -33,9 +37,9 @@ void Hand::render()
 
 void Hand::reset()
 {
-    position.x = 0.0;
-    position.y = 0.0;
-    position.z = -7.0;
+    position.x = DEFAULT_X;
+    position.y = DEFAULT_Y;
+    position.z = DEFAULT_Z;
     velocity.x = velocity.y = velocity.z = 0;
 }
 
@@ -52,8 +56,5 @@ void Hand::simulate(float deltaTime)
         velocity.z += (randFloat() - 0.5)*noise;
 
     }
-    //position.x += (randFloat() - 0.5)/20.0;
-    //position.y += (randFloat() - 0.5)/20.0;
-    //position.z += (randFloat() - 0.5)/20.0;
     
 }

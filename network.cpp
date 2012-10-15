@@ -14,6 +14,14 @@
 const int UDP_PORT = 30000; 
 const char DESTINATION_IP[] = "127.0.0.1";
 
+//  Implementation of optional delay behavior using a ring buffer
+const int MAX_DELAY_PACKETS = 300;
+char delay_buffer[MAX_PACKET_SIZE*MAX_DELAY_PACKETS];
+timeval delay_time_received[MAX_DELAY_PACKETS];
+int delay_size_received[MAX_DELAY_PACKETS];
+int next_to_receive = 0;
+int next_to_send = 0;
+
 sockaddr_in address, dest_address, from;
 socklen_t fromLength = sizeof( from );
 
@@ -68,6 +76,16 @@ int network_init()
     return handle;
 }
 
+//  Send a ping packet and mark the time sent
+timeval network_send_ping(int handle) {
+    timeval check;
+    char packet_data[] = "P";
+    sendto(handle, (const char*)packet_data, 1,
+           0, (sockaddr*)&dest_address, sizeof(sockaddr_in) );
+    gettimeofday(&check, NULL);
+    return check; 
+}
+
 int network_send(int handle, char * packet_data, int packet_size)
 {
     int sent_bytes = sendto( handle, (const char*)packet_data, packet_size,
@@ -81,11 +99,40 @@ int network_send(int handle, char * packet_data, int packet_size)
     return sent_bytes;
 }
 
-int network_receive(int handle, char * packet_data)
+int network_receive(int handle, char * packet_data, int delay /*msecs*/)
 {
     int received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
                                   0, (sockaddr*)&dest_address, &fromLength );
+    if (!delay) {
+        // No delay set, so just return packets immediately!
+        return received_bytes;
+    } else {
+        timeval check;
+        gettimeofday(&check, NULL);
+        if (received_bytes > 0) {
+            // First write received data into ring buffer
+            delay_time_received[next_to_receive] = check;
+            delay_size_received[next_to_receive] = received_bytes;
+            memcpy(&delay_buffer[next_to_receive*MAX_PACKET_SIZE], packet_data, received_bytes);
+            next_to_receive++;
+            if (next_to_receive == MAX_DELAY_PACKETS) next_to_receive = 0;
+        }
+        // Then check if next to be sent is past due, send if so 
+        if ((next_to_receive != next_to_send) && 
+            (diffclock(delay_time_received[next_to_send], check) > delay)) {
+            int returned_bytes = delay_size_received[next_to_send];
+            memcpy(packet_data, 
+                   &delay_buffer[next_to_send*MAX_PACKET_SIZE], 
+                   returned_bytes); 
+            next_to_send++;
+            if (next_to_send == MAX_DELAY_PACKETS) next_to_send = 0;
+            return returned_bytes;
+        } else {
+            return 0;
+        }
+    }
+        
+        
     
-    return received_bytes;
 
 }

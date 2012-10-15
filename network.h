@@ -13,11 +13,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <sys/time.h>
+#include "util.h"
 
-const int MAX_PACKET_SIZE = 65536;
+const int MAX_PACKET_SIZE = 1500;
 
 int network_init();
 int network_send(int handle, char * packet_data, int packet_size);
-int network_receive(int handle, char * packet_data);
+int network_receive(int handle, char * packet_data, int delay /*msecs*/);
+timeval network_send_ping(int handle);
 
 #endif

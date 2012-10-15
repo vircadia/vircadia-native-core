@@ -11,6 +11,8 @@
 
 #include "glm/glm.hpp"
 
+#define GRAVITY 0.0001
+
 class ParticleSystem {
 public:
     void simulate (float deltaTime);
@@ -24,7 +26,6 @@ private:
     
     glm::vec3 bounds;
     const static bool wrapBounds = false;
-    const static float gravity = 0.0001;
 };
 
 #endif

@@ -15,7 +15,7 @@ void ParticleSystem::simulate (float deltaTime) {
         particles[i].position += particles[i].velocity * deltaTime;
         
         // Add gravity
-        particles[i].velocity.y -= gravity;
+        particles[i].velocity.y -= GRAVITY;
         
         // Drag: decay velocity
         particles[i].velocity *= 0.99;

@@ -49,40 +49,43 @@
 using namespace std;
 
 //   Junk for talking to the Serial Port 
-int serial_on = 0;                  //  Are we using serial port for I/O?
+int serial_on = 0;                  //  Is serial connection on/off?  System will try
 
-timeval begin_ping, end_ping;
-timeval timer_start, timer_end;
-timeval last_frame;
-
-double elapsedTime;
-
-//  Socket operation stuff 
+//  Network Socket Stuff 
+//  For testing, add milliseconds of delay for received UDP packets
 int UDP_socket;
+int delay = 300;         
 char* incoming_packet;
+timeval ping_start;
+int ping_count = 0;
+float ping_msecs = 0.0;  
+int packetcount = 0;
+int packets_per_second = 0; 
+int bytes_per_second = 0;
+int bytescount = 0;
 
 //  Getting a target location from other machine (or loopback) to display
 int target_x, target_y; 
 int target_display = 0;
-int bytes_in = 0;
-
 
 unsigned char last_key = 0; 
 
 double ping = 0; 
-//clock_t begin_ping, end_ping;
 
 
-#define WIDTH 1280					//  Width,Height of simulation area in cells
-#define HEIGHT 800
+
+//#define WIDTH 1200					//  Width,Height of simulation area in cells
+//#define HEIGHT 800
+int WIDTH = 1200; 
+int HEIGHT = 800; 
+
 #define BOTTOM_MARGIN 0				
 #define RIGHT_MARGIN 0
-#define TEXT_HEIGHT 14
 
 Head myHead;                        //  The rendered head of oneself or others 
 Hand myHand;                        //  My hand (used to manipulate things in world)
 
-//  Test data for creating fields that affect particles 
+//  FIELD INFORMATION 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
 //  element = [x/10 + (y/10)*10 + (z*/10)*100] 
 //
@@ -154,10 +157,13 @@ float mag_imbalance = 0.f;
 //  1   Head Gyro Yaw 
 //  2   Head Accelerometer X
 //  3   Head Accelerometer Z 
-//  
+//  4   Hand Accelerometer X 
+//  5   Hand Accelerometer Y
+//  6   Hand Accelerometer Z 
+// 
 
-int adc_channels[4];                
-float avg_adc_channels[4];
+int adc_channels[NUM_CHANNELS];                
+float avg_adc_channels[NUM_CHANNELS];
 int first_measurement = 1;
 int samplecount = 0;
 
@@ -165,46 +171,27 @@ int samplecount = 0;
 
 int framecount = 0;                  
 float FPS = 120.f;
+timeval timer_start, timer_end;
+timeval last_frame;
+double elapsedTime;
 
-void output(int x, int y, char *string)
-{
-	//  Writes a text string to the screen as a bitmap at location x,y
-	int len, i;
-	glRasterPos2f(x, y);
-	len = (int) strlen(string);
-	for (i = 0; i < len; i++)
-	{
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
-	}
-}
 
 float randFloat () {
     return (rand()%10000)/10000.f;
 }
 
-double diffclock(timeval clock1,timeval clock2)
-{
-	double diffms = (clock2.tv_sec - clock1.tv_sec) * 1000.0;
-    diffms += (clock2.tv_usec - clock1.tv_usec) / 1000.0;   // us to ms
-
-	return diffms;
-}
 
 //  Every second, check the frame rates and other stuff 
 void Timer(int extra)
 {
-	char title[100];
     gettimeofday(&timer_end, NULL);
     FPS = (float)framecount / ((float)diffclock(timer_start,timer_end) / 1000.f);
-    
-    //  Calculate exact FPS 
-    
-	sprintf(title, "FPS = %4.4f, IO/sec = %d, IOpng = %4.4f, bytes/sec = %d", 
-            FPS, samplecount, ping, bytes_in);
-	glutSetWindowTitle(title);
-	framecount = 0;
+    packets_per_second = (float)packetcount / ((float)diffclock(timer_start,timer_end) / 1000.f);
+    bytes_per_second = (float)bytescount / ((float)diffclock(timer_start,timer_end) / 1000.f);
+   	framecount = 0;
     samplecount = 0; 
-    bytes_in = 0;
+    packetcount = 0;
+    bytescount = 0;
     
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
@@ -213,12 +200,14 @@ void Timer(int extra)
 void display_stats(void)
 {
 	//  bitmap chars are about 10 pels high 
-	glColor3f(1.0f, 1.0f, 1.0f);
     char legend[] = "/ - toggle this display, Q - exit, N - toggle noise, M - toggle map, T - test audio";
-	output(10,15,legend);
-	char mouse[50];
-	sprintf(mouse, "mouse_x = %i, mouse_y = %i, pressed = %i, key = %i", mouse_x, mouse_y, mouse_pressed, last_key);
-	output(10,35,mouse);
+    drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
+    
+    char stats[200];
+    sprintf(stats, "FPS = %3.0f, Ping = %4.1f Packets/Sec = %d, Bytes/sec = %d", 
+            FPS, ping_msecs, packets_per_second,  bytes_per_second);
+    drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
+    
     char adc[200];
 	sprintf(adc, "pitch_rate = %i, yaw_rate = %i, accel_lat = %i, accel_fwd = %i, loc[0] = %3.1f loc[1] = %3.1f, loc[2] = %3.1f", 
             (int)(adc_channels[0] - avg_adc_channels[0]),
@@ -227,8 +216,7 @@ void display_stats(void)
             (int)(adc_channels[3] - avg_adc_channels[3]),
             location[0], location[1], location[2] 
             );
-	output(10,50,adc);
-
+    drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
 	
 }
 
@@ -246,20 +234,24 @@ void initDisplay(void)
 
 void init(void)
 {
+    int i, j; 
+
     Audio::init();
     printf( "Audio started.\n" );
 
+    //  Clear serial channels 
+    for (i = i; i < NUM_CHANNELS; i++)
+    {
+        adc_channels[i] = 0;
+        avg_adc_channels[i] = 0.0;
+    }
 
-    avg_adc_channels[0] = avg_adc_channels[1] = avg_adc_channels[2] = avg_adc_channels[3] = 0.f;
-        
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
     
-    int i, j;
-    
     //  Initialize Field values 
     field_init();
-    printf( "Field Initilialized.\n" );
+    printf( "Field Initialized.\n" );
 
     if (noise_on) 
     {   
@@ -267,16 +259,7 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    /*
-    const float FIELD_SCALE = 0.00005;
-    for (i = 0; i < FIELD_ELEMENTS; i++)
-    {
-        field[i].x = 0.001;  //(randFloat() - 0.5)*FIELD_SCALE;
-        field[i].y = 0.001;  //(randFloat() - 0.5)*FIELD_SCALE;
-        field[i].z = 0.001; //(randFloat() - 0.5)*FIELD_SCALE;
-    }*/
-
-    
+    //  Init particles
     float tri_scale, r;
     const float VEL_SCALE = 0.00;
     for (i = 0; i < NUM_TRIS; i++)
@@ -450,6 +433,9 @@ void update_tris()
 
 void reset_sensors()
 {
+    //  
+    //   Reset serial I/O sensors 
+    // 
     render_yaw = start_yaw;
     yaw = render_yaw_rate = 0; 
     pitch = render_pitch = render_pitch_rate = 0;
@@ -494,6 +480,16 @@ void update_pos(float frametime)
     head_mouse_y = max(head_mouse_y, 0);
     head_mouse_y = min(head_mouse_y, HEIGHT);
     
+    //  Update hand/manipulator location for measured forces from serial channel
+    const float MIN_HAND_ACCEL = 30.0;
+    glm::vec3 hand_accel(avg_adc_channels[4] - adc_channels[4],
+                         avg_adc_channels[5] - adc_channels[5],
+                         avg_adc_channels[6] - adc_channels[6]);
+    
+    if (glm::length(hand_accel) > MIN_HAND_ACCEL)
+    {
+        myHand.addVel(hand_accel*frametime);
+    }
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 300;
@@ -576,81 +572,84 @@ void display(void)
     
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
+    glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    
-    GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-    
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
-       
-    //  Rotate, translate to camera location 
-    glRotatef(render_pitch, 1, 0, 0);
-    glRotatef(render_yaw, 0, 1, 0);
-    glTranslatef(location[0], location[1], location[2]);
-
-    glEnable(GL_DEPTH_TEST);
-    
-    //  Draw a few 'planets' to find and explore 
     glPushMatrix();
-        glTranslatef(1.f, 1.f, 1.f);
-        glColor3f(1, 0, 0); 
-        glutSolidSphere(0.6336, 20, 20); 
-        glTranslatef(5, 5, 5);
-        glColor3f(1, 1, 0); 
-        glutSolidSphere(0.4, 20, 20); 
-        glTranslatef(-2.5, -2.5, 2.5);
-        glColor3f(1, 0, 1); 
-        glutSolidSphere(0.3, 20, 20); 
-    glPopMatrix();
-    
-    // Draw Triangles 
-    
-    glBegin(GL_TRIANGLES);
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        glColor3f(tris.colors[i*3],
-                  tris.colors[i*3+1],
-                  tris.colors[i*3+2]);
-        for (j = 0; j < 3; j++)
-        {
-            glVertex3f(tris.vertices[i*9 + j*3],
-                       tris.vertices[i*9 + j*3 + 1],
-                       tris.vertices[i*9 + j*3 + 2]);
-        }
-        glNormal3f(tris.normals[i*3],
-                   tris.normals[i*3 + 1],
-                   tris.normals[i*3 + 2]);
-    }
-    glEnd();
-    
-    //  Show field vectors
-    if (display_field) field_render(); 
-    
-    render_world_box();
+        glLoadIdentity();
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-    
-    // Display floating head in front of viewer
-    if (display_head)
-    {
-        myHead.render();
-    }
-    myHand.render();
-    
-    
+        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+        GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
+           
+        //  Rotate, translate to camera location 
+        glRotatef(render_pitch, 1, 0, 0);
+        glRotatef(render_yaw, 0, 1, 0);
+        glTranslatef(location[0], location[1], location[2]);
+
+        glEnable(GL_DEPTH_TEST);
+        
+        //  Draw a few 'planets' to find and explore 
+        glPushMatrix();
+            glTranslatef(1.f, 1.f, 1.f);
+            glColor3f(1, 0, 0); 
+            glutSolidSphere(0.6336, 20, 20); 
+            glTranslatef(5, 5, 5);
+            glColor3f(1, 1, 0); 
+            glutSolidSphere(0.4, 20, 20); 
+            glTranslatef(-2.5, -2.5, 2.5);
+            glColor3f(1, 0, 1); 
+            glutSolidSphere(0.3, 20, 20); 
+        glPopMatrix();
+        
+        // Draw Triangles 
+        
+        glBegin(GL_TRIANGLES);
+        for (i = 0; i < NUM_TRIS; i++)
+        {
+            glColor3f(tris.colors[i*3],
+                      tris.colors[i*3+1],
+                      tris.colors[i*3+2]);
+            for (j = 0; j < 3; j++)
+            {
+                glVertex3f(tris.vertices[i*9 + j*3],
+                           tris.vertices[i*9 + j*3 + 1],
+                           tris.vertices[i*9 + j*3 + 2]);
+            }
+            glNormal3f(tris.normals[i*3],
+                       tris.normals[i*3 + 1],
+                       tris.normals[i*3 + 2]);
+        }
+        glEnd();
+        
+        //  Show field vectors
+        if (display_field) field_render(); 
+        
+            
+        
+        // Display floating head in front of viewer
+        if (display_head)
+        {
+            myHead.render();
+        }
+        myHand.render();
+        
+    //  Render the world box 
+    render_world_box();
+
+    glPopMatrix();
+
     //  Render 2D overlay:  I/O level bar graphs and text  
-    
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
         glLoadIdentity(); 
@@ -666,6 +665,10 @@ void display(void)
             glBegin(GL_POINTS);
             glVertex2f(target_x, target_y);
             glEnd();
+            char val[20];
+            sprintf(val, "%d,%d", target_x, target_y); 
+            drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
+
         }
         if (display_head_mouse)
         {
@@ -676,41 +679,38 @@ void display(void)
             glVertex2f(head_mouse_x, head_mouse_y);
             glEnd();
         }
-        /*
-        if (display_ping)
-        {
-            //  Draw a green dot to indicate receipt of ping signal 
-            glPointSize(10.f);
-            if (display_ping == 2)
-                glColor4f(1.f, 0.f, 0.f, 1.f);
-            else 
-                glColor4f(0.f, 1.f, 0.f, 1.f);
-            glBegin(GL_POINTS);
-            glVertex2f(50, 400);
-            glEnd();
-            display_ping = 0;
-        }
-         */
+        
+        //  Show detected levels from the serial I/O ADC channel sensors
         if (display_levels)
         {
-            glColor4f(1.f, 1.f, 1.f, 1.f);
-            glBegin(GL_LINES);
-            glVertex2f(10, HEIGHT*0.95);
-            glVertex2f(10, HEIGHT*(0.25 + 0.75f*adc_channels[0]/4096));
-            
-            glVertex2f(20, HEIGHT*0.95);
-            glVertex2f(20, HEIGHT*(0.25 + 0.75f*adc_channels[1]/4096));
-            
-            glVertex2f(30, HEIGHT*0.95);
-            glVertex2f(30, HEIGHT*(0.25 + 0.75f*adc_channels[2]/4096));
-            
-            glVertex2f(40, HEIGHT*0.95);
-            glVertex2f(40, HEIGHT*(0.25 + 0.75f*adc_channels[3]/4096));
-            glEnd();
-            
+            int i;
+            int disp_x = 10;
+            const int GAP = 16;
+            char val[10];
+            for(i = 0; i < NUM_CHANNELS; i++)
+            {
+                //  Actual value 
+                glColor4f(1, 1, 1, 1);
+                glBegin(GL_LINES);
+                    glVertex2f(disp_x, HEIGHT*0.95);
+                    glVertex2f(disp_x, HEIGHT*(0.25 + 0.75f*adc_channels[i]/4096));
+                glEnd();
+                //  Trailing Average value 
+                glColor4f(0, 0, 0.8, 1);
+                glBegin(GL_LINES);
+                    glVertex2f(disp_x + 2, HEIGHT*0.95);
+                    glVertex2f(disp_x + 2, HEIGHT*(0.25 + 0.75f*avg_adc_channels[i]/4096));
+                glEnd();
+
+                sprintf(val, "%d", adc_channels[i]); 
+                drawtext(disp_x-GAP/2, (HEIGHT*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
+
+                disp_x += GAP;
+            }
         }
 
         if (stats_on) display_stats(); 
+    
     glPopMatrix();
     
     glutSwapBuffers();
@@ -768,15 +768,22 @@ void key(unsigned char k, int x, int y)
 void read_network()
 {
     //  Receive packets 
-    int bytes_recvd = network_receive(UDP_socket, incoming_packet);
+    int bytes_recvd = network_receive(UDP_socket, incoming_packet, delay);
     if (bytes_recvd > 0)
     {
-        bytes_in += bytes_recvd;
-        if (incoming_packet[0] == 'M')
-        {
+        packetcount++;
+        bytescount += bytes_recvd;
+        //  If packet is a Mouse data packet, copy it over 
+        if (incoming_packet[0] == 'M') {
             sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
             target_display = 1;
             printf("X = %d Y = %d\n", target_x, target_y);
+        } else if (incoming_packet[0] == 'P') {
+        //  Ping packet - check time and record
+            timeval check; 
+            gettimeofday(&check, NULL);
+            ping_msecs = (float)diffclock(ping_start, check);
+
         }
     }
 }
@@ -797,6 +804,13 @@ void idle(void)
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;
+        
+        //  Every 30 frames or so, check ping time 
+        ping_count++;
+        if (ping_count >= 30) {
+            ping_start = network_send_ping(UDP_socket);
+            ping_count = 0;
+        }
     }
     
     //  Read network packets
@@ -812,21 +826,19 @@ void idle(void)
 
 void reshape(int width, int height)
 {
+    WIDTH = width;
+    HEIGHT = height; 
     
     glViewport(0, 0, width, height);
-    /*
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, width, height, 0);
-    glMatrixMode(GL_MODELVIEW);
-     */
-    
+
     glMatrixMode(GL_PROJECTION); //hello
+    glLoadIdentity();
     gluPerspective(45, //view angle
                    1.0, //aspect ratio
                    1.0, //near clip
                    200.0);//far clip
     glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
      
 }
@@ -873,29 +885,30 @@ int main(int argc, char** argv)
     char test_data[] = "Test!";
     int bytes_sent = network_send(UDP_socket, test_data, 5);
     if (bytes_sent) printf("%d bytes sent.", bytes_sent);
-    int test_recv = network_receive(UDP_socket, incoming_packet);
+    int test_recv = network_receive(UDP_socket, incoming_packet, delay);
     printf("Received %i bytes\n", test_recv);
     
        //  Load textures 
     //Img.Load("/Users/philip/Downloads/galaxy1.tga");
 
-    //  Try to setup the serial port I/O 
-    if (serial_on)
+    //
+    //  Try to connect the serial port I/O
+    //
+    if(init_port(115200) == -1) {				
+        perror("Unable to open serial port\n");
+        serial_on = 0;
+    } 
+    else 
     {
-        //serial_fd = open(SERIAL_PORT_NAME, O_RDWR | O_NOCTTY | O_NDELAY); 
-        // List usbSerial devices using Terminal ls /dev/tty.*
-    
-    
-        if(init_port(115200) == -1) {				// Check for port errors
-            perror("Unable to open serial port\n");
-            return (0);
-        }    
+        printf("Serial Port Initialized\n");
+        serial_on = 1; 
     }
+
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(RIGHT_MARGIN + WIDTH, BOTTOM_MARGIN + HEIGHT);
-    glutCreateWindow("Interface Test");
+    glutCreateWindow("Interface");
     
     printf( "Created Display Window.\n" );
     

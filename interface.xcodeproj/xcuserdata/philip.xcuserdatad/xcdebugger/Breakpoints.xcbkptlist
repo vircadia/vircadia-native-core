@@ -7,23 +7,12 @@
          shouldBeEnabled = "No"
          ignoreCount = "0"
          continueAfterRunningActions = "No"
-         filePath = "SerialInterface.h"
-         timestampString = "371021342.553906"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "9"
-         endingLineNumber = "9">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
          filePath = "main.cpp"
-         timestampString = "371943667.487943"
+         timestampString = "371979714.445172"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "325"
-         endingLineNumber = "325"
+         startingLineNumber = "318"
+         endingLineNumber = "318"
          landmarkName = "init(void)"
          landmarkType = "7">
       </FileBreakpoint>
