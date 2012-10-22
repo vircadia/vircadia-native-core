@@ -42,6 +42,8 @@ class Head {
     
     float PupilConverge;
     
+    glm::vec3 position;
+    
 public:
     Head(void);
     void reset();
@@ -56,6 +58,8 @@ public:
     int transmit(char*);
     void receive(float);
     void SetNewHeadTarget(float, float);
+    glm::vec3 getPos() { return position; };
+    void setPos(glm::vec3 newpos) { position = newpos; };
 };
 
 #endif

@@ -48,6 +48,7 @@ Head::Head()
 
 void Head::reset()
 {
+    position = glm::vec3(0,0,0);
     Pitch = 0;
     Yaw = 0;
 }

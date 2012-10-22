@@ -13,6 +13,12 @@
 #endif
 #include <iostream>
 #include "world.h"
+#include "glm/glm.hpp"
+
+
+float randFloat () {
+    return (rand()%10000)/10000.f;
+}
 
 void render_world_box()
 {
@@ -20,28 +26,16 @@ void render_world_box()
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
-    glBegin(GL_LINE_STRIP);
-    glVertex3f(0,0,0);
-    glVertex3f(WORLD_SIZE,0,0);
-    glVertex3f(WORLD_SIZE,WORLD_SIZE,0);
-    glVertex3f(0,WORLD_SIZE,0);
-    glVertex3f(0,0,0);
-    glVertex3f(0,0,WORLD_SIZE);
-    glVertex3f(WORLD_SIZE,0,WORLD_SIZE);
-    glVertex3f(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-    glVertex3f(0,WORLD_SIZE,WORLD_SIZE);
-    glVertex3f(0,0,WORLD_SIZE);
-    glEnd();
-
     glBegin(GL_LINES);
-    glVertex3f(0,WORLD_SIZE,0);
-    glVertex3f(0,WORLD_SIZE,WORLD_SIZE);
-
-    glVertex3f(WORLD_SIZE,WORLD_SIZE,0);
-    glVertex3f(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-
+    glColor3f(1,0,0);
+    glVertex3f(0,0,0);
     glVertex3f(WORLD_SIZE,0,0);
-    glVertex3f(WORLD_SIZE,0,WORLD_SIZE);
+    glColor3f(0,1,0);
+    glVertex3f(0,0,0);
+    glVertex3f(0, WORLD_SIZE, 0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,0);
+    glVertex3f(0, 0, WORLD_SIZE);
     glEnd();
 }
 
@@ -77,3 +71,30 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono, ch
     glPopMatrix();
 
 }
+
+
+void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
+              float r=1.0, float g=1.0, float b=1.0)
+{
+    //
+    //  Draws text on screen as stroked so it can be resized
+    //
+    char vectext[20];
+    sprintf(vectext,"%3.1f,%3.1f,%3.1f", vec.x, vec.y, vec.z);
+    int len, i;
+    glPushMatrix();
+    glTranslatef(x, y, 0);
+    glColor3f(r,g,b);
+    glRotated(180+rotate,0,0,1);
+    glRotated(180,0,1,0);
+    glLineWidth(thick);
+    glScalef(scale, scale, 1.0);
+    len = (int) strlen(vectext);
+	for (i = 0; i < len; i++)
+	{
+        if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
+        else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
+	}
+    glPopMatrix();
+    
+} 

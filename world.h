@@ -15,6 +15,4 @@ const float WORLD_SIZE = 10.0;
 #define PI 3.14159265
 
 
-float randFloat();
-
 #endif

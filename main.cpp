@@ -43,6 +43,7 @@
 #include "audio.h"
 #include "head.h"
 #include "hand.h"
+#include "particle.h"
 
 //TGAImg Img;
 
@@ -54,7 +55,7 @@ int serial_on = 0;                  //  Is serial connection on/off?  System wil
 //  Network Socket Stuff 
 //  For testing, add milliseconds of delay for received UDP packets
 int UDP_socket;
-int delay = 300;         
+int delay = 0;         
 char* incoming_packet;
 timeval ping_start;
 int ping_count = 0;
@@ -82,8 +83,21 @@ int HEIGHT = 800;
 #define BOTTOM_MARGIN 0				
 #define RIGHT_MARGIN 0
 
+#define HAND_RADIUS 0.25             //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself or others 
-Hand myHand;                        //  My hand (used to manipulate things in world)
+Hand myHand(HAND_RADIUS, 
+            glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
+
+glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
+ParticleSystem balls(500, 
+                     box, 
+                     false,                     // Wrap?
+                     0.0,                       // Noise
+                     0.3,                        //  Size scale 
+                     0.0                       // Gravity 
+                     );
+
+
 
 //  FIELD INFORMATION 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
@@ -97,7 +111,8 @@ Hand myHand;                        //  My hand (used to manipulate things in wo
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
-#define NUM_TRIS 20000   //000
+
+#define NUM_TRIS 100  // 20000   //000
 struct {
     float vertices[NUM_TRIS * 9];
     float normals [NUM_TRIS * 3];
@@ -174,11 +189,6 @@ float FPS = 120.f;
 timeval timer_start, timer_end;
 timeval last_frame;
 double elapsedTime;
-
-
-float randFloat () {
-    return (rand()%10000)/10000.f;
-}
 
 
 //  Every second, check the frame rates and other stuff 
@@ -354,7 +364,6 @@ const float SCALE_Y = 1.f;
 void update_tris()
 {
     int i;
-    float dist_sqrd;
     float field_val[3];
     
     for (i = 0; i < NUM_TRIS; i++)
@@ -374,32 +383,15 @@ void update_tris()
             tris.vertices[i*9+5] += tris.vel[i*3+2];
             tris.vertices[i*9+8] += tris.vel[i*3+2]; 
             
-            if (0)
-            {
-                dist_sqrd = tris.vertices[i*9+0]*tris.vertices[i*9+0] +
-                            tris.vertices[i*9+1]*tris.vertices[i*9+1] + 
-                            tris.vertices[i*9+2]*tris.vertices[i*9+2];
-                
-                if (dist_sqrd > 1.0)
-                {
-                    glm::vec3 pos (tris.vertices[i*9+0],tris.vertices[i*9+1], tris.vertices[i*9+2]);
-                    glm::normalize(pos);
-                    pos*=-1/dist_sqrd*0.0001;
-                
-                    tris.vel[i*3] += pos.x;
-                    tris.vel[i*3+1] += pos.y;
-                    tris.vel[i*3+2] += pos.z;
-                }
-            }
             
             // Add a little gravity 
-            const float GRAVITY = 0.0001;
-            tris.vel[i*3+1] -= GRAVITY;
+            //tris.vel[i*3+1] -= 0.0001;
            
+            const float DRAG = 0.99;
             // Drag:  Decay velocity
-            tris.vel[i*3] *= 0.99;
-            tris.vel[i*3+1] *= 0.99;
-            tris.vel[i*3+2] *= 0.99;
+            tris.vel[i*3] *= DRAG;
+            tris.vel[i*3+1] *= DRAG;
+            tris.vel[i*3+2] *= DRAG;
         }
                  
         if (tris.element[i] == 1) 
@@ -418,12 +410,7 @@ void update_tris()
         // Y-direction
         if ((tris.vertices[i*9+1] > WORLD_SIZE) || (tris.vertices[i*9+1] < 0.0))
         { 
-            //tris.vel[i*3+1]*= -1.0;
-            if (tris.vertices[i*9+1] < 0.0)
-            {
-                tris.vertices[i*9+1] = tris.vertices[i*9+4] = tris.vertices[i*9+7] = WORLD_SIZE;
-                //tris.vel[i*3+1]*= -1.0;
-            }
+            tris.vel[i*3+1]*= -1.0;
         }
         // Z-Direction
         if ((tris.vertices[i*9+2] > WORLD_SIZE) || (tris.vertices[i*9+2] < 0.0))
@@ -563,6 +550,10 @@ void update_pos(float frametime)
     //  Slide location sideways
     location[0] += fwd_vec[2]*-lateral_vel;
     location[2] += fwd_vec[0]*lateral_vel;
+    
+    //  Update head and manipulator objects with object with current location
+    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
 }
 
 void display(void)
@@ -597,21 +588,15 @@ void display(void)
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
 
-        glEnable(GL_DEPTH_TEST);
-        
-        //  Draw a few 'planets' to find and explore 
+        glEnable(GL_DEPTH_TEST);        
+        //  TEST:  Draw a reference object in world space coordinates! 
         glPushMatrix();
-            glTranslatef(1.f, 1.f, 1.f);
-            glColor3f(1, 0, 0); 
-            glutSolidSphere(0.6336, 20, 20); 
-            glTranslatef(5, 5, 5);
-            glColor3f(1, 1, 0); 
-            glutSolidSphere(0.4, 20, 20); 
-            glTranslatef(-2.5, -2.5, 2.5);
-            glColor3f(1, 0, 1); 
-            glutSolidSphere(0.3, 20, 20); 
+            glTranslatef(1,0,0);
+            //glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
+            glColor3f(1,0,0);
+            glutSolidCube(0.4); 
         glPopMatrix();
-        
+    
         // Draw Triangles 
         
         glBegin(GL_TRIANGLES);
@@ -643,9 +628,11 @@ void display(void)
             myHead.render();
         }
         myHand.render();
-        
-    //  Render the world box 
-    render_world_box();
+    
+        balls.render();
+            
+        //  Render the world box 
+        render_world_box();
 
     glPopMatrix();
 
@@ -657,6 +644,8 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
+        drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
+    
         if (mouse_pressed == 1)
         {
             glPointSize(20.f);
@@ -799,8 +788,10 @@ void idle(void)
         //  Simulation
         update_pos(1.f/FPS); 
         update_tris();
+        field_simulate(1.f/FPS);
         myHead.simulate(1.f/FPS);
         myHand.simulate(1.f/FPS);
+        balls.simulate(1.f/FPS);
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;

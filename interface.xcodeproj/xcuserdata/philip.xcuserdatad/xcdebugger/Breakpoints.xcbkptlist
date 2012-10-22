@@ -8,12 +8,25 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "main.cpp"
-         timestampString = "371979714.445172"
+         timestampString = "372278101.290877"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "318"
-         endingLineNumber = "318"
+         startingLineNumber = "328"
+         endingLineNumber = "328"
          landmarkName = "init(void)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "field.cpp"
+         timestampString = "372274896.176083"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "83"
+         endingLineNumber = "83"
+         landmarkName = "field_avg_neighbors(int index, glm::vec3 * result)"
          landmarkType = "7">
       </FileBreakpoint>
    </FileBreakpoints>

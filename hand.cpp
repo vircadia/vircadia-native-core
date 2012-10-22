@@ -12,8 +12,10 @@ const float DEFAULT_X = 0.0;
 const float DEFAULT_Y = 0.0; 
 const float DEFAULT_Z = -7.0; 
 
-Hand::Hand()
+Hand::Hand(float initradius, glm::vec3 initcolor)
 {
+    color = initcolor;
+    radius = initradius;
     reset();
     noise = 0;
 }
@@ -23,7 +25,8 @@ void Hand::render()
     glEnable(GL_DEPTH_TEST);
     glPushMatrix();
     glLoadIdentity();
-    glColor3f(0.5, 0.5, 0.5);
+    if (isColliding) glColor3f(1,0,0);
+    else glColor3f(color.x, color.y, color.z);
     glBegin(GL_LINES);
         glVertex3f(-0.05, -0.5, 0.0);
         glVertex3f(position.x, position.y, position.z);
@@ -31,7 +34,7 @@ void Hand::render()
         glVertex3f(position.x, position.y, position.z);
     glEnd();
     glTranslatef(position.x, position.y, position.z);
-    glutSolidSphere(0.2, 15, 15);
+    glutSolidSphere(radius, 15, 15);
     glPopMatrix();
 }
 
@@ -41,6 +44,7 @@ void Hand::reset()
     position.y = DEFAULT_Y;
     position.z = DEFAULT_Z;
     velocity.x = velocity.y = velocity.z = 0;
+    isColliding = false;
 }
 
 void Hand::simulate(float deltaTime)

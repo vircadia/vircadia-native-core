@@ -9,6 +9,14 @@
 #ifndef interface_field_h
 #define interface_field_h
 
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <iostream>
+#include "world.h"
+#include "util.h"
 #include "glm/glm.hpp"
 
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
@@ -19,6 +27,7 @@ void field_init();
 int field_value(float *ret, float *pos);
 void field_render();
 void field_add(float* add, float *loc);
+void field_simulate(float dt);
 
 class Field {
 public:
