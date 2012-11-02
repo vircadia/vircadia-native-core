@@ -72,14 +72,15 @@ int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_chan
             //  At end - Extract value from string to variables
             if (serial_buffer[0] != 'p')
             {
-                sscanf(serial_buffer, "%d %d %d %d %d %d %d", 
+                sscanf(serial_buffer, "%d %d %d %d %d %d %d %d",    /* Needs to match Num Channels */
                        &adc_channels[0], 
                        &adc_channels[1], 
                        &adc_channels[2], 
                        &adc_channels[3],
                        &adc_channels[4],
                        &adc_channels[5],
-                       &adc_channels[6]);
+                       &adc_channels[6],
+                       &adc_channels[7]);
                 for (int i = 0; i < NUM_CHANNELS; i++)
                 {
                     if (!first_measurement)

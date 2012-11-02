@@ -469,13 +469,14 @@ void update_pos(float frametime)
     
     //  Update hand/manipulator location for measured forces from serial channel
     const float MIN_HAND_ACCEL = 30.0;
-    glm::vec3 hand_accel(avg_adc_channels[4] - adc_channels[4],
-                         avg_adc_channels[5] - adc_channels[5],
-                         avg_adc_channels[6] - adc_channels[6]);
+    const float HAND_FORCE_SCALE = 0.5;
+    glm::vec3 hand_accel(-(avg_adc_channels[6] - adc_channels[6]),
+                         -(avg_adc_channels[7] - adc_channels[7]),
+                         -(avg_adc_channels[5] - adc_channels[5]));
     
     if (glm::length(hand_accel) > MIN_HAND_ACCEL)
     {
-        myHand.addVel(hand_accel*frametime);
+        myHand.addVel(frametime*hand_accel*HAND_FORCE_SCALE);
     }
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates

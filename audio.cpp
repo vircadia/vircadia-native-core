@@ -149,7 +149,7 @@ bool Audio::init()
                                2,       // output channels
                                paFloat32, // sample format
                                44100,   // sample rate (hz)
-                               256,     // frames per buffer
+                               512,     // frames per buffer
                                audioCallback, // callback function
                                (void*)data);  // user data to be passed to callback
     if (err != paNoError) goto error;
