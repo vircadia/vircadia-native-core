@@ -45,6 +45,8 @@
 #include "hand.h"
 #include "particle.h"
 
+#include "texture.h"
+
 //TGAImg Img;
 
 using namespace std;
@@ -190,8 +192,7 @@ timeval timer_start, timer_end;
 timeval last_frame;
 double elapsedTime;
 
-
-//  Every second, check the frame rates and other stuff 
+//  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
     gettimeofday(&timer_end, NULL);
@@ -589,17 +590,40 @@ void display(void)
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
 
-        glEnable(GL_DEPTH_TEST);        
+        //glEnable(GL_DEPTH_TEST);
         //  TEST:  Draw a reference object in world space coordinates! 
-        glPushMatrix();
-            glTranslatef(1,0,0);
+        //glPushMatrix();
+        //    glTranslatef(1,0,0);
             //glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
-            glColor3f(1,0,0);
-            glutSolidCube(0.4); 
-        glPopMatrix();
+        //    glColor3f(1,0,0);
+        //    glutSolidCube(0.4);
+        //glPopMatrix();
     
-        // Draw Triangles 
-        
+        // TEST: Draw a textured square (Yoz)
+
+        /* create a square on the XY
+         note that OpenGL origin is at the lower left
+         but texture origin is at upper left
+         => it has to be mirrored  */
+    
+        char texture_filename[] = "pngtest8rgba.png";
+        unsigned int texture_width = 91;
+        unsigned int texture_height = 69;
+    
+        int error = load_png_as_texture(texture_filename, texture_width, texture_height);
+        glEnable(GL_TEXTURE_2D);
+        glBegin(GL_QUADS);
+        glNormal3f(0.0, 0.0, 1.0);
+        glTexCoord2d(1, 1); glVertex3f(0.0, 0.0, 0.0);
+        glTexCoord2d(1, 0); glVertex3f(0.0, 2.0, 0.0);
+        glTexCoord2d(0, 0); glVertex3f(1.0, 2.0, 0.0);
+        glTexCoord2d(0, 1); glVertex3f(1.0, 0.0, 0.0);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+
+    
+        // Draw Triangles
+    
         glBegin(GL_TRIANGLES);
         for (i = 0; i < NUM_TRIS; i++)
         {
