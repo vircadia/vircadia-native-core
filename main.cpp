@@ -606,7 +606,7 @@ void display(void)
          but texture origin is at upper left
          => it has to be mirrored  */
     
-        char texture_filename[] = "pngtest8rgba.png";
+        char texture_filename[] = "sphere.png";
         unsigned int texture_width = 91;
         unsigned int texture_height = 69;
     
