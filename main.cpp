@@ -16,6 +16,8 @@
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 #else
 #include <GL/glut.h>
 #endif
@@ -114,9 +116,9 @@ ParticleSystem balls(500,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 100  // 20000   //000
+#define NUM_TRIS 1000 * 500  // 20000   //000
 struct {
-    float vertices[NUM_TRIS * 9];
+    float vertices[NUM_TRIS * 3];
     float normals [NUM_TRIS * 3];
     float colors  [NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
@@ -191,6 +193,20 @@ float FPS = 120.f;
 timeval timer_start, timer_end;
 timeval last_frame;
 double elapsedTime;
+
+// Particles
+
+// To add a new texture:
+// 1. Add to the XCode project in the Resources/images group
+//    (ensure "Copy file" is checked
+// 2. Add to the "Copy files" build phase in the project
+char texture_filename[] = "grayson-particle.png";
+unsigned int texture_width = 256;
+unsigned int texture_height = 256;
+
+float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+
+
 
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
@@ -285,14 +301,12 @@ void init(void)
                        randFloat() * WORLD_SIZE,
                        randFloat() * WORLD_SIZE);
         glm::vec3 verts[3];
-        for (j = 0; j < 3; j++) {
-            verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
-            verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
-            verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
-            tris.vertices[i*9 + j*3] = verts[j].x;
-            tris.vertices[i*9 + j*3 + 1] = verts[j].y;
-            tris.vertices[i*9 + j*3 + 2] = verts[j].z;
-        }
+        verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
+        verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
+        verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
+        tris.vertices[i*3] = verts[j].x;
+        tris.vertices[i*3 + 1] = verts[j].y;
+        tris.vertices[i*3 + 2] = verts[j].z;
         // reuse pos for the normal
         glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
         tris.normals[i*3] = pos.x;
@@ -561,7 +575,7 @@ void update_pos(float frametime)
 void display(void)
 {
     
-    int i,j;
+    int i;
     
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -606,10 +620,6 @@ void display(void)
          but texture origin is at upper left
          => it has to be mirrored  */
     
-        char texture_filename[] = "sphere.png";
-        unsigned int texture_width = 91;
-        unsigned int texture_height = 69;
-    
         int error = load_png_as_texture(texture_filename, texture_width, texture_height);
         glEnable(GL_TEXTURE_2D);
         glBegin(GL_QUADS);
@@ -622,26 +632,48 @@ void display(void)
         glDisable(GL_TEXTURE_2D);
 
     
-        // Draw Triangles
+        // Draw Point Sprites
     
-        glBegin(GL_TRIANGLES);
-        for (i = 0; i < NUM_TRIS; i++)
+        /* assuming you have setup a 32-bit RGBA texture with a legal name */
+        glActiveTexture(GL_TEXTURE0);
+        glEnable( GL_TEXTURE_2D );
+        glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    
+        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+        float maxSize = 0.0f;
+        glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
+        glPointSize( maxSize );
+        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
+        // glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+        glEnable( GL_POINT_SPRITE_ARB );
+        glBegin( GL_POINTS );
         {
-            glColor3f(tris.colors[i*3],
-                      tris.colors[i*3+1],
-                      tris.colors[i*3+2]);
-            for (j = 0; j < 3; j++)
+            for (i = 0; i < NUM_TRIS; i++)
             {
-                glVertex3f(tris.vertices[i*9 + j*3],
-                           tris.vertices[i*9 + j*3 + 1],
-                           tris.vertices[i*9 + j*3 + 2]);
+    //            glColor3f(tris.colors[i*3],
+    //                      tris.colors[i*3+1],
+    //                      tris.colors[i*3+2]);
+    //            for (j = 0; j < 3; j++)
+    //            {
+    //                glVertex3f(tris.vertices[i*9 + j*3],
+    //                           tris.vertices[i*9 + j*3 + 1],
+    //                           tris.vertices[i*9 + j*3 + 2]);
+    //            }
+    //            glNormal3f(tris.normals[i*3],
+    //                       tris.normals[i*3 + 1],
+    //                       tris.normals[i*3 + 2]);
+                glVertex3f(tris.vertices[i*9],
+                           tris.vertices[i*9+1],
+                           tris.vertices[i*9+2]);
+                
             }
-            glNormal3f(tris.normals[i*3],
-                       tris.normals[i*3 + 1],
-                       tris.normals[i*3 + 2]);
         }
         glEnd();
-        
+        glDisable( GL_TEXTURE_2D );
+        glDisable( GL_POINT_SPRITE_ARB );
+
         //  Show field vectors
         if (display_field) field_render(); 
         
@@ -654,7 +686,7 @@ void display(void)
         }
         myHand.render();
     
-        balls.render();
+        // balls.render();
             
         //  Render the world box 
         render_world_box();
@@ -816,7 +848,7 @@ void idle(void)
         field_simulate(1.f/FPS);
         myHead.simulate(1.f/FPS);
         myHand.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
+        // balls.simulate(1.f/FPS);
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;

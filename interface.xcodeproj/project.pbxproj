@@ -28,6 +28,7 @@
 		F681356E16488470003040E3 /* philip-image.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = F681356D1648846A003040E3 /* philip-image.png */; };
 		F681358B1648896D003040E3 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F681358A1648896D003040E3 /* lodepng.cpp */; };
 		F68135971649CF41003040E3 /* sphere.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = F68135951649CF38003040E3 /* sphere.png */; };
+		F68135B21649EF3F003040E3 /* grayson-particle.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = F68135B01649EF37003040E3 /* grayson-particle.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,6 +38,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 16;
 			files = (
+				F68135B21649EF3F003040E3 /* grayson-particle.png in CopyFiles */,
 				F68135971649CF41003040E3 /* sphere.png in CopyFiles */,
 				F681356E16488470003040E3 /* philip-image.png in CopyFiles */,
 				F68135691648830D003040E3 /* pngtest8rgba.png in CopyFiles */,
@@ -80,6 +82,7 @@
 		F681358A1648896D003040E3 /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
 		F681358C16488978003040E3 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		F68135951649CF38003040E3 /* sphere.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = sphere.png; sourceTree = "<group>"; };
+		F68135B01649EF37003040E3 /* grayson-particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "grayson-particle.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -174,6 +177,7 @@
 		F681356716487A7F003040E3 /* images */ = {
 			isa = PBXGroup;
 			children = (
+				F68135B01649EF37003040E3 /* grayson-particle.png */,
 				F68135951649CF38003040E3 /* sphere.png */,
 				F681356D1648846A003040E3 /* philip-image.png */,
 				F681356816487A7F003040E3 /* pngtest8rgba.png */,
