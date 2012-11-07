@@ -127,7 +127,7 @@ struct {
     int element[NUM_TRIS];
 }tris;
 
-float twiddles[NUM_TRIS * 9];
+float twiddles[NUM_TRIS * 3];
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head 
 float pitch = 0.f;                      //      
