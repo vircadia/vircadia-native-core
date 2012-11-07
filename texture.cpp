@@ -19,6 +19,12 @@
 
 #define TEXTURE_LOAD_ERROR 0
 
+/**
+ * Read a given filename as a PNG texture, and set 
+   it as the current default OpenGL texture.
+ * @param[in]   filename    Relative path to PNG file
+ * @return  Zero for success.
+ */
 
 int load_png_as_texture(char* filename)
 {
