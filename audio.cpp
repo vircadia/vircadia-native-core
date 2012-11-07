@@ -145,10 +145,10 @@ bool Audio::init()
     if (err != paNoError) goto error;
     
     err = Pa_OpenDefaultStream(&stream,  
-                               2,       // input channels
-                               2,       // output channels
+                               1,       // input channels
+                               1,       // output channels
                                paFloat32, // sample format
-                               44100,   // sample rate (hz)
+                               22050,   // sample rate (hz)
                                512,     // frames per buffer
                                audioCallback, // callback function
                                (void*)data);  // user data to be passed to callback

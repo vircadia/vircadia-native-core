@@ -89,7 +89,7 @@ Hand myHand(HAND_RADIUS,
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-ParticleSystem balls(500, 
+ParticleSystem balls(10, 
                      box, 
                      false,                     // Wrap?
                      0.0,                       // Noise
@@ -112,7 +112,7 @@ ParticleSystem balls(500,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 100  // 20000   //000
+#define NUM_TRIS 50000  // 20000   //000
 struct {
     float vertices[NUM_TRIS * 9];
     float normals [NUM_TRIS * 3];
