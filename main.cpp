@@ -116,7 +116,7 @@ ParticleSystem balls(10,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 50000  // 20000   //000
+#define NUM_TRIS 100000  
 struct {
     float vertices[NUM_TRIS * 3];
     float normals [NUM_TRIS * 3];
@@ -127,7 +127,6 @@ struct {
     int element[NUM_TRIS];
 }tris;
 
-float twiddles[NUM_TRIS * 9];
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head 
 float pitch = 0.f;                      //      
@@ -153,8 +152,9 @@ int noise_on = 0;					//  Whether to add random noise
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
 int step_on = 0;                    
-int display_levels = 1;
+int display_levels = 0;
 int display_head = 0;
+int display_hand = 0;
 int display_field = 0;
 
 int display_head_mouse = 1;              //  Display sample mouse pointer controlled by head movement
@@ -200,9 +200,10 @@ double elapsedTime;
 // 1. Add to the XCode project in the Resources/images group
 //    (ensure "Copy file" is checked
 // 2. Add to the "Copy files" build phase in the project
-char texture_filename[] = "int-texture256-v2.png";
+char texture_filename[] = "int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
+
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 
@@ -227,7 +228,7 @@ void Timer(int extra)
 void display_stats(void)
 {
 	//  bitmap chars are about 10 pels high 
-    char legend[] = "/ - toggle this display, Q - exit, N - toggle noise, M - toggle map, T - test audio";
+    char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
     drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
     
     char stats[200];
@@ -235,6 +236,7 @@ void display_stats(void)
             FPS, ping_msecs, packets_per_second,  bytes_per_second);
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
     
+    /*
     char adc[200];
 	sprintf(adc, "pitch_rate = %i, yaw_rate = %i, accel_lat = %i, accel_fwd = %i, loc[0] = %3.1f loc[1] = %3.1f, loc[2] = %3.1f", 
             (int)(adc_channels[0] - avg_adc_channels[0]),
@@ -244,6 +246,7 @@ void display_stats(void)
             location[0], location[1], location[2] 
             );
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
+     */
 	
 }
 
@@ -307,41 +310,22 @@ void init(void)
         tris.vertices[i*3] = verts[j].x;
         tris.vertices[i*3 + 1] = verts[j].y;
         tris.vertices[i*3 + 2] = verts[j].z;
+        
         // reuse pos for the normal
         glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
         tris.normals[i*3] = pos.x;
         tris.normals[i*3+1] = pos.y;
         tris.normals[i*3+2] = pos.z;
         
-        //  Decide what kind of element this particle is to be, color accordingly
-        if (randFloat() < 0.10)
-        {
-            //  Fixed - blue
-            tris.element[i] = 0;
-            tris.colors[i*3] = 0.0;  tris.colors[i*3+1] = 0.0; tris.colors[i*3+2] = 1.0;
-            tris.vel[i*3] = tris.vel[i*3+1] = tris.vel[i*3+2] = 0.0;
-        }
-        else
-        {
-            //  Moving - white
-            tris.element[i] = 1;
-            tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
-            tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
-            tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
-            tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
-
-        }
+        //  Moving - white
+        tris.element[i] = 1;
+        tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
+        tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
+        tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
+        tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
         
     }
     
-    const float TWIDDLE_SCALE = 0.01;
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        twiddles[i*3] = (randFloat() - 0.5)*TWIDDLE_SCALE;
-        twiddles[i*3 + 1] = (randFloat() - 0.5)*TWIDDLE_SCALE;
-        twiddles[i*3 + 2] = (randFloat() - 0.5)*TWIDDLE_SCALE;
-    }
-     
     if (serial_on)
     {
         //  Call readsensors for a while to get stable initial values on sensors    
@@ -378,7 +362,7 @@ const float SCALE_Y = 1.f;
 
 void update_tris()
 {
-    int i;
+    int i, j;
     float field_val[3];
     
     for (i = 0; i < NUM_TRIS; i++)
@@ -410,18 +394,14 @@ void update_tris()
         }
 
         // bounce at edge of world 
-        // X-Direction
-        if ((tris.vertices[i*3+0] > WORLD_SIZE) || (tris.vertices[i*3+0] < 0.0))
-            tris.vel[i*3]*= -1.0;
-        // Y-direction
-        if ((tris.vertices[i*3+1] > WORLD_SIZE) || (tris.vertices[i*3+1] < 0.0))
-        { 
-            tris.vel[i*3+1]*= -1.0;
+        for (j=0; j < 3; j++) {
+            if ((tris.vertices[i*3+j] > WORLD_SIZE) || (tris.vertices[i*3+j] < 0.0)) {
+                tris.vertices[i*3+j] = min(WORLD_SIZE, tris.vertices[i*3+j]);
+                tris.vertices[i*3+j] = max(0.f, tris.vertices[i*3+j]);
+                tris.vel[i*3 + j]*= -1.0;
+            }
         }
-        // Z-Direction
-        if ((tris.vertices[i*3+2] > WORLD_SIZE) || (tris.vertices[i*3+2] < 0.0))
-            tris.vel[i*3+2]*= -1.0;
-    }
+     }
 }
 
 void reset_sensors()
@@ -594,37 +574,10 @@ void display(void)
         glRotatef(render_pitch, 1, 0, 0);
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
-
-        //glEnable(GL_DEPTH_TEST);
-        //  TEST:  Draw a reference object in world space coordinates! 
-        //glPushMatrix();
-        //    glTranslatef(1,0,0);
-            //glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
-        //    glColor3f(1,0,0);
-        //    glutSolidCube(0.4);
-        //glPopMatrix();
-    
-        // TEST: Draw a textured square (Yoz)
-
-        /* create a square on the XY
-         note that OpenGL origin is at the lower left
-         but texture origin is at upper left
-         => it has to be mirrored  */
-    
-        int error = load_png_as_texture(texture_filename, texture_width, texture_height);
-        glEnable(GL_TEXTURE_2D);
-        glBegin(GL_QUADS);
-        glNormal3f(0.0, 0.0, 1.0);
-        glTexCoord2d(1, 1); glVertex3f(0.0, 0.0, 0.0);
-        glTexCoord2d(1, 0); glVertex3f(0.0, 2.0, 0.0);
-        glTexCoord2d(0, 0); glVertex3f(1.0, 2.0, 0.0);
-        glTexCoord2d(0, 1); glVertex3f(1.0, 0.0, 0.0);
-        glEnd();
-        glDisable(GL_TEXTURE_2D);
-
     
         // Draw Point Sprites
-    
+        load_png_as_texture(texture_filename);
+            
         /* assuming you have setup a 32-bit RGBA texture with a legal name */
         glActiveTexture(GL_TEXTURE0);
         glEnable( GL_TEXTURE_2D );
@@ -643,39 +596,21 @@ void display(void)
         {
             for (i = 0; i < NUM_TRIS; i++)
             {
-    //            glColor3f(tris.colors[i*3],
-    //                      tris.colors[i*3+1],
-    //                      tris.colors[i*3+2]);
-    //            for (j = 0; j < 3; j++)
-    //            {
-    //                glVertex3f(tris.vertices[i*9 + j*3],
-    //                           tris.vertices[i*9 + j*3 + 1],
-    //                           tris.vertices[i*9 + j*3 + 2]);
-    //            }
-    //            glNormal3f(tris.normals[i*3],
-    //                       tris.normals[i*3 + 1],
-    //                       tris.normals[i*3 + 2]);
                 glVertex3f(tris.vertices[i*3],
                            tris.vertices[i*3+1],
                            tris.vertices[i*3+2]);
-                
             }
         }
         glEnd();
         glDisable( GL_TEXTURE_2D );
         glDisable( GL_POINT_SPRITE_ARB );
 
-        //  Show field vectors
         if (display_field) field_render(); 
         
-            
+        if (display_head) myHead.render();
         
-        // Display floating head in front of viewer
-        if (display_head)
-        {
-            myHead.render();
-        }
-        myHand.render();
+        if (display_hand) myHand.render();   
+     
     
         // balls.render();
             
@@ -692,13 +627,14 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
+        //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
     
         if (mouse_pressed == 1)
         {
             glPointSize(20.f);
             glColor3f(1,1,1);
             glEnable(GL_POINT_SMOOTH);
+            glEnable( GL_POINT_SPRITE_ARB );
             glBegin(GL_POINTS);
             glVertex2f(target_x, target_y);
             glEnd();
@@ -778,7 +714,10 @@ void key(unsigned char k, int x, int y)
 
     }
     if (k == 'h') display_head = !display_head;
+    if (k == 'm') display_hand = !display_hand;
     if (k == 'f') display_field = !display_field;
+    if (k == 'l') display_levels = !display_levels;
+    
     if (k == 'e') location[1] -= WORLD_SIZE/100.0;
     if (k == 'c') location[1] += WORLD_SIZE/100.0;
     if (k == 'w') fwd_vel += 0.05;
@@ -975,42 +914,3 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }   
 
-
-/*
- //Create the texture using the hard-coded bitmap data
- glTexImage2D(GL_TEXTURE_2D,0,3,Img.GetWidth(),Img.GetHeight(),0,GL_RGB,GL_UNSIGNED_BYTE,Img.GetImg());
- //Set the magnification and minimization filtering to GL_NEAREST
- glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
- glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
- 
- // Trails - Draw a single Quad to blend instead of clear screen 
- glColor4f(0.f, 0.f, 0.f, 0.9f);   //glColor4f(0.f, 0.f, 0.f, 0.01f);
- //glEnable(GL_TEXTURE_2D);	//Enable the texture to draw the polygon
- glBegin(GL_QUADS);                    
- glTexCoord2f(0, 1);  glVertex2f(0.f, HEIGHT);              
- glTexCoord2f(1, 1);  glVertex2f(WIDTH, HEIGHT);            
- glTexCoord2f(1, 0);  glVertex2f( WIDTH,0.f);               
- glTexCoord2f(0, 0);  glVertex2f(0.f,0.f); 
- glEnd();
- //glDisable(GL_TEXTURE_2D);
- 
- //glTexCoord2f(1, 0); glVertex2f(1, -1);
- //glTexCoord2f(1, 1); glVertex2f(1,1);
- //glTexCoord2f(0, 1); glVertex2f(-1, 1);
- 
- 
- //  But totally clear stats display area
- glBegin(GL_QUADS);
- glColor4f(0.f, 0.f, 0.f, 1.f);
- glVertex2f(0.f, HEIGHT/10.f);              
- glVertex2f(WIDTH, HEIGHT/10.f);              
- glVertex2f( WIDTH,0.f);              
- glVertex2f(0.f,0.f);              
- 
- glVertex2f(0.f, HEIGHT);              
- glVertex2f(WIDTH/20.f, HEIGHT);              
- glVertex2f( WIDTH/20.f,0.f);              
- glVertex2f(0.f,0.f);              
- glEnd();    
- 
- */

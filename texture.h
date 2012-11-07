@@ -16,6 +16,6 @@
 #include <GL/glut.h>
 #endif
 
-int load_png_as_texture(char* filename, unsigned int width, unsigned int height);
+int load_png_as_texture(char* filename);
 
 #endif /* defined(__interface__texture__) */

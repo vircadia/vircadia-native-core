@@ -18,6 +18,8 @@
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
 		D40FD5FB164AF1C200878184 /* int-texture256-v2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = D40FD5FA164AF1A700878184 /* int-texture256-v2.png */; };
+		D40FD5FD164B0D3A00878184 /* int-texture256-v4.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = D40FD5FC164B0D2800878184 /* int-texture256-v4.png */; };
+		D40FD5FF164B146C00878184 /* int-texture256-v5.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = D40FD5FE164B145E00878184 /* int-texture256-v5.png */; };
 		D4B96D4915FF967C00CE6E8B /* head.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4B96D4815FF967C00CE6E8B /* head.cpp */; };
 		D4EE3BBC15E45FFE00EE4C89 /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBB15E45FFE00EE4C89 /* SerialInterface.cpp */; };
 		D4EE3BBE15E7465700EE4C89 /* field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4EE3BBD15E7465700EE4C89 /* field.cpp */; };
@@ -39,6 +41,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 16;
 			files = (
+				D40FD5FF164B146C00878184 /* int-texture256-v5.png in CopyFiles */,
+				D40FD5FD164B0D3A00878184 /* int-texture256-v4.png in CopyFiles */,
 				D40FD5FB164AF1C200878184 /* int-texture256-v2.png in CopyFiles */,
 				F68135B21649EF3F003040E3 /* grayson-particle.png in CopyFiles */,
 				F68135971649CF41003040E3 /* sphere.png in CopyFiles */,
@@ -65,6 +69,8 @@
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
 		D40FD5FA164AF1A700878184 /* int-texture256-v2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v2.png"; sourceTree = SOURCE_ROOT; };
+		D40FD5FC164B0D2800878184 /* int-texture256-v4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v4.png"; sourceTree = SOURCE_ROOT; };
+		D40FD5FE164B145E00878184 /* int-texture256-v5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v5.png"; sourceTree = SOURCE_ROOT; };
 		D4B96D4715FF966200CE6E8B /* head.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = head.h; sourceTree = "<group>"; };
 		D4B96D4815FF967C00CE6E8B /* head.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = head.cpp; sourceTree = "<group>"; };
 		D4EE3BBA15E45FFE00EE4C89 /* SerialInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SerialInterface.h; sourceTree = "<group>"; };
@@ -180,6 +186,8 @@
 		F681356716487A7F003040E3 /* images */ = {
 			isa = PBXGroup;
 			children = (
+				D40FD5FE164B145E00878184 /* int-texture256-v5.png */,
+				D40FD5FC164B0D2800878184 /* int-texture256-v4.png */,
 				D40FD5FA164AF1A700878184 /* int-texture256-v2.png */,
 				F68135B01649EF37003040E3 /* grayson-particle.png */,
 				F68135951649CF38003040E3 /* sphere.png */,
