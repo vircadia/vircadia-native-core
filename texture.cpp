@@ -20,9 +20,12 @@
 #define TEXTURE_LOAD_ERROR 0
 
 
-int load_png_as_texture(char* filename, unsigned int width, unsigned int height)
+int load_png_as_texture(char* filename)
 {
     std::vector<unsigned char> image;
+    // width and height will be read from the file at the start
+    // and loaded into these vars
+    unsigned int width = 1, height = 1;
     unsigned error = lodepng::decode(image, width, height, filename);
     if (error) {
         return (int) error;

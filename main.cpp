@@ -201,8 +201,8 @@ double elapsedTime;
 //    (ensure "Copy file" is checked
 // 2. Add to the "Copy files" build phase in the project
 char texture_filename[] = "grayson-particle.png";
-unsigned int texture_width = 256;
-unsigned int texture_height = 256;
+//unsigned int texture_width = 256;
+//unsigned int texture_height = 256;
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 
@@ -611,7 +611,7 @@ void display(void)
          but texture origin is at upper left
          => it has to be mirrored  */
     
-        int error = load_png_as_texture(texture_filename, texture_width, texture_height);
+        int error = load_png_as_texture(texture_filename);
         glEnable(GL_TEXTURE_2D);
         glBegin(GL_QUADS);
         glNormal3f(0.0, 0.0, 1.0);
