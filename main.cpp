@@ -200,7 +200,7 @@ double elapsedTime;
 // 1. Add to the XCode project in the Resources/images group
 //    (ensure "Copy file" is checked
 // 2. Add to the "Copy files" build phase in the project
-char texture_filename[] = "grayson-particle.png";
+char texture_filename[] = "int-texture256-v2.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
