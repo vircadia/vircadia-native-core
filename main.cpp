@@ -634,7 +634,6 @@ void display(void)
             glPointSize(20.f);
             glColor3f(1,1,1);
             glEnable(GL_POINT_SMOOTH);
-            glEnable( GL_POINT_SPRITE_ARB );
             glBegin(GL_POINTS);
             glVertex2f(target_x, target_y);
             glEnd();
