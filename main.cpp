@@ -116,7 +116,7 @@ ParticleSystem balls(500,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 1000 * 500  // 20000   //000
+#define NUM_TRIS 1000 * 100  // 20000   //000
 struct {
     float vertices[NUM_TRIS * 3];
     float normals [NUM_TRIS * 3];
@@ -386,18 +386,9 @@ void update_tris()
         if (tris.element[i] == 1)          //  If moving object, move and drag
         {
             // Update position
-            tris.vertices[i*9+0] += tris.vel[i*3];
-            tris.vertices[i*9+3] += tris.vel[i*3];
-            tris.vertices[i*9+6] += tris.vel[i*3];
-            
-            tris.vertices[i*9+1] += tris.vel[i*3+1];
-            tris.vertices[i*9+4] += tris.vel[i*3+1];
-            tris.vertices[i*9+7] += tris.vel[i*3+1]; 
-            
-            tris.vertices[i*9+2] += tris.vel[i*3+2];
-            tris.vertices[i*9+5] += tris.vel[i*3+2];
-            tris.vertices[i*9+8] += tris.vel[i*3+2]; 
-            
+            tris.vertices[i*3+0] += tris.vel[i*3];
+            tris.vertices[i*3+1] += tris.vel[i*3+1];
+            tris.vertices[i*3+2] += tris.vel[i*3+2];
             
             // Add a little gravity 
             //tris.vel[i*3+1] -= 0.0001;
@@ -412,7 +403,7 @@ void update_tris()
         if (tris.element[i] == 1) 
         {
             // Read and add velocity from field 
-            field_value(field_val, &tris.vertices[i*9]);
+            field_value(field_val, &tris.vertices[i*3]);
             tris.vel[i*3] += field_val[0];
             tris.vel[i*3+1] += field_val[1];
             tris.vel[i*3+2] += field_val[2];
@@ -420,15 +411,15 @@ void update_tris()
 
         // bounce at edge of world 
         // X-Direction
-        if ((tris.vertices[i*9+0] > WORLD_SIZE) || (tris.vertices[i*9+0] < 0.0))
+        if ((tris.vertices[i*3+0] > WORLD_SIZE) || (tris.vertices[i*3+0] < 0.0))
             tris.vel[i*3]*= -1.0;
         // Y-direction
-        if ((tris.vertices[i*9+1] > WORLD_SIZE) || (tris.vertices[i*9+1] < 0.0))
+        if ((tris.vertices[i*3+1] > WORLD_SIZE) || (tris.vertices[i*3+1] < 0.0))
         { 
             tris.vel[i*3+1]*= -1.0;
         }
         // Z-Direction
-        if ((tris.vertices[i*9+2] > WORLD_SIZE) || (tris.vertices[i*9+2] < 0.0))
+        if ((tris.vertices[i*3+2] > WORLD_SIZE) || (tris.vertices[i*3+2] < 0.0))
             tris.vel[i*3+2]*= -1.0;
     }
 }
@@ -664,9 +655,9 @@ void display(void)
     //            glNormal3f(tris.normals[i*3],
     //                       tris.normals[i*3 + 1],
     //                       tris.normals[i*3 + 2]);
-                glVertex3f(tris.vertices[i*9],
-                           tris.vertices[i*9+1],
-                           tris.vertices[i*9+2]);
+                glVertex3f(tris.vertices[i*3],
+                           tris.vertices[i*3+1],
+                           tris.vertices[i*3+2]);
                 
             }
         }
