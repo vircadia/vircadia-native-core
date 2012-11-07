@@ -16,6 +16,8 @@
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 #else
 #include <GL/glut.h>
 #endif
@@ -44,6 +46,8 @@
 #include "head.h"
 #include "hand.h"
 #include "particle.h"
+
+#include "texture.h"
 
 //TGAImg Img;
 
@@ -114,7 +118,7 @@ ParticleSystem balls(10,
 
 #define NUM_TRIS 50000  // 20000   //000
 struct {
-    float vertices[NUM_TRIS * 9];
+    float vertices[NUM_TRIS * 3];
     float normals [NUM_TRIS * 3];
     float colors  [NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
@@ -190,8 +194,21 @@ timeval timer_start, timer_end;
 timeval last_frame;
 double elapsedTime;
 
+// Particles
 
-//  Every second, check the frame rates and other stuff 
+// To add a new texture:
+// 1. Add to the XCode project in the Resources/images group
+//    (ensure "Copy file" is checked
+// 2. Add to the "Copy files" build phase in the project
+char texture_filename[] = "grayson-particle.png";
+unsigned int texture_width = 256;
+unsigned int texture_height = 256;
+
+float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+
+
+
+//  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
     gettimeofday(&timer_end, NULL);
@@ -284,14 +301,12 @@ void init(void)
                        randFloat() * WORLD_SIZE,
                        randFloat() * WORLD_SIZE);
         glm::vec3 verts[3];
-        for (j = 0; j < 3; j++) {
-            verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
-            verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
-            verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
-            tris.vertices[i*9 + j*3] = verts[j].x;
-            tris.vertices[i*9 + j*3 + 1] = verts[j].y;
-            tris.vertices[i*9 + j*3 + 2] = verts[j].z;
-        }
+        verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
+        verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
+        verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
+        tris.vertices[i*3] = verts[j].x;
+        tris.vertices[i*3 + 1] = verts[j].y;
+        tris.vertices[i*3 + 2] = verts[j].z;
         // reuse pos for the normal
         glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
         tris.normals[i*3] = pos.x;
@@ -371,18 +386,9 @@ void update_tris()
         if (tris.element[i] == 1)          //  If moving object, move and drag
         {
             // Update position
-            tris.vertices[i*9+0] += tris.vel[i*3];
-            tris.vertices[i*9+3] += tris.vel[i*3];
-            tris.vertices[i*9+6] += tris.vel[i*3];
-            
-            tris.vertices[i*9+1] += tris.vel[i*3+1];
-            tris.vertices[i*9+4] += tris.vel[i*3+1];
-            tris.vertices[i*9+7] += tris.vel[i*3+1]; 
-            
-            tris.vertices[i*9+2] += tris.vel[i*3+2];
-            tris.vertices[i*9+5] += tris.vel[i*3+2];
-            tris.vertices[i*9+8] += tris.vel[i*3+2]; 
-            
+            tris.vertices[i*3+0] += tris.vel[i*3];
+            tris.vertices[i*3+1] += tris.vel[i*3+1];
+            tris.vertices[i*3+2] += tris.vel[i*3+2];
             
             // Add a little gravity 
             //tris.vel[i*3+1] -= 0.0001;
@@ -397,7 +403,7 @@ void update_tris()
         if (tris.element[i] == 1) 
         {
             // Read and add velocity from field 
-            field_value(field_val, &tris.vertices[i*9]);
+            field_value(field_val, &tris.vertices[i*3]);
             tris.vel[i*3] += field_val[0];
             tris.vel[i*3+1] += field_val[1];
             tris.vel[i*3+2] += field_val[2];
@@ -405,15 +411,15 @@ void update_tris()
 
         // bounce at edge of world 
         // X-Direction
-        if ((tris.vertices[i*9+0] > WORLD_SIZE) || (tris.vertices[i*9+0] < 0.0))
+        if ((tris.vertices[i*3+0] > WORLD_SIZE) || (tris.vertices[i*3+0] < 0.0))
             tris.vel[i*3]*= -1.0;
         // Y-direction
-        if ((tris.vertices[i*9+1] > WORLD_SIZE) || (tris.vertices[i*9+1] < 0.0))
+        if ((tris.vertices[i*3+1] > WORLD_SIZE) || (tris.vertices[i*3+1] < 0.0))
         { 
             tris.vel[i*3+1]*= -1.0;
         }
         // Z-Direction
-        if ((tris.vertices[i*9+2] > WORLD_SIZE) || (tris.vertices[i*9+2] < 0.0))
+        if ((tris.vertices[i*3+2] > WORLD_SIZE) || (tris.vertices[i*3+2] < 0.0))
             tris.vel[i*3+2]*= -1.0;
     }
 }
@@ -560,7 +566,7 @@ void update_pos(float frametime)
 void display(void)
 {
     
-    int i,j;
+    int i;
     
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -589,35 +595,76 @@ void display(void)
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
 
-        glEnable(GL_DEPTH_TEST);        
+        //glEnable(GL_DEPTH_TEST);
         //  TEST:  Draw a reference object in world space coordinates! 
-        glPushMatrix();
-            glTranslatef(1,0,0);
+        //glPushMatrix();
+        //    glTranslatef(1,0,0);
             //glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
-            glColor3f(1,0,0);
-            glutSolidCube(0.4); 
-        glPopMatrix();
+        //    glColor3f(1,0,0);
+        //    glutSolidCube(0.4);
+        //glPopMatrix();
     
-        // Draw Triangles 
-        
-        glBegin(GL_TRIANGLES);
-        for (i = 0; i < NUM_TRIS; i++)
+        // TEST: Draw a textured square (Yoz)
+
+        /* create a square on the XY
+         note that OpenGL origin is at the lower left
+         but texture origin is at upper left
+         => it has to be mirrored  */
+    
+        int error = load_png_as_texture(texture_filename, texture_width, texture_height);
+        glEnable(GL_TEXTURE_2D);
+        glBegin(GL_QUADS);
+        glNormal3f(0.0, 0.0, 1.0);
+        glTexCoord2d(1, 1); glVertex3f(0.0, 0.0, 0.0);
+        glTexCoord2d(1, 0); glVertex3f(0.0, 2.0, 0.0);
+        glTexCoord2d(0, 0); glVertex3f(1.0, 2.0, 0.0);
+        glTexCoord2d(0, 1); glVertex3f(1.0, 0.0, 0.0);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+
+    
+        // Draw Point Sprites
+    
+        /* assuming you have setup a 32-bit RGBA texture with a legal name */
+        glActiveTexture(GL_TEXTURE0);
+        glEnable( GL_TEXTURE_2D );
+        glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    
+        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+        float maxSize = 0.0f;
+        glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
+        glPointSize( maxSize );
+        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
+        // glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+        glEnable( GL_POINT_SPRITE_ARB );
+        glBegin( GL_POINTS );
         {
-            glColor3f(tris.colors[i*3],
-                      tris.colors[i*3+1],
-                      tris.colors[i*3+2]);
-            for (j = 0; j < 3; j++)
+            for (i = 0; i < NUM_TRIS; i++)
             {
-                glVertex3f(tris.vertices[i*9 + j*3],
-                           tris.vertices[i*9 + j*3 + 1],
-                           tris.vertices[i*9 + j*3 + 2]);
+    //            glColor3f(tris.colors[i*3],
+    //                      tris.colors[i*3+1],
+    //                      tris.colors[i*3+2]);
+    //            for (j = 0; j < 3; j++)
+    //            {
+    //                glVertex3f(tris.vertices[i*9 + j*3],
+    //                           tris.vertices[i*9 + j*3 + 1],
+    //                           tris.vertices[i*9 + j*3 + 2]);
+    //            }
+    //            glNormal3f(tris.normals[i*3],
+    //                       tris.normals[i*3 + 1],
+    //                       tris.normals[i*3 + 2]);
+                glVertex3f(tris.vertices[i*3],
+                           tris.vertices[i*3+1],
+                           tris.vertices[i*3+2]);
+                
             }
-            glNormal3f(tris.normals[i*3],
-                       tris.normals[i*3 + 1],
-                       tris.normals[i*3 + 2]);
         }
         glEnd();
-        
+        glDisable( GL_TEXTURE_2D );
+        glDisable( GL_POINT_SPRITE_ARB );
+
         //  Show field vectors
         if (display_field) field_render(); 
         
@@ -630,7 +677,7 @@ void display(void)
         }
         myHand.render();
     
-        balls.render();
+        // balls.render();
             
         //  Render the world box 
         render_world_box();
@@ -792,7 +839,7 @@ void idle(void)
         field_simulate(1.f/FPS);
         myHead.simulate(1.f/FPS);
         myHand.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
+        // balls.simulate(1.f/FPS);
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;

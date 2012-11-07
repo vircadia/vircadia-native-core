@@ -97,7 +97,8 @@ void field_simulate(float dt) {
                         field[i].val.z*field[i].val.z, 0.5);
             
             neighbors *= 0.0001;
-            glm::vec3 test = glm::normalize(glm::vec3(0,0,0));
+            // not currently in use
+            // glm::vec3 test = glm::normalize(glm::vec3(0,0,0));
             
             field[i].val = glm::normalize(field[i].val);
             field[i].val *= size * 0.99;
