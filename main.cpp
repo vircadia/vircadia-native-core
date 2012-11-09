@@ -204,6 +204,7 @@ unsigned int texture_height = 256;
 
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
 
 
@@ -580,22 +581,22 @@ void display(void)
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
     
-        // Draw Point Sprites
-        load_png_as_texture(texture_filename);
-            
-        /* assuming you have setup a 32-bit RGBA texture with a legal name */
-        glActiveTexture(GL_TEXTURE0);
+        /* Draw Point Sprites */
+        
+        //glActiveTexture(GL_TEXTURE0);
         glEnable( GL_TEXTURE_2D );
-        glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+         
+        //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-    
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    
         float maxSize = 0.0f;
         glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
         glPointSize( maxSize );
         glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-        // glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+        glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
         glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+         
         glEnable( GL_POINT_SPRITE_ARB );
         glBegin( GL_POINTS );
         {
@@ -607,10 +608,12 @@ void display(void)
             }
         }
         glEnd();
+            
         glDisable( GL_TEXTURE_2D );
         glDisable( GL_POINT_SPRITE_ARB );
 
-        if (display_field) field_render(); 
+        //  Show field vectors
+        if (display_field) field_render();
         
         if (display_head) myHead.render();
         
@@ -636,20 +639,20 @@ void display(void)
     
         if (mouse_pressed == 1)
         {
-            glPointSize(20.f);
+            glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
+            glPointSize( 10.0f );
             glColor3f(1,1,1);
-            glEnable(GL_POINT_SMOOTH);
+            //glEnable(GL_POINT_SMOOTH);
             glBegin(GL_POINTS);
             glVertex2f(target_x, target_y);
             glEnd();
             char val[20];
             sprintf(val, "%d,%d", target_x, target_y); 
             drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
-
         }
         if (display_head_mouse)
         {
-            glPointSize(20.f);
+            glPointSize(10.0f);
             glColor4f(1.0, 1.0, 0.0, 0.8);
             glEnable(GL_POINT_SMOOTH);
             glBegin(GL_POINTS);
