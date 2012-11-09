@@ -116,11 +116,11 @@ ParticleSystem balls(10,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 100000  
+#define NUM_TRIS 200000  
 struct {
     float vertices[NUM_TRIS * 3];
-    float normals [NUM_TRIS * 3];
-    float colors  [NUM_TRIS * 3];
+//    float normals [NUM_TRIS * 3];
+//    float colors  [NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
     glm::vec3 vel1[NUM_TRIS];
     glm::vec3 vel2[NUM_TRIS];
@@ -166,8 +166,6 @@ int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finishe
 int accel_x, accel_y;
 
 int speed;
-
-float mag_imbalance = 0.f;
 
 //  
 //  Serial I/O channel mapping:
@@ -312,14 +310,14 @@ void init(void)
         tris.vertices[i*3 + 2] = verts[j].z;
         
         // reuse pos for the normal
-        glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
-        tris.normals[i*3] = pos.x;
-        tris.normals[i*3+1] = pos.y;
-        tris.normals[i*3+2] = pos.z;
+        //glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
+        //tris.normals[i*3] = pos.x;
+        //tris.normals[i*3+1] = pos.y;
+        //tris.normals[i*3+2] = pos.z;
         
         //  Moving - white
         tris.element[i] = 1;
-        tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
+        //tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
         tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
         tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
         tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
@@ -364,7 +362,7 @@ void update_tris()
 {
     int i, j;
     float field_val[3];
-    
+    float field_contrib[3];
     for (i = 0; i < NUM_TRIS; i++)
     {
         if (tris.element[i] == 1)          //  If moving object, move and drag
@@ -391,6 +389,13 @@ void update_tris()
             tris.vel[i*3] += field_val[0];
             tris.vel[i*3+1] += field_val[1];
             tris.vel[i*3+2] += field_val[2];
+            
+            // Add a tiny bit of energy back to the field
+            const float FIELD_COUPLE = 0.0000001;
+            field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
+            field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
+            field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
+            field_add(field_contrib, &tris.vertices[i*3]);
         }
 
         // bounce at edge of world 

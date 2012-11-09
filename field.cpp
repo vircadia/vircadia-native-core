@@ -55,8 +55,8 @@ void field_add(float* add, float *pos)
     if ((index >= 0) && (index < FIELD_ELEMENTS))
     {
         field[index].val.x += add[0];
-        field[index].val.y += add[0];
-        field[index].val.z += add[0];
+        field[index].val.y += add[1];
+        field[index].val.z += add[2];
     }
 }
 
@@ -107,9 +107,10 @@ void field_simulate(float dt) {
             field[i].val += add;
         }
         else {
-            field[i].val.x += (randFloat() - 0.5)*0.01*FIELD_SCALE;
-            field[i].val.y += (randFloat() - 0.5)*0.01*FIELD_SCALE;
-            field[i].val.z += (randFloat() - 0.5)*0.01*FIELD_SCALE;
+            field[i].val *= 0.999;
+            //field[i].val.x += (randFloat() - 0.5)*0.01*FIELD_SCALE;
+            //field[i].val.y += (randFloat() - 0.5)*0.01*FIELD_SCALE;
+            //field[i].val.z += (randFloat() - 0.5)*0.01*FIELD_SCALE;
         }
         
     }      
