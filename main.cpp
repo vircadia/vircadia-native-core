@@ -77,10 +77,6 @@ unsigned char last_key = 0;
 
 double ping = 0; 
 
-
-
-//#define WIDTH 1200					//  Width,Height of simulation area in cells
-//#define HEIGHT 800
 int WIDTH = 1200; 
 int HEIGHT = 800; 
 
