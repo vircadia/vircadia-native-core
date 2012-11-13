@@ -55,7 +55,7 @@
 
 /* Begin PBXFileReference section */
 		08FB7796FE84155DC02AAC07 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		8DD76F6C0486A84900D96B5E /* interface */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = interface; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DD76F6C0486A84900D96B5E /* interface */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = interface; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6BDADD115F4084F002A07DF /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
 		B6BDADD315F4085B002A07DF /* audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = audio.cpp; sourceTree = "<group>"; };
 		B6BDADD515F40B04002A07DF /* libportaudio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libportaudio.a; sourceTree = "<group>"; };
@@ -289,6 +289,7 @@
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
+				SDKROOT = macosx10.7;
 			};
 			name = Debug;
 		};
@@ -312,6 +313,7 @@
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
+				SDKROOT = macosx10.7;
 			};
 			name = Release;
 		};
