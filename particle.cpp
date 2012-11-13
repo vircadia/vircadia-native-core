@@ -27,7 +27,7 @@ ParticleSystem::ParticleSystem(int num,
     int i, element;
     bounds = box;
     count = num;
-    wrapBounds = wrap;
+    wrapBounds = false;
     noise = noiselevel;
     gravity = setgravity;
     scale = setscale; 
@@ -38,6 +38,11 @@ ParticleSystem::ParticleSystem(int num,
         particles[i].position.y = randFloat()*box.y;
         particles[i].position.z = randFloat()*box.z;
         
+        // Constrain to a small box in center
+        //particles[i].position.x = randFloat()+box.x/2.0;
+        //particles[i].position.y = randFloat()+box.y/2.0;
+        //particles[i].position.z = randFloat()+box.z/2.0;
+        
         particles[i].velocity.x = 0;
         particles[i].velocity.y = 0;
         particles[i].velocity.z = 0;
@@ -45,7 +50,7 @@ ParticleSystem::ParticleSystem(int num,
         particles[i].parent = 0; 
         particles[i].link *= 0;
         
-        element = rand()%NUM_ELEMENTS;
+        element = 1; //rand()%NUM_ELEMENTS;
         particles[i].element = element; 
         
         if (element == 0) particles[i].color = color0;
@@ -53,7 +58,7 @@ ParticleSystem::ParticleSystem(int num,
         else if (element == 2) particles[i].color = color2;
         else if (element == 3) particles[i].color = color3;
         
-        particles[i].radius = radii[element]*scale;
+        particles[i].radius = 0.10;  //radii[element]*scale;
         particles[i].isColliding = false;
         
         
@@ -79,10 +84,10 @@ void ParticleSystem::render() {
     for (unsigned int i = 0; i < count; ++i) {
         glPushMatrix();
             glTranslatef(particles[i].position.x, particles[i].position.y, particles[i].position.z);
-            if (particles[i].isColliding) glColor3f(particles[i].color.x * 0.7, 
-                                                    particles[i].color.y * 0.7, 
-                                                    particles[i].color.z * 0.7);
-            else glColor3f(particles[i].color.x, particles[i].color.y, particles[i].color.z);
+            if (particles[i].numSprung == 0) glColor3f(1,1,1);
+            else if (particles[i].numSprung == 1) glColor3f(0,1,0);
+            else if (particles[i].numSprung == 2) glColor3f(1,1,0);
+            else if (particles[i].numSprung >= 3) glColor3f(1,0,0);
             glutSolidSphere(particles[i].radius, 15, 15);
         glPopMatrix();
     }
@@ -110,19 +115,26 @@ void ParticleSystem::simulate (float deltaTime) {
                 particles[i].velocity.y -= gravity*deltaTime;
                 
                 // Drag: decay velocity
-                particles[i].velocity *= 0.99;
+                const float CONSTANT_DAMPING = 0.1;
+                particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                
                 // Add velocity from field
                 //Field::addTo(particles[i].velocity);
                 //particles[i].velocity += Field::valueAt(particles[i].position);
            
                 // Add noise 
-                const float RAND_VEL = 3.0;
+                const float RAND_VEL = 0.05;
                 if (noise) {
-                    if (randFloat() < noise*deltaTime) {
+                    if (1) {
                         particles[i].velocity += glm::vec3((randFloat() - 0.5)*RAND_VEL,
                                                            (randFloat() - 0.5)*RAND_VEL,
                                                            (randFloat() - 0.5)*RAND_VEL);
+                        }
+                    if (randFloat() < noise*deltaTime) {
+                        particles[i].velocity += glm::vec3((randFloat() - 0.5)*RAND_VEL*100,
+                                                           (randFloat() - 0.5)*RAND_VEL*100,
+                                                           (randFloat() - 0.5)*RAND_VEL*100);
+
                         }
                     } 
             } else {
@@ -137,11 +149,14 @@ void ParticleSystem::simulate (float deltaTime) {
             //  Check for collision with other balls
             float separation;
             const float HARD_SPHERE_FORCE = 100.0;
-            const float SPRING_FORCE = 0.1;
-            float spring_length = 3*radii[1];
+            const float SPRING_FORCE = 10.0;
+            const float SPRING_DAMPING = 0.5;
+            float spring_length = 0.5; //2*radii[1];
+            float spring_range = spring_length * 1.2;
             float contact; 
             
             particles[i].isColliding = false; 
+            particles[i].numSprung = 0;  
             
             for (j = 0; j < count; j++) {
                 if ((j != i) && 
@@ -150,14 +165,17 @@ void ParticleSystem::simulate (float deltaTime) {
                     contact = particles[i].radius + particles[j].radius;
                     
                     //  Hard Sphere Scattering
+                    
                     if (separation < contact) {
                         particles[i].velocity += glm::normalize(particles[i].position - particles[j].position)*deltaTime*HARD_SPHERE_FORCE*(contact - separation);
                         particles[i].isColliding = true;
                     } 
                     
                     //  Spring Action
-                    if ((particles[i].element == 1) && (separation < spring_length*2)) {
-                        particles[i].velocity += glm::normalize(particles[i].position - particles[j].position)*deltaTime*SPRING_FORCE*(spring_length - separation);
+                    if ((particles[i].element == 1) && (separation < spring_range)) {
+                            particles[i].velocity += glm::normalize(particles[i].position - particles[j].position)*deltaTime*SPRING_FORCE*(spring_length - separation);
+                            particles[i].velocity *= (1.f - SPRING_DAMPING*deltaTime);
+                            particles[i].numSprung++; 
                     }
                      
                     //  Link!
@@ -194,14 +212,20 @@ void ParticleSystem::simulate (float deltaTime) {
                     // Bounce at bounds
                     if (particles[i].position.x > bounds.x 
                     || particles[i].position.x < 0.f) {
+                        if (particles[i].position.x > bounds.x) particles[i].position.x = bounds.x;
+                        else particles[i].position.x = 0.f;
                         particles[i].velocity.x *= -1;
                     }
                     if (particles[i].position.y > bounds.y 
                     || particles[i].position.y < 0.f) {
+                        if (particles[i].position.y > bounds.y) particles[i].position.y = bounds.y;
+                        else particles[i].position.y = 0.f;
                         particles[i].velocity.y *= -1;
                     }
                     if (particles[i].position.z > bounds.z 
                     || particles[i].position.z < 0.f) {
+                        if (particles[i].position.z > bounds.z) particles[i].position.z = bounds.z;
+                        else particles[i].position.z = 0.f;
                         particles[i].velocity.z *= -1;
                     }
                 }
