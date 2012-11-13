@@ -578,7 +578,9 @@ void display(void)
         glTranslatef(location[0], location[1], location[2]);
     
         /* Draw Point Sprites */
-        
+    
+        load_png_as_texture(texture_filename);
+    
         //glActiveTexture(GL_TEXTURE0);
         glEnable( GL_TEXTURE_2D );
          
