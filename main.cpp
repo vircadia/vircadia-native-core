@@ -112,7 +112,7 @@ ParticleSystem balls(1000,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 10  
+#define NUM_TRIS 100000
 struct {
     float vertices[NUM_TRIS * 3];
 //    float normals [NUM_TRIS * 3];
@@ -259,7 +259,10 @@ void initDisplay(void)
 
 void init(void)
 {
-    int i, j; 
+    int i, j;
+    
+    load_png_as_texture(texture_filename);
+    printf("Texture loaded.\n");
 
     Audio::init();
     printf( "Audio started.\n" );
@@ -578,9 +581,7 @@ void display(void)
         glTranslatef(location[0], location[1], location[2]);
     
         /* Draw Point Sprites */
-    
-        load_png_as_texture(texture_filename);
-    
+        
         //glActiveTexture(GL_TEXTURE0);
         glEnable( GL_TEXTURE_2D );
          
