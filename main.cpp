@@ -89,12 +89,12 @@ Hand myHand(HAND_RADIUS,
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-ParticleSystem balls(10, 
+ParticleSystem balls(1000, 
                      box, 
                      false,                     // Wrap?
-                     0.0,                       // Noise
-                     0.3,                        //  Size scale 
-                     0.0                       // Gravity 
+                     0.02,                       // Noise
+                     0.3,                       //  Size scale 
+                     0.0                        // Gravity 
                      );
 
 
@@ -112,7 +112,7 @@ ParticleSystem balls(10,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 200000  
+#define NUM_TRIS 10  
 struct {
     float vertices[NUM_TRIS * 3];
 //    float normals [NUM_TRIS * 3];
@@ -616,7 +616,7 @@ void display(void)
         if (display_hand) myHand.render();   
      
     
-        // balls.render();
+        balls.render();
             
         //  Render the world box 
         render_world_box();
@@ -781,7 +781,7 @@ void idle(void)
         field_simulate(1.f/FPS);
         myHead.simulate(1.f/FPS);
         myHand.simulate(1.f/FPS);
-        // balls.simulate(1.f/FPS);
+        balls.simulate(1.f/FPS);
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;

@@ -34,6 +34,7 @@ private:
         int parent;
         float radius;
         bool isColliding;
+        int numSprung;
     } *particles;
     unsigned int count;
     
