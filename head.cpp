@@ -43,6 +43,8 @@ Head::Head()
     PitchTarget = YawTarget = 0; 
     NoiseEnvelope = 1.0;
     PupilConverge = 2.1;
+    leanForward = 0.0;
+    leanSideways = 0.0;
     setNoise(0);
 }
 
@@ -51,10 +53,22 @@ void Head::reset()
     position = glm::vec3(0,0,0);
     Pitch = 0;
     Yaw = 0;
+    leanForward = leanSideways = 0;
+}
+
+//  Read the sensors
+void readSensors()
+{
+    
+}
+
+void Head::addLean(float x, float z) {
+    //  Add Body lean as impulse 
+    leanSideways += x;
+    leanForward += z;
 }
 
 //  Simulate the head over time 
-
 void Head::simulate(float deltaTime)
 {
     if (!noise)
@@ -70,6 +84,9 @@ void Head::simulate(float deltaTime)
         Yaw += (YawTarget - Yaw)*22*deltaTime; //  (1.f - DECAY*deltaTime);
         Roll *= (1.f - DECAY*deltaTime);
     }
+    
+    leanForward *= (1.f - DECAY*30.f*deltaTime);
+    leanSideways *= (1.f - DECAY*30.f*deltaTime);
     
     if (noise)
     {
@@ -118,6 +135,7 @@ void Head::render()
     glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
+        glTranslatef(leanSideways, 0.f, leanForward);
         glRotatef(Yaw/2.0, 0, 1, 0);
         glRotatef(Pitch/2.0, 1, 0, 0);
         glRotatef(Roll/2.0, 0, 0, 1);
