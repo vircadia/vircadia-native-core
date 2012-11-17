@@ -34,6 +34,8 @@ class Head {
     float MouthYaw;
     float MouthWidth;
     float MouthHeight;
+    float leanForward;
+    float leanSideways;
     
     float PitchTarget; 
     float YawTarget; 
@@ -44,6 +46,8 @@ class Head {
     
     glm::vec3 position;
     
+    void readSensors();
+    
 public:
     Head(void);
     void reset();
@@ -52,6 +56,7 @@ public:
     void setYaw(float y) {Yaw = y; }
     void addPitch(float p) {Pitch -= p; }
     void addYaw(float y){Yaw -= y; }
+    void addLean(float x, float z);
     void getPitch(float);
     void render();
     void simulate(float);
