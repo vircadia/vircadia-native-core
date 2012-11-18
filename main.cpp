@@ -49,6 +49,8 @@
 
 #include "texture.h"
 
+#include "cloud.h"
+
 //TGAImg Img;
 
 using namespace std;
@@ -74,6 +76,8 @@ int bytescount = 0;
 int target_x, target_y; 
 int target_display = 0;
 
+int head_mirror = 0;                     //  Whether to mirror the head when viewing it
+
 unsigned char last_key = 0; 
 
 double ping = 0; 
@@ -98,7 +102,10 @@ ParticleSystem balls(0,
                      0.0                        // Gravity 
                      );
 
-
+Cloud cloud(0,                              //  Particles
+            box,                                //  Bounding Box
+            false                               //  Wrap
+            );
 
 //  FIELD INFORMATION 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
@@ -113,11 +120,9 @@ ParticleSystem balls(0,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 100000  
+#define NUM_TRIS 250000  
 struct {
     float vertices[NUM_TRIS * 3];
-//    float normals [NUM_TRIS * 3];
-//    float colors  [NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
     glm::vec3 vel1[NUM_TRIS];
     glm::vec3 vel2[NUM_TRIS];
@@ -154,7 +159,7 @@ int display_head = 0;
 int display_hand = 0;
 int display_field = 0;
 
-int display_head_mouse = 1;              //  Display sample mouse pointer controlled by head movement
+int display_head_mouse = 1;         //  Display sample mouse pointer controlled by head movement
 int head_mouse_x, head_mouse_y; 
 int head_lean_x, head_lean_y;
 
@@ -446,10 +451,17 @@ void update_pos(float frametime)
     float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
     
     //  Update avatar head position based on measured gyro rates
-    myHead.addYaw(measured_yaw_rate * 0.25 * frametime);
-    myHead.addPitch(measured_pitch_rate * -0.25 * frametime);
-    myHead.addLean(measured_lateral_accel * frametime * 0.05, measured_fwd_accel*frametime * 0.05);
-
+    const float HEAD_ROTATION_SCALE = 0.10;
+    const float HEAD_LEAN_SCALE = 0.02;
+    if (head_mirror) {
+        myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
+    } else {
+        myHead.addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
+    }
     //  Decay avatar head back toward zero
     //pitch *= (1.f - 5.0*frametime); 
     //yaw *= (1.f - 7.0*frametime);
@@ -608,24 +620,25 @@ void display(void)
         glPointSize( maxSize );
         glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
         glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+
         glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-         
         glEnable( GL_POINT_SPRITE_ARB );
-    if (!display_head) {
-        glBegin( GL_POINTS );
-        {
-            for (i = 0; i < NUM_TRIS; i++)
+        if (!display_head) {
+            glBegin( GL_POINTS );
             {
-                glVertex3f(tris.vertices[i*3],
-                           tris.vertices[i*3+1],
-                           tris.vertices[i*3+2]);
+                for (i = 0; i < NUM_TRIS; i++)
+                {
+                    glVertex3f(tris.vertices[i*3],
+                               tris.vertices[i*3+1],
+                               tris.vertices[i*3+2]);
+                }
             }
-        }
-        glEnd();
+            glEnd();
         }
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
 
+        if (!display_head) cloud.render();
         //  Show field vectors
         if (display_field) field_render();
         
@@ -800,6 +813,7 @@ void idle(void)
         myHead.simulate(1.f/FPS);
         myHand.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
+        cloud.simulate(1.f/FPS);
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;
