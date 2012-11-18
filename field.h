@@ -29,15 +29,4 @@ void field_render();
 void field_add(float* add, float *loc);
 void field_simulate(float dt);
 
-class Field {
-public:
-    static void init ();
-    static int addTo (const glm::vec3 &pos, glm::vec3 &v);
-
-private:
-    const static unsigned int fieldSize = 1000;
-    const static float fieldScale; // defined in cpp – inline const float definitions not allowed in standard C++?! (allowed in C++0x)
-    static glm::vec3 field[fieldSize];
-};
-
 #endif

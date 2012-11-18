@@ -178,6 +178,7 @@ void Head::render()
             }
         glPopMatrix();
         
+        
         // Mouth
         glPushMatrix();
             glTranslatef(0,-0.3,0.75);
