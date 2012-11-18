@@ -125,9 +125,6 @@ Cloud cloud(250000,                             //  Particles
 struct {
     float vertices[NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
-    glm::vec3 vel1[NUM_TRIS];
-    glm::vec3 vel2[NUM_TRIS];
-    int element[NUM_TRIS];
 }tris;
 
 
@@ -325,7 +322,6 @@ void init(void)
         //tris.normals[i*3+2] = pos.z;
         
         //  Moving - white
-        tris.element[i] = 1;
         //tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
         tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
         tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
@@ -376,41 +372,34 @@ void update_tris()
     float field_contrib[3];
     for (i = 0; i < NUM_TRIS; i++)
     {
-        if (tris.element[i] == 1)          //  If moving object, move and drag
-        {
-            // Update position
-            tris.vertices[i*3+0] += tris.vel[i*3];
-            tris.vertices[i*3+1] += tris.vel[i*3+1];
-            tris.vertices[i*3+2] += tris.vel[i*3+2];
-            
-            // Add a little gravity 
-            //tris.vel[i*3+1] -= 0.0001;
-           
-            const float DRAG = 0.99;
-            // Drag:  Decay velocity
-            tris.vel[i*3] *= DRAG;
-            tris.vel[i*3+1] *= DRAG;
-            tris.vel[i*3+2] *= DRAG;
-        }
+        // Update position
+        tris.vertices[i*3+0] += tris.vel[i*3];
+        tris.vertices[i*3+1] += tris.vel[i*3+1];
+        tris.vertices[i*3+2] += tris.vel[i*3+2];
+        
+        // Add a little gravity 
+        //tris.vel[i*3+1] -= 0.0001;
+       
+        const float DRAG = 0.99;
+        // Drag:  Decay velocity
+        tris.vel[i*3] *= DRAG;
+        tris.vel[i*3+1] *= DRAG;
+        tris.vel[i*3+2] *= DRAG;
                  
-        if (tris.element[i] == 1) 
-        {
+        // Read and add velocity from field 
+        field_value(field_val, &tris.vertices[i*3]);
+        tris.vel[i*3] += field_val[0];
+        tris.vel[i*3+1] += field_val[1];
+        tris.vel[i*3+2] += field_val[2];
+        
+        // Add a tiny bit of energy back to the field
+        const float FIELD_COUPLE = 0.0000001;
+        field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
+        field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
+        field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
+        field_add(field_contrib, &tris.vertices[i*3]);
             
-            // Read and add velocity from field 
-            field_value(field_val, &tris.vertices[i*3]);
-            tris.vel[i*3] += field_val[0];
-            tris.vel[i*3+1] += field_val[1];
-            tris.vel[i*3+2] += field_val[2];
-            
-            // Add a tiny bit of energy back to the field
-            const float FIELD_COUPLE = 0.0000001;
-            field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
-            field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
-            field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
-            field_add(field_contrib, &tris.vertices[i*3]);
-            
-        }
-
+ 
         // bounce at edge of world 
         for (j=0; j < 3; j++) {
             if ((tris.vertices[i*3+j] > WORLD_SIZE) || (tris.vertices[i*3+j] < 0.0)) {
