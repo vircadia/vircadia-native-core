@@ -63,34 +63,21 @@ void Cloud::render() {
 
 void Cloud::simulate (float deltaTime) {
     int i;
-    float verts[3], fadd[3], fval[3];
     for (i = 0; i < count; ++i) {
         
         // Update position 
         //particles[i].position += particles[i].velocity*deltaTime;
         particles[i].position += particles[i].velocity;
 
-        
-        // Drag: decay velocity
+        // Decay Velocity (Drag)
         const float CONSTANT_DAMPING = 1.0;
         particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                 
-        // Read from field 
-        verts[0] = particles[i].position.x;
-        verts[1] = particles[i].position.y;
-        verts[2] = particles[i].position.z;
-        field_value(fval, &verts[0]);
-        particles[i].velocity.x += fval[0];
-        particles[i].velocity.y += fval[1];
-        particles[i].velocity.z += fval[2];
-        
-        // Add back to field
+        // Interact with Field
         const float FIELD_COUPLE = 0.0000001;
-        fadd[0] = particles[i].velocity.x*FIELD_COUPLE;
-        fadd[1] = particles[i].velocity.y*FIELD_COUPLE;
-        fadd[2] = particles[i].velocity.z*FIELD_COUPLE;
-        field_add(fadd, &verts[0]);
-            
+        field_interact(&particles[i].position, &particles[i].velocity, FIELD_COUPLE);
+        
+        //  Bounce or Wrap 
         if (wrapBounds) {
             // wrap around bounds
             if (particles[i].position.x > bounds.x)

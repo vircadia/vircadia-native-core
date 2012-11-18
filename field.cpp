@@ -60,6 +60,21 @@ void field_add(float* add, float *pos)
     }
 }
 
+void field_interact(glm::vec3 * pos, glm::vec3 * vel, float coupling) {
+     
+    int index = (int)(pos->x/WORLD_SIZE*10.0) + 
+    (int)(pos->y/WORLD_SIZE*10.0)*10 + 
+    (int)(pos->z/WORLD_SIZE*10.0)*100;
+    if ((index >= 0) && (index < FIELD_ELEMENTS)) {
+        //  Add velocity to particle from field
+        *vel += field[index].val;
+        //  Add back to field from particle velocity 
+        glm::vec3 temp = *vel;
+        temp *= coupling;
+        field[index].val += temp;
+    }
+}
+
 void field_avg_neighbors(int index, glm::vec3 * result) {
     //  Given index to field element i, return neighbor field values 
     glm::vec3 neighbors(0,0,0);

@@ -58,6 +58,7 @@ using namespace std;
 //   Junk for talking to the Serial Port 
 int serial_on = 0;                  //  Is serial connection on/off?  System will try
 int audio_on = 0;                   //  Whether to turn on the audio support 
+int simulate_on = 1; 
 
 //  Network Socket Stuff 
 //  For testing, add milliseconds of delay for received UDP packets
@@ -96,13 +97,13 @@ Hand myHand(HAND_RADIUS,
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
                      box, 
-                     false,                     // Wrap?
-                     0.02,                       // Noise
+                     false,                     //  Wrap?
+                     0.02,                      //  Noise
                      0.3,                       //  Size scale 
-                     0.0                        // Gravity 
+                     0.0                        //  Gravity 
                      );
 
-Cloud cloud(0,                              //  Particles
+Cloud cloud(250000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
@@ -120,7 +121,7 @@ Cloud cloud(0,                              //  Particles
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 250000  
+#define NUM_TRIS 0  
 struct {
     float vertices[NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
@@ -394,6 +395,7 @@ void update_tris()
                  
         if (tris.element[i] == 1) 
         {
+            
             // Read and add velocity from field 
             field_value(field_val, &tris.vertices[i*3]);
             tris.vel[i*3] += field_val[0];
@@ -406,6 +408,7 @@ void update_tris()
             field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
             field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
             field_add(field_contrib, &tris.vertices[i*3]);
+            
         }
 
         // bounce at edge of world 
@@ -734,7 +737,7 @@ void key(unsigned char k, int x, int y)
 	if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
-        noise_on = !noise_on;			// Toggle noise 
+        noise_on = !noise_on;                   // Toggle noise 
         if (noise_on)
         {
             myHand.setNoise(noise);
@@ -759,6 +762,7 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 'a') render_yaw_rate -= 0.25;
     if (k == 'd') render_yaw_rate += 0.25;
+    if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
         // Add to field vector 
@@ -808,12 +812,14 @@ void idle(void)
     {
         //  Simulation
         update_pos(1.f/FPS); 
-        update_tris();
-        field_simulate(1.f/FPS);
-        myHead.simulate(1.f/FPS);
-        myHand.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
-        cloud.simulate(1.f/FPS);
+        if (simulate_on) {
+            update_tris();
+            field_simulate(1.f/FPS);
+            myHead.simulate(1.f/FPS);
+            myHand.simulate(1.f/FPS);
+            balls.simulate(1.f/FPS);
+            cloud.simulate(1.f/FPS);
+        }
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;
