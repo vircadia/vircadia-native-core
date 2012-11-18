@@ -27,6 +27,7 @@ void field_init();
 int field_value(float *ret, float *pos);
 void field_render();
 void field_add(float* add, float *loc);
+void field_interact(glm::vec3 * pos, glm::vec3 * vel, float coupling);
 void field_simulate(float dt);
 
 #endif
