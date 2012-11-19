@@ -62,6 +62,125 @@ void readSensors()
     
 }
 
+/*
+void update_pos(float frametime)
+//  Using serial data, update avatar/render position and angles
+{
+    float measured_pitch_rate = adc_channels[0] - avg_adc_channels[0];
+    float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
+    float measured_lateral_accel = adc_channels[3] - avg_adc_channels[3];
+    float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
+    
+    //  Update avatar head position based on measured gyro rates
+    const float HEAD_ROTATION_SCALE = 0.20;
+    const float HEAD_LEAN_SCALE = 0.02;
+    if (head_mirror) {
+        myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
+    } else {
+        myHead.addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
+    }
+    //  Decay avatar head back toward zero
+    //pitch *= (1.f - 5.0*frametime); 
+    //yaw *= (1.f - 7.0*frametime);
+    
+    //  Update head_mouse model 
+    const float MIN_MOUSE_RATE = 30.0;
+    const float MOUSE_SENSITIVITY = 0.1;
+    if (powf(measured_yaw_rate*measured_yaw_rate + 
+             measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
+    {
+        head_mouse_x -= measured_yaw_rate*MOUSE_SENSITIVITY;
+        head_mouse_y += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
+    }
+    head_mouse_x = max(head_mouse_x, 0);
+    head_mouse_x = min(head_mouse_x, WIDTH);
+    head_mouse_y = max(head_mouse_y, 0);
+    head_mouse_y = min(head_mouse_y, HEIGHT);
+    
+      //  Update render direction (pitch/yaw) based on measured gyro rates
+    const int MIN_YAW_RATE = 300;
+    const float YAW_SENSITIVITY = 0.03;
+    const int MIN_PITCH_RATE = 300;
+    const float PITCH_SENSITIVITY = 0.04;
+    
+    if (fabs(measured_yaw_rate) > MIN_YAW_RATE) 
+    {   
+        if (measured_yaw_rate > 0)
+            render_yaw_rate -= (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+        else 
+            render_yaw_rate -= (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+    }
+    if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
+    {
+        if (measured_pitch_rate > 0)
+            render_pitch_rate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+        else 
+            render_pitch_rate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+    }
+    render_yaw += render_yaw_rate;
+    render_pitch += render_pitch_rate;
+    
+    // Decay render_pitch toward zero because we never look constantly up/down 
+    render_pitch *= (1.f - 2.0*frametime);
+    
+    //  Decay angular rates toward zero 
+    render_pitch_rate *= (1.f - 5.0*frametime);
+    render_yaw_rate *= (1.f - 7.0*frametime);
+    
+    //  Update slide left/right based on accelerometer reading
+    const int MIN_LATERAL_ACCEL = 20;
+    const float LATERAL_SENSITIVITY = 0.001;
+    if (fabs(measured_lateral_accel) > MIN_LATERAL_ACCEL) 
+    {
+        if (measured_lateral_accel > 0)
+            lateral_vel += (measured_lateral_accel - MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
+        else 
+            lateral_vel += (measured_lateral_accel + MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
+    }
+    
+    //slide += lateral_vel;
+    lateral_vel *= (1.f - 4.0*frametime);
+    
+    //  Update fwd/back based on accelerometer reading
+    const int MIN_FWD_ACCEL = 20;
+    const float FWD_SENSITIVITY = 0.001;
+    
+    if (fabs(measured_fwd_accel) > MIN_FWD_ACCEL) 
+    {
+        if (measured_fwd_accel > 0)
+            fwd_vel += (measured_fwd_accel - MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
+        else 
+            fwd_vel += (measured_fwd_accel + MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
+        
+    }
+    //  Decrease forward velocity
+    fwd_vel *= (1.f - 4.0*frametime);
+    
+    //  Update forward vector based on pitch and yaw 
+    fwd_vec[0] = -sinf(render_yaw*PI/180);
+    fwd_vec[1] = sinf(render_pitch*PI/180);
+    fwd_vec[2] = cosf(render_yaw*PI/180);
+    
+    //  Advance location forward
+    location[0] += fwd_vec[0]*fwd_vel;
+    location[1] += fwd_vec[1]*fwd_vel;
+    location[2] += fwd_vec[2]*fwd_vel;
+    
+    //  Slide location sideways
+    location[0] += fwd_vec[2]*-lateral_vel;
+    location[2] += fwd_vec[0]*lateral_vel;
+    
+    //  Update head and manipulator objects with object with current location
+    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
+}
+*/
+
+
 void Head::addLean(float x, float z) {
     //  Add Body lean as impulse 
     leanSideways += x;

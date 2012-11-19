@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
-#include "tga.h"                //  Texture loader library
 #include "glm/glm.hpp"
 #include <portaudio.h>
 
@@ -60,7 +59,7 @@ int serial_on = 0;                  //  Is serial connection on/off?  System wil
 int audio_on = 0;                   //  Whether to turn on the audio support 
 int simulate_on = 1; 
 
-//  Network Socket Stuff 
+//  Network Socket Stuff
 //  For testing, add milliseconds of delay for received UDP packets
 int UDP_socket;
 int delay = 0;         
@@ -79,15 +78,8 @@ int target_display = 0;
 
 int head_mirror = 0;                     //  Whether to mirror the head when viewing it
 
-unsigned char last_key = 0; 
-
-double ping = 0; 
-
 int WIDTH = 1200; 
 int HEIGHT = 800; 
-
-#define BOTTOM_MARGIN 0				
-#define RIGHT_MARGIN 0
 
 #define HAND_RADIUS 0.25             //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself or others 
@@ -108,15 +100,6 @@ Cloud cloud(300000,                             //  Particles
             false                               //  Wrap
             );
 
-//  FIELD INFORMATION 
-//  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
-//  element = [x/10 + (y/10)*10 + (z*/10)*100] 
-//
-//  The vec(x,y,z) corner of a field cell at element i is:
-// 
-//  z = (int)( i / 100)
-//  y = (int)(i % 100 / 10)
-//  x = (int)(i % 10)
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
@@ -157,7 +140,6 @@ int head_lean_x, head_lean_y;
 int mouse_x, mouse_y;				//  Where is the mouse 
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
 
-int accel_x, accel_y;
 
 int speed;
 
@@ -257,7 +239,7 @@ void initDisplay(void)
 
 void init(void)
 {
-    int i, j; 
+    int i; 
 
     if (audio_on) {
         Audio::init();
@@ -603,10 +585,7 @@ void display(void)
 void key(unsigned char k, int x, int y)
 {
 	//  Process keypresses 
-        
-    last_key = k;
-	
-	if (k == 'q')  ::terminate();
+ 	if (k == 'q')  ::terminate();
 	if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
@@ -798,7 +777,7 @@ int main(int argc, char** argv)
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(RIGHT_MARGIN + WIDTH, BOTTOM_MARGIN + HEIGHT);
+    glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
     
     printf( "Created Display Window.\n" );
