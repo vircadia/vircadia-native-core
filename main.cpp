@@ -103,7 +103,7 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(250000,                             //  Particles
+Cloud cloud(300000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
@@ -120,13 +120,6 @@ Cloud cloud(250000,                             //  Particles
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
-
-#define NUM_TRIS 0  
-struct {
-    float vertices[NUM_TRIS * 3];
-    float vel     [NUM_TRIS * 3];
-}tris;
-
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head 
 float pitch = 0.f;                      //      
@@ -293,42 +286,8 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    //  Init particles
-    float tri_scale, r;
-    const float VEL_SCALE = 0.00;
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        r = randFloat();
-        if (r > .999) tri_scale = 0.7; 
-        else if (r > 0.90) tri_scale = 0.1;
-        else tri_scale = 0.05; 
-        
+    //load_png_as_texture(texture_filename);
 
-        glm::vec3 pos (randFloat() * WORLD_SIZE,
-                       randFloat() * WORLD_SIZE,
-                       randFloat() * WORLD_SIZE);
-        glm::vec3 verts[3];
-        verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
-        verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
-        verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
-        tris.vertices[i*3] = verts[j].x;
-        tris.vertices[i*3 + 1] = verts[j].y;
-        tris.vertices[i*3 + 2] = verts[j].z;
-        
-        // reuse pos for the normal
-        //glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
-        //tris.normals[i*3] = pos.x;
-        //tris.normals[i*3+1] = pos.y;
-        //tris.normals[i*3+2] = pos.z;
-        
-        //  Moving - white
-        //tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
-        tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
-        
-    }
-    
     if (serial_on)
     {
         //  Call readsensors for a while to get stable initial values on sensors    
@@ -365,52 +324,6 @@ const float SCALE_X = 2.f;
 const float SCALE_Y = 1.f;
 
 
-void update_tris()
-{
-    int i, j;
-    float field_val[3];
-    float field_contrib[3];
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        // Update position
-        tris.vertices[i*3+0] += tris.vel[i*3];
-        tris.vertices[i*3+1] += tris.vel[i*3+1];
-        tris.vertices[i*3+2] += tris.vel[i*3+2];
-        
-        // Add a little gravity 
-        //tris.vel[i*3+1] -= 0.0001;
-       
-        const float DRAG = 0.99;
-        // Drag:  Decay velocity
-        tris.vel[i*3] *= DRAG;
-        tris.vel[i*3+1] *= DRAG;
-        tris.vel[i*3+2] *= DRAG;
-                 
-        // Read and add velocity from field 
-        field_value(field_val, &tris.vertices[i*3]);
-        tris.vel[i*3] += field_val[0];
-        tris.vel[i*3+1] += field_val[1];
-        tris.vel[i*3+2] += field_val[2];
-        
-        // Add a tiny bit of energy back to the field
-        const float FIELD_COUPLE = 0.0000001;
-        field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
-        field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
-        field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
-        field_add(field_contrib, &tris.vertices[i*3]);
-            
- 
-        // bounce at edge of world 
-        for (j=0; j < 3; j++) {
-            if ((tris.vertices[i*3+j] > WORLD_SIZE) || (tris.vertices[i*3+j] < 0.0)) {
-                tris.vertices[i*3+j] = min(WORLD_SIZE, tris.vertices[i*3+j]);
-                tris.vertices[i*3+j] = max(0.f, tris.vertices[i*3+j]);
-                tris.vel[i*3 + j]*= -1.0;
-            }
-        }
-     }
-}
-
 void reset_sensors()
 {
     //  
@@ -443,7 +356,7 @@ void update_pos(float frametime)
     float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
     
     //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.10;
+    const float HEAD_ROTATION_SCALE = 0.20;
     const float HEAD_LEAN_SCALE = 0.02;
     if (head_mirror) {
         myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
@@ -567,8 +480,7 @@ void update_pos(float frametime)
 void display(void)
 {
     
-    int i;
-    
+
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
@@ -600,36 +512,8 @@ void display(void)
     
         load_png_as_texture(texture_filename);
     
-        //glActiveTexture(GL_TEXTURE0);
-        glEnable( GL_TEXTURE_2D );
-         
-        //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-    
-        float maxSize = 0.0f;
-        glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
-        glPointSize( maxSize );
-        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-        glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-
-        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-        glEnable( GL_POINT_SPRITE_ARB );
-        if (!display_head) {
-            glBegin( GL_POINTS );
-            {
-                for (i = 0; i < NUM_TRIS; i++)
-                {
-                    glVertex3f(tris.vertices[i*3],
-                               tris.vertices[i*3+1],
-                               tris.vertices[i*3+2]);
-                }
-            }
-            glEnd();
-        }
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
-
         if (!display_head) cloud.render();
         //  Show field vectors
         if (display_field) field_render();
@@ -802,7 +686,6 @@ void idle(void)
         //  Simulation
         update_pos(1.f/FPS); 
         if (simulate_on) {
-            update_tris();
             field_simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
             myHand.simulate(1.f/FPS);
