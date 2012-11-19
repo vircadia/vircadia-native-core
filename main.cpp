@@ -49,12 +49,16 @@
 
 #include "texture.h"
 
+#include "cloud.h"
+
 //TGAImg Img;
 
 using namespace std;
 
 //   Junk for talking to the Serial Port 
 int serial_on = 0;                  //  Is serial connection on/off?  System will try
+int audio_on = 0;                   //  Whether to turn on the audio support 
+int simulate_on = 1; 
 
 //  Network Socket Stuff 
 //  For testing, add milliseconds of delay for received UDP packets
@@ -73,6 +77,8 @@ int bytescount = 0;
 int target_x, target_y; 
 int target_display = 0;
 
+int head_mirror = 0;                     //  Whether to mirror the head when viewing it
+
 unsigned char last_key = 0; 
 
 double ping = 0; 
@@ -89,15 +95,18 @@ Hand myHand(HAND_RADIUS,
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-ParticleSystem balls(1000, 
+ParticleSystem balls(0, 
                      box, 
-                     false,                     // Wrap?
-                     0.02,                       // Noise
+                     false,                     //  Wrap?
+                     0.02,                      //  Noise
                      0.3,                       //  Size scale 
-                     0.0                        // Gravity 
+                     0.0                        //  Gravity 
                      );
 
-
+Cloud cloud(250000,                             //  Particles
+            box,                                //  Bounding Box
+            false                               //  Wrap
+            );
 
 //  FIELD INFORMATION 
 //  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
@@ -112,15 +121,11 @@ ParticleSystem balls(1000,
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 100000
+#define NUM_TRIS 0
+
 struct {
     float vertices[NUM_TRIS * 3];
-//    float normals [NUM_TRIS * 3];
-//    float colors  [NUM_TRIS * 3];
     float vel     [NUM_TRIS * 3];
-    glm::vec3 vel1[NUM_TRIS];
-    glm::vec3 vel2[NUM_TRIS];
-    int element[NUM_TRIS];
 }tris;
 
 
@@ -153,8 +158,9 @@ int display_head = 0;
 int display_hand = 0;
 int display_field = 0;
 
-int display_head_mouse = 1;              //  Display sample mouse pointer controlled by head movement
-int head_mouse_x, head_mouse_y;     
+int display_head_mouse = 1;         //  Display sample mouse pointer controlled by head movement
+int head_mouse_x, head_mouse_y; 
+int head_lean_x, head_lean_y;
 
 int mouse_x, mouse_y;				//  Where is the mouse 
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
@@ -194,7 +200,7 @@ double elapsedTime;
 // 1. Add to the XCode project in the Resources/images group
 //    (ensure "Copy file" is checked
 // 2. Add to the "Copy files" build phase in the project
-char texture_filename[] = "int-texture256-v4.png";
+char texture_filename[] = "./int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
@@ -264,8 +270,10 @@ void init(void)
     load_png_as_texture(texture_filename);
     printf("Texture loaded.\n");
 
-    Audio::init();
-    printf( "Audio started.\n" );
+    if (audio_on) {
+        Audio::init();
+        printf( "Audio started.\n" );
+    }
 
     //  Clear serial channels 
     for (i = i; i < NUM_CHANNELS; i++)
@@ -276,6 +284,8 @@ void init(void)
 
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
+    head_lean_x = WIDTH/2;
+    head_lean_y = HEIGHT/2;
     
     //  Initialize Field values 
     field_init();
@@ -316,7 +326,6 @@ void init(void)
         //tris.normals[i*3+2] = pos.z;
         
         //  Moving - white
-        tris.element[i] = 1;
         //tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
         tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
         tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
@@ -349,7 +358,9 @@ void terminate () {
     // Close serial port
     //close(serial_fd);
 
-    Audio::terminate();
+    if (audio_on) { 
+        Audio::terminate();
+    }
     exit(EXIT_SUCCESS);
 }
 
@@ -365,39 +376,34 @@ void update_tris()
     float field_contrib[3];
     for (i = 0; i < NUM_TRIS; i++)
     {
-        if (tris.element[i] == 1)          //  If moving object, move and drag
-        {
-            // Update position
-            tris.vertices[i*3+0] += tris.vel[i*3];
-            tris.vertices[i*3+1] += tris.vel[i*3+1];
-            tris.vertices[i*3+2] += tris.vel[i*3+2];
-            
-            // Add a little gravity 
-            //tris.vel[i*3+1] -= 0.0001;
-           
-            const float DRAG = 0.99;
-            // Drag:  Decay velocity
-            tris.vel[i*3] *= DRAG;
-            tris.vel[i*3+1] *= DRAG;
-            tris.vel[i*3+2] *= DRAG;
-        }
+        // Update position
+        tris.vertices[i*3+0] += tris.vel[i*3];
+        tris.vertices[i*3+1] += tris.vel[i*3+1];
+        tris.vertices[i*3+2] += tris.vel[i*3+2];
+        
+        // Add a little gravity 
+        //tris.vel[i*3+1] -= 0.0001;
+       
+        const float DRAG = 0.99;
+        // Drag:  Decay velocity
+        tris.vel[i*3] *= DRAG;
+        tris.vel[i*3+1] *= DRAG;
+        tris.vel[i*3+2] *= DRAG;
                  
-        if (tris.element[i] == 1) 
-        {
-            // Read and add velocity from field 
-            field_value(field_val, &tris.vertices[i*3]);
-            tris.vel[i*3] += field_val[0];
-            tris.vel[i*3+1] += field_val[1];
-            tris.vel[i*3+2] += field_val[2];
+        // Read and add velocity from field 
+        field_value(field_val, &tris.vertices[i*3]);
+        tris.vel[i*3] += field_val[0];
+        tris.vel[i*3+1] += field_val[1];
+        tris.vel[i*3+2] += field_val[2];
+        
+        // Add a tiny bit of energy back to the field
+        const float FIELD_COUPLE = 0.0000001;
+        field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
+        field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
+        field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
+        field_add(field_contrib, &tris.vertices[i*3]);
             
-            // Add a tiny bit of energy back to the field
-            const float FIELD_COUPLE = 0.0000001;
-            field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
-            field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
-            field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
-            field_add(field_contrib, &tris.vertices[i*3]);
-        }
-
+ 
         // bounce at edge of world 
         for (j=0; j < 3; j++) {
             if ((tris.vertices[i*3+j] > WORLD_SIZE) || (tris.vertices[i*3+j] < 0.0)) {
@@ -424,6 +430,9 @@ void reset_sensors()
     fwd_vel = 0.0;
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
+    head_lean_x = WIDTH/2;
+    head_lean_y = HEIGHT/2; 
+    
     myHead.reset();
     myHand.reset();
     if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
@@ -434,12 +443,21 @@ void update_pos(float frametime)
 {
     float measured_pitch_rate = adc_channels[0] - avg_adc_channels[0];
     float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
-    float measured_lateral_accel = adc_channels[2] - avg_adc_channels[2];
-    float measured_fwd_accel = avg_adc_channels[3] - adc_channels[3];
+    float measured_lateral_accel = adc_channels[3] - avg_adc_channels[3];
+    float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
     
     //  Update avatar head position based on measured gyro rates
-    myHead.addYaw(measured_yaw_rate * 1.20 * frametime);
-    myHead.addPitch(measured_pitch_rate * -1.0 * frametime);
+    const float HEAD_ROTATION_SCALE = 0.10;
+    const float HEAD_LEAN_SCALE = 0.02;
+    if (head_mirror) {
+        myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
+    } else {
+        myHead.addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        myHead.addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
+    }
     //  Decay avatar head back toward zero
     //pitch *= (1.f - 5.0*frametime); 
     //yaw *= (1.f - 7.0*frametime);
@@ -459,6 +477,7 @@ void update_pos(float frametime)
     head_mouse_y = min(head_mouse_y, HEIGHT);
     
     //  Update hand/manipulator location for measured forces from serial channel
+    /*
     const float MIN_HAND_ACCEL = 30.0;
     const float HAND_FORCE_SCALE = 0.5;
     glm::vec3 hand_accel(-(avg_adc_channels[6] - adc_channels[6]),
@@ -469,6 +488,7 @@ void update_pos(float frametime)
     {
         myHand.addVel(frametime*hand_accel*HAND_FORCE_SCALE);
     }
+    */
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 300;
@@ -594,23 +614,25 @@ void display(void)
         glPointSize( maxSize );
         glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
         glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-         
-        glEnable( GL_POINT_SPRITE_ARB );
-        glBegin( GL_POINTS );
-        {
-            for (i = 0; i < NUM_TRIS; i++)
-            {
-                glVertex3f(tris.vertices[i*3],
-                           tris.vertices[i*3+1],
-                           tris.vertices[i*3+2]);
-            }
-        }
-        glEnd();
-            
-        glDisable( GL_TEXTURE_2D );
-        glDisable( GL_POINT_SPRITE_ARB );
 
+        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+        glEnable( GL_POINT_SPRITE_ARB );
+        if (!display_head) {
+            glBegin( GL_POINTS );
+            {
+                for (i = 0; i < NUM_TRIS; i++)
+                {
+                    glVertex3f(tris.vertices[i*3],
+                               tris.vertices[i*3+1],
+                               tris.vertices[i*3+2]);
+                }
+            }
+            glEnd();
+        }
+        glDisable( GL_POINT_SPRITE_ARB );
+        glDisable( GL_TEXTURE_2D );
+
+        if (!display_head) cloud.render();
         //  Show field vectors
         if (display_field) field_render();
         
@@ -619,10 +641,10 @@ void display(void)
         if (display_hand) myHand.render();   
      
     
-        balls.render();
+        if (!display_head) balls.render();
             
         //  Render the world box 
-        render_world_box();
+        if (!display_head) render_world_box();
 
     glPopMatrix();
 
@@ -635,10 +657,10 @@ void display(void)
         glDisable(GL_LIGHTING);
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
-    
+        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
+
         if (mouse_pressed == 1)
         {
-            glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
             glPointSize( 10.0f );
             glColor3f(1,1,1);
             //glEnable(GL_POINT_SMOOTH);
@@ -649,7 +671,7 @@ void display(void)
             sprintf(val, "%d,%d", target_x, target_y); 
             drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
         }
-        if (display_head_mouse)
+        if (display_head_mouse && !display_head)
         {
             glPointSize(10.0f);
             glColor4f(1.0, 1.0, 0.0, 0.8);
@@ -706,7 +728,7 @@ void key(unsigned char k, int x, int y)
 	if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
-        noise_on = !noise_on;			// Toggle noise 
+        noise_on = !noise_on;                   // Toggle noise 
         if (noise_on)
         {
             myHand.setNoise(noise);
@@ -731,6 +753,7 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 'a') render_yaw_rate -= 0.25;
     if (k == 'd') render_yaw_rate += 0.25;
+    if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
         // Add to field vector 
@@ -738,7 +761,7 @@ void key(unsigned char k, int x, int y)
         float add[] = {0.001, 0.001, 0.001};
         field_add(add, pos);
     }
-    if (k == 't') {
+    if ((k == 't') && (audio_on)) {
         Audio::writeTone(0, 400, 1.0f, 0.5f);
     }
     if (k == '1')
@@ -780,11 +803,14 @@ void idle(void)
     {
         //  Simulation
         update_pos(1.f/FPS); 
-        update_tris();
-        field_simulate(1.f/FPS);
-        myHead.simulate(1.f/FPS);
-        myHand.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
+        if (simulate_on) {
+            update_tris();
+            field_simulate(1.f/FPS);
+            myHead.simulate(1.f/FPS);
+            myHand.simulate(1.f/FPS);
+            balls.simulate(1.f/FPS);
+            cloud.simulate(1.f/FPS);
+        }
 
         if (!step_on) glutPostRedisplay();
         last_frame = check;
