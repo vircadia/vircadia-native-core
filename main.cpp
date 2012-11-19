@@ -618,16 +618,7 @@ void display(void)
         glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
         glEnable( GL_POINT_SPRITE_ARB );
         if (!display_head) {
-            glBegin( GL_POINTS );
-            {
-                for (i = 0; i < NUM_TRIS; i++)
-                {
-                    glVertex3f(tris.vertices[i*3],
-                               tris.vertices[i*3+1],
-                               tris.vertices[i*3+2]);
-                }
-            }
-            glEnd();
+            glDrawElements(GL_POINTS, NUM_TRIS, GL_FLOAT, tris.vertices);
         }
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
