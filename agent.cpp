@@ -18,7 +18,9 @@ struct AgentList {
 } agents[MAX_AGENTS];
 int num_agents = 0; 
 
-// Process an incoming packet that lists the other agents in the area
+//
+// Process an incoming spaceserver packet telling you about other nearby agents 
+//
 void update_agents(char * data, int length) {
     std::string packet(data, length);
     //std::string packet("127.0.0.1,");
@@ -39,6 +41,9 @@ void update_agents(char * data, int length) {
     }
 }
 
+//
+//  Look for an agent by it's IP number, add if it does not exist in local list 
+//
 int add_agent(std::string * IP) {
     in_addr_t addr = inet_addr(IP->c_str());
     //std::cout << "Checking for " << IP->c_str() << "  ";
@@ -55,12 +60,14 @@ int add_agent(std::string * IP) {
         num_agents++;
         return 1;
     } else {
-        std::cout << "Max agents reached!\n";
+        std::cout << "Max agents reached fail!\n";
         return 0;
     } 
 }
 
+//
 //  Broadcast data to all the other agents you are aware of, returns 1 for success 
+//
 int broadcast(int handle, char * data, int length) {
     sockaddr_in dest_address;
     dest_address.sin_family = AF_INET;
