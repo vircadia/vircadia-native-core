@@ -10,6 +10,7 @@
 #define interface_util_h
 #include "glm/glm.hpp"
 
+void outstring(char * string, int length);
 float randFloat();
 void render_world_box();
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono, char *string, 
