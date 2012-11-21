@@ -19,5 +19,6 @@
 
 void update_agents(char * data, int length);
 int add_agent(std::string * IP);
+int broadcast(int handle, char * data, int length);
 
 #endif

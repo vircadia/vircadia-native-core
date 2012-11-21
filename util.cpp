@@ -20,6 +20,44 @@ float randFloat () {
     return (rand()%10000)/10000.f;
 }
 
+void render_vector(glm::vec3 * vec)
+{
+    //  Show edge of world 
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
+    //  Draw axes
+    glColor3f(1,0,0);
+    glVertex3f(-1,0,0);
+    glVertex3f(1,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,-1,0);
+    glVertex3f(0, 1, 0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,-1);
+    glVertex3f(0, 0, 1);
+    // Draw vector
+    glColor3f(1,1,1);
+    glVertex3f(0,0,0);
+    glVertex3f(vec->x, vec->y, vec->z);
+    // Draw marker dots for magnitude    
+    glEnd();
+    float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10.0);
+    glBegin(GL_POINTS);
+    glColor3f(1,0,0);
+    glVertex3f(vec->x,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,vec->y,0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,vec->z);
+    glEnd();
+
+}
+
 void render_world_box()
 {
     //  Show edge of world 

@@ -455,6 +455,10 @@ void update_pos(float frametime)
     //  Update head and manipulator objects with object with current location
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
+    
+    //  Update all this stuff to any agents that are nearby and need to see it!
+    char test[] = "BXXX";
+    broadcast(UDP_socket, test, strlen(test));
 }
 
 void display(void)
@@ -507,6 +511,9 @@ void display(void)
             
         //  Render the world box 
         if (!display_head) render_world_box();
+    
+        glm::vec3 test(0.5, 0.5, 0.5); 
+        render_vector(&test);
 
     glPopMatrix();
 
@@ -630,6 +637,9 @@ void key(unsigned char k, int x, int y)
     }
 }
 
+// 
+//  Check for and process incoming network packets 
+// 
 void read_network()
 {
     //  Receive packets 
@@ -640,19 +650,29 @@ void read_network()
         bytescount += bytes_recvd;
         //  If packet is a Mouse data packet, copy it over 
         if (incoming_packet[0] == 'M') {
+            // 
+            //  mouse location packet 
+            //
             sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
             target_display = 1;
             printf("X = %d Y = %d\n", target_x, target_y);
         } else if (incoming_packet[0] == 'P') {
-        //  Ping packet - check time and record
+            // 
+            //  Ping packet - check time and record
+            //
             timeval check; 
             gettimeofday(&check, NULL);
             ping_msecs = (float)diffclock(ping_start, check);
         } else if (incoming_packet[0] == 'S') {
+            //
             //  Message from Spaceserver 
-            //std::cout << "Spaceserver: ";
-            //outstring(incoming_packet, bytes_recvd);
+            //
             update_agents(&incoming_packet[1], bytes_recvd - 1);
+        } else if (incoming_packet[0] == 'B') {
+            //
+            //  Broadcast packet from another agent 
+            //
+            //std::cout << "Got broadcast from agent\n";
         }
     }
 }
