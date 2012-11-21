@@ -39,6 +39,11 @@ void render_world_box()
     glEnd();
 }
 
+void outstring(char * string, int length) {
+    char out[length];
+    memcpy(out, string, length); 
+    std::cout << out << "\n";
+}
 
 double diffclock(timeval clock1,timeval clock2)
 {

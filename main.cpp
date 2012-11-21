@@ -198,6 +198,9 @@ void Timer(int extra)
     
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
+    
+    //  Send a message to the spaceserver telling it we are ALIVE 
+    notify_spaceserver(UDP_socket, location[0], location[1], location[2]);
 }
 
 void display_stats(void)
@@ -300,11 +303,6 @@ void terminate () {
     }
     exit(EXIT_SUCCESS);
 }
-
-const float SCALE_SENSORS = 0.3f;
-const float SCALE_X = 2.f;
-const float SCALE_Y = 1.f;
-
 
 void reset_sensors()
 {
@@ -512,6 +510,7 @@ void display(void)
 
     glPopMatrix();
 
+    
     //  Render 2D overlay:  I/O level bar graphs and text  
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -649,7 +648,10 @@ void read_network()
             timeval check; 
             gettimeofday(&check, NULL);
             ping_msecs = (float)diffclock(ping_start, check);
-
+        } else if (incoming_packet[0] == 'S') {
+            //  Message from Spaceserver 
+            std::cout << "Spaceserver: ";
+            outstring(incoming_packet, bytes_recvd);
         }
     }
 }

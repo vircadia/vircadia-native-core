@@ -22,5 +22,6 @@ int network_init();
 int network_send(int handle, char * packet_data, int packet_size);
 int network_receive(int handle, char * packet_data, int delay /*msecs*/);
 timeval network_send_ping(int handle);
+int notify_spaceserver(int handle, float x, float y, float z);
 
 #endif
