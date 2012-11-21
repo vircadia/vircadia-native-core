@@ -11,13 +11,6 @@
 #include "network.h"
  
 
-const int UDP_PORT = 30001; 
-const char DESTINATION_IP[] = "127.0.0.1";
-
-//  Location of the spaceserver to talk to 
-const char SPACESERVER_IP[] = "127.0.0.1";
-const int SPACESERVER_PORT = 40000;
-
 //  Implementation of optional delay behavior using a ring buffer
 const int MAX_DELAY_PACKETS = 300;
 char delay_buffer[MAX_PACKET_SIZE*MAX_DELAY_PACKETS];
@@ -97,7 +90,7 @@ timeval network_send_ping(int handle) {
 int notify_spaceserver(int handle, float x, float y, float z) {
     char data[100];
     sprintf(data, "%f,%f,%f", x, y, z);
-    std::cout << "sending: " << data << "\n";
+    //std::cout << "sending: " << data << "\n";
     int packet_size = strlen(data);
     int sent_bytes = sendto( handle, (const char*)data, packet_size,
                             0, (sockaddr*)&spaceserver_address, sizeof(sockaddr_in) );
