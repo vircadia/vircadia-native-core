@@ -16,6 +16,7 @@
 		B6BDADE415F44AC7002A07DF /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDC15F444D3002A07DF /* AudioUnit.framework */; };
 		B6BDAE4415F6BE53002A07DF /* particle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6BDAE4315F6BE53002A07DF /* particle.cpp */; };
 		D409B98A165849180099B0B3 /* cloud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D409B989165849180099B0B3 /* cloud.cpp */; };
+		D409B9A8165CA7BC0099B0B3 /* agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D409B9A7165CA7BB0099B0B3 /* agent.cpp */; };
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
 		D40FD5FB164AF1C200878184 /* int-texture256-v2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = D40FD5FA164AF1A700878184 /* int-texture256-v2.png */; };
@@ -69,6 +70,8 @@
 		C6859E8B029090EE04C91782 /* test_c_plus.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = test_c_plus.1; sourceTree = "<group>"; };
 		D409B988165849030099B0B3 /* cloud.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cloud.h; sourceTree = "<group>"; };
 		D409B989165849180099B0B3 /* cloud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cloud.cpp; sourceTree = "<group>"; };
+		D409B9A6165CA7A50099B0B3 /* agent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = agent.h; sourceTree = "<group>"; };
+		D409B9A7165CA7BB0099B0B3 /* agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = agent.cpp; sourceTree = "<group>"; };
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
 		D40FD5FA164AF1A700878184 /* int-texture256-v2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v2.png"; sourceTree = SOURCE_ROOT; };
@@ -137,6 +140,8 @@
 			isa = PBXGroup;
 			children = (
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
+				D409B9A6165CA7A50099B0B3 /* agent.h */,
+				D409B9A7165CA7BB0099B0B3 /* agent.cpp */,
 				D409B988165849030099B0B3 /* cloud.h */,
 				D409B989165849180099B0B3 /* cloud.cpp */,
 				D4EE3BC015E746E900EE4C89 /* world.h */,
@@ -267,6 +272,7 @@
 				F68135561648617D003040E3 /* texture.cpp in Sources */,
 				F681358B1648896D003040E3 /* lodepng.cpp in Sources */,
 				D409B98A165849180099B0B3 /* cloud.cpp in Sources */,
+				D409B9A8165CA7BC0099B0B3 /* agent.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,7 +16,14 @@
 #include <sys/time.h>
 #include "util.h"
 
+//  Port to use for communicating UDP with other nearby agents 
 const int MAX_PACKET_SIZE = 1500;
+const int UDP_PORT = 30001; 
+const char DESTINATION_IP[] = "127.0.0.1";
+
+//  Address and port of spaceserver process to advertise other agents 
+const char SPACESERVER_IP[] = "127.0.0.1";
+const int SPACESERVER_PORT = 40000;
 
 int network_init();
 int network_send(int handle, char * packet_data, int packet_size);

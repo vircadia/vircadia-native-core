@@ -45,10 +45,10 @@
 #include "head.h"
 #include "hand.h"
 #include "particle.h"
-
 #include "texture.h"
-
 #include "cloud.h"
+#include "agent.h"
+
 
 //TGAImg Img;
 
@@ -99,7 +99,6 @@ Cloud cloud(300000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
-
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
@@ -201,6 +200,7 @@ void Timer(int extra)
     
     //  Send a message to the spaceserver telling it we are ALIVE 
     notify_spaceserver(UDP_socket, location[0], location[1], location[2]);
+
 }
 
 void display_stats(void)
@@ -650,8 +650,9 @@ void read_network()
             ping_msecs = (float)diffclock(ping_start, check);
         } else if (incoming_packet[0] == 'S') {
             //  Message from Spaceserver 
-            std::cout << "Spaceserver: ";
-            outstring(incoming_packet, bytes_recvd);
+            //std::cout << "Spaceserver: ";
+            //outstring(incoming_packet, bytes_recvd);
+            update_agents(&incoming_packet[1], bytes_recvd - 1);
         }
     }
 }
