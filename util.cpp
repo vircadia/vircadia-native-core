@@ -15,9 +15,35 @@
 #include "world.h"
 #include "glm/glm.hpp"
 
-
 float randFloat () {
     return (rand()%10000)/10000.f;
+}
+
+void makeCubes(float location[3], float scale, int * index, 
+               float * cubes_position, float * cubes_scale, float * cubes_color) {
+    int i;
+    float spot[3];
+    //std::cout << "loc: " << location[0] << "," 
+    //<< location[1] << "," << location[2] << "\n";
+    if ((*index >= MAX_CUBES) || (scale < SMALLEST_CUBE)) return;
+    if (randFloat() < 0.5) {
+        //  Make a cube
+        for (i = 0; i < 3; i++) cubes_position[*index*3 + i] = location[i];
+        cubes_scale[*index] = scale;
+        cubes_color[*index*3] = randFloat();
+        cubes_color[*index*3 + 1] = randFloat();
+        cubes_color[*index*3 + 2] = randFloat();
+        *index += 1;
+        //std::cout << "Quad made at scale " << scale << "\n";
+    } else {
+        for (i = 0; i < 8; i++) {
+            spot[0] = location[0] + (i%2)*scale/2.0;
+            spot[1] = location[1] + ((i/2)%2)*scale/2.0;
+            spot[2] = location[2] + ((i/4)%2)*scale/2.0;
+            //std::cout << spot[0] << "," << spot[1] << "," << spot[2] << "\n";
+            makeCubes(spot, scale/2.0, index, cubes_position, cubes_scale, cubes_color);
+        }
+    }
 }
 
 void render_vector(glm::vec3 * vec)
