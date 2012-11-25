@@ -95,10 +95,15 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(300000,                             //  Particles
+Cloud cloud(0,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
+
+float cubes_position[MAX_CUBES*3];
+float cubes_scale[MAX_CUBES];
+float cubes_color[MAX_CUBES*3];
+int cube_count = 0;
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
@@ -269,6 +274,18 @@ void init(void)
     {   
         myHand.setNoise(noise);
         myHead.setNoise(noise);
+    }
+    
+    int index = 0;
+    float location[] = {0,0,0};
+    float scale = 10.0;
+    int j = 0;
+    while (index < (MAX_CUBES/2)) {
+        index = 0;
+        j++;
+        makeCubes(location, scale, &index, cubes_position, cubes_scale, cubes_color);
+        std::cout << "Run " << j << " Made " << index << " cubes\n";
+        cube_count = index;
     }
     
     //load_png_as_texture(texture_filename);
@@ -491,6 +508,20 @@ void display(void)
         glRotatef(render_pitch, 1, 0, 0);
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
+            
+        glPushMatrix();
+        glTranslatef(WORLD_SIZE/2, WORLD_SIZE/2, WORLD_SIZE/2);
+        int i = 0;
+        while (i < cube_count) {
+            glPushMatrix();
+            glTranslatef(cubes_position[i*3], cubes_position[i*3+1], cubes_position[i*3+2]);
+            glColor3fv(&cubes_color[i*3]);
+            glutSolidCube(cubes_scale[i]);
+            glPopMatrix();
+            i++;
+        }
+        glPopMatrix();
+    
     
         /* Draw Point Sprites */
     
@@ -587,7 +618,20 @@ void display(void)
     glutSwapBuffers();
     framecount++;
 }
-
+void specialkey(int k, int x, int y)
+{
+    if (k == GLUT_KEY_UP) fwd_vel += 0.05;
+    if (k == GLUT_KEY_DOWN) fwd_vel -= 0.05;
+    if (k == GLUT_KEY_LEFT) {
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= 0.02;
+            else render_yaw_rate -= 0.25;
+    }
+    if (k == GLUT_KEY_RIGHT) {
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += 0.02;
+        else render_yaw_rate += 0.25;        
+    }
+    
+}
 void key(unsigned char k, int x, int y)
 {
 	//  Process keypresses 
@@ -728,8 +772,8 @@ void reshape(int width, int height)
     glLoadIdentity();
     gluPerspective(45, //view angle
                    1.0, //aspect ratio
-                   1.0, //near clip
-                   200.0);//far clip
+                   0.1, //near clip
+                   50.0);//far clip
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -810,6 +854,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(key);
+    glutSpecialFunc(specialkey);
 	glutMotionFunc(motionFunc);
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
