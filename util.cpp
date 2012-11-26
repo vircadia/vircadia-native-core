@@ -15,9 +15,73 @@
 #include "world.h"
 #include "glm/glm.hpp"
 
-
 float randFloat () {
     return (rand()%10000)/10000.f;
+}
+
+void makeCubes(float location[3], float scale, int * index, 
+               float * cubes_position, float * cubes_scale, float * cubes_color) {
+    int i;
+    float spot[3];
+    //std::cout << "loc: " << location[0] << "," 
+    //<< location[1] << "," << location[2] << "\n";
+    if ((*index >= MAX_CUBES) || (scale < SMALLEST_CUBE)) return;
+    if (randFloat() < 0.5) {
+        //  Make a cube
+        for (i = 0; i < 3; i++) cubes_position[*index*3 + i] = location[i];
+        cubes_scale[*index] = scale;
+        cubes_color[*index*3] = randFloat();
+        cubes_color[*index*3 + 1] = randFloat();
+        cubes_color[*index*3 + 2] = randFloat();
+        *index += 1;
+        //std::cout << "Quad made at scale " << scale << "\n";
+    } else {
+        for (i = 0; i < 8; i++) {
+            spot[0] = location[0] + (i%2)*scale/2.0;
+            spot[1] = location[1] + ((i/2)%2)*scale/2.0;
+            spot[2] = location[2] + ((i/4)%2)*scale/2.0;
+            //std::cout << spot[0] << "," << spot[1] << "," << spot[2] << "\n";
+            makeCubes(spot, scale/2.0, index, cubes_position, cubes_scale, cubes_color);
+        }
+    }
+}
+
+void render_vector(glm::vec3 * vec)
+{
+    //  Show edge of world 
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
+    //  Draw axes
+    glColor3f(1,0,0);
+    glVertex3f(-1,0,0);
+    glVertex3f(1,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,-1,0);
+    glVertex3f(0, 1, 0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,-1);
+    glVertex3f(0, 0, 1);
+    // Draw vector
+    glColor3f(1,1,1);
+    glVertex3f(0,0,0);
+    glVertex3f(vec->x, vec->y, vec->z);
+    // Draw marker dots for magnitude    
+    glEnd();
+    float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10.0);
+    glBegin(GL_POINTS);
+    glColor3f(1,0,0);
+    glVertex3f(vec->x,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,vec->y,0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,vec->z);
+    glEnd();
+
 }
 
 void render_world_box()
@@ -39,6 +103,11 @@ void render_world_box()
     glEnd();
 }
 
+void outstring(char * string, int length) {
+    char out[length];
+    memcpy(out, string, length); 
+    std::cout << out << "\n";
+}
 
 double diffclock(timeval clock1,timeval clock2)
 {
