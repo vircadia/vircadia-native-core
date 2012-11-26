@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
-#include "tga.h"                //  Texture loader library
 #include "glm/glm.hpp"
 #include <portaudio.h>
 
@@ -46,10 +45,10 @@
 #include "head.h"
 #include "hand.h"
 #include "particle.h"
-
 #include "texture.h"
-
 #include "cloud.h"
+#include "agent.h"
+
 
 //TGAImg Img;
 
@@ -60,7 +59,7 @@ int serial_on = 0;                  //  Is serial connection on/off?  System wil
 int audio_on = 0;                   //  Whether to turn on the audio support 
 int simulate_on = 1; 
 
-//  Network Socket Stuff 
+//  Network Socket Stuff
 //  For testing, add milliseconds of delay for received UDP packets
 int UDP_socket;
 int delay = 0;         
@@ -79,15 +78,8 @@ int target_display = 0;
 
 int head_mirror = 0;                     //  Whether to mirror the head when viewing it
 
-unsigned char last_key = 0; 
-
-double ping = 0; 
-
 int WIDTH = 1200; 
 int HEIGHT = 800; 
-
-#define BOTTOM_MARGIN 0				
-#define RIGHT_MARGIN 0
 
 #define HAND_RADIUS 0.25             //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself or others 
@@ -103,33 +95,20 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(250000,                             //  Particles
+Cloud cloud(0,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
 
-//  FIELD INFORMATION 
-//  If the simulation 'world' is a box with 10M boundaries, the offset to a field cell is given by:
-//  element = [x/10 + (y/10)*10 + (z*/10)*100] 
-//
-//  The vec(x,y,z) corner of a field cell at element i is:
-// 
-//  z = (int)( i / 100)
-//  y = (int)(i % 100 / 10)
-//  x = (int)(i % 10)
+float cubes_position[MAX_CUBES*3];
+float cubes_scale[MAX_CUBES];
+float cubes_color[MAX_CUBES*3];
+int cube_count = 0;
 
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-#define NUM_TRIS 0
-
-struct {
-    float vertices[NUM_TRIS * 3];
-    float vel     [NUM_TRIS * 3];
-}tris;
-
-
-float yaw =0.f;                         //  The yaw, pitch for the avatar head 
+float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
 float start_yaw = 90.0;
 float render_yaw = start_yaw;
@@ -165,7 +144,6 @@ int head_lean_x, head_lean_y;
 int mouse_x, mouse_y;				//  Where is the mouse 
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
 
-int accel_x, accel_y;
 
 int speed;
 
@@ -224,6 +202,10 @@ void Timer(int extra)
     
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
+    
+    //  Send a message to the spaceserver telling it we are ALIVE 
+    notify_spaceserver(UDP_socket, location[0], location[1], location[2]);
+
 }
 
 void display_stats(void)
@@ -265,10 +247,7 @@ void initDisplay(void)
 
 void init(void)
 {
-    int i, j;
-    
-    load_png_as_texture(texture_filename);
-    printf("Texture loaded.\n");
+    int i;
 
     if (audio_on) {
         Audio::init();
@@ -297,42 +276,20 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    //  Init particles
-    float tri_scale, r;
-    const float VEL_SCALE = 0.00;
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        r = randFloat();
-        if (r > .999) tri_scale = 0.7; 
-        else if (r > 0.90) tri_scale = 0.1;
-        else tri_scale = 0.05; 
-        
-
-        glm::vec3 pos (randFloat() * WORLD_SIZE,
-                       randFloat() * WORLD_SIZE,
-                       randFloat() * WORLD_SIZE);
-        glm::vec3 verts[3];
-        verts[j].x = pos.x + randFloat() * tri_scale - tri_scale/2.f;
-        verts[j].y = pos.y + randFloat() * tri_scale - tri_scale/2.f;
-        verts[j].z = pos.z + randFloat() * tri_scale - tri_scale/2.f;
-        tris.vertices[i*3] = verts[j].x;
-        tris.vertices[i*3 + 1] = verts[j].y;
-        tris.vertices[i*3 + 2] = verts[j].z;
-        
-        // reuse pos for the normal
-        //glm::normalize((pos += glm::cross(verts[1] - verts[0], verts[2] - verts[0])));
-        //tris.normals[i*3] = pos.x;
-        //tris.normals[i*3+1] = pos.y;
-        //tris.normals[i*3+2] = pos.z;
-        
-        //  Moving - white
-        //tris.colors[i*3] = 1.0;  tris.colors[i*3+1] = 1.0; tris.colors[i*3+2] = 1.0;
-        tris.vel[i*3] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+1] = (randFloat() - 0.5)*VEL_SCALE;
-        tris.vel[i*3+2] = (randFloat() - 0.5)*VEL_SCALE;
-        
+    int index = 0;
+    float location[] = {0,0,0};
+    float scale = 10.0;
+    int j = 0;
+    while (index < (MAX_CUBES/2)) {
+        index = 0;
+        j++;
+        makeCubes(location, scale, &index, cubes_position, cubes_scale, cubes_color);
+        std::cout << "Run " << j << " Made " << index << " cubes\n";
+        cube_count = index;
     }
     
+    //load_png_as_texture(texture_filename);
+
     if (serial_on)
     {
         //  Call readsensors for a while to get stable initial values on sensors    
@@ -362,57 +319,6 @@ void terminate () {
         Audio::terminate();
     }
     exit(EXIT_SUCCESS);
-}
-
-const float SCALE_SENSORS = 0.3f;
-const float SCALE_X = 2.f;
-const float SCALE_Y = 1.f;
-
-
-void update_tris()
-{
-    int i, j;
-    float field_val[3];
-    float field_contrib[3];
-    for (i = 0; i < NUM_TRIS; i++)
-    {
-        // Update position
-        tris.vertices[i*3+0] += tris.vel[i*3];
-        tris.vertices[i*3+1] += tris.vel[i*3+1];
-        tris.vertices[i*3+2] += tris.vel[i*3+2];
-        
-        // Add a little gravity 
-        //tris.vel[i*3+1] -= 0.0001;
-       
-        const float DRAG = 0.99;
-        // Drag:  Decay velocity
-        tris.vel[i*3] *= DRAG;
-        tris.vel[i*3+1] *= DRAG;
-        tris.vel[i*3+2] *= DRAG;
-                 
-        // Read and add velocity from field 
-        field_value(field_val, &tris.vertices[i*3]);
-        tris.vel[i*3] += field_val[0];
-        tris.vel[i*3+1] += field_val[1];
-        tris.vel[i*3+2] += field_val[2];
-        
-        // Add a tiny bit of energy back to the field
-        const float FIELD_COUPLE = 0.0000001;
-        field_contrib[0] = tris.vel[i*3]*FIELD_COUPLE;
-        field_contrib[1] = tris.vel[i*3+1]*FIELD_COUPLE;
-        field_contrib[2] = tris.vel[i*3+2]*FIELD_COUPLE;
-        field_add(field_contrib, &tris.vertices[i*3]);
-            
- 
-        // bounce at edge of world 
-        for (j=0; j < 3; j++) {
-            if ((tris.vertices[i*3+j] > WORLD_SIZE) || (tris.vertices[i*3+j] < 0.0)) {
-                tris.vertices[i*3+j] = min(WORLD_SIZE, tris.vertices[i*3+j]);
-                tris.vertices[i*3+j] = max(0.f, tris.vertices[i*3+j]);
-                tris.vel[i*3 + j]*= -1.0;
-            }
-        }
-     }
 }
 
 void reset_sensors()
@@ -447,7 +353,7 @@ void update_pos(float frametime)
     float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
     
     //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.10;
+    const float HEAD_ROTATION_SCALE = 0.20;
     const float HEAD_LEAN_SCALE = 0.02;
     if (head_mirror) {
         myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
@@ -566,13 +472,16 @@ void update_pos(float frametime)
     //  Update head and manipulator objects with object with current location
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
+    
+    //  Update all this stuff to any agents that are nearby and need to see it!
+    char test[] = "BXXX";
+    broadcast(UDP_socket, test, strlen(test));
 }
 
 void display(void)
 {
     
-    int i;
-    
+
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
@@ -599,30 +508,27 @@ void display(void)
         glRotatef(render_pitch, 1, 0, 0);
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
+            
+        glPushMatrix();
+        glTranslatef(WORLD_SIZE/2, WORLD_SIZE/2, WORLD_SIZE/2);
+        int i = 0;
+        while (i < cube_count) {
+            glPushMatrix();
+            glTranslatef(cubes_position[i*3], cubes_position[i*3+1], cubes_position[i*3+2]);
+            glColor3fv(&cubes_color[i*3]);
+            glutSolidCube(cubes_scale[i]);
+            glPopMatrix();
+            i++;
+        }
+        glPopMatrix();
+    
     
         /* Draw Point Sprites */
-        
-        //glActiveTexture(GL_TEXTURE0);
-        glEnable( GL_TEXTURE_2D );
-         
-        //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
     
-        float maxSize = 0.0f;
-        glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
-        glPointSize( maxSize );
-        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-        glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+        load_png_as_texture(texture_filename);
 
-        glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-        glEnable( GL_POINT_SPRITE_ARB );
-        if (!display_head) {
-            glDrawElements(GL_POINTS, NUM_TRIS, GL_FLOAT, tris.vertices);
-        }
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
-
         if (!display_head) cloud.render();
         //  Show field vectors
         if (display_field) field_render();
@@ -636,9 +542,13 @@ void display(void)
             
         //  Render the world box 
         if (!display_head) render_world_box();
+    
+        glm::vec3 test(0.5, 0.5, 0.5); 
+        render_vector(&test);
 
     glPopMatrix();
 
+    
     //  Render 2D overlay:  I/O level bar graphs and text  
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -708,14 +618,24 @@ void display(void)
     glutSwapBuffers();
     framecount++;
 }
-
+void specialkey(int k, int x, int y)
+{
+    if (k == GLUT_KEY_UP) fwd_vel += 0.05;
+    if (k == GLUT_KEY_DOWN) fwd_vel -= 0.05;
+    if (k == GLUT_KEY_LEFT) {
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= 0.02;
+            else render_yaw_rate -= 0.25;
+    }
+    if (k == GLUT_KEY_RIGHT) {
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += 0.02;
+        else render_yaw_rate += 0.25;        
+    }
+    
+}
 void key(unsigned char k, int x, int y)
 {
 	//  Process keypresses 
-        
-    last_key = k;
-	
-	if (k == 'q')  ::terminate();
+ 	if (k == 'q')  ::terminate();
 	if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
@@ -761,6 +681,9 @@ void key(unsigned char k, int x, int y)
     }
 }
 
+// 
+//  Check for and process incoming network packets 
+// 
 void read_network()
 {
     //  Receive packets 
@@ -771,15 +694,29 @@ void read_network()
         bytescount += bytes_recvd;
         //  If packet is a Mouse data packet, copy it over 
         if (incoming_packet[0] == 'M') {
+            // 
+            //  mouse location packet 
+            //
             sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
             target_display = 1;
             printf("X = %d Y = %d\n", target_x, target_y);
         } else if (incoming_packet[0] == 'P') {
-        //  Ping packet - check time and record
+            // 
+            //  Ping packet - check time and record
+            //
             timeval check; 
             gettimeofday(&check, NULL);
             ping_msecs = (float)diffclock(ping_start, check);
-
+        } else if (incoming_packet[0] == 'S') {
+            //
+            //  Message from Spaceserver 
+            //
+            update_agents(&incoming_packet[1], bytes_recvd - 1);
+        } else if (incoming_packet[0] == 'B') {
+            //
+            //  Broadcast packet from another agent 
+            //
+            //std::cout << "Got broadcast from agent\n";
         }
     }
 }
@@ -795,7 +732,6 @@ void idle(void)
         //  Simulation
         update_pos(1.f/FPS); 
         if (simulate_on) {
-            update_tris();
             field_simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
             myHand.simulate(1.f/FPS);
@@ -836,8 +772,8 @@ void reshape(int width, int height)
     glLoadIdentity();
     gluPerspective(45, //view angle
                    1.0, //aspect ratio
-                   1.0, //near clip
-                   200.0);//far clip
+                   0.1, //near clip
+                   50.0);//far clip
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -908,7 +844,7 @@ int main(int argc, char** argv)
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(RIGHT_MARGIN + WIDTH, BOTTOM_MARGIN + HEIGHT);
+    glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
     
     printf( "Created Display Window.\n" );
@@ -918,6 +854,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(key);
+    glutSpecialFunc(specialkey);
 	glutMotionFunc(motionFunc);
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);

@@ -11,9 +11,6 @@
 #include "network.h"
  
 
-const int UDP_PORT = 30000; 
-const char DESTINATION_IP[] = "127.0.0.1";
-
 //  Implementation of optional delay behavior using a ring buffer
 const int MAX_DELAY_PACKETS = 300;
 char delay_buffer[MAX_PACKET_SIZE*MAX_DELAY_PACKETS];
@@ -22,7 +19,7 @@ int delay_size_received[MAX_DELAY_PACKETS];
 int next_to_receive = 0;
 int next_to_send = 0;
 
-sockaddr_in address, dest_address, from;
+sockaddr_in address, dest_address, spaceserver_address, from;
 socklen_t fromLength = sizeof( from );
 
 int network_init()
@@ -67,7 +64,11 @@ int network_init()
     dest_address.sin_family = AF_INET;
     dest_address.sin_addr.s_addr = inet_addr(DESTINATION_IP);
     dest_address.sin_port = htons( (unsigned short) UDP_PORT );
-    
+
+    spaceserver_address.sin_family = AF_INET;
+    spaceserver_address.sin_addr.s_addr = inet_addr(SPACESERVER_IP);
+    spaceserver_address.sin_port = htons( (unsigned short) SPACESERVER_PORT );
+
     from.sin_family = AF_INET;
     //from.sin_addr.s_addr = htonl(ip_address);
     from.sin_port = htons( (unsigned short) UDP_PORT );
@@ -84,6 +85,22 @@ timeval network_send_ping(int handle) {
            0, (sockaddr*)&dest_address, sizeof(sockaddr_in) );
     gettimeofday(&check, NULL);
     return check; 
+}
+
+int notify_spaceserver(int handle, float x, float y, float z) {
+    char data[100];
+    sprintf(data, "%f,%f,%f", x, y, z);
+    //std::cout << "sending: " << data << "\n";
+    int packet_size = strlen(data);
+    int sent_bytes = sendto( handle, (const char*)data, packet_size,
+                            0, (sockaddr*)&spaceserver_address, sizeof(sockaddr_in) );
+    
+    if ( sent_bytes != packet_size )
+    {
+        printf( "failed to send to spaceserver: return value = %d\n", sent_bytes );
+        return false;
+    }
+    return sent_bytes;
 }
 
 int network_send(int handle, char * packet_data, int packet_size)
