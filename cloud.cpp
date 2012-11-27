@@ -21,14 +21,20 @@ Cloud::Cloud(int num,
     particles = new Particle[count];
     
     for (i = 0; i < count; i++) {
-        particles[i].position.x = randFloat()*box.x;
-        particles[i].position.y = randFloat()*box.y;
-        particles[i].position.z = randFloat()*box.z;
+        float x = randFloat()*box.x;
+        float y = randFloat()*box.y;
+        float z = randFloat()*box.z;
+        particles[i].position.x = x;
+        particles[i].position.y = y;
+        particles[i].position.z = z;
                 
         particles[i].velocity.x = 0;  //randFloat() - 0.5;
         particles[i].velocity.y = 0;  //randFloat() - 0.5;
         particles[i].velocity.z = 0;  //randFloat() - 0.5;
         
+        particles[i].color = glm::vec3(x*0.8f/WORLD_SIZE + 0.2f,
+                                       y*0.8f/WORLD_SIZE + 0.2f,
+                                       z*0.8f/WORLD_SIZE + 0.2f);
     }
 }
 
@@ -38,7 +44,7 @@ void Cloud::render() {
     float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f };
     
     glEnable( GL_TEXTURE_2D );
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
     
     float maxSize = 0.0f;
@@ -52,6 +58,9 @@ void Cloud::render() {
     glBegin( GL_POINTS );
         for (int i = 0; i < count; i++)
         {
+            glColor3f(particles[i].color.x,
+                      particles[i].color.y,
+                      particles[i].color.z);
             glVertex3f(particles[i].position.x,
                        particles[i].position.y,
                        particles[i].position.z);
@@ -75,7 +84,7 @@ void Cloud::simulate (float deltaTime) {
                 
         // Interact with Field
         const float FIELD_COUPLE = 0.0000001;
-        field_interact(&particles[i].position, &particles[i].velocity, FIELD_COUPLE);
+        field_interact(&particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
         //  Bounce or Wrap 
         if (wrapBounds) {
