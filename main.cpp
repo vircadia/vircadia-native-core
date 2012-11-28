@@ -49,9 +49,6 @@
 #include "cloud.h"
 #include "agent.h"
 
-
-//TGAImg Img;
-
 using namespace std;
 
 //   Junk for talking to the Serial Port 
@@ -95,7 +92,8 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(100000,                             //  Particles
+
+Cloud cloud(200000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
@@ -108,7 +106,7 @@ int cube_count = 0;
 #define RENDER_FRAME_MSECS 10
 #define SLEEP 0
 
-float yaw =0.f;                         //  The yaw, pitch for the avatar head 
+float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
 float start_yaw = 90.0;
 float render_yaw = start_yaw;
@@ -244,11 +242,13 @@ void initDisplay(void)
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
+    
+    load_png_as_texture(texture_filename);
 }
 
 void init(void)
 {
-    int i; 
+    int i;
 
     if (audio_on) {
         Audio::init();
@@ -277,6 +277,10 @@ void init(void)
         myHead.setNoise(noise);
     }
     
+    // turning cubes off for the moment -
+    // uncomment to re-enable
+    /*
+
     int index = 0;
     while (index < MAX_CUBES) {
         cubes_position[index*3] = randFloat()*WORLD_SIZE;
@@ -297,16 +301,16 @@ void init(void)
     float scale = 10.0;
     int j = 0;
 
-    while (index < 4) {  //(index < (MAX_CUBES/2)) {
+    while (index < (MAX_CUBES/2)) {
+    
         index = 0;
         j++;
         makeCubes(location, scale, &index, cubes_position, cubes_scale, cubes_color);
         std::cout << "Run " << j << " Made " << index << " cubes\n";
         cube_count = index;
-    }*/
+    }
+    */
     
-    //load_png_as_texture(texture_filename);
-
     if (serial_on)
     {
         //  Call readsensors for a while to get stable initial values on sensors    
@@ -532,8 +536,6 @@ void display(void)
     
     
         /* Draw Point Sprites */
-    
-        load_png_as_texture(texture_filename);
     
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );

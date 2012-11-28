@@ -34,6 +34,7 @@ int load_png_as_texture(char* filename)
     unsigned int width = 1, height = 1;
     unsigned error = lodepng::decode(image, width, height, filename);
     if (error) {
+        std::cout << "Error loading texture" << std::endl;
         return (int) error;
     }
 
