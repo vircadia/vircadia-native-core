@@ -7,14 +7,12 @@
 //
 
 #include "field.h"
+#include "glm/glm.hpp"
 #define FIELD_SCALE 0.00050
+#define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
+#define COLOR_MIN 0.3f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
 
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
-
-struct {
-    glm::vec3 val;
-} field[FIELD_ELEMENTS];
-
 
 int field_value(float *value, float *pos)
 // sets the vector value (3 floats) to field value at location pos in space.
@@ -33,7 +31,6 @@ int field_value(float *value, float *pos)
     else return 0;
 }
 
-
 void field_init()
 //  Initializes the field to some random values
 {
@@ -43,7 +40,12 @@ void field_init()
         field[i].val.x = (randFloat() - 0.5)*FIELD_SCALE;
         field[i].val.y = (randFloat() - 0.5)*FIELD_SCALE;
         field[i].val.z = (randFloat() - 0.5)*FIELD_SCALE;
-    }       
+        // and set up the RGB values for each field element.
+        float color_mult = 1 - COLOR_MIN;
+        fieldcolors[i].rgb = glm::vec3(((i%10)*(color_mult/10.0f)) + COLOR_MIN,
+                                       ((i%100)*(color_mult/100.0f)) + COLOR_MIN,
+                                       (i*(color_mult/1000.0f)) + COLOR_MIN);
+    }
 }
 
 void field_add(float* add, float *pos)
@@ -60,7 +62,7 @@ void field_add(float* add, float *pos)
     }
 }
 
-void field_interact(glm::vec3 * pos, glm::vec3 * vel, float coupling) {
+void field_interact(glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
      
     int index = (int)(pos->x/WORLD_SIZE*10.0) + 
     (int)(pos->y/WORLD_SIZE*10.0)*10 + 
@@ -72,6 +74,9 @@ void field_interact(glm::vec3 * pos, glm::vec3 * vel, float coupling) {
         glm::vec3 temp = *vel;
         temp *= coupling;
         field[index].val += temp;
+        
+        // add a fraction of the field color to the particle color
+        *color = (*color * (1 - COLOR_DRIFT_RATE)) + (fieldcolors[index].rgb * COLOR_DRIFT_RATE);
     }
 }
 
@@ -170,5 +175,6 @@ void field_render()
     }
     glEnd();
 }
+
 
 

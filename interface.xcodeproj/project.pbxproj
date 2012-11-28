@@ -302,6 +302,7 @@
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
+				SDKROOT = macosx10.7;
 			};
 			name = Debug;
 		};
@@ -320,11 +321,13 @@
 					/usr/local/lib,
 					/usr/local/Cellar/libpng/1.5.13/lib,
 				);
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CPLUSPLUSFLAGS = (
 					"-O3",
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
+				SDKROOT = macosx10.7;
 			};
 			name = Release;
 		};

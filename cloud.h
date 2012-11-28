@@ -22,7 +22,7 @@ public:
     
 private:
     struct Particle {
-        glm::vec3 position, velocity;
+        glm::vec3 position, velocity, color;
        } *particles;
     unsigned int count;
     glm::vec3 bounds;
