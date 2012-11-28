@@ -73,7 +73,6 @@ int network_init()
     //from.sin_addr.s_addr = htonl(ip_address);
     from.sin_port = htons( (unsigned short) UDP_PORT );
     
-    
     return handle;
 }
 
@@ -94,7 +93,6 @@ int notify_spaceserver(int handle, float x, float y, float z) {
     int packet_size = strlen(data);
     int sent_bytes = sendto( handle, (const char*)data, packet_size,
                             0, (sockaddr*)&spaceserver_address, sizeof(sockaddr_in) );
-    
     if ( sent_bytes != packet_size )
     {
         printf( "failed to send to spaceserver: return value = %d\n", sent_bytes );
@@ -103,9 +101,11 @@ int notify_spaceserver(int handle, float x, float y, float z) {
     return sent_bytes;
 }
 
+
 int network_send(int handle, char * packet_data, int packet_size)
-{
-    int sent_bytes = sendto( handle, (const char*)packet_data, packet_size,
+{   
+    int sent_bytes = 0;
+    sent_bytes = sendto( handle, (const char*)packet_data, packet_size,
                             0, (sockaddr*)&dest_address, sizeof(sockaddr_in) );
 
     if ( sent_bytes != packet_size )

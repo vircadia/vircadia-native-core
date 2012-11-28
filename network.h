@@ -25,6 +25,9 @@ const char DESTINATION_IP[] = "127.0.0.1";
 const char SPACESERVER_IP[] = "127.0.0.1";
 const int SPACESERVER_PORT = 40000;
 
+//  Randomly send a ping packet every N packets sent
+const int PING_PACKET_COUNT = 20;      
+
 int network_init();
 int network_send(int handle, char * packet_data, int packet_size);
 int network_receive(int handle, char * packet_data, int delay /*msecs*/);

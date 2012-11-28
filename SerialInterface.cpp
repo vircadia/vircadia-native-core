@@ -60,10 +60,10 @@ int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_chan
 {
     //  Channels: 
     //  0, 1 = Head Pitch and Yaw 
-    //  2,3,4 = Head XYZ Acceleration
+    //  2,3,4 = Head X,Y,Z Acceleration
     //
     int samples_read = 0;
-    const float AVG_RATE[] =  {0.001, 0.001, 0.01, 0.01, 0.01};
+    const float AVG_RATE[] =  {0.001, 0.001, 0.001, 0.001, 0.001};
     char bufchar[1];
     while (read(serial_fd, bufchar, 1) > 0)
     {
