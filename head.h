@@ -13,6 +13,7 @@
 #include "field.h"
 #include "world.h"
 #include <GLUT/glut.h>
+#include "SerialInterface.h"
 
 class Head {
     float noise;
@@ -51,11 +52,15 @@ class Head {
 public:
     Head(void);
     void reset();
+    void UpdatePos(float frametime, int * adc_channels, float * avg_adc_channels, 
+                   int head_mirror, glm::vec3 * gravity);
     void setNoise (float mag) { noise = mag; }
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
+    void SetRoll(float r) {Roll = r; };
     void addPitch(float p) {Pitch -= p; }
     void addYaw(float y){Yaw -= y; }
+    void addRoll(float r){Roll += r; }
     void addLean(float x, float z);
     void getPitch(float);
     void render();

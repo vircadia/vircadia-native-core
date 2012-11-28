@@ -26,21 +26,23 @@ void makeCubes(float location[3], float scale, int * index,
     //std::cout << "loc: " << location[0] << "," 
     //<< location[1] << "," << location[2] << "\n";
     if ((*index >= MAX_CUBES) || (scale < SMALLEST_CUBE)) return;
-    if (randFloat() < 0.5) {
+    if (scale < 3 && (randFloat() < .1)) {  
         //  Make a cube
-        for (i = 0; i < 3; i++) cubes_position[*index*3 + i] = location[i];
+        for (i = 0; i < 3; i++) cubes_position[*index*3 + i] = location[i]+scale/2.0;
+        float color = randFloat();
         cubes_scale[*index] = scale;
-        cubes_color[*index*3] = randFloat();
-        cubes_color[*index*3 + 1] = randFloat();
-        cubes_color[*index*3 + 2] = randFloat();
+        cubes_color[*index*3] = color;
+        cubes_color[*index*3 + 1] = color;
+        cubes_color[*index*3 + 2] = color;
         *index += 1;
-        //std::cout << "Quad made at scale " << scale << "\n";
+        //std::cout << "Loc: " << location[0] << "," << location[1] 
+        //<< "," << location[2] << " scale " << scale << "\n";
     } else {
         for (i = 0; i < 8; i++) {
             spot[0] = location[0] + (i%2)*scale/2.0;
             spot[1] = location[1] + ((i/2)%2)*scale/2.0;
             spot[2] = location[2] + ((i/4)%2)*scale/2.0;
-            //std::cout << spot[0] << "," << spot[1] << "," << spot[2] << "\n";
+            //std::cout << "called with " << spot[0] << "," << spot[1] << "," << spot[2] << "\n";
             makeCubes(spot, scale/2.0, index, cubes_position, cubes_scale, cubes_color);
         }
     }

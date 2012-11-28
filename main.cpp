@@ -76,7 +76,7 @@ int bytescount = 0;
 int target_x, target_y; 
 int target_display = 0;
 
-int head_mirror = 0;                     //  Whether to mirror the head when viewing it
+int head_mirror = 1;                     //  Whether to mirror the head when viewing it
 
 int WIDTH = 1200; 
 int HEIGHT = 800; 
@@ -95,7 +95,7 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(0,                             //  Particles
+Cloud cloud(100000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
@@ -161,6 +161,7 @@ int speed;
 
 int adc_channels[NUM_CHANNELS];                
 float avg_adc_channels[NUM_CHANNELS];
+glm::vec3 gravity;
 int first_measurement = 1;
 int samplecount = 0;
 
@@ -277,16 +278,32 @@ void init(void)
     }
     
     int index = 0;
+    while (index < MAX_CUBES) {
+        cubes_position[index*3] = randFloat()*WORLD_SIZE;
+        cubes_position[index*3+1] = randFloat()*WORLD_SIZE;
+        cubes_position[index*3+2] = randFloat()*WORLD_SIZE;
+        cubes_scale[index] = WORLD_SIZE/powf(2,2+rand()%8);
+        float color = randFloat(); 
+        cubes_color[index*3] = color;
+        cubes_color[index*3 + 1] = color;
+        cubes_color[index*3 + 2] = color;
+        index++;
+    }
+    cube_count = index; 
+    
+    //  Recursive build
+    /*
     float location[] = {0,0,0};
     float scale = 10.0;
     int j = 0;
-    while (index < (MAX_CUBES/2)) {
+
+    while (index < 4) {  //(index < (MAX_CUBES/2)) {
         index = 0;
         j++;
         makeCubes(location, scale, &index, cubes_position, cubes_scale, cubes_color);
         std::cout << "Run " << j << " Made " << index << " cubes\n";
         cube_count = index;
-    }
+    }*/
     
     //load_png_as_texture(texture_filename);
 
@@ -303,6 +320,11 @@ void init(void)
             gettimeofday(&timer_end, NULL);
             if (diffclock(timer_start,timer_end) > 1000) done = 1;
         }
+        gravity.x = avg_adc_channels[ACCEL_X];
+        gravity.y = avg_adc_channels[ACCEL_Y];
+        gravity.z = avg_adc_channels[ACCEL_Z];
+        
+        std::cout << "Gravity:  " << gravity.x << "," << gravity.y << "," << gravity.z << "\n";
         printf( "Done.\n" );
 
     }
@@ -347,27 +369,13 @@ void reset_sensors()
 void update_pos(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_pitch_rate = adc_channels[0] - avg_adc_channels[0];
-    float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
-    float measured_lateral_accel = adc_channels[3] - avg_adc_channels[3];
-    float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
+    float measured_pitch_rate = adc_channels[PITCH_RATE] - avg_adc_channels[PITCH_RATE];
+    float measured_yaw_rate = adc_channels[YAW_RATE] - avg_adc_channels[YAW_RATE];
+    float measured_lateral_accel = adc_channels[ACCEL_X] - avg_adc_channels[ACCEL_X];
+    float measured_fwd_accel = avg_adc_channels[ACCEL_Z] - adc_channels[ACCEL_Z];
     
-    //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.20;
-    const float HEAD_LEAN_SCALE = 0.02;
-    if (head_mirror) {
-        myHead.addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
-        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-        myHead.addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
-    } else {
-        myHead.addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
-        myHead.addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-        myHead.addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
-    }
-    //  Decay avatar head back toward zero
-    //pitch *= (1.f - 5.0*frametime); 
-    //yaw *= (1.f - 7.0*frametime);
-
+    myHead.UpdatePos(frametime, &adc_channels[0], &avg_adc_channels[0], head_mirror, &gravity);
+    
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1;
@@ -510,7 +518,7 @@ void display(void)
         glTranslatef(location[0], location[1], location[2]);
             
         glPushMatrix();
-        glTranslatef(WORLD_SIZE/2, WORLD_SIZE/2, WORLD_SIZE/2);
+        //glTranslatef(-WORLD_SIZE/2, -WORLD_SIZE/2, -WORLD_SIZE/2);
         int i = 0;
         while (i < cube_count) {
             glPushMatrix();
@@ -592,18 +600,25 @@ void display(void)
             for(i = 0; i < NUM_CHANNELS; i++)
             {
                 //  Actual value 
+                glLineWidth(2.0);
                 glColor4f(1, 1, 1, 1);
                 glBegin(GL_LINES);
                     glVertex2f(disp_x, HEIGHT*0.95);
                     glVertex2f(disp_x, HEIGHT*(0.25 + 0.75f*adc_channels[i]/4096));
                 glEnd();
                 //  Trailing Average value 
-                glColor4f(0, 0, 0.8, 1);
+                glColor4f(1, 1, 0, 1);
                 glBegin(GL_LINES);
                     glVertex2f(disp_x + 2, HEIGHT*0.95);
                     glVertex2f(disp_x + 2, HEIGHT*(0.25 + 0.75f*avg_adc_channels[i]/4096));
                 glEnd();
 
+                glColor3f(1,0,0);
+                glBegin(GL_LINES);
+                glLineWidth(2.0);
+                glVertex2f(disp_x - 10, HEIGHT*0.5 - (adc_channels[i] - avg_adc_channels[i]));
+                glVertex2f(disp_x + 10, HEIGHT*0.5 - (adc_channels[i] - avg_adc_channels[i]));
+                glEnd();
                 sprintf(val, "%d", adc_channels[i]); 
                 drawtext(disp_x-GAP/2, (HEIGHT*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
 
@@ -653,9 +668,12 @@ void key(unsigned char k, int x, int y)
 
     }
     if (k == 'h') display_head = !display_head;
-    if (k == 'm') display_hand = !display_hand;
+    if (k == 'b') display_hand = !display_hand;
+    if (k == 'm') head_mirror = !head_mirror;
+    
     if (k == 'f') display_field = !display_field;
     if (k == 'l') display_levels = !display_levels;
+    
     
     if (k == 'e') location[1] -= WORLD_SIZE/100.0;
     if (k == 'c') location[1] += WORLD_SIZE/100.0;

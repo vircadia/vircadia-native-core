@@ -140,11 +140,11 @@
 			isa = PBXGroup;
 			children = (
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
+				D4EE3BC015E746E900EE4C89 /* world.h */,
 				D409B9A6165CA7A50099B0B3 /* agent.h */,
 				D409B9A7165CA7BB0099B0B3 /* agent.cpp */,
 				D409B988165849030099B0B3 /* cloud.h */,
 				D409B989165849180099B0B3 /* cloud.cpp */,
-				D4EE3BC015E746E900EE4C89 /* world.h */,
 				B6BDAE4315F6BE53002A07DF /* particle.cpp */,
 				B6BDAE4115F6BE4D002A07DF /* particle.h */,
 				D4EE3BBD15E7465700EE4C89 /* field.cpp */,
