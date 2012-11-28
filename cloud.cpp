@@ -10,6 +10,8 @@
 #include "cloud.h"
 #include "util.h"
 
+#define COLOR_MIN 0.3f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
+
 Cloud::Cloud(int num, 
              glm::vec3 box,
              int wrap) {
@@ -32,9 +34,10 @@ Cloud::Cloud(int num,
         particles[i].velocity.y = 0;  //randFloat() - 0.5;
         particles[i].velocity.z = 0;  //randFloat() - 0.5;
         
-        particles[i].color = glm::vec3(x*0.8f/WORLD_SIZE + 0.2f,
-                                       y*0.8f/WORLD_SIZE + 0.2f,
-                                       z*0.8f/WORLD_SIZE + 0.2f);
+        float color_mult = 1 - COLOR_MIN;
+        particles[i].color = glm::vec3(x*color_mult/WORLD_SIZE + COLOR_MIN,
+                                       y*color_mult/WORLD_SIZE + COLOR_MIN,
+                                       z*color_mult/WORLD_SIZE + COLOR_MIN);
     }
 }
 

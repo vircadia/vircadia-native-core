@@ -9,6 +9,8 @@
 #include "field.h"
 #include "glm/glm.hpp"
 #define FIELD_SCALE 0.00050
+#define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
+#define COLOR_MIN 0.3f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
 
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 
@@ -39,9 +41,10 @@ void field_init()
         field[i].val.y = (randFloat() - 0.5)*FIELD_SCALE;
         field[i].val.z = (randFloat() - 0.5)*FIELD_SCALE;
         // and set up the RGB values for each field element.
-        fieldcolors[i].rgb = glm::vec3(((i%10)*0.08) + 0.2f,
-                                       ((i%100)*0.008) + 0.2f,
-                                       (i*0.0008) + 0.2f);
+        float color_mult = 1 - COLOR_MIN;
+        fieldcolors[i].rgb = glm::vec3(((i%10)*(color_mult/10.0f)) + COLOR_MIN,
+                                       ((i%100)*(color_mult/100.0f)) + COLOR_MIN,
+                                       (i*(color_mult/1000.0f)) + COLOR_MIN);
     }
 }
 
@@ -73,7 +76,7 @@ void field_interact(glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float c
         field[index].val += temp;
         
         // add a fraction of the field color to the particle color
-        *color = (*color * 0.999f) + (fieldcolors[index].rgb * 0.001f);
+        *color = (*color * (1 - COLOR_DRIFT_RATE)) + (fieldcolors[index].rgb * COLOR_DRIFT_RATE);
     }
 }
 
