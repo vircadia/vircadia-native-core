@@ -92,7 +92,7 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-Cloud cloud(100000,                             //  Particles
+Cloud cloud(200000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
