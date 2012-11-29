@@ -466,6 +466,7 @@ void update_pos(float frametime)
     }
     //  Decrease forward velocity
     fwd_vel *= (1.f - 4.0*frametime);
+    
 
     //  Update forward vector based on pitch and yaw 
     fwd_vec[0] = -sinf(render_yaw*PI/180);
