@@ -242,6 +242,7 @@ void initDisplay(void)
     glEnable(GL_DEPTH_TEST);
     
     load_png_as_texture(texture_filename);
+    glutFullScreen();
 }
 
 void init(void)
