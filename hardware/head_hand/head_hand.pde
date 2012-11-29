@@ -8,10 +8,15 @@ Read a set of analog input lines and echo their readings over the serial port wi
 //  17,18,19    =  Head Accelerometer
 
 
-#define NUM_CHANNELS 5
+#define NUM_CHANNELS 6
 #define MSECS_PER_SAMPLE 10
 
-int inputPins[NUM_CHANNELS] = {19,20,15,16,17};
+#define LED_PIN 12
+
+int inputPins[NUM_CHANNELS] = {19,20,18,15,16,17};
+
+int LED_on = 0;
+unsigned int total_count = 0;
 
 unsigned int time;
 
@@ -29,6 +34,7 @@ void setup()
     accumulate[i] = measured[i];
   }
   pinMode(BOARD_LED_PIN, OUTPUT);
+  pinMode(LED_PIN,OUTPUT);
   time = millis();
 }
 
@@ -36,6 +42,13 @@ void loop()
 {
   int i;
   sampleCount++;
+  total_count++;
+  if (total_count % 20172 == 0) {
+    LED_on = !LED_on;
+    if (LED_on) digitalWrite(LED_PIN, HIGH);
+    else digitalWrite(LED_PIN, LOW);
+  } 
+  
   for (i = 0; i < NUM_CHANNELS; i++) {
     accumulate[i] += analogRead(inputPins[i]);
   }
@@ -47,10 +60,12 @@ void loop()
         SerialUSB.print(" ");
         accumulate[i] = 0;
       }  
-      //SerialUSB.print("(");
-      //SerialUSB.print(sampleCount);
-      //SerialUSB.print(")");
+      SerialUSB.print(sampleCount);
+      SerialUSB.print(" ");
+      if (LED_on) SerialUSB.print("1");
+      else SerialUSB.print("0");
       SerialUSB.println("");
+      
       sampleCount = 0;
   }  
 }
