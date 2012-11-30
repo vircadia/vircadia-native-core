@@ -30,9 +30,9 @@ Cloud::Cloud(int num,
         particles[i].position.y = y;
         particles[i].position.z = z;
                 
-        particles[i].velocity.x = 0;  //randFloat() - 0.5;
-        particles[i].velocity.y = 0;  //randFloat() - 0.5;
-        particles[i].velocity.z = 0;  //randFloat() - 0.5;
+        particles[i].velocity.x = randFloat() - 0.5;
+        particles[i].velocity.y = randFloat() - 0.5;
+        particles[i].velocity.z = randFloat() - 0.5;
         
         float color_mult = 1 - COLOR_MIN;
         particles[i].color = glm::vec3(x*color_mult/WORLD_SIZE + COLOR_MIN,
@@ -78,16 +78,16 @@ void Cloud::simulate (float deltaTime) {
     for (i = 0; i < count; ++i) {
         
         // Update position 
-        //particles[i].position += particles[i].velocity*deltaTime;
-        particles[i].position += particles[i].velocity;
+        particles[i].position += particles[i].velocity*deltaTime;
+        //particles[i].position += particles[i].velocity;
 
         // Decay Velocity (Drag)
-        const float CONSTANT_DAMPING = 1.0;
+        const float CONSTANT_DAMPING = 0.5;
         particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                 
         // Interact with Field
-        const float FIELD_COUPLE = 0.0000001;
-        field_interact(&particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
+        const float FIELD_COUPLE = 0.005;  //0.0000001;
+        field_interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
         //  Bounce or Wrap 
         if (wrapBounds) {

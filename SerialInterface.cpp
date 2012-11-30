@@ -56,14 +56,14 @@ int init_port(int baud)
     return 0;                   //  Success!
 }
 
-int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels)
+int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels, int * samples_averaged, int * LED_state)
 {
     //  Channels: 
     //  0, 1 = Head Pitch and Yaw 
     //  2,3,4 = Head X,Y,Z Acceleration
     //
     int samples_read = 0;
-    const float AVG_RATE[] =  {0.001, 0.001, 0.001, 0.001, 0.001};
+    const float AVG_RATE[] =  {0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
     char bufchar[1];
     while (read(serial_fd, bufchar, 1) > 0)
     {
@@ -76,12 +76,15 @@ int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_chan
             //  At end - Extract value from string to variables
             if (serial_buffer[0] != 'p')
             {
-                sscanf(serial_buffer, "%d %d %d %d %d",    /* Needs to match Num Channels */
+                sscanf(serial_buffer, "%d %d %d %d %d %d %d %d",    /* Needs to match Num Channels */
                        &adc_channels[0], 
                        &adc_channels[1], 
                        &adc_channels[2], 
                        &adc_channels[3],
-                       &adc_channels[4]
+                       &adc_channels[4],
+                       &adc_channels[5],
+                       samples_averaged,
+                       LED_state
                        );
                 for (int i = 0; i < NUM_CHANNELS; i++)
                 {

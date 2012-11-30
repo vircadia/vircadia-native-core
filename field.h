@@ -35,7 +35,7 @@ void field_init();
 int field_value(float *ret, float *pos);
 void field_render();
 void field_add(float* add, float *loc);
-void field_interact(glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
+void field_interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
 void field_simulate(float dt);
 glm::vec3 hsv2rgb(glm::vec3 in);
 #endif

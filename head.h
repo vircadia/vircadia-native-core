@@ -27,6 +27,7 @@ class Head {
     float EyeballYaw[2];
     float EyebrowPitch[2];
     float EyebrowRoll[2];
+    float EyeballScaleX, EyeballScaleY, EyeballScaleZ;
     float interPupilDistance;
     float interBrowDistance;
     float NominalPupilSize;
