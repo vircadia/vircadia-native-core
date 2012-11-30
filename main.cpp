@@ -51,8 +51,6 @@
 
 using namespace std;
 
-//   Junk for talking to the Serial Port 
-int serial_on = 0;                  //  Is serial connection on/off?  System will try
 int audio_on = 0;                   //  Whether to turn on the audio support 
 int simulate_on = 1; 
 
@@ -93,7 +91,7 @@ ParticleSystem balls(0,
                      );
 
 
-Cloud cloud(200000,                             //  Particles
+Cloud cloud(100000,                             //  Particles
             box,                                //  Bounding Box
             false                               //  Wrap
             );
@@ -103,7 +101,7 @@ float cubes_scale[MAX_CUBES];
 float cubes_color[MAX_CUBES*3];
 int cube_count = 0;
 
-#define RENDER_FRAME_MSECS 10
+#define RENDER_FRAME_MSECS 5
 #define SLEEP 0
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
@@ -146,19 +144,15 @@ int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finishe
 int speed;
 
 //  
-//  Serial I/O channel mapping:
-//  
-//  0   Head Gyro Pitch 
-//  1   Head Gyro Yaw 
-//  2   Head Accelerometer X
-//  3   Head Accelerometer Z 
-//  4   Hand Accelerometer X 
-//  5   Hand Accelerometer Y
-//  6   Hand Accelerometer Z 
+//  Serial USB Variables
 // 
 
+int serial_on = 0; 
+int latency_display = 1;
 int adc_channels[NUM_CHANNELS];                
 float avg_adc_channels[NUM_CHANNELS];
+int sensor_samples = 0; 
+int sensor_LED = 0; 
 glm::vec3 gravity;
 int first_measurement = 1;
 int samplecount = 0;
@@ -214,9 +208,14 @@ void display_stats(void)
     drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f, Ping = %4.1f Packets/Sec = %d, Bytes/sec = %d", 
+    sprintf(stats, "FPS = %3.0f, Ping = %4.1f Pkts/s = %d, Bytes/s = %d", 
             FPS, ping_msecs, packets_per_second,  bytes_per_second);
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
+    if (serial_on) {
+        sprintf(stats, "ADC samples = %d, LED = %d", 
+                sensor_samples, sensor_LED);
+        drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
+    }
     
     /*
     char adc[200];
@@ -296,7 +295,7 @@ void init(void)
     cube_count = index; 
     
     //  Recursive build
-    /*
+    
     float location[] = {0,0,0};
     float scale = 10.0;
     int j = 0;
@@ -316,11 +315,11 @@ void init(void)
         //  Call readsensors for a while to get stable initial values on sensors    
         printf( "Stabilizing sensors... " );
         gettimeofday(&timer_start, NULL);
-        read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
+        read_sensors(1, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
         int done = 0;
         while (!done)
         {
-            read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
+            read_sensors(0, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
             gettimeofday(&timer_end, NULL);
             if (diffclock(timer_start,timer_end) > 1000) done = 1;
         }
@@ -367,7 +366,7 @@ void reset_sensors()
     
     myHead.reset();
     myHand.reset();
-    if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0]);
+    if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
 }
 
 void update_pos(float frametime)
@@ -493,8 +492,6 @@ void update_pos(float frametime)
 
 void display(void)
 {
-    
-
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
@@ -626,6 +623,17 @@ void display(void)
                 drawtext(disp_x-GAP/2, (HEIGHT*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
 
                 disp_x += GAP;
+            }
+            //  Display Serial latency block 
+            if (latency_display && sensor_LED) {
+                glColor3f(1,0,0);
+                glBegin(GL_QUADS); {
+                    glVertex2f(WIDTH - 100, HEIGHT - 100);
+                    glVertex2f(WIDTH, HEIGHT - 100);
+                    glVertex2f(WIDTH, HEIGHT);
+                    glVertex2f(WIDTH - 100, HEIGHT);
+                }
+                glEnd();
             }
         }
 
@@ -774,7 +782,8 @@ void idle(void)
     //  Read network packets
     read_network();
     //  Read serial data 
-    if (serial_on) samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0]);
+    if (serial_on) samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0], 
+                                               &sensor_samples, &sensor_LED);
     
     if (SLEEP)
     {

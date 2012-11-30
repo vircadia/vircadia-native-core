@@ -62,16 +62,16 @@ void field_add(float* add, float *pos)
     }
 }
 
-void field_interact(glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
+void field_interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
      
     int index = (int)(pos->x/WORLD_SIZE*10.0) + 
     (int)(pos->y/WORLD_SIZE*10.0)*10 + 
     (int)(pos->z/WORLD_SIZE*10.0)*100;
     if ((index >= 0) && (index < FIELD_ELEMENTS)) {
         //  Add velocity to particle from field
-        *vel += field[index].val;
+        *vel += field[index].val*dt;
         //  Add back to field from particle velocity 
-        glm::vec3 temp = *vel;
+        glm::vec3 temp = *vel*dt;
         temp *= coupling;
         field[index].val += temp;
         
@@ -127,7 +127,8 @@ void field_simulate(float dt) {
             field[i].val += add;
         }
         else {
-            field[i].val *= 0.999;
+            const float CONSTANT_DAMPING = 0.5;
+            field[i].val *= (1.f - CONSTANT_DAMPING*dt);
             //field[i].val.x += (randFloat() - 0.5)*0.01*FIELD_SCALE;
             //field[i].val.y += (randFloat() - 0.5)*0.01*FIELD_SCALE;
             //field[i].val.z += (randFloat() - 0.5)*0.01*FIELD_SCALE;
@@ -141,7 +142,7 @@ void field_render()
 {
     int i;
     float fx, fy, fz;
-    float scale_view = 1000.0;
+    float scale_view = 0.1;
     
     glDisable(GL_LIGHTING);
     glColor3f(0, 1, 0);

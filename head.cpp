@@ -29,7 +29,7 @@ const float DECAY = 0.1;
 Head::Head()
 {
     PupilSize = 0.10;
-    interPupilDistance = 0.5;
+    interPupilDistance = 0.6;
     interBrowDistance = 0.75;
     NominalPupilSize = 0.10;
     EyebrowPitch[0] = EyebrowPitch[1] = BrowPitchAngle[0];
@@ -40,10 +40,11 @@ Head::Head()
     MouthWidth = 1.0;
     MouthHeight = 0.2;
     EyeballPitch[0] = EyeballPitch[1] = 0;
+    EyeballScaleX = 1.2;  EyeballScaleY = 1.5; EyeballScaleZ = 1.0;
     EyeballYaw[0] = EyeballYaw[1] = 0;
     PitchTarget = YawTarget = 0; 
     NoiseEnvelope = 1.0;
-    PupilConverge = 2.1;
+    PupilConverge = 5.0;
     leanForward = 0.0;
     leanSideways = 0.0;
     setNoise(0);
@@ -52,31 +53,35 @@ Head::Head()
 void Head::reset()
 {
     position = glm::vec3(0,0,0);
-    Pitch = 0;
-    Yaw = 0;
+    Pitch = Yaw = Roll = 0;
     leanForward = leanSideways = 0;
 }
 
 void Head::UpdatePos(float frametime, int * adc_channels, float * avg_adc_channels, int head_mirror, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_pitch_rate = adc_channels[0] - avg_adc_channels[0];
-    float measured_yaw_rate = adc_channels[1] - avg_adc_channels[1];
-    float measured_lateral_accel = adc_channels[3] - avg_adc_channels[3];
-    float measured_fwd_accel = avg_adc_channels[2] - adc_channels[2];
+    float measured_pitch_rate = adc_channels[PITCH_RATE] - avg_adc_channels[PITCH_RATE];
+    float measured_yaw_rate = adc_channels[YAW_RATE] - avg_adc_channels[YAW_RATE];
+    float measured_lateral_accel = adc_channels[ACCEL_X] - avg_adc_channels[ACCEL_X];
+    float measured_fwd_accel = avg_adc_channels[ACCEL_Z] - adc_channels[ACCEL_Z];
+    float measured_roll_rate = adc_channels[ROLL_RATE] - avg_adc_channels[ROLL_RATE];
     
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.20;
+    const float HEAD_ROLL_SCALE = 0.50;
     const float HEAD_LEAN_SCALE = 0.02;
     if (head_mirror) {
         addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        addRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
     } else {
         addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        addRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
+    
     
     //  Try to measure absolute roll from sensors 
     const float MIN_ROLL = 3.0;
@@ -112,7 +117,7 @@ void Head::simulate(float deltaTime)
         //  Move toward new target  
         Pitch += (PitchTarget - Pitch)*22*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ; 
         Yaw += (YawTarget - Yaw)*22*deltaTime; //  (1.f - DECAY*deltaTime);
-        //Roll *= (1.f - DECAY*deltaTime);
+        Roll *= (1.f - DECAY*deltaTime);
     }
     
     leanForward *= (1.f - DECAY*30.f*deltaTime);
@@ -166,16 +171,18 @@ void Head::render()
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
         glTranslatef(leanSideways, 0.f, leanForward);
+
         glRotatef(Yaw/2.0, 0, 1, 0);
         glRotatef(Pitch/2.0, 1, 0, 0);
         glRotatef(Roll/2.0, 0, 0, 1);
+
         
         // Overall scale of head
-        glScalef(2.0, 2.0, 2.0);
+        glScalef(1.5, 2.0, 2.0);
         glColor3fv(skinColor);
         
         //  Head
-        glutSolidSphere(1, 15, 15);           
+        glutSolidSphere(1, 30, 30);           
         
         //  Ears
         glPushMatrix();
@@ -184,7 +191,7 @@ void Head::render()
             {
                 glPushMatrix();
                     glScalef(0.5, 0.75, 1.0);
-                    glutSolidSphere(0.5, 15, 15);  
+                    glutSolidSphere(0.5, 30, 30);  
                 glPopMatrix();
                 glTranslatef(-2, 0, 0);
             }
@@ -221,29 +228,45 @@ void Head::render()
         
         glTranslatef(0, 1.0, 0);
 
+       
+        glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
         // Right Eye
-        glTranslatef(-0.25,-0.5,0.7);
+        glRotatef(-10, 1, 0, 0);
         glColor3fv(eyeColor);
-        glutSolidSphere(0.25, 15, 15);         
+        glPushMatrix(); 
+        {
+            glTranslatef(interPupilDistance/10.0, 0, 0.05);
+            glRotatef(20, 0, 0, 1);
+            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+            glutSolidSphere(0.25, 30, 30);
+        }
+        glPopMatrix();
         // Right Pupil
         glPushMatrix();                         
             glRotatef(EyeballPitch[1], 1, 0, 0);
             glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
             glTranslatef(0,0,.25);
             glColor3f(0,0,0);
-            glutSolidSphere(PupilSize, 10, 10);          
+            glutSolidSphere(PupilSize, 15, 15);          
         glPopMatrix();
         // Left Eye
         glColor3fv(eyeColor);
         glTranslatef(interPupilDistance, 0, 0);
-        glutSolidSphere(0.25f, 15, 15);         
+        glPushMatrix(); 
+        {
+            glTranslatef(-interPupilDistance/10.0, 0, .05);
+            glRotatef(-20, 0, 0, 1);
+            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+            glutSolidSphere(0.25, 30, 30);
+        }
+        glPopMatrix();
         // Left Pupil
         glPushMatrix();
             glRotatef(EyeballPitch[0], 1, 0, 0);
             glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
             glTranslatef(0,0,.25);
             glColor3f(0,0,0);
-            glutSolidSphere(PupilSize, 10, 10);          
+            glutSolidSphere(PupilSize, 15, 15);          
         glPopMatrix();
 
         
