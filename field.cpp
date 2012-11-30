@@ -10,7 +10,7 @@
 #include "glm/glm.hpp"
 #define FIELD_SCALE 0.00050
 #define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
-#define COLOR_MIN 0.3f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
+#define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
 
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 
