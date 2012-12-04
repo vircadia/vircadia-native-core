@@ -24,6 +24,9 @@ const int FIELD_ELEMENTS = 1000;
 
 struct {
     glm::vec3 val;
+    glm::vec3 center;
+    glm::vec3 fld;
+    float scalar;
 } field[FIELD_ELEMENTS];
 
 // Pre-calculated RGB values for each field element

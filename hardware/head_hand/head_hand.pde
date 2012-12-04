@@ -9,7 +9,7 @@ Read a set of analog input lines and echo their readings over the serial port wi
 
 
 #define NUM_CHANNELS 6
-#define MSECS_PER_SAMPLE 10
+#define MSECS_PER_SAMPLE 15
 
 #define LED_PIN 12
 

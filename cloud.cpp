@@ -89,6 +89,10 @@ void Cloud::simulate (float deltaTime) {
         const float FIELD_COUPLE = 0.005;  //0.0000001;
         field_interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
+        //  Update color to velocity 
+        particles[i].color = glm::normalize(particles[i].velocity);
+        
+        
         //  Bounce or Wrap 
         if (wrapBounds) {
             // wrap around bounds
