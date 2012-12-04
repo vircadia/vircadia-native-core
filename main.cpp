@@ -93,7 +93,7 @@ ParticleSystem balls(0,
 
 Cloud cloud(100000,                             //  Particles
             box,                                //  Bounding Box
-            false                               //  Wrap
+            false                              //  Wrap
             );
 
 float cubes_position[MAX_CUBES*3];
