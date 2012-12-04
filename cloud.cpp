@@ -10,7 +10,7 @@
 #include "cloud.h"
 #include "util.h"
 
-#define COLOR_MIN 0.3f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
+#define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
 
 Cloud::Cloud(int num, 
              glm::vec3 box,
