@@ -302,7 +302,7 @@
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -327,7 +327,7 @@
 					"$(OTHER_CFLAGS)",
 				);
 				PRODUCT_NAME = interface;
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};

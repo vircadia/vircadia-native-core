@@ -19,6 +19,8 @@
 
 void update_agents(char * data, int length);
 int add_agent(std::string * IP);
-int broadcast(int handle, char * data, int length);
+int broadcast_to_agents(int handle, char * data, int length);
+void update_agent(in_addr addr, char * data, int length);
+void render_agents();
 
 #endif
