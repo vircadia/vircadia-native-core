@@ -487,8 +487,10 @@ void update_pos(float frametime)
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
     
     //  Update all this stuff to any agents that are nearby and need to see it!
-    char test[] = "BXXX";
-    broadcast(UDP_socket, test, strlen(test));
+    const int MAX_BROADCAST_STRING = 200;
+    char broadcast_string[MAX_BROADCAST_STRING];
+    int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
+    broadcast_to_agents(UDP_socket, broadcast_string, broadcast_bytes);
 }
 
 void display(void)
@@ -542,7 +544,17 @@ void display(void)
         //  Show field vectors
         if (display_field) field_render();
         
-        if (display_head) myHead.render();
+        //  Render my own head 
+        if (display_head) {
+            glPushMatrix();
+            glLoadIdentity();
+            glTranslatef(0.f, 0.f, -7.f);
+            myHead.render();
+            glPopMatrix();
+        }
+    
+        //  Render heads of other agents 
+        if (!display_head) render_agents(); 
         
         if (display_hand) myHand.render();   
      
@@ -550,10 +562,10 @@ void display(void)
         if (!display_head) balls.render();
             
         //  Render the world box 
-        if (!display_head) render_world_box();
+        if (!display_head && stats_on) render_world_box();
     
-        glm::vec3 test(0.5, 0.5, 0.5); 
-        render_vector(&test);
+        //glm::vec3 test(0.5, 0.5, 0.5); 
+        //render_vector(&test);
 
     glPopMatrix();
 
@@ -581,7 +593,7 @@ void display(void)
             sprintf(val, "%d,%d", target_x, target_y); 
             drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
         }
-        if (display_head_mouse && !display_head)
+        if (display_head_mouse && !display_head && stats_on)
         {
             glPointSize(10.0f);
             glColor4f(1.0, 1.0, 0.0, 0.8);
@@ -717,7 +729,8 @@ void key(unsigned char k, int x, int y)
 void read_network()
 {
     //  Receive packets 
-    int bytes_recvd = network_receive(UDP_socket, incoming_packet, delay);
+    in_addr from_addr;
+    int bytes_recvd = network_receive(UDP_socket, &from_addr, incoming_packet, delay);
     if (bytes_recvd > 0)
     {
         packetcount++;
@@ -742,11 +755,11 @@ void read_network()
             //  Message from Spaceserver 
             //
             update_agents(&incoming_packet[1], bytes_recvd - 1);
-        } else if (incoming_packet[0] == 'B') {
+        } else if (incoming_packet[0] == 'H') {
             //
             //  Broadcast packet from another agent 
             //
-            //std::cout << "Got broadcast from agent\n";
+            update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
         }
     }
 }
@@ -850,10 +863,11 @@ int main(int argc, char** argv)
     incoming_packet = new char[MAX_PACKET_SIZE];
 
     //  Test network loopback
+    in_addr from_addr;
     char test_data[] = "Test!";
     int bytes_sent = network_send(UDP_socket, test_data, 5);
     if (bytes_sent) printf("%d bytes sent.", bytes_sent);
-    int test_recv = network_receive(UDP_socket, incoming_packet, delay);
+    int test_recv = network_receive(UDP_socket, &from_addr, incoming_packet, delay);
     printf("Received %i bytes\n", test_recv);
     
        //  Load textures 

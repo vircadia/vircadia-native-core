@@ -58,16 +58,19 @@ public:
     void setNoise (float mag) { noise = mag; }
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
-    void SetRoll(float r) {Roll = r; };
+    void setRoll(float r) {Roll = r; };
     void addPitch(float p) {Pitch -= p; }
     void addYaw(float y){Yaw -= y; }
     void addRoll(float r){Roll += r; }
     void addLean(float x, float z);
-    void getPitch(float);
+    float getPitch() {return Pitch;}
+    float getRoll() {return Roll;}
+    float getYaw() {return Yaw;}
     void render();
     void simulate(float);
-    int transmit(char*);
-    void receive(float);
+    //  Send and receive network data 
+    int getBroadcastData(char* data);
+    void recvBroadcastData(char * data, int size);
     void SetNewHeadTarget(float, float);
     glm::vec3 getPos() { return position; };
     void setPos(glm::vec3 newpos) { position = newpos; };

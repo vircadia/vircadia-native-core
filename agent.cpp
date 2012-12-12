@@ -8,13 +8,14 @@
 
 #include <iostream>
 #include "agent.h"
+#include "head.h" 
 
 //  Structure to hold references to other agents that are nearby 
 
 const int MAX_AGENTS = 100; 
 struct AgentList {
     in_addr sin_addr;
-    glm::vec3 position;
+    Head head;
 } agents[MAX_AGENTS];
 int num_agents = 0; 
 
@@ -23,8 +24,7 @@ int num_agents = 0;
 //
 void update_agents(char * data, int length) {
     std::string packet(data, length);
-    //std::string packet("127.0.0.1,");
-    //std::cout << " Update Agents, string: " << packet << "\n";
+    std::cout << " Update Agents, string: " << packet << "\n";
     size_t spot;
     size_t start_spot = 0;
     spot = packet.find_first_of (",", 0);
@@ -41,6 +41,29 @@ void update_agents(char * data, int length) {
     }
 }
 
+void render_agents() {
+    for (int i = 0; i < num_agents; i++) {
+        glm::vec3 pos = agents[i].head.getPos();
+        glPushMatrix();
+        glTranslatef(pos.x, pos.y, pos.z);
+        agents[i].head.render();
+        glPopMatrix();
+    }
+}
+
+//
+//  Update a single agent with data received from that agent's IP address 
+// 
+void update_agent(in_addr addr, char * data, int length)
+{
+    std::cout << "Looking for agent: " << inet_ntoa(addr) << "\n";
+    for (int i = 0; i < num_agents; i++) {
+        if (agents[i].sin_addr.s_addr == addr.s_addr) {
+            std::cout << "Updating agent with: " << data << "\n";
+        }
+    }
+}
+    
 //
 //  Look for an agent by it's IP number, add if it does not exist in local list 
 //
@@ -68,7 +91,7 @@ int add_agent(std::string * IP) {
 //
 //  Broadcast data to all the other agents you are aware of, returns 1 for success 
 //
-int broadcast(int handle, char * data, int length) {
+int broadcast_to_agents(int handle, char * data, int length) {
     sockaddr_in dest_address;
     dest_address.sin_family = AF_INET;
     dest_address.sin_port = htons( (unsigned short) UDP_PORT );
@@ -81,7 +104,7 @@ int broadcast(int handle, char * data, int length) {
         if (sent_bytes != length) {
             std::cout << "Broadcast packet fail!\n";
             return 0;
-        }
+        } else std::cout << "Broadcasted Packet: " << data << "\n";
     }
     return 1;
 }

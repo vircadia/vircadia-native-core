@@ -90,7 +90,8 @@ void Cloud::simulate (float deltaTime) {
         field_interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
         //  Update color to velocity 
-        particles[i].color = glm::normalize(particles[i].velocity);
+        particles[i].color = (glm::normalize(particles[i].velocity)*0.5f);
+        particles[i].color += 0.5f;
         
         
         //  Bounce or Wrap 

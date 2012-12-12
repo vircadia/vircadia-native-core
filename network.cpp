@@ -116,7 +116,7 @@ int network_send(int handle, char * packet_data, int packet_size)
     return sent_bytes;
 }
 
-int network_receive(int handle, char * packet_data, int delay /*msecs*/)
+int network_receive(int handle, in_addr * from_addr, char * packet_data, int delay /*msecs*/)
 {
     int received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
                                   0, (sockaddr*)&dest_address, &fromLength );
@@ -149,7 +149,4 @@ int network_receive(int handle, char * packet_data, int delay /*msecs*/)
         }
     }
         
-        
-    
-
 }
