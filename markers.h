@@ -50,12 +50,12 @@ public:
     
     MarkerCapture(int source_index);
     ~MarkerCapture();
+    
     int init_capture();
+    void tick();
     void end_capture();
     
-    void tick();
     void acquire_color(CvScalar color);
-    
     void frame_updated(void (*callback)(MarkerCapture* inst, IplImage* image, IplImage* thresh_image));
     void position_updated(void (*callback)(MarkerCapture* inst, MarkerPositionEstimate position));
     void glDrawIplImage(IplImage *img, int x, int, GLfloat xZoom, GLfloat yZoom);
