@@ -103,6 +103,14 @@ void Head::addLean(float x, float z) {
     leanForward += z;
 }
 
+void Head::setLeanForward(float dist){
+    leanForward = dist;
+}
+
+void Head::setLeanSideways(float dist){
+    leanSideways = dist;
+}
+
 //  Simulate the head over time 
 void Head::simulate(float deltaTime)
 {
