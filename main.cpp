@@ -259,7 +259,7 @@ void position_updated(MarkerCapture* inst, MarkerPositionEstimate position){
            position.blob1_center.x, position.blob0_center.y,
            position.distance,
            position.angle);
-    myHead.SetRoll(position.angle);
+    myHead.setRoll(position.angle);
 }
 
 void marker_frame_available(MarkerCapture* inst, IplImage* image, IplImage* thresh_image){
