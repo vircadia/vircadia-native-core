@@ -944,7 +944,6 @@ void motionFunc( int x, int y)
 void *poll_marker_capture(void *threadarg){
     while(1){
         marker_capturer.tick();
-        usleep(1000 * MARKER_CAPTURE_INTERVAL);
     }
 }
 
