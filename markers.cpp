@@ -50,7 +50,7 @@ void MarkerCapture::acquire_color(CvScalar color){
 /* Fetch a frame (if available) and process it, calling appropriate 
  callbacks when data becomes available. */
 void MarkerCapture::tick(){
-    IplImage *thresh_frame;
+    IplImage *thresh_frame = NULL;
     CBlobResult blobs;
     
     // Acquire the lock, update the current frame.
