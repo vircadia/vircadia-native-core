@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 //  These includes are for the serial port reading/writing
 #include <unistd.h>
@@ -35,6 +36,9 @@
 #include <termios.h>
 #include "glm/glm.hpp"
 #include <portaudio.h>
+
+// Bring in OpenCV
+#include <opencv2/opencv.hpp>
 
 #include "SerialInterface.h"
 #include "field.h"
@@ -48,6 +52,9 @@
 #include "texture.h"
 #include "cloud.h"
 #include "agent.h"
+
+#include "markers.h"
+#include "marker_acquisition_view.h"
 
 using namespace std;
 
@@ -180,6 +187,16 @@ float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = sm
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
 
+/***  Marker Capture ***/
+#define MARKER_CAPTURE_INTERVAL 1
+MarkerCapture marker_capturer(CV_CAP_ANY); // Create a new marker capturer, attached to any valid camera.
+MarkerAcquisitionView marker_acq_view(&marker_capturer);
+bool marker_capture_enabled = true;
+bool marker_capture_display = false;
+IplImage* marker_capture_frame;
+IplImage* marker_capture_blob_frame;
+pthread_mutex_t frame_lock;
+
 
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
@@ -216,6 +233,11 @@ void display_stats(void)
                 sensor_samples, sensor_LED);
         drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
     }
+    if(marker_capture_enabled){
+        char marker_stats[200];
+        sprintf(marker_stats, "> Marker capture: FPS = %3.0f", marker_capturer.fps);
+        drawtext(10, 45, 0.10, 0, 1.0, 0, marker_stats);
+    }
     
     /*
     char adc[200];
@@ -231,6 +253,30 @@ void display_stats(void)
 	
 }
 
+void position_updated(MarkerCapture* inst, MarkerPositionEstimate position){
+    printf("<Marker(%dx%d, %dx%d) distance:%f angle:%f>\n",
+           position.blob0_center.x, position.blob0_center.y,
+           position.blob1_center.x, position.blob0_center.y,
+           position.distance,
+           position.angle);
+    myHead.SetRoll(position.angle);
+}
+
+void marker_frame_available(MarkerCapture* inst, IplImage* image, IplImage* thresh_image){
+    if(marker_capture_display){
+        pthread_mutex_lock(&frame_lock);
+        if(marker_capture_frame){
+            cvReleaseImage(&marker_capture_frame);
+        }
+        if(marker_capture_blob_frame){
+            cvReleaseImage(&marker_capture_blob_frame);
+        }
+        marker_capture_frame = cvCloneImage(image);
+        marker_capture_blob_frame = cvCloneImage(thresh_image);
+        pthread_mutex_unlock(&frame_lock);
+    }
+}
+
 void initDisplay(void)
 {
     //  Set up blending function so that we can NOT clear the display
@@ -243,7 +289,8 @@ void initDisplay(void)
     glEnable(GL_DEPTH_TEST);
     
     load_png_as_texture(texture_filename);
-    glutFullScreen();
+    //glutFullScreen();
+    
 }
 
 void init(void)
@@ -331,6 +378,16 @@ void init(void)
         std::cout << "Gravity:  " << gravity.x << "," << gravity.y << "," << gravity.z << "\n";
         printf( "Done.\n" );
 
+    }
+    
+    if(marker_capture_enabled){
+        marker_capturer.position_updated(&position_updated);
+        marker_capturer.frame_updated(&marker_frame_available);
+        if(!marker_capturer.init_capture()){
+            printf("Camera-based marker capture initialized.\n");
+        }else{
+            printf("Error initializing camera-based marker capture.\n");
+        }
     }
     
     gettimeofday(&timer_start, NULL);
@@ -650,7 +707,20 @@ void display(void)
             }
         }
 
-        if (stats_on) display_stats(); 
+        if (stats_on) display_stats();
+    
+        /* Render marker acquisition stuff */
+        pthread_mutex_lock(&frame_lock);
+        if(marker_capture_frame){
+            marker_acq_view.render(marker_capture_frame); // render the acquisition view, if it's visible.
+        }
+        // Draw marker images, if requested.
+        if (marker_capture_enabled && marker_capture_display && marker_capture_frame){
+            marker_capturer.glDrawIplImage(marker_capture_frame, WIDTH - 140, 10, 0.1, -0.1);
+            marker_capturer.glDrawIplImage(marker_capture_blob_frame, WIDTH - 280, 10, 0.1, -0.1);
+        }
+        pthread_mutex_unlock(&frame_lock);
+        /* Done rendering marker acquisition stuff */
     
     glPopMatrix();
     
@@ -673,9 +743,25 @@ void specialkey(int k, int x, int y)
 }
 void key(unsigned char k, int x, int y)
 {
+    
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-	if (k == '/')  stats_on = !stats_on;		// toggle stats
+    
+    // marker capture
+    if(k == 'x'){
+        printf("Toggling marker capture display.\n");
+        marker_capture_display = !marker_capture_display;
+        marker_capture_display ? marker_acq_view.show() : marker_acq_view.hide();
+    }
+	
+    // delegate keypresses to the marker acquisition view when it's visible;
+    // override other key mappings by returning...
+    if(marker_acq_view.visible){
+        marker_acq_view.handle_key(k);
+        return;
+    }
+    
+    if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
@@ -770,10 +856,10 @@ void idle(void)
     gettimeofday(&check, NULL);
     
     //  Check and render display frame 
-    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS) 
+    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS)
     {
         //  Simulation
-        update_pos(1.f/FPS); 
+        update_pos(1.f/FPS);
         if (simulate_on) {
             field_simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
@@ -855,6 +941,13 @@ void motionFunc( int x, int y)
 	
 }
 
+void *poll_marker_capture(void *threadarg){
+    while(1){
+        marker_capturer.tick();
+        usleep(1000 * MARKER_CAPTURE_INTERVAL);
+    }
+}
+
 int main(int argc, char** argv)
 {
     //  Create network socket and buffer
@@ -910,12 +1003,21 @@ int main(int argc, char** argv)
     
     printf( "Init() complete.\n" );
     
-    glutTimerFunc(1000,Timer,0);
+    glutTimerFunc(1000, Timer, 0);
+    
+    // start capture thread
+    if (pthread_mutex_init(&frame_lock, NULL) != 0){
+        printf("Frame lock mutext init failed. Exiting.\n");
+        return 1;
+    }
+    pthread_t capture_thread;
+    pthread_create(&capture_thread, NULL, poll_marker_capture, NULL);
     
     glutMainLoop();
     
+    pthread_mutex_destroy(&frame_lock);
+    pthread_exit(NULL);
     ::terminate();
-    
     return EXIT_SUCCESS;
 }   
 
