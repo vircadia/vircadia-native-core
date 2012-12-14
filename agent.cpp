@@ -59,11 +59,12 @@ void update_agent(in_addr addr, char * data, int length)
     std::cout << "Looking for agent: " << inet_ntoa(addr) << "\n";
     for (int i = 0; i < num_agents; i++) {
         if (agents[i].sin_addr.s_addr == addr.s_addr) {
-            std::cout << "Updating agent with: " << data << "\n";
+            //  Update the agent 
+            agents[i].head.recvBroadcastData(data, length);
         }
     }
 }
-    
+
 //
 //  Look for an agent by it's IP number, add if it does not exist in local list 
 //
@@ -104,7 +105,7 @@ int broadcast_to_agents(int handle, char * data, int length) {
         if (sent_bytes != length) {
             std::cout << "Broadcast packet fail!\n";
             return 0;
-        } else std::cout << "Broadcasted Packet: " << data << "\n";
+        } 
     }
     return 1;
 }

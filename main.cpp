@@ -75,6 +75,7 @@ int head_mirror = 1;                     //  Whether to mirror the head when vie
 
 int WIDTH = 1200; 
 int HEIGHT = 800; 
+int fullscreen = 0; 
 
 #define HAND_RADIUS 0.25             //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself or others 
@@ -101,8 +102,9 @@ float cubes_scale[MAX_CUBES];
 float cubes_color[MAX_CUBES*3];
 int cube_count = 0;
 
-#define RENDER_FRAME_MSECS 5
+#define RENDER_FRAME_MSECS 8
 #define SLEEP 0
+int steps_per_frame = 0;
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
@@ -243,7 +245,7 @@ void initDisplay(void)
     glEnable(GL_DEPTH_TEST);
     
     load_png_as_texture(texture_filename);
-    glutFullScreen();
+    if (fullscreen) glutFullScreen();
 }
 
 void init(void)
@@ -487,11 +489,16 @@ void update_pos(float frametime)
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
     
     //  Update all this stuff to any agents that are nearby and need to see it!
+    /*
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     broadcast_to_agents(UDP_socket, broadcast_string, broadcast_bytes);
+     */
 }
+
+int render_test_spot = WIDTH/2;
+int render_test_direction = 1; 
 
 void display(void)
 {
@@ -601,6 +608,18 @@ void display(void)
             glBegin(GL_POINTS);
             glVertex2f(head_mouse_x, head_mouse_y);
             glEnd();
+        }
+        if (1)
+        {
+            glPointSize(50.0f);
+            glColor4f(1.0, 1.0, 1.0, 1.0);
+            glEnable(GL_POINT_SMOOTH);
+            glBegin(GL_POINTS);
+            glVertex2f(render_test_spot, HEIGHT-100);
+            glEnd(); 
+            render_test_spot += render_test_direction*50; 
+            if ((render_test_spot > WIDTH-100) || (render_test_spot < 100)) render_test_direction *= -1.0;
+            
         }
         
         //  Show detected levels from the serial I/O ADC channel sensors
@@ -759,7 +778,7 @@ void read_network()
             //
             //  Broadcast packet from another agent 
             //
-            update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
+            //update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
         }
     }
 }
@@ -772,6 +791,7 @@ void idle(void)
     //  Check and render display frame 
     if (diffclock(last_frame,check) > RENDER_FRAME_MSECS) 
     {
+        steps_per_frame++;
         //  Simulation
         update_pos(1.f/FPS); 
         if (simulate_on) {
