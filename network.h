@@ -22,7 +22,7 @@ const int UDP_PORT = 30001;
 const char DESTINATION_IP[] = "127.0.0.1";
 
 //  Address and port of spaceserver process to advertise other agents 
-const char SPACESERVER_IP[] = "192.168.1.16";
+const char SPACESERVER_IP[] = "127.0.0.1";
 const int SPACESERVER_PORT = 40000;
 
 //  Randomly send a ping packet every N packets sent

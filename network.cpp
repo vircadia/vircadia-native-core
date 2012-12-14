@@ -120,6 +120,8 @@ int network_receive(int handle, in_addr * from_addr, char * packet_data, int del
 {
     int received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
                                   0, (sockaddr*)&dest_address, &fromLength );
+    from_addr->s_addr = dest_address.sin_addr.s_addr;
+    
     if (!delay) {
         // No delay set, so just return packets immediately!
         return received_bytes;
