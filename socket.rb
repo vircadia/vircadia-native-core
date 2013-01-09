@@ -11,11 +11,9 @@ begin
   # while true loop to keep listening for new packets
   while true do
     data, sender = sock.recvfrom 1024
-    # puts "#{sender[3]} sent #{data} on port #{sender[1]}"
-    puts "Recieved #{data.size} from #{sender[3]}"
-    rand_photo_url = "http://d4gpsb1dbo4rf.cloudfront.net/photo#{rand(11)}.jpg"
-    puts "Sending #{rand_photo_url.size} back"
-    sock.send rand_photo_url, 0, sender[3], sender[1]
+    puts "Recieved #{data.size} bytes from #{sender[3]}"
+    puts "Echoing data back to #{sender[3]}"
+    sock.send data, 0, sender[3], sender[1]
   end  
 
   rescue SystemExit, Interrupt => e
