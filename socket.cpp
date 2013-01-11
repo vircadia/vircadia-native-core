@@ -8,14 +8,13 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/time.h>
-#include <thread>
-
-using namespace std;
 
 const int UDP_PORT = 55443; 
+const int MAX_PACKET_SIZE = 1024;
+const float SAMPLE_RATE = 22050.0;
+const int SAMPLES_PER_PACKET = 512;
 
 sockaddr_in address, dest_address;
-socklen_t destLength = sizeof( dest_address );
 
 double diffclock(timeval clock1,timeval clock2)
 {
@@ -24,7 +23,7 @@ double diffclock(timeval clock1,timeval clock2)
     return diffms;
 }
 
-int network_init()
+int create_socket()
 {
     //  Create socket 
     int handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -33,6 +32,13 @@ int network_init()
         printf( "failed to create socket\n" );
         return false;
     }
+
+    return handle;
+}
+
+int network_init()
+{
+    int handle = create_socket();
     
     //  Bind socket to port 
     address.sin_family = AF_INET;
@@ -42,20 +48,31 @@ int network_init()
     if (bind(handle, (const sockaddr*) &address, sizeof(sockaddr_in)) < 0) {
         printf( "failed to bind socket\n" );
         return false;
-    }
-    
-    //  Set socket as non-blocking
-    int nonBlocking = 1;
-    if (fcntl( handle, F_SETFL, O_NONBLOCK, nonBlocking ) == -1) {
-        printf( "failed to set non-blocking socket\n" );
-        return false;
-    }
-    
-    dest_address.sin_family = AF_INET;
-    dest_address.sin_addr.s_addr = inet_addr(DESTINATION_IP);
-    dest_address.sin_port = htons( (unsigned short) UDP_PORT );
+    }   
         
     return handle;
+}
+
+void send_buffer_thread()
+{
+    // create our send socket
+    int handle = create_socket();
+
+    if (!handle) {
+        std::cout << "Failed to create buffer send socket.\n";
+        return 0;
+    } else {
+        std::cout << "Buffer send socket created.\n";
+    }
+
+    while (1) {
+        // sleep for the length of a packet of audio
+        sleep((SAMPLES_PER_PACKET/SAMPLE_RATE) * pow(10, 6));
+
+        // send out whatever we have in the buffer as mixed audio
+        // to our recent clients
+
+    }
 }
 
 int main(int argc, const char * argv[])
@@ -66,30 +83,32 @@ int main(int argc, const char * argv[])
     int handle = network_init();
     
     if (!handle) {
-        cout << "Failed to create network.\n";
+        std::cout << "Failed to create listening socket.\n";
         return 0;
     } else {
-        cout << "Network Started.  Waiting for packets.\n";
+        std::cout << "Network Started.  Waiting for packets.\n";
     }
 
     gettimeofday(&last_time, NULL);
     
     while (1) {
         received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
-                                      0, (sockaddr*)&dest_address, &destLength );
+                                      0, (sockaddr*)&dest_address, sizeof(dest_address));
         if (received_bytes > 0) {
-            //std::cout << "Packet from: " << inet_ntoa(dest_address.sin_addr) 
-            //<< " " << packet_data << "\n";
+            // std::cout << "Packet from: " << inet_ntoa(dest_address.sin_addr) 
+            // << " " << packet_data << "\n";
             float x,y,z;
             sscanf(packet_data, "%f,%f,%f", &x, &y, &z);
             if (addAgent(dest_address.sin_addr.s_addr, x, y, z)) {
-                cout << "Added agent from IP: " << 
+                std::cout << "Added agent from IP: " << 
                 inet_ntoa(dest_address.sin_addr) << "\n";
             }
             //  Reply with packet listing nearby active agents
             send_agent_list(handle, &dest_address);
         }
+        
         gettimeofday(&time, NULL);
+        
         if (diffclock(last_time, time) > LOGOFF_CHECK_INTERVAL) {
             gettimeofday(&last_time, NULL);
             update_agent_list(last_time);
@@ -97,6 +116,7 @@ int main(int argc, const char * argv[])
             
         usleep(10000);
     }
+
     return 0;
 }
 
