@@ -19,7 +19,7 @@ const int SAMPLES_PER_PACKET = 512;
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
 
-char packet_data[MAX_PACKET_SIZE];
+char* packet_buffer;
 
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof(dest_address);
@@ -132,7 +132,7 @@ void *send_buffer_thread(void *args)
             if (agents[i].active) {
                 
                 sockaddr_in dest_address = agents[i].agent_addr;
-                sent_bytes = sendto(handle, packet_data, MAX_PACKET_SIZE,
+                sent_bytes = sendto(handle, packet_buffer, MAX_PACKET_SIZE,
                                 0, (sockaddr *) &dest_address, sizeof(dest_address));
                 
                 if (sent_bytes < MAX_PACKET_SIZE) {
@@ -144,7 +144,7 @@ void *send_buffer_thread(void *args)
 }
 
 struct process_arg_struct {
-    char packet_data[MAX_PACKET_SIZE];
+    char *packet_data;
     sockaddr_in dest_address;
 };
 
@@ -153,7 +153,7 @@ void *process_client_packet(void *args)
     struct process_arg_struct *process_args = (struct process_arg_struct *) args;
     
     sockaddr_in dest_address = process_args->dest_address;
-    strcpy(packet_data, process_args->packet_data);
+    packet_buffer = process_args->packet_data;
 
     if (addAgent(dest_address)) {
         std::cout << "Added agent: " << 
@@ -195,16 +195,16 @@ int main(int argc, const char * argv[])
 
     while (1) {
         received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
-                                      0, (sockaddr*)&dest_address, &destLength);
-        
+                                      0, (sockaddr*)&dest_address, &destLength);    
+
         if (received_bytes > 0) {
             struct process_arg_struct args;
-            strcpy(args.packet_data, packet_data);
+            args.packet_data = packet_data;
             args.dest_address = dest_address;
 
             pthread_t client_process_thread;
             pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
-            pthread_join(client_process_thread, NULL);
+            pthread_join(client_process_thread, NULL);       
         }
 
         gettimeofday(&now, NULL);
@@ -215,7 +215,7 @@ int main(int argc, const char * argv[])
         } 
     }
 
-    pthread_join(buffer_send_thread, NULL);
+    // pthread_join(buffer_send_thread, NULL);
 
     return 0;
 }
