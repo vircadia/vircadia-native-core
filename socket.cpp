@@ -11,10 +11,25 @@
 
 const int UDP_PORT = 55443; 
 const int MAX_PACKET_SIZE = 1024;
+
 const float SAMPLE_RATE = 22050.0;
 const int SAMPLES_PER_PACKET = 512;
 
+const int MAX_AGENTS = 1000;
+const int LOGOFF_CHECK_INTERVAL = 1000;
+
 sockaddr_in address, dest_address;
+socklen_t destLength = sizeof(dest_address);
+
+struct AgentList {
+    uint32_t ip;
+    in_addr sin_addr;
+    unsigned short port;
+    bool active;
+    timeval time;
+} agents[MAX_AGENTS];
+
+int num_agents = 0;
 
 double diffclock(timeval clock1,timeval clock2)
 {
@@ -53,6 +68,42 @@ int network_init()
     return handle;
 }
 
+int addAgent(uint32_t ip, unsigned short port) {
+    //  Search for agent in list and add if needed 
+    int i = 0;
+    int is_new = 0; 
+    
+    while ((ip != agents[i].ip) && (i < num_agents))  {
+        i++; 
+    }
+    
+    if ((i == num_agents) || (agents[i].active == false)) is_new = 1;
+    
+    agents[i].ip = ip; 
+    agents[i].port = port; 
+    agents[i].active = true;
+    agents[i].sin_addr.s_addr = ip;
+    gettimeofday(&agents[i].time, NULL);
+    
+    if (i == num_agents) {
+        num_agents++;
+    }
+
+    return is_new;
+}
+
+void update_agent_list(timeval now) {
+    int i;
+    // std::cout << "Checking agent list" << "\n";
+    for (i = 0; i < num_agents; i++) {
+        if ((diffclock(agents[i].time, now) > LOGOFF_CHECK_INTERVAL) &&
+            agents[i].active) {
+            std::cout << "Expired Agent #" << i << "\n";
+            agents[i].active = false; 
+        }
+    }
+}
+
 void send_buffer_thread()
 {
     // create our send socket
@@ -60,7 +111,7 @@ void send_buffer_thread()
 
     if (!handle) {
         std::cout << "Failed to create buffer send socket.\n";
-        return 0;
+        // return 0;
     } else {
         std::cout << "Buffer send socket created.\n";
     }
@@ -90,31 +141,29 @@ int main(int argc, const char * argv[])
     }
 
     gettimeofday(&last_time, NULL);
+
+    char packet_data[MAX_PACKET_SIZE];
     
     while (1) {
         received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
-                                      0, (sockaddr*)&dest_address, sizeof(dest_address));
+                                      0, (sockaddr*)&dest_address, &destLength);
         if (received_bytes > 0) {
             // std::cout << "Packet from: " << inet_ntoa(dest_address.sin_addr) 
             // << " " << packet_data << "\n";
-            float x,y,z;
-            sscanf(packet_data, "%f,%f,%f", &x, &y, &z);
-            if (addAgent(dest_address.sin_addr.s_addr, x, y, z)) {
-                std::cout << "Added agent from IP: " << 
-                inet_ntoa(dest_address.sin_addr) << "\n";
+            
+            if (addAgent(dest_address.sin_addr.s_addr, dest_address.sin_port)) {
+                std::cout << "Added agent: " << 
+                inet_ntoa(dest_address.sin_addr) << " on " <<
+                dest_address.sin_port << "\n";
             }
-            //  Reply with packet listing nearby active agents
-            send_agent_list(handle, &dest_address);
         }
-        
+
         gettimeofday(&time, NULL);
         
         if (diffclock(last_time, time) > LOGOFF_CHECK_INTERVAL) {
             gettimeofday(&last_time, NULL);
             update_agent_list(last_time);
         }
-            
-        usleep(10000);
     }
 
     return 0;
