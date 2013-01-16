@@ -1,1 +1,2 @@
-*.out
+socket
+sftp-config.json
