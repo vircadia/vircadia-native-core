@@ -19,6 +19,8 @@ const int SAMPLES_PER_PACKET = 512;
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
 
+const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
+
 char* packet_buffer;
 
 sockaddr_in address, dest_address;
@@ -45,7 +47,7 @@ int create_socket()
     int handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     
     if (handle <= 0) {
-        printf( "failed to create socket\n" );
+        printf("Failed to create socket: %d\n", handle);
         return false;
     }
 
@@ -75,7 +77,8 @@ int addAgent(sockaddr_in dest_address) {
     int i = 0;
 
     for (i = 0; i < num_agents; i++) {
-        if (dest_address.sin_addr.s_addr == agents[i].agent_addr.sin_addr.s_addr) {
+        if (dest_address.sin_addr.s_addr == agents[i].agent_addr.sin_addr.s_addr
+            && dest_address.sin_port == agents[i].agent_addr.sin_port) {
             break;
         }        
     }
@@ -107,40 +110,46 @@ void update_agent_list(timeval now) {
     }
 }
 
+struct send_buffer_struct {
+    int socket_handle;
+};
+
 void *send_buffer_thread(void *args)
 {
-    // create our send socket
-    int handle = create_socket();
-
-    if (!handle) {
-        std::cout << "Failed to create buffer send socket.\n";
-        // return 0;
-    } else {
-        std::cout << "Buffer send socket created.\n";
-    }
+    struct send_buffer_struct *buffer_args = (struct send_buffer_struct *) args;
+    int handle = buffer_args->socket_handle;
 
     int sent_bytes;
+    timeval last_send, now;
 
-    while (1) {
-        // sleep for the length of a packet of audio
-        usleep((SAMPLES_PER_PACKET/SAMPLE_RATE) * pow(10, 6));
+    gettimeofday(&last_send, NULL);
+    gettimeofday(&now, NULL);
 
+    while (true) {
+        while (diffclock(last_send, now) < BUFFER_SEND_INTERVAL) {
+            // loop here until we're allowed to send the buffer
+            gettimeofday(&now, NULL);
+        }
+        
         // send out whatever we have in the buffer as mixed audio
         // to our recent clients
-
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
-                
                 sockaddr_in dest_address = agents[i].agent_addr;
+                
                 sent_bytes = sendto(handle, packet_buffer, MAX_PACKET_SIZE,
-                                0, (sockaddr *) &dest_address, sizeof(dest_address));
+                                0, (sockaddr *) &dest_address, sizeof(sockaddr_in));
                 
                 if (sent_bytes < MAX_PACKET_SIZE) {
                     std::cout << "Error sending mix packet!\n";
                 }
             }
         }
-    }
+
+        gettimeofday(&last_send, NULL);
+    }  
+
+    pthread_exit(0);  
 }
 
 struct process_arg_struct {
@@ -162,6 +171,13 @@ void *process_client_packet(void *args)
     }    
 
     pthread_exit(0);
+}
+
+bool different_clients(sockaddr_in addr1, sockaddr_in addr2) 
+{
+    return addr1.sin_addr.s_addr != addr2.sin_addr.s_addr ||
+            (addr1.sin_addr.s_addr == addr2.sin_addr.s_addr &&
+            addr1.sin_port != addr2.sin_port);
 }
 
 int main(int argc, const char * argv[])
@@ -190,8 +206,11 @@ int main(int argc, const char * argv[])
 
     char packet_data[MAX_PACKET_SIZE];
 
+    struct send_buffer_struct send_buffer_args;
+    send_buffer_args.socket_handle = handle;
+
     pthread_t buffer_send_thread;
-    pthread_create(&buffer_send_thread, NULL, send_buffer_thread, NULL);
+    pthread_create(&buffer_send_thread, NULL, send_buffer_thread, (void *)&send_buffer_args);
 
     while (1) {
         received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
@@ -204,7 +223,13 @@ int main(int argc, const char * argv[])
 
             pthread_t client_process_thread;
             pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
-            pthread_join(client_process_thread, NULL);       
+            pthread_join(client_process_thread, NULL); 
+
+            if (addAgent(dest_address)) {
+                std::cout << "Added agent: " << 
+                    inet_ntoa(dest_address.sin_addr) << " on " <<
+                    dest_address.sin_port << "\n";
+            } 
         }
 
         gettimeofday(&now, NULL);
@@ -215,8 +240,8 @@ int main(int argc, const char * argv[])
         } 
     }
 
-    // pthread_join(buffer_send_thread, NULL);
-
+    pthread_join(buffer_send_thread, NULL);
+    
     return 0;
 }
 
