@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <errno.h>
 
 const int UDP_PORT = 55443; 
 const int MAX_PACKET_SIZE = 1024;
@@ -21,7 +22,7 @@ const int LOGOFF_CHECK_INTERVAL = 1000;
 
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
 
-char* packet_buffer;
+int16_t* packet_buffer;
 
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof(dest_address);
@@ -141,11 +142,12 @@ void *send_buffer_thread(void *args)
                                 0, (sockaddr *) &dest_address, sizeof(sockaddr_in));
                 
                 if (sent_bytes < MAX_PACKET_SIZE) {
-                    std::cout << "Error sending mix packet!\n";
+                    std::cout << "Error sending mix packet! " << sent_bytes << strerror(errno) << "\n";
                 }
             }
         }
 
+        packet_buffer = NULL;
         gettimeofday(&last_send, NULL);
     }  
 
@@ -153,7 +155,7 @@ void *send_buffer_thread(void *args)
 }
 
 struct process_arg_struct {
-    char *packet_data;
+    int16_t *packet_data;
     sockaddr_in dest_address;
 };
 
@@ -162,7 +164,14 @@ void *process_client_packet(void *args)
     struct process_arg_struct *process_args = (struct process_arg_struct *) args;
     
     sockaddr_in dest_address = process_args->dest_address;
-    packet_buffer = process_args->packet_data;
+    
+    if (packet_buffer == NULL) {
+        packet_buffer = process_args->packet_data;
+    } else {
+        for (int i = 0; i < MAX_PACKET_SIZE; i++) {
+            packet_buffer[i] = (process_args->packet_data[i] + packet_buffer[i]) / 2;
+        }
+    }
 
     if (addAgent(dest_address)) {
         std::cout << "Added agent: " << 
@@ -184,6 +193,8 @@ int main(int argc, const char * argv[])
 {
     timeval now, last_agent_update;
     int received_bytes = 0;
+
+    packet_buffer = NULL;
     
     int handle = network_init();
     
@@ -204,7 +215,7 @@ int main(int argc, const char * argv[])
 
     gettimeofday(&last_agent_update, NULL);
 
-    char packet_data[MAX_PACKET_SIZE];
+    int16_t packet_data[MAX_PACKET_SIZE];
 
     struct send_buffer_struct send_buffer_args;
     send_buffer_args.socket_handle = handle;
@@ -213,7 +224,7 @@ int main(int argc, const char * argv[])
     pthread_create(&buffer_send_thread, NULL, send_buffer_thread, (void *)&send_buffer_args);
 
     while (1) {
-        received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
+        received_bytes = recvfrom(handle, (int16_t*)packet_data, MAX_PACKET_SIZE,
                                       0, (sockaddr*)&dest_address, &destLength);    
 
         if (received_bytes > 0) {
@@ -224,12 +235,6 @@ int main(int argc, const char * argv[])
             pthread_t client_process_thread;
             pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
             pthread_join(client_process_thread, NULL); 
-
-            if (addAgent(dest_address)) {
-                std::cout << "Added agent: " << 
-                    inet_ntoa(dest_address.sin_addr) << " on " <<
-                    dest_address.sin_port << "\n";
-            } 
         }
 
         gettimeofday(&now, NULL);
