@@ -22,6 +22,8 @@ const int LOGOFF_CHECK_INTERVAL = 1000;
 
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
 
+pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int16_t* packet_buffer;
 
 sockaddr_in address, dest_address;
@@ -134,12 +136,19 @@ void *send_buffer_thread(void *args)
         
         // send out whatever we have in the buffer as mixed audio
         // to our recent clients
+
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
                 sockaddr_in dest_address = agents[i].agent_addr;
                 
-                sent_bytes = sendto(handle, packet_buffer, MAX_PACKET_SIZE,
-                                0, (sockaddr *) &dest_address, sizeof(sockaddr_in));
+                pthread_mutex_lock(&buffer_mutex);
+                
+                if (packet_buffer != NULL) {
+                    sent_bytes = sendto(handle, packet_buffer, MAX_PACKET_SIZE,
+                                0, (sockaddr *) &dest_address, sizeof(dest_address));
+                }
+                
+                pthread_mutex_unlock(&buffer_mutex);
                 
                 if (sent_bytes < MAX_PACKET_SIZE) {
                     std::cout << "Error sending mix packet! " << sent_bytes << strerror(errno) << "\n";
@@ -165,6 +174,8 @@ void *process_client_packet(void *args)
     
     sockaddr_in dest_address = process_args->dest_address;
     
+    pthread_mutex_lock(&buffer_mutex);
+    
     if (packet_buffer == NULL) {
         packet_buffer = process_args->packet_data;
     } else {
@@ -172,6 +183,8 @@ void *process_client_packet(void *args)
             packet_buffer[i] = (process_args->packet_data[i] + packet_buffer[i]) / 2;
         }
     }
+
+    pthread_mutex_unlock(&buffer_mutex);
 
     if (addAgent(dest_address)) {
         std::cout << "Added agent: " << 
