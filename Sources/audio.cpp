@@ -1,10 +1,10 @@
-    //
-    //  audio.cpp
-    //  interface
-    //
-    //  Created by Seiji Emery on 9/2/12.
-    //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-    //
+//
+//  audio.cpp
+//  interface
+//
+//  Created by Seiji Emery on 9/2/12.
+//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//
     
 /**
  * @file audio.cpp
@@ -19,13 +19,14 @@
 #include <cstring>
 #include "audio.h"
 
-    // static member definitions 
-    // (required – will cause linker errors if left out...):
+// static member definitions 
+// (required – will cause linker errors if left out...):
 bool Audio::initialized;
 Audio::AudioData *Audio::data;
 PaStream *Audio::stream;
 PaError Audio::err;
 float Audio::AudioData::inputGain;
+
 /**
  * Audio callback used by portaudio.
  * Communicates with Audio via a shared pointer to Audio::data.
