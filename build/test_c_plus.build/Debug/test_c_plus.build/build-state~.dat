@@ -1,61 +1,0 @@
-Ttest_c_plus
-v7
-r0
-t322977813.959900
-cCheck dependencies
-cCompileC build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-cLd /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus normal x86_64
-
-N/Developer/SDKs/MacOSX10.6.sdk
-c000000004CAA740B00000000000000EE
-t1286239243
-s238
-
-N/Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus
-t1301285013
-s12136
-
-N/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o
-t1301285013
-s79904
-
-N/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/test_c_plus.LinkFileList
-c000000004D900895000000000000006F
-t1301285013
-s111
-
-N/Users/philip/Desktop/test_c_plus/main.cpp
-c000000004D9008950000000000000171
-t1301285013
-s369
-i<iostream>
-i<fstream>
-i<string>
-
-CCheck dependencies
-r0
-lSLF07#2@18"Check dependencies322977813#322977813#0(0"0(0#1#0"8610065952#0"0#
-
-CCompileC build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-s322977813.376290
-e322977813.908442
-r1
-xCompileC
-xbuild/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o
-x/Users/philip/Desktop/test_c_plus/main.cpp
-xnormal
-xx86_64
-xc++
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp322977813#322977813#0(0"0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8607560032#1308"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch x86_64 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -O0 -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -mfix-and-continue -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/test_c_plus-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Debug -I/Users/philip/Desktop/test_c_plus/build/Debug/include -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/DerivedSources/x86_64 -I/Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/main.o0#
-
-CLd /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus normal x86_64
-s322977813.908531
-e322977813.959854
-r1
-xLd
-x/Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus
-xnormal
-xx86_64
-lSLF07#2@62"Link /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus322977813#322977813#0(0"0(0#0#0"8610317632#489"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch x86_64 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Debug -F/Users/philip/Desktop/test_c_plus/build/Debug -filelist /Users/philip/Desktop/test_c_plus/build/test_c_plus.build/Debug/test_c_plus.build/Objects-normal/x86_64/test_c_plus.LinkFileList -mmacosx-version-min=10.6 -o /Users/philip/Desktop/test_c_plus/build/Debug/test_c_plus0#
-

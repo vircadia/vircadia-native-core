@@ -1,223 +1,0 @@
-Tautomata7
-v7
-r0
-t348474253.522900
-cCheck dependencies
-cCompileC build/automata7.build/Release/automata7.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-cCompileC build/automata7.build/Release/automata7.build/Objects-normal/i386/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal i386 c++ com.apple.compilers.gcc.4_2
-cLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7 normal i386
-cLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7 normal x86_64
-cCompileC build/automata7.build/Release/automata7.build/Objects-normal/ppc/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal ppc c++ com.apple.compilers.gcc.4_2
-cLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7 normal ppc
-cCreateUniversalBinary /Users/philip/Desktop/automata/Automata7/build/Release/automata7 normal "x86_64 i386 ppc"
-cGenerateDSYMFile /Users/philip/Desktop/automata/Automata7/build/Release/automata7.dSYM /Users/philip/Desktop/automata/Automata7/build/Release/automata7
-
-N/Developer/SDKs/MacOSX10.6.sdk
-c000000004CAA740B00000000000000EE
-t1286239243
-s238
-
-N/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h
-c000000004C23CCCC000000000000578C
-t1277414604
-s22412
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/math.h
-c000000004A5C14A000000000000004F1
-t1247548576
-s1265
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdio.h
-c000000004BBD2CE90000000000004174
-t1270689001
-s16756
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdlib.h
-c000000004BBD2CE90000000000002DF5
-t1270689001
-s11765
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/string.h
-c000000004BBD2CE90000000000001731
-t1270689001
-s5937
-
-N/System/Library/Frameworks/GLUT.framework/GLUT
-c000000004B5FAB1A00000000001A2920
-t1264560922
-s1714464
-
-N/System/Library/Frameworks/OpenGL.framework/OpenGL
-c000000004E288FAA0000000000043360
-t1311281066
-s275296
-
-N/Users/philip/Desktop/automata/Automata7/build/Release/automata7
-t1326781453
-s71276
-
-N/Users/philip/Desktop/automata/Automata7/build/Release/automata7.dSYM
-t1326781453
-s102
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7
-t1326781452
-s19604
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7.LinkFileList
-c000000004F15140A0000000000000072
-t1326781450
-s114
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/main.o
-t1326781451
-s100196
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7
-t1326781453
-s22124
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7.LinkFileList
-c000000004F15140A0000000000000071
-t1326781450
-s113
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/main.o
-t1326781453
-s105492
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7
-t1326781452
-s24544
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7.LinkFileList
-c000000004F15140A0000000000000074
-t1326781450
-s116
-
-N/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/main.o
-t1326781451
-s105148
-
-N/Users/philip/Desktop/automata/Automata7/main.cpp
-c000000004DD70D4F0000000000003603
-t1305939279
-s13827
-i<iostream>
-i<fstream>
-i<string>
-i<stdlib.h>
-i<GLUT/glut.h>
-i<iostream>
-i<fstream>
-i<math.h>
-i<string.h>
-i<stdio.h>
-
-CCheck dependencies
-r0
-lSLF07#2@18"Check dependencies348474250#348474250#0(0"0(0#1#0"3343187568374212096#0"0#
-
-CCompileC build/automata7.build/Release/automata7.build/Objects-normal/i386/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal i386 c++ com.apple.compilers.gcc.4_2
-s348474250.746387
-e348474251.635211
-r1
-xCompileC
-xbuild/automata7.build/Release/automata7.build/Objects-normal/i386/main.o
-x/Users/philip/Desktop/automata/Automata7/main.cpp
-xnormal
-xi386
-xc++
-xcom.apple.compilers.gcc.4_2
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'
-lSLF07#2@57"Compile /Users/philip/Desktop/automata/Automata7/main.cpp348474250#348474251#0(525"/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'348474251#87#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#404#0#404#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474251#289#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#415#0#415#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474251#407#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#417#0#417#0#49"deprecated conversion from string constant to '*'0(0#0#49"/Users/philip/Desktop/automata/Automata7/main.cpp8606306976#1379"    cd /Users/philip/Desktop/automata/Automata7    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch i386 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-generated-files.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-own-target-headers.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-all-target-headers.hmap -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-project-headers.hmap -F/Users/philip/Desktop/automata/Automata7/build/Release -I/Users/philip/Desktop/automata/Automata7/build/Release/include -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources/i386 -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources -c /Users/philip/Desktop/automata/Automata7/main.cpp -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/main.o0#
-
-CCompileC build/automata7.build/Release/automata7.build/Objects-normal/ppc/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal ppc c++ com.apple.compilers.gcc.4_2
-s348474252.108240
-e348474253.234601
-r1
-xCompileC
-xbuild/automata7.build/Release/automata7.build/Objects-normal/ppc/main.o
-x/Users/philip/Desktop/automata/Automata7/main.cpp
-xnormal
-xppc
-xc++
-xcom.apple.compilers.gcc.4_2
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'
-lSLF07#2@57"Compile /Users/philip/Desktop/automata/Automata7/main.cpp348474252#348474253#0(525"/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'348474252#87#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#404#0#404#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474252#289#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#415#0#415#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474252#407#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#417#0#417#0#49"deprecated conversion from string constant to '*'0(0#0#49"/Users/philip/Desktop/automata/Automata7/main.cpp8603396000#1386"    cd /Users/philip/Desktop/automata/Automata7    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch ppc -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -mtune=G5 -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-generated-files.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-own-target-headers.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-all-target-headers.hmap -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-project-headers.hmap -F/Users/philip/Desktop/automata/Automata7/build/Release -I/Users/philip/Desktop/automata/Automata7/build/Release/include -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources/ppc -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources -c /Users/philip/Desktop/automata/Automata7/main.cpp -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/main.o0#
-
-CCompileC build/automata7.build/Release/automata7.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/automata/Automata7/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-s348474250.704910
-e348474251.647391
-r1
-xCompileC
-xbuild/automata7.build/Release/automata7.build/Objects-normal/x86_64/main.o
-x/Users/philip/Desktop/automata/Automata7/main.cpp
-xnormal
-xx86_64
-xc++
-xcom.apple.compilers.gcc.4_2
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':
-o/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'
-lSLF07#2@57"Compile /Users/philip/Desktop/automata/Automata7/main.cpp348474250#348474251#0(525"/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/automata/Automata7/main.cpp:404: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp: In function 'void display_io()':/Users/philip/Desktop/automata/Automata7/main.cpp:415: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/automata/Automata7/main.cpp:417: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'348474251#87#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#404#0#404#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474251#289#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#415#0#415#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'348474251#407#118#0(6@49"/Users/philip/Desktop/automata/Automata7/main.cpp327632079#417#0#417#0#49"deprecated conversion from string constant to '*'0(0#0#49"/Users/philip/Desktop/automata/Automata7/main.cpp8660259774160596992#1385"    cd /Users/philip/Desktop/automata/Automata7    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch x86_64 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-generated-files.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-own-target-headers.hmap -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-all-target-headers.hmap -iquote /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/automata7-project-headers.hmap -F/Users/philip/Desktop/automata/Automata7/build/Release -I/Users/philip/Desktop/automata/Automata7/build/Release/include -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources/x86_64 -I/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/DerivedSources -c /Users/philip/Desktop/automata/Automata7/main.cpp -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/main.o0#
-
-CCreateUniversalBinary /Users/philip/Desktop/automata/Automata7/build/Release/automata7 normal "x86_64 i386 ppc"
-s348474253.416869
-e348474253.434810
-r1
-xCreateUniversalBinary
-x/Users/philip/Desktop/automata/Automata7/build/Release/automata7
-xnormal
-xx86_64 i386 ppc
-lSLF07#2@70"CreateUniversalBinary build/Release/automata7 normal "x86_64 i386 ppc"348474253#348474253#0(0"0(0#0#56"/Users/philip/Desktop/automata/Automata7/x86_64 i386 ppc8606164768#499"    cd /Users/philip/Desktop/automata/Automata7    /usr/bin/lipo -create /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7 /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7 /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7 -output /Users/philip/Desktop/automata/Automata7/build/Release/automata70#
-
-CGenerateDSYMFile /Users/philip/Desktop/automata/Automata7/build/Release/automata7.dSYM /Users/philip/Desktop/automata/Automata7/build/Release/automata7
-s348474253.434902
-e348474253.522846
-r1
-xGenerateDSYMFile
-x/Users/philip/Desktop/automata/Automata7/build/Release/automata7.dSYM
-x/Users/philip/Desktop/automata/Automata7/build/Release/automata7
-lSLF07#2@69"GenerateDSYMFile build/Release/automata7.dSYM build/Release/automata7348474253#348474253#0(0"0(0#0#64"/Users/philip/Desktop/automata/Automata7/build/Release/automata78605493600#218"    cd /Users/philip/Desktop/automata/Automata7    /Developer/usr/bin/dsymutil /Users/philip/Desktop/automata/Automata7/build/Release/automata7 -o /Users/philip/Desktop/automata/Automata7/build/Release/automata7.dSYM0#
-
-CLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7 normal i386
-s348474251.635300
-e348474252.108148
-r1
-xLd
-x/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7
-xnormal
-xi386
-lSLF07#2@121"Link /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7348474251#348474252#0(0"0(0#0#0"27584887023140964#606"    cd /Users/philip/Desktop/automata/Automata7    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch i386 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/automata/Automata7/build/Release -F/Users/philip/Desktop/automata/Automata7/build/Release -filelist /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata7.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/i386/automata70#
-
-CLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7 normal ppc
-s348474253.234754
-e348474253.416776
-r1
-xLd
-x/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7
-xnormal
-xppc
-lSLF07#2@120"Link /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7348474253#348474253#0(0"0(0#0#0"8605444352#603"    cd /Users/philip/Desktop/automata/Automata7    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch ppc -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/automata/Automata7/build/Release -F/Users/philip/Desktop/automata/Automata7/build/Release -filelist /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata7.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/ppc/automata70#
-
-CLd /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7 normal x86_64
-s348474251.647482
-e348474252.115109
-r1
-xLd
-x/Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7
-xnormal
-xx86_64
-lSLF07#2@123"Link /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7348474251#348474252#0(0"0(0#0#0"8598307424#612"    cd /Users/philip/Desktop/automata/Automata7    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch x86_64 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/automata/Automata7/build/Release -F/Users/philip/Desktop/automata/Automata7/build/Release -filelist /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata7.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/automata/Automata7/build/automata7.build/Release/automata7.build/Objects-normal/x86_64/automata70#
-
