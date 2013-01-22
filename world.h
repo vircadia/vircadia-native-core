@@ -14,7 +14,4 @@
 const float WORLD_SIZE = 10.0;
 #define PI 3.14159265
 
-#define MAX_CUBES 0
-#define SMALLEST_CUBE 0.1
-
 #endif
