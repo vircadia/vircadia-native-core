@@ -16,18 +16,5 @@
          landmarkName = "field_avg_neighbors(int index, glm::vec3 * result)"
          landmarkType = "7">
       </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "util.cpp"
-         timestampString = "375575185.217506"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "28"
-         endingLineNumber = "28"
-         landmarkName = "makeCubes(float location[3], float scale, int * index, float * cubes_position, float * cubes_scale, float * cubes_color)"
-         landmarkType = "7">
-      </FileBreakpoint>
    </FileBreakpoints>
 </Bucket>

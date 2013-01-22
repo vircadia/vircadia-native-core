@@ -59,6 +59,8 @@ public:
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
     void setRoll(float r) {Roll = r; };
+    void setLeanForward(float dist);
+    void setLeanSideways(float dist);
     void addPitch(float p) {Pitch -= p; }
     void addYaw(float y){Yaw -= y; }
     void addRoll(float r){Roll += r; }

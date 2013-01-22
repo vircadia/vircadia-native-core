@@ -19,34 +19,6 @@ float randFloat () {
     return (rand()%10000)/10000.f;
 }
 
-void makeCubes(float location[3], float scale, int * index, 
-               float * cubes_position, float * cubes_scale, float * cubes_color) {
-    int i;
-    float spot[3];
-    //std::cout << "loc: " << location[0] << "," 
-    //<< location[1] << "," << location[2] << "\n";
-    if ((*index >= MAX_CUBES) || (scale < SMALLEST_CUBE)) return;
-    if (scale < 3 && (randFloat() < .1)) {  
-        //  Make a cube
-        for (i = 0; i < 3; i++) cubes_position[*index*3 + i] = location[i]+scale/2.0;
-        float color = randFloat();
-        cubes_scale[*index] = scale;
-        cubes_color[*index*3] = color;
-        cubes_color[*index*3 + 1] = color;
-        cubes_color[*index*3 + 2] = color;
-        *index += 1;
-        //std::cout << "Loc: " << location[0] << "," << location[1] 
-        //<< "," << location[2] << " scale " << scale << "\n";
-    } else {
-        for (i = 0; i < 8; i++) {
-            spot[0] = location[0] + (i%2)*scale/2.0;
-            spot[1] = location[1] + ((i/2)%2)*scale/2.0;
-            spot[2] = location[2] + ((i/4)%2)*scale/2.0;
-            //std::cout << "called with " << spot[0] << "," << spot[1] << "," << spot[2] << "\n";
-            makeCubes(spot, scale/2.0, index, cubes_position, cubes_scale, cubes_color);
-        }
-    }
-}
 
 void render_vector(glm::vec3 * vec)
 {

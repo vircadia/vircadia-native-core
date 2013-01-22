@@ -14,6 +14,8 @@
 //  s = clear cells to zero but preserve synapse weights
 //
 
+//#define MARKER_CAPTURE // yep.
+
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <OpenGL/gl.h>
@@ -28,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 //  These includes are for the serial port reading/writing
 #include <unistd.h>
@@ -35,6 +38,9 @@
 #include <termios.h>
 #include "glm/glm.hpp"
 #include <portaudio.h>
+
+// Bring in OpenCV
+#include <opencv2/opencv.hpp>
 
 #include "SerialInterface.h"
 #include "field.h"
@@ -48,10 +54,15 @@
 #include "texture.h"
 #include "cloud.h"
 #include "agent.h"
+#include "markers.h"
+#include "marker_acquisition_view.h"
+#include "cube.h"
+#include "lattice.h"
+#include "finger.h"
 
 using namespace std;
 
-int audio_on = 0;                   //  Whether to turn on the audio support 
+int audio_on = 0;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 //  Network Socket Stuff
@@ -92,15 +103,15 @@ ParticleSystem balls(0,
                      );
 
 
-Cloud cloud(100000,                             //  Particles
+Cloud cloud(0,                             //  Particles
             box,                                //  Bounding Box
             false                              //  Wrap
             );
 
-float cubes_position[MAX_CUBES*3];
-float cubes_scale[MAX_CUBES];
-float cubes_color[MAX_CUBES*3];
-int cube_count = 0;
+VoxelSystem voxels(0, box);
+
+Lattice lattice(15,10);
+Finger myFinger(WIDTH, HEIGHT);
 
 #define RENDER_FRAME_MSECS 8
 #define SLEEP 0
@@ -108,7 +119,7 @@ int steps_per_frame = 0;
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
-float start_yaw = 90.0;
+float start_yaw = 135.0;
 float render_yaw = start_yaw;
 float render_pitch = 0.f;
 float render_yaw_rate = 0.f;
@@ -116,15 +127,16 @@ float render_pitch_rate = 0.f;
 float lateral_vel = 0.f;
 
 // Manage speed and direction of motion
-GLfloat fwd_vec[] = { 0.0, 0.0, 1.0};
-GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
+GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
+//GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
+GLfloat start_location[] = { 0.1, -0.15, 0.1};
 GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
 
 
 #define MAX_FILE_CHARS 100000		//  Biggest file size that can be read to the system
 
-int stats_on = 1;					//  Whether to show onscreen text overlay with stats
+int stats_on = 0;					//  Whether to show onscreen text overlay with stats
 
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -183,6 +195,21 @@ float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
 
 
+#ifdef MARKER_CAPTURE
+
+    /***  Marker Capture ***/
+    #define MARKER_CAPTURE_INTERVAL 1
+    MarkerCapture marker_capturer(CV_CAP_ANY); // Create a new marker capturer, attached to any valid camera.
+    MarkerAcquisitionView marker_acq_view(&marker_capturer);
+    bool marker_capture_enabled = true;
+    bool marker_capture_display = true;
+    IplImage* marker_capture_frame;
+    IplImage* marker_capture_blob_frame;
+    pthread_mutex_t frame_lock;
+
+#endif
+
+
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
@@ -218,20 +245,49 @@ void display_stats(void)
                 sensor_samples, sensor_LED);
         drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
     }
+#ifdef MARKER_CAPTURE
+    if(marker_capture_enabled){
+        char marker_stats[200];
+        sprintf(marker_stats, "> Marker capture: FPS = %3.0f", marker_capturer.fps);
+        drawtext(10, 45, 0.10, 0, 1.0, 0, marker_stats);
+    }
+#endif
     
-    /*
+    
     char adc[200];
-	sprintf(adc, "pitch_rate = %i, yaw_rate = %i, accel_lat = %i, accel_fwd = %i, loc[0] = %3.1f loc[1] = %3.1f, loc[2] = %3.1f", 
-            (int)(adc_channels[0] - avg_adc_channels[0]),
-            (int)(adc_channels[1] - avg_adc_channels[1]),
-            (int)(adc_channels[2] - avg_adc_channels[2]),
-            (int)(adc_channels[3] - avg_adc_channels[3]),
+	sprintf(adc, "location = %3.1f,%3.1f,%3.1f", 
             location[0], location[1], location[2] 
             );
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
-     */
+     
 	
 }
+
+void position_updated(MarkerCapture* inst, MarkerPositionEstimate position){
+    printf("<Marker(%dx%d, %dx%d) distance:%f angle:%f>\n",
+           position.blob0_center.x, position.blob0_center.y,
+           position.blob1_center.x, position.blob0_center.y,
+           position.distance,
+           position.angle);
+    myHead.setRoll(position.angle);
+}
+
+#ifdef MARKER_CAPTURE
+void marker_frame_available(MarkerCapture* inst, IplImage* image, IplImage* thresh_image){
+    if(marker_capture_display){
+        pthread_mutex_lock(&frame_lock);
+        if(marker_capture_frame){
+            cvReleaseImage(&marker_capture_frame);
+        }
+        if(marker_capture_blob_frame){
+            cvReleaseImage(&marker_capture_blob_frame);
+        }
+        marker_capture_frame = cvCloneImage(image);
+        marker_capture_blob_frame = cvCloneImage(thresh_image);
+        pthread_mutex_unlock(&frame_lock);
+    }
+}
+#endif
 
 void initDisplay(void)
 {
@@ -245,6 +301,7 @@ void initDisplay(void)
     glEnable(GL_DEPTH_TEST);
     
     load_png_as_texture(texture_filename);
+
     if (fullscreen) glutFullScreen();
 }
 
@@ -279,40 +336,6 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    // turning cubes off for the moment -
-    // uncomment to re-enable
-    /*
-
-    int index = 0;
-    while (index < MAX_CUBES) {
-        cubes_position[index*3] = randFloat()*WORLD_SIZE;
-        cubes_position[index*3+1] = randFloat()*WORLD_SIZE;
-        cubes_position[index*3+2] = randFloat()*WORLD_SIZE;
-        cubes_scale[index] = WORLD_SIZE/powf(2,2+rand()%8);
-        float color = randFloat(); 
-        cubes_color[index*3] = color;
-        cubes_color[index*3 + 1] = color;
-        cubes_color[index*3 + 2] = color;
-        index++;
-    }
-    cube_count = index; 
-    
-    //  Recursive build
-    
-    float location[] = {0,0,0};
-    float scale = 10.0;
-    int j = 0;
-
-    while (index < (MAX_CUBES/2)) {
-    
-        index = 0;
-        j++;
-        makeCubes(location, scale, &index, cubes_position, cubes_scale, cubes_color);
-        std::cout << "Run " << j << " Made " << index << " cubes\n";
-        cube_count = index;
-    }
-    */
-    
     if (serial_on)
     {
         //  Call readsensors for a while to get stable initial values on sensors    
@@ -334,6 +357,19 @@ void init(void)
         printf( "Done.\n" );
 
     }
+    
+#ifdef MARKER_CAPTURE
+    if(marker_capture_enabled){
+        marker_capturer.position_updated(&position_updated);
+        marker_capturer.frame_updated(&marker_frame_available);
+        if(!marker_capturer.init_capture()){
+            printf("Camera-based marker capture initialized.\n");
+        }else{
+            printf("Error initializing camera-based marker capture.\n");
+        }
+    }
+#endif
+    
     
     gettimeofday(&timer_start, NULL);
     gettimeofday(&last_frame, NULL);
@@ -528,27 +564,16 @@ void display(void)
         glRotatef(render_pitch, 1, 0, 0);
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
-            
-        glPushMatrix();
-        //glTranslatef(-WORLD_SIZE/2, -WORLD_SIZE/2, -WORLD_SIZE/2);
-        int i = 0;
-        while (i < cube_count) {
-            glPushMatrix();
-            glTranslatef(cubes_position[i*3], cubes_position[i*3+1], cubes_position[i*3+2]);
-            glColor3fv(&cubes_color[i*3]);
-            glutSolidCube(cubes_scale[i]);
-            glPopMatrix();
-            i++;
-        }
-        glPopMatrix();
     
-    
-        /* Draw Point Sprites */
-    
+        //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
         if (!display_head) cloud.render();
-        //  Show field vectors
+    
+        //  Draw voxels
+        voxels.render();
+    
+        //  Draw field vectors
         if (display_field) field_render();
         
         //  Render my own head 
@@ -576,7 +601,6 @@ void display(void)
 
     glPopMatrix();
 
-    
     //  Render 2D overlay:  I/O level bar graphs and text  
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -585,8 +609,11 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
+        lattice.render(WIDTH, HEIGHT);
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
+
+        myFinger.render();
 
         if (mouse_pressed == 1)
         {
@@ -609,7 +636,8 @@ void display(void)
             glVertex2f(head_mouse_x, head_mouse_y);
             glEnd();
         }
-        if (1)
+        //  Spot bouncing back and forth on bottom of screen
+        if (0)
         {
             glPointSize(50.0f);
             glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -669,7 +697,22 @@ void display(void)
             }
         }
 
-        if (stats_on) display_stats(); 
+        if (stats_on) display_stats();
+
+#ifdef MARKER_CAPTURE
+        /* Render marker acquisition stuff */
+        pthread_mutex_lock(&frame_lock);
+        if(marker_capture_frame){
+            marker_acq_view.render(marker_capture_frame); // render the acquisition view, if it's visible.
+        }
+        // Draw marker images, if requested.
+        if (marker_capture_enabled && marker_capture_display && marker_capture_frame){
+            marker_capturer.glDrawIplImage(marker_capture_frame, WIDTH - 140, 10, 0.1, -0.1);
+            marker_capturer.glDrawIplImage(marker_capture_blob_frame, WIDTH - 280, 10, 0.1, -0.1);
+        }
+        pthread_mutex_unlock(&frame_lock);
+        /* Done rendering marker acquisition stuff */
+#endif
     
     glPopMatrix();
     
@@ -692,9 +735,27 @@ void specialkey(int k, int x, int y)
 }
 void key(unsigned char k, int x, int y)
 {
+    
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-	if (k == '/')  stats_on = !stats_on;		// toggle stats
+    
+    // marker capture
+#ifdef MARKER_CAPTURE
+    if(k == 'x'){
+        printf("Toggling marker capture display.\n");
+        marker_capture_display = !marker_capture_display;
+        marker_capture_display ? marker_acq_view.show() : marker_acq_view.hide();
+    }
+	
+    // delegate keypresses to the marker acquisition view when it's visible;
+    // override other key mappings by returning...
+    if(marker_acq_view.visible){
+        marker_acq_view.handle_key(k);
+        return;
+    }
+#endif
+    
+    if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
@@ -761,7 +822,7 @@ void read_network()
             //
             sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
             target_display = 1;
-            printf("X = %d Y = %d\n", target_x, target_y);
+            //printf("X = %d Y = %d\n", target_x, target_y);
         } else if (incoming_packet[0] == 'P') {
             // 
             //  Ping packet - check time and record
@@ -789,17 +850,19 @@ void idle(void)
     gettimeofday(&check, NULL);
     
     //  Check and render display frame 
-    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS) 
+    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS)
     {
         steps_per_frame++;
         //  Simulation
-        update_pos(1.f/FPS); 
+        update_pos(1.f/FPS);
         if (simulate_on) {
             field_simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
             myHand.simulate(1.f/FPS);
             balls.simulate(1.f/FPS);
             cloud.simulate(1.f/FPS);
+            lattice.simulate(1.f/FPS);
+            myFinger.simulate(1.f/FPS);
         }
 
         if (!step_on) glutPostRedisplay();
@@ -851,6 +914,7 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_x = x;
 		mouse_y = y;
 		mouse_pressed = 1;
+        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {
@@ -872,8 +936,30 @@ void motionFunc( int x, int y)
         sprintf(mouse_string, "M %d %d\n", mouse_x, mouse_y);
         network_send(UDP_socket, mouse_string, strlen(mouse_string));
     }
+    
+    lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
 	
 }
+
+void mouseoverFunc( int x, int y)
+{
+	mouse_x = x;
+	mouse_y = y;
+    if (mouse_pressed == 0)
+    {
+        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+        myFinger.setTarget(mouse_x, mouse_y);
+    }
+}
+
+
+#ifdef MARKER_CAPTURE
+void *poll_marker_capture(void *threadarg){
+    while(1){
+        marker_capturer.tick();
+    }
+}
+#endif
 
 int main(int argc, char** argv)
 {
@@ -921,6 +1007,7 @@ int main(int argc, char** argv)
 	glutKeyboardFunc(key);
     glutSpecialFunc(specialkey);
 	glutMotionFunc(motionFunc);
+    glutPassiveMotionFunc(mouseoverFunc);
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
 	
@@ -930,12 +1017,31 @@ int main(int argc, char** argv)
     
     printf( "Init() complete.\n" );
     
-    glutTimerFunc(1000,Timer,0);
+    glutTimerFunc(1000, Timer, 0);
+    
+#ifdef MARKER_CAPTURE
+    
+    if (marker_capture_enabled) {
+        // start capture thread
+        if (pthread_mutex_init(&frame_lock, NULL) != 0){
+            printf("Frame lock mutext init failed. Exiting.\n");
+            return 1;
+        }
+        pthread_t capture_thread;
+        pthread_create(&capture_thread, NULL, poll_marker_capture, NULL);
+    }
+#endif
     
     glutMainLoop();
     
-    ::terminate();
+#ifdef MARKER_CAPTURE
+    if (marker_capture_enabled) {
+        pthread_mutex_destroy(&frame_lock);
+        pthread_exit(NULL);
+    }
+#endif
     
+    ::terminate();
     return EXIT_SUCCESS;
 }   
 
