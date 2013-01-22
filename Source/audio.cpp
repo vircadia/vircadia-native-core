@@ -1,10 +1,10 @@
-    //
-    //  audio.cpp
-    //  interface
-    //
-    //  Created by Seiji Emery on 9/2/12.
-    //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-    //
+//
+//  audio.cpp
+//  interface
+//
+//  Created by Seiji Emery on 9/2/12.
+//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//
     
 /**
  * @file audio.cpp
@@ -19,13 +19,14 @@
 #include <cstring>
 #include "audio.h"
 
-    // static member definitions 
-    // (required – will cause linker errors if left out...):
+// static member definitions 
+// (required – will cause linker errors if left out...):
 bool Audio::initialized;
 Audio::AudioData *Audio::data;
 PaStream *Audio::stream;
 PaError Audio::err;
 float Audio::AudioData::inputGain;
+
 /**
  * Audio callback used by portaudio.
  * Communicates with Audio via a shared pointer to Audio::data.
@@ -45,6 +46,7 @@ float Audio::AudioData::inputGain;
  * @return Should be of type PaStreamCallbackResult. Return paComplete to end the stream, or paContinue to continue (default).
             Can be used to end the stream from within the callback.
  */
+
 int audioCallback (const void *inputBuffer,
                    void *outputBuffer,
                    unsigned long frames,
@@ -58,10 +60,10 @@ int audioCallback (const void *inputBuffer,
     
     #if WRITE_AUDIO_INPUT_TO_OUTPUT
     if (input != NULL) {// && Audio::writeAudioInputToOutput) {
-            // combine input into data buffer
-        
-            // temp variables (frames and bufferPos need to remain untouched so they can be used in the second block of code)
-        unsigned int f = (unsigned int)frames,  
+        // combine input into data buffer
+    
+        // temp variables (frames and bufferPos need to remain untouched so they can be used in the second block of code)
+        unsigned int f = (unsigned int)frames,
         p = data->bufferPos;
         for (; p < data->bufferLength && f > 0; --f, ++p) {
         #if WRITE_AUDIO_INPUT_TO_BUFFER
@@ -75,7 +77,7 @@ int audioCallback (const void *inputBuffer,
         #endif
         }
         if (f > 0) {
-                // handle data->buffer wraparound
+            // handle data->buffer wraparound
             for (p = 0; f > 0; --f, ++p) {
             #if WRITE_AUDIO_INPUT_TO_BUFFER
                 data->buffer[p].l +=
@@ -88,7 +90,8 @@ int audioCallback (const void *inputBuffer,
             #endif
             }
         }
-    } 
+    }
+    
     #elif WRITE_AUDIO_INPUT_TO_BUFFER
     if (input != NULL) {// && Audio::writeAudioInputToBuffer) {
         unsigned int f = (unsigned int)frames,  
@@ -106,6 +109,7 @@ int audioCallback (const void *inputBuffer,
         }
     }
     #endif
+    
         // Write data->buffer into outputBuffer
     if (data->bufferPos + frames >= data->bufferLength) {
             // wraparound: write first section (end of buffer) first

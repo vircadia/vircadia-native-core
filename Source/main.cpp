@@ -37,7 +37,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include "glm.hpp"
-#include <portaudio.h>
+#include "portaudio.h"
 
 // Bring in OpenCV
 #include <opencv2/opencv.hpp>
@@ -62,7 +62,7 @@
 
 using namespace std;
 
-int audio_on = 0;                   //  Whether to turn on the audio support
+int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 //  Network Socket Stuff
