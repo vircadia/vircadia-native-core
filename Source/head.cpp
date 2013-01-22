@@ -9,7 +9,7 @@
 #include <iostream>
 #include "head.h"
 #include "util.h"
-#include "glm/gtx/vector_angle.hpp"
+#include "vector_angle.hpp"
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};

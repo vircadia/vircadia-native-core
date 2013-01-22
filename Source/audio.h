@@ -1,10 +1,10 @@
-    //
-    //  audio.h
-    //  interface
-    //
-    //  Created by Seiji Emery on 9/2/12.
-    //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-    //
+//
+//  audio.h
+//  interface
+//
+//  Created by Seiji Emery on 9/2/12.
+//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//
 
 #ifndef interface_audio_h
 #define interface_audio_h
