@@ -103,7 +103,7 @@ ParticleSystem balls(0,
                      );
 
 
-Cloud cloud(0,                             //  Particles
+Cloud cloud(50000,                             //  Particles
             box,                                //  Bounding Box
             false                              //  Wrap
             );
@@ -310,7 +310,11 @@ void init(void)
     int i;
 
     if (audio_on) {
-        Audio::init();
+        if (serial_on) {
+            Audio::init(&myHead);
+        } else {
+            Audio::init();
+        }
         printf( "Audio started.\n" );
     }
 
@@ -609,11 +613,11 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        lattice.render(WIDTH, HEIGHT);
+//        lattice.render(WIDTH, HEIGHT);
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
-        myFinger.render();
+//        myFinger.render();
 
         if (mouse_pressed == 1)
         {
@@ -793,9 +797,6 @@ void key(unsigned char k, int x, int y)
         float pos[] = {5,5,5};
         float add[] = {0.001, 0.001, 0.001};
         field_add(add, pos);
-    }
-    if ((k == 't') && (audio_on)) {
-        Audio::writeTone(0, 400, 1.0f, 0.5f);
     }
     if (k == '1')
     {

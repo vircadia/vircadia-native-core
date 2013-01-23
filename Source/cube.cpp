@@ -9,7 +9,7 @@
 #include "cube.h"
 
 #define MAX_CUBES 250000
-#define SMALLEST_CUBE 0.005
+#define SMALLEST_CUBE 0.2
 
 float cubes_position[MAX_CUBES*3];
 float cubes_scale[MAX_CUBES];

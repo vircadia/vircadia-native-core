@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		5325C25016AF4DBE0051A40B /* agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22916AF4DBE0051A40B /* agent.cpp */; };
-		5325C25116AF4DBE0051A40B /* audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22B16AF4DBE0051A40B /* audio.cpp */; };
 		5325C25216AF4DBE0051A40B /* cloud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22D16AF4DBE0051A40B /* cloud.cpp */; };
 		5325C25316AF4DBE0051A40B /* cube.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22F16AF4DBE0051A40B /* cube.cpp */; };
 		5325C25416AF4DBE0051A40B /* field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23116AF4DBE0051A40B /* field.cpp */; };
@@ -25,6 +24,7 @@
 		5325C25F16AF4DBE0051A40B /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24916AF4DBE0051A40B /* SerialInterface.cpp */; };
 		5325C26016AF4DBE0051A40B /* texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24B16AF4DBE0051A40B /* texture.cpp */; };
 		5325C26116AF4DBE0051A40B /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24D16AF4DBE0051A40B /* util.cpp */; };
+		5325C26416AF4E2C0051A40B /* audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C26216AF4E2C0051A40B /* audio.cpp */; };
 		532C7AF216AF298D00B1A969 /* CVBlob.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C792A16AF298900B1A969 /* CVBlob.framework */; };
 		532C7CCC16AF301E00B1A969 /* grayson-particle.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC316AF298D00B1A969 /* grayson-particle.png */; };
 		532C7CCD16AF301E00B1A969 /* int-texture256-v2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC416AF298D00B1A969 /* int-texture256-v2.png */; };
@@ -81,8 +81,6 @@
 /* Begin PBXFileReference section */
 		5325C22916AF4DBE0051A40B /* agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = agent.cpp; sourceTree = "<group>"; };
 		5325C22A16AF4DBE0051A40B /* agent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = agent.h; sourceTree = "<group>"; };
-		5325C22B16AF4DBE0051A40B /* audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = audio.cpp; sourceTree = "<group>"; };
-		5325C22C16AF4DBE0051A40B /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
 		5325C22D16AF4DBE0051A40B /* cloud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cloud.cpp; sourceTree = "<group>"; };
 		5325C22E16AF4DBE0051A40B /* cloud.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cloud.h; sourceTree = "<group>"; };
 		5325C22F16AF4DBE0051A40B /* cube.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cube.cpp; sourceTree = "<group>"; };
@@ -116,6 +114,8 @@
 		5325C24D16AF4DBE0051A40B /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
 		5325C24E16AF4DBE0051A40B /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		5325C24F16AF4DBE0051A40B /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = world.h; sourceTree = "<group>"; };
+		5325C26216AF4E2C0051A40B /* audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = audio.cpp; sourceTree = "<group>"; };
+		5325C26316AF4E2C0051A40B /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
 		532C792A16AF298900B1A969 /* CVBlob.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CVBlob.framework; path = Frameworks/CVBlob.framework; sourceTree = "<group>"; };
 		532C7AC316AF298D00B1A969 /* grayson-particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "grayson-particle.png"; sourceTree = "<group>"; };
 		532C7AC416AF298D00B1A969 /* int-texture256-v2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v2.png"; sourceTree = "<group>"; };
@@ -584,8 +584,6 @@
 			children = (
 				5325C22916AF4DBE0051A40B /* agent.cpp */,
 				5325C22A16AF4DBE0051A40B /* agent.h */,
-				5325C22B16AF4DBE0051A40B /* audio.cpp */,
-				5325C22C16AF4DBE0051A40B /* audio.h */,
 				5325C22D16AF4DBE0051A40B /* cloud.cpp */,
 				5325C22E16AF4DBE0051A40B /* cloud.h */,
 				5325C22F16AF4DBE0051A40B /* cube.cpp */,
@@ -619,6 +617,8 @@
 				5325C24D16AF4DBE0051A40B /* util.cpp */,
 				5325C24E16AF4DBE0051A40B /* util.h */,
 				5325C24F16AF4DBE0051A40B /* world.h */,
+				5325C26216AF4E2C0051A40B /* audio.cpp */,
+				5325C26316AF4E2C0051A40B /* audio.h */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -1331,7 +1331,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5325C25016AF4DBE0051A40B /* agent.cpp in Sources */,
-				5325C25116AF4DBE0051A40B /* audio.cpp in Sources */,
 				5325C25216AF4DBE0051A40B /* cloud.cpp in Sources */,
 				5325C25316AF4DBE0051A40B /* cube.cpp in Sources */,
 				5325C25416AF4DBE0051A40B /* field.cpp in Sources */,
@@ -1348,6 +1347,7 @@
 				5325C25F16AF4DBE0051A40B /* SerialInterface.cpp in Sources */,
 				5325C26016AF4DBE0051A40B /* texture.cpp in Sources */,
 				5325C26116AF4DBE0051A40B /* util.cpp in Sources */,
+				5325C26416AF4E2C0051A40B /* audio.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
