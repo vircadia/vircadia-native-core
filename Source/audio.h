@@ -13,6 +13,9 @@
 #include "portaudio.h"
 #include "head.h"
 
+#define BUFFER_LENGTH_BYTES 1024
+#define PHASE_DELAY_AT_90 20
+
 class Audio {
 public:
     // initializes audio I/O
@@ -22,27 +25,32 @@ public:
     // terminates audio I/O
     static bool terminate(); 
 private:
+    static void readFile();
+    
     static bool initialized;
     
     static struct AudioData {
-        // struct for left/right data in audio buffer
-        struct BufferFrame {
-            int16_t left, right;
-        } *buffer;
-        
-        Head* linkedHead;
+        int samplePointer;
+        int fileSamples;
         
         // length in bytes of audio buffer
-        const static unsigned int bufferLength = 1024;
         
+        int16_t *delayBuffer;
+        int16_t *fileBuffer;
+        
+        Head* linkedHead;
+    
         AudioData() {
-            // alloc memory for buffer
-            buffer = new BufferFrame[bufferLength];
-            memset(buffer, 0, sizeof(int16_t) * bufferLength * 2);
+            samplePointer = 0;
+            
+            // alloc memory for sample delay buffer
+            delayBuffer = new int16_t[PHASE_DELAY_AT_90];
+            memset(delayBuffer, 0, sizeof(int16_t) * PHASE_DELAY_AT_90);
         }
         
         ~AudioData() {
-            delete[] buffer;
+            delete[] fileBuffer;
+            delete[] delayBuffer;
         }
     } *data;
     
