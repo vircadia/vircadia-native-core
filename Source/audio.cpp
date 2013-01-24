@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 Rosedale Lab. All rights reserved.
 //
 
+#include <iostream>
+#include <fstream>
 #include "audio.h"
 
 bool Audio::initialized;
@@ -42,16 +44,51 @@ int audioCallback (const void *inputBuffer,
                    void *userData)
 {
     Audio::AudioData *data = (Audio::AudioData *) userData;
-    int16_t *input = (int16_t *) inputBuffer;
-    int16_t *output = (int16_t *) outputBuffer;
     
-    // check if we have input data
-    if (input != NULL) {
-        memcpy(data->buffer, input, data->bufferLength * 2);
+    int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
+    int16_t *outputRight = ((int16_t **) outputBuffer)[1];
+
+    
+    float yawRatio = data->linkedHead != NULL
+        ? data->linkedHead->getYaw() / 90.0
+        : 0;
+    
+    int numSamplesDelay = abs(floor(yawRatio * PHASE_DELAY_AT_90));
+    
+    if (numSamplesDelay > PHASE_DELAY_AT_90) {
+        numSamplesDelay = PHASE_DELAY_AT_90;
+    }
+
+    int16_t *leadingBuffer = yawRatio > 0 ? outputLeft : outputRight;
+    int16_t *trailingBuffer = yawRatio > 0 ? outputRight : outputLeft;
+    
+    int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (data->fileSamples - data->samplePointer);
+    
+    int16_t *samplesToQueue;
+    
+    if (wrapAroundSamples < 0) {
+        samplesToQueue = data->fileBuffer + data->samplePointer;
+        data->samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
+    } else {
+        samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES];
+        memcpy(samplesToQueue, data->fileBuffer + data->samplePointer, (data->fileSamples - data->samplePointer) * sizeof(int16_t));
+        memcpy(samplesToQueue, data->fileBuffer, wrapAroundSamples * sizeof(int16_t));
+        data->samplePointer = wrapAroundSamples;
     }
     
-    memcpy(output, data->buffer, data->bufferLength * 2);
-
+    memcpy(leadingBuffer, samplesToQueue, BUFFER_LENGTH_BYTES);
+    
+    int offsetBytes = numSamplesDelay * sizeof(int16_t);
+    memcpy(trailingBuffer, data->delayBuffer + (PHASE_DELAY_AT_90 - numSamplesDelay), offsetBytes);
+    memcpy(trailingBuffer + numSamplesDelay, samplesToQueue, BUFFER_LENGTH_BYTES - offsetBytes);
+    
+    if (wrapAroundSamples > 0) {
+        delete[] samplesToQueue;
+    }
+    
+    // copy PHASE_DELAY_AT_90 samples to delayBuffer in case we need it next go around
+    memcpy(data->delayBuffer, data->fileBuffer + data->samplePointer - PHASE_DELAY_AT_90, PHASE_DELAY_AT_90 * sizeof(int16_t));
+    
     return paContinue;
 }
 
@@ -77,10 +114,12 @@ bool Audio::init(Head* mainHead)
     err = Pa_Initialize();
     if (err != paNoError) goto error;
     
+    Audio::readFile();
+    
     err = Pa_OpenDefaultStream(&stream,
-                               1,       // input channels
-                               1,       // output channels
-                               paInt16, // sample format
+                               NULL,       // input channels
+                               2,       // output channels
+                               (paInt16 | paNonInterleaved), // sample format
                                22050,   // sample rate (hz)
                                512,     // frames per buffer
                                audioCallback, // callback function
@@ -98,6 +137,24 @@ error:
     initialized = false;
     delete[] data;
     return false;
+}
+
+void Audio::readFile()
+{
+    
+    int length;
+    FILE *soundFile = fopen("love.raw", "r");
+    
+    // get length of file:
+    std::fseek(soundFile, 0, SEEK_END);
+    data->fileSamples = std::ftell(soundFile) / sizeof(int16_t);
+    std::rewind(soundFile);
+    
+    data->fileBuffer = new int16_t[data->fileSamples];
+    std::fread(data->fileBuffer, sizeof(int16_t), data->fileSamples, soundFile);
+    
+    
+    std::fclose(soundFile);
 }
 
 /**
