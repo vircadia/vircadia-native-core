@@ -103,7 +103,7 @@ ParticleSystem balls(0,
                      );
 
 
-Cloud cloud(50000,                             //  Particles
+Cloud cloud(0,                             //  Particles
             box,                                //  Bounding Box
             false                              //  Wrap
             );
@@ -599,6 +599,13 @@ void display(void)
             
         //  Render the world box 
         if (!display_head && stats_on) render_world_box();
+    
+        // render audio sources and start them
+        if (audio_on) {
+            glPushMatrix();
+            Audio::sourceSetup();
+            glPopMatrix();
+        }
     
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
