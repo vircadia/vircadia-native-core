@@ -140,8 +140,6 @@ error:
 
 void Audio::readFile()
 {
-    
-    int length;
     FILE *soundFile = fopen("love.raw", "r");
     
     // get length of file:
