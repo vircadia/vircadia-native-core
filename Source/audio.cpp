@@ -47,7 +47,6 @@ int audioCallback (const void *inputBuffer,
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
-
     
     float yawRatio = data->linkedHead != NULL
         ? data->linkedHead->getYaw() / 90.0
