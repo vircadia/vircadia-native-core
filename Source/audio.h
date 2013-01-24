@@ -16,11 +16,18 @@
 #define BUFFER_LENGTH_BYTES 1024
 #define PHASE_DELAY_AT_90 20
 
+struct AudioSource {
+    glm::vec3 position;
+    int16_t *audioData;
+};
+
 class Audio {
 public:
     // initializes audio I/O
     static bool init();
     static bool init(Head* mainHead);
+    
+    static void sourceSetup();
     
     // terminates audio I/O
     static bool terminate(); 
@@ -34,11 +41,11 @@ private:
         int fileSamples;
         
         // length in bytes of audio buffer
-        
         int16_t *delayBuffer;
         int16_t *fileBuffer;
         
         Head* linkedHead;
+        AudioSource sources[3];
     
         AudioData() {
             samplePointer = 0;

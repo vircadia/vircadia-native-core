@@ -48,9 +48,7 @@ int audioCallback (const void *inputBuffer,
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
     
-    float yawRatio = data->linkedHead != NULL
-        ? data->linkedHead->getYaw() / 90.0
-        : 0;
+    float yawRatio = 0;
     
     int numSamplesDelay = abs(floor(yawRatio * PHASE_DELAY_AT_90));
     
@@ -81,6 +79,17 @@ int audioCallback (const void *inputBuffer,
     memcpy(trailingBuffer, data->delayBuffer + (PHASE_DELAY_AT_90 - numSamplesDelay), offsetBytes);
     memcpy(trailingBuffer + numSamplesDelay, samplesToQueue, BUFFER_LENGTH_BYTES - offsetBytes);
     
+    glm::vec3 headPos = data->linkedHead->getPos();
+    glm::vec3 sourcePos = data->sources[0].position;
+    
+    float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
+    float amplitudeRatio = powf(0.5, cbrtf(distance));
+    
+    for (int i = 0; i < BUFFER_LENGTH_BYTES / sizeof(int16_t); i++) {
+        leadingBuffer[i] *= amplitudeRatio;
+        trailingBuffer[i] *= amplitudeRatio;
+    }
+    
     if (wrapAroundSamples > 0) {
         delete[] samplesToQueue;
     }
@@ -100,7 +109,8 @@ Use Audio::getError() to retrieve the error code.
  */
 bool Audio::init()
 {
-    return Audio::init(NULL);
+    Head deadHead = Head();
+    return Audio::init(&deadHead);
 }
 
 bool Audio::init(Head* mainHead)
@@ -138,6 +148,20 @@ error:
     return false;
 }
 
+void Audio::sourceSetup()
+{
+    // render gl objects on screen for our three sources
+    // assume that glMatrixPush() has been called and we are at 0,0,0
+    glColor3f(1, 0, 0);
+    
+    AudioSource source1 = AudioSource();
+    source1.position = glm::vec3(3, 0, -1);
+    data->sources[0] = source1;
+    
+    glTranslatef(source1.position[0], source1.position[1], source1.position[2]);
+    glutSolidCube(0.5);
+}
+
 void Audio::readFile()
 {
     FILE *soundFile = fopen("love.raw", "r");
@@ -149,7 +173,6 @@ void Audio::readFile()
     
     data->fileBuffer = new int16_t[data->fileSamples];
     std::fread(data->fileBuffer, sizeof(int16_t), data->fileSamples, soundFile);
-    
     
     std::fclose(soundFile);
 }
