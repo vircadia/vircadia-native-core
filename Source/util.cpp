@@ -19,12 +19,12 @@ float randFloat () {
     return (rand()%10000)/10000.f;
 }
 
-//  Return the azimuth angle in degrees between a head position and a sound source,
-//  given the two positions.
+//  Return the azimuth angle in degrees between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI;
 }
 
+//  Return the angle in degrees between the head and an object in the scene.  The value is zero if you are looking right at it.  The angle is negative if the object is to your right.   
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI + render_yaw + head_yaw;
 }
