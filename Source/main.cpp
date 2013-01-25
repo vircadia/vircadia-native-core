@@ -110,7 +110,7 @@ Cloud cloud(0,                             //  Particles
 
 VoxelSystem voxels(0, box);
 
-Lattice lattice(15,10);
+Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 
 #define RENDER_FRAME_MSECS 8
@@ -119,7 +119,7 @@ int steps_per_frame = 0;
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
-float start_yaw = 135.0;
+float start_yaw = 116;
 float render_yaw = start_yaw;
 float render_pitch = 0.f;
 float render_yaw_rate = 0.f;
@@ -129,7 +129,10 @@ float lateral_vel = 0.f;
 // Manage speed and direction of motion
 GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
 //GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
-GLfloat start_location[] = { 0.1, -0.15, 0.1};
+//GLfloat start_location[] = { 0.1, -0.15, 0.1};
+
+GLfloat start_location[] = {6.1, -2.0, 1.4};
+
 GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
 
@@ -253,10 +256,11 @@ void display_stats(void)
     }
 #endif
     
-    
     char adc[200];
-	sprintf(adc, "location = %3.1f,%3.1f,%3.1f", 
-            location[0], location[1], location[2] 
+	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
+            -location[0], -location[1], -location[2],
+            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), render_yaw, myHead.getYaw()),
+            myHead.getYaw(), render_yaw
             );
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
      
@@ -564,7 +568,7 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
            
-        //  Rotate, translate to camera location 
+        //  Rotate, translate to camera location
         glRotatef(render_pitch, 1, 0, 0);
         glRotatef(render_yaw, 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
@@ -596,7 +600,7 @@ void display(void)
      
     
         if (!display_head) balls.render();
-            
+    
         //  Render the world box 
         if (!display_head && stats_on) render_world_box();
     
@@ -618,7 +622,8 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-//        lattice.render(WIDTH, HEIGHT);
+        //lattice.render(WIDTH, HEIGHT);
+
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
