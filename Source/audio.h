@@ -15,11 +15,7 @@
 
 #define BUFFER_LENGTH_BYTES 1024
 #define PHASE_DELAY_AT_90 20
-
-struct AudioSource {
-    glm::vec3 position;
-    int16_t *audioData;
-};
+#define AUDIO_SOURCES 2
 
 class Audio {
 public:
@@ -32,33 +28,45 @@ public:
     // terminates audio I/O
     static bool terminate(); 
 private:
-    static void readFile();
-    
-    static bool initialized;
-    
-    static struct AudioData {
-        int samplePointer;
-        int fileSamples;
-        
-        // length in bytes of audio buffer
+    struct AudioSource {
+        glm::vec3 position;
+        int16_t *audioData;
         int16_t *delayBuffer;
-        int16_t *fileBuffer;
+        int lengthInSamples;
+        int samplePointer;
         
-        Head* linkedHead;
-        AudioSource sources[3];
+        AudioSource() {
+            samplePointer = 0;            
     
-        AudioData() {
-            samplePointer = 0;
-            
             // alloc memory for sample delay buffer
             delayBuffer = new int16_t[PHASE_DELAY_AT_90];
             memset(delayBuffer, 0, sizeof(int16_t) * PHASE_DELAY_AT_90);
+        };
+        
+        ~AudioSource() {
+            delete[] delayBuffer;
+            delete[] audioData;
+        }
+    };
+    
+    static void readFile(const char *filename, struct AudioSource *source);
+    static bool initialized;
+    
+    static struct AudioData {        
+        Head* linkedHead;
+        AudioSource sources[AUDIO_SOURCES];
+    
+        AudioData() {
+            sources[0] = AudioSource();
+            sources[1] = AudioSource();
+            sources[2] = AudioSource();
         }
         
-        ~AudioData() {
-            delete[] fileBuffer;
-            delete[] delayBuffer;
-        }
+//        ~AudioData() {
+//            delete sources[0];
+//            delete sources[1];
+//            delete sources[2];
+//        }
     } *data;
     
     // protects constructor so that public init method is used
