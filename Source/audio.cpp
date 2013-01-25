@@ -77,8 +77,7 @@ int audioCallback (const void *inputBuffer,
         
         float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
         float amplitudeRatio = powf(0.5, cbrtf(distance * 10));
-        
-        std::cout << "The AR to source " << s << " is " << amplitudeRatio << "\n";
+    
         
         for (int i = 0; i < BUFFER_LENGTH_BYTES / sizeof(int16_t); i++) {
             samplesToQueue[i] *= amplitudeRatio;
