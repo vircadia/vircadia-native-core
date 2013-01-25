@@ -11,7 +11,7 @@
 Lattice::Lattice(int w, int h) {
     width = w;
     height = h;
-    tilegap = 3;
+    tilegap = 2;
     lastindex = -1;
     tiles = new Tile[width*height];
     for (int i = 0; i < (width*height); i++) {
