@@ -1,108 +1,0 @@
-Tautomata6
-v7
-r0
-t325212964.225906
-cCheck dependencies
-cCompileC build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-cLd /Users/philip/Desktop/test_c_plus/build/Debug/automata6 normal x86_64
-
-N/Developer/SDKs/MacOSX10.6.sdk
-c000000004CAA740B00000000000000EE
-t1286239243
-s238
-
-N/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h
-c000000004C23CCCC000000000000578C
-t1277414604
-s22412
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/math.h
-c000000004A5C14A000000000000004F1
-t1247548576
-s1265
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdio.h
-c000000004BBD2CE90000000000004174
-t1270689001
-s16756
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/stdlib.h
-c000000004BBD2CE90000000000002DF5
-t1270689001
-s11765
-
-N/Developer/SDKs/MacOSX10.6.sdk/usr/include/string.h
-c000000004BBD2CE90000000000001731
-t1270689001
-s5937
-
-N/System/Library/Frameworks/GLUT.framework/GLUT
-c000000004B5FAB1A00000000001A2920
-t1264560922
-s1714464
-
-N/System/Library/Frameworks/OpenGL.framework/OpenGL
-c000000004D7713DA0000000000043330
-t1299649498
-s275248
-
-N/Users/philip/Desktop/test_c_plus/build/Debug/automata6
-t1303519236
-s25472
-
-N/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/automata6.LinkFileList
-c000000004D901AEB000000000000006B
-t1301289707
-s107
-
-N/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/main.o
-t1303519236
-s99708
-
-N/Users/philip/Desktop/test_c_plus/main.cpp
-c000000004DB216950000000000003523
-t1303516821
-s13603
-i<iostream>
-i<fstream>
-i<string>
-i<stdlib.h>
-i<GLUT/glut.h>
-i<iostream>
-i<fstream>
-i<math.h>
-i<string.h>
-i<stdio.h>
-
-CCheck dependencies
-r0
-lSLF07#2@18"Check dependencies325212964#325212964#0(0"0(0#1#0"8605789600#0"0#
-
-CCompileC build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/main.o /Users/philip/Desktop/test_c_plus/main.cpp normal x86_64 c++ com.apple.compilers.gcc.4_2
-s325212036.060392
-e325212036.492859
-r1
-xCompileC
-xbuild/automata6.build/Debug/automata6.build/Objects-normal/x86_64/main.o
-x/Users/philip/Desktop/test_c_plus/main.cpp
-xnormal
-xx86_64
-xc++
-xcom.apple.compilers.gcc.4_2
-o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':
-o/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':
-o/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'
-o/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'
-lSLF07#2@50"Compile /Users/philip/Desktop/test_c_plus/main.cpp325212036#325212036#0(490"/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_stats()':/Users/philip/Desktop/test_c_plus/main.cpp:401: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp: In function 'void display_io()':/Users/philip/Desktop/test_c_plus/main.cpp:412: warning: deprecated conversion from string constant to 'char*'/Users/philip/Desktop/test_c_plus/main.cpp:414: warning: deprecated conversion from string constant to 'char*'3(22@53"Deprecated conversion from string constant to 'char*'325212036#80#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#401#0#401#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212036#268#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#412#0#412#0#49"deprecated conversion from string constant to '*'0(22@53"Deprecated conversion from string constant to 'char*'325212036#379#111#0(6@42"/Users/philip/Desktop/test_c_plus/main.cpp325209621#414#0#414#0#49"deprecated conversion from string constant to '*'0(0#0#42"/Users/philip/Desktop/test_c_plus/main.cpp8605465536#1272"    cd /Users/philip/Desktop/test_c_plus    setenv LANG en_US.US-ASCII    /Developer/usr/bin/gcc-4.2 -x c++ -arch x86_64 -fmessage-length=0 -pipe -Wno-trigraphs -fpascal-strings -fasm-blocks -O0 -Wreturn-type -Wunused-variable -isysroot /Developer/SDKs/MacOSX10.6.sdk -mfix-and-continue -fvisibility-inlines-hidden -mmacosx-version-min=10.6 -gdwarf-2 -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/automata6-generated-files.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/automata6-own-target-headers.hmap -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/automata6-all-target-headers.hmap -iquote /Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/automata6-project-headers.hmap -F/Users/philip/Desktop/test_c_plus/build/Debug -I/Users/philip/Desktop/test_c_plus/build/Debug/include -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/DerivedSources/x86_64 -I/Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/DerivedSources -c /Users/philip/Desktop/test_c_plus/main.cpp -o /Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/main.o0#
-
-CLd /Users/philip/Desktop/test_c_plus/build/Debug/automata6 normal x86_64
-s325212036.492944
-e325212036.513658
-r1
-xLd
-x/Users/philip/Desktop/test_c_plus/build/Debug/automata6
-xnormal
-xx86_64
-lSLF07#2@60"Link /Users/philip/Desktop/test_c_plus/build/Debug/automata6325212036#325212036#0(0"0(0#0#0"8606088000#515"    cd /Users/philip/Desktop/test_c_plus    setenv MACOSX_DEPLOYMENT_TARGET 10.6    /Developer/usr/bin/g++-4.2 -arch x86_64 -isysroot /Developer/SDKs/MacOSX10.6.sdk -L/Users/philip/Desktop/test_c_plus/build/Debug -F/Users/philip/Desktop/test_c_plus/build/Debug -filelist /Users/philip/Desktop/test_c_plus/build/automata6.build/Debug/automata6.build/Objects-normal/x86_64/automata6.LinkFileList -mmacosx-version-min=10.6 -framework GLUT -framework OpenGL -o /Users/philip/Desktop/test_c_plus/build/Debug/automata60#
-
