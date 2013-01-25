@@ -257,11 +257,10 @@ void display_stats(void)
 #endif
     
     char adc[200];
-	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to 0,0,0 = %3.1f, head yaw = %3.1f, render_yaw = %3.1f, together = %3.1f",
+	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
             -location[0], -location[1], -location[2],
-            azimuth_to(myHead.getPos()*-1.f, glm::vec3(0,0,0)),
-            myHead.getYaw(), render_yaw,
-            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), render_yaw, myHead.getYaw())
+            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), render_yaw, myHead.getYaw()),
+            myHead.getYaw(), render_yaw
             );
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
      
