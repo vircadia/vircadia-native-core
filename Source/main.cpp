@@ -119,8 +119,7 @@ int steps_per_frame = 0;
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                      //      
-float start_yaw = 116;
-float render_yaw = start_yaw;
+float start_yaw = 122;
 float render_pitch = 0.f;
 float render_yaw_rate = 0.f;
 float render_pitch_rate = 0.f; 
@@ -131,7 +130,7 @@ GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
 //GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
 //GLfloat start_location[] = { 0.1, -0.15, 0.1};
 
-GLfloat start_location[] = {6.1, -2.0, 1.4};
+GLfloat start_location[] = {6.1, 0, 1.4};
 
 GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
@@ -259,9 +258,8 @@ void display_stats(void)
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
             -location[0], -location[1], -location[2],
-            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), render_yaw, myHead.getYaw()),
-            myHead.getYaw(), render_yaw
-            );
+            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), myHead.getRenderYaw(), myHead.getYaw()),
+            myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
      
 	
@@ -313,6 +311,8 @@ void init(void)
 {
     int i;
 
+    myHead.setRenderYaw(start_yaw);
+    
     if (audio_on) {
         if (serial_on) {
             Audio::init(&myHead);
@@ -398,7 +398,7 @@ void reset_sensors()
     //  
     //   Reset serial I/O sensors 
     // 
-    render_yaw = start_yaw;
+    myHead.setRenderYaw(start_yaw);
     yaw = render_yaw_rate = 0; 
     pitch = render_pitch = render_pitch_rate = 0;
     lateral_vel = 0;
@@ -455,12 +455,13 @@ void update_pos(float frametime)
     */
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates
-    const int MIN_YAW_RATE = 300;
+    const int MIN_YAW_RATE = 3000;
     const float YAW_SENSITIVITY = 0.03;
-    const int MIN_PITCH_RATE = 300;
+    const int MIN_PITCH_RATE = 3000;
+    
     const float PITCH_SENSITIVITY = 0.04;
     
-    if (fabs(measured_yaw_rate) > MIN_YAW_RATE) 
+    if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
         if (measured_yaw_rate > 0)
             render_yaw_rate -= (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
@@ -474,7 +475,8 @@ void update_pos(float frametime)
         else 
             render_pitch_rate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
     }
-    render_yaw += render_yaw_rate;
+     
+    myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     render_pitch += render_pitch_rate;
     
     // Decay render_pitch toward zero because we never look constantly up/down 
@@ -485,6 +487,7 @@ void update_pos(float frametime)
     render_yaw_rate *= (1.f - 7.0*frametime);
     
     //  Update slide left/right based on accelerometer reading
+    /*
     const int MIN_LATERAL_ACCEL = 20;
     const float LATERAL_SENSITIVITY = 0.001;
     if (fabs(measured_lateral_accel) > MIN_LATERAL_ACCEL) 
@@ -493,12 +496,13 @@ void update_pos(float frametime)
             lateral_vel += (measured_lateral_accel - MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
         else 
             lateral_vel += (measured_lateral_accel + MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
-    }
+    }*/
  
     //slide += lateral_vel;
     lateral_vel *= (1.f - 4.0*frametime);
     
     //  Update fwd/back based on accelerometer reading
+    /*
     const int MIN_FWD_ACCEL = 20;
     const float FWD_SENSITIVITY = 0.001;
     
@@ -509,15 +513,15 @@ void update_pos(float frametime)
         else 
             fwd_vel += (measured_fwd_accel + MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
 
-    }
+    }*/
     //  Decrease forward velocity
     fwd_vel *= (1.f - 4.0*frametime);
     
 
     //  Update forward vector based on pitch and yaw 
-    fwd_vec[0] = -sinf(render_yaw*PI/180);
+    fwd_vec[0] = -sinf(myHead.getRenderYaw()*PI/180);
     fwd_vec[1] = sinf(render_pitch*PI/180);
-    fwd_vec[2] = cosf(render_yaw*PI/180);
+    fwd_vec[2] = cosf(myHead.getRenderYaw()*PI/180);
     
     //  Advance location forward
     location[0] += fwd_vec[0]*fwd_vel;
@@ -570,7 +574,7 @@ void display(void)
            
         //  Rotate, translate to camera location
         glRotatef(render_pitch, 1, 0, 0);
-        glRotatef(render_yaw, 0, 1, 0);
+        glRotatef(myHead.getRenderYaw(), 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
     
         //  Draw cloud of dots

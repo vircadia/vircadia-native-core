@@ -52,6 +52,7 @@
 		532C803B16AF3B1900B1A969 /* libopencv_videostab.2.4.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C802616AF3B1900B1A969 /* libopencv_videostab.2.4.3.dylib */; };
 		532C803C16AF3B1900B1A969 /* libportaudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C802816AF3B1900B1A969 /* libportaudio.a */; };
 		533B578716B2160C00FCABF1 /* grayson.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533B578516B2160600FCABF1 /* grayson.raw */; };
+		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
 		B6BDADE115F44A9D002A07DF /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDE15F444DB002A07DF /* CoreServices.framework */; };
 		B6BDADE215F44AA5002A07DF /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADD815F444C1002A07DF /* CoreAudio.framework */; };
@@ -73,6 +74,7 @@
 				533B578716B2160C00FCABF1 /* grayson.raw in CopyFiles */,
 				532C7CCE16AF301E00B1A969 /* int-texture256-v4.png in CopyFiles */,
 				538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */,
+				533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */,
 				532C7CCF16AF301E00B1A969 /* int-texture256-v5.png in CopyFiles */,
 				532C7CD016AF301E00B1A969 /* philip-image.png in CopyFiles */,
 				532C7CD116AF301E00B1A969 /* pngtest8rgba.png in CopyFiles */,
@@ -505,6 +507,7 @@
 		532C802816AF3B1900B1A969 /* libportaudio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libportaudio.a; sourceTree = "<group>"; };
 		532C802916AF3B1900B1A969 /* portaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = portaudio.h; sourceTree = "<group>"; };
 		533B578516B2160600FCABF1 /* grayson.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = grayson.raw; sourceTree = "<group>"; };
+		533BF9D316B31A3B00AC31BB /* jeska.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeska.raw; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* interface */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = interface; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6BDADD815F444C1002A07DF /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
@@ -1286,6 +1289,7 @@
 		536E784516B0A1C900A2F6F3 /* audio */ = {
 			isa = PBXGroup;
 			children = (
+				533BF9D316B31A3B00AC31BB /* jeska.raw */,
 				533B578516B2160600FCABF1 /* grayson.raw */,
 				538BA8A216B1B719000BF99C /* love.raw */,
 			);
