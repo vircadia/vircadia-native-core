@@ -54,6 +54,7 @@
 		533B578716B2160C00FCABF1 /* grayson.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533B578516B2160600FCABF1 /* grayson.raw */; };
 		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
+		539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 539853CC16B765EE00B2D585 /* UDPSocket.cpp */; };
 		B6BDADE115F44A9D002A07DF /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDE15F444DB002A07DF /* CoreServices.framework */; };
 		B6BDADE215F44AA5002A07DF /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADD815F444C1002A07DF /* CoreAudio.framework */; };
 		B6BDADE315F44AB0002A07DF /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */; };
@@ -509,6 +510,8 @@
 		533B578516B2160600FCABF1 /* grayson.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = grayson.raw; sourceTree = "<group>"; };
 		533BF9D316B31A3B00AC31BB /* jeska.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeska.raw; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
+		539853CC16B765EE00B2D585 /* UDPSocket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UDPSocket.cpp; sourceTree = "<group>"; };
+		539853CD16B765EE00B2D585 /* UDPSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UDPSocket.h; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* interface */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = interface; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6BDADD815F444C1002A07DF /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -628,6 +631,8 @@
 				5325C24D16AF4DBE0051A40B /* util.cpp */,
 				5325C24E16AF4DBE0051A40B /* util.h */,
 				5325C24F16AF4DBE0051A40B /* world.h */,
+				539853CC16B765EE00B2D585 /* UDPSocket.cpp */,
+				539853CD16B765EE00B2D585 /* UDPSocket.h */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -1368,6 +1373,7 @@
 				5325C26016AF4DBE0051A40B /* texture.cpp in Sources */,
 				5325C26116AF4DBE0051A40B /* util.cpp in Sources */,
 				5325C26416AF4E2C0051A40B /* audio.cpp in Sources */,
+				539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
