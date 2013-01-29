@@ -29,8 +29,6 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI + render_yaw + head_yaw;
 }
 
-
-
 void render_vector(glm::vec3 * vec)
 {
     //  Show edge of world 
