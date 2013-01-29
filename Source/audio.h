@@ -35,13 +35,8 @@ private:
         int lengthInSamples;
         int samplePointer;
         
-        AudioSource() {
-            samplePointer = 0;
-        };
-        
-        ~AudioSource() {
-            delete[] audioData;
-        }
+        AudioSource() { samplePointer = 0; }
+        ~AudioSource();
     };
     
     static void readFile(const char *filename, struct AudioSource *source);
@@ -53,19 +48,8 @@ private:
         
         int16_t *samplesToQueue;
     
-        AudioData() {
-            sources[0] = AudioSource();
-            sources[1] = AudioSource();
-            
-            samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES / sizeof(int16_t)];
-        }
-        
-        ~AudioData() {
-//            delete sources[0];
-//            delete sources[1];
-//            delete sources[2];
-            delete[] samplesToQueue;
-        }
+        AudioData();
+        ~AudioData();
     } *data;
     
     // protects constructor so that public init method is used

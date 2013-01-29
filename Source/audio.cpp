@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Stephen Birarda on 1/22/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc.. All rights reserved.
 //
 
 #include <iostream>
@@ -16,6 +16,27 @@ PaError Audio::err;
 PaStream *Audio::stream;
 Audio::AudioData *Audio::data;
 
+
+Audio::AudioSource::~AudioSource()
+{
+    delete[] audioData;
+}
+
+Audio::AudioData::AudioData() {
+    for(int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+        sources[s] = AudioSource();
+    }
+    
+    samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES / sizeof(int16_t)];
+}
+
+Audio::AudioData::~AudioData() {
+    for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+        sources[s].AudioSource::~AudioSource();
+    }
+    
+    delete[] samplesToQueue;
+}
 
 /**
  * Audio callback used by portaudio.
