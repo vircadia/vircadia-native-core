@@ -10,7 +10,7 @@ int init_port (int baud);
 int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels, int * samples_averaged, int * LED_state);
 
 #define NUM_CHANNELS 6
-#define SERIAL_PORT_NAME "/dev/tty.usbmodemfd131"
+#define SERIAL_PORT_NAME "/dev/tty.usbmodem411"
 
 //  Acceleration sensors, in screen/world coord system (X = left/right, Y = Up/Down, Z = fwd/back)
 #define ACCEL_X 4 
