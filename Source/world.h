@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Philip Rosedale on 8/23/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
 //  Simulation happens in positive cube with edge of size WORLD_SIZE    
