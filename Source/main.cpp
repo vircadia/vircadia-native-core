@@ -610,7 +610,7 @@ void display(void)
     
         // render audio sources and start them
         if (audio_on) {
-            Audio::sourceSetup();
+            Audio::render();
         }
     
         //glm::vec3 test(0.5, 0.5, 0.5); 

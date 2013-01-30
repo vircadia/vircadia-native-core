@@ -11,17 +11,8 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-struct sockaddr_in UDPSocket::sockaddr_util(char* hostname, int port) {
-    sockaddr_in dest_address;
-    
-    dest_address.sin_family = AF_INET;
-    dest_address.sin_addr.s_addr = inet_addr(hostname);
-    dest_address.sin_port = htons((uint16_t)port);
-    
-    return dest_address;
-}
-
-struct sockaddr_in dest_sockaddr;
+sockaddr_in destSockaddr, senderAddress;
+socklen_t addLength = sizeof(senderAddress);
 
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
@@ -33,10 +24,16 @@ UDPSocket::UDPSocket(int listeningPort) {
     }
     
     // instantiate the re-usable dest_sockaddr with a dummy IP and port
-    dest_sockaddr = UDPSocket::sockaddr_util((char *) "1.0.0.0", 1);
+    sockaddr_in dest_sockaddr;
+    dest_sockaddr.sin_family = AF_INET;
+    dest_sockaddr.sin_addr.s_addr = inet_addr("1.0.0.0");
+    dest_sockaddr.sin_port = htons((uint16_t) 1);
     
     // bind the socket to the passed listeningPort
-    sockaddr_in bind_address = UDPSocket::sockaddr_util(INADDR_ANY, listeningPort);
+    sockaddr_in bind_address;
+    bind_address.sin_family = AF_INET;
+    bind_address.sin_addr.s_addr = INADDR_ANY;
+    bind_address.sin_port = htons((uint16_t) listeningPort);
     
     if (bind(handle, (const sockaddr*) &bind_address, sizeof(sockaddr_in)) < 0) {
         printf("Failed to bind socket to port %d.\n", listeningPort);
@@ -49,19 +46,29 @@ UDPSocket::UDPSocket(int listeningPort) {
         printf("Failed to set non-blocking socket\n");
         return;
     }
+    
+    printf("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
-int UDPSocket::send(char * dest_address, int dest_port, const void *data, int length_in_bytes) {
+bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
+    
+    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
+                              0, (sockaddr *)&senderAddress, &addLength);
+    
+    return (*receivedBytes > 0);
+}
+
+int UDPSocket::send(char * destAddress, int destPort, const void *data, int byteLength) {
     
     // change address and port on reusable global to passed variables
-    dest_sockaddr.sin_addr.s_addr = inet_addr(dest_address);
-    dest_sockaddr.sin_port = htons((uint16_t)dest_port);
+    destSockaddr.sin_addr.s_addr = inet_addr(destAddress);
+    destSockaddr.sin_port = htons((uint16_t)destPort);
     
     // send data via UDP
-    int sent_bytes = sendto(handle, (const char*)data, length_in_bytes,
-                        0, (sockaddr*)&dest_address, sizeof(sockaddr_in));
+    int sent_bytes = sendto(handle, (const char*)data, byteLength,
+                        0, (sockaddr *)&destSockaddr, sizeof(sockaddr_in));
     
-    if (sent_bytes != length_in_bytes) {
+    if (sent_bytes != byteLength) {
         printf("Failed to send packet: return value = %d\n", sent_bytes);
         return false;
     }

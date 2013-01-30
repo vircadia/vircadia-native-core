@@ -19,7 +19,7 @@ class AudioSource {
         int lengthInSamples;
         int samplePointer;
         
-        AudioSource() { samplePointer = 0; sourceData = NULL; }
+        AudioSource() { samplePointer = 0; sourceData = NULL; lengthInSamples = 0; }
         ~AudioSource();
         
         int loadDataFromFile(const char *filename);
