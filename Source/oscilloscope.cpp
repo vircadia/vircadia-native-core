@@ -1,12 +1,12 @@
 //
-//  oscilloscope.cpp
+//  Oscilloscope.cpp
 //  interface
 //
 //  Created by Philip on 1/28/13.
-//  Copyright (c) 2013 Rosedale Lab. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "oscilloscope.h"
+#include "Oscilloscope.h"
 
 Oscilloscope::Oscilloscope(int w,
                            int h) {

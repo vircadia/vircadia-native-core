@@ -37,6 +37,7 @@
 		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
 		535B821116B9BED400D18440 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 535B820F16B9BED400D18440 /* lodepng.cpp */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
+		53ACC39816B9C59500ABD227 /* Oscilloscope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */; };
 		53CF371716B9C039001FCB05 /* Agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EC16B9C039001FCB05 /* Agent.cpp */; };
 		53CF371816B9C039001FCB05 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EE16B9C039001FCB05 /* Audio.cpp */; };
 		53CF371916B9C039001FCB05 /* AudioData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F016B9C039001FCB05 /* AudioData.cpp */; };
@@ -63,7 +64,6 @@
 		B6BDADE415F44AC7002A07DF /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDC15F444D3002A07DF /* AudioUnit.framework */; };
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
-		D477AEAC16B7696200F3F8F6 /* oscilloscope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D477AEAA16B7696200F3F8F6 /* oscilloscope.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -478,6 +478,8 @@
 		535B820F16B9BED400D18440 /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
 		535B821016B9BED400D18440 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
+		53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Oscilloscope.cpp; sourceTree = "<group>"; };
+		53ACC39716B9C59500ABD227 /* Oscilloscope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Oscilloscope.h; sourceTree = "<group>"; };
 		53CF36EC16B9C039001FCB05 /* Agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Agent.cpp; sourceTree = "<group>"; };
 		53CF36ED16B9C039001FCB05 /* Agent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Agent.h; sourceTree = "<group>"; };
 		53CF36EE16B9C039001FCB05 /* Audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
@@ -526,8 +528,6 @@
 		B6BDADDE15F444DB002A07DF /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
-		D477AEAA16B7696200F3F8F6 /* oscilloscope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = oscilloscope.cpp; sourceTree = "<group>"; };
-		D477AEAB16B7696200F3F8F6 /* oscilloscope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = oscilloscope.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -633,6 +633,8 @@
 				53CF370916B9C039001FCB05 /* Markers.h */,
 				53CF370A16B9C039001FCB05 /* Network.cpp */,
 				53CF370B16B9C039001FCB05 /* Network.h */,
+				53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */,
+				53ACC39716B9C59500ABD227 /* Oscilloscope.h */,
 				53CF370C16B9C039001FCB05 /* Particle.cpp */,
 				53CF370D16B9C039001FCB05 /* Particle.h */,
 				53CF370E16B9C039001FCB05 /* SerialInterface.cpp */,
@@ -1397,6 +1399,7 @@
 				53CF372816B9C039001FCB05 /* Texture.cpp in Sources */,
 				53CF372916B9C039001FCB05 /* UDPSocket.cpp in Sources */,
 				53CF372A16B9C039001FCB05 /* Util.cpp in Sources */,
+				53ACC39816B9C59500ABD227 /* Oscilloscope.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

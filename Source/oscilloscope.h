@@ -1,17 +1,17 @@
 //
-//  oscilloscope.h
+//  Oscilloscope.h
 //  interface
 //
 //  Created by Philip on 1/28/13.
-//  Copyright (c) 2013 Rosedale Lab. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__oscilloscope__
-#define __interface__oscilloscope__
+#ifndef __interface__Oscilloscope__
+#define __interface__Oscilloscope__
 
 #include "glm.hpp"
-#include "util.h"
-#include "world.h"
+#include "Util.h"
+#include "World.h"
 #include <GLUT/glut.h>
 #include <iostream>
 
