@@ -15,7 +15,6 @@
 		5325C25616AF4DBE0051A40B /* hand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23516AF4DBE0051A40B /* hand.cpp */; };
 		5325C25716AF4DBE0051A40B /* head.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23A16AF4DBE0051A40B /* head.cpp */; };
 		5325C25816AF4DBE0051A40B /* lattice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23C16AF4DBE0051A40B /* lattice.cpp */; };
-		5325C25916AF4DBE0051A40B /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23E16AF4DBE0051A40B /* lodepng.cpp */; };
 		5325C25A16AF4DBE0051A40B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24016AF4DBE0051A40B /* main.cpp */; };
 		5325C25B16AF4DBE0051A40B /* marker_acquisition_view.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */; };
 		5325C25C16AF4DBE0051A40B /* markers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24316AF4DBE0051A40B /* markers.cpp */; };
@@ -55,6 +54,7 @@
 		532C803C16AF3B1900B1A969 /* libportaudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C802816AF3B1900B1A969 /* libportaudio.a */; };
 		533B578716B2160C00FCABF1 /* grayson.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533B578516B2160600FCABF1 /* grayson.raw */; };
 		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
+		535B821116B9BED400D18440 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 535B820F16B9BED400D18440 /* lodepng.cpp */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
 		539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 539853CC16B765EE00B2D585 /* UDPSocket.cpp */; };
 		B6BDADE115F44A9D002A07DF /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDE15F444DB002A07DF /* CoreServices.framework */; };
@@ -105,8 +105,6 @@
 		5325C23B16AF4DBE0051A40B /* head.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = head.h; sourceTree = "<group>"; };
 		5325C23C16AF4DBE0051A40B /* lattice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lattice.cpp; sourceTree = "<group>"; };
 		5325C23D16AF4DBE0051A40B /* lattice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lattice.h; sourceTree = "<group>"; };
-		5325C23E16AF4DBE0051A40B /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
-		5325C23F16AF4DBE0051A40B /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		5325C24016AF4DBE0051A40B /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = marker_acquisition_view.cpp; sourceTree = "<group>"; };
 		5325C24216AF4DBE0051A40B /* marker_acquisition_view.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = marker_acquisition_view.h; sourceTree = "<group>"; };
@@ -515,6 +513,8 @@
 		532C802916AF3B1900B1A969 /* portaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = portaudio.h; sourceTree = "<group>"; };
 		533B578516B2160600FCABF1 /* grayson.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = grayson.raw; sourceTree = "<group>"; };
 		533BF9D316B31A3B00AC31BB /* jeska.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeska.raw; sourceTree = "<group>"; };
+		535B820F16B9BED400D18440 /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
+		535B821016B9BED400D18440 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
 		539853CC16B765EE00B2D585 /* UDPSocket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UDPSocket.cpp; sourceTree = "<group>"; };
 		539853CD16B765EE00B2D585 /* UDPSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UDPSocket.h; sourceTree = "<group>"; };
@@ -619,8 +619,6 @@
 				5325C23B16AF4DBE0051A40B /* head.h */,
 				5325C23C16AF4DBE0051A40B /* lattice.cpp */,
 				5325C23D16AF4DBE0051A40B /* lattice.h */,
-				5325C23E16AF4DBE0051A40B /* lodepng.cpp */,
-				5325C23F16AF4DBE0051A40B /* lodepng.h */,
 				5325C24016AF4DBE0051A40B /* main.cpp */,
 				5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */,
 				5325C24216AF4DBE0051A40B /* marker_acquisition_view.h */,
@@ -690,6 +688,7 @@
 			isa = PBXGroup;
 			children = (
 				532C7E9516AF3B1500B1A969 /* glm */,
+				535B820E16B9BED400D18440 /* LodePNG */,
 				532C7F7916AF3B1900B1A969 /* OpenCV */,
 				532C802716AF3B1900B1A969 /* PortAudio */,
 			);
@@ -1301,6 +1300,15 @@
 			path = PortAudio;
 			sourceTree = "<group>";
 		};
+		535B820E16B9BED400D18440 /* LodePNG */ = {
+			isa = PBXGroup;
+			children = (
+				535B820F16B9BED400D18440 /* lodepng.cpp */,
+				535B821016B9BED400D18440 /* lodepng.h */,
+			);
+			path = LodePNG;
+			sourceTree = "<group>";
+		};
 		536E784516B0A1C900A2F6F3 /* audio */ = {
 			isa = PBXGroup;
 			children = (
@@ -1373,7 +1381,6 @@
 				5325C25616AF4DBE0051A40B /* hand.cpp in Sources */,
 				5325C25716AF4DBE0051A40B /* head.cpp in Sources */,
 				5325C25816AF4DBE0051A40B /* lattice.cpp in Sources */,
-				5325C25916AF4DBE0051A40B /* lodepng.cpp in Sources */,
 				5325C25A16AF4DBE0051A40B /* main.cpp in Sources */,
 				5325C25B16AF4DBE0051A40B /* marker_acquisition_view.cpp in Sources */,
 				5325C25C16AF4DBE0051A40B /* markers.cpp in Sources */,
@@ -1386,6 +1393,7 @@
 				539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */,
 				5328864616B87E040041A07C /* AudioSource.cpp in Sources */,
 				5328864916B881710041A07C /* AudioData.cpp in Sources */,
+				535B821116B9BED400D18440 /* lodepng.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
