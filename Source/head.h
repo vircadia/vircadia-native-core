@@ -54,8 +54,7 @@ class Head {
 public:
     Head(void);
     void reset();
-    void UpdatePos(float frametime, int * adc_channels, float * avg_adc_channels, 
-                   int head_mirror, glm::vec3 * gravity);
+    void UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
     void setNoise (float mag) { noise = mag; }
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }

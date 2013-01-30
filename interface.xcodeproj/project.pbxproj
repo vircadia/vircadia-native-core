@@ -1379,6 +1379,7 @@
 				5325C26116AF4DBE0051A40B /* util.cpp in Sources */,
 				5325C26416AF4E2C0051A40B /* audio.cpp in Sources */,
 				D477AEAC16B7696200F3F8F6 /* oscilloscope.cpp in Sources */,
+				539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

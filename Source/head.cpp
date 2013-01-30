@@ -10,6 +10,7 @@
 #include "head.h"
 #include "util.h"
 #include "vector_angle.hpp"
+#include "SerialInterface.h"
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -58,14 +59,14 @@ void Head::reset()
     leanForward = leanSideways = 0;
 }
 
-void Head::UpdatePos(float frametime, int * adc_channels, float * avg_adc_channels, int head_mirror, glm::vec3 * gravity)
+void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_pitch_rate = adc_channels[PITCH_RATE] - avg_adc_channels[PITCH_RATE];
-    float measured_yaw_rate = adc_channels[YAW_RATE] - avg_adc_channels[YAW_RATE];
-    float measured_lateral_accel = adc_channels[ACCEL_X] - avg_adc_channels[ACCEL_X];
-    float measured_fwd_accel = avg_adc_channels[ACCEL_Z] - adc_channels[ACCEL_Z];
-    float measured_roll_rate = adc_channels[ROLL_RATE] - avg_adc_channels[ROLL_RATE];
+    float measured_pitch_rate = serialInterface->getRelativeValue(PITCH_RATE);
+    float measured_yaw_rate = serialInterface->getRelativeValue(YAW_RATE);
+    float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X);
+    float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z);
+    float measured_roll_rate = serialInterface->getRelativeValue(ROLL_RATE);
     
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.20;
@@ -82,20 +83,6 @@ void Head::UpdatePos(float frametime, int * adc_channels, float * avg_adc_channe
         addRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
-    
-    
-    //  Try to measure absolute roll from sensors 
-    const float MIN_ROLL = 3.0;
-    glm::vec3 v1(gravity->x, gravity->y, 0);
-    glm::vec3 v2(adc_channels[ACCEL_X], adc_channels[ACCEL_Y], 0);
-    float newRoll = acos(glm::dot(glm::normalize(v1), glm::normalize(v2))) ;
-    if (newRoll != NAN) {
-        newRoll *= 1000.0;
-        if (newRoll > MIN_ROLL) {
-            if (adc_channels[ACCEL_X] > gravity->x) newRoll *= -1.0;
-            //SetRoll(newRoll);
-        }
-    }
 }
 
 void Head::addLean(float x, float z) {
