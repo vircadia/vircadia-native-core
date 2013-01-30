@@ -10,9 +10,12 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <errno.h>
+#include <fstream>
 
 const int UDP_PORT = 55443; 
-const int MAX_PACKET_SIZE = 1024;
+
+const int BUFFER_LENGTH_BYTES = 1024;
+const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 
 const float SAMPLE_RATE = 22050.0;
 const int SAMPLES_PER_PACKET = 512;
@@ -22,9 +25,7 @@ const int LOGOFF_CHECK_INTERVAL = 1000;
 
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
 
-pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-int16_t* packet_buffer;
+int16_t* wc_noise_buffer;
 
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof(dest_address);
@@ -124,9 +125,7 @@ void *send_buffer_thread(void *args)
 
     int sent_bytes;
     timeval last_send, now;
-
-    gettimeofday(&last_send, NULL);
-    gettimeofday(&now, NULL);
+    int noise_byte_pointer = 0;
 
     while (true) {
         while (diffclock(last_send, now) < BUFFER_SEND_INTERVAL) {
@@ -140,23 +139,17 @@ void *send_buffer_thread(void *args)
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
                 sockaddr_in dest_address = agents[i].agent_addr;
-                
-                pthread_mutex_lock(&buffer_mutex);
-                
-                if (packet_buffer != NULL) {
-                    sent_bytes = sendto(handle, packet_buffer, MAX_PACKET_SIZE,
-                                0, (sockaddr *) &dest_address, sizeof(dest_address));
-                }
-                
-                pthread_mutex_unlock(&buffer_mutex);
-                
-                if (sent_bytes < MAX_PACKET_SIZE) {
+    
+                sent_bytes = sendto(handle, wc_noise_buffer + noise_byte_pointer, BUFFER_LENGTH_BYTES,
+                                    0, (sockaddr *) &dest_address, sizeof(dest_address));
+                noise_byte_pointer += BUFFER_LENGTH_SAMPLES;
+
+                if (sent_bytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sent_bytes << strerror(errno) << "\n";
                 }
             }
         }
 
-        packet_buffer = NULL;
         gettimeofday(&last_send, NULL);
     }  
 
@@ -173,18 +166,7 @@ void *process_client_packet(void *args)
     struct process_arg_struct *process_args = (struct process_arg_struct *) args;
     
     sockaddr_in dest_address = process_args->dest_address;
-    
-    pthread_mutex_lock(&buffer_mutex);
-    
-    if (packet_buffer == NULL) {
-        packet_buffer = process_args->packet_data;
-    } else {
-        for (int i = 0; i < MAX_PACKET_SIZE; i++) {
-            packet_buffer[i] = (process_args->packet_data[i] + packet_buffer[i]) / 2;
-        }
-    }
-
-    pthread_mutex_unlock(&buffer_mutex);
+    dest_address.sin_port = htons((uint16_t) 55444);
 
     if (addAgent(dest_address)) {
         std::cout << "Added agent: " << 
@@ -202,12 +184,30 @@ bool different_clients(sockaddr_in addr1, sockaddr_in addr2)
             addr1.sin_port != addr2.sin_port);
 }
 
+void white_noise_buffer_init() {
+    // open a pointer to the audio file
+    FILE *workclubFile = fopen("closer.raw", "r");
+    
+    // get length of file
+    std::fseek(workclubFile, 0, SEEK_END);
+    int lengthInSamples = std::ftell(workclubFile) / sizeof(int16_t);
+    std::rewind(workclubFile);
+    
+    // read that amount of samples from the file
+    wc_noise_buffer = new int16_t[lengthInSamples];
+    std::fread(wc_noise_buffer, sizeof(int16_t), lengthInSamples, workclubFile);
+    
+    // close it
+    std::fclose(workclubFile);
+}
+
 int main(int argc, const char * argv[])
 {
     timeval now, last_agent_update;
     int received_bytes = 0;
 
-    packet_buffer = NULL;
+    // read in the workclub white noise file as a base layer of audio
+    white_noise_buffer_init();
     
     int handle = network_init();
     
@@ -228,7 +228,7 @@ int main(int argc, const char * argv[])
 
     gettimeofday(&last_agent_update, NULL);
 
-    int16_t packet_data[MAX_PACKET_SIZE];
+    int16_t packet_data[BUFFER_LENGTH_SAMPLES];
 
     struct send_buffer_struct send_buffer_args;
     send_buffer_args.socket_handle = handle;
@@ -237,7 +237,7 @@ int main(int argc, const char * argv[])
     pthread_create(&buffer_send_thread, NULL, send_buffer_thread, (void *)&send_buffer_args);
 
     while (1) {
-        received_bytes = recvfrom(handle, (int16_t*)packet_data, MAX_PACKET_SIZE,
+        received_bytes = recvfrom(handle, (int16_t*)packet_data, BUFFER_LENGTH_BYTES,
                                       0, (sockaddr*)&dest_address, &destLength);    
 
         if (received_bytes > 0) {
