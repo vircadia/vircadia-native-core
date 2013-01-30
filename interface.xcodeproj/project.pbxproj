@@ -25,6 +25,8 @@
 		5325C26016AF4DBE0051A40B /* texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24B16AF4DBE0051A40B /* texture.cpp */; };
 		5325C26116AF4DBE0051A40B /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24D16AF4DBE0051A40B /* util.cpp */; };
 		5325C26416AF4E2C0051A40B /* audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C26216AF4E2C0051A40B /* audio.cpp */; };
+		5328864616B87E040041A07C /* AudioSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5328864416B87E040041A07C /* AudioSource.cpp */; };
+		5328864916B881710041A07C /* AudioData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5328864716B881710041A07C /* AudioData.cpp */; };
 		532C7AF216AF298D00B1A969 /* CVBlob.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C792A16AF298900B1A969 /* CVBlob.framework */; };
 		532C7CCC16AF301E00B1A969 /* grayson-particle.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC316AF298D00B1A969 /* grayson-particle.png */; };
 		532C7CCD16AF301E00B1A969 /* int-texture256-v2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC416AF298D00B1A969 /* int-texture256-v2.png */; };
@@ -124,6 +126,10 @@
 		5325C24F16AF4DBE0051A40B /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = world.h; sourceTree = "<group>"; };
 		5325C26216AF4E2C0051A40B /* audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = audio.cpp; sourceTree = "<group>"; };
 		5325C26316AF4E2C0051A40B /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
+		5328864416B87E040041A07C /* AudioSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioSource.cpp; sourceTree = "<group>"; };
+		5328864516B87E040041A07C /* AudioSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioSource.h; sourceTree = "<group>"; };
+		5328864716B881710041A07C /* AudioData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioData.cpp; sourceTree = "<group>"; };
+		5328864816B881710041A07C /* AudioData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioData.h; sourceTree = "<group>"; };
 		532C792A16AF298900B1A969 /* CVBlob.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CVBlob.framework; path = Frameworks/CVBlob.framework; sourceTree = "<group>"; };
 		532C7AC316AF298D00B1A969 /* grayson-particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "grayson-particle.png"; sourceTree = "<group>"; };
 		532C7AC416AF298D00B1A969 /* int-texture256-v2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v2.png"; sourceTree = "<group>"; };
@@ -638,6 +644,10 @@
 				5325C24F16AF4DBE0051A40B /* world.h */,
 				539853CC16B765EE00B2D585 /* UDPSocket.cpp */,
 				539853CD16B765EE00B2D585 /* UDPSocket.h */,
+				5328864416B87E040041A07C /* AudioSource.cpp */,
+				5328864516B87E040041A07C /* AudioSource.h */,
+				5328864716B881710041A07C /* AudioData.cpp */,
+				5328864816B881710041A07C /* AudioData.h */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -1380,6 +1390,8 @@
 				5325C26416AF4E2C0051A40B /* audio.cpp in Sources */,
 				D477AEAC16B7696200F3F8F6 /* oscilloscope.cpp in Sources */,
 				539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */,
+				5328864616B87E040041A07C /* AudioSource.cpp in Sources */,
+				5328864916B881710041A07C /* AudioData.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
