@@ -12,6 +12,7 @@
 #include <iostream>
 #include "portaudio.h"
 #include "head.h"
+#include "AudioData.h"
 
 #define BUFFER_LENGTH_BYTES 1024
 #define PHASE_DELAY_AT_90 20
@@ -28,29 +29,10 @@ public:
     
     // terminates audio I/O
     static bool terminate(); 
-private:
-    struct AudioSource {
-        glm::vec3 position;
-        int16_t *audioData;
-        int lengthInSamples;
-        int samplePointer;
-        
-        AudioSource() { samplePointer = 0; }
-        ~AudioSource();
-    };
-    
-    static void readFile(const char *filename, struct AudioSource *source);
+private:    
     static bool initialized;
     
-    static struct AudioData {
-        Head* linkedHead;
-        AudioSource sources[NUM_AUDIO_SOURCES];
-        
-        int16_t *samplesToQueue;
-    
-        AudioData();
-        ~AudioData();
-    } *data;
+    static AudioData *data;
     
     // protects constructor so that public init method is used
     Audio();
