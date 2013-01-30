@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Kenneth Keiter <ken@kenkeiter.com> on 12/11/12.
-//  Copyright (c) 2012 Rosedale Lab. All rights reserved.
+//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
 #include "markers.h"

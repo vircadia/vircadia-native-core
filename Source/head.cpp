@@ -33,6 +33,7 @@ Head::Head()
     interPupilDistance = 0.6;
     interBrowDistance = 0.75;
     NominalPupilSize = 0.10;
+    Yaw = 0.0;
     EyebrowPitch[0] = EyebrowPitch[1] = BrowPitchAngle[0];
     EyebrowRoll[0] = 30;
     EyebrowRoll[1] = -30;
