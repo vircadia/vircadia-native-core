@@ -163,15 +163,19 @@ int speed;
 //  Serial USB Variables
 // 
 
+SerialInterface serialPort;
+char serial_portname[] = "/dev/tty.usbmodem411";
+
 int serial_on = 0; 
 int latency_display = 1;
-int adc_channels[NUM_CHANNELS];                
-float avg_adc_channels[NUM_CHANNELS];
-int sensor_samples = 0; 
-int sensor_LED = 0; 
+//int adc_channels[NUM_CHANNELS];
+//float avg_adc_channels[NUM_CHANNELS];
+//int sensor_samples = 0;
+//int sensor_LED = 0;
+
 glm::vec3 gravity;
 int first_measurement = 1;
-int samplecount = 0;
+//int samplecount = 0;
 
 //  Frame rate Measurement
 
@@ -220,7 +224,6 @@ void Timer(int extra)
     packets_per_second = (float)packetcount / ((float)diffclock(timer_start,timer_end) / 1000.f);
     bytes_per_second = (float)bytescount / ((float)diffclock(timer_start,timer_end) / 1000.f);
    	framecount = 0;
-    samplecount = 0; 
     packetcount = 0;
     bytescount = 0;
     
@@ -244,7 +247,7 @@ void display_stats(void)
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
     if (serial_on) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
-                sensor_samples, sensor_LED);
+                serialPort.getNumSamples(), serialPort.getLED());
         drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
     }
 #ifdef MARKER_CAPTURE
@@ -309,8 +312,6 @@ void initDisplay(void)
 
 void init(void)
 {
-    int i;
-
     myHead.setRenderYaw(start_yaw);
     
     if (audio_on) {
@@ -320,13 +321,6 @@ void init(void)
             Audio::init();
         }
         printf( "Audio started.\n" );
-    }
-
-    //  Clear serial channels 
-    for (i = i; i < NUM_CHANNELS; i++)
-    {
-        adc_channels[i] = 0;
-        avg_adc_channels[i] = 0.0;
     }
 
     head_mouse_x = WIDTH/2;
@@ -349,17 +343,16 @@ void init(void)
         //  Call readsensors for a while to get stable initial values on sensors    
         printf( "Stabilizing sensors... " );
         gettimeofday(&timer_start, NULL);
-        read_sensors(1, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
         int done = 0;
         while (!done)
         {
-            read_sensors(0, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
+            serialPort.readData();
             gettimeofday(&timer_end, NULL);
             if (diffclock(timer_start,timer_end) > 1000) done = 1;
         }
-        gravity.x = avg_adc_channels[ACCEL_X];
-        gravity.y = avg_adc_channels[ACCEL_Y];
-        gravity.z = avg_adc_channels[ACCEL_Z];
+        gravity.x = serialPort.getValue(ACCEL_X);
+        gravity.y = serialPort.getValue(ACCEL_Y);
+        gravity.z = serialPort.getValue(ACCEL_Z);
         
         std::cout << "Gravity:  " << gravity.x << "," << gravity.y << "," << gravity.z << "\n";
         printf( "Done.\n" );
@@ -413,18 +406,18 @@ void reset_sensors()
     
     myHead.reset();
     myHand.reset();
-    if (serial_on) read_sensors(1, &avg_adc_channels[0], &adc_channels[0], &sensor_samples, &sensor_LED);
+    if (serial_on) serialPort.resetTrailingAverages();
 }
 
 void update_pos(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_pitch_rate = adc_channels[PITCH_RATE] - avg_adc_channels[PITCH_RATE];
-    float measured_yaw_rate = adc_channels[YAW_RATE] - avg_adc_channels[YAW_RATE];
-    float measured_lateral_accel = adc_channels[ACCEL_X] - avg_adc_channels[ACCEL_X];
-    float measured_fwd_accel = avg_adc_channels[ACCEL_Z] - adc_channels[ACCEL_Z];
+    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
+    float measured_yaw_rate = serialPort.getRelativeValue(YAW_RATE);
+    float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
+    float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
-    myHead.UpdatePos(frametime, &adc_channels[0], &avg_adc_channels[0], head_mirror, &gravity);
+    myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
     
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
@@ -668,54 +661,11 @@ void display(void)
             
         }
         
-        //  Show detected levels from the serial I/O ADC channel sensors
-        if (display_levels)
-        {
-            int i;
-            int disp_x = 10;
-            const int GAP = 16;
-            char val[10];
-            for(i = 0; i < NUM_CHANNELS; i++)
-            {
-                //  Actual value 
-                glLineWidth(2.0);
-                glColor4f(1, 1, 1, 1);
-                glBegin(GL_LINES);
-                    glVertex2f(disp_x, HEIGHT*0.95);
-                    glVertex2f(disp_x, HEIGHT*(0.25 + 0.75f*adc_channels[i]/4096));
-                glEnd();
-                //  Trailing Average value 
-                glColor4f(1, 1, 0, 1);
-                glBegin(GL_LINES);
-                    glVertex2f(disp_x + 2, HEIGHT*0.95);
-                    glVertex2f(disp_x + 2, HEIGHT*(0.25 + 0.75f*avg_adc_channels[i]/4096));
-                glEnd();
-
-                glColor3f(1,0,0);
-                glBegin(GL_LINES);
-                glLineWidth(2.0);
-                glVertex2f(disp_x - 10, HEIGHT*0.5 - (adc_channels[i] - avg_adc_channels[i]));
-                glVertex2f(disp_x + 10, HEIGHT*0.5 - (adc_channels[i] - avg_adc_channels[i]));
-                glEnd();
-                sprintf(val, "%d", adc_channels[i]); 
-                drawtext(disp_x-GAP/2, (HEIGHT*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
-
-                disp_x += GAP;
-            }
-            //  Display Serial latency block 
-            if (latency_display && sensor_LED) {
-                glColor3f(1,0,0);
-                glBegin(GL_QUADS); {
-                    glVertex2f(WIDTH - 100, HEIGHT - 100);
-                    glVertex2f(WIDTH, HEIGHT - 100);
-                    glVertex2f(WIDTH, HEIGHT);
-                    glVertex2f(WIDTH - 100, HEIGHT);
-                }
-                glEnd();
-            }
-        }
-
-        if (stats_on) display_stats();
+    //  Show detected levels from the serial I/O ADC channel sensors
+    if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);
+    
+    //  Display miscellaneous text stats onscreen
+    if (stats_on) display_stats();
 
 #ifdef MARKER_CAPTURE
         /* Render marker acquisition stuff */
@@ -894,9 +844,7 @@ void idle(void)
     //  Read network packets
     read_network();
     //  Read serial data 
-    if (serial_on) samplecount += read_sensors(0, &avg_adc_channels[0], &adc_channels[0], 
-                                               &sensor_samples, &sensor_LED);
-    
+    if (serial_on) serialPort.readData();
     if (SLEEP)
     {
         usleep(SLEEP);
@@ -997,8 +945,8 @@ int main(int argc, char** argv)
     //
     //  Try to connect the serial port I/O
     //
-    if(init_port(115200) == -1) {				
-        perror("Unable to open serial port\n");
+    if(serialPort.init(serial_portname, 115200) == -1) {
+        printf("Unable to open serial port: %s\n", serial_portname);
         serial_on = 0;
     } 
     else 
