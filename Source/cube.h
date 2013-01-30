@@ -1,16 +1,16 @@
 //
-//  cube.h
+//  Cube.h
 //  interface
 //
 //  Created by Philip on 12/31/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_cube_h
-#define interface_cube_h
+#ifndef __interface__Cube__
+#define __interface__Cube__
 
 #include "glm.hpp"
-#include "util.h"
+#include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>
 #include <iostream>

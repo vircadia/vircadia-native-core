@@ -1,5 +1,5 @@
 //
-//  network.cpp
+//  Network.cpp
 //  interface
 //
 //  Created by Philip Rosedale on 8/27/12.
@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <stdio.h>
-#include "network.h"
+#include "Network.h"
  
 
 //  Implementation of optional delay behavior using a ring buffer

@@ -1,12 +1,12 @@
 //
-//  cube.cpp
+//  Cube.cpp
 //  interface
 //
 //  Created by Philip on 12/31/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "cube.h"
+#include "Cube.h"
 
 #define MAX_CUBES 250000
 #define SMALLEST_CUBE 0.2

@@ -1,5 +1,5 @@
 //
-//  agent.cpp
+//  Agent.cpp
 //  interface
 //
 //  Created by Philip Rosedale on 11/20/12.
@@ -7,8 +7,8 @@
 //
 
 #include <iostream>
-#include "agent.h"
-#include "head.h" 
+#include "Agent.h"
+#include "Head.h" 
 
 //  Structure to hold references to other agents that are nearby 
 

@@ -1,16 +1,16 @@
 //
-//  particle.h
+//  Particle.h
 //  interface
 //
 //  Created by Seiji Emery on 9/4/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_particle_h
-#define interface_particle_h
+#ifndef __interface__Particle__
+#define __interface__Particle__
 
 #include "glm.hpp"
-#include "util.h"
+#include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>
 

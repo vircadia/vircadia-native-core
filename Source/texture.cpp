@@ -1,12 +1,12 @@
 //
-//  texture.cpp
+//  Texture.cpp
 //  interface
 //
 //  Added by Yoz on 11/5/12.
 //
 //  Code lifted from http://en.wikibooks.org/wiki/OpenGL_Programming/Intermediate/Textures
 
-#include "texture.h"
+#include "Texture.h"
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>

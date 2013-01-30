@@ -1,12 +1,12 @@
 //
-//  hand.cpp
+//  Hand.cpp
 //  interface
 //
 //  Created by Philip Rosedale on 10/13/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "hand.h"
+#include "Hand.h"
 
 const float DEFAULT_X = 0.0; 
 const float DEFAULT_Y = 0.0; 

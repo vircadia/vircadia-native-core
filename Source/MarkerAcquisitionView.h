@@ -1,13 +1,13 @@
 //
-//  marker_acquisition_view.h
+//  MarkerAcquisitionView.h
 //  interface
 //
 //  Created by Kenneth Keiter on 12/12/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__marker_acquisition_view__
-#define __interface__marker_acquisition_view__
+#ifndef __interface__MarkerAcquisitionView__
+#define __interface__MarkerAcquisitionView__
 
 #include <iostream>
 #include <vector.h>
@@ -15,7 +15,7 @@
 #include <GLUT/glut.h>
 #include <CVBlob/blob.h>
 #include <CVBlob/BlobResult.h>
-#include "markers.h"
+#include "Markers.h"
 
 #define ACQ_VIEW_RETICLE_RADIUS 10
 

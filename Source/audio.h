@@ -1,17 +1,17 @@
 //
-//  audio.h
+//  Audio.h
 //  interface
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__audio__
-#define __interface__audio__
+#ifndef __interface__Audio__
+#define __interface__Audio__
 
 #include <iostream>
 #include "portaudio.h"
-#include "head.h"
+#include "Head.h"
 #include "AudioData.h"
 
 class Audio {

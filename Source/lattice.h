@@ -1,16 +1,16 @@
 //
-//  lattice.h
+//  Lattice.h
 //  interface
 //
 //  Created by Philip on 1/19/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__lattice__
-#define __interface__lattice__
+#ifndef __interface__Lattice__
+#define __interface__Lattice__
 
 #include "glm.hpp"
-#include "util.h"
+#include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>
 #include <iostream>

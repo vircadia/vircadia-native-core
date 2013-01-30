@@ -1,20 +1,20 @@
 //
-//  network.h
+//  Network.h
 //  interface
 //
 //  Created by Philip Rosedale on 8/27/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_network_h
-#define interface_network_h
+#ifndef __interface__Network__
+#define __interface__Network__
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/time.h>
-#include "util.h"
+#include "Util.h"
 
 //  Port to use for communicating UDP with other nearby agents 
 const int MAX_PACKET_SIZE = 1500;

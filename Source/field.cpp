@@ -1,12 +1,12 @@
 //
-//  field.cpp
+//  Field.cpp
 //  interface
 //
 //  Created by Philip Rosedale on 8/23/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "field.h"
+#include "Field.h"
 #include "glm.hpp"
 #define FIELD_SCALE 0.00050
 #define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color

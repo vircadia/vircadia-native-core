@@ -1,12 +1,12 @@
 //
-//  marker_acquisition_view.cpp
+//  MarkerAcquisitionView.cpp
 //  interface
 //
 //  Created by Kenneth Keiter on 12/12/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "marker_acquisition_view.h"
+#include "MarkerAcquisitionView.h"
 #include <GLUT/glut.h>
 #include <opencv2/opencv.hpp>
 
