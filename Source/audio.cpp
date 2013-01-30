@@ -3,18 +3,40 @@
 //  interface
 //
 //  Created by Stephen Birarda on 1/22/13.
-//  Copyright (c) 2013 Rosedale Lab. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc.. All rights reserved.
 //
 
 #include <iostream>
 #include <fstream>
 #include "audio.h"
+#include "util.h"
 
 bool Audio::initialized;
 PaError Audio::err;
 PaStream *Audio::stream;
 Audio::AudioData *Audio::data;
 
+
+Audio::AudioSource::~AudioSource()
+{
+    delete[] audioData;
+}
+
+Audio::AudioData::AudioData() {
+    for(int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+        sources[s] = AudioSource();
+    }
+    
+    samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES / sizeof(int16_t)];
+}
+
+Audio::AudioData::~AudioData() {
+    for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+        sources[s].AudioSource::~AudioSource();
+    }
+    
+    delete[] samplesToQueue;
+}
 
 /**
  * Audio callback used by portaudio.
@@ -48,60 +70,57 @@ int audioCallback (const void *inputBuffer,
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
     
-//    float yawRatio = 0;
-//    int numSamplesDelay = abs(floor(yawRatio * PHASE_DELAY_AT_90));
-//    
-//    if (numSamplesDelay > PHASE_DELAY_AT_90) {
-//        numSamplesDelay = PHASE_DELAY_AT_90;
-//    }
-//    
-//    int16_t *leadingBuffer = yawRatio > 0 ? outputLeft : outputRight;
-//    int16_t *trailingBuffer = yawRatio > 0 ? outputRight : outputLeft;
-//    
-    int16_t *samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES];
+    memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
+    memset(outputRight, 0, BUFFER_LENGTH_BYTES);
     
-    for (int s = 0; s < AUDIO_SOURCES; s++) {
-        int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (data->sources[s].lengthInSamples - data->sources[s].samplePointer);
-        
-        if (wrapAroundSamples <= 0) {
-            memcpy(samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, BUFFER_LENGTH_BYTES);
-            data->sources[s].samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
-        } else {
-            memcpy(samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, (data->sources[s].lengthInSamples - data->sources[s].samplePointer) * sizeof(int16_t));
-            memcpy(samplesToQueue + (data->sources[s].lengthInSamples - data->sources[s].samplePointer), data->sources[s].audioData, wrapAroundSamples * sizeof(int16_t));
-            data->sources[s].samplePointer = wrapAroundSamples;
-        }
+    for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
         
         glm::vec3 headPos = data->linkedHead->getPos();
         glm::vec3 sourcePos = data->sources[s].position;
+    
+        int startPointer = data->sources[s].samplePointer;
+        int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (data->sources[s].lengthInSamples - data->sources[s].samplePointer);
+        
+        if (wrapAroundSamples <= 0) {
+            memcpy(data->samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, BUFFER_LENGTH_BYTES);
+            data->sources[s].samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
+        } else {
+            memcpy(data->samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, (data->sources[s].lengthInSamples - data->sources[s].samplePointer) * sizeof(int16_t));
+            memcpy(data->samplesToQueue + (data->sources[s].lengthInSamples - data->sources[s].samplePointer), data->sources[s].audioData, wrapAroundSamples * sizeof(int16_t));
+            data->sources[s].samplePointer = wrapAroundSamples;
+        }
         
         float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
-        float amplitudeRatio = powf(0.5, cbrtf(distance * 10));
-    
+        float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
+        
+        float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
+        float sinRatio = sqrt(fabsf(sinf(angleToSource)));
+        int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+        
+        float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
+        
+        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
+        
+        int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
+        int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
         
         for (int i = 0; i < BUFFER_LENGTH_BYTES / sizeof(int16_t); i++) {
-            samplesToQueue[i] *= amplitudeRatio;
-            outputLeft[i] = s == 0 ? samplesToQueue[i] : outputLeft[i] + samplesToQueue[i];
-        }
-        
-        if (wrapAroundSamples > 0) {
-            delete[] samplesToQueue;
+            data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
+            leadingOutput[i] += data->samplesToQueue[i];
+            
+            if (i >= numSamplesDelay) {
+                trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
+            } else {
+                int sampleIndex = startPointer - numSamplesDelay + i;
+                
+                if (sampleIndex < 0) {
+                    sampleIndex += data->sources[s].lengthInSamples;
+                }
+                
+                trailingOutput[i] += data->sources[s].audioData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
+            }
         }
     }
-
-    for (int f = 0; f < BUFFER_LENGTH_BYTES; f++) {
-        outputLeft[f] = (int) floor(outputLeft[f] / AUDIO_SOURCES);
-        outputRight[f] = outputLeft[f];
-    }
-
-
-//    int offsetBytes = numSamplesDelay * sizeof(int16_t);
-//    memcpy(trailingBuffer, data->sources[1].delayBuffer + (PHASE_DELAY_AT_90 - numSamplesDelay), offsetBytes);
-//    memcpy(trailingBuffer + numSamplesDelay, samplesToQueue, BUFFER_LENGTH_BYTES - offsetBytes);
-    
-    
-//    // copy PHASE_DELAY_AT_90 samples to delayBuffer in case we need it next go around
-//    memcpy(data->sources[1].delayBuffer, data->sources[1].audioData + data->sources[1].samplePointer - PHASE_DELAY_AT_90, PHASE_DELAY_AT_90 * sizeof(int16_t));
     
     return paContinue;
 }
@@ -127,6 +146,12 @@ bool Audio::init(Head* mainHead)
     err = Pa_Initialize();
     if (err != paNoError) goto error;
     
+    data->sources[0].position = glm::vec3(6, 0, -1);
+    readFile("jeska.raw", &data->sources[0]);
+    
+    data->sources[1].position = glm::vec3(6, 0, 6);
+    readFile("grayson.raw", &data->sources[1]);
+    
     err = Pa_OpenDefaultStream(&stream,
                                NULL,       // input channels
                                2,       // output channels
@@ -136,12 +161,6 @@ bool Audio::init(Head* mainHead)
                                audioCallback, // callback function
                                (void *) data);  // user data to be passed to callback
     if (err != paNoError) goto error;
-    
-    data->sources[0].position = glm::vec3(3, 0, -1);
-    readFile("love.raw", &data->sources[0]);
-    
-    data->sources[1].position = glm::vec3(-1, 0, 3);
-    readFile("grayson.raw", &data->sources[1]);
     
     initialized = true;
     
@@ -161,22 +180,17 @@ error:
 void Audio::sourceSetup()
 {
     if (initialized) {
-        // render gl objects on screen for our sources
-        glPushMatrix();
         
-        glTranslatef(data->sources[0].position[0], data->sources[0].position[1], data->sources[0].position[2]);
-        glColor3f(1, 0, 0);
-        glutSolidCube(0.5);
-        
-        glPopMatrix();
-        
-        glPushMatrix();
-        
-        glTranslatef(data->sources[1].position[0], data->sources[1].position[1], data->sources[1].position[2]);
-        glColor3f(0, 0, 1);
-        glutSolidCube(0.5);
-        
-        glPopMatrix();
+        for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+            // render gl objects on screen for our sources
+            glPushMatrix();
+            
+            glTranslatef(data->sources[s].position[0], data->sources[s].position[1], data->sources[s].position[2]);
+            glColor3f((s == 0 ? 1 : 0), (s == 1 ? 1 : 0), (s == 2 ? 1 : 0));
+            glutSolidCube(0.5);
+            
+            glPopMatrix();
+        }
     }
 }
 

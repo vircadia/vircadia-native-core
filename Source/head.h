@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef interface_head_h
@@ -23,6 +23,7 @@ class Head {
     float PitchRate;
     float YawRate;
     float RollRate;
+    float renderYaw;
     float EyeballPitch[2];
     float EyeballYaw[2];
     float EyebrowPitch[2];
@@ -59,6 +60,7 @@ public:
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
     void setRoll(float r) {Roll = r; };
+    void setRenderYaw(float y) {renderYaw = y;}
     void setLeanForward(float dist);
     void setLeanSideways(float dist);
     void addPitch(float p) {Pitch -= p; }
@@ -68,6 +70,7 @@ public:
     float getPitch() {return Pitch;}
     float getRoll() {return Roll;}
     float getYaw() {return Yaw;}
+    float getRenderYaw() {return renderYaw;}
     void render();
     void simulate(float);
     //  Send and receive network data 

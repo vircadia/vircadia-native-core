@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Seiji Emery on 9/4/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef interface_particle_h
