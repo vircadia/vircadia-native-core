@@ -1,5 +1,5 @@
 //
-//  head.cpp
+//  Head.cpp
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
@@ -7,8 +7,8 @@
 //
 
 #include <iostream>
-#include "head.h"
-#include "util.h"
+#include "Head.h"
+#include "Util.h"
 #include "vector_angle.hpp"
 
 float skinColor[] = {1.0, 0.84, 0.66};

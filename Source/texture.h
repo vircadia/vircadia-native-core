@@ -1,13 +1,13 @@
 //
-//  texture.h
+//  Texture.h
 //  interface
 //
 //  Created by Yoz Work on 11/5/12.
 //
 //
 
-#ifndef __interface__texture__
-#define __interface__texture__
+#ifndef __interface__Texture__
+#define __interface__Texture__
 
 #include <iostream>
 #ifdef __APPLE__

@@ -7,25 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5325C25016AF4DBE0051A40B /* agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22916AF4DBE0051A40B /* agent.cpp */; };
-		5325C25216AF4DBE0051A40B /* cloud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22D16AF4DBE0051A40B /* cloud.cpp */; };
-		5325C25316AF4DBE0051A40B /* cube.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C22F16AF4DBE0051A40B /* cube.cpp */; };
-		5325C25416AF4DBE0051A40B /* field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23116AF4DBE0051A40B /* field.cpp */; };
-		5325C25516AF4DBE0051A40B /* finger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23316AF4DBE0051A40B /* finger.cpp */; };
-		5325C25616AF4DBE0051A40B /* hand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23516AF4DBE0051A40B /* hand.cpp */; };
-		5325C25716AF4DBE0051A40B /* head.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23A16AF4DBE0051A40B /* head.cpp */; };
-		5325C25816AF4DBE0051A40B /* lattice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C23C16AF4DBE0051A40B /* lattice.cpp */; };
-		5325C25A16AF4DBE0051A40B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24016AF4DBE0051A40B /* main.cpp */; };
-		5325C25B16AF4DBE0051A40B /* marker_acquisition_view.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */; };
-		5325C25C16AF4DBE0051A40B /* markers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24316AF4DBE0051A40B /* markers.cpp */; };
-		5325C25D16AF4DBE0051A40B /* network.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24516AF4DBE0051A40B /* network.cpp */; };
-		5325C25E16AF4DBE0051A40B /* particle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24716AF4DBE0051A40B /* particle.cpp */; };
-		5325C25F16AF4DBE0051A40B /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24916AF4DBE0051A40B /* SerialInterface.cpp */; };
-		5325C26016AF4DBE0051A40B /* texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24B16AF4DBE0051A40B /* texture.cpp */; };
-		5325C26116AF4DBE0051A40B /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C24D16AF4DBE0051A40B /* util.cpp */; };
-		5325C26416AF4E2C0051A40B /* audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5325C26216AF4E2C0051A40B /* audio.cpp */; };
-		5328864616B87E040041A07C /* AudioSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5328864416B87E040041A07C /* AudioSource.cpp */; };
-		5328864916B881710041A07C /* AudioData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5328864716B881710041A07C /* AudioData.cpp */; };
 		532C7AF216AF298D00B1A969 /* CVBlob.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 532C792A16AF298900B1A969 /* CVBlob.framework */; };
 		532C7CCC16AF301E00B1A969 /* grayson-particle.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC316AF298D00B1A969 /* grayson-particle.png */; };
 		532C7CCD16AF301E00B1A969 /* int-texture256-v2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 532C7AC416AF298D00B1A969 /* int-texture256-v2.png */; };
@@ -56,7 +37,26 @@
 		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
 		535B821116B9BED400D18440 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 535B820F16B9BED400D18440 /* lodepng.cpp */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
-		539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 539853CC16B765EE00B2D585 /* UDPSocket.cpp */; };
+		53CF371716B9C039001FCB05 /* Agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EC16B9C039001FCB05 /* Agent.cpp */; };
+		53CF371816B9C039001FCB05 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EE16B9C039001FCB05 /* Audio.cpp */; };
+		53CF371916B9C039001FCB05 /* AudioData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F016B9C039001FCB05 /* AudioData.cpp */; };
+		53CF371A16B9C039001FCB05 /* AudioSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F216B9C039001FCB05 /* AudioSource.cpp */; };
+		53CF371B16B9C039001FCB05 /* Cloud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F416B9C039001FCB05 /* Cloud.cpp */; };
+		53CF371C16B9C039001FCB05 /* Cube.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F616B9C039001FCB05 /* Cube.cpp */; };
+		53CF371D16B9C039001FCB05 /* Field.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36F816B9C039001FCB05 /* Field.cpp */; };
+		53CF371E16B9C039001FCB05 /* Finger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36FA16B9C039001FCB05 /* Finger.cpp */; };
+		53CF371F16B9C039001FCB05 /* Hand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36FC16B9C039001FCB05 /* Hand.cpp */; };
+		53CF372016B9C039001FCB05 /* Head.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370116B9C039001FCB05 /* Head.cpp */; };
+		53CF372116B9C039001FCB05 /* Lattice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370316B9C039001FCB05 /* Lattice.cpp */; };
+		53CF372216B9C039001FCB05 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370516B9C039001FCB05 /* main.cpp */; };
+		53CF372316B9C039001FCB05 /* MarkerAcquisitionView.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370616B9C039001FCB05 /* MarkerAcquisitionView.cpp */; };
+		53CF372416B9C039001FCB05 /* Markers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370816B9C039001FCB05 /* Markers.cpp */; };
+		53CF372516B9C039001FCB05 /* Network.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370A16B9C039001FCB05 /* Network.cpp */; };
+		53CF372616B9C039001FCB05 /* Particle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370C16B9C039001FCB05 /* Particle.cpp */; };
+		53CF372716B9C039001FCB05 /* SerialInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF370E16B9C039001FCB05 /* SerialInterface.cpp */; };
+		53CF372816B9C039001FCB05 /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF371016B9C039001FCB05 /* Texture.cpp */; };
+		53CF372916B9C039001FCB05 /* UDPSocket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF371216B9C039001FCB05 /* UDPSocket.cpp */; };
+		53CF372A16B9C039001FCB05 /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF371416B9C039001FCB05 /* Util.cpp */; };
 		B6BDADE115F44A9D002A07DF /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDE15F444DB002A07DF /* CoreServices.framework */; };
 		B6BDADE215F44AA5002A07DF /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADD815F444C1002A07DF /* CoreAudio.framework */; };
 		B6BDADE315F44AB0002A07DF /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */; };
@@ -88,45 +88,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5325C22916AF4DBE0051A40B /* agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = agent.cpp; sourceTree = "<group>"; };
-		5325C22A16AF4DBE0051A40B /* agent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = agent.h; sourceTree = "<group>"; };
-		5325C22D16AF4DBE0051A40B /* cloud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cloud.cpp; sourceTree = "<group>"; };
-		5325C22E16AF4DBE0051A40B /* cloud.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cloud.h; sourceTree = "<group>"; };
-		5325C22F16AF4DBE0051A40B /* cube.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cube.cpp; sourceTree = "<group>"; };
-		5325C23016AF4DBE0051A40B /* cube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cube.h; sourceTree = "<group>"; };
-		5325C23116AF4DBE0051A40B /* field.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = field.cpp; sourceTree = "<group>"; };
-		5325C23216AF4DBE0051A40B /* field.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = field.h; sourceTree = "<group>"; };
-		5325C23316AF4DBE0051A40B /* finger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = finger.cpp; sourceTree = "<group>"; };
-		5325C23416AF4DBE0051A40B /* finger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = finger.h; sourceTree = "<group>"; };
-		5325C23516AF4DBE0051A40B /* hand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hand.cpp; sourceTree = "<group>"; };
-		5325C23616AF4DBE0051A40B /* hand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hand.h; sourceTree = "<group>"; };
-		5325C23916AF4DBE0051A40B /* head_hand.pde */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = head_hand.pde; sourceTree = "<group>"; };
-		5325C23A16AF4DBE0051A40B /* head.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = head.cpp; sourceTree = "<group>"; };
-		5325C23B16AF4DBE0051A40B /* head.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = head.h; sourceTree = "<group>"; };
-		5325C23C16AF4DBE0051A40B /* lattice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lattice.cpp; sourceTree = "<group>"; };
-		5325C23D16AF4DBE0051A40B /* lattice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lattice.h; sourceTree = "<group>"; };
-		5325C24016AF4DBE0051A40B /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = marker_acquisition_view.cpp; sourceTree = "<group>"; };
-		5325C24216AF4DBE0051A40B /* marker_acquisition_view.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = marker_acquisition_view.h; sourceTree = "<group>"; };
-		5325C24316AF4DBE0051A40B /* markers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = markers.cpp; sourceTree = "<group>"; };
-		5325C24416AF4DBE0051A40B /* markers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = markers.h; sourceTree = "<group>"; };
-		5325C24516AF4DBE0051A40B /* network.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = network.cpp; sourceTree = "<group>"; };
-		5325C24616AF4DBE0051A40B /* network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = network.h; sourceTree = "<group>"; };
-		5325C24716AF4DBE0051A40B /* particle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = particle.cpp; sourceTree = "<group>"; };
-		5325C24816AF4DBE0051A40B /* particle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = particle.h; sourceTree = "<group>"; };
-		5325C24916AF4DBE0051A40B /* SerialInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialInterface.cpp; sourceTree = "<group>"; };
-		5325C24A16AF4DBE0051A40B /* SerialInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SerialInterface.h; sourceTree = "<group>"; };
-		5325C24B16AF4DBE0051A40B /* texture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = texture.cpp; sourceTree = "<group>"; };
-		5325C24C16AF4DBE0051A40B /* texture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = texture.h; sourceTree = "<group>"; };
-		5325C24D16AF4DBE0051A40B /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
-		5325C24E16AF4DBE0051A40B /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
-		5325C24F16AF4DBE0051A40B /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = world.h; sourceTree = "<group>"; };
-		5325C26216AF4E2C0051A40B /* audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = audio.cpp; sourceTree = "<group>"; };
-		5325C26316AF4E2C0051A40B /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
-		5328864416B87E040041A07C /* AudioSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioSource.cpp; sourceTree = "<group>"; };
-		5328864516B87E040041A07C /* AudioSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioSource.h; sourceTree = "<group>"; };
-		5328864716B881710041A07C /* AudioData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioData.cpp; sourceTree = "<group>"; };
-		5328864816B881710041A07C /* AudioData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioData.h; sourceTree = "<group>"; };
 		532C792A16AF298900B1A969 /* CVBlob.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CVBlob.framework; path = Frameworks/CVBlob.framework; sourceTree = "<group>"; };
 		532C7AC316AF298D00B1A969 /* grayson-particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "grayson-particle.png"; sourceTree = "<group>"; };
 		532C7AC416AF298D00B1A969 /* int-texture256-v2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "int-texture256-v2.png"; sourceTree = "<group>"; };
@@ -516,8 +477,47 @@
 		535B820F16B9BED400D18440 /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
 		535B821016B9BED400D18440 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
-		539853CC16B765EE00B2D585 /* UDPSocket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UDPSocket.cpp; sourceTree = "<group>"; };
-		539853CD16B765EE00B2D585 /* UDPSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UDPSocket.h; sourceTree = "<group>"; };
+		53CF36EC16B9C039001FCB05 /* Agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Agent.cpp; sourceTree = "<group>"; };
+		53CF36ED16B9C039001FCB05 /* Agent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Agent.h; sourceTree = "<group>"; };
+		53CF36EE16B9C039001FCB05 /* Audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
+		53CF36EF16B9C039001FCB05 /* Audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Audio.h; sourceTree = "<group>"; };
+		53CF36F016B9C039001FCB05 /* AudioData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioData.cpp; sourceTree = "<group>"; };
+		53CF36F116B9C039001FCB05 /* AudioData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioData.h; sourceTree = "<group>"; };
+		53CF36F216B9C039001FCB05 /* AudioSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioSource.cpp; sourceTree = "<group>"; };
+		53CF36F316B9C039001FCB05 /* AudioSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioSource.h; sourceTree = "<group>"; };
+		53CF36F416B9C039001FCB05 /* Cloud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cloud.cpp; sourceTree = "<group>"; };
+		53CF36F516B9C039001FCB05 /* Cloud.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Cloud.h; sourceTree = "<group>"; };
+		53CF36F616B9C039001FCB05 /* Cube.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cube.cpp; sourceTree = "<group>"; };
+		53CF36F716B9C039001FCB05 /* Cube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Cube.h; sourceTree = "<group>"; };
+		53CF36F816B9C039001FCB05 /* Field.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Field.cpp; sourceTree = "<group>"; };
+		53CF36F916B9C039001FCB05 /* Field.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Field.h; sourceTree = "<group>"; };
+		53CF36FA16B9C039001FCB05 /* Finger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Finger.cpp; sourceTree = "<group>"; };
+		53CF36FB16B9C039001FCB05 /* Finger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Finger.h; sourceTree = "<group>"; };
+		53CF36FC16B9C039001FCB05 /* Hand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Hand.cpp; sourceTree = "<group>"; };
+		53CF36FD16B9C039001FCB05 /* Hand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Hand.h; sourceTree = "<group>"; };
+		53CF370016B9C039001FCB05 /* head_hand.pde */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = head_hand.pde; sourceTree = "<group>"; };
+		53CF370116B9C039001FCB05 /* Head.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Head.cpp; sourceTree = "<group>"; };
+		53CF370216B9C039001FCB05 /* Head.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Head.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		53CF370316B9C039001FCB05 /* Lattice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Lattice.cpp; sourceTree = "<group>"; };
+		53CF370416B9C039001FCB05 /* Lattice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Lattice.h; sourceTree = "<group>"; };
+		53CF370516B9C039001FCB05 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		53CF370616B9C039001FCB05 /* MarkerAcquisitionView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MarkerAcquisitionView.cpp; sourceTree = "<group>"; };
+		53CF370716B9C039001FCB05 /* MarkerAcquisitionView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MarkerAcquisitionView.h; sourceTree = "<group>"; };
+		53CF370816B9C039001FCB05 /* Markers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Markers.cpp; sourceTree = "<group>"; };
+		53CF370916B9C039001FCB05 /* Markers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Markers.h; sourceTree = "<group>"; };
+		53CF370A16B9C039001FCB05 /* Network.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Network.cpp; sourceTree = "<group>"; };
+		53CF370B16B9C039001FCB05 /* Network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Network.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		53CF370C16B9C039001FCB05 /* Particle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Particle.cpp; sourceTree = "<group>"; };
+		53CF370D16B9C039001FCB05 /* Particle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Particle.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		53CF370E16B9C039001FCB05 /* SerialInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialInterface.cpp; sourceTree = "<group>"; };
+		53CF370F16B9C039001FCB05 /* SerialInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = SerialInterface.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		53CF371016B9C039001FCB05 /* Texture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Texture.cpp; sourceTree = "<group>"; };
+		53CF371116B9C039001FCB05 /* Texture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Texture.h; sourceTree = "<group>"; };
+		53CF371216B9C039001FCB05 /* UDPSocket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UDPSocket.cpp; sourceTree = "<group>"; };
+		53CF371316B9C039001FCB05 /* UDPSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UDPSocket.h; sourceTree = "<group>"; };
+		53CF371416B9C039001FCB05 /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Util.cpp; sourceTree = "<group>"; };
+		53CF371516B9C039001FCB05 /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Util.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		53CF371616B9C039001FCB05 /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = world.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		8DD76F6C0486A84900D96B5E /* interface */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = interface; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6BDADD815F444C1002A07DF /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		B6BDADDA15F444C9002A07DF /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -600,65 +600,49 @@
 		5325C22816AF4DBE0051A40B /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				5325C22916AF4DBE0051A40B /* agent.cpp */,
-				5325C22A16AF4DBE0051A40B /* agent.h */,
-				5325C26216AF4E2C0051A40B /* audio.cpp */,
-				5325C26316AF4E2C0051A40B /* audio.h */,
-				5325C22D16AF4DBE0051A40B /* cloud.cpp */,
-				5325C22E16AF4DBE0051A40B /* cloud.h */,
-				5325C22F16AF4DBE0051A40B /* cube.cpp */,
-				5325C23016AF4DBE0051A40B /* cube.h */,
-				5325C23116AF4DBE0051A40B /* field.cpp */,
-				5325C23216AF4DBE0051A40B /* field.h */,
-				5325C23316AF4DBE0051A40B /* finger.cpp */,
-				5325C23416AF4DBE0051A40B /* finger.h */,
-				5325C23516AF4DBE0051A40B /* hand.cpp */,
-				5325C23616AF4DBE0051A40B /* hand.h */,
-				5325C23716AF4DBE0051A40B /* hardware */,
-				5325C23A16AF4DBE0051A40B /* head.cpp */,
-				5325C23B16AF4DBE0051A40B /* head.h */,
-				5325C23C16AF4DBE0051A40B /* lattice.cpp */,
-				5325C23D16AF4DBE0051A40B /* lattice.h */,
-				5325C24016AF4DBE0051A40B /* main.cpp */,
-				5325C24116AF4DBE0051A40B /* marker_acquisition_view.cpp */,
-				5325C24216AF4DBE0051A40B /* marker_acquisition_view.h */,
-				5325C24316AF4DBE0051A40B /* markers.cpp */,
-				5325C24416AF4DBE0051A40B /* markers.h */,
-				5325C24516AF4DBE0051A40B /* network.cpp */,
-				5325C24616AF4DBE0051A40B /* network.h */,
-				5325C24716AF4DBE0051A40B /* particle.cpp */,
-				5325C24816AF4DBE0051A40B /* particle.h */,
-				5325C24916AF4DBE0051A40B /* SerialInterface.cpp */,
-				5325C24A16AF4DBE0051A40B /* SerialInterface.h */,
-				5325C24B16AF4DBE0051A40B /* texture.cpp */,
-				5325C24C16AF4DBE0051A40B /* texture.h */,
-				5325C24D16AF4DBE0051A40B /* util.cpp */,
-				5325C24E16AF4DBE0051A40B /* util.h */,
-				5325C24F16AF4DBE0051A40B /* world.h */,
-				539853CC16B765EE00B2D585 /* UDPSocket.cpp */,
-				539853CD16B765EE00B2D585 /* UDPSocket.h */,
-				5328864416B87E040041A07C /* AudioSource.cpp */,
-				5328864516B87E040041A07C /* AudioSource.h */,
-				5328864716B881710041A07C /* AudioData.cpp */,
-				5328864816B881710041A07C /* AudioData.h */,
+				53CF36EC16B9C039001FCB05 /* Agent.cpp */,
+				53CF36ED16B9C039001FCB05 /* Agent.h */,
+				53CF36EE16B9C039001FCB05 /* Audio.cpp */,
+				53CF36EF16B9C039001FCB05 /* Audio.h */,
+				53CF36F016B9C039001FCB05 /* AudioData.cpp */,
+				53CF36F116B9C039001FCB05 /* AudioData.h */,
+				53CF36F216B9C039001FCB05 /* AudioSource.cpp */,
+				53CF36F316B9C039001FCB05 /* AudioSource.h */,
+				53CF36F416B9C039001FCB05 /* Cloud.cpp */,
+				53CF36F516B9C039001FCB05 /* Cloud.h */,
+				53CF36F616B9C039001FCB05 /* Cube.cpp */,
+				53CF36F716B9C039001FCB05 /* Cube.h */,
+				53CF36F816B9C039001FCB05 /* Field.cpp */,
+				53CF36F916B9C039001FCB05 /* Field.h */,
+				53CF36FA16B9C039001FCB05 /* Finger.cpp */,
+				53CF36FB16B9C039001FCB05 /* Finger.h */,
+				53CF36FC16B9C039001FCB05 /* Hand.cpp */,
+				53CF36FD16B9C039001FCB05 /* Hand.h */,
+				53CF36FE16B9C039001FCB05 /* hardware */,
+				53CF370116B9C039001FCB05 /* Head.cpp */,
+				53CF370216B9C039001FCB05 /* Head.h */,
+				53CF370316B9C039001FCB05 /* Lattice.cpp */,
+				53CF370416B9C039001FCB05 /* Lattice.h */,
+				53CF370516B9C039001FCB05 /* main.cpp */,
+				53CF370616B9C039001FCB05 /* MarkerAcquisitionView.cpp */,
+				53CF370716B9C039001FCB05 /* MarkerAcquisitionView.h */,
+				53CF370816B9C039001FCB05 /* Markers.cpp */,
+				53CF370916B9C039001FCB05 /* Markers.h */,
+				53CF370A16B9C039001FCB05 /* Network.cpp */,
+				53CF370B16B9C039001FCB05 /* Network.h */,
+				53CF370C16B9C039001FCB05 /* Particle.cpp */,
+				53CF370D16B9C039001FCB05 /* Particle.h */,
+				53CF370E16B9C039001FCB05 /* SerialInterface.cpp */,
+				53CF370F16B9C039001FCB05 /* SerialInterface.h */,
+				53CF371016B9C039001FCB05 /* Texture.cpp */,
+				53CF371116B9C039001FCB05 /* Texture.h */,
+				53CF371216B9C039001FCB05 /* UDPSocket.cpp */,
+				53CF371316B9C039001FCB05 /* UDPSocket.h */,
+				53CF371416B9C039001FCB05 /* Util.cpp */,
+				53CF371516B9C039001FCB05 /* Util.h */,
+				53CF371616B9C039001FCB05 /* world.h */,
 			);
 			path = Source;
-			sourceTree = "<group>";
-		};
-		5325C23716AF4DBE0051A40B /* hardware */ = {
-			isa = PBXGroup;
-			children = (
-				5325C23816AF4DBE0051A40B /* head_hand */,
-			);
-			path = hardware;
-			sourceTree = "<group>";
-		};
-		5325C23816AF4DBE0051A40B /* head_hand */ = {
-			isa = PBXGroup;
-			children = (
-				5325C23916AF4DBE0051A40B /* head_hand.pde */,
-			);
-			path = head_hand;
 			sourceTree = "<group>";
 		};
 		532C7AC116AF298D00B1A969 /* Resources */ = {
@@ -1319,6 +1303,22 @@
 			path = audio;
 			sourceTree = "<group>";
 		};
+		53CF36FE16B9C039001FCB05 /* hardware */ = {
+			isa = PBXGroup;
+			children = (
+				53CF36FF16B9C039001FCB05 /* head_hand */,
+			);
+			path = hardware;
+			sourceTree = "<group>";
+		};
+		53CF36FF16B9C039001FCB05 /* head_hand */ = {
+			isa = PBXGroup;
+			children = (
+				53CF370016B9C039001FCB05 /* head_hand.pde */,
+			);
+			path = head_hand;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1373,27 +1373,27 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5325C25016AF4DBE0051A40B /* agent.cpp in Sources */,
-				5325C25216AF4DBE0051A40B /* cloud.cpp in Sources */,
-				5325C25316AF4DBE0051A40B /* cube.cpp in Sources */,
-				5325C25416AF4DBE0051A40B /* field.cpp in Sources */,
-				5325C25516AF4DBE0051A40B /* finger.cpp in Sources */,
-				5325C25616AF4DBE0051A40B /* hand.cpp in Sources */,
-				5325C25716AF4DBE0051A40B /* head.cpp in Sources */,
-				5325C25816AF4DBE0051A40B /* lattice.cpp in Sources */,
-				5325C25A16AF4DBE0051A40B /* main.cpp in Sources */,
-				5325C25B16AF4DBE0051A40B /* marker_acquisition_view.cpp in Sources */,
-				5325C25C16AF4DBE0051A40B /* markers.cpp in Sources */,
-				5325C25D16AF4DBE0051A40B /* network.cpp in Sources */,
-				5325C25E16AF4DBE0051A40B /* particle.cpp in Sources */,
-				5325C25F16AF4DBE0051A40B /* SerialInterface.cpp in Sources */,
-				5325C26016AF4DBE0051A40B /* texture.cpp in Sources */,
-				5325C26116AF4DBE0051A40B /* util.cpp in Sources */,
-				5325C26416AF4E2C0051A40B /* audio.cpp in Sources */,
-				539853CE16B765EE00B2D585 /* UDPSocket.cpp in Sources */,
-				5328864616B87E040041A07C /* AudioSource.cpp in Sources */,
-				5328864916B881710041A07C /* AudioData.cpp in Sources */,
 				535B821116B9BED400D18440 /* lodepng.cpp in Sources */,
+				53CF371716B9C039001FCB05 /* Agent.cpp in Sources */,
+				53CF371816B9C039001FCB05 /* Audio.cpp in Sources */,
+				53CF371916B9C039001FCB05 /* AudioData.cpp in Sources */,
+				53CF371A16B9C039001FCB05 /* AudioSource.cpp in Sources */,
+				53CF371B16B9C039001FCB05 /* Cloud.cpp in Sources */,
+				53CF371C16B9C039001FCB05 /* Cube.cpp in Sources */,
+				53CF371D16B9C039001FCB05 /* Field.cpp in Sources */,
+				53CF371E16B9C039001FCB05 /* Finger.cpp in Sources */,
+				53CF371F16B9C039001FCB05 /* Hand.cpp in Sources */,
+				53CF372016B9C039001FCB05 /* Head.cpp in Sources */,
+				53CF372116B9C039001FCB05 /* Lattice.cpp in Sources */,
+				53CF372216B9C039001FCB05 /* main.cpp in Sources */,
+				53CF372316B9C039001FCB05 /* MarkerAcquisitionView.cpp in Sources */,
+				53CF372416B9C039001FCB05 /* Markers.cpp in Sources */,
+				53CF372516B9C039001FCB05 /* Network.cpp in Sources */,
+				53CF372616B9C039001FCB05 /* Particle.cpp in Sources */,
+				53CF372716B9C039001FCB05 /* SerialInterface.cpp in Sources */,
+				53CF372816B9C039001FCB05 /* Texture.cpp in Sources */,
+				53CF372916B9C039001FCB05 /* UDPSocket.cpp in Sources */,
+				53CF372A16B9C039001FCB05 /* Util.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,16 +1,16 @@
 //
-//  head.h
+//  Head.h
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_head_h
-#define interface_head_h
+#ifndef __interface__head__
+#define __interface__head__
 
 #include <iostream>
-#include "field.h"
+#include "Field.h"
 #include "world.h"
 #include <GLUT/glut.h>
 #include "SerialInterface.h"

@@ -1,13 +1,13 @@
 //
-//  agent.h
+//  Agent.h
 //  interface
 //
 //  Created by Philip Rosedale on 11/20/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_agent_h
-#define interface_agent_h
+#ifndef __interface__Agent__
+#define __interface__Agent__
 
 #include "glm.hpp"
 #include <sys/socket.h>
@@ -15,7 +15,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <string.h>
-#include "network.h"
+#include "Network.h"
 
 void update_agents(char * data, int length);
 int add_agent(std::string * IP);

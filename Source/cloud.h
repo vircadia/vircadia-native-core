@@ -1,15 +1,15 @@
 //
-//  cloud.h
+//  Cloud.h
 //  interface
 //
 //  Created by Philip Rosedale on 11/17/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_cloud_h
-#define interface_cloud_h
+#ifndef __interface__Cloud__
+#define __interface__Cloud__
 
-#include "field.h"
+#include "Field.h"
 
 class Cloud {
 public:

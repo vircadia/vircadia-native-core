@@ -1,12 +1,12 @@
 //
-//  markers.cpp
+//  Markers.cpp
 //  interface
 //
 //  Created by Kenneth Keiter <ken@kenkeiter.com> on 12/11/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "markers.h"
+#include "Markers.h"
 #include <vector.h>
 #include <time.h>
 #include <math.h>

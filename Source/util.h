@@ -1,13 +1,13 @@
 //
-//  util.h
+//  Util.h
 //  interface
 //
 //  Created by Philip Rosedale on 8/24/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_util_h
-#define interface_util_h
+#ifndef __interface__Util__
+#define __interface__Util__
 
 #include "glm.hpp"
 

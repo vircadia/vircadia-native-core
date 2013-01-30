@@ -1,13 +1,13 @@
 //
-//  markers.h
+//  Markers.h
 //  interface
 //
 //  Created by Kenneth Keiter on 12/11/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__markers__
-#define __interface__markers__
+#ifndef __interface__Markers__
+#define __interface__Markers__
 
 #include <iostream>
 #include <vector.h>

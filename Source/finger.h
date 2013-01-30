@@ -1,16 +1,16 @@
 //
-//  finger.h
+//  Finger.h
 //  interface
 //
 //  Created by Philip on 1/21/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__finger__
-#define __interface__finger__
+#ifndef __interface__Finger__
+#define __interface__Finger__
 
 #include "glm.hpp"
-#include "util.h"
+#include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>
 

@@ -1,5 +1,5 @@
 //
-//  finger.cpp
+//  Finger.cpp
 //  interface
 //
 //  Created by Philip on 1/21/13.

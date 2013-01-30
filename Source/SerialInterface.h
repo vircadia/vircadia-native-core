@@ -3,8 +3,8 @@
 //  
 
 
-#ifndef interface_SerialInterface_h
-#define interface_SerialInterface_h
+#ifndef __interface__SerialInterface__
+#define __interface__SerialInterface__
 
 int init_port (int baud);
 int read_sensors(int first_measurement, float * avg_adc_channels, int * adc_channels, int * samples_averaged, int * LED_state);

@@ -1,5 +1,5 @@
 //
-//  audio.cpp
+//  Audio.cpp
 //  interface
 //
 //  Created by Stephen Birarda on 1/22/13.
@@ -9,8 +9,8 @@
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
-#include "audio.h"
-#include "util.h"
+#include "Audio.h"
+#include "Util.h"
 #include "AudioSource.h"
 #include "UDPSocket.h"
 

@@ -1,12 +1,12 @@
 //
-//  lattice.cpp
+//  Lattice.cpp
 //  interface
 //
 //  Created by Philip on 1/19/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "lattice.h"
+#include "Lattice.h"
 
 Lattice::Lattice(int w, int h) {
     width = w;

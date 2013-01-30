@@ -1,13 +1,13 @@
 //
-//  field.h
+//  Field.h
 //  interface
 //
 //  Created by Philip Rosedale on 8/23/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef interface_field_h
-#define interface_field_h
+#ifndef __interface__Field__
+#define __interface__Field__
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -16,7 +16,7 @@
 #endif
 #include <iostream>
 #include "world.h"
-#include "util.h"
+#include "Util.h"
 #include "glm.hpp"
 
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
