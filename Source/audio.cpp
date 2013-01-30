@@ -8,9 +8,23 @@
 
 #include <iostream>
 #include <fstream>
+#include <pthread.h>
 #include "audio.h"
 #include "util.h"
 #include "AudioSource.h"
+#include "UDPSocket.h"
+
+const int BUFFER_LENGTH_BYTES = 1024;
+const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+const int RING_BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_SAMPLES * 10;
+
+const int PHASE_DELAY_AT_90 = 20;
+const int AMPLITUDE_RATIO_AT_90 = 0.5;
+
+const int NUM_AUDIO_SOURCES = 1;
+const int ECHO_SERVER_TEST = 1;
+
+const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 bool Audio::initialized;
 PaError Audio::err;
@@ -46,6 +60,12 @@ int audioCallback (const void *inputBuffer,
 {
     AudioData *data = (AudioData *) userData;
     
+    int16_t *inBuffer = (int16_t *) inputBuffer;
+    
+    if (inBuffer != NULL) {
+        data->audioSocket->send((char *) "0.0.0.0", 55443, (void *)inBuffer, BUFFER_LENGTH_BYTES);
+    }
+    
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
     
@@ -56,54 +76,95 @@ int audioCallback (const void *inputBuffer,
         
         AudioSource *source = data->sources[s];
         
-        glm::vec3 headPos = data->linkedHead->getPos();
-        glm::vec3 sourcePos = source->position;
-    
-        int startPointer = source->samplePointer;
-        int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (source->lengthInSamples - source->samplePointer);
-        
-        if (wrapAroundSamples <= 0) {
-            memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
-            source->samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
-        } else {
-            memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
-            memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
-            source->samplePointer = wrapAroundSamples;
-        }
-        
-        float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
-        float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
-        
-        float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
-        float sinRatio = sqrt(fabsf(sinf(angleToSource)));
-        int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-        
-        float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
-        
-//        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
-        
-        int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
-        int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
-        
-        for (int i = 0; i < BUFFER_LENGTH_BYTES / sizeof(int16_t); i++) {
-            data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
-            leadingOutput[i] += data->samplesToQueue[i];
+        if (ECHO_SERVER_TEST) {
             
-            if (i >= numSamplesDelay) {
-                trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
+            // copy whatever is source->sourceData to the left and right output channels
+            memcpy(outputLeft, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+            memcpy(outputRight, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+            
+            
+            if (source->samplePointer < RING_BUFFER_LENGTH_SAMPLES - BUFFER_LENGTH_SAMPLES) {
+                source->samplePointer += BUFFER_LENGTH_SAMPLES;
             } else {
-                int sampleIndex = startPointer - numSamplesDelay + i;
+                source->samplePointer = 0;
+            }
+           
+        } else {
+            glm::vec3 headPos = data->linkedHead->getPos();
+            glm::vec3 sourcePos = source->position;
+            
+            int startPointer = source->samplePointer;
+            int wrapAroundSamples = (BUFFER_LENGTH_SAMPLES) - (source->lengthInSamples - source->samplePointer);
+            
+            if (wrapAroundSamples <= 0) {
+                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+                source->samplePointer += (BUFFER_LENGTH_SAMPLES);
+            } else {
+                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
+                memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
+                source->samplePointer = wrapAroundSamples;
+            }
+            
+            float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
+            float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
+            
+            float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
+            float sinRatio = sqrt(fabsf(sinf(angleToSource)));
+            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+            
+            float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
+            
+            //        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
+            
+            int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
+            int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
+            
+            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+                data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
+                leadingOutput[i] += data->samplesToQueue[i];
                 
-                if (sampleIndex < 0) {
-                    sampleIndex += source->lengthInSamples;
+                if (i >= numSamplesDelay) {
+                    trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
+                } else {
+                    int sampleIndex = startPointer - numSamplesDelay + i;
+                    
+                    if (sampleIndex < 0) {
+                        sampleIndex += source->lengthInSamples;
+                    }
+                    
+                    trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
                 }
-                
-                trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
             }
         }
     }
     
     return paContinue;
+}
+
+struct AudioRecThreadStruct {
+    AudioData *sharedAudioData;
+};
+
+void *receiveAudioViaUDP(void *args) {
+    AudioRecThreadStruct *threadArgs = (AudioRecThreadStruct *) args;
+    AudioData *sharedAudioData = threadArgs->sharedAudioData;
+    
+    int16_t *receivedData = new int16_t[BUFFER_LENGTH_SAMPLES];
+    int *receivedBytes = new int;
+    int streamSamplePointer = 0;
+    
+    while (true) {
+        if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
+            // add the received data to the shared memory
+            memcpy(sharedAudioData->sources[0]->sourceData + streamSamplePointer, receivedData, *receivedBytes);
+            
+            if (streamSamplePointer < RING_BUFFER_LENGTH_SAMPLES - BUFFER_LENGTH_SAMPLES) {
+                streamSamplePointer += BUFFER_LENGTH_SAMPLES;
+            } else {
+                streamSamplePointer = 0;
+            }
+        }
+    }
 }
 
 /**
@@ -115,26 +176,45 @@ Use Audio::getError() to retrieve the error code.
  */
 bool Audio::init()
 {
-    Head deadHead = Head();
-    return Audio::init(&deadHead);
+    Head *deadHead = new Head();
+    return Audio::init(deadHead);
 }
 
-bool Audio::init(Head* mainHead)
-{    
-    data = new AudioData(NUM_AUDIO_SOURCES, BUFFER_LENGTH_BYTES);
-    data->linkedHead = mainHead;
-    
+bool Audio::init(Head *mainHead)
+{
     err = Pa_Initialize();
     if (err != paNoError) goto error;
     
-    data->sources[0]->position = glm::vec3(6, 0, -1);
-    data->sources[0]->loadDataFromFile("jeska.raw");
+    if (ECHO_SERVER_TEST) {
+        data = new AudioData(1, BUFFER_LENGTH_BYTES);
+        
+        // setup a UDPSocket
+        data->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
+        
+        // setup the ring buffer source for the streamed audio
+        data->sources[0]->sourceData = new int16_t[RING_BUFFER_LENGTH_SAMPLES];
+        memset(data->sources[0]->sourceData, 0, RING_BUFFER_LENGTH_SAMPLES * sizeof(int16_t));
+        
+        pthread_t audioReceiveThread;
+        
+        AudioRecThreadStruct threadArgs;
+        threadArgs.sharedAudioData = data;
+        
+        pthread_create(&audioReceiveThread, NULL, receiveAudioViaUDP, (void *) &threadArgs);
+    } else {
+        data = new AudioData(NUM_AUDIO_SOURCES, BUFFER_LENGTH_BYTES);
+        
+        data->sources[0]->position = glm::vec3(6, 0, -1);
+        data->sources[0]->loadDataFromFile("jeska.raw");
+        
+        data->sources[1]->position = glm::vec3(6, 0, 6);
+        data->sources[1]->loadDataFromFile("grayson.raw");
+    }
     
-    data->sources[1]->position = glm::vec3(6, 0, 6);
-    data->sources[1]->loadDataFromFile("grayson.raw");
+    data->linkedHead = mainHead;
     
     err = Pa_OpenDefaultStream(&stream,
-                               NULL,       // input channels
+                               1,       // input channels
                                2,       // output channels
                                (paInt16 | paNonInterleaved), // sample format
                                22050,   // sample rate (hz)
@@ -158,9 +238,9 @@ error:
     return false;
 }
 
-void Audio::sourceSetup()
+void Audio::render()
 {
-    if (initialized) {
+    if (initialized && !ECHO_SERVER_TEST) {
         
         for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
             // render gl objects on screen for our sources

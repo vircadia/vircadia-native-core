@@ -14,18 +14,13 @@
 #include "head.h"
 #include "AudioData.h"
 
-#define BUFFER_LENGTH_BYTES 1024
-#define PHASE_DELAY_AT_90 20
-#define AMPLITUDE_RATIO_AT_90 0.5
-#define NUM_AUDIO_SOURCES 2
-
 class Audio {
 public:
     // initializes audio I/O
     static bool init();
     static bool init(Head* mainHead);
     
-    static void sourceSetup();
+    static void render();
     
     // terminates audio I/O
     static bool terminate(); 

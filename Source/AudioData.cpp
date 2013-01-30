@@ -15,7 +15,6 @@ AudioData::AudioData(int numberOfSources, int bufferLength) {
     
     for(int s = 0; s < numberOfSources; s++) {
         sources[s] = new AudioSource();
-        std::cout << "Created a new audio source!\n";
     }
     
     samplesToQueue = new int16_t[bufferLength / sizeof(int16_t)];
