@@ -10,33 +10,12 @@
 #include <fstream>
 #include "audio.h"
 #include "util.h"
+#include "AudioSource.h"
 
 bool Audio::initialized;
 PaError Audio::err;
 PaStream *Audio::stream;
-Audio::AudioData *Audio::data;
-
-
-Audio::AudioSource::~AudioSource()
-{
-    delete[] audioData;
-}
-
-Audio::AudioData::AudioData() {
-    for(int s = 0; s < NUM_AUDIO_SOURCES; s++) {
-        sources[s] = AudioSource();
-    }
-    
-    samplesToQueue = new int16_t[BUFFER_LENGTH_BYTES / sizeof(int16_t)];
-}
-
-Audio::AudioData::~AudioData() {
-    for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
-        sources[s].AudioSource::~AudioSource();
-    }
-    
-    delete[] samplesToQueue;
-}
+AudioData *Audio::data;
 
 /**
  * Audio callback used by portaudio.
@@ -65,7 +44,7 @@ int audioCallback (const void *inputBuffer,
                    PaStreamCallbackFlags statusFlags,
                    void *userData)
 {
-    Audio::AudioData *data = (Audio::AudioData *) userData;
+    AudioData *data = (AudioData *) userData;
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
@@ -75,19 +54,23 @@ int audioCallback (const void *inputBuffer,
     
     for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
         
+        AudioSource *source = data->sources[s];
+        
         glm::vec3 headPos = data->linkedHead->getPos();
-        glm::vec3 sourcePos = data->sources[s].position;
+        glm::vec3 sourcePos = source->position;
+        
+        std::cout << "L2: " << source->lengthInSamples << "\n";
     
-        int startPointer = data->sources[s].samplePointer;
-        int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (data->sources[s].lengthInSamples - data->sources[s].samplePointer);
+        int startPointer = source->samplePointer;
+        int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (source->lengthInSamples - source->samplePointer);
         
         if (wrapAroundSamples <= 0) {
-            memcpy(data->samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, BUFFER_LENGTH_BYTES);
-            data->sources[s].samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
+            memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+            source->samplePointer += (BUFFER_LENGTH_BYTES / sizeof(int16_t));
         } else {
-            memcpy(data->samplesToQueue, data->sources[s].audioData + data->sources[s].samplePointer, (data->sources[s].lengthInSamples - data->sources[s].samplePointer) * sizeof(int16_t));
-            memcpy(data->samplesToQueue + (data->sources[s].lengthInSamples - data->sources[s].samplePointer), data->sources[s].audioData, wrapAroundSamples * sizeof(int16_t));
-            data->sources[s].samplePointer = wrapAroundSamples;
+            memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
+            memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
+            source->samplePointer = wrapAroundSamples;
         }
         
         float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
@@ -114,10 +97,10 @@ int audioCallback (const void *inputBuffer,
                 int sampleIndex = startPointer - numSamplesDelay + i;
                 
                 if (sampleIndex < 0) {
-                    sampleIndex += data->sources[s].lengthInSamples;
+                    sampleIndex += source->lengthInSamples;
                 }
                 
-                trailingOutput[i] += data->sources[s].audioData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
+                trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
             }
         }
     }
@@ -140,17 +123,17 @@ bool Audio::init()
 
 bool Audio::init(Head* mainHead)
 {    
-    data = new AudioData();
+    data = new AudioData(NUM_AUDIO_SOURCES, BUFFER_LENGTH_BYTES);
     data->linkedHead = mainHead;
     
     err = Pa_Initialize();
     if (err != paNoError) goto error;
     
-    data->sources[0].position = glm::vec3(6, 0, -1);
-    readFile("jeska.raw", &data->sources[0]);
+    data->sources[0]->position = glm::vec3(6, 0, -1);
+    data->sources[0]->loadDataFromFile("jeska.raw");
     
-    data->sources[1].position = glm::vec3(6, 0, 6);
-    readFile("grayson.raw", &data->sources[1]);
+    data->sources[1]->position = glm::vec3(6, 0, 6);
+    data->sources[1]->loadDataFromFile("grayson.raw");
     
     err = Pa_OpenDefaultStream(&stream,
                                NULL,       // input channels
@@ -185,28 +168,13 @@ void Audio::sourceSetup()
             // render gl objects on screen for our sources
             glPushMatrix();
             
-            glTranslatef(data->sources[s].position[0], data->sources[s].position[1], data->sources[s].position[2]);
+            glTranslatef(data->sources[s]->position[0], data->sources[s]->position[1], data->sources[s]->position[2]);
             glColor3f((s == 0 ? 1 : 0), (s == 1 ? 1 : 0), (s == 2 ? 1 : 0));
             glutSolidCube(0.5);
             
             glPopMatrix();
         }
     }
-}
-
-void Audio::readFile(const char *filename, struct AudioSource *source)
-{
-    FILE *soundFile = fopen(filename, "r");
-    
-    // get length of file:
-    std::fseek(soundFile, 0, SEEK_END);
-    source->lengthInSamples = std::ftell(soundFile) / sizeof(int16_t);
-    std::rewind(soundFile);
-    
-    source->audioData = new int16_t[source->lengthInSamples];
-    std::fread(source->audioData, sizeof(int16_t), source->lengthInSamples, soundFile);
-    
-    std::fclose(soundFile);
 }
 
 /**
