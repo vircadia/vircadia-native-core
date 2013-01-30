@@ -58,8 +58,6 @@ int audioCallback (const void *inputBuffer,
         
         glm::vec3 headPos = data->linkedHead->getPos();
         glm::vec3 sourcePos = source->position;
-        
-        std::cout << "L2: " << source->lengthInSamples << "\n";
     
         int startPointer = source->samplePointer;
         int wrapAroundSamples = (BUFFER_LENGTH_BYTES / sizeof(int16_t)) - (source->lengthInSamples - source->samplePointer);
@@ -82,7 +80,7 @@ int audioCallback (const void *inputBuffer,
         
         float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
         
-        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
+//        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
         
         int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
         int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
