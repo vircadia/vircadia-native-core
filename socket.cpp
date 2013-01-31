@@ -23,14 +23,14 @@ const float SAMPLE_RATE = 22050.0;
 const int SAMPLES_PER_PACKET = 512;
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
 
-const int16_t MAX_SAMPLE_VALUE = 32767;
-const int16_t MIN_SAMPLE_VALUE = -32767;
+const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const int NUM_SOURCE_BUFFERS = 10;
+const int MAX_SOURCE_BUFFERS = 10;
 
 int16_t* wc_noise_buffer;
 
-#define ECHO_DEBUG_MODE 1
+#define ECHO_DEBUG_MODE 0
 
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof(dest_address);
@@ -45,8 +45,8 @@ int num_agents = 0;
 
 struct SourceBuffer {
     int16_t sourceAudioData[BUFFER_LENGTH_SAMPLES];
-    bool available;
-} sourceBuffers[NUM_SOURCE_BUFFERS];
+    bool transmitted;
+} sourceBuffers[MAX_SOURCE_BUFFERS];
 
 double diffclock(timeval clock1,timeval clock2)
 {
@@ -85,7 +85,7 @@ int network_init()
     return handle;
 }
 
-int addAgent(sockaddr_in dest_address) {
+int addAgent(sockaddr_in dest_address, void *audioData) {
     //  Search for agent in list and add if needed 
     int is_new = 0; 
     int i = 0;
@@ -104,6 +104,9 @@ int addAgent(sockaddr_in dest_address) {
     agents[i].agent_addr = dest_address; 
     agents[i].active = true;
     gettimeofday(&agents[i].time, NULL);
+
+    memcpy(sourceBuffers[i].sourceAudioData, audioData, BUFFER_LENGTH_BYTES);
+    sourceBuffers[i].transmitted = false;
     
     if (i == num_agents) {
         num_agents++;
@@ -154,36 +157,35 @@ void *send_buffer_thread(void *args)
         sentBytes = 0;
 
         int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
-        // memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
-        memset(clientMix, 0, BUFFER_LENGTH_BYTES);
+        memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
 
-        for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
-            if (!sourceBuffers[b].available) {
+        for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
+            if (!sourceBuffers[b].transmitted) {
                 for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
                     // we have source buffer data for this sample
                     int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
                     
-                    if (mixSample >= MAX_SAMPLE_VALUE || mixSample <= MIN_SAMPLE_VALUE) {
-                        std::cout << "Sample over at " << mixSample << ".\n";
-                    }
+                    int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
+                    sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
 
-                    clientMix[s] += sourceBuffers[b].sourceAudioData[s];
+                    clientMix[s] += sampleToAdd;
                 }
 
-                sourceBuffers[b].available = true;
+                sourceBuffers[b].transmitted = true;
             }
         }
 
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
                 sockaddr_in dest_address = agents[i].agent_addr;
-            }
 
-            sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
-                            0, (sockaddr *) &dest_address, sizeof(dest_address));
-        
-            if (sentBytes < BUFFER_LENGTH_BYTES) {
-                std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
+                sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
+                                0, (sockaddr *) &dest_address, sizeof(dest_address));
+            
+                if (sentBytes < BUFFER_LENGTH_BYTES) {
+                    std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
+                }
+
             }
         }
     }  
@@ -202,20 +204,11 @@ void *process_client_packet(void *args)
     
     sockaddr_in dest_address = process_args->dest_address;
 
-    if (addAgent(dest_address)) {
+    if (addAgent(dest_address, process_args->packet_data)) {
         std::cout << "Added agent: " << 
             inet_ntoa(dest_address.sin_addr) << " on " <<
             dest_address.sin_port << "\n";
     }    
-
-    for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
-        if (sourceBuffers[b].available) {
-            memcpy(sourceBuffers[b].sourceAudioData, process_args->packet_data, BUFFER_LENGTH_BYTES);
-            sourceBuffers[b].available = false;
- 
-            break;
-        }
-    }
 
     pthread_exit(0);
 }
@@ -268,14 +261,13 @@ int main(int argc, const char * argv[])
         return false;
     }
 
-    // set source audio buffers availability to true
-    for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
-        sourceBuffers[b].available = true;
-    } 
-
     gettimeofday(&last_agent_update, NULL);
 
     int16_t packet_data[BUFFER_LENGTH_SAMPLES];
+
+    for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
+        sourceBuffers[b].transmitted = true;
+    }
 
     struct send_buffer_struct send_buffer_args;
     send_buffer_args.socket_handle = handle;
