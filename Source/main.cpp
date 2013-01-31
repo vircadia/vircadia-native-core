@@ -40,24 +40,21 @@
 #include "portaudio.h"
 
 // Bring in OpenCV
-#include <opencv2/opencv.hpp>
 
 #include "SerialInterface.h"
-#include "field.h"
+#include "Field.h"
 #include "world.h"
-#include "util.h"
-#include "network.h"
-#include "audio.h"
-#include "head.h"
-#include "hand.h"
-#include "particle.h"
-#include "texture.h"
-#include "cloud.h"
-#include "agent.h"
-#include "markers.h"
-#include "marker_acquisition_view.h"
-#include "cube.h"
-#include "lattice.h"
+#include "Util.h"
+#include "Network.h"
+#include "Audio.h"
+#include "Head.h"
+#include "Hand.h"
+#include "Particle.h"
+#include "Texture.h"
+#include "Cloud.h"
+#include "Agent.h"
+#include "Cube.h"
+#include "Lattice.h"
 #include "finger.h"
 
 using namespace std;
@@ -250,13 +247,6 @@ void display_stats(void)
                 serialPort.getNumSamples(), serialPort.getLED());
         drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
     }
-#ifdef MARKER_CAPTURE
-    if(marker_capture_enabled){
-        char marker_stats[200];
-        sprintf(marker_stats, "> Marker capture: FPS = %3.0f", marker_capturer.fps);
-        drawtext(10, 45, 0.10, 0, 1.0, 0, marker_stats);
-    }
-#endif
     
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
@@ -267,32 +257,6 @@ void display_stats(void)
      
 	
 }
-
-void position_updated(MarkerCapture* inst, MarkerPositionEstimate position){
-    printf("<Marker(%dx%d, %dx%d) distance:%f angle:%f>\n",
-           position.blob0_center.x, position.blob0_center.y,
-           position.blob1_center.x, position.blob0_center.y,
-           position.distance,
-           position.angle);
-    myHead.setRoll(position.angle);
-}
-
-#ifdef MARKER_CAPTURE
-void marker_frame_available(MarkerCapture* inst, IplImage* image, IplImage* thresh_image){
-    if(marker_capture_display){
-        pthread_mutex_lock(&frame_lock);
-        if(marker_capture_frame){
-            cvReleaseImage(&marker_capture_frame);
-        }
-        if(marker_capture_blob_frame){
-            cvReleaseImage(&marker_capture_blob_frame);
-        }
-        marker_capture_frame = cvCloneImage(image);
-        marker_capture_blob_frame = cvCloneImage(thresh_image);
-        pthread_mutex_unlock(&frame_lock);
-    }
-}
-#endif
 
 void initDisplay(void)
 {
@@ -603,7 +567,7 @@ void display(void)
     
         // render audio sources and start them
         if (audio_on) {
-            Audio::sourceSetup();
+            Audio::render();
         }
     
         //glm::vec3 test(0.5, 0.5, 0.5); 

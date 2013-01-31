@@ -12,15 +12,17 @@
 #include <iostream>
 #include <netinet/in.h>
 
+#define MAX_BUFFER_LENGTH_BYTES 1024
+
 class UDPSocket {    
-    public:
-        static struct sockaddr_in sockaddr_util(char *address, int port);
-    
-    UDPSocket(int listening_port);
-        int send(char * dest_address, int dest_port, const void *data, int length_in_bytes);
-    private:
-        UDPSocket(); // private default constructor
+    public:    
+        UDPSocket(int listening_port);
+        int send(char *destAddress, int destPort, const void *data, int byteLength);
+        bool receive(void *receivedData, int *receivedBytes);
+    private:    
         int handle;
+    
+        UDPSocket(); // private default constructor
     
         struct AgentData {
             char * address;
