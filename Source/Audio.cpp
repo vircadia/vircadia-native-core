@@ -17,7 +17,6 @@
 
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-const int RING_BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_SAMPLES * 10;
 
 const int PHASE_DELAY_AT_90 = 20;
 const int AMPLITUDE_RATIO_AT_90 = 0.5;
@@ -31,7 +30,8 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 bool Audio::initialized;
 PaError Audio::err;
-PaStream *Audio::stream;
+PaStream *Audio::inputStream;
+PaStream *Audio::outputStream;
 AudioData *Audio::data;
 std::ofstream logFile;
 
@@ -55,46 +55,49 @@ std::ofstream logFile;
  Can be used to end the stream from within the callback.
  */
 
-int audioCallback (const void *inputBuffer,
+int inputCallback(const void *inputBuffer,
                    void *outputBuffer,
                    unsigned long frames,
                    const PaStreamCallbackTimeInfo *timeInfo,
                    PaStreamCallbackFlags statusFlags,
                    void *userData)
 {
-    AudioData *data = (AudioData *) userData;
+    UDPSocket *audioSocket = (UDPSocket *) userData;
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
+    
+    return paContinue;
+}
+
+int outputCallback(const void *inputBuffer,
+                    void *outputBuffer,
+                    unsigned long frames,
+                    const PaStreamCallbackTimeInfo *timeInfo,
+                    PaStreamCallbackFlags statusFlags,
+                    void *userData)
+{
+    AudioData *data = (AudioData *) userData;
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
-    
-    memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
-    memset(outputRight, 0, BUFFER_LENGTH_BYTES);
     
     for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
         
         AudioSource *source = data->sources[s];
         
         if (ECHO_SERVER_TEST) {
-            
             // copy whatever is source->sourceData to the left and right output channels
-            memcpy(outputLeft, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
-            memcpy(outputRight, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
-            
-            
-            if (source->samplePointer < RING_BUFFER_LENGTH_SAMPLES - BUFFER_LENGTH_SAMPLES) {
-                source->samplePointer += BUFFER_LENGTH_SAMPLES;
-            } else {
-                source->samplePointer = 0;
-            }
-           
+            memcpy(outputLeft, source->sourceData, BUFFER_LENGTH_BYTES);
+            memcpy(outputRight, source->sourceData, BUFFER_LENGTH_BYTES);
         } else {
+            memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
+            memset(outputRight, 0, BUFFER_LENGTH_BYTES);
+            
             glm::vec3 headPos = data->linkedHead->getPos();
             glm::vec3 sourcePos = source->position;
             
@@ -156,7 +159,6 @@ void *receiveAudioViaUDP(void *args) {
     
     int16_t *receivedData = new int16_t[BUFFER_LENGTH_SAMPLES];
     int *receivedBytes = new int;
-    int streamSamplePointer = 0;
     
     timeval previousReceiveTime, currentReceiveTime;
     
@@ -177,21 +179,12 @@ void *receiveAudioViaUDP(void *args) {
             if (LOG_SAMPLE_DELAY) {
                 // write time difference (in microseconds) between packet receipts to file
                 gettimeofday(&currentReceiveTime, NULL);
-                
                 double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
-                
                 logFile << timeDiff << std::endl;
             }
-            
-            
+    
             // add the received data to the shared memory
-            memcpy(sharedAudioData->sources[0]->sourceData + streamSamplePointer, receivedData, *receivedBytes);
-            
-            if (streamSamplePointer < RING_BUFFER_LENGTH_SAMPLES - BUFFER_LENGTH_SAMPLES) {
-                streamSamplePointer += BUFFER_LENGTH_SAMPLES;
-            } else {
-                streamSamplePointer = 0;
-            }
+            memcpy(sharedAudioData->sources[0]->sourceData, receivedData, *receivedBytes);
             
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
@@ -225,8 +218,8 @@ bool Audio::init(Head *mainHead)
         data->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
         
         // setup the ring buffer source for the streamed audio
-        data->sources[0]->sourceData = new int16_t[RING_BUFFER_LENGTH_SAMPLES];
-        memset(data->sources[0]->sourceData, 0, RING_BUFFER_LENGTH_SAMPLES * sizeof(int16_t));
+        data->sources[0]->sourceData = new int16_t[BUFFER_LENGTH_SAMPLES];
+        memset(data->sources[0]->sourceData, 0, BUFFER_LENGTH_SAMPLES * sizeof(int16_t));
         
         pthread_t audioReceiveThread;
         
@@ -246,20 +239,35 @@ bool Audio::init(Head *mainHead)
     
     data->linkedHead = mainHead;
     
-    err = Pa_OpenDefaultStream(&stream,
+    err = Pa_OpenDefaultStream(&inputStream,
                                2,       // input channels
+                               NULL,       // output channels
+                               (paInt16 | paNonInterleaved), // sample format
+                               22050,   // sample rate (hz)
+                               512,     // frames per buffer
+                               inputCallback, // callback function
+                               (void *) data->audioSocket);  // user data to be passed to callback
+    
+    if (err != paNoError) goto error;
+    
+    err = Pa_OpenDefaultStream(&outputStream,
+                               NULL,       // input channels
                                2,       // output channels
                                (paInt16 | paNonInterleaved), // sample format
                                22050,   // sample rate (hz)
                                512,     // frames per buffer
-                               audioCallback, // callback function
+                               outputCallback, // callback function
                                (void *) data);  // user data to be passed to callback
+    
     if (err != paNoError) goto error;
     
     initialized = true;
     
-    // start the stream now that sources are good to go
-    Pa_StartStream(stream);
+    // start the streams now that sources are good to go
+    Pa_StartStream(inputStream);
+    if (err != paNoError) goto error;
+    
+    Pa_StartStream(outputStream);
     if (err != paNoError) goto error;
     
     return paNoError;
@@ -301,7 +309,10 @@ bool Audio::terminate ()
     } else {
         initialized = false;
         
-        err = Pa_CloseStream(stream);
+        err = Pa_CloseStream(inputStream);
+        if (err != paNoError) goto error;
+        
+        err = Pa_CloseStream(outputStream);
         if (err != paNoError) goto error;
         
         delete data;
