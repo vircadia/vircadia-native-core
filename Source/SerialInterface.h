@@ -3,8 +3,8 @@
 //  
 
 
-#ifndef interface_SerialInterface_h
-#define interface_SerialInterface_h
+#ifndef __interface__SerialInterface__
+#define __interface__SerialInterface__
 
 #include "glm.hpp"
 #include "util.h"

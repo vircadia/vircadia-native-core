@@ -11,12 +11,14 @@
 
 #include <iostream>
 #include "AudioSource.h"
-#include "head.h"
+#include "Head.h"
+#include "UDPSocket.h"
 
 class AudioData {
     public:
         Head *linkedHead;
         AudioSource **sources;
+        UDPSocket *audioSocket;
     
         int16_t *samplesToQueue;
     
