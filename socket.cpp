@@ -23,9 +23,14 @@ const float SAMPLE_RATE = 22050.0;
 const int SAMPLES_PER_PACKET = 512;
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
 
+const int16_t MAX_SAMPLE_VALUE = 32767;
+const int16_t MIN_SAMPLE_VALUE = -32767;
+
 const int NUM_SOURCE_BUFFERS = 10;
 
 int16_t* wc_noise_buffer;
+
+#define ECHO_DEBUG_MODE 1
 
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof(dest_address);
@@ -39,8 +44,7 @@ struct AgentList {
 int num_agents = 0;
 
 struct SourceBuffer {
-    int16_t sourceAudioData[BUFFER_LENGTH_BYTES];
-    timeval receiveTime;
+    int16_t sourceAudioData[BUFFER_LENGTH_SAMPLES];
     bool available;
 } sourceBuffers[NUM_SOURCE_BUFFERS];
 
@@ -149,50 +153,39 @@ void *send_buffer_thread(void *args)
         gettimeofday(&lastSend, NULL);
         sentBytes = 0;
 
-        for (int i = 0; i < num_agents; i++) {
-            if (agents[i].active) {
-                sockaddr_in dest_address = agents[i].agent_addr;
+        int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
+        // memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
+        memset(clientMix, 0, BUFFER_LENGTH_BYTES);
 
-                int sampleOffset = currentSample * BUFFER_LENGTH_SAMPLES;
-                memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
-
-                for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
-                    if (!sourceBuffers[b].available) {
-                        int outputOffset = 0, dataSampleLength;
-
-                        int receiveSample = floor(diffclock(firstSend, sourceBuffers[b].receiveTime) * (SAMPLE_RATE / 1000));
-                        int receiveOffset = receiveSample - sampleOffset - BUFFER_LENGTH_SAMPLES;
-                        
-                        if (receiveOffset >= 0) {
-                            outputOffset = receiveOffset;
-                            dataSampleLength = BUFFER_LENGTH_SAMPLES - receiveOffset;
-                        } else {
-                            dataSampleLength = BUFFER_LENGTH_SAMPLES + receiveOffset;
-                        }
-
-                        std::cout << "SO: " << outputOffset << " DL: " << dataSampleLength << ". \n";
-
-                        for (int s = outputOffset; s < dataSampleLength; s++) {
-                            // we have source buffer data for this sample
-                            clientMix[s] += sourceBuffers[b].sourceAudioData[s - receiveOffset];
-                        }
-
-                        if (outputOffset == 0) {
-                            sourceBuffers[b].available = true;
-                        }
+        for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
+            if (!sourceBuffers[b].available) {
+                for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                    // we have source buffer data for this sample
+                    int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
+                    
+                    if (mixSample >= MAX_SAMPLE_VALUE || mixSample <= MIN_SAMPLE_VALUE) {
+                        std::cout << "Sample over at " << mixSample << ".\n";
                     }
+
+                    clientMix[s] += sourceBuffers[b].sourceAudioData[s];
                 }
 
-                sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
-                                    0, (sockaddr *) &dest_address, sizeof(dest_address));
-                
-                if (sentBytes < BUFFER_LENGTH_BYTES) {
-                    std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
-                }
+                sourceBuffers[b].available = true;
             }
         }
 
-        currentSample++; 
+        for (int i = 0; i < num_agents; i++) {
+            if (agents[i].active) {
+                sockaddr_in dest_address = agents[i].agent_addr;
+            }
+
+            sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
+                            0, (sockaddr *) &dest_address, sizeof(dest_address));
+        
+            if (sentBytes < BUFFER_LENGTH_BYTES) {
+                std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
+            }
+        }
     }  
 
     pthread_exit(0);  
@@ -217,7 +210,6 @@ void *process_client_packet(void *args)
 
     for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
         if (sourceBuffers[b].available) {
-            gettimeofday(&sourceBuffers[b].receiveTime, NULL);
             memcpy(sourceBuffers[b].sourceAudioData, process_args->packet_data, BUFFER_LENGTH_BYTES);
             sourceBuffers[b].available = false;
  
@@ -237,19 +229,19 @@ bool different_clients(sockaddr_in addr1, sockaddr_in addr2)
 
 void white_noise_buffer_init() {
     // open a pointer to the audio file
-    FILE *workclubFile = fopen("wild.raw", "r");
+    FILE *whiteNoiseFile = fopen("workclub.raw", "r");
     
     // get length of file
-    std::fseek(workclubFile, 0, SEEK_END);
-    int lengthInSamples = std::ftell(workclubFile) / sizeof(int16_t);
-    std::rewind(workclubFile);
+    std::fseek(whiteNoiseFile, 0, SEEK_END);
+    int lengthInSamples = std::ftell(whiteNoiseFile) / sizeof(int16_t);
+    std::rewind(whiteNoiseFile);
     
     // read that amount of samples from the file
     wc_noise_buffer = new int16_t[lengthInSamples];
-    std::fread(wc_noise_buffer, sizeof(int16_t), lengthInSamples, workclubFile);
+    std::fread(wc_noise_buffer, sizeof(int16_t), lengthInSamples, whiteNoiseFile);
     
     // close it
-    std::fclose(workclubFile);
+    std::fclose(whiteNoiseFile);
 }
 
 int main(int argc, const char * argv[])
@@ -296,13 +288,18 @@ int main(int argc, const char * argv[])
                                       0, (sockaddr*)&dest_address, &destLength);    
 
         if (received_bytes > 0) {
-            struct process_arg_struct args;
-            args.packet_data = packet_data;
-            args.dest_address = dest_address;
+            if (ECHO_DEBUG_MODE) {
+                sendto(handle, packet_data, BUFFER_LENGTH_BYTES,
+                            0, (sockaddr *) &dest_address, sizeof(dest_address));
+            } else {
+                struct process_arg_struct args;
+                args.packet_data = packet_data;
+                args.dest_address = dest_address;
 
-            pthread_t client_process_thread;
-            pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
-            pthread_join(client_process_thread, NULL); 
+                pthread_t client_process_thread;
+                pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
+                pthread_join(client_process_thread, NULL); 
+            }
         }
 
         gettimeofday(&now, NULL);
