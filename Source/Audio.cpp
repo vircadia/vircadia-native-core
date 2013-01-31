@@ -63,7 +63,7 @@ int audioCallback (const void *inputBuffer,
     int16_t *inBuffer = (int16_t *) inputBuffer;
     
     if (inBuffer != NULL) {
-        data->audioSocket->send((char *) "0.0.0.0", 55443, (void *)inBuffer, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) "192.168.1.57", 55443, (void *)inBuffer, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
