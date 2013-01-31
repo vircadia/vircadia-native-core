@@ -30,8 +30,7 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 bool Audio::initialized;
 PaError Audio::err;
-PaStream *Audio::inputStream;
-PaStream *Audio::outputStream;
+PaStream *Audio::stream;
 AudioData *Audio::data;
 std::ofstream logFile;
 
@@ -55,36 +54,27 @@ std::ofstream logFile;
  Can be used to end the stream from within the callback.
  */
 
-int inputCallback(const void *inputBuffer,
+int audioCallback (const void *inputBuffer,
                    void *outputBuffer,
                    unsigned long frames,
                    const PaStreamCallbackTimeInfo *timeInfo,
                    PaStreamCallbackFlags statusFlags,
                    void *userData)
 {
-    UDPSocket *audioSocket = (UDPSocket *) userData;
+    AudioData *data = (AudioData *) userData;
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
-    
-    return paContinue;
-}
-
-int outputCallback(const void *inputBuffer,
-                    void *outputBuffer,
-                    unsigned long frames,
-                    const PaStreamCallbackTimeInfo *timeInfo,
-                    PaStreamCallbackFlags statusFlags,
-                    void *userData)
-{
-    AudioData *data = (AudioData *) userData;
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
+    
+    memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
+    memset(outputRight, 0, BUFFER_LENGTH_BYTES);
     
     for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
         
@@ -95,9 +85,6 @@ int outputCallback(const void *inputBuffer,
             memcpy(outputLeft, source->sourceData, BUFFER_LENGTH_BYTES);
             memcpy(outputRight, source->sourceData, BUFFER_LENGTH_BYTES);
         } else {
-            memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
-            memset(outputRight, 0, BUFFER_LENGTH_BYTES);
-            
             glm::vec3 headPos = data->linkedHead->getPos();
             glm::vec3 sourcePos = source->position;
             
@@ -239,35 +226,20 @@ bool Audio::init(Head *mainHead)
     
     data->linkedHead = mainHead;
     
-    err = Pa_OpenDefaultStream(&inputStream,
+    err = Pa_OpenDefaultStream(&stream,
                                2,       // input channels
-                               NULL,       // output channels
-                               (paInt16 | paNonInterleaved), // sample format
-                               22050,   // sample rate (hz)
-                               512,     // frames per buffer
-                               inputCallback, // callback function
-                               (void *) data->audioSocket);  // user data to be passed to callback
-    
-    if (err != paNoError) goto error;
-    
-    err = Pa_OpenDefaultStream(&outputStream,
-                               NULL,       // input channels
                                2,       // output channels
                                (paInt16 | paNonInterleaved), // sample format
                                22050,   // sample rate (hz)
                                512,     // frames per buffer
-                               outputCallback, // callback function
+                               audioCallback, // callback function
                                (void *) data);  // user data to be passed to callback
-    
     if (err != paNoError) goto error;
     
     initialized = true;
     
-    // start the streams now that sources are good to go
-    Pa_StartStream(inputStream);
-    if (err != paNoError) goto error;
-    
-    Pa_StartStream(outputStream);
+    // start the stream now that sources are good to go
+    Pa_StartStream(stream);
     if (err != paNoError) goto error;
     
     return paNoError;
@@ -309,10 +281,7 @@ bool Audio::terminate ()
     } else {
         initialized = false;
         
-        err = Pa_CloseStream(inputStream);
-        if (err != paNoError) goto error;
-        
-        err = Pa_CloseStream(outputStream);
+        err = Pa_CloseStream(stream);
         if (err != paNoError) goto error;
         
         delete data;
