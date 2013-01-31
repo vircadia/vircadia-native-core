@@ -60,10 +60,11 @@ int audioCallback (const void *inputBuffer,
 {
     AudioData *data = (AudioData *) userData;
     
-    int16_t *inBuffer = (int16_t *) inputBuffer;
+    int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
+//    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
-    if (inBuffer != NULL) {
-        data->audioSocket->send((char *) "192.168.1.57", 55443, (void *)inBuffer, BUFFER_LENGTH_BYTES);
+    if (inputLeft != NULL) {
+        data->audioSocket->send((char *) "192.168.1.57", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -214,7 +215,7 @@ bool Audio::init(Head *mainHead)
     data->linkedHead = mainHead;
     
     err = Pa_OpenDefaultStream(&stream,
-                               1,       // input channels
+                               2,       // input channels
                                2,       // output channels
                                (paInt16 | paNonInterleaved), // sample format
                                22050,   // sample rate (hz)
