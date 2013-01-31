@@ -36,23 +36,14 @@ private:
     static PaError err;
     
     // audio stream handle
-    static PaStream *inputStream;
-    static PaStream *outputStream;
+    static PaStream *stream;
     
-    // give access to AudioData class from audio callbacks
-    friend int inputCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
-    friend int outputCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
+    // give access to AudioData class from audioCallback
+    friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
 };
 
 // Audio callback called by portaudio.
-int inputCallback (const void *inputBuffer,
-                   void *outputBuffer,
-                   unsigned long framesPerBuffer,
-                   const PaStreamCallbackTimeInfo *timeInfo,
-                   PaStreamCallbackFlags statusFlags,
-                   void *userData);
-
-int outputCallback (const void *inputBuffer,
+int audioCallback (const void *inputBuffer,
                    void *outputBuffer,
                    unsigned long framesPerBuffer,
                    const PaStreamCallbackTimeInfo *timeInfo,
