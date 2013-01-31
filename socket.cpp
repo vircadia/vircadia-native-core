@@ -12,18 +12,18 @@
 #include <errno.h>
 #include <fstream>
 
+const int MAX_AGENTS = 1000;
+const int LOGOFF_CHECK_INTERVAL = 1000;
+
 const int UDP_PORT = 55443; 
 
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-
 const float SAMPLE_RATE = 22050.0;
 const int SAMPLES_PER_PACKET = 512;
-
-const int MAX_AGENTS = 1000;
-const int LOGOFF_CHECK_INTERVAL = 1000;
-
 const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
+
+const int NUM_SOURCE_BUFFERS = 10;
 
 int16_t* wc_noise_buffer;
 
@@ -37,6 +37,12 @@ struct AgentList {
 } agents[MAX_AGENTS];
 
 int num_agents = 0;
+
+struct SourceBuffer {
+    int16_t sourceAudioData[BUFFER_LENGTH_BYTES];
+    timeval receiveTime;
+    bool available;
+} sourceBuffers[NUM_SOURCE_BUFFERS];
 
 double diffclock(timeval clock1,timeval clock2)
 {
@@ -124,33 +130,67 @@ void *send_buffer_thread(void *args)
     int handle = buffer_args->socket_handle;
 
     int sent_bytes;
-    timeval last_send, now;
-    int noise_byte_pointer = 0;
+
+    timeval firstSend;
+    timeval lastSend = {};
+    timeval now;
+
+    int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
+
+    gettimeofday(&firstSend, NULL);
+    gettimeofday(&now, NULL);
 
     while (true) {
-        while (diffclock(last_send, now) < BUFFER_SEND_INTERVAL) {
+        while (lastSend.tv_sec != 0 && diffclock(lastSend, now) < BUFFER_SEND_INTERVAL) {
             // loop here until we're allowed to send the buffer
             gettimeofday(&now, NULL);
         }
-        
-        // send out whatever we have in the buffer as mixed audio
-        // to our recent clients
+
+        sent_bytes = 0;
 
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
                 sockaddr_in dest_address = agents[i].agent_addr;
-    
-                sent_bytes = sendto(handle, wc_noise_buffer + noise_byte_pointer, BUFFER_LENGTH_BYTES,
-                                    0, (sockaddr *) &dest_address, sizeof(dest_address));
-                noise_byte_pointer += BUFFER_LENGTH_SAMPLES;
 
+                int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
+                memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
+
+                for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
+                    if (!sourceBuffers[b].available) {
+                        int outputOffset = 0, dataSampleLength;
+
+                        int receiveOffset = BUFFER_LENGTH_SAMPLES - floor(diffclock(sourceBuffers[b].receiveTime, now) * (SAMPLE_RATE / 1000));
+                        
+                        if (receiveOffset >= 0) {
+                            outputOffset = receiveOffset;
+                            dataSampleLength = BUFFER_LENGTH_SAMPLES - receiveOffset;
+                        } else {
+                            dataSampleLength = BUFFER_LENGTH_SAMPLES + receiveOffset;
+                        }
+
+                        // std::cout << "SO: " << outputOffset << " DL: " << dataSampleLength << ". \n";
+
+                        for (int s = outputOffset; s < dataSampleLength; s++) {
+                            // we have source buffer data for this sample
+                            clientMix[s] += sourceBuffers[b].sourceAudioData[s - receiveOffset];
+                        }
+
+                        if (outputOffset == 0) {
+                            sourceBuffers[b].available = true;
+                        }
+                    }
+                }
+
+                sent_bytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
+                                    0, (sockaddr *) &dest_address, sizeof(dest_address));
+                
                 if (sent_bytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sent_bytes << strerror(errno) << "\n";
                 }
             }
         }
 
-        gettimeofday(&last_send, NULL);
+        gettimeofday(&lastSend, NULL);
     }  
 
     pthread_exit(0);  
@@ -166,13 +206,22 @@ void *process_client_packet(void *args)
     struct process_arg_struct *process_args = (struct process_arg_struct *) args;
     
     sockaddr_in dest_address = process_args->dest_address;
-    dest_address.sin_port = htons((uint16_t) 55444);
 
     if (addAgent(dest_address)) {
         std::cout << "Added agent: " << 
             inet_ntoa(dest_address.sin_addr) << " on " <<
             dest_address.sin_port << "\n";
     }    
+
+    for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
+        if (sourceBuffers[b].available) {
+            gettimeofday(&sourceBuffers[b].receiveTime, NULL);
+            memcpy(sourceBuffers[b].sourceAudioData, process_args->packet_data, BUFFER_LENGTH_BYTES);
+            sourceBuffers[b].available = false;
+ 
+            break;
+        }
+    }
 
     pthread_exit(0);
 }
@@ -186,7 +235,7 @@ bool different_clients(sockaddr_in addr1, sockaddr_in addr2)
 
 void white_noise_buffer_init() {
     // open a pointer to the audio file
-    FILE *workclubFile = fopen("closer.raw", "r");
+    FILE *workclubFile = fopen("wild.raw", "r");
     
     // get length of file
     std::fseek(workclubFile, 0, SEEK_END);
@@ -220,11 +269,15 @@ int main(int argc, const char * argv[])
 
     //  Set socket as non-blocking
     int nonBlocking = 1;
-    if ( fcntl( handle, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
-    {
+    if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
         printf( "failed to set non-blocking socket\n" );
         return false;
     }
+
+    // set source audio buffers availability to true
+    for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
+        sourceBuffers[b].available = true;
+    } 
 
     gettimeofday(&last_agent_update, NULL);
 
