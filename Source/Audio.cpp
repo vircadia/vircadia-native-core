@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
+#include <sys/time.h>
 #include "Audio.h"
 #include "Util.h"
 #include "AudioSource.h"
@@ -26,10 +27,13 @@ const int ECHO_SERVER_TEST = 1;
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
+#define LOG_SAMPLE_DELAY 1
+
 bool Audio::initialized;
 PaError Audio::err;
 PaStream *Audio::stream;
 AudioData *Audio::data;
+std::ofstream logFile;
 
 /**
  * Audio callback used by portaudio.
@@ -64,7 +68,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) "192.168.1.57", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -154,8 +158,32 @@ void *receiveAudioViaUDP(void *args) {
     int *receivedBytes = new int;
     int streamSamplePointer = 0;
     
+    timeval previousReceiveTime, currentReceiveTime;
+    
+    if (LOG_SAMPLE_DELAY) {
+        gettimeofday(&previousReceiveTime, NULL);
+        
+        char *filename = new char[50];
+        sprintf(filename, "%s/Desktop/%ld.csv", getenv("HOME"), previousReceiveTime.tv_sec);
+        
+        logFile.open(filename, std::ios::out);
+        
+        delete[] filename;
+    }
+    
     while (true) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
+            
+            if (LOG_SAMPLE_DELAY) {
+                // write time difference (in microseconds) between packet receipts to file
+                gettimeofday(&currentReceiveTime, NULL);
+                
+                double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
+                
+                logFile << timeDiff << std::endl;
+            }
+            
+            
             // add the received data to the shared memory
             memcpy(sharedAudioData->sources[0]->sourceData + streamSamplePointer, receivedData, *receivedBytes);
             
@@ -164,7 +192,11 @@ void *receiveAudioViaUDP(void *args) {
             } else {
                 streamSamplePointer = 0;
             }
-        }
+            
+            if (LOG_SAMPLE_DELAY) {
+                gettimeofday(&previousReceiveTime, NULL);
+            }
+        }        
     }
 }
 
@@ -276,6 +308,8 @@ bool Audio::terminate ()
         
         err = Pa_Terminate();
         if (err != paNoError) goto error;
+        
+        logFile.close();
         
         return true;
     }
