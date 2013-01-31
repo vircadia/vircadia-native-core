@@ -129,8 +129,8 @@ void *send_buffer_thread(void *args)
     struct send_buffer_struct *buffer_args = (struct send_buffer_struct *) args;
     int handle = buffer_args->socket_handle;
 
-    int sent_bytes;
-
+    int sentBytes;
+    int currentSample = 1;
     timeval firstSend;
     timeval lastSend = {};
     timeval now;
@@ -146,20 +146,22 @@ void *send_buffer_thread(void *args)
             gettimeofday(&now, NULL);
         }
 
-        sent_bytes = 0;
+        gettimeofday(&lastSend, NULL);
+        sentBytes = 0;
 
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
                 sockaddr_in dest_address = agents[i].agent_addr;
 
-                int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
+                int sampleOffset = currentSample * BUFFER_LENGTH_SAMPLES;
                 memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
 
                 for (int b = 0; b < NUM_SOURCE_BUFFERS; b++) {
                     if (!sourceBuffers[b].available) {
                         int outputOffset = 0, dataSampleLength;
 
-                        int receiveOffset = BUFFER_LENGTH_SAMPLES - floor(diffclock(sourceBuffers[b].receiveTime, now) * (SAMPLE_RATE / 1000));
+                        int receiveSample = floor(diffclock(firstSend, sourceBuffers[b].receiveTime) * (SAMPLE_RATE / 1000));
+                        int receiveOffset = receiveSample - sampleOffset - BUFFER_LENGTH_SAMPLES;
                         
                         if (receiveOffset >= 0) {
                             outputOffset = receiveOffset;
@@ -168,7 +170,7 @@ void *send_buffer_thread(void *args)
                             dataSampleLength = BUFFER_LENGTH_SAMPLES + receiveOffset;
                         }
 
-                        // std::cout << "SO: " << outputOffset << " DL: " << dataSampleLength << ". \n";
+                        std::cout << "SO: " << outputOffset << " DL: " << dataSampleLength << ". \n";
 
                         for (int s = outputOffset; s < dataSampleLength; s++) {
                             // we have source buffer data for this sample
@@ -181,16 +183,16 @@ void *send_buffer_thread(void *args)
                     }
                 }
 
-                sent_bytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
+                sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
                                     0, (sockaddr *) &dest_address, sizeof(dest_address));
                 
-                if (sent_bytes < BUFFER_LENGTH_BYTES) {
-                    std::cout << "Error sending mix packet! " << sent_bytes << strerror(errno) << "\n";
+                if (sentBytes < BUFFER_LENGTH_BYTES) {
+                    std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
                 }
             }
         }
 
-        gettimeofday(&lastSend, NULL);
+        currentSample++; 
     }  
 
     pthread_exit(0);  
