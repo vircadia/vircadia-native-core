@@ -15,11 +15,19 @@
 class AudioSource {
     public:
         glm::vec3 position;
-        int16_t *sourceData;
-        int lengthInSamples;
-        int samplePointer;
-        
-        AudioSource() { samplePointer = 0; sourceData = NULL; lengthInSamples = 0; }
+    
+        struct JitterBuffer {
+            int16_t *audioData;
+            timeval receiveTime;
+            
+            ~JitterBuffer() { delete[] audioData; }
+        } *oldestData, *newestData;
+    
+//        int lengthInSamples;
+//        int samplePointer;
+    
+//        AudioSource() { samplePointer = 0; lengthInSamples = 0; }
+        AudioSource() { oldestData = NULL; newestData = NULL; }
         ~AudioSource();
         
         int loadDataFromFile(const char *filename);

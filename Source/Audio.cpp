@@ -21,10 +21,14 @@ const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 const int PHASE_DELAY_AT_90 = 20;
 const int AMPLITUDE_RATIO_AT_90 = 0.5;
 
+const int JITTER_BUFFER_MSECS = 5;
+
 const int NUM_AUDIO_SOURCES = 1;
 const int ECHO_SERVER_TEST = 1;
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
+
+pthread_mutex_t jitterMutex;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -81,56 +85,84 @@ int audioCallback (const void *inputBuffer,
         AudioSource *source = data->sources[s];
         
         if (ECHO_SERVER_TEST) {
-            // copy whatever is source->sourceData to the left and right output channels
-            memcpy(outputLeft, source->sourceData, BUFFER_LENGTH_BYTES);
-            memcpy(outputRight, source->sourceData, BUFFER_LENGTH_BYTES);
-        } else {
-            glm::vec3 headPos = data->linkedHead->getPos();
-            glm::vec3 sourcePos = source->position;
+            AudioSource::JitterBuffer *bufferToCopy = NULL;
             
-            int startPointer = source->samplePointer;
-            int wrapAroundSamples = (BUFFER_LENGTH_SAMPLES) - (source->lengthInSamples - source->samplePointer);
+            timeval sendTime;
+            gettimeofday(&sendTime, NULL);
             
-            if (wrapAroundSamples <= 0) {
-                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
-                source->samplePointer += (BUFFER_LENGTH_SAMPLES);
-            } else {
-                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
-                memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
-                source->samplePointer = wrapAroundSamples;
+            pthread_mutex_lock(&jitterMutex);
+            
+            // copy whatever the oldest data to the left and right output channels
+            // as long as it came in at least JITTER_BUFFER_MSECS ago
+            if (source->oldestData != NULL) {
+                bufferToCopy = source->oldestData;
+            } else if (source->newestData != NULL) {
+                bufferToCopy = source->newestData;
             }
             
-            float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
-            float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
-            
-            float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
-            float sinRatio = sqrt(fabsf(sinf(angleToSource)));
-            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-            
-            float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
-            
-            //        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
-            
-            int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
-            int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
-            
-            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-                data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
-                leadingOutput[i] += data->samplesToQueue[i];
+            if (bufferToCopy != NULL && diffclock(bufferToCopy->receiveTime, sendTime) > JITTER_BUFFER_MSECS) {
+                memcpy(outputLeft, bufferToCopy->audioData, BUFFER_LENGTH_BYTES);
+                memcpy(outputRight, bufferToCopy->audioData, BUFFER_LENGTH_BYTES);
                 
-                if (i >= numSamplesDelay) {
-                    trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
+                delete bufferToCopy;
+                
+                if (bufferToCopy == source->oldestData) {
+                    source->oldestData = NULL;
                 } else {
-                    int sampleIndex = startPointer - numSamplesDelay + i;
-                    
-                    if (sampleIndex < 0) {
-                        sampleIndex += source->lengthInSamples;
-                    }
-                    
-                    trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
+                    source->newestData = NULL;
                 }
             }
+            
+            pthread_mutex_unlock(&jitterMutex);
         }
+//        } else {
+//            glm::vec3 headPos = data->linkedHead->getPos();
+//            glm::vec3 sourcePos = source->position;
+//            
+//            int startPointer = source->samplePointer;
+//            int wrapAroundSamples = (BUFFER_LENGTH_SAMPLES) - (source->lengthInSamples - source->samplePointer);
+//            
+//            if (wrapAroundSamples <= 0) {
+//                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+//                source->samplePointer += (BUFFER_LENGTH_SAMPLES);
+//            } else {
+//                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
+//                memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
+//                source->samplePointer = wrapAroundSamples;
+//            }
+//            
+//            float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
+//            float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
+//            
+//            float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
+//            float sinRatio = sqrt(fabsf(sinf(angleToSource)));
+//            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+//            
+//            float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
+//            
+//            //        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
+//            
+//            int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
+//            int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
+//            
+//            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+//                data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
+//                leadingOutput[i] += data->samplesToQueue[i];
+//                
+//                if (i >= numSamplesDelay) {
+//                    trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
+//                } else {
+//                    int sampleIndex = startPointer - numSamplesDelay + i;
+//                    
+//                    if (sampleIndex < 0) {
+//                        sampleIndex += source->lengthInSamples;
+//                    }
+//                    
+//                    trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
+//                }
+//            }
+//        }
+//    }
     }
     
     return paContinue;
@@ -162,17 +194,34 @@ void *receiveAudioViaUDP(void *args) {
     
     while (true) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
+            gettimeofday(&currentReceiveTime, NULL);
             
             if (LOG_SAMPLE_DELAY) {
                 // write time difference (in microseconds) between packet receipts to file
-                gettimeofday(&currentReceiveTime, NULL);
                 double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
                 logFile << timeDiff << std::endl;
             }
-    
-            // add the received data to the shared memory
-            memcpy(sharedAudioData->sources[0]->sourceData, receivedData, *receivedBytes);
             
+            AudioSource *inputSource = sharedAudioData->sources[0];
+            
+            pthread_mutex_lock(&jitterMutex);
+            
+            if (inputSource->newestData != NULL) {
+                if (inputSource->oldestData != NULL) {
+                    delete inputSource->oldestData;
+                }
+                
+                inputSource->oldestData = inputSource->newestData;
+                inputSource->newestData = NULL;
+            }
+                
+            inputSource->newestData = new AudioSource::JitterBuffer();
+            inputSource->newestData->audioData = new int16_t[BUFFER_LENGTH_SAMPLES];
+            memcpy(inputSource->newestData->audioData, receivedData, BUFFER_LENGTH_BYTES);
+            inputSource->newestData->receiveTime = currentReceiveTime;
+            
+            pthread_mutex_unlock(&jitterMutex);
+    
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
             }
@@ -204,14 +253,12 @@ bool Audio::init(Head *mainHead)
         // setup a UDPSocket
         data->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
         
-        // setup the ring buffer source for the streamed audio
-        data->sources[0]->sourceData = new int16_t[BUFFER_LENGTH_SAMPLES];
-        memset(data->sources[0]->sourceData, 0, BUFFER_LENGTH_SAMPLES * sizeof(int16_t));
-        
         pthread_t audioReceiveThread;
         
         AudioRecThreadStruct threadArgs;
         threadArgs.sharedAudioData = data;
+        
+        pthread_mutex_init(&jitterMutex, NULL);
         
         pthread_create(&audioReceiveThread, NULL, receiveAudioViaUDP, (void *) &threadArgs);
     } else {
@@ -276,9 +323,7 @@ void Audio::render()
  */
 bool Audio::terminate ()
 {
-    if (!initialized) {
-        return true;
-    } else {
+    if (initialized) {
         initialized = false;
         
         err = Pa_CloseStream(stream);
@@ -290,9 +335,11 @@ bool Audio::terminate ()
         if (err != paNoError) goto error;
         
         logFile.close();
-        
-        return true;
     }
+    
+    pthread_mutex_destroy(&jitterMutex);
+    
+    return true;
     
 error:
     fprintf(stderr, "-- portaudio termination error --\n");
