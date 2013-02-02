@@ -69,18 +69,18 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     float measured_roll_rate = serialInterface->getRelativeValue(ROLL_RATE);
     
     //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.20;
-    const float HEAD_ROLL_SCALE = 0.50;
-    const float HEAD_LEAN_SCALE = 0.02;
+    const float HEAD_ROTATION_SCALE = 0.80;
+    const float HEAD_ROLL_SCALE = 0.80;
+    const float HEAD_LEAN_SCALE = 0.01;
     if (head_mirror) {
-        addYaw(measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
+        addYaw(-measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-        addRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
-        addLean(measured_lateral_accel * frametime * HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
+        addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
+        addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
     } else {
         addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-        addRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
+        addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
 }
