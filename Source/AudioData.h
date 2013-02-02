@@ -10,6 +10,7 @@
 #define __interface__AudioData__
 
 #include <iostream>
+#include "AudioRingBuffer.h"
 #include "AudioSource.h"
 #include "Head.h"
 #include "UDPSocket.h"
@@ -17,11 +18,15 @@
 class AudioData {
     public:
         Head *linkedHead;
+    
+        AudioRingBuffer *ringBuffer;
         AudioSource **sources;
+    
         UDPSocket *audioSocket;
     
         int16_t *samplesToQueue;
     
+        AudioData(int bufferLength);
         AudioData(int numberOfSources, int bufferLength);
         ~AudioData();
         

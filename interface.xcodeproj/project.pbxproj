@@ -20,6 +20,7 @@
 		533BF9D516B31A4700AC31BB /* jeska.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 533BF9D316B31A3B00AC31BB /* jeska.raw */; };
 		535B821116B9BED400D18440 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 535B820F16B9BED400D18440 /* lodepng.cpp */; };
 		538BA8A316B1B71E000BF99C /* love.raw in CopyFiles */ = {isa = PBXBuildFile; fileRef = 538BA8A216B1B719000BF99C /* love.raw */; };
+		53A4EAB216BC770A00F07F4C /* AudioRingBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53A4EAB016BC770A00F07F4C /* AudioRingBuffer.cpp */; };
 		53ACC39816B9C59500ABD227 /* Oscilloscope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */; };
 		53CF371716B9C039001FCB05 /* Agent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EC16B9C039001FCB05 /* Agent.cpp */; };
 		53CF371816B9C039001FCB05 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53CF36EE16B9C039001FCB05 /* Audio.cpp */; };
@@ -308,6 +309,8 @@
 		535B820F16B9BED400D18440 /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
 		535B821016B9BED400D18440 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		538BA8A216B1B719000BF99C /* love.raw */ = {isa = PBXFileReference; lastKnownFileType = file; path = love.raw; sourceTree = "<group>"; };
+		53A4EAB016BC770A00F07F4C /* AudioRingBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioRingBuffer.cpp; sourceTree = "<group>"; };
+		53A4EAB116BC770A00F07F4C /* AudioRingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioRingBuffer.h; sourceTree = "<group>"; };
 		53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Oscilloscope.cpp; sourceTree = "<group>"; };
 		53ACC39716B9C59500ABD227 /* Oscilloscope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Oscilloscope.h; sourceTree = "<group>"; };
 		53CF36EC16B9C039001FCB05 /* Agent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Agent.cpp; sourceTree = "<group>"; };
@@ -451,6 +454,8 @@
 				53CF371416B9C039001FCB05 /* Util.cpp */,
 				53CF371516B9C039001FCB05 /* Util.h */,
 				53CF371616B9C039001FCB05 /* world.h */,
+				53A4EAB016BC770A00F07F4C /* AudioRingBuffer.cpp */,
+				53A4EAB116BC770A00F07F4C /* AudioRingBuffer.h */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -868,6 +873,7 @@
 				53CF372916B9C039001FCB05 /* UDPSocket.cpp in Sources */,
 				53CF372A16B9C039001FCB05 /* Util.cpp in Sources */,
 				53ACC39816B9C59500ABD227 /* Oscilloscope.cpp in Sources */,
+				53A4EAB216BC770A00F07F4C /* AudioRingBuffer.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
