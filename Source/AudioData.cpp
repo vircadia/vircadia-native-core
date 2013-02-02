@@ -8,6 +8,12 @@
 
 #include "AudioData.h"
 
+AudioData::AudioData(int bufferLength) {
+    sources = NULL;
+    
+    samplesToQueue = new int16_t[bufferLength / sizeof(int16_t)];
+}
+
 AudioData::AudioData(int numberOfSources, int bufferLength) {
     _numberOfSources = numberOfSources;
     
@@ -21,9 +27,12 @@ AudioData::AudioData(int numberOfSources, int bufferLength) {
 }
 
 AudioData::~AudioData() {
-    for (int s = 0; s < _numberOfSources; s++) {
-        delete sources[s];
+    if (sources != NULL) {
+        for (int s = 0; s < _numberOfSources; s++) {
+            delete sources[s];
+        }
     }
+    
     
     delete[] samplesToQueue;
 }

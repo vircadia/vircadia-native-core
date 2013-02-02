@@ -15,20 +15,25 @@
 #include "AudioSource.h"
 #include "UDPSocket.h"
 
-const int BUFFER_LENGTH_BYTES = 1024;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+const short BUFFER_LENGTH_BYTES = 1024;
+const short BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+
+const short PACKET_LENGTH_BYTES = 1024;
+const short PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 
 const int PHASE_DELAY_AT_90 = 20;
-const int AMPLITUDE_RATIO_AT_90 = 0.5;
+const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
-const int JITTER_BUFFER_MSECS = 5;
+const short RING_BUFFER_FRAMES = 4;
+const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const int NUM_AUDIO_SOURCES = 1;
-const int ECHO_SERVER_TEST = 1;
+const short JITTER_BUFFER_LENGTH_MSECS = 3;
+const int SAMPLE_RATE = 22050;
+
+const short NUM_AUDIO_SOURCES = 2;
+const short ECHO_SERVER_TEST = 1;
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
-
-pthread_mutex_t jitterMutex;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -80,89 +85,98 @@ int audioCallback (const void *inputBuffer,
     memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
     memset(outputRight, 0, BUFFER_LENGTH_BYTES);
     
-    for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+    if (ECHO_SERVER_TEST) {
+        AudioRingBuffer *ringBuffer = data->ringBuffer;
+       
+        int16_t *queueBuffer = data->samplesToQueue;
+        memset(queueBuffer, 0, BUFFER_LENGTH_BYTES);
         
-        AudioSource *source = data->sources[s];
+        // if we've been reset, and there isn't any new packets yet
+        // just play some silence
         
-        if (ECHO_SERVER_TEST) {
-            AudioSource::JitterBuffer *bufferToCopy = NULL;
+        if (ringBuffer->endOfLastWrite != NULL) {
             
-            timeval sendTime;
-            gettimeofday(&sendTime, NULL);
+            // play whatever we have in the audio buffer
+            short silentTail = 0;
             
-            pthread_mutex_lock(&jitterMutex);
-            
-            // copy whatever the oldest data to the left and right output channels
-            // as long as it came in at least JITTER_BUFFER_MSECS ago
-            if (source->oldestData != NULL) {
-                bufferToCopy = source->oldestData;
-            } else if (source->newestData != NULL) {
-                bufferToCopy = source->newestData;
+            // if the end of the last write to the ring is in front of the current output pointer
+            // AND the difference between the two is less than a full output buffer
+            // we need to add some silence after the audio data, to avoid replaying old data
+            if ((ringBuffer->endOfLastWrite - ringBuffer->buffer) > (ringBuffer->nextOutput - ringBuffer->buffer)
+                && (ringBuffer->endOfLastWrite - ringBuffer->nextOutput) < BUFFER_LENGTH_SAMPLES) {
+                silentTail = BUFFER_LENGTH_SAMPLES - (ringBuffer->endOfLastWrite - ringBuffer->nextOutput);
             }
             
-            if (bufferToCopy != NULL && diffclock(bufferToCopy->receiveTime, sendTime) > JITTER_BUFFER_MSECS) {
-                memcpy(outputLeft, bufferToCopy->audioData, BUFFER_LENGTH_BYTES);
-                memcpy(outputRight, bufferToCopy->audioData, BUFFER_LENGTH_BYTES);
+            // no sample overlap, either a direct copy of the audio data, or a copy with some appended silence
+            memcpy(queueBuffer, ringBuffer->nextOutput, (BUFFER_LENGTH_SAMPLES - silentTail) * sizeof(int16_t));
+            
+            ringBuffer->nextOutput += BUFFER_LENGTH_SAMPLES;
+            
+            if (ringBuffer->nextOutput == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
+                ringBuffer->nextOutput = ringBuffer->buffer;
+            }
+            
+            if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
+                std::cout << "Starved\n";
+                ringBuffer->endOfLastWrite = NULL;
+            }
+        }
+        
+        // copy whatever is in the queueBuffer to the outputLeft and outputRight buffers
+        memcpy(outputLeft, queueBuffer, BUFFER_LENGTH_BYTES);
+        memcpy(outputRight, queueBuffer, BUFFER_LENGTH_BYTES);
+        
+    }  else {
+        
+        for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
+            AudioSource *source = data->sources[s];
+            
+            glm::vec3 headPos = data->linkedHead->getPos();
+            glm::vec3 sourcePos = source->position;
+            
+            int startPointer = source->samplePointer;
+            int wrapAroundSamples = (BUFFER_LENGTH_SAMPLES) - (source->lengthInSamples - source->samplePointer);
+            
+            if (wrapAroundSamples <= 0) {
+                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
+                source->samplePointer += (BUFFER_LENGTH_SAMPLES);
+            } else {
+                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
+                memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
+                source->samplePointer = wrapAroundSamples;
+            }
+            
+            float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
+            float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
+            
+            float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
+            float sinRatio = sqrt(fabsf(sinf(angleToSource)));
+            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+            
+            float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
+            
+            //        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
+            
+            int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
+            int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
+            
+            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+                data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
+                leadingOutput[i] += data->samplesToQueue[i];
                 
-                delete bufferToCopy;
-                
-                if (bufferToCopy == source->oldestData) {
-                    source->oldestData = NULL;
+                if (i >= numSamplesDelay) {
+                    trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
                 } else {
-                    source->newestData = NULL;
+                    int sampleIndex = startPointer - numSamplesDelay + i;
+                    
+                    if (sampleIndex < 0) {
+                        sampleIndex += source->lengthInSamples;
+                    }
+                    
+                    trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
                 }
             }
-            
-            pthread_mutex_unlock(&jitterMutex);
         }
-//        } else {
-//            glm::vec3 headPos = data->linkedHead->getPos();
-//            glm::vec3 sourcePos = source->position;
-//            
-//            int startPointer = source->samplePointer;
-//            int wrapAroundSamples = (BUFFER_LENGTH_SAMPLES) - (source->lengthInSamples - source->samplePointer);
-//            
-//            if (wrapAroundSamples <= 0) {
-//                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, BUFFER_LENGTH_BYTES);
-//                source->samplePointer += (BUFFER_LENGTH_SAMPLES);
-//            } else {
-//                memcpy(data->samplesToQueue, source->sourceData + source->samplePointer, (source->lengthInSamples - source->samplePointer) * sizeof(int16_t));
-//                memcpy(data->samplesToQueue + (source->lengthInSamples - source->samplePointer), source->sourceData, wrapAroundSamples * sizeof(int16_t));
-//                source->samplePointer = wrapAroundSamples;
-//            }
-//            
-//            float distance = sqrtf(powf(-headPos[0] - sourcePos[0], 2) + powf(-headPos[2] - sourcePos[2], 2));
-//            float distanceAmpRatio = powf(0.5, cbrtf(distance * 10));
-//            
-//            float angleToSource = angle_to(headPos * -1.f, sourcePos, data->linkedHead->getRenderYaw(), data->linkedHead->getYaw()) * M_PI/180;
-//            float sinRatio = sqrt(fabsf(sinf(angleToSource)));
-//            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-//            
-//            float phaseAmpRatio = 1.f - (AMPLITUDE_RATIO_AT_90 * sinRatio);
-//            
-//            //        std::cout << "S: " << numSamplesDelay << " A: " << angleToSource << " S: " << sinRatio << " AR: " << phaseAmpRatio << "\n";
-//            
-//            int16_t *leadingOutput = angleToSource > 0 ? outputLeft : outputRight;
-//            int16_t *trailingOutput = angleToSource > 0 ? outputRight : outputLeft;
-//            
-//            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-//                data->samplesToQueue[i] *= distanceAmpRatio / NUM_AUDIO_SOURCES;
-//                leadingOutput[i] += data->samplesToQueue[i];
-//                
-//                if (i >= numSamplesDelay) {
-//                    trailingOutput[i] += data->samplesToQueue[i - numSamplesDelay];
-//                } else {
-//                    int sampleIndex = startPointer - numSamplesDelay + i;
-//                    
-//                    if (sampleIndex < 0) {
-//                        sampleIndex += source->lengthInSamples;
-//                    }
-//                    
-//                    trailingOutput[i] += source->sourceData[sampleIndex] * (distanceAmpRatio * phaseAmpRatio / NUM_AUDIO_SOURCES);
-//                }
-//            }
-//        }
-//    }
     }
     
     return paContinue;
@@ -202,30 +216,58 @@ void *receiveAudioViaUDP(void *args) {
                 logFile << timeDiff << std::endl;
             }
             
-            AudioSource *inputSource = sharedAudioData->sources[0];
+            AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
             
-            pthread_mutex_lock(&jitterMutex);
+            int16_t *copyToPointer;
+            bool needsJitterBuffer = ringBuffer->endOfLastWrite == NULL;
+            short bufferSampleOverlap = 0;
             
-            if (inputSource->newestData != NULL) {
-                if (inputSource->oldestData != NULL) {
-                    delete inputSource->oldestData;
-                }
-                
-                inputSource->oldestData = inputSource->newestData;
-                inputSource->newestData = NULL;
+            if (!needsJitterBuffer && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+                needsJitterBuffer = true;
             }
-                
-            inputSource->newestData = new AudioSource::JitterBuffer();
-            inputSource->newestData->audioData = new int16_t[BUFFER_LENGTH_SAMPLES];
-            memcpy(inputSource->newestData->audioData, receivedData, BUFFER_LENGTH_BYTES);
-            inputSource->newestData->receiveTime = currentReceiveTime;
             
-            pthread_mutex_unlock(&jitterMutex);
+            if (needsJitterBuffer) {
+                // we'll need a jitter buffer
+                // reset the ring buffer and write
+                copyToPointer = ringBuffer->buffer;
+            } else {
+                copyToPointer = ringBuffer->endOfLastWrite;
+                
+                // check for possibility of overlap
+                bufferSampleOverlap = ringBuffer->bufferOverlap(copyToPointer, PACKET_LENGTH_SAMPLES);
+            }
+            
+            if (!bufferSampleOverlap) {
+                if (needsJitterBuffer) {
+                    // we need to inject a jitter buffer
+                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000);
+                    
+                    // add silence for jitter buffer and then the received packet
+                    memset(copyToPointer, 0, jitterBufferSamples * sizeof(int16_t));
+                    memcpy(copyToPointer + jitterBufferSamples, receivedData, PACKET_LENGTH_BYTES);
+                    
+                    // the end of the write is the pointer to the buffer + packet + jitter buffer
+                    ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + jitterBufferSamples;
+                } else {
+                    // no jitter buffer, no overlap
+                    // just copy the recieved data to the right spot and then add packet length to previous pointer
+                    memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
+                    ringBuffer->endOfLastWrite += PACKET_LENGTH_SAMPLES;
+                }
+            } else {
+                // no jitter buffer, but overlap
+                // copy to the end, and then from the begining to the overlap
+                memcpy(copyToPointer, receivedData, (PACKET_LENGTH_SAMPLES - bufferSampleOverlap) * sizeof(int16_t));
+                memcpy(ringBuffer->buffer, receivedData + bufferSampleOverlap, bufferSampleOverlap * sizeof(int16_t));
+                
+                // the end of the write is the amount of overlap
+                ringBuffer->endOfLastWrite = ringBuffer->buffer + bufferSampleOverlap;
+            }
     
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
             }
-        }        
+        }
     }
 }
 
@@ -248,17 +290,16 @@ bool Audio::init(Head *mainHead)
     if (err != paNoError) goto error;
     
     if (ECHO_SERVER_TEST) {
-        data = new AudioData(1, BUFFER_LENGTH_BYTES);
+        data = new AudioData(BUFFER_LENGTH_BYTES);
         
         // setup a UDPSocket
         data->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
+        data->ringBuffer = new AudioRingBuffer(RING_BUFFER_SIZE_SAMPLES);
         
         pthread_t audioReceiveThread;
         
         AudioRecThreadStruct threadArgs;
         threadArgs.sharedAudioData = data;
-        
-        pthread_mutex_init(&jitterMutex, NULL);
         
         pthread_create(&audioReceiveThread, NULL, receiveAudioViaUDP, (void *) &threadArgs);
     } else {
@@ -336,8 +377,6 @@ bool Audio::terminate ()
         
         logFile.close();
     }
-    
-    pthread_mutex_destroy(&jitterMutex);
     
     return true;
     
