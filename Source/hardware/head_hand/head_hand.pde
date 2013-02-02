@@ -5,8 +5,8 @@
 //  
 //  PIN WIRING:  Connect input sensors to the channels in following manner
 //
-//  AIN 15:  Pitch Gyro (nodding your head 'yes') 
-//  AIN 16:  Yaw Gyro (shaking your head 'no')
+//  AIN 10:  Yaw Gyro (shaking your head 'no')
+//  AIN 16:  Pitch Gyro (nodding your head 'yes') 
 //  AIN 17:  Roll Gyro (looking quizzical, tilting your head)
 //  AIN 18:  Lateral acceleration (moving from side-to-side in front of your monitor)
 //  AIN 19:  Up/Down acceleration (sitting up/ducking in front of your monitor)
@@ -17,7 +17,7 @@
 
 #define LED_PIN 12
 
-int inputPins[NUM_CHANNELS] = {15,16,17,18,19,20};
+int inputPins[NUM_CHANNELS] = {10,16,17,18,19,20};
 
 int LED = 0;
 unsigned int samplesSent = 0;
