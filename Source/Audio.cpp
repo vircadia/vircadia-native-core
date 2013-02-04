@@ -10,6 +10,7 @@
 #include <fstream>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include "Audio.h"
 #include "Util.h"
 #include "AudioSource.h"
@@ -76,7 +77,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) "192.168.1.19", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) "54.241.92.53", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -193,27 +194,38 @@ void *receiveAudioViaUDP(void *args) {
     int16_t *receivedData = new int16_t[BUFFER_LENGTH_SAMPLES];
     int *receivedBytes = new int;
     
-    timeval previousReceiveTime, currentReceiveTime;
+    timeval previousReceiveTime, currentReceiveTime = {};
     
     if (LOG_SAMPLE_DELAY) {
         gettimeofday(&previousReceiveTime, NULL);
         
+        char *directory = new char[50];
         char *filename = new char[50];
-        sprintf(filename, "%s/Desktop/%ld.csv", getenv("HOME"), previousReceiveTime.tv_sec);
+        
+        sprintf(directory, "%s/Desktop/echo_tests", getenv("HOME"));
+        
+        mkdir(directory, S_IRWXU | S_IRWXG | S_IRWXO);
+        sprintf(filename, "%s/%ld.csv", directory, previousReceiveTime.tv_sec);
         
         logFile.open(filename, std::ios::out);
         
+        delete[] directory;
         delete[] filename;
     }
     
     while (true) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
-            gettimeofday(&currentReceiveTime, NULL);
-            
+
             if (LOG_SAMPLE_DELAY) {
-                // write time difference (in microseconds) between packet receipts to file
-                double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
-                logFile << timeDiff << std::endl;
+                if (currentReceiveTime.tv_sec == 0) {
+                    gettimeofday(&currentReceiveTime, NULL);
+                } else {
+                    gettimeofday(&currentReceiveTime, NULL);
+                    
+                    // write time difference (in microseconds) between packet receipts to file
+                    double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
+                    logFile << timeDiff << std::endl;
+                }
             }
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
