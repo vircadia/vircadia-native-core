@@ -22,6 +22,8 @@ char serial_buffer[MAX_BUFFER];
 int serial_buffer_pos = 0;
 int samples_total = 0;
 
+const int ZERO_OFFSET = 2048;
+
 //  Init the serial port to the specified values 
 int SerialInterface::init(char * portname, int baud)
 {
@@ -79,6 +81,7 @@ void SerialInterface::renderLevels(int width, int height) {
     char val[10];
     for(i = 0; i < NUM_CHANNELS; i++)
     {
+        
         //  Actual value
         glLineWidth(2.0);
         glColor4f(1, 1, 1, 1);
@@ -93,12 +96,14 @@ void SerialInterface::renderLevels(int width, int height) {
         glVertex2f(disp_x + 2, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
         glEnd();
         
+        /*
         glColor3f(1,0,0);
         glBegin(GL_LINES);
-        glLineWidth(2.0);
-        glVertex2f(disp_x - 10, height*0.5 - getRelativeValue(i));
-        glVertex2f(disp_x + 10, height*0.5 - getRelativeValue(i));
+        glLineWidth(4.0);
+        glVertex2f(disp_x - 10, height*0.5 - getValue(i)/4096);
+        glVertex2f(disp_x + 10, height*0.5 - getValue(i)/4096);
         glEnd();
+        */
         sprintf(val, "%d", getValue(i));
         drawtext(disp_x-GAP/2, (height*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
         
@@ -120,7 +125,7 @@ void SerialInterface::renderLevels(int width, int height) {
 void SerialInterface::readData() {
     //  This array sets the rate of trailing averaging for each channel.
     //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
-    const float AVG_RATE[] =  {0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
+    const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
     char bufchar[1];
     while (read(serial_fd, bufchar, 1) > 0)
     {

@@ -20,13 +20,13 @@
 #define NUM_CHANNELS 6
 
 //  Acceleration sensors, in screen/world coord system (X = left/right, Y = Up/Down, Z = fwd/back)
-#define ACCEL_X 4 
-#define ACCEL_Y 5 
-#define ACCEL_Z 3 
+#define ACCEL_X 3 
+#define ACCEL_Y 4 
+#define ACCEL_Z 5 
 
 //  Gyro sensors, in coodinate system of head/airplane
-#define PITCH_RATE 0 
-#define YAW_RATE 1 
+#define PITCH_RATE 1
+#define YAW_RATE 0
 #define ROLL_RATE 2
 
 class SerialInterface {
