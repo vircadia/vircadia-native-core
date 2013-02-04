@@ -81,7 +81,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) "54.241.92.53", 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
