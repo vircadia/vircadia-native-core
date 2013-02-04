@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <fstream>
+#include <limits>
 
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
@@ -28,7 +29,8 @@ const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int MAX_SOURCE_BUFFERS = 10;
 
-int16_t* wc_noise_buffer;
+int16_t* whiteNoiseBuffer;
+int whiteNoiseLength;
 
 #define ECHO_DEBUG_MODE 0
 
@@ -143,6 +145,7 @@ void *send_buffer_thread(void *args)
     timeval now;
 
     int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
+    int16_t *masterMix = new int16_t[BUFFER_LENGTH_SAMPLES];
 
     gettimeofday(&firstSend, NULL);
     gettimeofday(&now, NULL);
@@ -157,26 +160,30 @@ void *send_buffer_thread(void *args)
         sentBytes = 0;
 
         int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
-        memcpy(clientMix, wc_noise_buffer + sampleOffset, BUFFER_LENGTH_BYTES);
+        sampleOffset = sampleOffset % whiteNoiseLength;
 
-        for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
-            if (!sourceBuffers[b].transmitted) {
-                for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                    // we have source buffer data for this sample
-                    int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
-                    
-                    int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
-                    sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
-
-                    clientMix[s] += sampleToAdd;
-                }
-
-                sourceBuffers[b].transmitted = true;
-            }
-        }
+        memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
 
         for (int i = 0; i < num_agents; i++) {
             if (agents[i].active) {
+                memcpy(clientMix, masterMix, BUFFER_LENGTH_BYTES);
+
+                for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
+                    if (b != i && !sourceBuffers[b].transmitted) {
+                        for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                            // we have source buffer data for this sample
+                            int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
+                            
+                            int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
+                            sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
+
+                            clientMix[s] = sampleToAdd;
+                        }
+
+                        sourceBuffers[b].transmitted = true;
+                    }
+                }
+
                 sockaddr_in dest_address = agents[i].agent_addr;
 
                 sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
@@ -222,16 +229,16 @@ bool different_clients(sockaddr_in addr1, sockaddr_in addr2)
 
 void white_noise_buffer_init() {
     // open a pointer to the audio file
-    FILE *whiteNoiseFile = fopen("workclub.raw", "r");
+    FILE *whiteNoiseFile = fopen("wild.raw", "r");
     
     // get length of file
     std::fseek(whiteNoiseFile, 0, SEEK_END);
-    int lengthInSamples = std::ftell(whiteNoiseFile) / sizeof(int16_t);
+    whiteNoiseLength = std::ftell(whiteNoiseFile) / sizeof(int16_t);
     std::rewind(whiteNoiseFile);
     
     // read that amount of samples from the file
-    wc_noise_buffer = new int16_t[lengthInSamples];
-    std::fread(wc_noise_buffer, sizeof(int16_t), lengthInSamples, whiteNoiseFile);
+    whiteNoiseBuffer = new int16_t[whiteNoiseLength];
+    std::fread(whiteNoiseBuffer, sizeof(int16_t), whiteNoiseLength, whiteNoiseFile);
     
     // close it
     std::fclose(whiteNoiseFile);
