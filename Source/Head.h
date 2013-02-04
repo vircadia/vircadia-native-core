@@ -15,6 +15,8 @@
 #include <GLUT/glut.h>
 #include "SerialInterface.h"
 
+enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
+
 class Head {
     float noise;
     float Pitch;
@@ -39,17 +41,15 @@ class Head {
     float MouthHeight;
     float leanForward;
     float leanSideways;
-    
     float PitchTarget; 
     float YawTarget; 
-    
     float NoiseEnvelope;
-    
     float PupilConverge;
-    
     glm::vec3 position;
-    
+    int eyeContact;
+    eyeContactTargets eyeContactTarget;
     void readSensors();
+
     
 public:
     Head(void);
