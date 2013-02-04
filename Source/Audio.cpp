@@ -84,7 +84,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) WORKCLUB_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -236,12 +236,12 @@ void *receiveAudioViaUDP(void *args) {
                 }
             }
             
-            //  Compute standard deviation for jitter
+            //  Compute and report standard deviation for jitter calculation
             if (firstSample) {
                 stdev.reset();
             } else {
                 stdev.addValue(diffclock(previousReceiveTime, currentReceiveTime));
-                if (stdev.getSamples() > 300) {
+                if (stdev.getSamples() > 500) {
                     printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
                     stdev.reset();
                 }

@@ -17,7 +17,11 @@
 #include "util.h"
 
 
-const int MAX_STDEV_SAMPLES = 1000;
+//
+//  Standard Deviation Object
+//
+
+const int MAX_STDEV_SAMPLES = 1000;                     //  Don't add more than this number of samples.  
 
 StDev::StDev() {
     data = new float[MAX_STDEV_SAMPLES];
@@ -49,8 +53,8 @@ float StDev::getStDev() {
     for (int i = 0; i < sampleCount; i++) {
         stdev += powf(data[i] - average, 2);
     }
-    if (sampleCount > 0)
-        return sqrt(stdev/(float)sampleCount);
+    if (sampleCount > 1)
+        return sqrt(stdev/(float)(sampleCount - 1.0));
     else
         return 0;
 }
