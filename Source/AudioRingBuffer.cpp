@@ -36,7 +36,7 @@ short AudioRingBuffer::bufferOverlap(int16_t *pointer, short addedDistance)
 {
     short samplesLeft = (buffer + ringBufferLengthSamples) - pointer;
     
-    if (samplesLeft <= addedDistance) {
+    if (samplesLeft < addedDistance) {
         return addedDistance - samplesLeft;
     } else {
         return 0;
