@@ -903,8 +903,35 @@ int main(int argc, char** argv)
     int test_recv = network_receive(UDP_socket, &from_addr, incoming_packet, delay);
     printf("Received %i bytes\n", test_recv);
     
-       //  Load textures 
-    //Img.Load("/Users/philip/Downloads/galaxy1.tga");
+    //
+    printf("Testing math... standard deviation.\n");
+    StDev stdevtest;
+    stdevtest.reset();
+    stdevtest.addValue(1345);
+    stdevtest.addValue(1301);
+    stdevtest.addValue(1368);
+    stdevtest.addValue(1322);
+    stdevtest.addValue(1310);
+    stdevtest.addValue(1370);
+    stdevtest.addValue(1318);
+    stdevtest.addValue(1350);
+    stdevtest.addValue(1303);
+    stdevtest.addValue(1299);
+    
+    if (stdevtest.getSamples() == 10) 
+        printf("Samples=PASS ");
+    else
+        printf("Samples=FAIL ");
+        
+    if (floor(stdevtest.getAverage()*100.0) == 132859.0)
+        printf("Average=PASS ");
+    else
+        printf("Average=FAIL, avg reported = %5.3f ", floor(stdevtest.getAverage()*100.0));
+
+    if (floor(stdevtest.getStDev()*100.0) == 2746.0)
+        printf("Stdev=PASS \n");
+    else
+        printf("Stdev=FAIL \n");
 
     //
     //  Try to connect the serial port I/O
