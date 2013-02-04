@@ -47,10 +47,12 @@ Head::Head()
     EyeballYaw[0] = EyeballYaw[1] = 0;
     PitchTarget = YawTarget = 0; 
     NoiseEnvelope = 1.0;
-    PupilConverge = 5.0;
+    PupilConverge = 10.0;
     leanForward = 0.0;
     leanSideways = 0.0;
-    setNoise(0);
+    eyeContact = 1;
+    eyeContactTarget = LEFT_EYE;
+    setNoise(1);
 }
 
 void Head::reset()
@@ -111,28 +113,69 @@ void Head::simulate(float deltaTime)
     }
     else {
         //  Move toward new target  
-        Pitch += (PitchTarget - Pitch)*22*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ; 
-        Yaw += (YawTarget - Yaw)*22*deltaTime; //  (1.f - DECAY*deltaTime);
+        Pitch += (PitchTarget - Pitch)*10*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ;
+        Yaw += (YawTarget - Yaw)*10*deltaTime; //  (1.f - DECAY*deltaTime);
         Roll *= (1.f - DECAY*deltaTime);
     }
     
     leanForward *= (1.f - DECAY*30.f*deltaTime);
     leanSideways *= (1.f - DECAY*30.f*deltaTime);
     
+    //  Update where the avatar's eyes are 
+    //
+    //  First, decide if we are making eye contact or not
+    if (randFloat() < 0.005) {
+        eyeContact = !eyeContact;
+        eyeContact = 1;
+        if (!eyeContact) {
+            //  If we just stopped making eye contact,move the eyes markedly away
+            EyeballPitch[0] = EyeballPitch[1] = EyeballPitch[0] + 5.0 + (randFloat() - 0.5)*10;
+            EyeballYaw[0] = EyeballYaw[1] = EyeballYaw[0] + 5.0 + (randFloat()- 0.5)*5;
+        } else {
+            //  If now making eye contact, turn head to look right at viewer
+            SetNewHeadTarget(0,0);
+        }
+    }
+    
+    const float DEGREES_BETWEEN_VIEWER_EYES = 3;
+    const float DEGREES_TO_VIEWER_MOUTH = 7;
+
+    if (eyeContact) {
+        //  Should we pick a new eye contact target?
+        if (randFloat() < 0.01) {
+            //  Choose where to look next
+            if (randFloat() < 0.1) {
+                eyeContactTarget = MOUTH;
+            } else {
+                if (randFloat() < 0.5) eyeContactTarget = LEFT_EYE; else eyeContactTarget = RIGHT_EYE;
+            }
+        }
+    }
+
+    
     if (noise)
     {
-        Pitch += (randFloat() - 0.5)*0.05*NoiseEnvelope;
-        Yaw += (randFloat() - 0.5)*0.1*NoiseEnvelope;
-        PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
+        Pitch += (randFloat() - 0.5)*0.2*NoiseEnvelope;
+        Yaw += (randFloat() - 0.5)*0.3*NoiseEnvelope;
+        //PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
         
         if (randFloat() < 0.005) MouthWidth = MouthWidthChoices[rand()%3];
         
-        //if (randFloat() < 0.005)  Pitch = (randFloat() - 0.5)*45;
-        //if (randFloat() < 0.005)  Yaw = (randFloat() - 0.5)*45;
-        //if (randFloat() < 0.001)  Roll = (randFloat() - 0.5)*45;
-        //if (randFloat() < 0.003)  PupilSize = ((randFloat() - 0.5)*0.25+1)*NominalPupilSize;
-        if (randFloat() < 0.01)  EyeballPitch[0] = EyeballPitch[1] = (randFloat() - 0.5)*20;
-        if (randFloat() < 0.01)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5)*10;
+        if (!eyeContact) {
+            if (randFloat() < 0.01)  EyeballPitch[0] = EyeballPitch[1] = (randFloat() - 0.5)*20;
+            if (randFloat() < 0.01)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5)*10;
+        } else {
+            float eye_target_yaw_adjust = 0;
+            float eye_target_pitch_adjust = 0;
+            if (eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
+            if (eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
+            if (eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
+            
+            EyeballPitch[0] = EyeballPitch[1] = -Pitch + eye_target_pitch_adjust;
+            EyeballYaw[0] = EyeballYaw[1] = -Yaw + eye_target_yaw_adjust;
+        }
+        
+        
         
         if ((randFloat() < 0.005) && (fabs(PitchTarget - Pitch) < 1.0) && (fabs(YawTarget - Yaw) < 1.0))
         {
@@ -220,7 +263,6 @@ void Head::render()
     glPopMatrix();
     
     glTranslatef(0, 1.0, 0);
-
    
     glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
     // Right Eye
@@ -235,12 +277,14 @@ void Head::render()
     }
     glPopMatrix();
     // Right Pupil
-    glPushMatrix();                         
+    glPushMatrix();
         glRotatef(EyeballPitch[1], 1, 0, 0);
         glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.25);
-        glColor3f(0,0,0);
-        glutSolidSphere(PupilSize, 15, 15);          
+        glTranslatef(0,0,.35);
+                if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.1,0.1,1.0);
+        //glRotatef(90,0,1,0);
+        glutSolidSphere(PupilSize, 15, 15);
+
     glPopMatrix();
     // Left Eye
     glColor3fv(eyeColor);
@@ -257,9 +301,10 @@ void Head::render()
     glPushMatrix();
         glRotatef(EyeballPitch[0], 1, 0, 0);
         glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.25);
-        glColor3f(0,0,0);
-        glutSolidSphere(PupilSize, 15, 15);          
+        glTranslatef(0,0,.35);
+        if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.1,0.1,1.0);
+        //glRotatef(90,0,1,0);
+        glutSolidSphere(PupilSize, 15, 15);
     glPopMatrix();
  }
 
