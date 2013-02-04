@@ -21,8 +21,7 @@ const int UDP_PORT = 55443;
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 const float SAMPLE_RATE = 22050.0;
-const int SAMPLES_PER_PACKET = 512;
-const float BUFFER_SEND_INTERVAL = (SAMPLES_PER_PACKET/SAMPLE_RATE) * 1000;
+const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES/SAMPLE_RATE) * 1000000;
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -50,11 +49,15 @@ struct SourceBuffer {
     bool transmitted;
 } sourceBuffers[MAX_SOURCE_BUFFERS];
 
-double diffclock(timeval clock1,timeval clock2)
+double diffclock(timeval clock1, timeval clock2)
 {
     double diffms = (clock2.tv_sec - clock1.tv_sec) * 1000.0;
     diffms += (clock2.tv_usec - clock1.tv_usec) / 1000.0;   // us to ms
     return diffms;
+}
+
+double usecTimestamp(timeval *time, double addedUsecs = 0) {
+    return (time->tv_sec * 1000000.0) + time->tv_usec + addedUsecs;
 }
 
 int create_socket()
@@ -139,61 +142,58 @@ void *send_buffer_thread(void *args)
     int handle = buffer_args->socket_handle;
 
     int sentBytes;
-    int currentSample = 1;
-    timeval firstSend;
-    timeval lastSend = {};
+    int currentFrame = 1;
+    timeval startTime;
     timeval now;
 
     int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
     int16_t *masterMix = new int16_t[BUFFER_LENGTH_SAMPLES];
 
-    gettimeofday(&firstSend, NULL);
-    gettimeofday(&now, NULL);
+    gettimeofday(&startTime, NULL);
 
     while (true) {
-        while (lastSend.tv_sec != 0 && diffclock(lastSend, now) < BUFFER_SEND_INTERVAL) {
-            // loop here until we're allowed to send the buffer
-            gettimeofday(&now, NULL);
-        }
+        gettimeofday(&now, NULL);
 
-        gettimeofday(&lastSend, NULL);
-        sentBytes = 0;
+        while (usecTimestamp(&startTime, (currentFrame * BUFFER_SEND_INTERVAL_USECS)) <= usecTimestamp(&now)) {
+            sentBytes = 0;
 
-        int sampleOffset = floor(diffclock(firstSend, now) * (SAMPLE_RATE / 1000) + 0.5);
-        sampleOffset = sampleOffset % whiteNoiseLength;
+            int sampleOffset = ((currentFrame - 1) * BUFFER_LENGTH_SAMPLES) % whiteNoiseLength;
 
-        memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
+            memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
 
-        for (int i = 0; i < num_agents; i++) {
-            if (agents[i].active) {
-                memcpy(clientMix, masterMix, BUFFER_LENGTH_BYTES);
+            for (int i = 0; i < num_agents; i++) {
+                if (agents[i].active) {
+                    memcpy(clientMix, masterMix, BUFFER_LENGTH_BYTES);
 
-                for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
-                    if (b != i && !sourceBuffers[b].transmitted) {
-                        for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                            // we have source buffer data for this sample
-                            int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
-                            
-                            int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
-                            sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
+                    for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
+                        if (b != i && !sourceBuffers[b].transmitted) {
+                            for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                                // we have source buffer data for this sample
+                                int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
+                                
+                                int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
+                                sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
 
-                            clientMix[s] = sampleToAdd;
+                                clientMix[s] = sampleToAdd;
+                            }
+
+                            sourceBuffers[b].transmitted = true;
                         }
-
-                        sourceBuffers[b].transmitted = true;
                     }
+
+                    sockaddr_in dest_address = agents[i].agent_addr;
+
+                    sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
+                                    0, (sockaddr *) &dest_address, sizeof(dest_address));
+                
+                    if (sentBytes < BUFFER_LENGTH_BYTES) {
+                        std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
+                    }
+
                 }
+            }   
 
-                sockaddr_in dest_address = agents[i].agent_addr;
-
-                sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
-                                0, (sockaddr *) &dest_address, sizeof(dest_address));
-            
-                if (sentBytes < BUFFER_LENGTH_BYTES) {
-                    std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
-                }
-
-            }
+            currentFrame++;
         }
     }  
 
