@@ -14,6 +14,47 @@
 #include <iostream>
 #include "world.h"
 #include "glm.hpp"
+#include "util.h"
+
+
+const int MAX_STDEV_SAMPLES = 1000;
+
+StDev::StDev() {
+    data = new float[MAX_STDEV_SAMPLES];
+    sampleCount = 0;
+}
+
+void StDev::reset() {
+    sampleCount = 0;
+}
+
+void StDev::addValue(float v) {
+    data[sampleCount++] = v;
+    if (sampleCount == MAX_STDEV_SAMPLES) sampleCount = 0;
+}
+
+float StDev::getAverage() {
+    float average = 0;
+    for (int i = 0; i < sampleCount; i++) {
+        average += data[i];
+    }
+    if (sampleCount > 0)
+        return average/(float)sampleCount;
+    else return 0;
+}
+
+float StDev::getStDev() {
+    float average = getAverage();
+    float stdev = 0;
+    for (int i = 0; i < sampleCount; i++) {
+        stdev += powf(data[i] - average, 2);
+    }
+    if (sampleCount > 0)
+        return sqrt(stdev/(float)sampleCount);
+    else
+        return 0;
+}
+
 
 float randFloat () {
     return (rand()%10000)/10000.f;
@@ -101,7 +142,7 @@ double diffclock(timeval clock1,timeval clock2)
 }
 
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono, char *string, 
-              float r=1.0, float g=1.0, float b=1.0)
+              float r, float g, float b)
 {
     //
     //  Draws text on screen as stroked so it can be resized
@@ -126,7 +167,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono, ch
 
 
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
-              float r=1.0, float g=1.0, float b=1.0)
+              float r, float g, float b)
 {
     //
     //  Draws text on screen as stroked so it can be resized

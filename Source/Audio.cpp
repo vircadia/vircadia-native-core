@@ -41,10 +41,7 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 int starve_counter = 0;
 
-//  Stuff used to compute the standard deviation of the sample
-int stdev_counter = 0;
-float stdev_variance[1000];                    //  Difference between when last two packets received
-float stdev_value;
+StDev stdev;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -226,14 +223,28 @@ void *receiveAudioViaUDP(void *args) {
     
     while (true) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
-            gettimeofday(&currentReceiveTime, NULL);
-            
-            
-            if (LOG_SAMPLE_DELAY) {
-                // write time difference (in microseconds) between packet receipts to file
-                double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
 
-                logFile << timeDiff << std::endl;
+            bool firstSample = (currentReceiveTime.tv_sec == 0);
+            
+            gettimeofday(&currentReceiveTime, NULL);
+
+            if (LOG_SAMPLE_DELAY) {
+                if (!firstSample) {
+                    // write time difference (in microseconds) between packet receipts to file
+                    double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
+                    logFile << timeDiff << std::endl;
+                }
+            }
+            
+            //  Compute standard deviation for jitter
+            if (firstSample) {
+                stdev.reset();
+            } else {
+                stdev.addValue(diffclock(previousReceiveTime, currentReceiveTime));
+                if (stdev.getSamples() > 300) {
+                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                    stdev.reset();
+                }
             }
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
