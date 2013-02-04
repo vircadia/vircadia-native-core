@@ -24,7 +24,7 @@ const short PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
-const short RING_BUFFER_FRAMES = 4;
+const short RING_BUFFER_FRAMES = 5;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
 const short JITTER_BUFFER_LENGTH_MSECS = 3;
@@ -235,6 +235,7 @@ void *receiveAudioViaUDP(void *args) {
                 
                 // check for possibility of overlap
                 bufferSampleOverlap = ringBuffer->bufferOverlap(copyToPointer, PACKET_LENGTH_SAMPLES);
+                
             }
             
             if (!bufferSampleOverlap) {
@@ -254,11 +255,11 @@ void *receiveAudioViaUDP(void *args) {
                     memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
                     ringBuffer->endOfLastWrite += PACKET_LENGTH_SAMPLES;
                 }
-            } else {
+            } else {                
                 // no jitter buffer, but overlap
                 // copy to the end, and then from the begining to the overlap
                 memcpy(copyToPointer, receivedData, (PACKET_LENGTH_SAMPLES - bufferSampleOverlap) * sizeof(int16_t));
-                memcpy(ringBuffer->buffer, receivedData + bufferSampleOverlap, bufferSampleOverlap * sizeof(int16_t));
+                memcpy(ringBuffer->buffer, receivedData + (PACKET_LENGTH_SAMPLES - bufferSampleOverlap), bufferSampleOverlap * sizeof(int16_t));
                 
                 // the end of the write is the amount of overlap
                 ringBuffer->endOfLastWrite = ringBuffer->buffer + bufferSampleOverlap;
