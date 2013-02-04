@@ -27,7 +27,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 5;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 1;
+const short JITTER_BUFFER_LENGTH_MSECS = 26;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -38,6 +38,12 @@ char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
+int starve_counter = 0;
+
+//  Stuff used to compute the standard deviation of the sample
+int stdev_counter = 0;
+float stdev_variance[1000];                    //  Difference between when last two packets received
+float stdev_value;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -121,7 +127,8 @@ int audioCallback (const void *inputBuffer,
             }
             
             if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
-                std::cout << "Starved\n";
+                starve_counter++;
+                printf("Starved #%d\n", starve_counter);
                 ringBuffer->endOfLastWrite = NULL;
             }
         }
@@ -214,9 +221,11 @@ void *receiveAudioViaUDP(void *args) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
             gettimeofday(&currentReceiveTime, NULL);
             
+            
             if (LOG_SAMPLE_DELAY) {
                 // write time difference (in microseconds) between packet receipts to file
                 double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
+
                 logFile << timeDiff << std::endl;
             }
             
