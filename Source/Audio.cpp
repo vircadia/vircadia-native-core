@@ -418,20 +418,14 @@ void Audio::render(int screenWidth, int screenHeight)
         }
         glEnd();
         
-        // show the next audio buffer and end of last write position
-        int scaleLength = currentX - startX;
-        
-        float nextOutputSampleOffset = data->ringBuffer->nextOutput - data->ringBuffer->buffer;
-        
+        // show the next audio buffer and end of last write position        
         float remainingBuffer = 0;
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
         float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         //float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/23.22 * frameWidth;
         
-        if (data->ringBuffer->endOfLastWrite != NULL) {
-            remainingBuffer = (data->ringBuffer->diffLastWriteNextOutput())/BUFFER_LENGTH_SAMPLES*frameWidth;
-        }
+        remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
         
         glColor3f(1, 0, 0);
         glBegin(GL_QUADS);
