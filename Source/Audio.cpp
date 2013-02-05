@@ -25,7 +25,7 @@ const short PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
-const short RING_BUFFER_FRAMES = 5;
+const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
 const short JITTER_BUFFER_LENGTH_MSECS = 26;
@@ -254,6 +254,7 @@ void *receiveAudioViaUDP(void *args) {
             short bufferSampleOverlap = 0;
             
             if (!needsJitterBuffer && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+                std::cout << "Full\n";
                 needsJitterBuffer = true;
             }
             
@@ -272,14 +273,15 @@ void *receiveAudioViaUDP(void *args) {
             if (!bufferSampleOverlap) {
                 if (needsJitterBuffer) {
                     // we need to inject a jitter buffer
-                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000);
-                    
+                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
+
                     // add silence for jitter buffer and then the received packet
                     memset(copyToPointer, 0, jitterBufferSamples * sizeof(int16_t));
                     memcpy(copyToPointer + jitterBufferSamples, receivedData, PACKET_LENGTH_BYTES);
                     
                     // the end of the write is the pointer to the buffer + packet + jitter buffer
                     ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + jitterBufferSamples;
+                    ringBuffer->nextOutput = ringBuffer->buffer;
                 } else {
                     // no jitter buffer, no overlap
                     // just copy the recieved data to the right spot and then add packet length to previous pointer
@@ -374,7 +376,6 @@ error:
 void Audio::render()
 {
     if (initialized && !ECHO_SERVER_TEST) {
-        
         for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
             // render gl objects on screen for our sources
             glPushMatrix();
@@ -385,6 +386,57 @@ void Audio::render()
             
             glPopMatrix();
         }
+    }
+}
+
+void Audio::render(int screenWidth, int screenHeight)
+{
+    if (initialized && ECHO_SERVER_TEST) {
+        glBegin(GL_LINES);
+        glColor3f(1,1,1);
+        
+        int startX = 50.0;
+        int currentX = startX;
+        int topY = screenHeight - 90;
+        int bottomY = screenHeight - 50;
+        float frameWidth = 50.0;
+        float halfY = topY + ((bottomY - topY) / 2.0);
+        
+        // draw the lines for the base of the ring buffer
+        
+        glVertex2f(currentX, topY);
+        glVertex2f(currentX, bottomY);
+        
+        for (int i = 0; i < RING_BUFFER_FRAMES; i++) {
+            glVertex2f(currentX, halfY);
+            glVertex2f(currentX + frameWidth, halfY);
+            currentX += frameWidth;
+            
+            glVertex2f(currentX, topY);
+            glVertex2f(currentX, bottomY);
+        }
+        
+        // show the next audio buffer and end of last write position
+        int scaleLength = currentX - startX;
+        
+        float nextOutputSampleOffset = data->ringBuffer->nextOutput - data->ringBuffer->buffer;
+        float nextOutputX = startX + (nextOutputSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
+        glColor3f(1, 0, 0);
+        glVertex2f(nextOutputX, topY);
+        glVertex2f(nextOutputX, bottomY);
+        
+        float endLastWriteSampleOffset = data->ringBuffer->endOfLastWrite - data->ringBuffer->buffer;
+        
+        if (data->ringBuffer->endOfLastWrite == NULL) {
+            endLastWriteSampleOffset = 0;
+        }
+        
+        float endLastWriteX = startX + (endLastWriteSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
+        glColor3f(0, 1, 0);
+        glVertex2f(endLastWriteX, topY);
+        glVertex2f(endLastWriteX, bottomY);
+        
+        glEnd();
     }
 }
 
