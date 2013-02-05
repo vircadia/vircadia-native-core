@@ -232,7 +232,7 @@ void *receiveAudioViaUDP(void *args) {
             if (LOG_SAMPLE_DELAY) {
                 if (!firstSample) {
                     // write time difference (in microseconds) between packet receipts to file
-                    double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
+                    double timeDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
                     logFile << timeDiff << std::endl;
                 }
             }
@@ -241,7 +241,7 @@ void *receiveAudioViaUDP(void *args) {
             if (firstSample) {
                 stdev.reset();
             } else {
-                stdev.addValue(diffclock(previousReceiveTime, currentReceiveTime));
+                stdev.addValue(diffclock(&previousReceiveTime, &currentReceiveTime));
                 if (stdev.getSamples() > 500) {
                     printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
                     stdev.reset();
@@ -422,7 +422,7 @@ void Audio::render(int screenWidth, int screenHeight)
         float remainingBuffer = 0;
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
-        float timeLeftInCurrentBuffer = diffclock(data->lastCallback, currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        float timeLeftInCurrentBuffer = diffclock(&data->lastCallback, &currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         //float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/23.22 * frameWidth;
         
         remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
