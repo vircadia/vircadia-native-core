@@ -23,13 +23,17 @@ AudioRingBuffer::~AudioRingBuffer() {
 
 short AudioRingBuffer::diffLastWriteNextOutput()
 {
-    short sampleDifference = endOfLastWrite - nextOutput;
-    
-    if (sampleDifference < 0) {
-        sampleDifference += ringBufferLengthSamples;
+    if (endOfLastWrite == NULL) {
+        return 0;
+    } else {
+        short sampleDifference = endOfLastWrite - nextOutput;
+        
+        if (sampleDifference < 0) {
+            sampleDifference += ringBufferLengthSamples;
+        }
+        
+        return sampleDifference;
     }
-    
-    return sampleDifference;
 }
 
 short AudioRingBuffer::bufferOverlap(int16_t *pointer, short addedDistance)
