@@ -137,10 +137,10 @@ void outstring(char * string, int length) {
     std::cout << out << "\n";
 }
 
-double diffclock(timeval clock1,timeval clock2)
+double diffclock(timeval *clock1,timeval *clock2)
 {
-	double diffms = (clock2.tv_sec - clock1.tv_sec) * 1000.0;
-    diffms += (clock2.tv_usec - clock1.tv_usec) / 1000.0;   // us to ms
+	double diffms = (clock2->tv_sec - clock1->tv_sec) * 1000.0;
+    diffms += (clock2->tv_usec - clock1->tv_usec) / 1000.0;   // us to ms
     
 	return diffms;
 }
