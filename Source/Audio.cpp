@@ -25,7 +25,7 @@ const short PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
-const short RING_BUFFER_FRAMES = 5;
+const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
 const short JITTER_BUFFER_LENGTH_MSECS = 1;
@@ -123,6 +123,7 @@ int audioCallback (const void *inputBuffer,
             
             if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
                 std::cout << "Starved\n";
+                ringBuffer->nextOutput = ringBuffer->buffer;
                 ringBuffer->endOfLastWrite = NULL;
             }
         }
@@ -239,6 +240,7 @@ void *receiveAudioViaUDP(void *args) {
             short bufferSampleOverlap = 0;
             
             if (!needsJitterBuffer && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+                std::cout << "Full\n";
                 needsJitterBuffer = true;
             }
             
@@ -257,14 +259,15 @@ void *receiveAudioViaUDP(void *args) {
             if (!bufferSampleOverlap) {
                 if (needsJitterBuffer) {
                     // we need to inject a jitter buffer
-                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000);
-                    
+                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
+
                     // add silence for jitter buffer and then the received packet
                     memset(copyToPointer, 0, jitterBufferSamples * sizeof(int16_t));
                     memcpy(copyToPointer + jitterBufferSamples, receivedData, PACKET_LENGTH_BYTES);
                     
                     // the end of the write is the pointer to the buffer + packet + jitter buffer
                     ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + jitterBufferSamples;
+                    ringBuffer->nextOutput = ringBuffer->buffer;
                 } else {
                     // no jitter buffer, no overlap
                     // just copy the recieved data to the right spot and then add packet length to previous pointer
