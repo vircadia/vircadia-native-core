@@ -84,7 +84,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) WORKCLUB_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -376,7 +376,6 @@ error:
 void Audio::render()
 {
     if (initialized && !ECHO_SERVER_TEST) {
-        
         for (int s = 0; s < NUM_AUDIO_SOURCES; s++) {
             // render gl objects on screen for our sources
             glPushMatrix();
@@ -387,6 +386,57 @@ void Audio::render()
             
             glPopMatrix();
         }
+    }
+}
+
+void Audio::render(int screenWidth, int screenHeight)
+{
+    if (initialized && ECHO_SERVER_TEST) {
+        glBegin(GL_LINES);
+        glColor3f(1,1,1);
+        
+        int startX = 50.0;
+        int currentX = startX;
+        int topY = screenHeight - 90;
+        int bottomY = screenHeight - 50;
+        float frameWidth = 50.0;
+        float halfY = topY + ((bottomY - topY) / 2.0);
+        
+        // draw the lines for the base of the ring buffer
+        
+        glVertex2f(currentX, topY);
+        glVertex2f(currentX, bottomY);
+        
+        for (int i = 0; i < RING_BUFFER_FRAMES; i++) {
+            glVertex2f(currentX, halfY);
+            glVertex2f(currentX + frameWidth, halfY);
+            currentX += frameWidth;
+            
+            glVertex2f(currentX, topY);
+            glVertex2f(currentX, bottomY);
+        }
+        
+        // show the next audio buffer and end of last write position
+        int scaleLength = currentX - startX;
+        
+        float nextOutputSampleOffset = data->ringBuffer->nextOutput - data->ringBuffer->buffer;
+        float nextOutputX = startX + (nextOutputSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
+        glColor3f(1, 0, 0);
+        glVertex2f(nextOutputX, topY);
+        glVertex2f(nextOutputX, bottomY);
+        
+        float endLastWriteSampleOffset = data->ringBuffer->endOfLastWrite - data->ringBuffer->buffer;
+        
+        if (data->ringBuffer->endOfLastWrite == NULL) {
+            endLastWriteSampleOffset = 0;
+        }
+        
+        float endLastWriteX = startX + (endLastWriteSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
+        glColor3f(0, 1, 0);
+        glVertex2f(endLastWriteX, topY);
+        glVertex2f(endLastWriteX, bottomY);
+        
+        glEnd();
     }
 }
 
