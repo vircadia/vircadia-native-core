@@ -842,7 +842,7 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_x = x;
 		mouse_y = y;
 		mouse_pressed = 1;
-        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+//        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {

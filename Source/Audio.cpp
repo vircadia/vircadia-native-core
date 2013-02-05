@@ -28,7 +28,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 50;
+const short JITTER_BUFFER_LENGTH_MSECS = 40;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -422,7 +422,7 @@ void Audio::render(int screenWidth, int screenHeight)
         float remainingBuffer = 0;
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
-        float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        float timeLeftInCurrentBuffer = diffclock(data->lastCallback, currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         //float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/23.22 * frameWidth;
         
         remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
