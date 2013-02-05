@@ -21,6 +21,7 @@ public:
     static bool init(Head* mainHead);
     
     static void render();
+    static void render(int screenWidth, int screenHeight);
     
     // terminates audio I/O
     static bool terminate(); 

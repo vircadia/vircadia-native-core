@@ -584,6 +584,7 @@ void display(void)
         glDisable(GL_LIGHTING);
 
         //lattice.render(WIDTH, HEIGHT);
+        Audio::render(WIDTH, HEIGHT);
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
