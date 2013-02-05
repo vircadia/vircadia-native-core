@@ -217,9 +217,9 @@ float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 void Timer(int extra)
 {
     gettimeofday(&timer_end, NULL);
-    FPS = (float)framecount / ((float)diffclock(timer_start,timer_end) / 1000.f);
-    packets_per_second = (float)packetcount / ((float)diffclock(timer_start,timer_end) / 1000.f);
-    bytes_per_second = (float)bytescount / ((float)diffclock(timer_start,timer_end) / 1000.f);
+    FPS = (float)framecount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
+    packets_per_second = (float)packetcount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
+    bytes_per_second = (float)bytescount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
    	framecount = 0;
     packetcount = 0;
     bytescount = 0;
@@ -312,7 +312,7 @@ void init(void)
         {
             serialPort.readData();
             gettimeofday(&timer_end, NULL);
-            if (diffclock(timer_start,timer_end) > 1000) done = 1;
+            if (diffclock(&timer_start, &timer_end) > 1000) done = 1;
         }
         gravity.x = serialPort.getValue(ACCEL_X);
         gravity.y = serialPort.getValue(ACCEL_Y);
@@ -759,7 +759,7 @@ void read_network()
             //
             timeval check; 
             gettimeofday(&check, NULL);
-            ping_msecs = (float)diffclock(ping_start, check);
+            ping_msecs = (float)diffclock(&ping_start, &check);
         } else if (incoming_packet[0] == 'S') {
             //
             //  Message from Spaceserver 
@@ -780,7 +780,7 @@ void idle(void)
     gettimeofday(&check, NULL);
     
     //  Check and render display frame 
-    if (diffclock(last_frame,check) > RENDER_FRAME_MSECS)
+    if (diffclock(&last_frame, &check) > RENDER_FRAME_MSECS)
     {
         steps_per_frame++;
         //  Simulation
@@ -842,7 +842,7 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_x = x;
 		mouse_y = y;
 		mouse_pressed = 1;
-        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+//        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {

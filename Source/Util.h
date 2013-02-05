@@ -22,7 +22,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono, ch
               float r=1.0, float g=1.0, float b=1.0);
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
-double diffclock(timeval clock1,timeval clock2);
+double diffclock(timeval *clock1,timeval *clock2);
 
 class StDev {
 public:
