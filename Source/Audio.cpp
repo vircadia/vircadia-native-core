@@ -28,7 +28,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 1;
+const short JITTER_BUFFER_LENGTH_MSECS = 26;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -39,6 +39,9 @@ char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
+int starve_counter = 0;
+
+StDev stdev;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -81,7 +84,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) WORKCLUB_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -122,8 +125,8 @@ int audioCallback (const void *inputBuffer,
             }
             
             if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
-                std::cout << "Starved\n";
-                ringBuffer->nextOutput = ringBuffer->buffer;
+                starve_counter++;
+                printf("Starved #%d\n", starve_counter);
                 ringBuffer->endOfLastWrite = NULL;
             }
         }
@@ -221,15 +224,26 @@ void *receiveAudioViaUDP(void *args) {
     while (true) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
 
+            bool firstSample = (currentReceiveTime.tv_sec == 0);
+            
+            gettimeofday(&currentReceiveTime, NULL);
+
             if (LOG_SAMPLE_DELAY) {
-                if (currentReceiveTime.tv_sec == 0) {
-                    gettimeofday(&currentReceiveTime, NULL);
-                } else {
-                    gettimeofday(&currentReceiveTime, NULL);
-                    
+                if (!firstSample) {
                     // write time difference (in microseconds) between packet receipts to file
                     double timeDiff = diffclock(previousReceiveTime, currentReceiveTime);
                     logFile << timeDiff << std::endl;
+                }
+            }
+            
+            //  Compute and report standard deviation for jitter calculation
+            if (firstSample) {
+                stdev.reset();
+            } else {
+                stdev.addValue(diffclock(previousReceiveTime, currentReceiveTime));
+                if (stdev.getSamples() > 500) {
+                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                    stdev.reset();
                 }
             }
             

@@ -24,4 +24,17 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
               float r=1.0, float g=1.0, float b=1.0);
 double diffclock(timeval clock1,timeval clock2);
 
+class StDev {
+public:
+    StDev();
+    void reset();
+    void addValue(float v);
+    float getAverage();
+    float getStDev();
+    int getSamples() {return sampleCount;};
+private:
+    float * data;
+    int sampleCount = 0;
+};
+
 #endif
