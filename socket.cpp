@@ -144,6 +144,7 @@ void *send_buffer_thread(void *args)
     int sentBytes;
     int currentFrame = 1;
     timeval startTime;
+    timeval lastSend;
     timeval now;
 
     int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
@@ -156,6 +157,8 @@ void *send_buffer_thread(void *args)
 
         while (usecTimestamp(&startTime, (currentFrame * BUFFER_SEND_INTERVAL_USECS)) <= usecTimestamp(&now)) {
             sentBytes = 0;
+
+            std::cout << "The difference was " << diffclock(lastSend, now) << "ms.\n";
 
             int sampleOffset = ((currentFrame - 1) * BUFFER_LENGTH_SAMPLES) % whiteNoiseLength;
 
@@ -193,6 +196,7 @@ void *send_buffer_thread(void *args)
                 }
             }   
 
+            gettimeofday(&lastSend, NULL);
             currentFrame++;
         }
     }  
