@@ -26,6 +26,9 @@ class AudioData {
     
         int16_t *samplesToQueue;
     
+        timeval lastCallback;
+        float averagedLatency;
+    
         AudioData(int bufferLength);
         AudioData(int numberOfSources, int bufferLength);
         ~AudioData();

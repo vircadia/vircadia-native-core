@@ -28,7 +28,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 26;
+const short JITTER_BUFFER_LENGTH_MSECS = 50;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -188,6 +188,7 @@ int audioCallback (const void *inputBuffer,
         }
     }
     
+    gettimeofday(&data->lastCallback, NULL);
     return paContinue;
 }
 
@@ -415,16 +416,36 @@ void Audio::render(int screenWidth, int screenHeight)
             glVertex2f(currentX, topY);
             glVertex2f(currentX, bottomY);
         }
+        glEnd();
         
         // show the next audio buffer and end of last write position
         int scaleLength = currentX - startX;
         
         float nextOutputSampleOffset = data->ringBuffer->nextOutput - data->ringBuffer->buffer;
-        float nextOutputX = startX + (nextOutputSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
-        glColor3f(1, 0, 0);
-        glVertex2f(nextOutputX, topY);
-        glVertex2f(nextOutputX, bottomY);
         
+        float remainingBuffer = 0;
+        timeval currentTime;
+        gettimeofday(&currentTime, NULL);
+        float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        //float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/23.22 * frameWidth;
+        
+        if (data->ringBuffer->endOfLastWrite != NULL) {
+            remainingBuffer = (data->ringBuffer->diffLastWriteNextOutput())/BUFFER_LENGTH_SAMPLES*frameWidth;
+        }
+        
+        glColor3f(1, 0, 0);
+        glBegin(GL_QUADS);
+        glVertex2f(startX, topY);
+        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, topY);
+        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, bottomY);
+        glVertex2f(startX, bottomY);
+        glEnd();
+        
+        //glVertex2f(nextOutputX, topY);
+        //glVertex2f(nextOutputX, bottomY);
+        
+        /*
+        float nextOutputX = startX + (nextOutputSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
         float endLastWriteSampleOffset = data->ringBuffer->endOfLastWrite - data->ringBuffer->buffer;
         
         if (data->ringBuffer->endOfLastWrite == NULL) {
@@ -437,6 +458,7 @@ void Audio::render(int screenWidth, int screenHeight)
         glVertex2f(endLastWriteX, bottomY);
         
         glEnd();
+         */
     }
 }
 

@@ -24,6 +24,7 @@ AudioData::AudioData(int numberOfSources, int bufferLength) {
     }
     
     samplesToQueue = new int16_t[bufferLength / sizeof(int16_t)];
+    averagedLatency = 0.0;
 }
 
 AudioData::~AudioData() {
