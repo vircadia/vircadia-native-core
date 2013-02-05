@@ -28,7 +28,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 50;
+const short JITTER_BUFFER_LENGTH_MSECS = 40;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -43,7 +43,7 @@ int starve_counter = 0;
 
 StDev stdev;
 
-#define LOG_SAMPLE_DELAY 1
+#define LOG_SAMPLE_DELAY 0
 
 bool Audio::initialized;
 PaError Audio::err;
@@ -127,6 +127,7 @@ int audioCallback (const void *inputBuffer,
             if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
                 starve_counter++;
                 printf("Starved #%d\n", starve_counter);
+                data->wasStarved = 10;      //   Frames to render the indication that the system was starved. 
                 ringBuffer->endOfLastWrite = NULL;
             }
         }
@@ -263,6 +264,7 @@ void *receiveAudioViaUDP(void *args) {
                 // we'll need a jitter buffer
                 // reset the ring buffer and write
                 copyToPointer = ringBuffer->buffer;
+                std::cout << "Writing jitter buffer\n";
             } else {
                 copyToPointer = ringBuffer->endOfLastWrite;
                 
@@ -422,18 +424,40 @@ void Audio::render(int screenWidth, int screenHeight)
         float remainingBuffer = 0;
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
-        float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
-        //float timeLeftInCurrentBuffer = diffclock(currentTime, data->lastCallback)/23.22 * frameWidth;
+        float timeLeftInCurrentBuffer = 0;
+        if (data->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(data->lastCallback, currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         
-        remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
+        if (data->ringBuffer->endOfLastWrite != NULL)
+            remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
         
-        glColor3f(1, 0, 0);
+        if (data->wasStarved == 0) glColor3f(0, 1, 0);
+        else {
+            glColor3f(0.5 + (float)data->wasStarved/20.0, 0, 0);
+            data->wasStarved--;
+        }
+        
         glBegin(GL_QUADS);
-        glVertex2f(startX, topY);
-        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, topY);
-        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, bottomY);
-        glVertex2f(startX, bottomY);
+        glVertex2f(startX, topY + 5);
+        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, topY + 5);
+        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, bottomY - 5);
+        glVertex2f(startX, bottomY - 5);
         glEnd();
+        
+        if (data->averagedLatency == 0.0) data->averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
+        else data->averagedLatency = 0.99*data->averagedLatency + 0.01*((float)remainingBuffer + (float)timeLeftInCurrentBuffer);
+        
+        glColor3f(1,1,0);
+        glBegin(GL_QUADS);
+        glLineWidth(4.0);
+        glVertex2f(startX + data->averagedLatency - 2, topY - 2);
+        glVertex2f(startX + data->averagedLatency + 2, topY - 2);
+        glVertex2f(startX + data->averagedLatency + 2, bottomY + 2);
+        glVertex2f(startX + data->averagedLatency - 2, bottomY + 2);
+        glEnd();
+        
+        char out[20];
+        sprintf(out, "%3.0f\n", data->averagedLatency/(float)frameWidth*(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE));
+        drawtext(startX + data->averagedLatency, topY-10, 0.1, 0, 1, 0, out);
         
         //glVertex2f(nextOutputX, topY);
         //glVertex2f(nextOutputX, bottomY);

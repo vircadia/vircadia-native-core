@@ -46,6 +46,7 @@
 		B6BDADE415F44AC7002A07DF /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6BDADDC15F444D3002A07DF /* AudioUnit.framework */; };
 		D40BDFD513404BA300B0BE1F /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD413404BA300B0BE1F /* GLUT.framework */; };
 		D40BDFD713404BB300B0BE1F /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D40BDFD613404BB300B0BE1F /* OpenGL.framework */; };
+		D4200F7816C0DBA3000F8D6D /* octal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4200F7616C0DBA3000F8D6D /* octal.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -357,6 +358,8 @@
 		B6BDADDE15F444DB002A07DF /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		D40BDFD413404BA300B0BE1F /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = /System/Library/Frameworks/GLUT.framework; sourceTree = "<absolute>"; };
 		D40BDFD613404BB300B0BE1F /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
+		D4200F7616C0DBA3000F8D6D /* octal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octal.cpp; sourceTree = "<group>"; };
+		D4200F7716C0DBA3000F8D6D /* octal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = octal.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -441,6 +444,8 @@
 				53CF370516B9C039001FCB05 /* main.cpp */,
 				53CF370A16B9C039001FCB05 /* Network.cpp */,
 				53CF370B16B9C039001FCB05 /* Network.h */,
+				D4200F7616C0DBA3000F8D6D /* octal.cpp */,
+				D4200F7716C0DBA3000F8D6D /* octal.h */,
 				53ACC39616B9C59500ABD227 /* Oscilloscope.cpp */,
 				53ACC39716B9C59500ABD227 /* Oscilloscope.h */,
 				53CF370C16B9C039001FCB05 /* Particle.cpp */,
@@ -874,6 +879,7 @@
 				53CF372A16B9C039001FCB05 /* Util.cpp in Sources */,
 				53ACC39816B9C59500ABD227 /* Oscilloscope.cpp in Sources */,
 				53A4EAB216BC770A00F07F4C /* AudioRingBuffer.cpp in Sources */,
+				D4200F7816C0DBA3000F8D6D /* octal.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
