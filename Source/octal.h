@@ -11,4 +11,13 @@
 
 #include <iostream>
 
+struct domainNode {
+    domainNode * child[8];
+    char * hostname;
+    char * nickname;
+    int domain_id;
+};
+
+
+
 #endif /* defined(__interface__octal__) */
