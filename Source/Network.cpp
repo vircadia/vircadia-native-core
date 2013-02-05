@@ -138,7 +138,7 @@ int network_receive(int handle, in_addr * from_addr, char * packet_data, int del
         }
         // Then check if next to be sent is past due, send if so 
         if ((next_to_receive != next_to_send) && 
-            (diffclock(delay_time_received[next_to_send], check) > delay)) {
+            (diffclock(&delay_time_received[next_to_send], &check) > delay)) {
             int returned_bytes = delay_size_received[next_to_send];
             memcpy(packet_data, 
                    &delay_buffer[next_to_send*MAX_PACKET_SIZE], 
