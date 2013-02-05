@@ -420,12 +420,13 @@ void Audio::render(int screenWidth, int screenHeight)
         }
         glEnd();
         
-        // show the next audio buffer and end of last write position        
+        
+        //  Show a bar with the amount of audio remaining in ring buffer beyond current playback
         float remainingBuffer = 0;
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
         float timeLeftInCurrentBuffer = 0;
-        if (data->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(data->lastCallback, currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        if (data->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(&data->lastCallback, &currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         
         if (data->ringBuffer->endOfLastWrite != NULL)
             remainingBuffer = data->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
@@ -446,9 +447,9 @@ void Audio::render(int screenWidth, int screenHeight)
         if (data->averagedLatency == 0.0) data->averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
         else data->averagedLatency = 0.99*data->averagedLatency + 0.01*((float)remainingBuffer + (float)timeLeftInCurrentBuffer);
         
+        //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
         glColor3f(1,1,0);
         glBegin(GL_QUADS);
-        glLineWidth(4.0);
         glVertex2f(startX + data->averagedLatency - 2, topY - 2);
         glVertex2f(startX + data->averagedLatency + 2, topY - 2);
         glVertex2f(startX + data->averagedLatency + 2, bottomY + 2);
@@ -458,6 +459,20 @@ void Audio::render(int screenWidth, int screenHeight)
         char out[20];
         sprintf(out, "%3.0f\n", data->averagedLatency/(float)frameWidth*(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE));
         drawtext(startX + data->averagedLatency, topY-10, 0.1, 0, 1, 0, out);
+        
+        //  Show a Cyan bar with the most recently measured jitter stdev
+        
+        /*
+        int jitter = (float)stdev.getStDev() / ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
+        
+        glColor3f(0,1,1);
+        glBegin(GL_QUADS);
+        glVertex2f(startX + jitter - 2, topY - 2);
+        glVertex2f(startX + jitter + 2, topY - 2);
+        glVertex2f(startX + jitter + 2, bottomY + 2);
+        glVertex2f(startX + jitter - 2, bottomY + 2);
+        glEnd();
+        */
         
         //glVertex2f(nextOutputX, topY);
         //glVertex2f(nextOutputX, bottomY);
