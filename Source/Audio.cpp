@@ -28,8 +28,9 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 10;
 const int SAMPLE_RATE = 22050;
+const float JITTER_BUFFER_LENGTH_MSECS = 26.0;
+const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
 
 const short NUM_AUDIO_SOURCES = 2;
 const short ECHO_SERVER_TEST = 1;
@@ -279,14 +280,13 @@ void *receiveAudioViaUDP(void *args) {
             if (!bufferSampleOverlap) {
                 if (needsJitterBuffer) {
                     // we need to inject a jitter buffer
-                    short jitterBufferSamples = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
-
+ 
                     // add silence for jitter buffer and then the received packet
-                    memset(copyToPointer, 0, jitterBufferSamples * sizeof(int16_t));
-                    memcpy(copyToPointer + jitterBufferSamples, receivedData, PACKET_LENGTH_BYTES);
+                    memset(copyToPointer, 0, JITTER_BUFFER_SAMPLES * sizeof(int16_t));
+                    memcpy(copyToPointer + JITTER_BUFFER_SAMPLES, receivedData, PACKET_LENGTH_BYTES);
                     
                     // the end of the write is the pointer to the buffer + packet + jitter buffer
-                    ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + jitterBufferSamples;
+                    ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES;
                     ringBuffer->nextOutput = ringBuffer->buffer;
                 } else {
                     // no jitter buffer, no overlap
@@ -465,7 +465,6 @@ void Audio::render(int screenWidth, int screenHeight)
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
-        
         int jitterPels = (float) data->jitter/ ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
         
         glColor3f(0,1,1);
@@ -478,27 +477,12 @@ void Audio::render(int screenWidth, int screenHeight)
         
         sprintf(out,"%3.1f\n", data->jitter);
         drawtext(startX + jitterPels - 5, topY-10, 0.08, 0, 1, 0, out, 0,1,1);
-
         
+        sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
+        drawtext(startX - 10, bottomY + 20, 0.1, 0, 1, 0, out, 1, 0, 0);
         
-        //glVertex2f(nextOutputX, topY);
-        //glVertex2f(nextOutputX, bottomY);
-        
-        /*
-        float nextOutputX = startX + (nextOutputSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
-        float endLastWriteSampleOffset = data->ringBuffer->endOfLastWrite - data->ringBuffer->buffer;
-        
-        if (data->ringBuffer->endOfLastWrite == NULL) {
-            endLastWriteSampleOffset = 0;
-        }
-        
-        float endLastWriteX = startX + (endLastWriteSampleOffset / RING_BUFFER_SIZE_SAMPLES) * scaleLength;
-        glColor3f(0, 1, 0);
-        glVertex2f(endLastWriteX, topY);
-        glVertex2f(endLastWriteX, bottomY);
-        
-        glEnd();
-         */
+        sprintf(out, "%hd samples\n", JITTER_BUFFER_SAMPLES);
+        drawtext(startX - 10, bottomY + 35, 0.1, 0, 1, 0, out, 1, 0, 0);
     }
 }
 
