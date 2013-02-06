@@ -367,6 +367,9 @@ void reset_sensors()
     //   Reset serial I/O sensors 
     // 
     myHead.setRenderYaw(start_yaw);
+    dummyHead.setRenderPitch(0);
+    dummyHead.setRenderYaw(0);
+    
     yaw = render_yaw_rate = 0; 
     pitch = render_pitch = render_pitch_rate = 0;
     lateral_vel = 0;
@@ -443,8 +446,7 @@ void update_pos(float frametime)
         else 
             render_pitch_rate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
     }
-     
-    myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
+         
     render_pitch += render_pitch_rate;
     
     // Decay render_pitch toward zero because we never look constantly up/down 
@@ -500,15 +502,20 @@ void update_pos(float frametime)
     location[0] += fwd_vec[2]*-lateral_vel;
     location[2] += fwd_vec[0]*lateral_vel;
     
-    //  Update head and manipulator objects with object with current location
-    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    //  Update manipulator objects with object with current location
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
     
+    //  Update own head data
+    myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
+    myHead.setRenderPitch(render_pitch);
+    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+
     //  Update all this stuff to any agents that are nearby and need to see it!
     
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
+    dummyHead.recvBroadcastData(broadcast_string, broadcast_bytes);
     //printf("head bytes:  %d\n", broadcast_bytes);
     broadcast_to_agents(UDP_socket, broadcast_string, broadcast_bytes);
      
@@ -542,7 +549,7 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
            
         //  Rotate, translate to camera location
-        glRotatef(render_pitch, 1, 0, 0);
+        glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
     

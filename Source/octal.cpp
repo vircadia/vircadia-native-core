@@ -26,6 +26,9 @@ void getVoxel(float * pos, int scale, float * vpos) {
     vpos[Z] = floor(pos[Z]*vscale)/vscale;
 }
 
+//
+//  Given a pointer to an octal code and some domain owner data, iterate the tree and add the node(s) as needed.
+//
 domainNode* createNode(int lengthInBits, char * octalData,
                              char * hostname, char * nickname, int domain_id) {
     domainNode * currentNode = &rootNode;

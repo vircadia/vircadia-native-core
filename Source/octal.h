@@ -18,6 +18,9 @@ struct domainNode {
     int domain_id;
 };
 
+domainNode* createNode(int lengthInBits, char * octalData,
+                       char * hostname, char * nickname, int domain_id);
+
 
 
 #endif /* defined(__interface__octal__) */
