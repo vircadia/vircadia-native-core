@@ -516,10 +516,10 @@ bool Audio::terminate ()
         err = Pa_CloseStream(stream);
         if (err != paNoError) goto error;
         
-        delete data;
-        
         err = Pa_Terminate();
         if (err != paNoError) goto error;
+        
+        delete data;
         
         logFile.close();
     }
