@@ -25,7 +25,6 @@ class Head {
     float PitchRate;
     float YawRate;
     float RollRate;
-    float renderYaw;
     float EyeballPitch[2];
     float EyeballYaw[2];
     float EyebrowPitch[2];
@@ -50,6 +49,7 @@ class Head {
     int eyeContact;
     eyeContactTargets eyeContactTarget;
     void readSensors();
+    float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head. 
 
     
 public:
@@ -62,6 +62,9 @@ public:
     void setRoll(float r) {Roll = r; };
     void setScale(float s) {scale = s; };
     void setRenderYaw(float y) {renderYaw = y;}
+    void setRenderPitch(float p) {renderPitch = p;}
+    float getRenderYaw() {return renderYaw;}
+    float getRenderPitch() {return renderPitch;}
     void setLeanForward(float dist);
     void setLeanSideways(float dist);
     void addPitch(float p) {Pitch -= p; }
@@ -71,7 +74,7 @@ public:
     float getPitch() {return Pitch;}
     float getRoll() {return Roll;}
     float getYaw() {return Yaw;}
-    float getRenderYaw() {return renderYaw;}
+
     void render();
     void simulate(float);
     //  Send and receive network data 

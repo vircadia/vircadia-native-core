@@ -53,7 +53,9 @@ Head::Head()
     eyeContact = 1;
     eyeContactTarget = LEFT_EYE;
     scale = 1.0;
-    setNoise(1);
+    renderYaw = 0.0;
+    renderPitch = 0.0;
+    setNoise(0);
 }
 
 void Head::reset()
@@ -211,6 +213,9 @@ void Head::render()
     
     glScalef(scale, scale, scale); 
     glTranslatef(leanSideways, 0.f, leanForward);
+    //printf("x: %3.1f\n", position.x);
+    glTranslatef(3,3,2);
+    //glTranslatef(position.x, position.y, position.z);
 
     glRotatef(Yaw/2.0, 0, 1, 0);
     glRotatef(Pitch/2.0, 1, 0, 0);
@@ -320,7 +325,8 @@ void Head::render()
 int Head::getBroadcastData(char* data)
 {
     // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f", Pitch, Yaw, Roll, position.x, position.y, position.z);
+    sprintf(data, "H%f,%f,%f,%f,%f,%f", Pitch + getRenderPitch(), Yaw + getRenderYaw(), Roll, position.x, position.y, position.z);
+    //printf("x: %3.1f\n", position.x);
     return strlen(data);
 }
 

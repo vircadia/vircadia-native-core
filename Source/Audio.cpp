@@ -28,7 +28,7 @@ const float AMPLITUDE_RATIO_AT_90 = 0.5;
 const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
-const short JITTER_BUFFER_LENGTH_MSECS = 40;
+const short JITTER_BUFFER_LENGTH_MSECS = 10;
 const int SAMPLE_RATE = 22050;
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -267,7 +267,7 @@ void *receiveAudioViaUDP(void *args) {
                 // we'll need a jitter buffer
                 // reset the ring buffer and write
                 copyToPointer = ringBuffer->buffer;
-                std::cout << "Writing jitter buffer\n";
+                //std::cout << "Writing jitter buffer\n";
             } else {
                 copyToPointer = ringBuffer->endOfLastWrite;
                 
