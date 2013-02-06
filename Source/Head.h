@@ -45,6 +45,7 @@ class Head {
     float YawTarget; 
     float NoiseEnvelope;
     float PupilConverge;
+    float scale;
     glm::vec3 position;
     int eyeContact;
     eyeContactTargets eyeContactTarget;
@@ -59,6 +60,7 @@ public:
     void setPitch(float p) {Pitch = p; }
     void setYaw(float y) {Yaw = y; }
     void setRoll(float r) {Roll = r; };
+    void setScale(float s) {scale = s; };
     void setRenderYaw(float y) {renderYaw = y;}
     void setLeanForward(float dist);
     void setLeanSideways(float dist);

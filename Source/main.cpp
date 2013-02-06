@@ -9,9 +9,9 @@
 //  Keyboard Commands: 
 //
 //  / = toggle stats display
-//  n = toggle noise in firing on/off
-//  c = clear all cells and synapses to zero
-//  s = clear cells to zero but preserve synapse weights
+//  spacebar = reset gyros/head
+//  h = render Head
+//  l = show incoming gyro levels
 //
 
 //#define MARKER_CAPTURE // yep.
@@ -85,8 +85,11 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0; 
 
-#define HAND_RADIUS 0.25             //  Radius of in-world 'hand' of you
-Head myHead;                        //  The rendered head of oneself or others 
+#define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
+Head myHead;                        //  The rendered head of oneself or others
+Head dummyHead;                      //  Test Head to render
+int showDummyHead = 1;
+
 Hand myHand(HAND_RADIUS, 
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
 
@@ -278,6 +281,13 @@ void init(void)
 {
     myHead.setRenderYaw(start_yaw);
     
+    dummyHead.setPitch(0);
+    dummyHead.setRoll(0);
+    dummyHead.setYaw(0);
+    dummyHead.setScale(0.25); 
+    
+    dummyHead.setPos(glm::vec3(0,0,0));
+    
     if (audio_on) {
         if (serial_on) {
             Audio::init(&myHead);
@@ -300,6 +310,7 @@ void init(void)
     {   
         myHand.setNoise(noise);
         myHead.setNoise(noise);
+        dummyHead.setNoise(noise);
     }
     
     if (serial_on)
@@ -494,12 +505,13 @@ void update_pos(float frametime)
     balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
     
     //  Update all this stuff to any agents that are nearby and need to see it!
-    /*
+    
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
+    //printf("head bytes:  %d\n", broadcast_bytes);
     broadcast_to_agents(UDP_socket, broadcast_string, broadcast_bytes);
-     */
+     
 }
 
 int render_test_spot = WIDTH/2;
@@ -554,12 +566,14 @@ void display(void)
             glPopMatrix();
         }
     
+        //  Render dummy head
+        if (showDummyHead) dummyHead.render(); 
+    
         //  Render heads of other agents 
         if (!display_head) render_agents(); 
         
         if (display_hand) myHand.render();   
      
-    
         if (!display_head) balls.render();
     
         //  Render the world box 

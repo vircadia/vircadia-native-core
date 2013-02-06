@@ -52,6 +52,7 @@ Head::Head()
     leanSideways = 0.0;
     eyeContact = 1;
     eyeContactTarget = LEFT_EYE;
+    scale = 1.0;
     setNoise(1);
 }
 
@@ -206,6 +207,9 @@ void Head::render()
     int side = 0; 
     
     glEnable(GL_DEPTH_TEST);
+    glPushMatrix();
+    
+    glScalef(scale, scale, scale); 
     glTranslatef(leanSideways, 0.f, leanForward);
 
     glRotatef(Yaw/2.0, 0, 1, 0);
@@ -305,6 +309,8 @@ void Head::render()
         if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.1,0.1,1.0);
         //glRotatef(90,0,1,0);
         glutSolidSphere(PupilSize, 15, 15);
+    glPopMatrix();
+    
     glPopMatrix();
  }
 

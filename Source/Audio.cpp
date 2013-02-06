@@ -43,7 +43,7 @@ int starve_counter = 0;
 
 StDev stdev;
 
-#define LOG_SAMPLE_DELAY 0
+#define LOG_SAMPLE_DELAY 1
 
 bool Audio::initialized;
 PaError Audio::err;
@@ -242,9 +242,12 @@ void *receiveAudioViaUDP(void *args) {
             if (firstSample) {
                 stdev.reset();
             } else {
-                stdev.addValue(diffclock(&previousReceiveTime, &currentReceiveTime));
+                double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
+                //printf(\n";
+                stdev.addValue(tDiff);
                 if (stdev.getSamples() > 500) {
-                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                    sharedAudioData->jitter = stdev.getStDev();
+                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->jitter);
                     stdev.reset();
                 }
             }
@@ -458,21 +461,25 @@ void Audio::render(int screenWidth, int screenHeight)
         
         char out[20];
         sprintf(out, "%3.0f\n", data->averagedLatency/(float)frameWidth*(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE));
-        drawtext(startX + data->averagedLatency, topY-10, 0.1, 0, 1, 0, out);
+        drawtext(startX + data->averagedLatency - 10, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
-        /*
-        int jitter = (float)stdev.getStDev() / ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
+        
+        int jitterPels = (float) data->jitter/ ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
         
         glColor3f(0,1,1);
         glBegin(GL_QUADS);
-        glVertex2f(startX + jitter - 2, topY - 2);
-        glVertex2f(startX + jitter + 2, topY - 2);
-        glVertex2f(startX + jitter + 2, bottomY + 2);
-        glVertex2f(startX + jitter - 2, bottomY + 2);
+        glVertex2f(startX + jitterPels - 2, topY - 2);
+        glVertex2f(startX + jitterPels + 2, topY - 2);
+        glVertex2f(startX + jitterPels + 2, bottomY + 2);
+        glVertex2f(startX + jitterPels - 2, bottomY + 2);
         glEnd();
-        */
+        
+        sprintf(out,"%3.1f\n", data->jitter);
+        drawtext(startX + jitterPels - 5, topY-10, 0.08, 0, 1, 0, out, 0,1,1);
+
+        
         
         //glVertex2f(nextOutputX, topY);
         //glVertex2f(nextOutputX, bottomY);
