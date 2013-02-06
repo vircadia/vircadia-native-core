@@ -64,9 +64,11 @@ void Lattice::mouseOver(float x, float y) {
     //  Update lattice based on mouse location, where x and y are floats between 0 and 1 corresponding to screen location clicked
     //  Excite the hovered cell a bit toward firing 
     //printf("X = %3.1f Y = %3.1f\n", x, y);
-    int index = int(x*(float)width) + int(y*(float)height)*width;
-    if (tiles[index].type > 0) tiles[index].excited += 0.05;
+    if ((width + height) > 0) {
+        int index = int(x*(float)width) + int(y*(float)height)*width;
+        if (tiles[index].type > 0) tiles[index].excited += 0.05;
     //printf("excited = %3.1f, inhibited = %3.1f\n", tiles[index].excited, tiles[index].inhibited);
+    }
 }
 
 void Lattice::simulate(float deltaTime) {

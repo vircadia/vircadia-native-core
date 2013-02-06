@@ -27,6 +27,7 @@ AudioData::AudioData(int numberOfSources, int bufferLength) {
     averagedLatency = 0.0;
     lastCallback.tv_usec = 0;
     wasStarved = 0;
+    jitter = 0;
 }
 
 AudioData::~AudioData() {
