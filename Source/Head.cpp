@@ -76,7 +76,7 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.80;
     const float HEAD_ROLL_SCALE = 0.80;
-    const float HEAD_LEAN_SCALE = 0.05;
+    const float HEAD_LEAN_SCALE = 0.03;
     if (head_mirror) {
         addYaw(-measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
