@@ -9,7 +9,7 @@
 #ifndef __interface__Lattice__
 #define __interface__Lattice__
 
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>

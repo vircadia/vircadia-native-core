@@ -9,7 +9,7 @@
 #ifndef __interface__Agent__
 #define __interface__Agent__
 
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
