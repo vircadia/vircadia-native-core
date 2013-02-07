@@ -13,7 +13,7 @@
 #endif
 #include <iostream>
 #include "world.h"
-#include <glm/glm.hpp>
+#include <glm.hpp>
 #include "util.h"
 
 
