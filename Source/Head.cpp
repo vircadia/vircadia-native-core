@@ -76,7 +76,7 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.80;
     const float HEAD_ROLL_SCALE = 0.80;
-    const float HEAD_LEAN_SCALE = 0.01;
+    const float HEAD_LEAN_SCALE = 0.05;
     if (head_mirror) {
         addYaw(-measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
@@ -204,18 +204,30 @@ void Head::simulate(float deltaTime)
                          
 }
       
-void Head::render()
+void Head::render(int faceToFace)
 {
     int side = 0; 
     
     glEnable(GL_DEPTH_TEST);
     glPushMatrix();
+
+    glScalef(scale, scale, scale);
     
-    glScalef(scale, scale, scale); 
     glTranslatef(leanSideways, 0.f, leanForward);
-    //printf("x: %3.1f\n", position.x);
-    glTranslatef(3,3,2);
-    //glTranslatef(position.x, position.y, position.z);
+    
+    if (!faceToFace)
+    {
+        //printf("x: %3.1f\n", position.x);
+        //glTranslatef(3,3,2);
+        //printf("head: %3.1f, %3.1f, %3.1f\n", position.x, position.y, position.z);
+        float x = position.x;
+        float y = position.y;
+        float z = position.z;
+        
+        //glTranslatef(6.1, 0, 1.4);
+        glTranslatef(x,y,z);
+        //glTranslatef(position.x, position.y, position.z);
+    }
 
     glRotatef(Yaw/2.0, 0, 1, 0);
     glRotatef(Pitch/2.0, 1, 0, 0);
@@ -290,7 +302,7 @@ void Head::render()
         glRotatef(EyeballPitch[1], 1, 0, 0);
         glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
         glTranslatef(0,0,.35);
-                if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.1,0.1,1.0);
+                if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
         //glRotatef(90,0,1,0);
         glutSolidSphere(PupilSize, 15, 15);
 
@@ -311,7 +323,7 @@ void Head::render()
         glRotatef(EyeballPitch[0], 1, 0, 0);
         glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
         glTranslatef(0,0,.35);
-        if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.1,0.1,1.0);
+        if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
         //glRotatef(90,0,1,0);
         glutSolidSphere(PupilSize, 15, 15);
     glPopMatrix();

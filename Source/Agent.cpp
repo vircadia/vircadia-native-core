@@ -47,7 +47,7 @@ void render_agents() {
         glm::vec3 pos = agents[i].head.getPos();
         glPushMatrix();
         glTranslatef(pos.x, pos.y, pos.z);
-        agents[i].head.render();
+        agents[i].head.render(0);
         glPopMatrix();
     }
 }
@@ -96,7 +96,7 @@ int add_agent(std::string * IP) {
 int broadcast_to_agents(int handle, char * data, int length) {
     sockaddr_in dest_address;
     dest_address.sin_family = AF_INET;
-    dest_address.sin_port = htons( (unsigned short) UDP_PORT );
+    dest_address.sin_port = htons( (unsigned short) AGENT_UDP_PORT );
 
     int sent_bytes;
     for (int i = 0; i < num_agents; i++) {

@@ -36,7 +36,7 @@ int network_init()
     //  Bind socket to port 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( (unsigned short) UDP_PORT );
+    address.sin_port = htons( (unsigned short) SENDING_UDP_PORT );
     
     if ( bind( handle, (const sockaddr*) &address, sizeof(sockaddr_in) ) < 0 )
     {
@@ -63,7 +63,7 @@ int network_init()
                            
     dest_address.sin_family = AF_INET;
     dest_address.sin_addr.s_addr = inet_addr(DESTINATION_IP);
-    dest_address.sin_port = htons( (unsigned short) UDP_PORT );
+    //dest_address.sin_port = htons( (unsigned short) UDP_PORT );
 
     domainserver_address.sin_family = AF_INET;
     domainserver_address.sin_addr.s_addr = inet_addr(DOMAINSERVER_IP);
@@ -71,7 +71,7 @@ int network_init()
 
     from.sin_family = AF_INET;
     //from.sin_addr.s_addr = htonl(ip_address);
-    from.sin_port = htons( (unsigned short) UDP_PORT );
+    //from.sin_port = htons( (unsigned short) UDP_PORT );
     
     return handle;
 }
@@ -89,8 +89,8 @@ timeval network_send_ping(int handle) {
 int notify_domainserver(int handle, float x, float y, float z) {
     char data[100];
     sprintf(data, "%f,%f,%f", x, y, z);
-    //std::cout << "sending: " << data << "\n";
     int packet_size = strlen(data);
+    //std::cout << "sending: " << data << " of size: " << packet_size << "\n";
     int sent_bytes = sendto( handle, (const char*)data, packet_size,
                             0, (sockaddr*)&domainserver_address, sizeof(sockaddr_in) );
     if ( sent_bytes != packet_size )
@@ -110,7 +110,7 @@ int network_send(int handle, char * packet_data, int packet_size)
 
     if ( sent_bytes != packet_size )
     {
-        printf( "failed to send packet: return value = %d\n", sent_bytes );
+        printf( "failed to send packet to address, port: %s, %d, returned = %d\n", inet_ntoa(dest_address.sin_addr), dest_address.sin_port, sent_bytes );
         return false;
     }
     return sent_bytes;

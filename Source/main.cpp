@@ -392,8 +392,8 @@ void update_pos(float frametime)
 {
     float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
     float measured_yaw_rate = serialPort.getRelativeValue(YAW_RATE);
-    float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
-    float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
+    //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
+    //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
     
@@ -569,15 +569,15 @@ void display(void)
             glPushMatrix();
             glLoadIdentity();
             glTranslatef(0.f, 0.f, -7.f);
-            myHead.render();
+            myHead.render(1);
             glPopMatrix();
         }
     
         //  Render dummy head
-        if (showDummyHead) dummyHead.render(); 
+        if (showDummyHead) dummyHead.render(0);
     
         //  Render heads of other agents 
-        if (!display_head) render_agents(); 
+        if (!display_head) render_agents();
         
         if (display_hand) myHand.render();   
      
@@ -790,7 +790,7 @@ void read_network()
             //
             //  Broadcast packet from another agent 
             //
-            //update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
+            update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
         }
     }
 }

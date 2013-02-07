@@ -75,7 +75,7 @@ public:
     float getRoll() {return Roll;}
     float getYaw() {return Yaw;}
 
-    void render();
+    void render(int faceToFace);
     void simulate(float);
     //  Send and receive network data 
     int getBroadcastData(char* data);
