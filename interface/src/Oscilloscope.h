@@ -9,7 +9,7 @@
 #ifndef __interface__Oscilloscope__
 #define __interface__Oscilloscope__
 
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include "Util.h"
 #include "World.h"
 #include <GLUT/glut.h>

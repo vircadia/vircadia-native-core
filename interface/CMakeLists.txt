@@ -1,11 +1,10 @@
 cmake_minimum_required (VERSION 2.8)
 project (interface)
 
-add_subdirectory (src)
+file (GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
-# third party libraries 
-find_package (Portaudio REQUIRED)
-include_directories (${Portaudio_INCLUDE_DIRS})
-set (LIBS ${LIBS} ${Portaudio_LIBRARIES})
+add_executable (interface ${INTERFACE_SRCS})
 
-target_link_libraries (interface LIBS)
+find_package (GLM REQUIRED)
+include_directories (${GLM_INCLUDE_DIRS})
+target_link_libraries (interface GLM)

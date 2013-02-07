@@ -9,7 +9,7 @@
 #ifndef __interface__Util__
 #define __interface__Util__
 
-#include "glm.hpp"
+#include <glm/glm.hpp>
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
