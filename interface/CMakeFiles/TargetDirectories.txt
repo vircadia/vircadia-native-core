@@ -1,0 +1,3 @@
+/Users/birarda/code/worklist/interface/interface/CMakeFiles/ALL_BUILD.dir
+/Users/birarda/code/worklist/interface/interface/CMakeFiles/ZERO_CHECK.dir
+/Users/birarda/code/worklist/interface/interface/src/CMakeFiles/interface.dir

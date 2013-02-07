@@ -1,0 +1,68 @@
+TCompilerIdC
+v5
+r1
+cCheck dependencies
+cCompileC ./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
+cLd /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC normal i386
+cPhaseScriptExecution "Run Script" /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh
+
+N/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC
+t2
+s0
+
+N/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o
+t2
+s0
+
+N/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CompilerIdC.LinkFileList
+c0000000051130B9700000000000000A4
+t1360202647
+s164
+
+N/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh
+c0000000051130B97000000000000002A
+t1360202647
+s42
+
+N/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c
+c0000000051130B970000000000002F20
+t1360202647
+s12064
+
+CCheck dependencies
+r0
+lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection18"Check dependencies5168dd1743c3b641^7363ea1743c3b641^---0#1#0#--18"Check dependencies36"79E1AAE4-72CB-4FFC-A9C8-CD2584FAB57D-
+
+CCompileC ./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
+s381895447.921380
+e381895447.952498
+r1
+xCompileC
+x./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o
+x/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c
+xnormal
+xi386
+xc
+xcom.apple.compilers.llvm.clang.1_0.compiler
+lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection107"Compile /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c7617ec1743c3b641^be50f41743c3b641^---0#0#0#-19%DVTDocumentLocation2@115"file://localhost/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c0000000000000000^2544"CompileC ./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o CMakeCCompilerId.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -arch i386 -fmessage-length=0 -Wno-trigraphs -fpascal-strings -Os -Wno-missing-field-initializers -Wno-missing-prototypes -Wno-return-type -Wformat -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wpointer-sign -Wno-newline-eof -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -g -fvisibility=hidden -Wno-sign-conversion -I/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/CompilerIdC.hmap -I/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/DerivedSources/i386 -I/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/DerivedSources -F/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC -MMD -MT dependencies -MF /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.d --serialize-diagnostics /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.dia -c /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/CMakeCCompilerId.c -o /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CMakeCCompilerId.o36"5DB0DB8B-B486-4408-A283-87D0892099BB-
+
+CLd /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC normal i386
+s381895447.959325
+e381895447.982236
+r1
+xLd
+x/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC
+xnormal
+xi386
+lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection99"Link /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC3fc5f51743c3b641^49f7fb1743c3b641^---0#0#0#--669"Ld ./CompilerIdC normal i386    cd /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -arch i386 -L/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC -F/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC -filelist /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Objects-normal/i386/CompilerIdC.LinkFileList -o /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC36"4C4E38B2-B7B3-45B2-8CA8-2DDC71964CCF-
+
+CPhaseScriptExecution "Run Script" /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh
+s381895448.006702
+e381895448.045837
+r1
+xPhaseScriptExecution
+xRun Script
+x/Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh
+oGCC_VERSION=com.apple.compilers.llvm.clang.1_0
+lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection36"Run custom shell script 'Run Script'037d021843c3b641^dcba0b1843c3b641^-47"GCC_VERSION=com.apple.compilers.llvm.clang.1_01(21%IDEActivityLogMessage2@47"GCC_VERSION=com.apple.compilers.llvm.clang.1_0-381895448#0#47#-0#-----0#0#0#--376"PhaseScriptExecution "Run Script" ./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh    cd /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC    /bin/sh -c /Users/birarda/code/worklist/interface/interface/CMakeFiles/2.8.10.2/CompilerIdC/./CompilerIdC.build/Debug/CompilerIdC.build/Script-2C8FEB8E15DC1A1A00E56A5D.sh36"85DDF0FA-ED2F-4E8D-A4E8-FCDC0E32FB56-
+
