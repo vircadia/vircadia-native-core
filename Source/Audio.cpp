@@ -29,7 +29,7 @@ const short RING_BUFFER_FRAMES = 10;
 const short RING_BUFFER_SIZE_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
 const int SAMPLE_RATE = 22050;
-const float JITTER_BUFFER_LENGTH_MSECS = 26.0;
+const float JITTER_BUFFER_LENGTH_MSECS = 10.0;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
 
 const short NUM_AUDIO_SOURCES = 2;
@@ -105,31 +105,21 @@ int audioCallback (const void *inputBuffer,
         
         if (ringBuffer->endOfLastWrite != NULL) {
             
-            // play whatever we have in the audio buffer
-            short silentTail = 0;
-            
-            // if the end of the last write to the ring is in front of the current output pointer
-            // AND the difference between the two is less than a full output buffer
-            // we need to add some silence after the audio data, to avoid replaying old data
-            if ((ringBuffer->endOfLastWrite - ringBuffer->buffer) > (ringBuffer->nextOutput - ringBuffer->buffer)
-                && (ringBuffer->endOfLastWrite - ringBuffer->nextOutput) < BUFFER_LENGTH_SAMPLES) {
-                silentTail = BUFFER_LENGTH_SAMPLES - (ringBuffer->endOfLastWrite - ringBuffer->nextOutput);
-            }
-            
-            // no sample overlap, either a direct copy of the audio data, or a copy with some appended silence
-            memcpy(queueBuffer, ringBuffer->nextOutput, (BUFFER_LENGTH_SAMPLES - silentTail) * sizeof(int16_t));
-            
-            ringBuffer->nextOutput += BUFFER_LENGTH_SAMPLES;
-            
-            if (ringBuffer->nextOutput == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
-                ringBuffer->nextOutput = ringBuffer->buffer;
-            }
-            
-            if (ringBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
+            if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
                 starve_counter++;
                 printf("Starved #%d\n", starve_counter);
-                data->wasStarved = 10;      //   Frames to render the indication that the system was starved. 
-                ringBuffer->endOfLastWrite = NULL;
+                data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
+            } else {
+                // play whatever we have in the audio buffer
+                
+                // no sample overlap, either a direct copy of the audio data, or a copy with some appended silence
+                memcpy(queueBuffer, ringBuffer->nextOutput, BUFFER_LENGTH_BYTES);
+                
+                ringBuffer->nextOutput += BUFFER_LENGTH_SAMPLES;
+                
+                if (ringBuffer->nextOutput == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
+                    ringBuffer->nextOutput = ringBuffer->buffer;
+                }
             }
         }
         
@@ -255,54 +245,24 @@ void *receiveAudioViaUDP(void *args) {
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
             
-            int16_t *copyToPointer;
-            bool needsJitterBuffer = ringBuffer->endOfLastWrite == NULL;
-            short bufferSampleOverlap = 0;
-            
-            if (!needsJitterBuffer && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+            bool ringBufferReset = ringBuffer->endOfLastWrite == NULL;
+
+            if (!ringBufferReset && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+                std::cout << "D: " << ringBuffer->diffLastWriteNextOutput() << "\n";
                 std::cout << "Full\n";
-                needsJitterBuffer = true;
+                ringBufferReset = true;
             }
             
-            if (needsJitterBuffer) {
-                // we'll need a jitter buffer
-                // reset the ring buffer and write
-                copyToPointer = ringBuffer->buffer;
-                //std::cout << "Writing jitter buffer\n";
-            } else {
-                copyToPointer = ringBuffer->endOfLastWrite;
-                
-                // check for possibility of overlap
-                bufferSampleOverlap = ringBuffer->bufferOverlap(copyToPointer, PACKET_LENGTH_SAMPLES);
-                
+            if (ringBufferReset || ringBuffer->endOfLastWrite == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
+                // reset the ring buffer and write from beginning
+                ringBuffer->endOfLastWrite = ringBuffer->buffer;
             }
             
-            if (!bufferSampleOverlap) {
-                if (needsJitterBuffer) {
-                    // we need to inject a jitter buffer
- 
-                    // add silence for jitter buffer and then the received packet
-                    memset(copyToPointer, 0, JITTER_BUFFER_SAMPLES * sizeof(int16_t));
-                    memcpy(copyToPointer + JITTER_BUFFER_SAMPLES, receivedData, PACKET_LENGTH_BYTES);
-                    
-                    // the end of the write is the pointer to the buffer + packet + jitter buffer
-                    ringBuffer->endOfLastWrite = ringBuffer->buffer + PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES;
-                    ringBuffer->nextOutput = ringBuffer->buffer;
-                } else {
-                    // no jitter buffer, no overlap
-                    // just copy the recieved data to the right spot and then add packet length to previous pointer
-                    memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
-                    ringBuffer->endOfLastWrite += PACKET_LENGTH_SAMPLES;
-                }
-            } else {                
-                // no jitter buffer, but overlap
-                // copy to the end, and then from the begining to the overlap
-                memcpy(copyToPointer, receivedData, (PACKET_LENGTH_SAMPLES - bufferSampleOverlap) * sizeof(int16_t));
-                memcpy(ringBuffer->buffer, receivedData + (PACKET_LENGTH_SAMPLES - bufferSampleOverlap), bufferSampleOverlap * sizeof(int16_t));
-                
-                // the end of the write is the amount of overlap
-                ringBuffer->endOfLastWrite = ringBuffer->buffer + bufferSampleOverlap;
-            }
+            int16_t *copyToPointer = ringBuffer->endOfLastWrite;
+            
+            // just copy the recieved data to the right spot and then add packet length to previous pointer
+            memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
+            ringBuffer->endOfLastWrite += PACKET_LENGTH_SAMPLES;
     
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
