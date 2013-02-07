@@ -247,8 +247,8 @@ void *receiveAudioViaUDP(void *args) {
                 //printf(\n";
                 stdev.addValue(tDiff);
                 if (stdev.getSamples() > 500) {
-                    sharedAudioData->jitter = stdev.getStDev();
-                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->jitter);
+                    sharedAudioData->measuredJitter = stdev.getStDev();
+                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
                     stdev.reset();
                 }
             }
@@ -465,7 +465,7 @@ void Audio::render(int screenWidth, int screenHeight)
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
-        int jitterPels = (float) data->jitter/ ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
+        int jitterPels = (float) data->measuredJitter/ ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
         
         glColor3f(0,1,1);
         glBegin(GL_QUADS);
@@ -475,7 +475,7 @@ void Audio::render(int screenWidth, int screenHeight)
         glVertex2f(startX + jitterPels - 2, bottomY + 2);
         glEnd();
         
-        sprintf(out,"%3.1f\n", data->jitter);
+        sprintf(out,"%3.1f\n", data->measuredJitter);
         drawtext(startX + jitterPels - 5, topY-10, 0.08, 0, 1, 0, out, 0,1,1);
         
         sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
