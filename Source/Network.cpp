@@ -19,7 +19,7 @@ int delay_size_received[MAX_DELAY_PACKETS];
 int next_to_receive = 0;
 int next_to_send = 0;
 
-sockaddr_in address, dest_address, spaceserver_address, from;
+sockaddr_in address, dest_address, domainserver_address, from;
 socklen_t fromLength = sizeof( from );
 
 int network_init()
@@ -65,9 +65,9 @@ int network_init()
     dest_address.sin_addr.s_addr = inet_addr(DESTINATION_IP);
     dest_address.sin_port = htons( (unsigned short) UDP_PORT );
 
-    spaceserver_address.sin_family = AF_INET;
-    spaceserver_address.sin_addr.s_addr = inet_addr(SPACESERVER_IP);
-    spaceserver_address.sin_port = htons( (unsigned short) SPACESERVER_PORT );
+    domainserver_address.sin_family = AF_INET;
+    domainserver_address.sin_addr.s_addr = inet_addr(DOMAINSERVER_IP);
+    domainserver_address.sin_port = htons( (unsigned short) DOMAINSERVER_PORT );
 
     from.sin_family = AF_INET;
     //from.sin_addr.s_addr = htonl(ip_address);
@@ -86,16 +86,16 @@ timeval network_send_ping(int handle) {
     return check; 
 }
 
-int notify_spaceserver(int handle, float x, float y, float z) {
+int notify_domainserver(int handle, float x, float y, float z) {
     char data[100];
     sprintf(data, "%f,%f,%f", x, y, z);
     //std::cout << "sending: " << data << "\n";
     int packet_size = strlen(data);
     int sent_bytes = sendto( handle, (const char*)data, packet_size,
-                            0, (sockaddr*)&spaceserver_address, sizeof(sockaddr_in) );
+                            0, (sockaddr*)&domainserver_address, sizeof(sockaddr_in) );
     if ( sent_bytes != packet_size )
     {
-        printf( "failed to send to spaceserver: return value = %d\n", sent_bytes );
+        printf( "failed to send to domainserver: return value = %d\n", sent_bytes );
         return false;
     }
     return sent_bytes;
