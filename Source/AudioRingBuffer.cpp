@@ -10,6 +10,7 @@
 
 AudioRingBuffer::AudioRingBuffer(short ringBufferSamples) {
     ringBufferLengthSamples = ringBufferSamples;
+    started = false;
     
     endOfLastWrite = NULL;
     
