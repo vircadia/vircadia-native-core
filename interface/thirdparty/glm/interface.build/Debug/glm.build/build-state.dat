@@ -1,104 +1,0 @@
-Tglm
-v5
-r1
-cCheck dependencies
-cCompileC thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp normal x86_64 c++ com.apple.compilers.llvm.clang.1_0.compiler
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk
-c000000005106ECFD00000000000000AA
-t1359408381
-s170
-
-N/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp
-c0000000050FF003000000000000006BB
-t1358889008
-s1723
-i"../glm.hpp"
-i"../ext.hpp"
-
-N/Users/birarda/code/worklist/interface/interface/thirdparty/glm/Debug/glm
-t2
-s0
-
-N/Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o
-t2
-s0
-
-N/Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/glm.LinkFileList
-c000000005113F3BC000000000000007E
-t1360262076
-s126
-
-N/Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Script-82940E848B4C4A3D899023FC.sh
-c000000005113F3BC00000000000000CC
-t1360262076
-s204
-
-N/Users/birarda/code/worklist/interface/thirdparty/glm/ext.hpp
-c0000000050FF00300000000000001544
-t1358889008
-s5444
-
-N/Users/birarda/code/worklist/interface/thirdparty/glm/glm.hpp
-c0000000050FF08000000000000001608
-t1358891008
-s5640
-
-CBuild AST from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp
-r0
-
-CCheck dependencies
-r0
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection18"Check dependencies3dd7c33c2bc4b641^3e07d23c2bc4b641^---0#1#0#--18"Check dependencies36"C1478C1C-913A-4493-A506-14E99A43FEBA-
-
-CCompileC thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp normal x86_64 c++ com.apple.compilers.llvm.clang.1_0.compiler
-s381954877.472677
-e381954878.629004
-r1
-xCompileC
-xthirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o
-x/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp
-xnormal
-xx86_64
-xc++
-xcom.apple.compilers.llvm.clang.1_0.compiler
-oIn file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:33:
-oIn file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../glm.hpp:89:
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:82:11: warning: GLM: Apple platform detected [-W#pragma-messages]
-o#               pragma message("GLM: Apple platform detected")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:367:11: warning: GLM: Clang compiler detected [-W#pragma-messages]
-o#               pragma message("GLM: Clang compiler detected")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:405:11: warning: GLM: 64 bits model [-W#pragma-messages]
-o#               pragma message("GLM: 64 bits model")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:454:11: warning: GLM: C++98 [-W#pragma-messages]
-o#               pragma message("GLM: C++98")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:551:11: warning: GLM: Platform independent [-W#pragma-messages]
-o#               pragma message("GLM: Platform independent")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:601:11: warning: GLM: x,y,z,w; r,g,b,a; s,t,p,q component names except of half based vector types [-W#pragma-messages]
-o#               pragma message("GLM: x,y,z,w; r,g,b,a; s,t,p,q component names except of half based vector types")
-o                       ^
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:671:11: warning: GLM: Swizzling operators disabled [-W#pragma-messages]
-o#               pragma message("GLM: Swizzling operators disabled")
-o                       ^
-oIn file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:33:
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../glm.hpp:93:10: warning: GLM: Core library included [-W#pragma-messages]
-o#       pragma message("GLM: Core library included")
-o               ^
-oIn file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:34:
-o/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../ext.hpp:63:10: warning: GLM: All extensions included (not recommanded) [-W#pragma-messages]
-o#       pragma message("GLM: All extensions included (not recommanded)")
-o               ^
-o9 warnings generated.
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection89"Compile /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp3d27793d2bc4b641^840fa13e2bc4b641^-2695"In file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:33:In file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../glm.hpp:89:/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:82:11: warning: GLM: Apple platform detected [-W#pragma-messages]#               pragma message("GLM: Apple platform detected")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:367:11: warning: GLM: Clang compiler detected [-W#pragma-messages]#               pragma message("GLM: Clang compiler detected")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:405:11: warning: GLM: 64 bits model [-W#pragma-messages]#               pragma message("GLM: 64 bits model")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:454:11: warning: GLM: C++98 [-W#pragma-messages]#               pragma message("GLM: C++98")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:551:11: warning: GLM: Platform independent [-W#pragma-messages]#               pragma message("GLM: Platform independent")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:601:11: warning: GLM: x,y,z,w; r,g,b,a; s,t,p,q component names except of half based vector types [-W#pragma-messages]#               pragma message("GLM: x,y,z,w; r,g,b,a; s,t,p,q component names except of half based vector types")                       ^/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../core/setup.hpp:671:11: warning: GLM: Swizzling operators disabled [-W#pragma-messages]#               pragma message("GLM: Swizzling operators disabled")                       ^In file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:33:/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../glm.hpp:93:10: warning: GLM: Core library included [-W#pragma-messages]#       pragma message("GLM: Core library included")               ^In file included from /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp:34:/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/../ext.hpp:63:10: warning: GLM: All extensions included (not recommanded) [-W#pragma-messages]#       pragma message("GLM: All extensions included (not recommanded)")               ^9 warnings generated.-0#0#0#-19%DVTDocumentLocation2@97"file://localhost/Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp0000000000000000^2248"CompileC thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o ../thirdparty/glm/core/dummy.cpp normal x86_64 c++ com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/birarda/code/worklist/interface/interface    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c++ -arch x86_64 -fmessage-length=0 -Wno-trigraphs -fpascal-strings -O0 -Wno-missing-field-initializers -Wno-missing-prototypes -Wno-return-type -Wno-non-virtual-dtor -Wno-overloaded-virtual -Wno-exit-time-destructors -Wformat -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions "-DCMAKE_INTDIR=\"Debug\"" -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -Winvalid-offsetof -mmacosx-version-min=10.8 -g -Wno-sign-conversion -I/Users/birarda/code/worklist/interface/interface/thirdparty/glm/Debug/include -I/Users/birarda/code/worklist/interface/thirdparty/glm/.. -I/Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/DerivedSources/x86_64 -I/Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/DerivedSources -Wmost -Wno-four-char-constants -Wno-unknown-pragmas -F/Users/birarda/code/worklist/interface/interface/thirdparty/glm/Debug -MMD -MT dependencies -MF /Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.d --serialize-diagnostics /Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.dia -c /Users/birarda/code/worklist/interface/interface/../thirdparty/glm/core/dummy.cpp -o /Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Objects-normal/x86_64/dummy.o36"43DCAA56-C692-491D-999F-99CA1695D739-
-
-CLd /Users/birarda/code/worklist/interface/interface/thirdparty/glm/Debug/glm normal x86_64
-r0
-
-CPhaseScriptExecution "CMake PostBuild Rules" /Users/birarda/code/worklist/interface/interface/thirdparty/glm/interface.build/Debug/glm.build/Script-82940E848B4C4A3D899023FC.sh
-r0
-
