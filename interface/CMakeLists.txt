@@ -1,10 +1,11 @@
-cmake_minimum_required (VERSION 2.8)
-project (interface)
+cmake_minimum_required(VERSION 2.8)
 
-file (GLOB INTERFACE_SRCS src/*.cpp src/*.h)
+project(interface)
 
-add_executable (interface ${INTERFACE_SRCS})
+file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
-find_package (GLM REQUIRED)
-include_directories (${GLM_INCLUDE_DIRS})
-target_link_libraries (interface GLM)
+add_executable(interface ${INTERFACE_SRCS})
+
+find_package(GLM REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
+target_link_libraries(interface GLM)
