@@ -105,11 +105,16 @@ int audioCallback (const void *inputBuffer,
         
         if (ringBuffer->endOfLastWrite != NULL) {
             
-            if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
+            if (!ringBuffer->started && ringBuffer->diffLastWriteNextOutput() <= PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
+                printf("Held back\n");
+            } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
+                ringBuffer->started = false;
+                
                 starve_counter++;
                 printf("Starved #%d\n", starve_counter);
                 data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
             } else {
+                ringBuffer->started = true;
                 // play whatever we have in the audio buffer
                 
                 // no sample overlap, either a direct copy of the audio data, or a copy with some appended silence
@@ -245,17 +250,18 @@ void *receiveAudioViaUDP(void *args) {
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
             
-            bool ringBufferReset = ringBuffer->endOfLastWrite == NULL;
-
-            if (!ringBufferReset && ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+            if (ringBuffer->endOfLastWrite == NULL) {
+                ringBuffer->endOfLastWrite = ringBuffer->buffer;
+            } else if (ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SIZE_SAMPLES - PACKET_LENGTH_SAMPLES) {
+                std::cout << "NAB: " << ringBuffer->nextOutput - ringBuffer->buffer << "\n";
+                std::cout << "LAW: " << ringBuffer->endOfLastWrite - ringBuffer->buffer << "\n";
                 std::cout << "D: " << ringBuffer->diffLastWriteNextOutput() << "\n";
                 std::cout << "Full\n";
-                ringBufferReset = true;
-            }
-            
-            if (ringBufferReset || ringBuffer->endOfLastWrite == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
-                // reset the ring buffer and write from beginning
+                
+                // reset us to started state
                 ringBuffer->endOfLastWrite = ringBuffer->buffer;
+                ringBuffer->nextOutput = ringBuffer->buffer;
+                ringBuffer->started = false;
             }
             
             int16_t *copyToPointer = ringBuffer->endOfLastWrite;
@@ -263,6 +269,10 @@ void *receiveAudioViaUDP(void *args) {
             // just copy the recieved data to the right spot and then add packet length to previous pointer
             memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
             ringBuffer->endOfLastWrite += PACKET_LENGTH_SAMPLES;
+            
+            if (ringBuffer->endOfLastWrite == ringBuffer->buffer + RING_BUFFER_SIZE_SAMPLES) {
+                ringBuffer->endOfLastWrite = ringBuffer->buffer;
+            }
     
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
