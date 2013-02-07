@@ -6,6 +6,8 @@ file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
 add_executable(interface ${INTERFACE_SRCS})
 
-find_package(GLM REQUIRED)
-include_directories(${GLM_INCLUDE_DIRS})
+include_directories(${GLM_DIR})
 target_link_libraries(interface GLM)
+
+include_directories(${PORTAUDIO_DIR})
+target_link_libraries(interface ${PORTAUDIO_DIR}/libportaudio.a)

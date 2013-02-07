@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <glm/glm.hpp>
+#include <glm.hpp>
 #include "portaudio.h"
 
 // Bring in OpenCV

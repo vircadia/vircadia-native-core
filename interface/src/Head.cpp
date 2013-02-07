@@ -9,7 +9,7 @@
 #include <iostream>
 #include "Head.h"
 #include "Util.h"
-#include "vector_angle.hpp"
+#include <glm.hpp>
 #include "SerialInterface.h"
 
 float skinColor[] = {1.0, 0.84, 0.66};

@@ -9,7 +9,7 @@
 #ifndef __interface__Particle__
 #define __interface__Particle__
 
-#include <glm/glm.hpp>
+#include <glm.hpp>
 #include "Util.h"
 #include "world.h"
 #include <GLUT/glut.h>
