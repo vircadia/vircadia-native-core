@@ -10,6 +10,7 @@
 
 #include "Util.h"
 #include "octal.h"
+#include <cstring>
 
 const int X = 0;
 const int Y = 1;
