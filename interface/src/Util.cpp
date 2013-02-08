@@ -95,9 +95,7 @@ void render_vector(glm::vec3 * vec)
     glEnd();
     float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 
-#ifndef __APPLE__
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-#endif
+    glPointParameterfv( GL_POINT_DISTANCE_ATTENUATION, particle_attenuation_quadratic );
     
     glEnable(GL_POINT_SMOOTH);
     glPointSize(10.0);

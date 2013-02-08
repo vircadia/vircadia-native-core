@@ -56,11 +56,9 @@ void Cloud::render() {
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
     glPointSize( maxSize );
     
-#ifdef __APPLE__
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-    glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-    glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-#endif
+    glPointParameterfv( GL_POINT_DISTANCE_ATTENUATION, particle_attenuation_quadratic );
+    glPointParameterf( GL_POINT_SIZE_MAX_ARB, maxSize );
+    glPointParameterf( GL_POINT_SIZE_MIN_ARB, 0.001f );
     
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );

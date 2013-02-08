@@ -598,9 +598,7 @@ void display(void)
         Audio::render(WIDTH, HEIGHT);
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
-#ifdef __APPLE__
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
-#endif
+        glPointParameterfv( GL_POINT_DISTANCE_ATTENUATION, pointer_attenuation_quadratic );
 
 //        myFinger.render();
 
