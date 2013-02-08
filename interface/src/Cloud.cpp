@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <OpenGL/glext.h>g
 #include "Cloud.h"
 #include "Util.h"
 
