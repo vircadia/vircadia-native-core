@@ -1,3 +1,13 @@
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+build/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
 .DS_Store
 xcuserdata
 *.pbxuser
