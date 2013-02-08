@@ -9,6 +9,7 @@
 #include "InterfaceConfig.h"
 #include <iostream>
 #include <glm/glm.hpp>
+#include <cstring>
 #include "world.h"
 #include "Util.h"
 
@@ -93,7 +94,11 @@ void render_vector(glm::vec3 * vec)
     // Draw marker dots for magnitude    
     glEnd();
     float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+
+#ifndef __APPLE__
     glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+#endif
+    
     glEnable(GL_POINT_SMOOTH);
     glPointSize(10.0);
     glBegin(GL_POINTS);
