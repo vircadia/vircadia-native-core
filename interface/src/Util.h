@@ -34,7 +34,7 @@ public:
     int getSamples() {return sampleCount;};
 private:
     float * data;
-    int sampleCount = 0;
+    int sampleCount;
 };
 
 #endif
