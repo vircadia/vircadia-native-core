@@ -11,7 +11,7 @@
 #include "Cloud.h"
 #include "Util.h"
 #ifndef __APPLE__
-#include <GL/glext.h>
+
 #endif
 
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
@@ -53,13 +53,17 @@ void Cloud::render() {
     
     glEnable( GL_TEXTURE_2D );
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    
     
     float maxSize = 0.0f;
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
     glPointSize( maxSize );
+    
+#if GL_ARB_point_parameters
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
     glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
     glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+#endif
     
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );
