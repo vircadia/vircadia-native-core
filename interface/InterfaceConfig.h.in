@@ -9,6 +9,8 @@
 #ifndef interface__InterfaceConfig__
 #define interface__InterfaceConfig__
 
+#define GL_GLEXT_PROTOTYPES 1
 #include @GLUT_HEADER_INCLUDE@
+#include @GL_EXT_INCLUDE@
 
 #endif
