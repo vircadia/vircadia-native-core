@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <cstring>g
 #include "Audio.h"
 #include "Util.h"
 #include "AudioSource.h"
