@@ -7,9 +7,10 @@
 //
 
 #include "UDPSocket.h"
-#include <sys/socket.h>
+#include <sys/socket.h>g
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <cstring>
 
 sockaddr_in destSockaddr, senderAddress;
 socklen_t addLength = sizeof(senderAddress);
