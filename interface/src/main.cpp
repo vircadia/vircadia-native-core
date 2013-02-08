@@ -14,11 +14,7 @@
 //  l = show incoming gyro levels
 //
 
-//#define MARKER_CAPTURE // yep.
-
 #include "InterfaceConfig.h"
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
 #include <iostream>
 #include <fstream>
 #include <math.h>

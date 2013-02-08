@@ -10,9 +10,6 @@
 #include <InterfaceConfig.h>
 #include "Cloud.h"
 #include "Util.h"
-#ifndef __APPLE__
-#include <GL/glext.h>
-#endif
 
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
 
