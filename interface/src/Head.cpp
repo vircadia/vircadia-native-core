@@ -9,7 +9,6 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <cstring>
-#include "InterfaceConfig.h"
 #include "Head.h"
 #include "Util.h"
 #include "SerialInterface.h"
