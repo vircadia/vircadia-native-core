@@ -9,7 +9,7 @@
 #ifndef __interface__Hand__
 #define __interface__Hand__
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <iostream>
 #include "Util.h"
 #include "Field.h"

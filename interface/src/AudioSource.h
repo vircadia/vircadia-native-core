@@ -10,7 +10,7 @@
 #define __interface__AudioSource__
 
 #include <iostream>
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 class AudioSource {
     public:

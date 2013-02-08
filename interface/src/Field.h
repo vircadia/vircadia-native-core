@@ -17,7 +17,7 @@
 #include <iostream>
 #include "world.h"
 #include "Util.h"
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 const int FIELD_ELEMENTS = 1000;

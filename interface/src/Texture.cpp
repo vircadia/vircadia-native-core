@@ -13,7 +13,7 @@
 #else
 #include <GL/glut.h>
 #endif
-#include "lodepng.h"
+#include <LodePNG/lodepng.h>
 #include <vector>
 #include <cstdio>
 
