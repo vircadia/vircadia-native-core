@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "finger.h"
+#include "Finger.h"
 
 const int NUM_BEADS = 75;
 const float RADIUS = 50;        //  Radius of beads around finger
