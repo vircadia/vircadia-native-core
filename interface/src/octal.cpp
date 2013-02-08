@@ -8,7 +8,7 @@
 //  Various subroutines for converting between X,Y,Z coords and octree coordinates.
 //  
 
-#include "util.h"
+#include "Util.h"
 #include "octal.h"
 
 const int X = 0;
