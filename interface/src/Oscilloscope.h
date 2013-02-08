@@ -11,7 +11,7 @@
 
 #include <glm/glm.hpp>
 #include "Util.h"
-#include "World.h"
+#include "world.h"
 #include "InterfaceConfig.h"
 #include <iostream>
 
