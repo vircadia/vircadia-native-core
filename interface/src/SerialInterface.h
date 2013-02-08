@@ -7,7 +7,7 @@
 #define __interface__SerialInterface__
 
 #include <glm/glm.hpp>
-#include "util.h"
+#include "Util.h"
 #include "world.h"
 #include "InterfaceConfig.h"
 #include <iostream>
