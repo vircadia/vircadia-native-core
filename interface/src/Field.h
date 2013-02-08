@@ -9,11 +9,7 @@
 #ifndef __interface__Field__
 #define __interface__Field__
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include "InterfaceConfig.h"
 #include <iostream>
 #include "world.h"
 #include "Util.h"

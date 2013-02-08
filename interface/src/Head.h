@@ -12,7 +12,7 @@
 #include <iostream>
 #include "Field.h"
 #include "world.h"
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};

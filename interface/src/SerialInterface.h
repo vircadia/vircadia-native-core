@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include "util.h"
 #include "world.h"
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 #include <iostream>
 
 // These includes are for serial port reading/writing

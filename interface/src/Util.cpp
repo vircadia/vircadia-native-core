@@ -6,11 +6,7 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include "InterfaceConfig.h"
 #include <iostream>
 #include "world.h"
 #include <glm/glm.hpp>

@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 #include "Util.h"
 #include "world.h"
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 #include <iostream>
 
 class Lattice {

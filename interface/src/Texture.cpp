@@ -8,11 +8,7 @@
 
 #include "Texture.h"
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include "InterfaceConfig.h"
 #include <LodePNG/lodepng.h>
 #include <vector>
 #include <cstdio>

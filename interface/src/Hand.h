@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "Field.h"
 #include "world.h"
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 
 const float RADIUS_RANGE = 10.0; 
 

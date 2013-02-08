@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 #include "Util.h"
 #include "World.h"
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 #include <iostream>
 
 class Oscilloscope {

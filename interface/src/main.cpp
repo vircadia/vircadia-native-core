@@ -16,13 +16,9 @@
 
 //#define MARKER_CAPTURE // yep.
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
+#include "InterfaceConfig.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
-#else
-#include <GL/glut.h>
-#endif
 #include <iostream>
 #include <fstream>
 #include <math.h>
@@ -37,8 +33,6 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <glm/glm.hpp>
-
-// Bring in OpenCV
 
 #include "SerialInterface.h"
 #include "Field.h"

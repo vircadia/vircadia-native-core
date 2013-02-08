@@ -10,11 +10,7 @@
 #define __interface__Texture__
 
 #include <iostream>
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include "InterfaceConfig.h"
 
 int load_png_as_texture(char* filename);
 
