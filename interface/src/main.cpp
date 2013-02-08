@@ -44,7 +44,7 @@
 #include "Agent.h"
 #include "Cube.h"
 #include "Lattice.h"
-#include "finger.h"
+#include "Finger.h"
 
 using namespace std;
 
