@@ -59,11 +59,13 @@ void Cloud::render() {
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
     glPointSize( maxSize );
     
-#if GL_ARB_point_parameters
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-    glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-    glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-#endif
+    char *ext = (char *) glGetString(GL_EXTENSIONS);
+    
+    if (strstr(ext, "GL_ARB_point_parameters") != NULL) {
+        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
+        glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+    }
     
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );
