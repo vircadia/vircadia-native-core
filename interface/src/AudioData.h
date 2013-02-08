@@ -28,7 +28,8 @@ class AudioData {
     
         timeval lastCallback;
         float averagedLatency;
-        float jitter;
+        float measuredJitter;
+        float jitterBuffer;
         int wasStarved;
     
         AudioData(int bufferLength);
