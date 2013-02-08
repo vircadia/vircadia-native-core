@@ -6,7 +6,7 @@ if (APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices -framework Carbon")
     set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 else (APPLE)
-    set(GL_HEADERS "#include <GLUT/gl.h>\n#include <GLUT/glut.h>\n#include <GL/glext.h>")
+    set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 endif (APPLE)
 
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
