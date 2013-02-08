@@ -8,4 +8,3 @@ set(PORTAUDIO_ROOT_DIR ${CMAKE_SOURCE_DIR}/thirdparty/Portaudio)
 set(LODEPNG_ROOT_DIR ${CMAKE_SOURCE_DIR}/thirdparty/LodePNG)
 
 add_subdirectory(interface)
-add_subdirectory(mixer)
