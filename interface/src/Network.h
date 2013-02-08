@@ -18,12 +18,16 @@
 
 //  Port to use for communicating UDP with other nearby agents 
 const int MAX_PACKET_SIZE = 1500;
-const int UDP_PORT = 30001; 
+const int SENDING_UDP_PORT = 40100;
+
+const int AGENT_UDP_PORT = 40103;
+
 const char DESTINATION_IP[] = "127.0.0.1";
 
 //  Address and port of domainserver process to advertise other agents 
 const char DOMAINSERVER_IP[] = "127.0.0.1";
-const int DOMAINSERVER_PORT = 40000;
+
+const int DOMAINSERVER_PORT = 40102;
 
 //  Randomly send a ping packet every N packets sent
 const int PING_PACKET_COUNT = 20;      

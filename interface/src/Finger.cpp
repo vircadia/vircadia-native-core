@@ -104,7 +104,7 @@ void Finger::simulate(float deltaTime) {
         
         //  Move the finger
         float distance = glm::distance(pos, target);
-        float spring_length = 0;
+        //float spring_length = 0;
         const float SPRING_FORCE = 1000.0;
         
         if (distance > 0.1) {
