@@ -7,9 +7,10 @@
 //
 
 #include <iostream>
+#include <glm/glm.hpp>
+#include <cstring>
 #include "Head.h"
 #include "Util.h"
-#include <glm/glm.hpp>
 #include "SerialInterface.h"
 
 float skinColor[] = {1.0, 0.84, 0.66};
