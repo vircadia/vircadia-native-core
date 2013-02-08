@@ -10,9 +10,6 @@
 #include <InterfaceConfig.h>
 #include "Cloud.h"
 #include "Util.h"
-#ifndef __APPLE__
-
-#endif
 
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
 
@@ -59,13 +56,11 @@ void Cloud::render() {
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
     glPointSize( maxSize );
     
-    char *ext = (char *) glGetString(GL_EXTENSIONS);
-    
-    if (strstr(ext, "GL_ARB_point_parameters") != NULL) {
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-        glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-        glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-    }
+#ifdef __APPLE__
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
+    glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
+#endif
     
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );
