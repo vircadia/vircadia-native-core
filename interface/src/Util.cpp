@@ -8,10 +8,9 @@
 
 #include "InterfaceConfig.h"
 #include <iostream>
-#include "world.h"
 #include <glm/glm.hpp>
-#include "util.h"
-
+#include "world.h"
+#include "Util.h"
 
 //
 //  Standard Deviation Object

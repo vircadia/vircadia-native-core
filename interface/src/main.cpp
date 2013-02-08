@@ -105,6 +105,7 @@ VoxelSystem voxels(0, box);
 
 Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
+Field field;
 
 #define RENDER_FRAME_MSECS 8
 #define SLEEP 0
@@ -295,8 +296,8 @@ void init(void)
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2;
     
-    //  Initialize Field values 
-    field_init();
+    //  Initialize Field values
+    field = Field();
     printf( "Field Initialized.\n" );
 
     if (noise_on) 
@@ -555,7 +556,7 @@ void display(void)
         voxels.render();
     
         //  Draw field vectors
-        if (display_field) field_render();
+        if (display_field) field.render();
         
         //  Render my own head 
         if (display_head) {
@@ -739,7 +740,7 @@ void key(unsigned char k, int x, int y)
         // Add to field vector 
         float pos[] = {5,5,5};
         float add[] = {0.001, 0.001, 0.001};
-        field_add(add, pos);
+        field.add(add, pos);
     }
     if (k == '1')
     {
@@ -800,7 +801,7 @@ void idle(void)
         //  Simulation
         update_pos(1.f/FPS);
         if (simulate_on) {
-            field_simulate(1.f/FPS);
+            field.simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
             myHand.simulate(1.f/FPS);
             balls.simulate(1.f/FPS);

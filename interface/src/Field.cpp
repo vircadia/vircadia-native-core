@@ -7,7 +7,7 @@
 //
 
 #include "Field.h"
-#include <glm/glm.hpp>
+
 #define FIELD_SCALE 0.00050
 #define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
@@ -16,7 +16,7 @@
 
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 
-int field_value(float *value, float *pos)
+int Field::value(float *value, float *pos)
 // sets the vector value (3 floats) to field value at location pos in space.
 // returns zero if the location is outside world bounds
 {
@@ -33,7 +33,7 @@ int field_value(float *value, float *pos)
     else return 0;
 }
 
-void field_init()
+Field::Field()
 //  Initializes the field to some random values
 {
     int i;
@@ -60,7 +60,7 @@ void field_init()
     }
 }
 
-void field_add(float* add, float *pos)
+void Field::add(float* add, float *pos)
 //  At location loc, add vector add to the field values 
 {
     int index = (int)(pos[0]/WORLD_SIZE*10.0) + 
@@ -74,7 +74,7 @@ void field_add(float* add, float *pos)
     }
 }
 
-void field_interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
+void Field::interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
      
     int index = (int)(pos->x/WORLD_SIZE*10.0) + 
     (int)(pos->y/WORLD_SIZE*10.0)*10 + 
@@ -104,7 +104,7 @@ void field_interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * colo
     }
 }
 
-void field_avg_neighbors(int index, glm::vec3 * result) {
+void Field::avg_neighbors(int index, glm::vec3 * result) {
     //  Given index to field element i, return neighbor field values 
     glm::vec3 neighbors(0,0,0);
     
@@ -129,14 +129,14 @@ void field_avg_neighbors(int index, glm::vec3 * result) {
     
 }
 
-void field_simulate(float dt) {
+void Field::simulate(float dt) {
     glm::vec3 neighbors, add, diff;
     float size, distance;
     int i, j;
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
         if (0) { //(randFloat() > 0.01) {
-            field_avg_neighbors(i, &neighbors);
+            avg_neighbors(i, &neighbors);
             size = powf(field[i].val.x*field[i].val.x +
                         field[i].val.y*field[i].val.y + 
                         field[i].val.z*field[i].val.z, 0.5);
@@ -174,7 +174,7 @@ void field_simulate(float dt) {
     }      
 }
 
-void field_render()
+void Field::render()
 //  Render the field lines
 {
     int i;

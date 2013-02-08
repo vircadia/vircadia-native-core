@@ -9,32 +9,38 @@
 #ifndef __interface__Field__
 #define __interface__Field__
 
-#include "InterfaceConfig.h"
 #include <iostream>
+#include <glm/glm.hpp>
+#include "InterfaceConfig.h"
 #include "world.h"
 #include "Util.h"
-#include <glm/glm.hpp>
 
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 const int FIELD_ELEMENTS = 1000;
 
-struct FieldElement {
-    glm::vec3 val;
-    glm::vec3 center;
-    glm::vec3 fld;
-    float scalar;
-} field[FIELD_ELEMENTS];
+class Field {
+    public:
+        struct FieldElement {
+            glm::vec3 val;
+            glm::vec3 center;
+            glm::vec3 fld;
+            float scalar;
+        } field[FIELD_ELEMENTS];
+        
+        // Pre-calculated RGB values for each field element
+        struct FieldColor {
+            glm::vec3 rgb;
+        } fieldcolors[FIELD_ELEMENTS];
+    
+        Field();
+        int value(float *ret, float *pos);
+        void render();
+        void add(float* add, float *loc);
+        void interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
+        void simulate(float dt);
+        glm::vec3 hsv2rgb(glm::vec3 in);
+    private:
+        void avg_neighbors(int index, glm::vec3 * result);
+};
 
-// Pre-calculated RGB values for each field element
-struct FieldColor {
-    glm::vec3 rgb;
-} fieldcolors[FIELD_ELEMENTS];
-
-void field_init();
-int field_value(float *ret, float *pos);
-void field_render();
-void field_add(float* add, float *loc);
-void field_interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
-void field_simulate(float dt);
-glm::vec3 hsv2rgb(glm::vec3 in);
 #endif

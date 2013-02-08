@@ -24,9 +24,11 @@ private:
     struct Particle {
         glm::vec3 position, velocity, color;
        } *particles;
+    
     unsigned int count;
     glm::vec3 bounds;
     bool wrapBounds;
+    Field *field;
 };
 
 #endif

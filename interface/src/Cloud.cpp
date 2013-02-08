@@ -21,6 +21,7 @@ Cloud::Cloud(int num,
     count = num;
     wrapBounds = wrap;
     particles = new Particle[count];
+    field = new Field();
     
     for (i = 0; i < count; i++) {
         float x = randFloat()*box.x;
@@ -87,7 +88,7 @@ void Cloud::simulate (float deltaTime) {
                 
         // Interact with Field
         const float FIELD_COUPLE = 0.005;  //0.0000001;
-        field_interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
+        field->interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
         //  Update color to velocity 
         particles[i].color = (glm::normalize(particles[i].velocity)*0.5f);
