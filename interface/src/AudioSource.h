@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
+#include <stdint.h>
 
 class AudioSource {
     public:

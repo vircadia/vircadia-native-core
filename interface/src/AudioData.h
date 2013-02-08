@@ -10,6 +10,7 @@
 #define __interface__AudioData__
 
 #include <iostream>
+#include <stdint.h>
 #include "AudioRingBuffer.h"
 #include "AudioSource.h"
 #include "Head.h"

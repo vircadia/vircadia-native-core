@@ -10,6 +10,7 @@
 #define __interface__AudioRingBuffer__
 
 #include <iostream>
+#include <stdint.h>
 
 class AudioRingBuffer {
     public:
