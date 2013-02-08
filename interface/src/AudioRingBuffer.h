@@ -17,6 +17,7 @@ class AudioRingBuffer {
         int16_t *endOfLastWrite;
         int16_t *buffer;
         short ringBufferLengthSamples;
+        bool started;
     
         short diffLastWriteNextOutput();
         short bufferOverlap(int16_t *pointer, short addedDistance);

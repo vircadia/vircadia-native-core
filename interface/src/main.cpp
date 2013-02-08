@@ -229,8 +229,8 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
     
-    //  Send a message to the spaceserver telling it we are ALIVE 
-    notify_spaceserver(UDP_socket, location[0], location[1], location[2]);
+    //  Send a message to the domainserver telling it we are ALIVE 
+    notify_domainserver(UDP_socket, location[0], location[1], location[2]);
 
 }
 
@@ -782,7 +782,7 @@ void read_network()
             ping_msecs = (float)diffclock(&ping_start, &check);
         } else if (incoming_packet[0] == 'S') {
             //
-            //  Message from Spaceserver 
+            //  Message from domainserver 
             //
             update_agents(&incoming_packet[1], bytes_recvd - 1);
         } else if (incoming_packet[0] == 'H') {

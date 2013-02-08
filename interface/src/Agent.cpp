@@ -17,14 +17,15 @@ struct AgentList {
     in_addr sin_addr;
     Head head;
 } agents[MAX_AGENTS];
+
 int num_agents = 0; 
 
 //
-// Process an incoming spaceserver packet telling you about other nearby agents 
+// Process an incoming domainserver packet telling you about other nearby agents 
 //
 void update_agents(char * data, int length) {
     std::string packet(data, length);
-    std::cout << " Update Agents, string: " << packet << "\n";
+    //std::cout << " Update Agents, string: " << packet << "\n";
     size_t spot;
     size_t start_spot = 0;
     spot = packet.find_first_of (",", 0);
