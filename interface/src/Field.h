@@ -18,7 +18,7 @@
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 const int FIELD_ELEMENTS = 1000;
 
-struct {
+struct FieldElement {
     glm::vec3 val;
     glm::vec3 center;
     glm::vec3 fld;
@@ -26,7 +26,7 @@ struct {
 } field[FIELD_ELEMENTS];
 
 // Pre-calculated RGB values for each field element
-struct {
+struct FieldColor {
     glm::vec3 rgb;
 } fieldcolors[FIELD_ELEMENTS];
 
