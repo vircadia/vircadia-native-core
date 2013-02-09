@@ -5,5 +5,6 @@ project(hifi)
 
 set(GLM_ROOT_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 set(LODEPNG_ROOT_DIR ${CMAKE_SOURCE_DIR}/thirdparty/LodePNG)
+set(PORTAUDIO_DIR ${CMAKE_SOURCE_DIR}/thirdparty/portaudio)
 
 add_subdirectory(interface)

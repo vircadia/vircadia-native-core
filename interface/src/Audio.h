@@ -10,7 +10,7 @@
 #define __interface__Audio__
 
 #include <iostream>
-#include <portaudio/include/portaudio.h>
+#include <portaudio.h>
 #include "Head.h"
 #include "AudioData.h"
 

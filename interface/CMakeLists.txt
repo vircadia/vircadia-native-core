@@ -15,7 +15,6 @@ file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 include_directories(${PROJECT_BINARY_DIR}/includes)
 
 add_executable(interface ${INTERFACE_SRCS})
-add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/portaudio thirdparty/portaudio)
 
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
@@ -28,9 +27,25 @@ include_directories(
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
 )
+
 target_link_libraries(interface 
     ${OPENGL_LIBRARY}
     ${GLUT_LIBRARY}
     ${LODEPNG_LIBRARY}
-    portaudio_static
 )
+
+include(ExternalProject)
+ExternalProject_Add(
+    portaudio
+    PREFIX external/portaudio
+    URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure
+    BUILD_COMMAND make
+)
+
+ExternalProject_Get_Property(portaudio binary_dir)
+ExternalProject_Get_Property(portaudio source_dir)
+include_directories(${source_dir}/include)
+add_dependencies(interface portaudio)
+
+target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
