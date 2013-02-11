@@ -8,3 +8,4 @@ set(LODEPNG_ROOT_DIR ${CMAKE_SOURCE_DIR}/external/LodePNG)
 set(PORTAUDIO_DIR ${CMAKE_SOURCE_DIR}/external/portaudio)
 
 add_subdirectory(interface)
+add_subdirectory(domain)
