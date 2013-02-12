@@ -40,7 +40,6 @@ ExternalProject_Add(
     portaudio
     PREFIX ${PORTAUDIO_PROJ_DIR}
     BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
-    INSTALL_DIR ${PORTAUDIO_PROJ_DIR}/install
     URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
     CONFIGURE_COMMAND <SOURCE_DIR>/configure
     BUILD_COMMAND make
