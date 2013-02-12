@@ -45,23 +45,23 @@ ExternalProject_Add(
     BUILD_COMMAND make
 )
 
-if (UNIX AND NOT APPLE)
-    find_package(Threads REQUIRED)
-    find_package(Librt REQUIRED)
-    find_package(Jack REQUIRED)
-    find_package(ALSA REQUIRED)
-    
-    target_link_libraries(portaudio
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${LIBRT_LIBRARIES}
-        ${JACK_LIBRARIES}
-        ${ALSA_LIBRARIES}
-    )
-endif (UNIX AND NOT APPLE)
-
 ExternalProject_Get_Property(portaudio binary_dir)
 ExternalProject_Get_Property(portaudio source_dir)
 include_directories(${source_dir}/include)
 add_dependencies(interface portaudio)
 
 target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+
+if (UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    find_package(Librt REQUIRED)
+    find_package(ALSA)
+    find_package(Jack)
+    
+    target_link_libraries(interface
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${LIBRT_LIBRARIES}
+        ${JACK_LIBRARIES}
+        ${ALSA_LIBRARIES}
+    )
+endif (UNIX AND NOT APPLE)

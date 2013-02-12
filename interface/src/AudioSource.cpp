@@ -23,7 +23,11 @@ int AudioSource::loadDataFromFile(const char *filename) {
     std::rewind(soundFile);
     
     sourceData = new int16_t[lengthInSamples];
-    std::fread(sourceData, sizeof(int16_t), lengthInSamples, soundFile);
+    size_t bytesRead = std::fread(sourceData, sizeof(int16_t), lengthInSamples, soundFile);
+    
+    if (bytesRead != lengthInSamples) {
+        std::cout << "Error loading audio source data from file " << filename << "!\n";
+    }
     
     std::fclose(soundFile);
     
