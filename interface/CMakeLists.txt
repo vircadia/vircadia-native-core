@@ -21,6 +21,20 @@ find_package(GLUT REQUIRED)
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 
+if (UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    find_package(Librt REQUIRED)
+    find_package(Jack REQUIRED)
+    find_package(ALSA REQUIRED)
+    
+    target_link_libraries(interface
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${LIBRT_LIBRARIES}
+        ${JACK_LIBRARIES}
+        ${ALSA_LIBRARIES}
+    )
+endif (UNIX AND NOT APPLE)
+
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLUT_INCLUDE_DIRS}
