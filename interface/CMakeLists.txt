@@ -35,13 +35,29 @@ target_link_libraries(interface
 )
 
 include(ExternalProject)
+set(PORTAUDIO_PROJ_DIR external/portaudio)
 ExternalProject_Add(
     portaudio
-    PREFIX external/portaudio
+    PREFIX ${PORTAUDIO_PROJ_DIR}
+    BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
     URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${CMAKE_CURRENT_SOURCE_DIR}/${PORTAUDIO_PROJ_DIR}"
     BUILD_COMMAND make
 )
+
+if (UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    find_package(Librt REQUIRED)
+    find_package(Jack REQUIRED)
+    find_package(ALSA REQUIRED)
+    
+    target_link_libraries(portaudio
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${LIBRT_LIBRARIES}
+        ${JACK_LIBRARIES}
+        ${ALSA_LIBRARIES}
+    )
+endif (UNIX AND NOT APPLE)
 
 ExternalProject_Get_Property(portaudio binary_dir)
 ExternalProject_Get_Property(portaudio source_dir)

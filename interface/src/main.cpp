@@ -611,13 +611,12 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        //lattice.render(WIDTH, HEIGHT);
+        // lattice.render(WIDTH, HEIGHT);
+        // myFinger.render();
         Audio::render(WIDTH, HEIGHT);
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
-
-//        myFinger.render();
 
         if (mouse_pressed == 1)
         {
@@ -868,7 +867,7 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_x = x;
 		mouse_y = y;
 		mouse_pressed = 1;
-//        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {
@@ -901,8 +900,8 @@ void mouseoverFunc( int x, int y)
 	mouse_y = y;
     if (mouse_pressed == 0)
     {
-        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-        myFinger.setTarget(mouse_x, mouse_y);
+//        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+//        myFinger.setTarget(mouse_x, mouse_y);
     }
 }
 
