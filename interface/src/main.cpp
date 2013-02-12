@@ -100,7 +100,7 @@ Cloud cloud(0,                             //  Particles
             false                          //  Wrap
             );
 
-VoxelSystem voxels(0, box);
+VoxelSystem voxels(1000, box);
 
 Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
@@ -229,6 +229,25 @@ void Timer(int extra)
     sprintf(output, "%f,%f,%f", location[0], location[1], location[2]);
     int packet_size = strlen(output);
     agentSocket.send(DOMAINSERVER_IP, DOMAINSERVER_PORT, output, packet_size);
+    
+    //  Ping the agents we can see
+    pingAgents(&agentSocket);
+
+    if (0) {
+        //  Massive send packet speed test
+        timeval starttest, endtest;
+        gettimeofday(&starttest, NULL);
+        char junk[1000];
+        junk[0] = 'J';
+        for (int i = 0; i < 3000; i++)
+        {
+            agentSocket.send("192.168.1.38", AGENT_UDP_PORT, junk, 1000);
+        }
+        gettimeofday(&endtest, NULL);
+        float sendTime = diffclock(&starttest, &endtest);
+        printf("packet test = %4.1f\n", sendTime);
+    }
+    
     
     //  Send a message to ourselves
     //char test[]="T";
@@ -520,7 +539,7 @@ void update_pos(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    broadcast_to_agents(&agentSocket, broadcast_string, broadcast_bytes);
+    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes);
 
     //printf("-> %s\n", broadcast_string);
     //dummyHead.recvBroadcastData(broadcast_string, broadcast_bytes);
@@ -773,14 +792,25 @@ void read_network()
 {
     sockaddr_in senderAddress;
     int bytes_recvd;
-    agentSocket.receive(&senderAddress, (void *)incoming_packet, &bytes_recvd);
-    
-    if (bytes_recvd > 0)
+    while (agentSocket.receive(&senderAddress, (void *)incoming_packet, &bytes_recvd))
     {
         packetcount++;
         bytescount += bytes_recvd;
         //  If packet is a Mouse data packet, copy it over 
-        if (incoming_packet[0] == 'M') {
+        if (incoming_packet[0] == 'P') {
+            //
+            //  Got Ping, reply immediately!
+            //
+            printf("Replying to ping!\n");
+            char reply[] = "R";
+            agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
+        } else if (incoming_packet[0] == 'R') {
+            //
+            //  Got Reply, record as appropriate
+            //
+            setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
+        
+        } else if (incoming_packet[0] == 'M') {
             // 
             //  mouse location packet 
             //
