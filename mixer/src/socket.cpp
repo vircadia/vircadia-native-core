@@ -160,11 +160,10 @@ void *send_buffer_thread(void *args)
         sentBytes = 0;
 
         int sampleOffset = ((currentFrame - 1) * BUFFER_LENGTH_SAMPLES) % whiteNoiseLength;
-        // memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
-        // memset(masterMix, 0, BUFFER_LENGTH_BYTES);
+        int16_t *noisePointer = whiteNoiseBuffer + sampleOffset;
 
         for (int wb = 0; wb < BUFFER_LENGTH_SAMPLES; wb++) {
-            masterMix[wb] = 0;
+            masterMix[wb] = noisePointer[wb];
         }
 
         gettimeofday(&sendTime, NULL);
