@@ -51,6 +51,10 @@ UDPSocket::UDPSocket(int listeningPort) {
     printf("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
+UDPSocket::~UDPSocket() {
+    close(handle);
+}
+
 //  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
     
