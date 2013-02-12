@@ -45,6 +45,13 @@ ExternalProject_Add(
     BUILD_COMMAND make
 )
 
+ExternalProject_Get_Property(portaudio binary_dir)
+ExternalProject_Get_Property(portaudio source_dir)
+include_directories(${source_dir}/include)
+add_dependencies(interface portaudio)
+
+target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+
 if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
     find_package(Librt REQUIRED)
@@ -58,10 +65,3 @@ if (UNIX AND NOT APPLE)
         ${ALSA_LIBRARIES}
     )
 endif (UNIX AND NOT APPLE)
-
-ExternalProject_Get_Property(portaudio binary_dir)
-ExternalProject_Get_Property(portaudio source_dir)
-include_directories(${source_dir}/include)
-add_dependencies(interface portaudio)
-
-target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
