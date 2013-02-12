@@ -15,12 +15,13 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <string.h>
-#include "Network.h"
+#include "UDPSocket.h"
 
-void update_agents(char * data, int length);
-int add_agent(std::string * IP);
-int broadcast_to_agents(int handle, char * data, int length);
-void update_agent(in_addr addr, char * data, int length);
+
+int update_agents(char * data, int length);
+int add_agent(char * address, unsigned short port);
+int broadcast_to_agents(UDPSocket * handle, char * data, int length);
+void update_agent(char * address, unsigned short port, char * data, int length);
 void render_agents();
 
 #endif

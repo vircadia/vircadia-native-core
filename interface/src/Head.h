@@ -45,6 +45,11 @@ class Head {
     float NoiseEnvelope;
     float PupilConverge;
     float scale;
+    
+    //  Sound loudness information
+    float loudness;
+    float averageLoudness;
+    
     glm::vec3 position;
     int eyeContact;
     eyeContactTargets eyeContactTarget;
@@ -80,6 +85,12 @@ public:
     //  Send and receive network data 
     int getBroadcastData(char* data);
     void recvBroadcastData(char * data, int size);
+    
+    float getLoudness() {return loudness;};
+    float getAverageLoudness() {return averageLoudness;};
+    float setAverageLoudness(float al) {averageLoudness = al;};
+    float setLoudness(float l) {loudness = l;};
+    
     void SetNewHeadTarget(float, float);
     glm::vec3 getPos() { return position; };
     void setPos(glm::vec3 newpos) { position = newpos; };

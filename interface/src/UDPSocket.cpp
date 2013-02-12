@@ -55,10 +55,20 @@ UDPSocket::~UDPSocket() {
     close(handle);
 }
 
+//  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
     
     *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
                               0, (sockaddr *)&senderAddress, &addLength);
+    
+    return (*receivedBytes > 0);
+}
+
+//  Receive data on this socket with the address of the sender 
+bool UDPSocket::receive(sockaddr_in *senderAddress, void *receivedData, int *receivedBytes) {
+    
+    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
+                              0, (sockaddr *)senderAddress, &addLength);
     
     return (*receivedBytes > 0);
 }

@@ -20,7 +20,8 @@ class UDPSocket {
         ~UDPSocket();
         int send(char *destAddress, int destPort, const void *data, int byteLength);
         bool receive(void *receivedData, int *receivedBytes);
-    private:    
+        bool receive(sockaddr_in *senderAddress, void *receivedData, int *receivedBytes);
+    private:
         int handle;
     
         UDPSocket(); // private default constructor

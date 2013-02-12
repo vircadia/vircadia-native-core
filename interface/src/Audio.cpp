@@ -87,6 +87,16 @@ int audioCallback (const void *inputBuffer,
     
     if (inputLeft != NULL) {
         data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        //
+        //  Measure the loudness of the signal from the microphone and store in audio object
+        //
+        float loudness = 0;
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+            loudness += abs(inputLeft[i]);
+        }
+        loudness /= BUFFER_LENGTH_SAMPLES;
+        data->lastInputLoudness = loudness;
+        data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -364,6 +374,11 @@ void Audio::render()
             glPopMatrix();
         }
     }
+}
+
+void Audio::getInputLoudness(float * lastLoudness, float * averageLoudness) {
+    *lastLoudness = data->lastInputLoudness;
+    *averageLoudness = data->averagedInputLoudness;
 }
 
 void Audio::render(int screenWidth, int screenHeight)

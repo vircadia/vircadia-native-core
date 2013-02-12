@@ -12,6 +12,7 @@
 #include "Head.h"
 #include "Util.h"
 #include "SerialInterface.h"
+#include "Audio.h"
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -275,12 +276,13 @@ void Head::render(int faceToFace)
     
     
     // Mouth
+    
     glPushMatrix();
         glTranslatef(0,-0.3,0.75);
-        glColor3fv(mouthColor);
+        glColor3f(loudness/1000.0,0,0);
         glRotatef(MouthPitch, 1, 0, 0);
         glRotatef(MouthYaw, 0, 0, 1);
-        glScalef(MouthWidth, MouthHeight, 1);
+        glScalef(MouthWidth*(.5 + averageLoudness/3000.0), MouthHeight*(1.0 + averageLoudness/6000.0), 1);
         glutSolidCube(0.5);
     glPopMatrix();
     
@@ -338,14 +340,19 @@ void Head::render(int faceToFace)
 int Head::getBroadcastData(char* data)
 {
     // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f", Pitch + getRenderPitch(), Yaw + getRenderYaw(), Roll, position.x, position.y, position.z);
+    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", Pitch + getRenderPitch(), Yaw + getRenderYaw(), Roll,
+            position.x, position.y, position.z,
+            loudness, averageLoudness);
     //printf("x: %3.1f\n", position.x);
     return strlen(data);
 }
 
 void Head::recvBroadcastData(char * data, int size)
 {
-    sscanf(data, "H%f,%f,%f,%f,%f,%f", &Pitch, &Yaw, &Roll, &position.x, &position.y, &position.z);
+    sscanf(data, "%f,%f,%f,%f,%f,%f,%f,%f", &Pitch, &Yaw, &Roll,
+           &position.x, &position.y, &position.z,
+           &loudness, &averageLoudness);
+    //printf("%f,%f,%f,%f,%f,%f\n", Pitch, Yaw, Roll, position.x, position.y, position.z);
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw)

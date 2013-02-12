@@ -34,7 +34,6 @@
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
-#include "Network.h"
 #include "Audio.h"
 #include "Head.h"
 #include "Hand.h"
@@ -51,14 +50,19 @@ using namespace std;
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
-//  Network Socket Stuff
+//
+//  Network Socket and network constants
+//
+
+const int MAX_PACKET_SIZE = 1500;
+const int AGENT_UDP_PORT = 40103;
+char DOMAINSERVER_IP[] = "192.168.1.53";
+const int DOMAINSERVER_PORT = 40102;
+UDPSocket agentSocket(AGENT_UDP_PORT);
+
 //  For testing, add milliseconds of delay for received UDP packets
-int UDP_socket;
-int delay = 0;         
 char* incoming_packet;
-timeval ping_start;
-int ping_count = 0;
-float ping_msecs = 0.0;  
+
 int packetcount = 0;
 int packets_per_second = 0; 
 int bytes_per_second = 0;
@@ -68,7 +72,7 @@ int bytescount = 0;
 int target_x, target_y; 
 int target_display = 0;
 
-int head_mirror = 1;                     //  Whether to mirror the head when viewing it
+int head_mirror = 1;                 //  Whether to mirror own head when viewing it
 
 int WIDTH = 1200; 
 int HEIGHT = 800; 
@@ -76,8 +80,8 @@ int fullscreen = 0;
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself or others
-Head dummyHead;                      //  Test Head to render
-int showDummyHead = 1;
+Head dummyHead;                     //  Test Head to render
+int showDummyHead = 0;
 
 Hand myHand(HAND_RADIUS, 
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
@@ -91,10 +95,9 @@ ParticleSystem balls(0,
                      0.0                        //  Gravity 
                      );
 
-
 Cloud cloud(0,                             //  Particles
-            box,                                //  Bounding Box
-            false                              //  Wrap
+            box,                           //  Bounding Box
+            false                          //  Wrap
             );
 
 VoxelSystem voxels(0, box);
@@ -146,6 +149,7 @@ int head_lean_x, head_lean_y;
 int mouse_x, mouse_y;				//  Where is the mouse 
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
 
+int nearbyAgents = 0;               //  How many other people near you is the domain server reporting?
 
 int speed;
 
@@ -220,9 +224,15 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
     
-    //  Send a message to the domainserver telling it we are ALIVE 
-    notify_domainserver(UDP_socket, location[0], location[1], location[2]);
-
+    //  Send a message to the domainserver telling it we are ALIVE
+    char output[100];
+    sprintf(output, "%f,%f,%f", location[0], location[1], location[2]);
+    int packet_size = strlen(output);
+    agentSocket.send(DOMAINSERVER_IP, DOMAINSERVER_PORT, output, packet_size);
+    
+    //  Send a message to ourselves
+    //char test[]="T";
+    //agentSocket.send("127.0.0.1", AGENT_UDP_PORT, test, 1);
 }
 
 void display_stats(void)
@@ -232,13 +242,13 @@ void display_stats(void)
     drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f, Ping = %4.1f Pkts/s = %d, Bytes/s = %d", 
-            FPS, ping_msecs, packets_per_second,  bytes_per_second);
+    sprintf(stats, "FPS = %3.0f,  Pkts/s = %d, Bytes/s = %d", 
+            FPS, packets_per_second,  bytes_per_second);
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
     if (serial_on) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(500, 30, 0.10, 0, 1.0, 0, stats); 
+        drawtext(500, 30, 0.10, 0, 1.0, 0, stats);
     }
     
     char adc[200];
@@ -247,8 +257,7 @@ void display_stats(void)
             angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), myHead.getRenderYaw(), myHead.getYaw()),
             myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
-     
-	
+    
 }
 
 void initDisplay(void)
@@ -262,7 +271,7 @@ void initDisplay(void)
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-    load_png_as_texture(texture_filename);
+    //load_png_as_texture(texture_filename);
 
     if (fullscreen) glutFullScreen();
 }
@@ -499,16 +508,24 @@ void update_pos(float frametime)
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     myHead.setRenderPitch(render_pitch);
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    
+    //  Get audio loudness data from audio input device
+    float loudness, averageLoudness;
+    Audio::getInputLoudness(&loudness, &averageLoudness);
+    myHead.setLoudness(loudness);
+    myHead.setAverageLoudness(averageLoudness);
 
-    //  Update all this stuff to any agents that are nearby and need to see it!
+    //  Send my streaming head data to agents that are nearby and need to see it!
     
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    dummyHead.recvBroadcastData(broadcast_string, broadcast_bytes);
+    broadcast_to_agents(&agentSocket, broadcast_string, broadcast_bytes);
+
+    //printf("-> %s\n", broadcast_string);
+    //dummyHead.recvBroadcastData(broadcast_string, broadcast_bytes);
     //printf("head bytes:  %d\n", broadcast_bytes);
-    broadcast_to_agents(UDP_socket, broadcast_string, broadcast_bytes);
-     
+    
 }
 
 int render_test_spot = WIDTH/2;
@@ -641,6 +658,12 @@ void display(void)
     
     //  Display miscellaneous text stats onscreen
     if (stats_on) display_stats();
+    
+    //  Draw number of nearby people always
+    char agents[100];
+    sprintf(agents, "Agents nearby: %d\n", nearbyAgents);
+    drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+
 
 #ifdef MARKER_CAPTURE
         /* Render marker acquisition stuff */
@@ -743,14 +766,15 @@ void key(unsigned char k, int x, int y)
     }
 }
 
-// 
-//  Check for and process incoming network packets 
-// 
+//
+//  Receive packets from other agents/servers and decide what to do with them!
+//
 void read_network()
 {
-    //  Receive packets 
-    in_addr from_addr;
-    int bytes_recvd = network_receive(UDP_socket, &from_addr, incoming_packet, delay);
+    sockaddr_in senderAddress;
+    int bytes_recvd;
+    agentSocket.receive(&senderAddress, (void *)incoming_packet, &bytes_recvd);
+    
     if (bytes_recvd > 0)
     {
         packetcount++;
@@ -763,23 +787,19 @@ void read_network()
             sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
             target_display = 1;
             //printf("X = %d Y = %d\n", target_x, target_y);
-        } else if (incoming_packet[0] == 'P') {
-            // 
-            //  Ping packet - check time and record
+        } else if (incoming_packet[0] == 'D') {
             //
-            timeval check; 
-            gettimeofday(&check, NULL);
-            ping_msecs = (float)diffclock(&ping_start, &check);
-        } else if (incoming_packet[0] == 'S') {
+            //  Message from domainserver
             //
-            //  Message from domainserver 
-            //
-            update_agents(&incoming_packet[1], bytes_recvd - 1);
+            //printf("agent list received!\n");
+            nearbyAgents = update_agents(&incoming_packet[1], bytes_recvd - 1);
         } else if (incoming_packet[0] == 'H') {
             //
             //  Broadcast packet from another agent 
             //
-            update_agent(from_addr, &incoming_packet[1], bytes_recvd - 1);            
+            update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incoming_packet[1], bytes_recvd - 1);
+        } else if (incoming_packet[0] == 'T') {
+            printf("Got test!  From port %d\n", senderAddress.sin_port);
         }
     }
 }
@@ -808,12 +828,6 @@ void idle(void)
         if (!step_on) glutPostRedisplay();
         last_frame = check;
         
-        //  Every 30 frames or so, check ping time 
-        ping_count++;
-        if (ping_count >= 30) {
-            ping_start = network_send_ping(UDP_socket);
-            ping_count = 0;
-        }
     }
     
     //  Read network packets
@@ -872,7 +886,7 @@ void motionFunc( int x, int y)
         //  Send network packet containing mouse location
         char mouse_string[20];
         sprintf(mouse_string, "M %d %d\n", mouse_x, mouse_y);
-        network_send(UDP_socket, mouse_string, strlen(mouse_string));
+        //network_send(UDP_socket, mouse_string, strlen(mouse_string));
     }
     
     lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
@@ -902,20 +916,10 @@ void *poll_marker_capture(void *threadarg){
 int main(int argc, char** argv)
 {
     //  Create network socket and buffer
-    UDP_socket = network_init(); 
-    if (UDP_socket) printf( "Created UDP socket.\n" ); 
     incoming_packet = new char[MAX_PACKET_SIZE];
-
-    //  Test network loopback
-    in_addr from_addr;
-    char test_data[] = "Test!";
-    int bytes_sent = network_send(UDP_socket, test_data, 5);
-    if (bytes_sent) printf("%d bytes sent.", bytes_sent);
-    int test_recv = network_receive(UDP_socket, &from_addr, incoming_packet, delay);
-    printf("Received %i bytes\n", test_recv);
     
     //
-    printf("Testing math... standard deviation.\n");
+    printf("Testing stats math... ");
     StDev stdevtest;
     stdevtest.reset();
     stdevtest.addValue(1345);
@@ -929,20 +933,15 @@ int main(int argc, char** argv)
     stdevtest.addValue(1303);
     stdevtest.addValue(1299);
     
-    if (stdevtest.getSamples() == 10) 
-        printf("Samples=PASS ");
-    else
+    if (stdevtest.getSamples() != 10)
         printf("Samples=FAIL ");
         
-    if (floor(stdevtest.getAverage()*100.0) == 132859.0)
-        printf("Average=PASS ");
-    else
-        printf("Average=FAIL, avg reported = %5.3f ", floor(stdevtest.getAverage()*100.0));
+    if (floor(stdevtest.getAverage()*100.0) != 132859.0)
+        printf("Average=FAIL ");
 
-    if (floor(stdevtest.getStDev()*100.0) == 2746.0)
-        printf("Stdev=PASS \n");
-    else
-        printf("Stdev=FAIL \n");
+    if (floor(stdevtest.getStDev()*100.0) != 2746.0)
+        printf("Stdev=FAIL ");
+    printf("\n");
 
     //
     //  Try to connect the serial port I/O
@@ -956,7 +955,6 @@ int main(int argc, char** argv)
         printf("Serial Port Initialized\n");
         serial_on = 1; 
     }
-
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
