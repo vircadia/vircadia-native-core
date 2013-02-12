@@ -39,6 +39,7 @@ AudioData::~AudioData() {
         }
     }
     
-    
     delete[] samplesToQueue;
+    
+    delete audioSocket;
 }
