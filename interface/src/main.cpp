@@ -56,7 +56,7 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 const int AGENT_UDP_PORT = 40103;
-char DOMAINSERVER_IP[] = "127.0.0.1";
+char DOMAINSERVER_IP[] = "192.168.1.53";
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -797,8 +797,7 @@ void read_network()
             //
             //  Broadcast packet from another agent 
             //
-            //printf("Got broadcast!\n");
-            update_agent(inet_ntoa(senderAddress.sin_addr), senderAddress.sin_port,  &incoming_packet[1], bytes_recvd - 1);
+            update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incoming_packet[1], bytes_recvd - 1);
         } else if (incoming_packet[0] == 'T') {
             printf("Got test!  From port %d\n", senderAddress.sin_port);
         }

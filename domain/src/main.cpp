@@ -186,9 +186,9 @@ int main(int argc, const char * argv[])
             //<< " " << packet_data << "\n";
             float x,y,z;
             sscanf(packet_data, "%f,%f,%f", &x, &y, &z);
-            if (addAgent(dest_address.sin_addr.s_addr, dest_address.sin_port, x, y, z)) {
+            if (addAgent(dest_address.sin_addr.s_addr, ntohs(dest_address.sin_port), x, y, z)) {
                 std::cout << "Added Agent from " <<
-                inet_ntoa(dest_address.sin_addr) << ":" << dest_address.sin_port << "\n";
+                inet_ntoa(dest_address.sin_addr) << ":" << ntohs(dest_address.sin_port) << "\n";
             }
             //  Reply with packet listing nearby active agents
             send_agent_list(handle, &dest_address);

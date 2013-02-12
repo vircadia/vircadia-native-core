@@ -84,15 +84,15 @@ int add_agent(char * address, unsigned short port) {
     //std::cout << "Checking for " << IP->c_str() << "  ";
     for (int i = 0; i < num_agents; i++) {
         if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
-            //std::cout << "Found agent!\n";
+            std::cout << "Found agent!\n";
             return 0;
         }
     }
     if (num_agents < MAX_AGENTS) {
         strcpy(agents[num_agents].address, address);
         agents[num_agents].port = port;
-        //std::cout << "Added Agent # " << num_agents << " with Address " <<
-         //agents[num_agents].address << ":" << agents[num_agents].port << "\n";
+        std::cout << "Added Agent # " << num_agents << " with Address " <<
+         agents[num_agents].address << ":" << agents[num_agents].port << "\n";
         num_agents++;
         return 1;
     } else {
@@ -113,10 +113,10 @@ int broadcast_to_agents(UDPSocket *handle, char * data, int length) {
         //  STUPID HACK:  For some reason on OSX with NAT translation packets sent to localhost are
         //  received as from the NAT translated port but have to be sent to the local port number.
         //  
-        if (strcmp("127.0.0.1",agents[i].address) == 0)
-            sent_bytes = handle->send(agents[i].address, 40103, data, length);
-        else
-            sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
+        //if (1)  //(strcmp("192.168.1.53",agents[i].address) == 0)
+        //    sent_bytes = handle->send(agents[i].address, 40103, data, length);
+        //else
+        sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
         
         if (sent_bytes != length) {
             std::cout << "Broadcast packet fail!\n";
