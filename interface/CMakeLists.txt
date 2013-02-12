@@ -21,20 +21,6 @@ find_package(GLUT REQUIRED)
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 
-if (UNIX AND NOT APPLE)
-    find_package(Threads REQUIRED)
-    find_package(Librt REQUIRED)
-    find_package(Jack REQUIRED)
-    find_package(ALSA REQUIRED)
-    
-    target_link_libraries(interface
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${LIBRT_LIBRARIES}
-        ${JACK_LIBRARIES}
-        ${ALSA_LIBRARIES}
-    )
-endif (UNIX AND NOT APPLE)
-
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLUT_INCLUDE_DIRS}
@@ -58,6 +44,20 @@ ExternalProject_Add(
     CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${CMAKE_CURRENT_SOURCE_DIR}/${PORTAUDIO_PROJ_DIR}"
     BUILD_COMMAND make
 )
+
+if (UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    find_package(Librt REQUIRED)
+    find_package(Jack REQUIRED)
+    find_package(ALSA REQUIRED)
+    
+    target_link_libraries(portaudio
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${LIBRT_LIBRARIES}
+        ${JACK_LIBRARIES}
+        ${ALSA_LIBRARIES}
+    )
+endif (UNIX AND NOT APPLE)
 
 ExternalProject_Get_Property(portaudio binary_dir)
 ExternalProject_Get_Property(portaudio source_dir)
