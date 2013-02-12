@@ -258,10 +258,6 @@ void display_stats(void)
             myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
     
-    char agents[100];
-    sprintf(agents, "Nearby: %d\n", nearbyAgents);
-    drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
-	
 }
 
 void initDisplay(void)
@@ -275,7 +271,7 @@ void initDisplay(void)
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-    load_png_as_texture(texture_filename);
+    //load_png_as_texture(texture_filename);
 
     if (fullscreen) glutFullScreen();
 }
@@ -663,6 +659,12 @@ void display(void)
     
     //  Display miscellaneous text stats onscreen
     if (stats_on) display_stats();
+    
+    //  Draw number of nearby people always
+    char agents[100];
+    sprintf(agents, "Agents nearby: %d\n", nearbyAgents);
+    drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+
 
 #ifdef MARKER_CAPTURE
         /* Render marker acquisition stuff */
@@ -919,7 +921,7 @@ int main(int argc, char** argv)
     incoming_packet = new char[MAX_PACKET_SIZE];
     
     //
-    printf("Testing math... standard deviation.\n");
+    printf("Testing stats math... ");
     StDev stdevtest;
     stdevtest.reset();
     stdevtest.addValue(1345);
@@ -933,20 +935,15 @@ int main(int argc, char** argv)
     stdevtest.addValue(1303);
     stdevtest.addValue(1299);
     
-    if (stdevtest.getSamples() == 10) 
-        printf("Samples=PASS ");
-    else
+    if (stdevtest.getSamples() != 10)
         printf("Samples=FAIL ");
         
-    if (floor(stdevtest.getAverage()*100.0) == 132859.0)
-        printf("Average=PASS ");
-    else
-        printf("Average=FAIL, avg reported = %5.3f ", floor(stdevtest.getAverage()*100.0));
+    if (floor(stdevtest.getAverage()*100.0) != 132859.0)
+        printf("Average=FAIL ");
 
-    if (floor(stdevtest.getStDev()*100.0) == 2746.0)
-        printf("Stdev=PASS \n");
-    else
-        printf("Stdev=FAIL \n");
+    if (floor(stdevtest.getStDev()*100.0) != 2746.0)
+        printf("Stdev=FAIL ");
+    printf("\n");
 
     //
     //  Try to connect the serial port I/O
@@ -960,7 +957,6 @@ int main(int argc, char** argv)
         printf("Serial Port Initialized\n");
         serial_on = 1; 
     }
-
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
