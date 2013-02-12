@@ -43,6 +43,8 @@ struct AgentList {
 
 int num_agents = 0;
 
+int lastActiveCount = 0;
+
 double diffclock(timeval clock1,timeval clock2)
 {
 	double diffms = (clock2.tv_sec - clock1.tv_sec) * 1000.0;
@@ -115,7 +117,8 @@ void update_agent_list(timeval now) {
     for (i = 0; i < num_agents; i++) {
         if ((diffclock(agents[i].time, now) > LOGOFF_CHECK_INTERVAL) &&
             agents[i].active) {
-            std::cout << "Expired Agent #" << i+1 << "\n";
+            std::cout << "Expired Agent from " <<
+            inet_ntoa(agents[i].sin_addr) << ":" << agents[i].port << "\n";
             agents[i].active = false; 
         }
     }
@@ -127,7 +130,8 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
     char buffer[MAX_PACKET_SIZE];
     char * address;
     char portstring[10];
-    buffer[length++] = 'S';
+    int numSent = 0;
+    buffer[length++] = 'D';
     //std::cout << "send list to:  " << inet_ntoa(dest_address->sin_addr) << "\n";
     for (i = 0; i < num_agents; i++) {
         if (agents[i].active) {
@@ -142,6 +146,7 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
             length += strlen(portstring);
             //  Add comma separator between agents 
             buffer[length++] = ',';
+            numSent++;
         }
     }
     if (length > 1) {
@@ -149,8 +154,10 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
                             0, (sockaddr *) dest_address, sizeof(sockaddr_in) );
         if (sent_bytes < length) 
             std::cout << "Error sending agent list!\n";
-         else
-            std::cout << "Agent list sent: " << buffer << "\n";
+        else if (numSent != lastActiveCount) {
+            std::cout << numSent << " Active Agents\n";
+            lastActiveCount = numSent;
+        }
     }
     
 }
@@ -167,7 +174,7 @@ int main(int argc, const char * argv[])
         std::cout << "Failed to create network.\n";
         return 0;
     } else {
-        std::cout << "DomainServer Started.  Waiting for packets.\n";
+        std::cout << "DomainServer started, listening on port " << LISTENING_UDP_PORT << "\n";
     }
     gettimeofday(&last_time, NULL);
     
@@ -180,8 +187,8 @@ int main(int argc, const char * argv[])
             float x,y,z;
             sscanf(packet_data, "%f,%f,%f", &x, &y, &z);
             if (addAgent(dest_address.sin_addr.s_addr, dest_address.sin_port, x, y, z)) {
-                std::cout << "Added agent from IP, port: " << 
-                inet_ntoa(dest_address.sin_addr) << "," << dest_address.sin_port << "\n";
+                std::cout << "Added Agent from " <<
+                inet_ntoa(dest_address.sin_addr) << ":" << dest_address.sin_port << "\n";
             }
             //  Reply with packet listing nearby active agents
             send_agent_list(handle, &dest_address);

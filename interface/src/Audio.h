@@ -23,6 +23,8 @@ public:
     static void render();
     static void render(int screenWidth, int screenHeight);
     
+    static void getInputLoudness(float * lastLoudness, float * averageLoudness);
+    
     // terminates audio I/O
     static bool terminate(); 
 private:    

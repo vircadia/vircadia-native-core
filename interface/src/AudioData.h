@@ -32,6 +32,9 @@ class AudioData {
         float measuredJitter;
         float jitterBuffer;
         int wasStarved;
+        
+        float lastInputLoudness;
+        float averagedInputLoudness;
     
         AudioData(int bufferLength);
         AudioData(int numberOfSources, int bufferLength);
