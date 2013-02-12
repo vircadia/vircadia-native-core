@@ -48,10 +48,10 @@ ExternalProject_Add(
 if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
     find_package(Librt REQUIRED)
-    find_package(Jack REQUIRED)
-    find_package(ALSA REQUIRED)
+    find_package(ALSA)
+    find_package(Jack)
     
-    target_link_libraries(portaudio
+    target_link_libraries(interface
         ${CMAKE_THREAD_LIBS_INIT}
         ${LIBRT_LIBRARIES}
         ${JACK_LIBRARIES}
