@@ -9,6 +9,7 @@
 #include <iostream>
 #include "Agent.h"
 #include "Head.h" 
+#include "util.h"
 
 
 //  Structure to hold references to other agents that are nearby 
@@ -17,6 +18,8 @@ const int MAX_AGENTS = 100;
 struct AgentList {
     char address[255];
     unsigned short port;
+    timeval pingStarted;
+    int pingMsecs;
     Head head;
 } agents[MAX_AGENTS];
 
@@ -84,7 +87,7 @@ int add_agent(char * address, unsigned short port) {
     //std::cout << "Checking for " << IP->c_str() << "  ";
     for (int i = 0; i < num_agents; i++) {
         if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
-            std::cout << "Found agent!\n";
+            //std::cout << "Found agent!\n";
             return 0;
         }
     }
@@ -104,7 +107,7 @@ int add_agent(char * address, unsigned short port) {
 //
 //  Broadcast data to all the other agents you are aware of, returns 1 if success 
 //
-int broadcast_to_agents(UDPSocket *handle, char * data, int length) {
+int broadcastToAgents(UDPSocket *handle, char * data, int length) {
     int sent_bytes;
     //printf("broadcasting to %d agents\n", num_agents);
     for (int i = 0; i < num_agents; i++) {
@@ -125,3 +128,27 @@ int broadcast_to_agents(UDPSocket *handle, char * data, int length) {
     }
     return 1;
 }
+
+//  Ping other agents to see how fast we are running
+void pingAgents(UDPSocket *handle) {
+    char payload[] = "P";
+    for (int i = 0; i < num_agents; i++) {
+        gettimeofday(&agents[i].pingStarted, NULL);
+        handle->send(agents[i].address, agents[i].port, payload, 1);
+        printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
+    }
+}
+
+//  On receiving a ping reply, save that with the agent record
+void setAgentPing(char * address, unsigned short port) {
+    for (int i = 0; i < num_agents; i++) {
+        if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
+            timeval pingReceived;
+            gettimeofday(&pingReceived, NULL);
+            float pingMsecs = diffclock(&agents[i].pingStarted, &pingReceived);
+            printf("Received ping at %d usecs, Agent ping = %3.1f\n", pingReceived.tv_usec, pingMsecs);
+            agents[i].pingMsecs = pingMsecs;
+        }
+    }
+}
+
