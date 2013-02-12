@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
+#include "AudioRingBuffer.h"
 
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
@@ -23,10 +24,16 @@ const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 const float SAMPLE_RATE = 22050.0;
 const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES/SAMPLE_RATE) * 1000000;
 
-const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+const short JITTER_BUFFER_MSECS = 20;
+const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const int MAX_SOURCE_BUFFERS = 10;
+const short RING_BUFFER_FRAMES = 10;
+const short RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
+
+const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+
+const int MAX_SOURCE_BUFFERS = 20;
 
 int16_t* whiteNoiseBuffer;
 int whiteNoiseLength;
@@ -44,10 +51,7 @@ struct AgentList {
 
 int num_agents = 0;
 
-struct SourceBuffer {
-    int16_t sourceAudioData[BUFFER_LENGTH_SAMPLES];
-    bool transmitted;
-} sourceBuffers[MAX_SOURCE_BUFFERS];
+AudioRingBuffer *sourceBuffers[MAX_SOURCE_BUFFERS];
 
 double diffclock(timeval *clock1, timeval *clock2)
 {
@@ -110,8 +114,22 @@ int addAgent(sockaddr_in dest_address, void *audioData) {
     agents[i].active = true;
     gettimeofday(&agents[i].time, NULL);
 
-    memcpy(sourceBuffers[i].sourceAudioData, audioData, BUFFER_LENGTH_BYTES);
-    sourceBuffers[i].transmitted = false;
+    if (sourceBuffers[i]->endOfLastWrite == NULL) {
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+    } else if (sourceBuffers[i]->diffLastWriteNextOutput() > RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES) {
+        // reset us to started state
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+        sourceBuffers[i]->nextOutput = sourceBuffers[i]->buffer;
+        sourceBuffers[i]->started = false;
+    }
+
+    memcpy(sourceBuffers[i]->endOfLastWrite, audioData, BUFFER_LENGTH_BYTES);
+
+    sourceBuffers[i]->endOfLastWrite += BUFFER_LENGTH_SAMPLES;
+
+    if (sourceBuffers[i]->endOfLastWrite >= sourceBuffers[i]->buffer + RING_BUFFER_SAMPLES) {
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+    }
     
     if (i == num_agents) {
         num_agents++;
@@ -134,7 +152,7 @@ void *send_buffer_thread(void *args)
     timeval startTime, sendTime, now;
 
     int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
-    int16_t *masterMix = new int16_t[BUFFER_LENGTH_SAMPLES];
+    long *masterMix = new long[BUFFER_LENGTH_SAMPLES];
 
     gettimeofday(&startTime, NULL);
 
@@ -142,28 +160,74 @@ void *send_buffer_thread(void *args)
         sentBytes = 0;
 
         int sampleOffset = ((currentFrame - 1) * BUFFER_LENGTH_SAMPLES) % whiteNoiseLength;
-        memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
+        // memcpy(masterMix, whiteNoiseBuffer + sampleOffset, BUFFER_LENGTH_BYTES);
+        // memset(masterMix, 0, BUFFER_LENGTH_BYTES);
+
+        for (int wb = 0; wb < BUFFER_LENGTH_SAMPLES; wb++) {
+            masterMix[wb] = 0;
+        }
 
         gettimeofday(&sendTime, NULL);
 
+        for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
+            if (sourceBuffers[b]->endOfLastWrite != NULL) {
+                if (!sourceBuffers[b]->started 
+                && sourceBuffers[b]->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
+                    std::cout << "Held back buffer " << b << ".\n";
+                } else if (sourceBuffers[b]->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
+                    std::cout << "Buffer " << b << " starved.\n";
+                    sourceBuffers[b]->started = false;
+                } else {
+                    sourceBuffers[b]->started = true;
+                    sourceBuffers[b]->transmitted = true;
+
+                    for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                        masterMix[s] += sourceBuffers[b]->nextOutput[s];
+                    }
+
+                    sourceBuffers[b]->nextOutput += BUFFER_LENGTH_SAMPLES;
+
+                    if (sourceBuffers[b]->nextOutput >= sourceBuffers[b]->buffer + RING_BUFFER_SAMPLES) {
+                        sourceBuffers[b]->nextOutput = sourceBuffers[b]->buffer;
+                    }
+                }
+            }   
+        }
+
         for (int a = 0; a < num_agents; a++) {
             if (diffclock(&agents[a].time, &sendTime) <= LOGOFF_CHECK_INTERVAL) {
-                memcpy(clientMix, masterMix, BUFFER_LENGTH_BYTES);
+                
+                int16_t *previousOutput = NULL;
+                if (sourceBuffers[a]->transmitted) {
+                    previousOutput = (sourceBuffers[a]->nextOutput == sourceBuffers[a]->buffer) 
+                        ? sourceBuffers[a]->buffer + RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES
+                        : sourceBuffers[a]->nextOutput - BUFFER_LENGTH_SAMPLES;
+                    sourceBuffers[a]->transmitted = false;
+                }
 
-                for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
-                    if (b != a && !sourceBuffers[b].transmitted) {
-                        for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                            // we have source buffer data for this sample
-                            int mixSample = clientMix[s] + sourceBuffers[b].sourceAudioData[s];
-                            
-                            int sampleToAdd = std::max(mixSample, MIN_SAMPLE_VALUE);
-                            sampleToAdd = std::min(sampleToAdd, MAX_SAMPLE_VALUE);
+                for(int as = 0; as < BUFFER_LENGTH_SAMPLES; as++) {
+                    long longSample = previousOutput != NULL 
+                        ? masterMix[as] - previousOutput[as]
+                        : masterMix[as];
 
-                            clientMix[s] = sampleToAdd;
-                        }
+    
+                    int16_t shortSample;
+                    
+                    if (longSample < 0) {
+                        shortSample = std::max(longSample, MIN_SAMPLE_VALUE);
+                    } else {
+                        shortSample = std::min(longSample, MAX_SAMPLE_VALUE);
+                    }                 
 
-                        sourceBuffers[b].transmitted = true;
+                    clientMix[as] = shortSample;
+
+                    // std::cout << as << " - CM: " << clientMix[as] << " MM: " << masterMix[as] << "\n";
+                    // std::cout << previousOutput - sourceBuffers[a]->buffer << "\n";
+                    
+                    if (previousOutput != NULL) {
+                        // std::cout << "PO: " << previousOutput[as] << "\n";
                     }
+                   
                 }
 
                 sockaddr_in dest_address = agents[a].agent_addr;
@@ -259,7 +323,7 @@ int main(int argc, const char * argv[])
     int16_t packet_data[BUFFER_LENGTH_SAMPLES];
 
     for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
-        sourceBuffers[b].transmitted = true;
+        sourceBuffers[b] = new AudioRingBuffer(10 * BUFFER_LENGTH_SAMPLES);
     }
 
     struct send_buffer_struct send_buffer_args;
