@@ -35,9 +35,11 @@ target_link_libraries(interface
 )
 
 include(ExternalProject)
+set(PORTAUDIO_PROJ_DIR external/portaudio)
 ExternalProject_Add(
     portaudio
-    PREFIX external/portaudio
+    PREFIX ${PORTAUDIO_PROJ_DIR}
+    BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
     URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
     CONFIGURE_COMMAND <SOURCE_DIR>/configure
     BUILD_COMMAND make
