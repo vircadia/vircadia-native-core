@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <netinet/in.h>
+#include <netdb.h>
 
 #define MAX_BUFFER_LENGTH_BYTES 1024
 

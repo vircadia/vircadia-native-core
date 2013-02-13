@@ -45,6 +45,7 @@
 #include "Lattice.h"
 #include "Finger.h"
 #include "Oscilloscope.h"
+#include "UDPSocket.h"
 
 using namespace std;
 
@@ -56,7 +57,8 @@ int simulate_on = 1;
 //
 
 const int MAX_PACKET_SIZE = 1500;
-char DOMAINSERVER_IP[] = "54.241.92.53";
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -228,7 +230,7 @@ void Timer(int extra)
     char output[100];
     sprintf(output, "%c %f,%f,%f", 'I', location[0], location[1], location[2]);
     int packet_size = strlen(output);
-    agentSocket.send(DOMAINSERVER_IP, DOMAINSERVER_PORT, output, packet_size);
+    agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
     //  Ping the agents we can see
     pingAgents(&agentSocket);
@@ -938,11 +940,25 @@ int main(int argc, char** argv)
     //  Create network socket and buffer
     incoming_packet = new char[MAX_PACKET_SIZE];
     
+    //  Lookup the IP address of things we have hostnames 
+    printf("need to look this one up\n");
+    struct hostent* pHostInfo;
+    if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
+        sockaddr_in tempAddress;
+        memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+        strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+        printf("Domain server found: %s\n", DOMAIN_IP);
+
+    } else {
+        printf("Failed lookup domain server\n");
+    }
+    
+    //std::cout << "Test address: " << inet_ntoa(testAddress.sin_addr) << "\n";
     
     //gethostbyname(hostname);
     //  Send one test packet to detect own IP, port:
-    char selfTest[] = "T";
-    agentSocket.send((char *)"127.0.0.1", AGENT_UDP_PORT, selfTest, 1);
+    //char selfTest[] = "T";
+    //agentSocket.send((char *)"127.0.0.1", AGENT_UDP_PORT, selfTest, 1);
     
     printf("Testing stats math... ");
     StDev stdevtest;
