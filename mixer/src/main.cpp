@@ -195,7 +195,7 @@ void *sendBufferThread(void *args)
                    
                 }
 
-                audioSocket->send(agents[a].address, agents[a].port, (void *) clientMix, BUFFER_LENGTH_BYTES);
+                sentBytes = audioSocket->send(agents[a].address, agents[a].port, (void *) clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
