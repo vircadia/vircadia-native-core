@@ -24,36 +24,21 @@
 #include <iterator>
 #include <stack>
 #include <bitset>
+#include "TreeNode.h"
 
-const int CHILDREN_PER_NODE = 8;
 const char *CONFIG_FILE = "/etc/below92/spaceserver.data.txt";
 const int UDP_PORT = 55551;
 std::vector< std::vector<std::string> > configData;
 sockaddr_in address, destAddress;
 socklen_t destLength = sizeof(destAddress);
 
-std::string EMPTY_STRING = "";
-
 std::string ROOT_HOSTNAME = "root.highfidelity.co";
 std::string ROOT_NICKNAME = "root";
 std::string *LAST_KNOWN_HOSTNAME = new std::string();
 
-class treeNode {
-public:
-    treeNode *child[CHILDREN_PER_NODE];
-    std::string *hostname;
-    std::string *nickname;
-    int domain_id;
-    treeNode() {
-        for (int i = 0; i < CHILDREN_PER_NODE; ++i) {
-            child[i] = NULL;
-        }
-        hostname = &EMPTY_STRING;
-        nickname = &EMPTY_STRING;
-    }
-};
+const short PACKET_LENGTH_BYTES = 1024;
 
-treeNode rootNode;
+TreeNode rootNode;
 
 void printBinaryValue(char element) {
     std::bitset<8> x(element);
@@ -90,13 +75,13 @@ int network_init()
     return handle;
 }
 
-treeNode *findOrCreateNode(unsigned long lengthInBits,
+TreeNode *findOrCreateNode(unsigned long lengthInBits,
                            unsigned char *addressBytes,
                            std::string *hostname,
                            std::string *nickname,
                            int domain_id) {
     
-    treeNode *currentNode = &rootNode;
+    TreeNode *currentNode = &rootNode;
     
     for (int i = 0; i < lengthInBits; i += 3) {
         unsigned char octetA;
@@ -117,7 +102,7 @@ treeNode *findOrCreateNode(unsigned long lengthInBits,
         }
         
         if (currentNode->child[octet] == NULL) {
-            currentNode->child[octet] = new treeNode;
+            currentNode->child[octet] = new TreeNode;
         } else if (!currentNode->child[octet]->hostname->empty()) {
             LAST_KNOWN_HOSTNAME = currentNode->child[octet]->hostname;
         }
@@ -205,7 +190,7 @@ bool loadSpaceData(void) {
 
 int main (int argc, const char *argv[]) {
     int handle = network_init();
-    unsigned char packet_data[BUFFER_LENGTH_SAMPLES];
+    unsigned char packetData[PACKET_LENGTH_BYTES];
     long received_bytes = 0;
     
     if (!handle) {
@@ -223,14 +208,14 @@ int main (int argc, const char *argv[]) {
     std::cout << "[DEBUG] Listening for Datagrams" << std::endl;
     
     while (true) {
-        received_bytes = recvfrom(handle, (unsigned char*)packet_data, BUFFER_LENGTH_BYTES, 0, (sockaddr*)&dest_address, &destLength);
+        received_bytes = recvfrom(handle, (unsigned char*)packetData, PACKET_LENGTH_BYTES, 0, (sockaddr*)&destAddress, &destLength);
         if (received_bytes > 0) {
             unsigned long lengthInBits;
-            lengthInBits = packet_data[0] * 3;
+            lengthInBits = packetData[0] * 3;
             
-            unsigned char addressData[sizeof(packet_data)-1];
-            for (int i = 0; i < sizeof(packet_data)-1; ++i) {
-                addressData[i] = packet_data[i+1];
+            unsigned char addressData[sizeof(packetData)-1];
+            for (int i = 0; i < sizeof(packetData)-1; ++i) {
+                addressData[i] = packetData[i+1];
             }
             std::string thisHostname;
             std::string thisNickname;
@@ -238,7 +223,7 @@ int main (int argc, const char *argv[]) {
             int domain_id = 0;
             long sentBytes;
             
-            treeNode thisNode = *findOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
+            TreeNode thisNode = *findOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
             
             if (thisNode.hostname->empty()) {
                 hostnameHolder = *LAST_KNOWN_HOSTNAME;
@@ -250,8 +235,8 @@ int main (int argc, const char *argv[]) {
             std::copy(hostnameHolder.begin(), hostnameHolder.end(), hostname);
             hostname[hostnameHolder.size()] = '\0';
             
-            sentBytes = sendto(handle, &hostname, BUFFER_LENGTH_BYTES,
-                               0, (sockaddr*)&dest_address, sizeof(dest_address));
+            sentBytes = sendto(handle, &hostname, PACKET_LENGTH_BYTES,
+                               0, (sockaddr*)&destAddress, sizeof(destAddress));
         }
     }
 }
