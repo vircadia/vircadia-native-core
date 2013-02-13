@@ -12,9 +12,8 @@ endif (APPLE)
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
 
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-include_directories(${PROJECT_BINARY_DIR}/includes)
 
-add_executable(interface ${INTERFACE_SRCS})
+add_executable(interface ${INTERFACE_SRCS} ${HIFI_SHARED_SRCS})
 
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
@@ -22,6 +21,8 @@ find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 
 include_directories(
+    ${PROJECT_BINARY_DIR}/includes
+    ${HIFI_SHARED_DIR}
     ${OPENGL_INCLUDE_DIRS}
     ${GLUT_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS} 
