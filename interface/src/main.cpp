@@ -79,7 +79,7 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
-Oscilloscope audioScope(512,200,false);
+Oscilloscope audioScope(512,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
@@ -621,7 +621,7 @@ void display(void)
         // lattice.render(WIDTH, HEIGHT);
         // myFinger.render();
         Audio::render(WIDTH, HEIGHT);
-        if (audioScope.getState()) audioScope.render(0,1,0);
+        if (audioScope.getState()) audioScope.render();
 
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);

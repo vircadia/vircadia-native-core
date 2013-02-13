@@ -104,7 +104,7 @@ int audioCallback (const void *inputBuffer,
         //
         if (scope->getState()) {
             for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-                scope->addData((float)inputLeft[i]/32767.0, i);
+                scope->addData((float)inputLeft[i]/32767.0, 1, i);
             }
         }
     }
@@ -114,6 +114,14 @@ int audioCallback (const void *inputBuffer,
     
     memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
     memset(outputRight, 0, BUFFER_LENGTH_BYTES);
+    
+    //  Copy output data to oscilloscope
+    if (scope->getState()) {
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+            scope->addData((float)outputRight[i]/32767.0, 2, i);
+        }
+    }
+
     
     if (ECHO_SERVER_TEST) {
         AudioRingBuffer *ringBuffer = data->ringBuffer;

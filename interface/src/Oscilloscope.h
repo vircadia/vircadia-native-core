@@ -19,14 +19,14 @@ class Oscilloscope {
 public:
     Oscilloscope(int width,
                 int height, bool isOn);
-    void addData(float d, int position);
-    void render(float r, float g, float b);
+    void addData(float d, int channel, int position);
+    void render();
     void setState(bool s) {state = s;};
     bool getState() {return state;};
 private:
     int width;
     int height;
-    float * data;
+    float *data1, *data2;
     int current_sample;
     bool state;
 };
