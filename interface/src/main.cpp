@@ -158,7 +158,7 @@ int speed;
 // 
 
 SerialInterface serialPort;
-char serial_portname[] = "/dev/tty.usbmodemfd131";
+char serial_portname[] = "/dev/tty.usbmodem411";
 
 int serial_on = 0; 
 int latency_display = 1;
