@@ -5,8 +5,17 @@
 //  Created by Philip Rosedale on 11/20/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
-//  The Domain Server
-//  
+//  The Domain Server keeps a list of agents that have connected to it, and echoes that list of
+//  agents out to agents when they check in.
+//
+//  The connection is stateless... the domain server will set you inactive if it does not hear from
+//  you in LOGOFF_CHECK_INTERVAL milliseconds, meaning your info will not be sent to other users.
+//
+//  Each packet from an agent has as first character the type of server:
+//
+//  I - Interactive Agent
+//  M - Audio Mixer
+//
 
 #include <iostream>
 #include <math.h>
@@ -19,10 +28,8 @@
 #include <fcntl.h>
 #include <sys/time.h>
 
-//  Domain server listens for packets on this port number
+
 const int LISTENING_UDP_PORT = 40102;
-
-
 const char DESTINATION_IP[] = "127.0.0.1";
 sockaddr_in address, dest_address;
 socklen_t destLength = sizeof( dest_address );
@@ -32,7 +39,7 @@ const int MAX_PACKET_SIZE = 1500;
 char packet_data[MAX_PACKET_SIZE];
 
 const int MAX_AGENTS = 1000;
-const int LOGOFF_CHECK_INTERVAL = 2000;
+const int LOGOFF_CHECK_INTERVAL = 5000;
 
 struct AgentList {
     char agentType;

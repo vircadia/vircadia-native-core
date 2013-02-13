@@ -56,7 +56,7 @@ int simulate_on = 1;
 //
 
 const int MAX_PACKET_SIZE = 1500;
-char DOMAINSERVER_IP[] = "127.0.0.1";
+char DOMAINSERVER_IP[] = "54.241.92.53";
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -73,7 +73,7 @@ int target_x, target_y;
 int target_display = 0;
 
 int head_mirror = 1;                 //  Whether to mirror own head when viewing it
-int sendToSelf = 0;
+int sendToSelf = 1;
 
 int WIDTH = 1200; 
 int HEIGHT = 800; 
@@ -128,9 +128,6 @@ GLfloat start_location[] = {6.1, 0, 1.4};
 
 GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
-
-
-#define MAX_FILE_CHARS 100000		//  Biggest file size that can be read to the system
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
 
@@ -941,6 +938,8 @@ int main(int argc, char** argv)
     //  Create network socket and buffer
     incoming_packet = new char[MAX_PACKET_SIZE];
     
+    
+    //gethostbyname(hostname);
     //  Send one test packet to detect own IP, port:
     char selfTest[] = "T";
     agentSocket.send((char *)"127.0.0.1", AGENT_UDP_PORT, selfTest, 1);
