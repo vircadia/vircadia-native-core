@@ -68,7 +68,7 @@ int addAgent(sockaddr_in agentAddress, void *audioData) {
 
     for (i = 0; i < numAgents; i++) {
         if (strcmp(inet_ntoa(agentAddress.sin_addr), agents[i].address) == 0
-            && agentAddress.sin_port == agents[i].port) {
+            && ntohs(agentAddress.sin_port) == agents[i].port) {
             break;
         }        
     }
