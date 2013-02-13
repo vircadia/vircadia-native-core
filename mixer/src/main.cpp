@@ -273,7 +273,7 @@ int main(int argc, const char * argv[])
         }
     }
 
-    pthread_join(bufferSendThread, NULL);
+    pthread_join(sendBufferThread, NULL);
     
     return 0;
 }
