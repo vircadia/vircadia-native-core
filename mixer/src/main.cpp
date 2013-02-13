@@ -13,11 +13,12 @@
 #include <fstream>
 #include <limits>
 #include "AudioRingBuffer.h"
+#include "UDPSocket.h"
 
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
 
-const int UDP_PORT = 55443; 
+const int MIXER_LISTEN_PORT = 55443;
 
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
@@ -35,21 +36,17 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int MAX_SOURCE_BUFFERS = 20;
 
-int16_t* whiteNoiseBuffer;
-int whiteNoiseLength;
-
-#define ECHO_DEBUG_MODE 0
-
-sockaddr_in address, dest_address;
-socklen_t destLength = sizeof(dest_address);
+sockaddr_in address, destAddress;
+socklen_t destLength = sizeof(destAddress);
 
 struct AgentList {
-    sockaddr_in agent_addr;
+    char *address;
+    unsigned short port;
     bool active;
     timeval time;
 } agents[MAX_AGENTS];
 
-int num_agents = 0;
+int numAgents = 0;
 
 AudioRingBuffer *sourceBuffers[MAX_SOURCE_BUFFERS];
 
@@ -64,53 +61,24 @@ double usecTimestamp(timeval *time, double addedUsecs = 0) {
     return (time->tv_sec * 1000000.0) + time->tv_usec + addedUsecs;
 }
 
-int create_socket()
-{
-    //  Create socket 
-    int handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    
-    if (handle <= 0) {
-        printf("Failed to create socket: %d\n", handle);
-        return false;
-    }
-
-    return handle;
-}
-
-int network_init()
-{
-    int handle = create_socket();
-    
-    //  Bind socket to port 
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( (unsigned short) UDP_PORT );
-    
-    if (bind(handle, (const sockaddr*) &address, sizeof(sockaddr_in)) < 0) {
-        printf( "failed to bind socket\n" );
-        return false;
-    }   
-        
-    return handle;
-}
-
-int addAgent(sockaddr_in dest_address, void *audioData) {
+int addAgent(sockaddr_in agentAddress, void *audioData) {
     //  Search for agent in list and add if needed 
     int is_new = 0; 
     int i = 0;
 
-    for (i = 0; i < num_agents; i++) {
-        if (dest_address.sin_addr.s_addr == agents[i].agent_addr.sin_addr.s_addr
-            && dest_address.sin_port == agents[i].agent_addr.sin_port) {
+    for (i = 0; i < numAgents; i++) {
+        if (strcmp(inet_ntoa(agentAddress.sin_addr), agents[i].address) == 0
+            && agentAddress.sin_port == agents[i].port) {
             break;
         }        
     }
     
-    if ((i == num_agents) || (agents[i].active == false)) {
+    if ((i == numAgents) || (agents[i].active == false)) {
         is_new = 1;
     }
 
-    agents[i].agent_addr = dest_address; 
+    agents[i].address = inet_ntoa(agentAddress.sin_addr);
+    agents[i].port = ntohs(agentAddress.sin_port);
     agents[i].active = true;
     gettimeofday(&agents[i].time, NULL);
 
@@ -131,21 +99,21 @@ int addAgent(sockaddr_in dest_address, void *audioData) {
         sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
     }
     
-    if (i == num_agents) {
-        num_agents++;
+    if (i == numAgents) {
+        numAgents++;
     }
 
     return is_new;
 }
 
-struct send_buffer_struct {
-    int socket_handle;
+struct sendBufferStruct {
+    UDPSocket *audioSocket;
 };
 
-void *send_buffer_thread(void *args)
+void *sendBufferThread(void *args)
 {
-    struct send_buffer_struct *buffer_args = (struct send_buffer_struct *) args;
-    int handle = buffer_args->socket_handle;
+    struct sendBufferStruct *bufferArgs = (struct sendBufferStruct *)args;
+    UDPSocket *audioSocket = bufferArgs->audioSocket;
 
     int sentBytes;
     int currentFrame = 1;
@@ -159,11 +127,8 @@ void *send_buffer_thread(void *args)
     while (true) {
         sentBytes = 0;
 
-        int sampleOffset = ((currentFrame - 1) * BUFFER_LENGTH_SAMPLES) % whiteNoiseLength;
-        int16_t *noisePointer = whiteNoiseBuffer + sampleOffset;
-
         for (int wb = 0; wb < BUFFER_LENGTH_SAMPLES; wb++) {
-            masterMix[wb] = noisePointer[wb];
+            masterMix[wb] = 0;
         }
 
         gettimeofday(&sendTime, NULL);
@@ -193,7 +158,7 @@ void *send_buffer_thread(void *args)
             }   
         }
 
-        for (int a = 0; a < num_agents; a++) {
+        for (int a = 0; a < numAgents; a++) {
             if (diffclock(&agents[a].time, &sendTime) <= LOGOFF_CHECK_INTERVAL) {
                 
                 int16_t *previousOutput = NULL;
@@ -229,10 +194,7 @@ void *send_buffer_thread(void *args)
                    
                 }
 
-                sockaddr_in dest_address = agents[a].agent_addr;
-                
-                sentBytes = sendto(handle, clientMix, BUFFER_LENGTH_BYTES,
-                                0, (sockaddr *) &dest_address, sizeof(dest_address));
+                audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
@@ -256,99 +218,61 @@ void *send_buffer_thread(void *args)
     pthread_exit(0);  
 }
 
-struct process_arg_struct {
-    int16_t *packet_data;
-    sockaddr_in dest_address;
+struct processArgStruct {
+    int16_t *packetData;
+    sockaddr_in destAddress;
 };
 
-void *process_client_packet(void *args)
+void *processClientPacket(void *args)
 {
-    struct process_arg_struct *process_args = (struct process_arg_struct *) args;
+    struct processArgStruct *processArgs = (struct processArgStruct *) args;
     
-    sockaddr_in dest_address = process_args->dest_address;
+    sockaddr_in destAddress = processArgs->destAddress;
 
-    if (addAgent(dest_address, process_args->packet_data)) {
+    if (addAgent(destAddress, processArgs->packetData)) {
         std::cout << "Added agent: " << 
-            inet_ntoa(dest_address.sin_addr) << " on " <<
-            dest_address.sin_port << "\n";
+            inet_ntoa(destAddress.sin_addr) << " on " <<
+            ntohs(destAddress.sin_port) << "\n";
     }    
 
     pthread_exit(0);
 }
 
-bool different_clients(sockaddr_in addr1, sockaddr_in addr2) 
-{
-    return addr1.sin_addr.s_addr != addr2.sin_addr.s_addr ||
-            (addr1.sin_addr.s_addr == addr2.sin_addr.s_addr &&
-            addr1.sin_port != addr2.sin_port);
-}
-
-void white_noise_buffer_init() {
-    // open a pointer to the audio file
-    FILE *whiteNoiseFile = fopen("opera.raw", "r");
-    
-    // get length of file
-    std::fseek(whiteNoiseFile, 0, SEEK_END);
-    whiteNoiseLength = std::ftell(whiteNoiseFile) / sizeof(int16_t);
-    std::rewind(whiteNoiseFile);
-    
-    // read that amount of samples from the file
-    whiteNoiseBuffer = new int16_t[whiteNoiseLength];
-    std::fread(whiteNoiseBuffer, sizeof(int16_t), whiteNoiseLength, whiteNoiseFile);
-    
-    // close it
-    std::fclose(whiteNoiseFile);
-}
-
 int main(int argc, const char * argv[])
 {
-    timeval now, last_agent_update;
-    int received_bytes = 0;
-
-    // read in the workclub white noise file as a base layer of audio
-    white_noise_buffer_init();
+    timeval lastAgentUpdate;
+    int receivedBytes = 0;
     
-    int handle = network_init();
-    
-    if (!handle) {
-        std::cout << "Failed to create listening socket.\n";
-        return 0;
-    } else {
-        std::cout << "Network Started.  Waiting for packets.\n";
-    }
+    // setup our socket
+    UDPSocket audioSocket = UDPSocket(MIXER_LISTEN_PORT);
 
-    gettimeofday(&last_agent_update, NULL);
+    gettimeofday(&lastAgentUpdate, NULL);
 
-    int16_t packet_data[BUFFER_LENGTH_SAMPLES];
+    int16_t packetData[BUFFER_LENGTH_SAMPLES];
 
     for (int b = 0; b < MAX_SOURCE_BUFFERS; b++) {
         sourceBuffers[b] = new AudioRingBuffer(10 * BUFFER_LENGTH_SAMPLES);
     }
 
-    struct send_buffer_struct send_buffer_args;
-    send_buffer_args.socket_handle = handle;
+    struct sendBufferStruct sendBufferArgs;
+    sendBufferArgs.audioSocket = &audioSocket;
 
-    pthread_t buffer_send_thread;
-    pthread_create(&buffer_send_thread, NULL, send_buffer_thread, (void *)&send_buffer_args);
+    pthread_t bufferSendThread;
+    pthread_create(&bufferSendThread, NULL, sendBufferThread, (void *)&sendBufferArgs);
 
     while (true) {
-        received_bytes = recvfrom(handle, (int16_t*)packet_data, BUFFER_LENGTH_BYTES,
-                                      0, (sockaddr*)&dest_address, &destLength);  
-        if (ECHO_DEBUG_MODE) {
-            sendto(handle, packet_data, BUFFER_LENGTH_BYTES,
-                        0, (sockaddr *) &dest_address, sizeof(dest_address));
-        } else {
-            struct process_arg_struct args;
-            args.packet_data = packet_data;
-            args.dest_address = dest_address;
-
-            pthread_t client_process_thread;
-            pthread_create(&client_process_thread, NULL, process_client_packet, (void *)&args);
-            pthread_join(client_process_thread, NULL); 
+        if(audioSocket.receive(packetData, &receivedBytes)) {
+            struct processArgStruct args;
+            args.packetData = packetData;
+            args.destAddress = destAddress;
+            
+            pthread_t clientProcessThread;
+            pthread_create(&clientProcessThread, NULL, processClientPacket, (void *)&args);
+            pthread_join(clientProcessThread, NULL);
         }
     }
 
-    pthread_join(buffer_send_thread, NULL);
+    pthread_join(bufferSendThread, NULL);
     
     return 0;
 }
