@@ -59,7 +59,6 @@ VoxelSystem::VoxelSystem(int num,
 }
 
 void VoxelSystem::render() {
-    glPushMatrix();
     int i = 0;
     while (i < cube_count) {
         glPushMatrix();
@@ -69,7 +68,6 @@ void VoxelSystem::render() {
         glPopMatrix();
         i++;
     }
-    glPopMatrix();
 }
 
 void VoxelSystem::simulate(float deltaTime) {

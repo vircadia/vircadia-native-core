@@ -18,13 +18,14 @@
 #include <string.h>
 #include "UDPSocket.h"
 
+const int AGENT_UDP_PORT = 40103;
 
 int update_agents(char * data, int length);
 int add_agent(char * address, unsigned short port, char agentType);
-int broadcastToAgents(UDPSocket * handle, char * data, int length);
+int broadcastToAgents(UDPSocket * handle, char * data, int length, int sendToSelf);
 void pingAgents(UDPSocket *handle);
 void setAgentPing(char * address, unsigned short port);
 void update_agent(char * address, unsigned short port, char * data, int length);
-void render_agents();
+void render_agents(int renderSelf);
 
 #endif

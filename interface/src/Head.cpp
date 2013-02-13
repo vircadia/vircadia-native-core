@@ -214,22 +214,7 @@ void Head::render(int faceToFace)
     glPushMatrix();
 
     glScalef(scale, scale, scale);
-    
     glTranslatef(leanSideways, 0.f, leanForward);
-    
-    if (!faceToFace)
-    {
-        //printf("x: %3.1f\n", position.x);
-        //glTranslatef(3,3,2);
-        //printf("head: %3.1f, %3.1f, %3.1f\n", position.x, position.y, position.z);
-        float x = position.x;
-        float y = position.y;
-        float z = position.z;
-        
-        //glTranslatef(6.1, 0, 1.4);
-        glTranslatef(x,y,z);
-        //glTranslatef(position.x, position.y, position.z);
-    }
 
     glRotatef(Yaw/2.0, 0, 1, 0);
     glRotatef(Pitch/2.0, 1, 0, 0);
@@ -237,7 +222,7 @@ void Head::render(int faceToFace)
 
     
     // Overall scale of head
-    glScalef(1.5, 2.0, 2.0);
+    if (faceToFace) glScalef(1.5, 2.0, 2.0);
     glColor3fv(skinColor);
     
     //  Head

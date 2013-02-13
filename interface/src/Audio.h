@@ -13,12 +13,13 @@
 #include <portaudio.h>
 #include "Head.h"
 #include "AudioData.h"
+#include "Oscilloscope.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    static bool init();
-    static bool init(Head* mainHead);
+    static bool init(Oscilloscope * s);
+    static bool init(Head* mainHead, Oscilloscope * s);
     
     static void render();
     static void render(int screenWidth, int screenHeight);
@@ -31,6 +32,7 @@ private:
     static bool initialized;
     
     static AudioData *data;
+    
     
     // protects constructor so that public init method is used
     Audio();

@@ -18,13 +18,16 @@
 class Oscilloscope {
 public:
     Oscilloscope(int width,
-                int height);
-    void addData(float data);
-    void render();
+                int height, bool isOn);
+    void addData(float d, int position);
+    void render(float r, float g, float b);
+    void setState(bool s) {state = s;};
+    bool getState() {return state;};
 private:
     int width;
     int height;
     float * data;
     int current_sample;
+    bool state;
 };
 #endif /* defined(__interface__oscilloscope__) */
