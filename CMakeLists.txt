@@ -9,3 +9,4 @@ set(PORTAUDIO_DIR ${CMAKE_SOURCE_DIR}/external/portaudio)
 
 add_subdirectory(interface)
 add_subdirectory(domain)
+add_subdirectory(mixer)
