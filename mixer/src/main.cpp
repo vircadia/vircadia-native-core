@@ -44,6 +44,7 @@ struct AgentList {
     unsigned short port;
     bool active;
     timeval time;
+    bool bufferTransmitted;
 } agents[MAX_AGENTS];
 
 int numAgents = 0;
@@ -75,6 +76,7 @@ int addAgent(sockaddr_in agentAddress, void *audioData) {
     
     if ((i == numAgents) || (agents[i].active == false)) {
         is_new = 1;
+        agents[i].bufferTransmitted = false;
     }
 
     agents[i].address = inet_ntoa(agentAddress.sin_addr);
@@ -143,7 +145,7 @@ void *sendBufferThread(void *args)
                     sourceBuffers[b]->started = false;
                 } else {
                     sourceBuffers[b]->started = true;
-                    sourceBuffers[b]->transmitted = true;
+                    agents[b].bufferTransmitted = true;
 
                     for (int s =  0; s < BUFFER_LENGTH_SAMPLES; s++) {
                         masterMix[s] += sourceBuffers[b]->nextOutput[s];
@@ -162,11 +164,11 @@ void *sendBufferThread(void *args)
             if (diffclock(&agents[a].time, &sendTime) <= LOGOFF_CHECK_INTERVAL) {
                 
                 int16_t *previousOutput = NULL;
-                if (sourceBuffers[a]->transmitted) {
+                if (agents[a].bufferTransmitted) {
                     previousOutput = (sourceBuffers[a]->nextOutput == sourceBuffers[a]->buffer) 
                         ? sourceBuffers[a]->buffer + RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES
                         : sourceBuffers[a]->nextOutput - BUFFER_LENGTH_SAMPLES;
-                    sourceBuffers[a]->transmitted = false;
+                    agents[a].bufferTransmitted = false;
                 }
 
                 for(int as = 0; as < BUFFER_LENGTH_SAMPLES; as++) {
