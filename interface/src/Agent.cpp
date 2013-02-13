@@ -9,7 +9,7 @@
 #include <iostream>
 #include "Agent.h"
 #include "Head.h" 
-#include "util.h"
+#include "Util.h"
 
 
 //  Structure to hold references to other agents that are nearby 
