@@ -36,8 +36,7 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int MAX_SOURCE_BUFFERS = 20;
 
-sockaddr_in address, destAddress;
-socklen_t destLength = sizeof(destAddress);
+sockaddr_in agentAddress;
 
 struct AgentList {
     char *address;
@@ -196,7 +195,7 @@ void *sendBufferThread(void *args)
                    
                 }
 
-                audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
+                audioSocket->send(agents[a].address, agents[a].port, (void *) clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
@@ -222,19 +221,19 @@ void *sendBufferThread(void *args)
 
 struct processArgStruct {
     int16_t *packetData;
-    sockaddr_in destAddress;
+    sockaddr_in agentAddress;
 };
 
 void *processClientPacket(void *args)
 {
     struct processArgStruct *processArgs = (struct processArgStruct *) args;
     
-    sockaddr_in destAddress = processArgs->destAddress;
+    sockaddr_in agentAddress = processArgs->agentAddress;
 
-    if (addAgent(destAddress, processArgs->packetData)) {
+    if (addAgent(agentAddress, processArgs->packetData)) {
         std::cout << "Added agent: " << 
-            inet_ntoa(destAddress.sin_addr) << " on " <<
-            ntohs(destAddress.sin_port) << "\n";
+            inet_ntoa(agentAddress.sin_addr) << " on " <<
+            ntohs(agentAddress.sin_port) << "\n";
     }    
 
     pthread_exit(0);
@@ -263,10 +262,10 @@ int main(int argc, const char * argv[])
     pthread_create(&bufferSendThread, NULL, sendBufferThread, (void *)&sendBufferArgs);
 
     while (true) {
-        if(audioSocket.receive(packetData, &receivedBytes)) {
+        if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
             struct processArgStruct args;
             args.packetData = packetData;
-            args.destAddress = destAddress;
+            args.agentAddress = agentAddress;
             
             pthread_t clientProcessThread;
             pthread_create(&clientProcessThread, NULL, processClientPacket, (void *)&args);
