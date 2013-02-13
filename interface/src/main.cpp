@@ -44,6 +44,7 @@
 #include "Cube.h"
 #include "Lattice.h"
 #include "Finger.h"
+#include "Oscilloscope.h"
 
 using namespace std;
 
@@ -55,8 +56,7 @@ int simulate_on = 1;
 //
 
 const int MAX_PACKET_SIZE = 1500;
-const int AGENT_UDP_PORT = 40103;
-char DOMAINSERVER_IP[] = "192.168.1.53";
+char DOMAINSERVER_IP[] = "127.0.0.1";
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -73,15 +73,16 @@ int target_x, target_y;
 int target_display = 0;
 
 int head_mirror = 1;                 //  Whether to mirror own head when viewing it
+int sendToSelf = 0;
 
 int WIDTH = 1200; 
 int HEIGHT = 800; 
-int fullscreen = 0; 
+int fullscreen = 0;
+
+Oscilloscope audioScope(512,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
-Head myHead;                        //  The rendered head of oneself or others
-Head dummyHead;                     //  Test Head to render
-int showDummyHead = 0;
+Head myHead;                        //  The rendered head of oneself
 
 Hand myHand(HAND_RADIUS, 
             glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
@@ -224,9 +225,11 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
     
+    //
     //  Send a message to the domainserver telling it we are ALIVE
+    // 
     char output[100];
-    sprintf(output, "%f,%f,%f", location[0], location[1], location[2]);
+    sprintf(output, "%c %f,%f,%f", 'I', location[0], location[1], location[2]);
     int packet_size = strlen(output);
     agentSocket.send(DOMAINSERVER_IP, DOMAINSERVER_PORT, output, packet_size);
     
@@ -239,9 +242,9 @@ void Timer(int extra)
         gettimeofday(&starttest, NULL);
         char junk[1000];
         junk[0] = 'J';
-        for (int i = 0; i < 3000; i++)
+        for (int i = 0; i < 10000; i++)
         {
-            agentSocket.send("192.168.1.38", AGENT_UDP_PORT, junk, 1000);
+            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
         }
         gettimeofday(&endtest, NULL);
         float sendTime = diffclock(&starttest, &endtest);
@@ -299,18 +302,11 @@ void init(void)
 {
     myHead.setRenderYaw(start_yaw);
     
-    dummyHead.setPitch(0);
-    dummyHead.setRoll(0);
-    dummyHead.setYaw(0);
-    dummyHead.setScale(0.25); 
-    
-    dummyHead.setPos(glm::vec3(0,0,0));
-    
     if (audio_on) {
         if (serial_on) {
-            Audio::init(&myHead);
+            Audio::init(&myHead, &audioScope);
         } else {
-            Audio::init();
+            Audio::init(&audioScope);
         }
         printf( "Audio started.\n" );
     }
@@ -328,7 +324,6 @@ void init(void)
     {   
         myHand.setNoise(noise);
         myHead.setNoise(noise);
-        dummyHead.setNoise(noise);
     }
     
     if (serial_on)
@@ -385,8 +380,6 @@ void reset_sensors()
     //   Reset serial I/O sensors 
     // 
     myHead.setRenderYaw(start_yaw);
-    dummyHead.setRenderPitch(0);
-    dummyHead.setRenderYaw(0);
     
     yaw = render_yaw_rate = 0; 
     pitch = render_pitch = render_pitch_rate = 0;
@@ -535,16 +528,10 @@ void update_pos(float frametime)
     myHead.setAverageLoudness(averageLoudness);
 
     //  Send my streaming head data to agents that are nearby and need to see it!
-    
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes);
-
-    //printf("-> %s\n", broadcast_string);
-    //dummyHead.recvBroadcastData(broadcast_string, broadcast_bytes);
-    //printf("head bytes:  %d\n", broadcast_bytes);
-    
+    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes, sendToSelf);
 }
 
 int render_test_spot = WIDTH/2;
@@ -559,6 +546,8 @@ void display(void)
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
         glLoadIdentity();
+    
+        //  Setup 3D lights
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
@@ -589,21 +578,9 @@ void display(void)
     
         //  Draw field vectors
         if (display_field) field.render();
-        
-        //  Render my own head 
-        if (display_head) {
-            glPushMatrix();
-            glLoadIdentity();
-            glTranslatef(0.f, 0.f, -7.f);
-            myHead.render(1);
-            glPopMatrix();
-        }
-    
-        //  Render dummy head
-        if (showDummyHead) dummyHead.render(0);
-    
+            
         //  Render heads of other agents 
-        if (!display_head) render_agents();
+        render_agents(sendToSelf);
         
         if (display_hand) myHand.render();   
      
@@ -612,10 +589,21 @@ void display(void)
         //  Render the world box 
         if (!display_head && stats_on) render_world_box();
     
+        //  Render my own head
+    
+        if (display_head) {
+            glPushMatrix();
+            glLoadIdentity();
+            glTranslatef(0.f, 0.f, -7.f);
+            myHead.render(1);
+            glPopMatrix();
+        }
+
         // render audio sources and start them
         if (audio_on) {
             Audio::render();
         }
+    
     
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
@@ -633,6 +621,8 @@ void display(void)
         // lattice.render(WIDTH, HEIGHT);
         // myFinger.render();
         Audio::render(WIDTH, HEIGHT);
+        if (audioScope.getState()) audioScope.render();
+
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
@@ -801,7 +791,7 @@ void read_network()
             //
             //  Got Ping, reply immediately!
             //
-            printf("Replying to ping!\n");
+            //printf("Replying to ping!\n");
             char reply[] = "R";
             agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
         } else if (incoming_packet[0] == 'R') {
@@ -829,7 +819,10 @@ void read_network()
             //
             update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incoming_packet[1], bytes_recvd - 1);
         } else if (incoming_packet[0] == 'T') {
-            printf("Got test!  From port %d\n", senderAddress.sin_port);
+            //  Received a self-test packet (to get one's own IP), copy it to local variable!
+            printf("My Address: %s:%u\n",
+                   inet_ntoa(senderAddress.sin_addr),
+                   senderAddress.sin_port);
         }
     }
 }
@@ -948,7 +941,10 @@ int main(int argc, char** argv)
     //  Create network socket and buffer
     incoming_packet = new char[MAX_PACKET_SIZE];
     
-    //
+    //  Send one test packet to detect own IP, port:
+    char selfTest[] = "T";
+    agentSocket.send((char *)"127.0.0.1", AGENT_UDP_PORT, selfTest, 1);
+    
     printf("Testing stats math... ");
     StDev stdevtest;
     stdevtest.reset();

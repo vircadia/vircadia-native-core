@@ -17,6 +17,8 @@
 #include "AudioSource.h"
 #include "UDPSocket.h"
 
+Oscilloscope * scope;
+
 const short BUFFER_LENGTH_BYTES = 1024;
 const short BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 
@@ -97,6 +99,14 @@ int audioCallback (const void *inputBuffer,
         loudness /= BUFFER_LENGTH_SAMPLES;
         data->lastInputLoudness = loudness;
         data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
+        //
+        //  If scope is turned on, copy input buffer to scope
+        //
+        if (scope->getState()) {
+            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+                scope->addData((float)inputLeft[i]/32767.0, 1, i);
+            }
+        }
     }
     
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -104,6 +114,14 @@ int audioCallback (const void *inputBuffer,
     
     memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
     memset(outputRight, 0, BUFFER_LENGTH_BYTES);
+    
+    //  Copy output data to oscilloscope
+    if (scope->getState()) {
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+            scope->addData((float)outputRight[i]/32767.0, 2, i);
+        }
+    }
+
     
     if (ECHO_SERVER_TEST) {
         AudioRingBuffer *ringBuffer = data->ringBuffer;
@@ -299,16 +317,18 @@ void *receiveAudioViaUDP(void *args) {
  * @return  Returns true if successful or false if an error occurred.
 Use Audio::getError() to retrieve the error code.
  */
-bool Audio::init()
+bool Audio::init(Oscilloscope * s)
 {
     Head *deadHead = new Head();
-    return Audio::init(deadHead);
+    return Audio::init(deadHead, s);
 }
 
-bool Audio::init(Head *mainHead)
+bool Audio::init(Head *mainHead, Oscilloscope * s)
 {
     err = Pa_Initialize();
     if (err != paNoError) goto error;
+    
+    scope = s;
     
     if (ECHO_SERVER_TEST) {
         data = new AudioData(BUFFER_LENGTH_BYTES);

@@ -11,6 +11,7 @@
 #ifndef __interface__world__
 #define __interface__world__
 
+
 const float WORLD_SIZE = 10.0;
 #define PI 3.14159265
 

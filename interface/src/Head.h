@@ -88,8 +88,8 @@ public:
     
     float getLoudness() {return loudness;};
     float getAverageLoudness() {return averageLoudness;};
-    float setAverageLoudness(float al) {averageLoudness = al;};
-    float setLoudness(float l) {loudness = l;};
+    void setAverageLoudness(float al) {averageLoudness = al;};
+    void setLoudness(float l) {loudness = l;};
     
     void SetNewHeadTarget(float, float);
     glm::vec3 getPos() { return position; };
