@@ -1,6 +1,6 @@
 //
-//  spaceserver.cpp
-//  interface
+//  main.cpp
+//  space
 //
 //  Created by Leonardo Murillo on 2/6/13.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
@@ -29,10 +29,8 @@ const int CHILDREN_PER_NODE = 8;
 const char *CONFIG_FILE = "/etc/below92/spaceserver.data.txt";
 const int UDP_PORT = 55551;
 std::vector< std::vector<std::string> > configData;
-sockaddr_in address, dest_address;
-socklen_t destLength = sizeof(dest_address);
-const int BUFFER_LENGTH_BYTES = 1024;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+sockaddr_in address, destAddress;
+socklen_t destLength = sizeof(destAddress);
 
 std::string EMPTY_STRING = "";
 
@@ -92,7 +90,7 @@ int network_init()
     return handle;
 }
 
-treeNode *FindOrCreateNode(unsigned long lengthInBits,
+treeNode *findOrCreateNode(unsigned long lengthInBits,
                            unsigned char *addressBytes,
                            std::string *hostname,
                            std::string *nickname,
@@ -118,8 +116,6 @@ treeNode *FindOrCreateNode(unsigned long lengthInBits,
             octet = octetA | octetB;
         }
         
-        printBinaryValue(octet);
-        
         if (currentNode->child[octet] == NULL) {
             currentNode->child[octet] = new treeNode;
         } else if (!currentNode->child[octet]->hostname->empty()) {
@@ -137,7 +133,7 @@ treeNode *FindOrCreateNode(unsigned long lengthInBits,
     return currentNode;
 };
 
-bool LoadSpaceData(void) {
+bool loadSpaceData(void) {
     std::ifstream configFile(CONFIG_FILE);
     std::string line;
     
@@ -202,7 +198,7 @@ bool LoadSpaceData(void) {
             ++j;
         }
         
-        FindOrCreateNode(bitsInAddress, addressBytes, thisHostname, thisNickname, 0);
+        findOrCreateNode(bitsInAddress, addressBytes, thisHostname, thisNickname, 0);
     }
     return true;
 }
@@ -222,7 +218,7 @@ int main (int argc, const char *argv[]) {
     rootNode.hostname = &ROOT_HOSTNAME;
     rootNode.nickname = &ROOT_NICKNAME;
     
-    LoadSpaceData();
+    loadSpaceData();
     
     std::cout << "[DEBUG] Listening for Datagrams" << std::endl;
     
@@ -230,8 +226,8 @@ int main (int argc, const char *argv[]) {
         received_bytes = recvfrom(handle, (unsigned char*)packet_data, BUFFER_LENGTH_BYTES, 0, (sockaddr*)&dest_address, &destLength);
         if (received_bytes > 0) {
             unsigned long lengthInBits;
-            // I assume this will be asted to long properly...
             lengthInBits = packet_data[0] * 3;
+            
             unsigned char addressData[sizeof(packet_data)-1];
             for (int i = 0; i < sizeof(packet_data)-1; ++i) {
                 addressData[i] = packet_data[i+1];
@@ -242,7 +238,7 @@ int main (int argc, const char *argv[]) {
             int domain_id = 0;
             long sentBytes;
             
-            treeNode thisNode = *FindOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
+            treeNode thisNode = *findOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
             
             if (thisNode.hostname->empty()) {
                 hostnameHolder = *LAST_KNOWN_HOSTNAME;
