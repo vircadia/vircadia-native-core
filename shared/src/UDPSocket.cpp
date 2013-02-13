@@ -41,13 +41,6 @@ UDPSocket::UDPSocket(int listeningPort) {
         return;
     }
     
-    //  set socket as non-blocking
-    int nonBlocking = 1;
-    if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
-        printf("Failed to set non-blocking socket\n");
-        return;
-    }
-    
     printf("Created UDP socket listening on port %d.\n", listeningPort);
 }
 

@@ -111,7 +111,7 @@ struct sendBufferStruct {
     UDPSocket *audioSocket;
 };
 
-void *sendBufferThread(void *args)
+void *sendBuffer(void *args)
 {
     struct sendBufferStruct *bufferArgs = (struct sendBufferStruct *)args;
     UDPSocket *audioSocket = bufferArgs->audioSocket;
@@ -258,8 +258,8 @@ int main(int argc, const char * argv[])
     struct sendBufferStruct sendBufferArgs;
     sendBufferArgs.audioSocket = &audioSocket;
 
-    pthread_t bufferSendThread;
-    pthread_create(&bufferSendThread, NULL, sendBufferThread, (void *)&sendBufferArgs);
+    pthread_t sendBufferThread;
+    pthread_create(&sendBufferThread, NULL, sendBuffer, (void *)&sendBufferArgs);
 
     while (true) {
         if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {

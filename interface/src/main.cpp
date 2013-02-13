@@ -63,7 +63,7 @@ const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
 //  For testing, add milliseconds of delay for received UDP packets
-char* incoming_packet;
+char* incomingPacket;
 
 int packetcount = 0;
 int packets_per_second = 0; 
@@ -777,53 +777,57 @@ void key(unsigned char k, int x, int y)
 //
 //  Receive packets from other agents/servers and decide what to do with them!
 //
-void read_network()
+void *networkReceive(void *args)
 {
     sockaddr_in senderAddress;
-    int bytes_recvd;
-    while (agentSocket.receive(&senderAddress, (void *)incoming_packet, &bytes_recvd))
-    {
-        packetcount++;
-        bytescount += bytes_recvd;
-        //  If packet is a Mouse data packet, copy it over 
-        if (incoming_packet[0] == 'P') {
-            //
-            //  Got Ping, reply immediately!
-            //
-            //printf("Replying to ping!\n");
-            char reply[] = "R";
-            agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
-        } else if (incoming_packet[0] == 'R') {
-            //
-            //  Got Reply, record as appropriate
-            //
-            setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
-        
-        } else if (incoming_packet[0] == 'M') {
-            // 
-            //  mouse location packet 
-            //
-            sscanf(incoming_packet, "M %d %d", &target_x, &target_y);
-            target_display = 1;
-            //printf("X = %d Y = %d\n", target_x, target_y);
-        } else if (incoming_packet[0] == 'D') {
-            //
-            //  Message from domainserver
-            //
-            //printf("agent list received!\n");
-            nearbyAgents = update_agents(&incoming_packet[1], bytes_recvd - 1);
-        } else if (incoming_packet[0] == 'H') {
-            //
-            //  Broadcast packet from another agent 
-            //
-            update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incoming_packet[1], bytes_recvd - 1);
-        } else if (incoming_packet[0] == 'T') {
-            //  Received a self-test packet (to get one's own IP), copy it to local variable!
-            printf("My Address: %s:%u\n",
-                   inet_ntoa(senderAddress.sin_addr),
-                   senderAddress.sin_port);
+    int bytesRecvd;
+    while (true) {
+        if (agentSocket.receive(&senderAddress, (void *)incomingPacket, &bytesRecvd)) {
+            
+            packetcount++;
+            bytescount += bytesRecvd;
+            //  If packet is a Mouse data packet, copy it over
+            if (incomingPacket[0] == 'P') {
+                //
+                //  Got Ping, reply immediately!
+                //
+                //printf("Replying to ping!\n");
+                char reply[] = "R";
+                agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
+            } else if (incomingPacket[0] == 'R') {
+                //
+                //  Got Reply, record as appropriate
+                //
+                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
+                
+            } else if (incomingPacket[0] == 'M') {
+                //
+                //  mouse location packet
+                //
+                sscanf(incomingPacket, "M %d %d", &target_x, &target_y);
+                target_display = 1;
+                //printf("X = %d Y = %d\n", target_x, target_y);
+            } else if (incomingPacket[0] == 'D') {
+                //
+                //  Message from domainserver
+                //
+                //printf("agent list received!\n");
+                nearbyAgents = update_agents(&incomingPacket[1], bytesRecvd - 1);
+            } else if (incomingPacket[0] == 'H') {
+                //
+                //  Broadcast packet from another agent
+                //
+                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesRecvd - 1);
+            } else if (incomingPacket[0] == 'T') {
+                //  Received a self-test packet (to get one's own IP), copy it to local variable!
+                printf("My Address: %s:%u\n",
+                       inet_ntoa(senderAddress.sin_addr),
+                       senderAddress.sin_port);
+            }
         }
     }
+    
+    pthread_exit(0); 
 }
 
 void idle(void)
@@ -852,8 +856,6 @@ void idle(void)
         
     }
     
-    //  Read network packets
-    read_network();
     //  Read serial data 
     if (serial_on) serialPort.readData();
     if (SLEEP)
@@ -938,7 +940,7 @@ void *poll_marker_capture(void *threadarg){
 int main(int argc, char** argv)
 {
     //  Create network socket and buffer
-    incoming_packet = new char[MAX_PACKET_SIZE];
+    incomingPacket = new char[MAX_PACKET_SIZE];
     
     //  Lookup the IP address of things we have hostnames 
     printf("need to look this one up\n");
@@ -996,6 +998,10 @@ int main(int argc, char** argv)
         printf("Serial Port Initialized\n");
         serial_on = 1; 
     }
+    
+    // create thread for receipt of data via UDP
+    pthread_t networkReceiveThread;
+    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -1045,6 +1051,7 @@ int main(int argc, char** argv)
     }
 #endif
     
+    pthread_join(networkReceiveThread, NULL);
     ::terminate();
     return EXIT_SUCCESS;
 }   
