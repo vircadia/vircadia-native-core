@@ -5,6 +5,8 @@
 //  Created by Philip Rosedale on 11/20/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
+//  The Domain Server
+//  
 
 #include <iostream>
 #include <math.h>
@@ -33,12 +35,13 @@ const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 2000;
 
 struct AgentList {
+    char agentType;
     uint32_t ip;
     in_addr sin_addr;
     in_port_t port;
     float x, y, z;
     bool active;
-    timeval time;
+    timeval time, connectTime;
 } agents[MAX_AGENTS];
 
 int num_agents = 0;
@@ -89,7 +92,7 @@ int network_init()
     return handle;
 }
 
-int addAgent(uint32_t ip, in_port_t port, float x, float y, float z) {
+int addAgent(uint32_t ip, in_port_t port, char agentType, float x, float y, float z) {
     //  Search for agent in list and add if needed 
     int i = 0;
     int is_new = 0; 
@@ -104,7 +107,9 @@ int addAgent(uint32_t ip, in_port_t port, float x, float y, float z) {
     agents[i].active = true;
     agents[i].sin_addr.s_addr = ip;
     agents[i].port = port;
+    agents[i].agentType = agentType;
     gettimeofday(&agents[i].time, NULL);
+    if (is_new) gettimeofday(&agents[i].connectTime, NULL);
     if (i == num_agents) {
         num_agents++;
     }
@@ -117,7 +122,7 @@ void update_agent_list(timeval now) {
     for (i = 0; i < num_agents; i++) {
         if ((diffclock(agents[i].time, now) > LOGOFF_CHECK_INTERVAL) &&
             agents[i].active) {
-            std::cout << "Expired Agent from " <<
+            std::cout << "Expired Agent type " << agents[i].agentType << " from " <<
             inet_ntoa(agents[i].sin_addr) << ":" << agents[i].port << "\n";
             agents[i].active = false; 
         }
@@ -135,12 +140,14 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
     //std::cout << "send list to:  " << inet_ntoa(dest_address->sin_addr) << "\n";
     for (i = 0; i < num_agents; i++) {
         if (agents[i].active) {
+            // Write the type of the agent
+            buffer[length++] = agents[i].agentType;
             // Write agent's IP address
             address = inet_ntoa(agents[i].sin_addr);
             memcpy(&buffer[length], address, strlen(address));
             length += strlen(address);
             //  Add port number
-            buffer[length++] = ':';
+            buffer[length++] = ' ';
             sprintf(portstring, "%d\n", agents[i].port);
             memcpy(&buffer[length], portstring, strlen(portstring));
             length += strlen(portstring);
@@ -185,9 +192,10 @@ int main(int argc, const char * argv[])
             //std::cout << "Packet from: " << inet_ntoa(dest_address.sin_addr) 
             //<< " " << packet_data << "\n";
             float x,y,z;
-            sscanf(packet_data, "%f,%f,%f", &x, &y, &z);
-            if (addAgent(dest_address.sin_addr.s_addr, ntohs(dest_address.sin_port), x, y, z)) {
-                std::cout << "Added Agent from " <<
+            char agentType; 
+            sscanf(packet_data, "%c %f,%f,%f", &agentType, &x, &y, &z);
+            if (addAgent(dest_address.sin_addr.s_addr, ntohs(dest_address.sin_port), agentType, x, y, z)) {
+                std::cout << "Added Agent, type " << agentType << " from " <<
                 inet_ntoa(dest_address.sin_addr) << ":" << ntohs(dest_address.sin_port) << "\n";
             }
             //  Reply with packet listing nearby active agents

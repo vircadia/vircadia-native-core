@@ -20,6 +20,7 @@ struct AgentList {
     unsigned short port;
     timeval pingStarted;
     int pingMsecs;
+    char agentType;
     Head head;
 } agents[MAX_AGENTS];
 
@@ -35,18 +36,16 @@ int update_agents(char * data, int length) {
     size_t spot;
     size_t start_spot = 0;
     std::string address, port;
+    char agentType;
     unsigned short nPort = 0;
+    unsigned int iPort = 0;
     spot = packet.find_first_of (",", 0);
     while (spot != std::string::npos) {
         std::string thisAgent = packet.substr(start_spot, spot-start_spot);
-        if (thisAgent.find_first_of(":", 0) != std::string::npos) {
-            address = thisAgent.substr(0, thisAgent.find_first_of(":", 0));
-            port = thisAgent.substr(thisAgent.find_first_of(":", 0) + 1,
-                                    thisAgent.length() - thisAgent.find_first_of(":", 0));
-            nPort = atoi(port.c_str());
-        }
-        //std::cout << "IP: " << address << ", port: " << nPort << "\n";
-        add_agent((char *)address.c_str(), nPort);
+        //std::cout << "raw string: " << thisAgent << "\n";
+        sscanf(thisAgent.c_str(), "%c %s %u", &agentType, address.c_str(), &iPort);
+        nPort = (unsigned short) iPort; 
+        add_agent((char *)address.c_str(), nPort, agentType);
         numAgents++;
         start_spot = spot + 1;
         if (start_spot < packet.length())
@@ -83,7 +82,7 @@ void update_agent(char * address, unsigned short port, char * data, int length)
 //
 //  Look for an agent by it's IP number, add if it does not exist in local list 
 //
-int add_agent(char * address, unsigned short port) {
+int add_agent(char * address, unsigned short port, char agentType) {
     //std::cout << "Checking for " << IP->c_str() << "  ";
     for (int i = 0; i < num_agents; i++) {
         if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
@@ -94,6 +93,7 @@ int add_agent(char * address, unsigned short port) {
     if (num_agents < MAX_AGENTS) {
         strcpy(agents[num_agents].address, address);
         agents[num_agents].port = port;
+        agents[num_agents].agentType = agentType;
         std::cout << "Added Agent # " << num_agents << " with Address " <<
          agents[num_agents].address << ":" << agents[num_agents].port << "\n";
         num_agents++;
@@ -110,17 +110,9 @@ int add_agent(char * address, unsigned short port) {
 int broadcastToAgents(UDPSocket *handle, char * data, int length) {
     int sent_bytes;
     //printf("broadcasting to %d agents\n", num_agents);
-    for (int i = 0; i < num_agents; i++) {
-        //printf("bcast to %s\n", agents[i].address);
-        //
-        //  STUPID HACK:  For some reason on OSX with NAT translation packets sent to localhost are
-        //  received as from the NAT translated port but have to be sent to the local port number.
-        //  
-        //if (1)  //(strcmp("192.168.1.53",agents[i].address) == 0)
-        //    sent_bytes = handle->send(agents[i].address, 40103, data, length);
-        //else
+    for (int i = 0; i < num_agents; i++) {       
+        //std::cout << "to: Agent address " << agents[i].address << " port " << agents[i].port << "\n";
         sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
-        
         if (sent_bytes != length) {
             std::cout << "Broadcast packet fail!\n";
             return 0;
@@ -135,7 +127,7 @@ void pingAgents(UDPSocket *handle) {
     for (int i = 0; i < num_agents; i++) {
         gettimeofday(&agents[i].pingStarted, NULL);
         handle->send(agents[i].address, agents[i].port, payload, 1);
-        printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
+        //printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
     }
 }
 
@@ -146,7 +138,7 @@ void setAgentPing(char * address, unsigned short port) {
             timeval pingReceived;
             gettimeofday(&pingReceived, NULL);
             float pingMsecs = diffclock(&agents[i].pingStarted, &pingReceived);
-            printf("Received ping at %d usecs, Agent ping = %3.1f\n", pingReceived.tv_usec, pingMsecs);
+            //printf("Received ping at %d usecs, Agent ping = %3.1f\n", pingReceived.tv_usec, pingMsecs);
             agents[i].pingMsecs = pingMsecs;
         }
     }

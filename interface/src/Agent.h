@@ -20,7 +20,7 @@
 
 
 int update_agents(char * data, int length);
-int add_agent(char * address, unsigned short port);
+int add_agent(char * address, unsigned short port, char agentType);
 int broadcastToAgents(UDPSocket * handle, char * data, int length);
 void pingAgents(UDPSocket *handle);
 void setAgentPing(char * address, unsigned short port);

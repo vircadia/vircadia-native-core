@@ -56,7 +56,7 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 const int AGENT_UDP_PORT = 40103;
-char DOMAINSERVER_IP[] = "192.168.1.53";
+char DOMAINSERVER_IP[] = "127.0.0.1";
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -224,9 +224,11 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
     
+    //
     //  Send a message to the domainserver telling it we are ALIVE
+    // 
     char output[100];
-    sprintf(output, "%f,%f,%f", location[0], location[1], location[2]);
+    sprintf(output, "%c %f,%f,%f", 'I', location[0], location[1], location[2]);
     int packet_size = strlen(output);
     agentSocket.send(DOMAINSERVER_IP, DOMAINSERVER_PORT, output, packet_size);
     
@@ -239,9 +241,9 @@ void Timer(int extra)
         gettimeofday(&starttest, NULL);
         char junk[1000];
         junk[0] = 'J';
-        for (int i = 0; i < 3000; i++)
+        for (int i = 0; i < 10000; i++)
         {
-            agentSocket.send("192.168.1.38", AGENT_UDP_PORT, junk, 1000);
+            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
         }
         gettimeofday(&endtest, NULL);
         float sendTime = diffclock(&starttest, &endtest);
@@ -801,7 +803,7 @@ void read_network()
             //
             //  Got Ping, reply immediately!
             //
-            printf("Replying to ping!\n");
+            //printf("Replying to ping!\n");
             char reply[] = "R";
             agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
         } else if (incoming_packet[0] == 'R') {
