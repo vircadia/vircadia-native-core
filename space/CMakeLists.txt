@@ -4,4 +4,4 @@ project(space)
 
 file(GLOB SPACE_SRCS src/*.cpp src/*.h)
 
-add_executable(space ${DOMAIN_SRCS})
+add_executable(space ${SPACE_SRCS})
