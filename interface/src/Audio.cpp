@@ -38,8 +38,9 @@ const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 
 const short NUM_AUDIO_SOURCES = 2;
 const short ECHO_SERVER_TEST = 1;
 
-char WORKCLUB_AUDIO_SERVER[] = "192.168.1.19";
-char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
+char LOCALHOST_MIXER[] = "0.0.0.0";
+char WORKCLUB_MIXER[] = "192.168.1.19";
+char EC2_WEST_MIXER[] = "54.241.92.53";
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
@@ -88,7 +89,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        data->audioSocket->send((char *) EC2_WEST_AUDIO_SERVER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        data->audioSocket->send((char *) EC2_WEST_MIXER, 55443, (void *)inputLeft, BUFFER_LENGTH_BYTES);
         //
         //  Measure the loudness of the signal from the microphone and store in audio object
         //

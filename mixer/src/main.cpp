@@ -36,8 +36,7 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int MAX_SOURCE_BUFFERS = 20;
 
-sockaddr_in address, destAddress;
-socklen_t destLength = sizeof(destAddress);
+sockaddr_in agentAddress;
 
 struct AgentList {
     char *address;
@@ -62,25 +61,29 @@ double usecTimestamp(timeval *time, double addedUsecs = 0) {
     return (time->tv_sec * 1000000.0) + time->tv_usec + addedUsecs;
 }
 
-int addAgent(sockaddr_in agentAddress, void *audioData) {
+int addAgent(sockaddr_in *newAddress, void *audioData) {
     //  Search for agent in list and add if needed 
     int is_new = 0; 
     int i = 0;
 
-    for (i = 0; i < numAgents; i++) {
-        if (strcmp(inet_ntoa(agentAddress.sin_addr), agents[i].address) == 0
-            && agentAddress.sin_port == agents[i].port) {
+    for (i = 0; i < numAgents; i++) {       
+        if (strcmp(inet_ntoa(newAddress->sin_addr), agents[i].address) == 0
+            && ntohs(newAddress->sin_port) == agents[i].port) {
             break;
         }        
     }
     
     if ((i == numAgents) || (agents[i].active == false)) {
         is_new = 1;
+        
+        agents[i].address = new char();
+        strcpy(agents[i].address, inet_ntoa(newAddress->sin_addr));
+    
         agents[i].bufferTransmitted = false;
     }
-
-    agents[i].address = inet_ntoa(agentAddress.sin_addr);
-    agents[i].port = ntohs(agentAddress.sin_port);
+    
+    
+    agents[i].port = ntohs(newAddress->sin_port);
     agents[i].active = true;
     gettimeofday(&agents[i].time, NULL);
 
@@ -112,7 +115,7 @@ struct sendBufferStruct {
     UDPSocket *audioSocket;
 };
 
-void *sendBufferThread(void *args)
+void *sendBuffer(void *args)
 {
     struct sendBufferStruct *bufferArgs = (struct sendBufferStruct *)args;
     UDPSocket *audioSocket = bufferArgs->audioSocket;
@@ -176,7 +179,6 @@ void *sendBufferThread(void *args)
                         ? masterMix[as] - previousOutput[as]
                         : masterMix[as];
 
-    
                     int16_t shortSample;
                     
                     if (longSample < 0) {
@@ -196,7 +198,7 @@ void *sendBufferThread(void *args)
                    
                 }
 
-                audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
+                sentBytes = audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
@@ -220,26 +222,6 @@ void *sendBufferThread(void *args)
     pthread_exit(0);  
 }
 
-struct processArgStruct {
-    int16_t *packetData;
-    sockaddr_in destAddress;
-};
-
-void *processClientPacket(void *args)
-{
-    struct processArgStruct *processArgs = (struct processArgStruct *) args;
-    
-    sockaddr_in destAddress = processArgs->destAddress;
-
-    if (addAgent(destAddress, processArgs->packetData)) {
-        std::cout << "Added agent: " << 
-            inet_ntoa(destAddress.sin_addr) << " on " <<
-            ntohs(destAddress.sin_port) << "\n";
-    }    
-
-    pthread_exit(0);
-}
-
 int main(int argc, const char * argv[])
 {
     timeval lastAgentUpdate;
@@ -259,22 +241,21 @@ int main(int argc, const char * argv[])
     struct sendBufferStruct sendBufferArgs;
     sendBufferArgs.audioSocket = &audioSocket;
 
-    pthread_t bufferSendThread;
-    pthread_create(&bufferSendThread, NULL, sendBufferThread, (void *)&sendBufferArgs);
+    pthread_t sendBufferThread;
+    pthread_create(&sendBufferThread, NULL, sendBuffer, (void *)&sendBufferArgs);
 
     while (true) {
-        if(audioSocket.receive(packetData, &receivedBytes)) {
-            struct processArgStruct args;
-            args.packetData = packetData;
-            args.destAddress = destAddress;
+        if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
             
-            pthread_t clientProcessThread;
-            pthread_create(&clientProcessThread, NULL, processClientPacket, (void *)&args);
-            pthread_join(clientProcessThread, NULL);
+            if (addAgent(&agentAddress, packetData)) {
+                std::cout << "Added agent: " <<
+                inet_ntoa(agentAddress.sin_addr) << " on " <<
+                ntohs(agentAddress.sin_port) << "\n";
+            }
         }
     }
 
-    pthread_join(bufferSendThread, NULL);
+    pthread_join(sendBufferThread, NULL);
     
     return 0;
 }

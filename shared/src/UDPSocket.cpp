@@ -13,7 +13,6 @@
 #include <cstdio>
 
 sockaddr_in destSockaddr, senderAddress;
-socklen_t addLength = sizeof(senderAddress);
 
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
@@ -41,13 +40,6 @@ UDPSocket::UDPSocket(int listeningPort) {
         return;
     }
     
-    //  set socket as non-blocking
-    int nonBlocking = 1;
-    if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
-        printf("Failed to set non-blocking socket\n");
-        return;
-    }
-    
     printf("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
@@ -58,17 +50,16 @@ UDPSocket::~UDPSocket() {
 //  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
     
-    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, (sockaddr *)&senderAddress, &addLength);
-    
-    return (*receivedBytes > 0);
+    return receive(&senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr_in *senderAddress, void *receivedData, int *receivedBytes) {
+bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, int *receivedBytes) {
+    
+    socklen_t addressSize = sizeof(&recvAddress);
     
     *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, (sockaddr *)senderAddress, &addLength);
+                              0, (sockaddr *) recvAddress, &addressSize);
     
     return (*receivedBytes > 0);
 }
