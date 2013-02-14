@@ -17,7 +17,7 @@
 #include "SerialInterface.h"
 
 int serial_fd;
-const int MAX_BUFFER = 100;
+const int MAX_BUFFER = 255;
 char serial_buffer[MAX_BUFFER];
 int serial_buffer_pos = 0;
 int samples_total = 0;
@@ -64,6 +64,11 @@ int SerialInterface::init(char * portname, int baud)
         lastMeasured[i] = 0;
         trailingAverage[i] = 0.0;
     }
+    //  Clear serial input buffer
+    for (int i = 1; i < MAX_BUFFER; i++) {
+        serial_buffer[i] = ' ';
+    }
+
 
     return 0;                   //  Init serial port was a success
 }
@@ -127,42 +132,40 @@ void SerialInterface::readData() {
     //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
     const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
     char bufchar[1];
-    while (read(serial_fd, bufchar, 1) > 0)
+    
+    while (read(serial_fd, &bufchar, 1) > 0)
     {
+        //std::cout << bufchar[0];
         serial_buffer[serial_buffer_pos] = bufchar[0];
         serial_buffer_pos++;
         //  Have we reached end of a line of input?
         if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER))
         {
-            //  At end - Extract value from string to variables
-            if (serial_buffer[0] != 'p')
-            {
-                //  NOTE: This is stupid, need to rewrite to properly scan for NUM_CHANNELS + 2
-                //
-                sscanf(serial_buffer, "%d %d %d %d %d %d %d %d",    
-                       &lastMeasured[0],
-                       &lastMeasured[1],
-                       &lastMeasured[2],
-                       &lastMeasured[3],
-                       &lastMeasured[4],
-                       &lastMeasured[5],
-                       &samplesAveraged,
-                       &LED
-                       );
-                for (int i = 0; i < NUM_CHANNELS; i++)
-                {
-                    if (samples_total > 0)
-                        trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
-                        AVG_RATE[i]*(float)lastMeasured[i];
-                    else
-                    {
-                        trailingAverage[i] = (float)lastMeasured[i];
-                    }
-                }
-                samples_total++;
+            std::string serialLine(serial_buffer, serial_buffer_pos-1);
+            //std::cout << serialLine << "\n";
+            int spot;
+            //int channel = 0;
+            std::string val;
+            for (int i = 0; i < NUM_CHANNELS + 2; i++) {
+                spot = serialLine.find_first_of(" ", 0);
+                if (spot != std::string::npos) {
+                    val = serialLine.substr(0,spot);
+                    //std::cout << val << "\n";
+                    if (i < NUM_CHANNELS) lastMeasured[i] = atoi(val.c_str());
+                    else samplesAveraged = atoi(val.c_str());
+                } else LED = atoi(serialLine.c_str());
+                serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
             }
-            //  Clear rest of string for printing onscreen
-            while(serial_buffer_pos++ < MAX_BUFFER) serial_buffer[serial_buffer_pos] = ' ';
+            //std::cout << LED << "\n";
+            
+            for (int i = 0; i < NUM_CHANNELS; i++) {
+                if (samples_total > 0)
+                    trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
+                    AVG_RATE[i]*(float)lastMeasured[i];
+                else  trailingAverage[i] = (float)lastMeasured[i];
+                   
+            }
+            samples_total++;
             serial_buffer_pos = 0;
         }
     }
