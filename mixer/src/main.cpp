@@ -171,12 +171,10 @@ void *sendBuffer(void *args)
                 }
 
                 for(int as = 0; as < BUFFER_LENGTH_SAMPLES; as++) {
-//                    long longSample = previousOutput != NULL 
-//                        ? masterMix[as] - previousOutput[as]
-//                        : masterMix[as];
+                    long longSample = previousOutput != NULL 
+                        ? masterMix[as] - previousOutput[as]
+                        : masterMix[as];
 
-                    long longSample = masterMix[as];
-    
                     int16_t shortSample;
                     
                     if (longSample < 0) {
