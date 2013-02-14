@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+set(GLM_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
+set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
+set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
+
 project(interface)
 
 if (APPLE)
@@ -13,7 +18,9 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
-add_executable(interface ${INTERFACE_SRCS} ${HIFI_SHARED_SRCS})
+add_executable(interface ${INTERFACE_SRCS})
+include(../LinkHifiShared.cmake)
+link_hifi_shared_library(interface)
 
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
@@ -22,7 +29,6 @@ find_package(LodePNG REQUIRED)
 
 include_directories(
     ${PROJECT_BINARY_DIR}/includes
-    ${HIFI_SHARED_DIR}
     ${OPENGL_INCLUDE_DIRS}
     ${GLUT_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS} 
