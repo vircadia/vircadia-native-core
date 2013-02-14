@@ -58,7 +58,7 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -929,19 +929,18 @@ int main(int argc, char** argv)
     incomingPacket = new char[MAX_PACKET_SIZE];
     
     //  Lookup the IP address of things we have hostnames
-    /*
-    printf("need to look this one up\n");
-    struct hostent* pHostInfo;
-    if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
-        sockaddr_in tempAddress;
-        memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-        strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-        printf("Domain server found: %s\n", DOMAIN_IP);
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
 
-    } else {
-        printf("Failed lookup domain server\n");
-    }
-    */
+        } else {
+            printf("Failed lookup domainserver\n");
+        }
+    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     
     //std::cout << "Test address: " << inet_ntoa(testAddress.sin_addr) << "\n";
     

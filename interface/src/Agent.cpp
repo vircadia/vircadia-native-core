@@ -63,7 +63,7 @@ void render_agents(int renderSelf, float * myLocation) {
         glPushMatrix();
         if (!agents[i].isSelf || renderSelf) {
             glTranslatef(-pos.x, -pos.y, -pos.z);
-            agents[i].head.render(0);
+            agents[i].head.render(0, myLocation);
         }
         glPopMatrix();
     }
