@@ -13,7 +13,6 @@
 #include <cstdio>
 
 sockaddr_in destSockaddr, senderAddress;
-socklen_t addLength = sizeof(senderAddress);
 
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
@@ -55,10 +54,12 @@ bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr_in *senderAddress, void *receivedData, int *receivedBytes) {
+bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, int *receivedBytes) {
+    
+    socklen_t addressSize = sizeof(&recvAddress);
     
     *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, (sockaddr *)senderAddress, &addLength);
+                              0, (sockaddr *) recvAddress, &addressSize);
     
     return (*receivedBytes > 0);
 }

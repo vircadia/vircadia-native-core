@@ -61,25 +61,29 @@ double usecTimestamp(timeval *time, double addedUsecs = 0) {
     return (time->tv_sec * 1000000.0) + time->tv_usec + addedUsecs;
 }
 
-int addAgent(sockaddr_in agentAddress, void *audioData) {
+int addAgent(sockaddr_in *newAddress, void *audioData) {
     //  Search for agent in list and add if needed 
     int is_new = 0; 
     int i = 0;
 
-    for (i = 0; i < numAgents; i++) {
-        if (strcmp(inet_ntoa(agentAddress.sin_addr), agents[i].address) == 0
-            && ntohs(agentAddress.sin_port) == agents[i].port) {
+    for (i = 0; i < numAgents; i++) {       
+        if (strcmp(inet_ntoa(newAddress->sin_addr), agents[i].address) == 0
+            && ntohs(newAddress->sin_port) == agents[i].port) {
             break;
         }        
     }
     
     if ((i == numAgents) || (agents[i].active == false)) {
         is_new = 1;
+        
+        agents[i].address = new char();
+        strcpy(agents[i].address, inet_ntoa(newAddress->sin_addr));
+    
         agents[i].bufferTransmitted = false;
     }
-
-    agents[i].address = inet_ntoa(agentAddress.sin_addr);
-    agents[i].port = ntohs(agentAddress.sin_port);
+    
+    
+    agents[i].port = ntohs(newAddress->sin_port);
     agents[i].active = true;
     gettimeofday(&agents[i].time, NULL);
 
@@ -218,26 +222,6 @@ void *sendBuffer(void *args)
     pthread_exit(0);  
 }
 
-struct processArgStruct {
-    int16_t *packetData;
-    sockaddr_in agentAddress;
-};
-
-void *processClientPacket(void *args)
-{
-    struct processArgStruct *processArgs = (struct processArgStruct *) args;
-    
-    sockaddr_in agentAddress = processArgs->agentAddress;
-
-    if (addAgent(agentAddress, processArgs->packetData)) {
-        std::cout << "Added agent: " << 
-            inet_ntoa(agentAddress.sin_addr) << " on " <<
-            ntohs(agentAddress.sin_port) << "\n";
-    }    
-
-    pthread_exit(0);
-}
-
 int main(int argc, const char * argv[])
 {
     timeval lastAgentUpdate;
@@ -262,13 +246,12 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
-            struct processArgStruct args;
-            args.packetData = packetData;
-            args.agentAddress = agentAddress;
             
-            pthread_t clientProcessThread;
-            pthread_create(&clientProcessThread, NULL, processClientPacket, (void *)&args);
-            pthread_join(clientProcessThread, NULL);
+            if (addAgent(&agentAddress, packetData)) {
+                std::cout << "Added agent: " <<
+                inet_ntoa(agentAddress.sin_addr) << " on " <<
+                ntohs(agentAddress.sin_port) << "\n";
+            }
         }
     }
 
