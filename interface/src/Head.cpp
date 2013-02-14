@@ -206,117 +206,126 @@ void Head::simulate(float deltaTime)
                          
 }
       
-void Head::render(int faceToFace)
+void Head::render(int faceToFace, float * myLocation)
 {
-    int side = 0; 
+    int side = 0;
     
-    glEnable(GL_DEPTH_TEST);
-    glPushMatrix();
+    glm::vec3 cameraHead(myLocation[0], myLocation[1], myLocation[2]);
+    float distanceToCamera = glm::distance(cameraHead, position);
+    
+    //std::cout << distanceToCamera << "\n";
+    
+    //  Don't render a head if it is really close to your location, because that is your own head!
+    if (distanceToCamera > 0.1) {
+        glEnable(GL_DEPTH_TEST);
+        glPushMatrix();
 
-    glScalef(scale, scale, scale);
-    glTranslatef(leanSideways, 0.f, leanForward);
+        glScalef(scale, scale, scale);
+        glTranslatef(leanSideways, 0.f, leanForward);
 
-    glRotatef(Yaw/2.0, 0, 1, 0);
-    glRotatef(Pitch/2.0, 1, 0, 0);
-    glRotatef(Roll/2.0, 0, 0, 1);
+        glRotatef(Yaw/2.0, 0, 1, 0);
+        glRotatef(Pitch/2.0, 1, 0, 0);
+        glRotatef(Roll/2.0, 0, 0, 1);
 
-    
-    // Overall scale of head
-    if (faceToFace) glScalef(1.5, 2.0, 2.0);
-    glColor3fv(skinColor);
-    
-    //  Head
-    glutSolidSphere(1, 30, 30);           
-    
-    //  Ears
-    glPushMatrix();
-        glTranslatef(1, 0, 0);
-        for(side = 0; side < 2; side++)
+        
+        // Overall scale of head
+        if (faceToFace) glScalef(1.5, 2.0, 2.0);
+        glColor3fv(skinColor);
+        
+        //  Head
+        glutSolidSphere(1, 30, 30);           
+        
+        //  Ears
+        glPushMatrix();
+            glTranslatef(1, 0, 0);
+            for(side = 0; side < 2; side++)
+            {
+                glPushMatrix();
+                    glScalef(0.5, 0.75, 1.0);
+                    glutSolidSphere(0.5, 30, 30);  
+                glPopMatrix();
+                glTranslatef(-2, 0, 0);
+            }
+        glPopMatrix();
+        
+
+        // Eyebrows
+        glPushMatrix();
+            glTranslatef(-interBrowDistance/2.0,0.4,0.45);
+            for(side = 0; side < 2; side++)
+            {
+                glColor3fv(browColor);
+                glPushMatrix();
+                    glTranslatef(0, 0.4, 0);
+                    glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
+                    glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
+                    glScalef(browWidth, browThickness, 1);
+                    glutSolidCube(0.5);
+                glPopMatrix();
+                glTranslatef(interBrowDistance, 0, 0);
+            }
+        glPopMatrix();
+        
+        
+        // Mouth
+        
+        glPushMatrix();
+            glTranslatef(0,-0.3,0.75);
+            glColor3f(loudness/1000.0,0,0);
+            glRotatef(MouthPitch, 1, 0, 0);
+            glRotatef(MouthYaw, 0, 0, 1);
+            glScalef(MouthWidth*(.5 + averageLoudness/3000.0), MouthHeight*(1.0 + averageLoudness/6000.0), 1);
+            glutSolidCube(0.5);
+        glPopMatrix();
+        
+        glTranslatef(0, 1.0, 0);
+       
+        glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
+        // Right Eye
+        glRotatef(-10, 1, 0, 0);
+        glColor3fv(eyeColor);
+        glPushMatrix(); 
         {
-            glPushMatrix();
-                glScalef(0.5, 0.75, 1.0);
-                glutSolidSphere(0.5, 30, 30);  
-            glPopMatrix();
-            glTranslatef(-2, 0, 0);
+            glTranslatef(interPupilDistance/10.0, 0, 0.05);
+            glRotatef(20, 0, 0, 1);
+            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+            glutSolidSphere(0.25, 30, 30);
         }
-    glPopMatrix();
-    
+        glPopMatrix();
+        // Right Pupil
+        glPushMatrix();
+            glRotatef(EyeballPitch[1], 1, 0, 0);
+            glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
+            glTranslatef(0,0,.35);
+                    if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
+            //glRotatef(90,0,1,0);
+            glutSolidSphere(PupilSize, 15, 15);
 
-    // Eyebrows
-    glPushMatrix();
-        glTranslatef(-interBrowDistance/2.0,0.4,0.45);
-        for(side = 0; side < 2; side++)
+        glPopMatrix();
+        // Left Eye
+        glColor3fv(eyeColor);
+        glTranslatef(interPupilDistance, 0, 0);
+        glPushMatrix(); 
         {
-            glColor3fv(browColor);
-            glPushMatrix();
-                glTranslatef(0, 0.4, 0);
-                glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
-                glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
-                glScalef(browWidth, browThickness, 1);
-                glutSolidCube(0.5);
-            glPopMatrix();
-            glTranslatef(interBrowDistance, 0, 0);
+            glTranslatef(-interPupilDistance/10.0, 0, .05);
+            glRotatef(-20, 0, 0, 1);
+            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+            glutSolidSphere(0.25, 30, 30);
         }
-    glPopMatrix();
-    
-    
-    // Mouth
-    
-    glPushMatrix();
-        glTranslatef(0,-0.3,0.75);
-        glColor3f(loudness/1000.0,0,0);
-        glRotatef(MouthPitch, 1, 0, 0);
-        glRotatef(MouthYaw, 0, 0, 1);
-        glScalef(MouthWidth*(.5 + averageLoudness/3000.0), MouthHeight*(1.0 + averageLoudness/6000.0), 1);
-        glutSolidCube(0.5);
-    glPopMatrix();
-    
-    glTranslatef(0, 1.0, 0);
-   
-    glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
-    // Right Eye
-    glRotatef(-10, 1, 0, 0);
-    glColor3fv(eyeColor);
-    glPushMatrix(); 
-    {
-        glTranslatef(interPupilDistance/10.0, 0, 0.05);
-        glRotatef(20, 0, 0, 1);
-        glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
-        glutSolidSphere(0.25, 30, 30);
+        glPopMatrix();
+        // Left Pupil
+        glPushMatrix();
+            glRotatef(EyeballPitch[0], 1, 0, 0);
+            glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
+            glTranslatef(0,0,.35);
+            if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
+            //glRotatef(90,0,1,0);
+            glutSolidSphere(PupilSize, 15, 15);
+        glPopMatrix();
+        
+        glPopMatrix();
     }
-    glPopMatrix();
-    // Right Pupil
-    glPushMatrix();
-        glRotatef(EyeballPitch[1], 1, 0, 0);
-        glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.35);
-                if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-        //glRotatef(90,0,1,0);
-        glutSolidSphere(PupilSize, 15, 15);
-
-    glPopMatrix();
-    // Left Eye
-    glColor3fv(eyeColor);
-    glTranslatef(interPupilDistance, 0, 0);
-    glPushMatrix(); 
-    {
-        glTranslatef(-interPupilDistance/10.0, 0, .05);
-        glRotatef(-20, 0, 0, 1);
-        glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
-        glutSolidSphere(0.25, 30, 30);
-    }
-    glPopMatrix();
-    // Left Pupil
-    glPushMatrix();
-        glRotatef(EyeballPitch[0], 1, 0, 0);
-        glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.35);
-        if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-        //glRotatef(90,0,1,0);
-        glutSolidSphere(PupilSize, 15, 15);
-    glPopMatrix();
     
-    glPopMatrix();
  }
 
 
