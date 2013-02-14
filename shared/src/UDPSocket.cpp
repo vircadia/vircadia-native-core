@@ -51,10 +51,7 @@ UDPSocket::~UDPSocket() {
 //  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
     
-    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, (sockaddr *)&senderAddress, &addLength);
-    
-    return (*receivedBytes > 0);
+    return receive(&senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 

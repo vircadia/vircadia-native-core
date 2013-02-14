@@ -171,10 +171,11 @@ void *sendBuffer(void *args)
                 }
 
                 for(int as = 0; as < BUFFER_LENGTH_SAMPLES; as++) {
-                    long longSample = previousOutput != NULL 
-                        ? masterMix[as] - previousOutput[as]
-                        : masterMix[as];
+//                    long longSample = previousOutput != NULL 
+//                        ? masterMix[as] - previousOutput[as]
+//                        : masterMix[as];
 
+                    long longSample = masterMix[as];
     
                     int16_t shortSample;
                     
@@ -195,7 +196,7 @@ void *sendBuffer(void *args)
                    
                 }
 
-                sentBytes = audioSocket->send(agents[a].address, agents[a].port, (void *) clientMix, BUFFER_LENGTH_BYTES);
+                sentBytes = audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
