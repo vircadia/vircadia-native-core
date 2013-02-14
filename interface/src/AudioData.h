@@ -12,7 +12,6 @@
 #include <iostream>
 #include <stdint.h>
 #include "AudioRingBuffer.h"
-#include "AudioSource.h"
 #include "Head.h"
 #include "UDPSocket.h"
 
@@ -21,11 +20,13 @@ class AudioData {
         Head *linkedHead;
     
         AudioRingBuffer *ringBuffer;
-        AudioSource **sources;
-    
+
         UDPSocket *audioSocket;
     
         int16_t *samplesToQueue;
+    
+        char *mixerAddress;
+        unsigned short mixerPort;
     
         timeval lastCallback;
         float averagedLatency;
@@ -37,11 +38,7 @@ class AudioData {
         float averagedInputLoudness;
     
         AudioData(int bufferLength);
-        AudioData(int numberOfSources, int bufferLength);
         ~AudioData();
-        
-    private:
-        int _numberOfSources;
 };
 
 #endif /* defined(__interface__AudioData__) */

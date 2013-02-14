@@ -102,7 +102,9 @@ int add_agent(char * address, unsigned short port, char agentType) {
         agents[num_agents].port = port;
         agents[num_agents].agentType = agentType;
         std::cout << "Added Agent # " << num_agents << " with Address " <<
-         agents[num_agents].address << ":" << agents[num_agents].port << "\n";
+            agents[num_agents].address << ":" << agents[num_agents].port << " T: " <<
+            agentType << "\n";
+        
         num_agents++;
         return 1;
     } else {
@@ -121,11 +123,14 @@ int broadcastToAgents(UDPSocket *handle, char * data, int length, int sendToSelf
         //std::cout << "to: Agent address " << agents[i].address << " port " << agents[i].port << "\n";
         if  (sendToSelf || ((strcmp((char *)"127.0.0.1", agents[i].address) != 0)
             && (agents[i].port != AGENT_UDP_PORT)))
-        sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
-        if (sent_bytes != length) {
-            std::cout << "Broadcast to agents FAILED\n";
-            return 0;
-        } 
+            
+            if (agents[i].agentType != 'M') {
+                sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
+                if (sent_bytes != length) {
+                    std::cout << "Broadcast to agents FAILED\n";
+                    return 0;
+                }
+            }
     }
     return 1;
 }
@@ -134,9 +139,12 @@ int broadcastToAgents(UDPSocket *handle, char * data, int length, int sendToSelf
 void pingAgents(UDPSocket *handle) {
     char payload[] = "P";
     for (int i = 0; i < num_agents; i++) {
-        gettimeofday(&agents[i].pingStarted, NULL);
-        handle->send(agents[i].address, agents[i].port, payload, 1);
-        //printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
+        if (agents[i].agentType != 'M') {
+            gettimeofday(&agents[i].pingStarted, NULL);
+            handle->send(agents[i].address, agents[i].port, payload, 1);
+//            printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
+        }
+        
     }
 }
 
@@ -149,6 +157,14 @@ void setAgentPing(char * address, unsigned short port) {
             float pingMsecs = diffclock(&agents[i].pingStarted, &pingReceived);
             //printf("Received ping at %d usecs, Agent ping = %3.1f\n", pingReceived.tv_usec, pingMsecs);
             agents[i].pingMsecs = pingMsecs;
+        }
+    }
+}
+
+void kludgyMixerUpdate(Audio audio) {
+    for (int i = 0; i < num_agents; i++) {
+        if (agents[i].agentType == 'M') {
+            audio.updateMixerParams(agents[i].address, agents[i].port);
         }
     }
 }

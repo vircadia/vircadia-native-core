@@ -109,6 +109,8 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
+Audio audio(&myHead, &audioScope);
+
 #define RENDER_FRAME_MSECS 8
 #define SLEEP 0
 int steps_per_frame = 0;
@@ -300,15 +302,6 @@ void initDisplay(void)
 void init(void)
 {
     myHead.setRenderYaw(start_yaw);
-    
-    if (audio_on) {
-        if (serial_on) {
-            Audio::init(&myHead, &audioScope);
-        } else {
-            Audio::init(&audioScope);
-        }
-        printf( "Audio started.\n" );
-    }
 
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2; 
@@ -367,9 +360,7 @@ void terminate () {
     // Close serial port
     //close(serial_fd);
 
-    if (audio_on) { 
-        Audio::terminate();
-    }
+    audio.terminate();
     exit(EXIT_SUCCESS);
 }
 
@@ -522,7 +513,7 @@ void update_pos(float frametime)
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
-    Audio::getInputLoudness(&loudness, &averageLoudness);
+    audio.getInputLoudness(&loudness, &averageLoudness);
     myHead.setLoudness(loudness);
     myHead.setAverageLoudness(averageLoudness);
 
@@ -596,14 +587,7 @@ void display(void)
             glTranslatef(0.f, 0.f, -7.f);
             myHead.render(1);
             glPopMatrix();
-        }
-
-        // render audio sources and start them
-        if (audio_on) {
-            Audio::render();
-        }
-    
-    
+        }    
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
 
@@ -619,7 +603,7 @@ void display(void)
 
         // lattice.render(WIDTH, HEIGHT);
         // myFinger.render();
-        Audio::render(WIDTH, HEIGHT);
+        audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
 
 
@@ -811,8 +795,9 @@ void *networkReceive(void *args)
                 //
                 //  Message from domainserver
                 //
-                //printf("agent list received!\n");
+                //  printf("agent list received!\n");
                 nearbyAgents = update_agents(&incomingPacket[1], bytesRecvd - 1);
+                kludgyMixerUpdate(audio);
             } else if (incomingPacket[0] == 'H') {
                 //
                 //  Broadcast packet from another agent

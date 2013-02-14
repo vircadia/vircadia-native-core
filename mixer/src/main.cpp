@@ -34,9 +34,15 @@ const short RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+const int DOMAINSERVER_PORT = 40102;
+
 const int MAX_SOURCE_BUFFERS = 20;
 
 sockaddr_in agentAddress;
+
+UDPSocket audioSocket = UDPSocket(MIXER_LISTEN_PORT);
 
 struct AgentList {
     char *address;
@@ -61,65 +67,8 @@ double usecTimestamp(timeval *time, double addedUsecs = 0) {
     return (time->tv_sec * 1000000.0) + time->tv_usec + addedUsecs;
 }
 
-int addAgent(sockaddr_in *newAddress, void *audioData) {
-    //  Search for agent in list and add if needed 
-    int is_new = 0; 
-    int i = 0;
-
-    for (i = 0; i < numAgents; i++) {       
-        if (strcmp(inet_ntoa(newAddress->sin_addr), agents[i].address) == 0
-            && ntohs(newAddress->sin_port) == agents[i].port) {
-            break;
-        }        
-    }
-    
-    if ((i == numAgents) || (agents[i].active == false)) {
-        is_new = 1;
-        
-        agents[i].address = new char();
-        strcpy(agents[i].address, inet_ntoa(newAddress->sin_addr));
-    
-        agents[i].bufferTransmitted = false;
-    }
-    
-    
-    agents[i].port = ntohs(newAddress->sin_port);
-    agents[i].active = true;
-    gettimeofday(&agents[i].time, NULL);
-
-    if (sourceBuffers[i]->endOfLastWrite == NULL) {
-        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
-    } else if (sourceBuffers[i]->diffLastWriteNextOutput() > RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES) {
-        // reset us to started state
-        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
-        sourceBuffers[i]->nextOutput = sourceBuffers[i]->buffer;
-        sourceBuffers[i]->started = false;
-    }
-
-    memcpy(sourceBuffers[i]->endOfLastWrite, audioData, BUFFER_LENGTH_BYTES);
-
-    sourceBuffers[i]->endOfLastWrite += BUFFER_LENGTH_SAMPLES;
-
-    if (sourceBuffers[i]->endOfLastWrite >= sourceBuffers[i]->buffer + RING_BUFFER_SAMPLES) {
-        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
-    }
-    
-    if (i == numAgents) {
-        numAgents++;
-    }
-
-    return is_new;
-}
-
-struct sendBufferStruct {
-    UDPSocket *audioSocket;
-};
-
 void *sendBuffer(void *args)
 {
-    struct sendBufferStruct *bufferArgs = (struct sendBufferStruct *)args;
-    UDPSocket *audioSocket = bufferArgs->audioSocket;
-
     int sentBytes;
     int currentFrame = 1;
     timeval startTime, sendTime, now;
@@ -198,7 +147,7 @@ void *sendBuffer(void *args)
                    
                 }
 
-                sentBytes = audioSocket->send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
+                sentBytes = audioSocket.send(agents[a].address, agents[a].port, clientMix, BUFFER_LENGTH_BYTES);
             
                 if (sentBytes < BUFFER_LENGTH_BYTES) {
                     std::cout << "Error sending mix packet! " << sentBytes << strerror(errno) << "\n";
@@ -222,13 +171,102 @@ void *sendBuffer(void *args)
     pthread_exit(0);  
 }
 
+int addAgent(sockaddr_in *newAddress, void *audioData) {
+    //  Search for agent in list and add if needed
+    int is_new = 0;
+    int i = 0;
+    
+    for (i = 0; i < numAgents; i++) {
+        if (strcmp(inet_ntoa(newAddress->sin_addr), agents[i].address) == 0
+            && ntohs(newAddress->sin_port) == agents[i].port) {
+            break;
+        }
+    }
+    
+    if ((i == numAgents) || (agents[i].active == false)) {
+        is_new = 1;
+        
+        agents[i].address = new char();
+        strcpy(agents[i].address, inet_ntoa(newAddress->sin_addr));
+        
+        agents[i].bufferTransmitted = false;
+    }
+    
+    
+    agents[i].port = ntohs(newAddress->sin_port);
+    agents[i].active = true;
+    gettimeofday(&agents[i].time, NULL);
+    
+    if (sourceBuffers[i]->endOfLastWrite == NULL) {
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+    } else if (sourceBuffers[i]->diffLastWriteNextOutput() > RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES) {
+        // reset us to started state
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+        sourceBuffers[i]->nextOutput = sourceBuffers[i]->buffer;
+        sourceBuffers[i]->started = false;
+    }
+    
+    memcpy(sourceBuffers[i]->endOfLastWrite, audioData, BUFFER_LENGTH_BYTES);
+    
+    sourceBuffers[i]->endOfLastWrite += BUFFER_LENGTH_SAMPLES;
+    
+    if (sourceBuffers[i]->endOfLastWrite >= sourceBuffers[i]->buffer + RING_BUFFER_SAMPLES) {
+        sourceBuffers[i]->endOfLastWrite = sourceBuffers[i]->buffer;
+    }
+    
+    if (i == numAgents) {
+        numAgents++;
+    }
+    
+    return is_new;
+}
+
+void *reportAliveToDS(void *args) {
+    
+    timeval lastSend, now;
+    char output[100];
+   
+    while (true) {
+        gettimeofday(&lastSend, NULL);
+        
+        sprintf(output, "%c %f,%f,%f", 'M', 0.f, 0.f, 0.f);
+        int packetSize = strlen(output);
+        audioSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packetSize);
+        
+        gettimeofday(&now, NULL);
+        
+        double usecToSleep = 1000000 - (usecTimestamp(&now) - usecTimestamp(&lastSend));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        } else {
+            std::cout << "No sleep required!";
+        }
+    }    
+}
+
 int main(int argc, const char * argv[])
-{
+{    
     timeval lastAgentUpdate;
     int receivedBytes = 0;
     
-    // setup our socket
-    UDPSocket audioSocket = UDPSocket(MIXER_LISTEN_PORT);
+    //  Lookup the IP address of things we have hostnames
+    printf("need to look this one up\n");
+    struct hostent* pHostInfo;
+    if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+        sockaddr_in tempAddress;
+        memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+        strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+        printf("Domain server found: %s\n", DOMAIN_IP);
+        
+    } else {
+        printf("Failed lookup domain server\n");
+    }
+    
+    // setup the agentSocket to report to domain server
+    pthread_t reportAliveThread;
+    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
+    
 
     gettimeofday(&lastAgentUpdate, NULL);
 
@@ -238,11 +276,8 @@ int main(int argc, const char * argv[])
         sourceBuffers[b] = new AudioRingBuffer(10 * BUFFER_LENGTH_SAMPLES);
     }
 
-    struct sendBufferStruct sendBufferArgs;
-    sendBufferArgs.audioSocket = &audioSocket;
-
     pthread_t sendBufferThread;
-    pthread_create(&sendBufferThread, NULL, sendBuffer, (void *)&sendBufferArgs);
+    pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
 
     while (true) {
         if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
@@ -254,7 +289,8 @@ int main(int argc, const char * argv[])
             }
         }
     }
-
+    
+    pthread_join(reportAliveThread, NULL);
     pthread_join(sendBufferThread, NULL);
     
     return 0;

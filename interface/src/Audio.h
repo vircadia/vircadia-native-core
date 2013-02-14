@@ -18,30 +18,33 @@
 class Audio {
 public:
     // initializes audio I/O
-    static bool init(Oscilloscope * s);
-    static bool init(Head* mainHead, Oscilloscope * s);
+    Audio(Head* mainHead, Oscilloscope * s);
     
-    static void render();
-    static void render(int screenWidth, int screenHeight);
+    void render();
+    void render(int screenWidth, int screenHeight);
     
-    static void getInputLoudness(float * lastLoudness, float * averageLoudness);
+    void getInputLoudness(float * lastLoudness, float * averageLoudness);
+    void updateMixerParams(char *mixerAddress, unsigned short mixerPort);
     
     // terminates audio I/O
-    static bool terminate(); 
+    bool terminate();
 private:    
-    static bool initialized;
+    bool initialized;
     
-    static AudioData *data;
-    
+    AudioData *audioData;
     
     // protects constructor so that public init method is used
     Audio();
     
+    // store current mixer address and port
+    char *mixerAddress;
+    int mixerPort;
+    
     // hold potential error returned from PortAudio functions
-    static PaError err;
+    PaError paError;
     
     // audio stream handle
-    static PaStream *stream;
+    PaStream *stream;
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);

@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include "UDPSocket.h"
+#include "Audio.h"
 
 const int AGENT_UDP_PORT = 40103;
 
@@ -27,5 +28,6 @@ void pingAgents(UDPSocket *handle);
 void setAgentPing(char * address, unsigned short port);
 void update_agent(char * address, unsigned short port, char * data, int length);
 void render_agents(int renderSelf);
+void kludgyMixerUpdate(Audio audio);
 
 #endif
