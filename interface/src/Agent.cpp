@@ -57,13 +57,13 @@ int update_agents(char * data, int length) {
 }
 
 //  Render the heads of the agents
-void render_agents(int renderSelf) {
+void render_agents(int renderSelf, float * myLocation) {
     for (int i = 0; i < num_agents; i++) {
         glm::vec3 pos = agents[i].head.getPos();
         glPushMatrix();
         if (!agents[i].isSelf || renderSelf) {
             glTranslatef(-pos.x, -pos.y, -pos.z);
-            agents[i].head.render(0);
+            agents[i].head.render(0, myLocation);
         }
         glPopMatrix();
     }
@@ -120,11 +120,12 @@ int broadcastToAgents(UDPSocket *handle, char * data, int length, int sendToSelf
     int sent_bytes;
     //printf("broadcasting to %d agents\n", num_agents);
     for (int i = 0; i < num_agents; i++) {       
-        //std::cout << "to: Agent address " << agents[i].address << " port " << agents[i].port << "\n";
-        if  (sendToSelf || ((strcmp((char *)"127.0.0.1", agents[i].address) != 0)
-            && (agents[i].port != AGENT_UDP_PORT)))
+        if  (sendToSelf || (((strcmp((char *)"127.0.0.1", agents[i].address) != 0)
+            && (agents[i].port != AGENT_UDP_PORT))))
             
             if (agents[i].agentType != 'M') {
+                //std::cout << "broadcasting my agent data to:  " << agents[i].address << " : " << agents[i].port << "\n";
+
                 sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
                 if (sent_bytes != length) {
                     std::cout << "Broadcast to agents FAILED\n";
@@ -142,7 +143,7 @@ void pingAgents(UDPSocket *handle) {
         if (agents[i].agentType != 'M') {
             gettimeofday(&agents[i].pingStarted, NULL);
             handle->send(agents[i].address, agents[i].port, payload, 1);
-//            printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
+            //printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
         }
         
     }

@@ -27,7 +27,7 @@ int broadcastToAgents(UDPSocket * handle, char * data, int length, int sendToSel
 void pingAgents(UDPSocket *handle);
 void setAgentPing(char * address, unsigned short port);
 void update_agent(char * address, unsigned short port, char * data, int length);
-void render_agents(int renderSelf);
+void render_agents(int renderSelf, float * myLocation);
 void kludgyMixerUpdate(Audio audio);
 
 #endif

@@ -58,7 +58,7 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -74,7 +74,7 @@ int bytescount = 0;
 int target_x, target_y; 
 int target_display = 0;
 
-int head_mirror = 1;                 //  Whether to mirror own head when viewing it
+int head_mirror = 1;                  //  Whether to mirror own head when viewing it
 int sendToSelf = 1;
 
 int WIDTH = 1200; 
@@ -570,7 +570,7 @@ void display(void)
         if (display_field) field.render();
             
         //  Render heads of other agents 
-        render_agents(sendToSelf);
+        render_agents(sendToSelf, &location[0]);
         
         if (display_hand) myHand.render();   
      
@@ -585,7 +585,7 @@ void display(void)
             glPushMatrix();
             glLoadIdentity();
             glTranslatef(0.f, 0.f, -7.f);
-            myHead.render(1);
+            myHead.render(1, &location[0]);
             glPopMatrix();
         }    
         //glm::vec3 test(0.5, 0.5, 0.5); 
@@ -795,13 +795,14 @@ void *networkReceive(void *args)
                 //
                 //  Message from domainserver
                 //
-                //  printf("agent list received!\n");
+                  //printf("agent list received!\n");
                 nearbyAgents = update_agents(&incomingPacket[1], bytesRecvd - 1);
                 kludgyMixerUpdate(audio);
             } else if (incomingPacket[0] == 'H') {
                 //
                 //  Broadcast packet from another agent
                 //
+                //printf("broadcast received");
                 update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesRecvd - 1);
             } else if (incomingPacket[0] == 'T') {
                 //  Received a self-test packet (to get one's own IP), copy it to local variable!
@@ -927,18 +928,19 @@ int main(int argc, char** argv)
     //  Create network socket and buffer
     incomingPacket = new char[MAX_PACKET_SIZE];
     
-    //  Lookup the IP address of things we have hostnames 
-    printf("need to look this one up\n");
-    struct hostent* pHostInfo;
-    if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
-        sockaddr_in tempAddress;
-        memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-        strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-        printf("Domain server found: %s\n", DOMAIN_IP);
+    //  Lookup the IP address of things we have hostnames
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
 
-    } else {
-        printf("Failed lookup domain server\n");
-    }
+        } else {
+            printf("Failed lookup domainserver\n");
+        }
+    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     
     //std::cout << "Test address: " << inet_ntoa(testAddress.sin_addr) << "\n";
     

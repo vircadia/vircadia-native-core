@@ -80,7 +80,7 @@ public:
     float getRoll() {return Roll;}
     float getYaw() {return Yaw;}
 
-    void render(int faceToFace);
+    void render(int faceToFace, float * myLocation);
     void simulate(float);
     //  Send and receive network data 
     int getBroadcastData(char* data);
