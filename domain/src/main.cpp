@@ -103,7 +103,7 @@ int addAgent(uint32_t ip, in_port_t port, char agentType, float x, float y, floa
     //  Search for agent in list and add if needed 
     int i = 0;
     int is_new = 0; 
-    while ((ip != agents[i].ip) && (i < num_agents))  {
+    while ((ip != agents[i].ip && port != agents[i].port) && (i < num_agents))  {
         i++; 
     }
     if ((i == num_agents) || (agents[i].active == false)) is_new = 1;
