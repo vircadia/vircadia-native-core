@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <errno.h>
+#include <err.h>
 
 sockaddr_in destSockaddr, senderAddress;
 
@@ -68,8 +69,7 @@ int UDPSocket::send(sockaddr_in *destAddress, const void *data, size_t byteLengt
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
     
     if (sent_bytes != byteLength) {
-        std::cout << strerror(errno) << "\n";
-        printf("Failed to send packet: return value = %d\n", sent_bytes);
+        printf("Failed to send packet: %s\n", strerror(errno));
         return false;
     }
     
