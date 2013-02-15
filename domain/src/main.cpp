@@ -27,13 +27,11 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include "UDPSocket.h"
 
 
-const int LISTENING_UDP_PORT = 40102;
+const int DOMAIN_LISTEN_PORT = 40102;
 const char DESTINATION_IP[] = "127.0.0.1";
-sockaddr_in address, dest_address;
-socklen_t destLength = sizeof( dest_address );
-
 
 const int MAX_PACKET_SIZE = 1500;
 char packet_data[MAX_PACKET_SIZE];
@@ -52,51 +50,15 @@ struct AgentList {
 } agents[MAX_AGENTS];
 
 int num_agents = 0;
-
 int lastActiveCount = 0;
+
+UDPSocket domainSocket = UDPSocket(DOMAIN_LISTEN_PORT);
 
 double diffclock(timeval clock1,timeval clock2)
 {
 	double diffms = (clock2.tv_sec - clock1.tv_sec) * 1000.0;
     diffms += (clock2.tv_usec - clock1.tv_usec) / 1000.0;   // us to ms
 	return diffms;
-}
-
-int network_init()
-{
-    //  Create socket 
-    int handle = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-    
-    if ( handle <= 0 )
-    {
-        printf( "failed to create socket\n" );
-        return false;
-    }
-    
-    //  Bind socket to port 
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( (unsigned short) LISTENING_UDP_PORT );
-    
-    if ( bind( handle, (const sockaddr*) &address, sizeof(sockaddr_in) ) < 0 )
-    {
-        printf( "failed to bind socket\n" );
-        return false;
-    }
-    
-    //  Set socket as non-blocking
-    int nonBlocking = 1;
-    if ( fcntl( handle, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
-    {
-        printf( "failed to set non-blocking socket\n" );
-        return false;
-    }
-    
-    dest_address.sin_family = AF_INET;
-    dest_address.sin_addr.s_addr = inet_addr(DESTINATION_IP);
-    dest_address.sin_port = htons( (unsigned short) LISTENING_UDP_PORT );
-        
-    return handle;
 }
 
 int addAgent(uint32_t ip, in_port_t port, char agentType, float x, float y, float z) {
@@ -136,9 +98,9 @@ void update_agent_list(timeval now) {
     }
 }
 
-void send_agent_list(int handle, sockaddr_in * dest_address) {
+void send_agent_list(sockaddr_in *agentAddrPointer) {
     int i, length = 0;
-    ssize_t sent_bytes;
+    ssize_t sentBytes;
     char buffer[MAX_PACKET_SIZE];
     char * address;
     char portstring[10];
@@ -163,10 +125,11 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
             numSent++;
         }
     }
+    
     if (length > 1) {
-        sent_bytes = (ssize_t) sendto( handle, (const char*)buffer, length,
-                            0, (sockaddr *) dest_address, sizeof(sockaddr_in) );
-        if (sent_bytes < length) 
+        sentBytes = domainSocket.send(agentAddrPointer, buffer, length);
+        
+        if (sentBytes < length)
             std::cout << "Error sending agent list!\n";
         else if (numSent != lastActiveCount) {
             std::cout << numSent << " Active Agents\n";
@@ -178,43 +141,30 @@ void send_agent_list(int handle, sockaddr_in * dest_address) {
 
 int main(int argc, const char * argv[])
 {
-    ssize_t received_bytes = 0;
-    //int sent_bytes = 0;
-    //int packet_size = 0;
-    timeval time, last_time; 
+    ssize_t receivedBytes = 0;
+    timeval time, last_time;
+    sockaddr_in agentAddress;
     
-    int handle = network_init();
-    if (!handle) {
-        std::cout << "Failed to create network.\n";
-        return 0;
-    } else {
-        std::cout << "DomainServer started, listening on port " << LISTENING_UDP_PORT << "\n";
-    }
     gettimeofday(&last_time, NULL);
     
-    while (1) {
-        received_bytes = recvfrom(handle, (char*)packet_data, MAX_PACKET_SIZE,
-                                      0, (sockaddr*)&dest_address, &destLength );
-        if (received_bytes > 0) {
-            //std::cout << "Packet from: " << inet_ntoa(dest_address.sin_addr) 
-            //<< " " << packet_data << "\n";
+    while (true) {
+        if (domainSocket.receive(&agentAddress, packet_data, &receivedBytes)) {
             float x,y,z;
             char agentType; 
             sscanf(packet_data, "%c %f,%f,%f", &agentType, &x, &y, &z);
-            if (addAgent(dest_address.sin_addr.s_addr, ntohs(dest_address.sin_port), agentType, x, y, z)) {
+            if (addAgent(agentAddress.sin_addr.s_addr, ntohs(agentAddress.sin_port), agentType, x, y, z)) {
                 std::cout << "Added Agent, type " << agentType << " from " <<
-                inet_ntoa(dest_address.sin_addr) << ":" << ntohs(dest_address.sin_port) << "\n";
+                inet_ntoa(agentAddress.sin_addr) << ":" << ntohs(agentAddress.sin_port) << "\n";
             }
             //  Reply with packet listing nearby active agents
-            send_agent_list(handle, &dest_address);
+            send_agent_list(&agentAddress);
         }
+        
         gettimeofday(&time, NULL);
         if (diffclock(last_time, time) > LOGOFF_CHECK_INTERVAL) {
             gettimeofday(&last_time, NULL);
             update_agent_list(last_time);
         }
-            
-        usleep(10000);
     }
     return 0;
 }

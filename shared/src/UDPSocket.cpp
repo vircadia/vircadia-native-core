@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <cstdio>
+#include <errno.h>
 
 sockaddr_in destSockaddr, senderAddress;
 
@@ -23,11 +24,7 @@ UDPSocket::UDPSocket(int listeningPort) {
         return;
     }
     
-    // instantiate the re-usable dest_sockaddr with a dummy IP and port
-    sockaddr_in dest_sockaddr;
-    dest_sockaddr.sin_family = AF_INET;
-    dest_sockaddr.sin_addr.s_addr = inet_addr("1.0.0.0");
-    dest_sockaddr.sin_port = htons((uint16_t) 1);
+    destSockaddr.sin_family = AF_INET;
     
     // bind the socket to the passed listeningPort
     sockaddr_in bind_address;
@@ -66,10 +63,12 @@ bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *r
 
 int UDPSocket::send(sockaddr_in *destAddress, const void *data, size_t byteLength) {
     // send data via UDP
+    
     int sent_bytes = sendto(handle, (const char*)data, byteLength,
-                            0, (sockaddr *)&destSockaddr, sizeof(sockaddr_in));
+                            0, (sockaddr *) destAddress, sizeof(sockaddr_in));
     
     if (sent_bytes != byteLength) {
+        std::cout << strerror(errno) << "\n";
         printf("Failed to send packet: return value = %d\n", sent_bytes);
         return false;
     }
