@@ -27,6 +27,21 @@ struct AgentList {
 
 int num_agents = 0; 
 
+
+char * getAgentAddress(int agentNumber) {
+    if (agentNumber < getAgentCount()) return agents[agentNumber].address;
+    else return NULL;
+}
+
+int getAgentCount() {
+    return num_agents;
+}
+
+int getAgentPing(int agentNumber) {
+    if (agentNumber < getAgentCount()) return agents[agentNumber].pingMsecs;
+    else return -1;
+}
+
 //
 // Process an incoming domainserver packet telling you about other nearby agents,
 // and returns the number of agents that were reported.

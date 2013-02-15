@@ -19,6 +19,7 @@
 #include <fstream>
 #include <math.h>
 #include <string.h>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -265,21 +266,31 @@ void display_stats(void)
     drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f,  Pkts/s = %d, Bytes/s = %d", 
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
             FPS, packets_per_second,  bytes_per_second);
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
     if (serial_on) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(500, 30, 0.10, 0, 1.0, 0, stats);
+        drawtext(300, 30, 0.10, 0, 1.0, 0, stats);
     }
     
+    //  Output the ping times to the various agents 
+    std::stringstream pingTimes;
+    pingTimes << "Agent Pings, msecs:";
+    for (int i = 0; i < getAgentCount(); i++) {
+        pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
+    }
+    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
+    
+    /*
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
             -location[0], -location[1], -location[2],
             angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), myHead.getRenderYaw(), myHead.getYaw()),
             myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
+     */
     
 }
 
@@ -644,6 +655,7 @@ void display(void)
             if ((render_test_spot > WIDTH-100) || (render_test_spot < 100)) render_test_direction *= -1.0;
             
         }
+    
         
     //  Show detected levels from the serial I/O ADC channel sensors
     if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);

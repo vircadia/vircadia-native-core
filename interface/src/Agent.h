@@ -29,5 +29,8 @@ void setAgentPing(char * address, unsigned short port);
 void update_agent(char * address, unsigned short port, char * data, int length);
 void render_agents(int renderSelf, float * myLocation);
 void kludgyMixerUpdate(Audio audio);
+int getAgentPing(int agentNumber);
+int getAgentCount();
+char * getAgentAddress(int agentNumber);
 
 #endif

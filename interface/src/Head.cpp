@@ -216,14 +216,14 @@ void Head::render(int faceToFace, float * myLocation)
     //std::cout << distanceToCamera << "\n";
     
     //  Don't render a head if it is really close to your location, because that is your own head!
-    if (distanceToCamera > 0.1) {
+    if ((distanceToCamera > 0.1) || faceToFace) {
         glEnable(GL_DEPTH_TEST);
         glPushMatrix();
 
         glScalef(scale, scale, scale);
         glTranslatef(leanSideways, 0.f, leanForward);
 
-        glRotatef(Yaw/2.0, 0, 1, 0);
+        glRotatef(Yaw/2.0, 0, 1, 0);    
         glRotatef(Pitch/2.0, 1, 0, 0);
         glRotatef(Roll/2.0, 0, 0, 1);
 
