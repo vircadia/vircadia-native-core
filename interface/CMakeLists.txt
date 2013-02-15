@@ -18,7 +18,7 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
-add_executable(interface ${INTERFACE_SRCS})
+add_executable(interface MACOSX_BUNDLE ${INTERFACE_SRCS})
 include(../LinkHifiShared.cmake)
 link_hifi_shared_library(interface)
 
@@ -72,3 +72,8 @@ if (UNIX AND NOT APPLE)
         ${ALSA_LIBRARIES}
     )
 endif (UNIX AND NOT APPLE)
+
+INSTALL(TARGETS interface 
+    BUNDLE DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
+    RUNTIME DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
+)
