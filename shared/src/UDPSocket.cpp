@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <errno.h>
-#include <stdlib.h>
+#include <string.h>
 
 sockaddr_in destSockaddr, senderAddress;
 
