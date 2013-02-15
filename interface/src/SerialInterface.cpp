@@ -21,20 +21,14 @@
 #include <regex.h>
 #endif
 
-
 int serial_fd;
 const int MAX_BUFFER = 255;
 char serial_buffer[MAX_BUFFER];
 int serial_buffer_pos = 0;
-int samples_total = 0;
 
 const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM = 10;
-
-SerialInterface::SerialInterface() {
-    active = false;
-    noReadCount = 0;
-}
+const short SAMPLES_TO_DISCARD = 100;
 
 void SerialInterface::pair() {
     // look for a matching gyro setup
@@ -99,20 +93,10 @@ int SerialInterface::init(char* portname, int baud)
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
     tcsetattr(serial_fd,TCSANOW,&options);
-    
-    //  Clear the measured and average channel data
-    for (int i = 1; i < NUM_CHANNELS; i++)
-    {
-        lastMeasured[i] = 0;
-        trailingAverage[i] = 0.0;
-    }
-    //  Clear serial input buffer
-    for (int i = 1; i < MAX_BUFFER; i++) {
-        serial_buffer[i] = ' ';
-    }
+
     
     printf("Serial interface opened!\n");
-    
+    resetSerial();    
     active = true;
     
     return 0;
@@ -178,12 +162,10 @@ void SerialInterface::readData() {
     const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
     char bufchar[1];
     
-    bool atLeastOneRead = false;
+    int initialSamples = totalSamples;
     
     while (read(serial_fd, &bufchar, 1) > 0)
-    {
-        atLeastOneRead = true;
-        
+    {        
         //std::cout << bufchar[0];
         serial_buffer[serial_buffer_pos] = bufchar[0];
         serial_buffer_pos++;
@@ -205,40 +187,47 @@ void SerialInterface::readData() {
                 } else LED = atoi(serialLine.c_str());
                 serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
             }
-            //std::cout << LED << "\n";
             
             for (int i = 0; i < NUM_CHANNELS; i++) {
-                if (samples_total > 0)
+                if (totalSamples > SAMPLES_TO_DISCARD) {
                     trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
-                    AVG_RATE[i]*(float)lastMeasured[i];
-                else  trailingAverage[i] = (float)lastMeasured[i];
+                        AVG_RATE[i]*(float)lastMeasured[i];
+                } else {
+                    trailingAverage[i] = (float)lastMeasured[i];
+                }
                    
             }
-            samples_total++;
+            totalSamples++;
             serial_buffer_pos = 0;
         }
     }
     
-    if (!atLeastOneRead) {
+    if (initialSamples == totalSamples) {
         noReadCount++;
         std::cout << "#" << noReadCount << " blank read from serial.\n";
+        
         if (noReadCount >= NO_READ_MAXIMUM) {
-            disconnectSerial();
+            resetSerial();
         }
     }
 }
 
-void SerialInterface::disconnectSerial() {
+void SerialInterface::resetSerial() {
     std::cout << "Reached maximum blank read count. Shutting down serial.\n";
     
     active = false;
     noReadCount = 0;
+    totalSamples = 0;
     
     //  Clear the measured and average channel data
-    for (int i = 1; i < NUM_CHANNELS; i++)
+    for (int i = 0; i < NUM_CHANNELS; i++)
     {
         lastMeasured[i] = 0;
         trailingAverage[i] = 0.0;
+    }
+    //  Clear serial input buffer
+    for (int i = 1; i < MAX_BUFFER; i++) {
+        serial_buffer[i] = ' ';
     }
 }
 

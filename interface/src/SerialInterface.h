@@ -31,7 +31,7 @@
 
 class SerialInterface {
 public:
-    SerialInterface();
+    SerialInterface() {};
     void pair();
     void readData();
     int getLED() {return LED;};
@@ -44,12 +44,13 @@ public:
     bool active;
 private:
     int init(char * portname, int baud);
-    void disconnectSerial();
+    void resetSerial();
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
     int samplesAveraged;
     int LED;
     int noReadCount;
+    int totalSamples;
 };
 
 #endif
