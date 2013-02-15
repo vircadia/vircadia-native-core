@@ -182,7 +182,7 @@ void *receiveAudioViaUDP(void *args) {
     AudioData *sharedAudioData = threadArgs->sharedAudioData;
     
     int16_t *receivedData = new int16_t[BUFFER_LENGTH_SAMPLES];
-    int *receivedBytes = new int;
+    ssize_t receivedBytes;
     
     timeval previousReceiveTime, currentReceiveTime = {};
     
@@ -204,7 +204,7 @@ void *receiveAudioViaUDP(void *args) {
     }
     
     while (true) {
-        if (sharedAudioData->audioSocket->receive((void *)receivedData, receivedBytes)) {
+        if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
 
             bool firstSample = (currentReceiveTime.tv_sec == 0);
             

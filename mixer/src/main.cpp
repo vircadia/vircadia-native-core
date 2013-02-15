@@ -248,7 +248,7 @@ void *reportAliveToDS(void *args) {
 int main(int argc, const char * argv[])
 {    
     timeval lastAgentUpdate;
-    int receivedBytes = 0;
+    ssize_t receivedBytes = 0;
     
     //  Lookup the IP address of things we have hostnames
     printf("need to look this one up\n");

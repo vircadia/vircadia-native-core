@@ -5,3 +5,6 @@ project(space)
 file(GLOB SPACE_SRCS src/*.cpp src/*.h)
 
 add_executable(space ${SPACE_SRCS})
+
+include(../LinkHifiShared.cmake)
+link_hifi_shared_library(space)
