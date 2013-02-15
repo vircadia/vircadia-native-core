@@ -31,13 +31,14 @@ const short NO_READ_MAXIMUM = 10;
 const short SAMPLES_TO_DISCARD = 100;
 
 void SerialInterface::pair() {
+    
+#ifdef __APPLE__
     // look for a matching gyro setup
     DIR *devDir;
     struct dirent *entry;
     int matchStatus;
     regex_t regex;
     
-#ifdef __APPLE__
     // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
     if((devDir = opendir("/dev"))) {
         while((entry = readdir(devDir))) {
@@ -56,6 +57,7 @@ void SerialInterface::pair() {
         closedir(devDir);
     }
 #endif
+    
 }
 
 //  Init the serial port to the specified values
