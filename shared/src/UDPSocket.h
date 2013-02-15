@@ -19,9 +19,10 @@ class UDPSocket {
     public:    
         UDPSocket(int listening_port);
         ~UDPSocket();
-        int send(char *destAddress, int destPort, const void *data, int byteLength);
-        bool receive(void *receivedData, int *receivedBytes);
-        bool receive(sockaddr_in *recvAddress, void *receivedData, int *receivedBytes);
+        int send(sockaddr_in *destAddress, const void *data, size_t byteLength);
+        int send(char *destAddress, int destPort, const void *data, size_t byteLength);
+        bool receive(void *receivedData, ssize_t *receivedBytes);
+        bool receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *receivedBytes);
     private:
         int handle;
     

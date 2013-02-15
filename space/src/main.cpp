@@ -25,9 +25,10 @@
 #include <stack>
 #include <bitset>
 #include "TreeNode.h"
+#include "UDPSocket.h"
 
 const char *CONFIG_FILE = "/etc/below92/spaceserver.data.txt";
-const int UDP_PORT = 55551;
+const int SPACE_LISTENING_PORT = 55551;
 std::vector< std::vector<std::string> > configData;
 sockaddr_in address, destAddress;
 socklen_t destLength = sizeof(destAddress);
@@ -36,43 +37,14 @@ std::string ROOT_HOSTNAME = "root.highfidelity.co";
 std::string ROOT_NICKNAME = "root";
 std::string *LAST_KNOWN_HOSTNAME = new std::string();
 
-const short PACKET_LENGTH_BYTES = 1024;
+const size_t PACKET_LENGTH_BYTES = 1024;
 
 TreeNode rootNode;
+UDPSocket spaceSocket(SPACE_LISTENING_PORT);
 
 void printBinaryValue(char element) {
     std::bitset<8> x(element);
     std::cout << "Printing binary value: " << x << std::endl;
-}
-
-int create_socket()
-{
-    //  Create socket
-    int handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    
-    if (handle <= 0) {
-        printf("Failed to create socket: %d\n", handle);
-        return false;
-    }
-    
-    return handle;
-}
-
-int network_init()
-{
-    int handle = create_socket();
-    
-    //  Bind socket to port
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( (unsigned short) UDP_PORT );
-    
-    if (bind(handle, (const sockaddr*) &address, sizeof(sockaddr_in)) < 0) {
-        printf( "failed to bind socket\n" );
-        return false;
-    }
-    
-    return handle;
 }
 
 TreeNode *findOrCreateNode(unsigned long lengthInBits,
@@ -189,16 +161,9 @@ bool loadSpaceData(void) {
 }
 
 int main (int argc, const char *argv[]) {
-    int handle = network_init();
-    unsigned char packetData[PACKET_LENGTH_BYTES];
-    long received_bytes = 0;
     
-    if (!handle) {
-        std::cout << "[FATAL] Failed to create UDP listening socket" << std::endl;
-        return 0;
-    } else {
-        std::cout << "[DEBUG] Socket started" << std::endl;
-    }
+    unsigned char packetData[PACKET_LENGTH_BYTES];
+    ssize_t receivedBytes = 0;
     
     rootNode.hostname = &ROOT_HOSTNAME;
     rootNode.nickname = &ROOT_NICKNAME;
@@ -208,8 +173,7 @@ int main (int argc, const char *argv[]) {
     std::cout << "[DEBUG] Listening for Datagrams" << std::endl;
     
     while (true) {
-        received_bytes = recvfrom(handle, (unsigned char*)packetData, PACKET_LENGTH_BYTES, 0, (sockaddr*)&destAddress, &destLength);
-        if (received_bytes > 0) {
+        if (spaceSocket.receive(&destAddress, &packetData, &receivedBytes)) {
             unsigned long lengthInBits;
             lengthInBits = packetData[0] * 3;
             
@@ -221,7 +185,6 @@ int main (int argc, const char *argv[]) {
             std::string thisNickname;
             std::string hostnameHolder;
             int domain_id = 0;
-            long sentBytes;
             
             TreeNode thisNode = *findOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
             
@@ -235,8 +198,7 @@ int main (int argc, const char *argv[]) {
             std::copy(hostnameHolder.begin(), hostnameHolder.end(), hostname);
             hostname[hostnameHolder.size()] = '\0';
             
-            sentBytes = sendto(handle, &hostname, PACKET_LENGTH_BYTES,
-                               0, (sockaddr*)&destAddress, sizeof(destAddress));
+            spaceSocket.send(&destAddress, &hostname, PACKET_LENGTH_BYTES);
         }
     }
 }

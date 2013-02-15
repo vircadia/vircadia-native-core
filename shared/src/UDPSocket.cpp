@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <cstdio>
+#include <errno.h>
+#include <string.h>
 
 sockaddr_in destSockaddr, senderAddress;
 
@@ -23,11 +25,7 @@ UDPSocket::UDPSocket(int listeningPort) {
         return;
     }
     
-    // instantiate the re-usable dest_sockaddr with a dummy IP and port
-    sockaddr_in dest_sockaddr;
-    dest_sockaddr.sin_family = AF_INET;
-    dest_sockaddr.sin_addr.s_addr = inet_addr("1.0.0.0");
-    dest_sockaddr.sin_port = htons((uint16_t) 1);
+    destSockaddr.sin_family = AF_INET;
     
     // bind the socket to the passed listeningPort
     sockaddr_in bind_address;
@@ -48,13 +46,13 @@ UDPSocket::~UDPSocket() {
 }
 
 //  Receive data on this socket with retrieving address of sender
-bool UDPSocket::receive(void *receivedData, int *receivedBytes) {
+bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
     
     return receive(&senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, int *receivedBytes) {
+bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *receivedBytes) {
     
     socklen_t addressSize = sizeof(&recvAddress);
     
@@ -64,20 +62,25 @@ bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, int *recei
     return (*receivedBytes > 0);
 }
 
-int UDPSocket::send(char * destAddress, int destPort, const void *data, int byteLength) {
+int UDPSocket::send(sockaddr_in *destAddress, const void *data, size_t byteLength) {
+    // send data via UDP
+    
+    int sent_bytes = sendto(handle, (const char*)data, byteLength,
+                            0, (sockaddr *) destAddress, sizeof(sockaddr_in));
+    
+    if (sent_bytes != byteLength) {
+        printf("Failed to send packet: %s\n", strerror(errno));
+        return false;
+    }
+    
+    return sent_bytes;
+}
+
+int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t byteLength) {
     
     // change address and port on reusable global to passed variables
     destSockaddr.sin_addr.s_addr = inet_addr(destAddress);
     destSockaddr.sin_port = htons((uint16_t)destPort);
     
-    // send data via UDP
-    int sent_bytes = sendto(handle, (const char*)data, byteLength,
-                        0, (sockaddr *)&destSockaddr, sizeof(sockaddr_in));
-    
-    if (sent_bytes != byteLength) {
-        printf("Failed to send packet: return value = %d\n", sent_bytes);
-        return false;
-    }
-    
-    return sent_bytes;
+    return send(&destSockaddr, data, byteLength);
 }

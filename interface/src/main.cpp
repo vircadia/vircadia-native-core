@@ -776,12 +776,12 @@ void key(unsigned char k, int x, int y)
 void *networkReceive(void *args)
 {
     sockaddr_in senderAddress;
-    int bytesRecvd;
+    ssize_t bytesReceived;
     while (true) {
-        if (agentSocket.receive(&senderAddress, (void *)incomingPacket, &bytesRecvd)) {
+        if (agentSocket.receive(&senderAddress, (void *)incomingPacket, &bytesReceived)) {
             
             packetcount++;
-            bytescount += bytesRecvd;
+            bytescount += bytesReceived;
             //  If packet is a Mouse data packet, copy it over
             if (incomingPacket[0] == 'P') {
                 //
@@ -808,14 +808,14 @@ void *networkReceive(void *args)
                 //  Message from domainserver
                 //
                   //printf("agent list received!\n");
-                nearbyAgents = update_agents(&incomingPacket[1], bytesRecvd - 1);
+                nearbyAgents = update_agents(&incomingPacket[1], bytesReceived - 1);
                 kludgyMixerUpdate(audio);
             } else if (incomingPacket[0] == 'H') {
                 //
                 //  Broadcast packet from another agent
                 //
                 //printf("broadcast received");
-                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesRecvd - 1);
+                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
             } else if (incomingPacket[0] == 'T') {
                 //  Received a self-test packet (to get one's own IP), copy it to local variable!
                 printf("My Address: %s:%u\n",
