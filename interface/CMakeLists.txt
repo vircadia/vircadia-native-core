@@ -18,7 +18,18 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
+# For Apple set the icns file containing icons
+IF(APPLE)
+  # set how it shows up in the Info.plist file
+  SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
+  # set where in the bundle to put the icns file
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  # include the icns file in the target
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
+ENDIF(APPLE)
+
 add_executable(interface MACOSX_BUNDLE ${INTERFACE_SRCS})
+
 include(../LinkHifiShared.cmake)
 link_hifi_shared_library(interface)
 
