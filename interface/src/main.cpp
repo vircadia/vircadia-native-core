@@ -113,7 +113,6 @@ Field field;
 Audio audio(&myHead, &audioScope);
 
 #define RENDER_FRAME_MSECS 8
-#define SLEEP 0
 int steps_per_frame = 0;
 
 float yaw =0.f;                         //  The yaw, pitch for the avatar head
@@ -161,9 +160,7 @@ int speed;
 // 
 
 SerialInterface serialPort;
-char serial_portname[] = "/dev/tty.usbmodem411";
 
-int serial_on = 0; 
 int latency_display = 1;
 //int adc_channels[NUM_CHANNELS];
 //float avg_adc_channels[NUM_CHANNELS];
@@ -253,10 +250,10 @@ void Timer(int extra)
         printf("packet test = %4.1f\n", sendTime);
     }
     
-    
-    //  Send a message to ourselves
-    //char test[]="T";
-    //agentSocket.send("127.0.0.1", AGENT_UDP_PORT, test, 1);
+    // if we haven't detected gyros, check for them now
+    if (!serialPort.active) {
+        serialPort.pair();
+    }
 }
 
 void display_stats(void)
@@ -269,7 +266,7 @@ void display_stats(void)
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
             FPS, packets_per_second,  bytes_per_second);
     drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
-    if (serial_on) {
+    if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
         drawtext(300, 30, 0.10, 0, 1.0, 0, stats);
@@ -329,26 +326,7 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    if (serial_on)
-    {
-        //  Call readsensors for a while to get stable initial values on sensors    
-        printf( "Stabilizing sensors... " );
-        gettimeofday(&timer_start, NULL);
-        int done = 0;
-        while (!done)
-        {
-            serialPort.readData();
-            gettimeofday(&timer_end, NULL);
-            if (diffclock(&timer_start, &timer_end) > 1000) done = 1;
-        }
-        gravity.x = serialPort.getValue(ACCEL_X);
-        gravity.y = serialPort.getValue(ACCEL_Y);
-        gravity.z = serialPort.getValue(ACCEL_Z);
-        
-        std::cout << "Gravity:  " << gravity.x << "," << gravity.y << "," << gravity.z << "\n";
-        printf( "Done.\n" );
-
-    }
+    
     
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -396,7 +374,10 @@ void reset_sensors()
     
     myHead.reset();
     myHand.reset();
-    if (serial_on) serialPort.resetTrailingAverages();
+    
+    if (serialPort.active) {
+        serialPort.resetTrailingAverages();
+    }
 }
 
 void update_pos(float frametime)
@@ -855,10 +836,8 @@ void idle(void)
     }
     
     //  Read serial data 
-    if (serial_on) serialPort.readData();
-    if (SLEEP)
-    {
-        usleep(SLEEP);
+    if (serialPort.active) {
+        serialPort.readData();
     }
 }
 
@@ -985,18 +964,6 @@ int main(int argc, char** argv)
         printf("Stdev=FAIL ");
     printf("\n");
 
-    //
-    //  Try to connect the serial port I/O
-    //
-    if(serialPort.init(serial_portname, 115200) == -1) {
-        printf("Unable to open serial port: %s\n", serial_portname);
-        serial_on = 0;
-    } 
-    else 
-    {
-        printf("Serial Port Initialized\n");
-        serial_on = 1; 
-    }
     
     // create thread for receipt of data via UDP
     pthread_t networkReceiveThread;

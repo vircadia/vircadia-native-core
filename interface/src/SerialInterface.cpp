@@ -15,6 +15,12 @@
 //
 
 #include "SerialInterface.h"
+#include <dirent.h>
+#include <sys/time.h>
+#ifdef __APPLE__
+#include <regex.h>
+#endif
+
 
 int serial_fd;
 const int MAX_BUFFER = 255;
@@ -23,11 +29,47 @@ int serial_buffer_pos = 0;
 int samples_total = 0;
 
 const int ZERO_OFFSET = 2048;
+const short NO_READ_MAXIMUM = 10;
 
-//  Init the serial port to the specified values 
-int SerialInterface::init(char * portname, int baud)
+SerialInterface::SerialInterface() {
+    active = false;
+    noReadCount = 0;
+}
+
+void SerialInterface::pair() {
+    // look for a matching gyro setup
+    DIR *devDir;
+    struct dirent *entry;
+    int matchStatus;
+    regex_t regex;
+    
+#ifdef __APPLE__
+    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
+    if((devDir = opendir("/dev"))) {
+        while((entry = readdir(devDir))) {
+            regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
+            matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
+            if (matchStatus == 0) {
+                char *serialPortname = new char[100];
+                sprintf(serialPortname, "/dev/%s", entry->d_name);
+                
+                init(serialPortname, 115200);
+                
+                delete [] serialPortname;
+            }
+            regfree(&regex);
+        }
+        closedir(devDir);
+    }
+#endif
+}
+
+//  Init the serial port to the specified values
+int SerialInterface::init(char* portname, int baud)
 {
     serial_fd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
+    
+    printf("Attemping to open serial interface: %s\n", portname);
     
     if (serial_fd == -1) return -1;     //  Failed to open port
     
@@ -68,9 +110,12 @@ int SerialInterface::init(char * portname, int baud)
     for (int i = 1; i < MAX_BUFFER; i++) {
         serial_buffer[i] = ' ';
     }
-
-
-    return 0;                   //  Init serial port was a success
+    
+    printf("Serial interface opened!\n");
+    
+    active = true;
+    
+    return 0;
 }
 
 //  Reset Trailing averages to the current measurement
@@ -133,8 +178,12 @@ void SerialInterface::readData() {
     const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
     char bufchar[1];
     
+    bool atLeastOneRead = false;
+    
     while (read(serial_fd, &bufchar, 1) > 0)
     {
+        atLeastOneRead = true;
+        
         //std::cout << bufchar[0];
         serial_buffer[serial_buffer_pos] = bufchar[0];
         serial_buffer_pos++;
@@ -168,6 +217,28 @@ void SerialInterface::readData() {
             samples_total++;
             serial_buffer_pos = 0;
         }
+    }
+    
+    if (!atLeastOneRead) {
+        noReadCount++;
+        std::cout << "#" << noReadCount << " blank read from serial.\n";
+        if (noReadCount >= NO_READ_MAXIMUM) {
+            disconnectSerial();
+        }
+    }
+}
+
+void SerialInterface::disconnectSerial() {
+    std::cout << "Reached maximum blank read count. Shutting down serial.\n";
+    
+    active = false;
+    noReadCount = 0;
+    
+    //  Clear the measured and average channel data
+    for (int i = 1; i < NUM_CHANNELS; i++)
+    {
+        lastMeasured[i] = 0;
+        trailingAverage[i] = 0.0;
     }
 }
 
