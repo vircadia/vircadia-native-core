@@ -35,7 +35,7 @@ const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 const int MAX_SOURCE_BUFFERS = 20;
@@ -250,23 +250,25 @@ int main(int argc, const char * argv[])
     timeval lastAgentUpdate;
     ssize_t receivedBytes = 0;
     
-    //  Lookup the IP address of things we have hostnames
-    printf("need to look this one up\n");
-    struct hostent* pHostInfo;
-    if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-        sockaddr_in tempAddress;
-        memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-        strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-        printf("Domain server found: %s\n", DOMAIN_IP);
-        
-    } else {
-        printf("Failed lookup domain server\n");
-    }
-    
     // setup the agentSocket to report to domain server
     pthread_t reportAliveThread;
     pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
     
+    //  Lookup the IP address of things we have hostnames
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            
+        } else {
+            printf("Failed lookup domainserver\n");
+        }
+    } else {
+        printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    }
 
     gettimeofday(&lastAgentUpdate, NULL);
 
@@ -281,11 +283,12 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
-            
-            if (addAgent(&agentAddress, packetData)) {
-                std::cout << "Added agent: " <<
-                inet_ntoa(agentAddress.sin_addr) << " on " <<
-                ntohs(agentAddress.sin_port) << "\n";
+            if (receivedBytes == BUFFER_LENGTH_BYTES) {
+                if (addAgent(&agentAddress, packetData)) {
+                    std::cout << "Added agent: " <<
+                    inet_ntoa(agentAddress.sin_addr) << " on " <<
+                    ntohs(agentAddress.sin_port) << "\n";
+                }
             }
         }
     }
