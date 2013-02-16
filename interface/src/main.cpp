@@ -282,7 +282,12 @@ void display_stats(void)
         pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
     }
     drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
+
     
+    std::stringstream angles;
+    angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
+    drawtext(10,50,0.10, 0, 1.0, 0, (char *)angles.str().c_str());
+
     /*
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",

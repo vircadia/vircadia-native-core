@@ -223,10 +223,9 @@ void Head::render(int faceToFace, float * myLocation)
         glScalef(scale, scale, scale);
         glTranslatef(leanSideways, 0.f, leanForward);
 
-        glRotatef(Yaw/2.0, 0, 1, 0);    
-        glRotatef(Pitch/2.0, 1, 0, 0);
-        glRotatef(Roll/2.0, 0, 0, 1);
-
+        glRotatef(Yaw, 0, 1, 0);    
+        glRotatef(Pitch, 1, 0, 0);
+        glRotatef(Roll, 0, 0, 1);
         
         // Overall scale of head
         if (faceToFace) glScalef(1.5, 2.0, 2.0);
@@ -334,7 +333,7 @@ void Head::render(int faceToFace, float * myLocation)
 int Head::getBroadcastData(char* data)
 {
     // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", Pitch + getRenderPitch(), Yaw + getRenderYaw(), Roll,
+    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
             position.x, position.y, position.z,
             loudness, averageLoudness);
     //printf("x: %3.1f\n", position.x);
