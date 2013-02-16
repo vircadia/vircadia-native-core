@@ -675,17 +675,22 @@ void display(void)
     glutSwapBuffers();
     framecount++;
 }
+
+const float KEYBOARD_YAW_RATE = 0.8;
+const float KEYBOARD_STRAFE_RATE = 0.03;
+const float KEYBOARD_FLY_RATE = 0.08;
+
 void specialkey(int k, int x, int y)
 {
-    if (k == GLUT_KEY_UP) fwd_vel += 0.05;
-    if (k == GLUT_KEY_DOWN) fwd_vel -= 0.05;
+    if (k == GLUT_KEY_UP) fwd_vel += KEYBOARD_FLY_RATE;
+    if (k == GLUT_KEY_DOWN) fwd_vel -= KEYBOARD_FLY_RATE;
     if (k == GLUT_KEY_LEFT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= 0.02;
-            else render_yaw_rate -= 0.25;
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= KEYBOARD_STRAFE_RATE;
+            else render_yaw_rate -= KEYBOARD_YAW_RATE;
     }
     if (k == GLUT_KEY_RIGHT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += 0.02;
-        else render_yaw_rate += 0.25;        
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += KEYBOARD_STRAFE_RATE;
+        else render_yaw_rate += KEYBOARD_YAW_RATE;        
     }
     
 }
@@ -737,11 +742,11 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'e') location[1] -= WORLD_SIZE/100.0;
     if (k == 'c') location[1] += WORLD_SIZE/100.0;
-    if (k == 'w') fwd_vel += 0.05;
-    if (k == 's') fwd_vel -= 0.05;
+    if (k == 'w') fwd_vel += KEYBOARD_FLY_RATE;
+    if (k == 's') fwd_vel -= KEYBOARD_FLY_RATE;
     if (k == ' ') reset_sensors();
-    if (k == 'a') render_yaw_rate -= 0.25;
-    if (k == 'd') render_yaw_rate += 0.25;
+    if (k == 'a') render_yaw_rate -= KEYBOARD_YAW_RATE;
+    if (k == 'd') render_yaw_rate += KEYBOARD_YAW_RATE;
     if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
