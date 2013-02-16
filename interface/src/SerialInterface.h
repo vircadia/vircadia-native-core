@@ -31,7 +31,8 @@
 
 class SerialInterface {
 public:
-    int init(char * portname, int baud);
+    SerialInterface() {};
+    void pair();
     void readData();
     int getLED() {return LED;};
     int getNumSamples() {return samplesAveraged;};
@@ -40,11 +41,16 @@ public:
     float getTrailingValue(int num) {return trailingAverage[num];};
     void resetTrailingAverages();
     void renderLevels(int width, int height);
+    bool active;
 private:
+    int init(char * portname, int baud);
+    void resetSerial();
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
     int samplesAveraged;
     int LED;
+    int noReadCount;
+    int totalSamples;
 };
 
 #endif
