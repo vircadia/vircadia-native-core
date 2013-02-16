@@ -229,6 +229,7 @@ void Head::render(int faceToFace, float * myLocation)
         
         // Overall scale of head
         if (faceToFace) glScalef(1.5, 2.0, 2.0);
+        else glScalef(0.75, 1.0, 1.0);
         glColor3fv(skinColor);
         
         //  Head
@@ -236,14 +237,14 @@ void Head::render(int faceToFace, float * myLocation)
         
         //  Ears
         glPushMatrix();
-            glTranslatef(1, 0, 0);
+            glTranslatef(1.0, 0, 0);
             for(side = 0; side < 2; side++)
             {
                 glPushMatrix();
-                    glScalef(0.5, 0.75, 1.0);
+                    glScalef(0.3, 0.65, .65);
                     glutSolidSphere(0.5, 30, 30);  
                 glPopMatrix();
-                glTranslatef(-2, 0, 0);
+                glTranslatef(-2.0, 0, 0);
             }
         glPopMatrix();
         
@@ -269,11 +270,11 @@ void Head::render(int faceToFace, float * myLocation)
         // Mouth
         
         glPushMatrix();
-            glTranslatef(0,-0.3,0.75);
+            glTranslatef(0,-0.35,0.75);
             glColor3f(loudness/1000.0,0,0);
             glRotatef(MouthPitch, 1, 0, 0);
             glRotatef(MouthYaw, 0, 0, 1);
-            glScalef(MouthWidth*(.5 + averageLoudness/3000.0), MouthHeight*(1.0 + averageLoudness/6000.0), 1);
+            glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/60.0), 1);
             glutSolidCube(0.5);
         glPopMatrix();
         
@@ -334,7 +335,7 @@ int Head::getBroadcastData(char* data)
 {
     // Copy data for transmission to the buffer, return length of data
     sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
-            position.x, position.y, position.z,
+            position.x + leanSideways, position.y, position.z + leanForward,
             loudness, averageLoudness);
     //printf("x: %3.1f\n", position.x);
     return strlen(data);
