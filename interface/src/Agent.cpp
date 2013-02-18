@@ -20,7 +20,7 @@ struct AgentList {
     unsigned short public_port;
     char private_address[255];
     unsigned short private_port;
-    char *goodAddress = NULL;
+    char *goodAddress;
     unsigned short goodPort;
     timeval pingStarted;
     int pingMsecs;
@@ -120,6 +120,7 @@ int add_agent(char * address, unsigned short port, char *private_address, unsign
         agents[num_agents].agentType = agentType;
         strcpy(agents[num_agents].private_address, private_address);
         agents[num_agents].private_port = private_port;
+        agents[num_agents].goodAddress = NULL;
         std::cout << "Added Agent # " << num_agents << " with Address " <<
             agents[num_agents].public_address << ":" << agents[num_agents].public_port << " T: " <<
             agentType << " (" << agents[num_agents].private_address << ":" << agents[num_agents].private_port << ")\n";
