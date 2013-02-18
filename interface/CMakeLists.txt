@@ -23,14 +23,19 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 # grab the implementation and header files from src dir
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 
-IF(APPLE)
+if (APPLE)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
-  # set where in the bundle to put the icns file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-  # include the icns file in the target
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
-ENDIF(APPLE)
+
+  # grab the image and audio files
+  FILE(GLOB INTERFACE_RES_DIRS resources/*)
+  set(INTERFACE_RSRCS ${INTERFACE_RES_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
+
+  # set where in the bundle to put the resources file
+  SET_SOURCE_FILES_PROPERTIES(${INTERFACE_RSRCS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  # include the icns file and resource files in the target
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_RSRCS})
+endif (APPLE)
 
 # create the executable, make it a bundle on OS X
 add_executable(interface MACOSX_BUNDLE ${INTERFACE_SRCS})

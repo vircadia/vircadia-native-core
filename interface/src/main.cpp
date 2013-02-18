@@ -184,11 +184,7 @@ double elapsedTime;
 
 // Particles
 
-// To add a new texture:
-// 1. Add to the XCode project in the Resources/images group
-//    (ensure "Copy file" is checked
-// 2. Add to the "Copy files" build phase in the project
-char texture_filename[] = "./int-texture256-v4.png";
+char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
@@ -311,7 +307,7 @@ void initDisplay(void)
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-    //load_png_as_texture(texture_filename);
+//    load_png_as_texture(texture_filename);
 
     if (fullscreen) glutFullScreen();
 }
