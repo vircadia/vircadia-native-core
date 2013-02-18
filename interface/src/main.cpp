@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <ifaddrs.h>
 
 //  These includes are for the serial port reading/writing
 #include <unistd.h>
@@ -81,6 +82,8 @@ int sendToSelf = 1;
 int WIDTH = 1200; 
 int HEIGHT = 800; 
 int fullscreen = 0;
+
+char localAddressBuffer[INET_ADDRSTRLEN];
 
 Oscilloscope audioScope(512,200,true);
 
@@ -228,7 +231,8 @@ void Timer(int extra)
     //  Send a message to the domainserver telling it we are ALIVE
     // 
     char output[100];
-    sprintf(output, "%c %f,%f,%f", 'I', location[0], location[1], location[2]);
+    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, (unsigned short) AGENT_UDP_PORT);
+    std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
     agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
@@ -928,6 +932,20 @@ int main(int argc, char** argv)
 {
     //  Create network socket and buffer
     incomingPacket = new char[MAX_PACKET_SIZE];
+    
+    struct ifaddrs * ifAddrStruct=NULL;
+    struct ifaddrs * ifa=NULL;
+    void * tmpAddrPtr=NULL;
+    
+    getifaddrs(&ifAddrStruct);
+    
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
+            // is a valid IP4 Address
+            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            inet_ntop(AF_INET, tmpAddrPtr, localAddressBuffer, INET_ADDRSTRLEN);
+        }
+    }
     
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {

@@ -16,8 +16,12 @@
 
 const int MAX_AGENTS = 100; 
 struct AgentList {
-    char address[255];
-    unsigned short port;
+    char public_address[255];
+    unsigned short public_port;
+    char private_address[255];
+    unsigned short private_port;
+    char *goodAddress = NULL;
+    unsigned short goodPort;
     timeval pingStarted;
     int pingMsecs;
     char agentType;
@@ -29,7 +33,7 @@ int num_agents = 0;
 
 
 char * getAgentAddress(int agentNumber) {
-    if (agentNumber < getAgentCount()) return agents[agentNumber].address;
+    if (agentNumber < getAgentCount()) return agents[agentNumber].public_address;
     else return NULL;
 }
 
@@ -51,17 +55,15 @@ int update_agents(char * data, int length) {
     std::string packet(data, length);
     size_t spot;
     size_t start_spot = 0;
-    std::string address, port;
+    char *public_address = new char[255];
+    char *private_address = new char[255];
     char agentType;
-    unsigned short nPort = 0;
-    unsigned int iPort = 0;
+    unsigned short public_port, private_port;
     spot = packet.find_first_of (",", 0);
     while (spot != std::string::npos) {
         std::string thisAgent = packet.substr(start_spot, spot-start_spot);
-        //std::cout << "raw string: " << thisAgent << "\n";
-        sscanf(thisAgent.c_str(), "%c %s %u", &agentType, address.c_str(), &iPort);
-        nPort = (unsigned short) iPort; 
-        add_agent((char *)address.c_str(), nPort, agentType);
+        sscanf(thisAgent.c_str(), "%c %s %hd %s %hd", &agentType, public_address, &public_port, private_address, &private_port);
+        add_agent(public_address, public_port, private_address, private_port, agentType);
         numAgents++;
         start_spot = spot + 1;
         if (start_spot < packet.length())
@@ -91,7 +93,7 @@ void update_agent(char * address, unsigned short port, char * data, int length)
 {
     //printf("%s:%d\n", address, port);
     for (int i = 0; i < num_agents; i++) {
-        if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
+        if ((strcmp(address, agents[i].public_address) == 0) && (agents[i].public_port == port)) {
             //  Update the agent 
             agents[i].head.recvBroadcastData(data, length);
             if ((strcmp(address, "127.0.0.1") == 0) && (port == AGENT_UDP_PORT)) {
@@ -104,21 +106,23 @@ void update_agent(char * address, unsigned short port, char * data, int length)
 //
 //  Look for an agent by it's IP number, add if it does not exist in local list 
 //
-int add_agent(char * address, unsigned short port, char agentType) {
+int add_agent(char * address, unsigned short port, char *private_address, unsigned short private_port, char agentType) {
     //std::cout << "Checking for " << IP->c_str() << "  ";
     for (int i = 0; i < num_agents; i++) {
-        if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
+        if ((strcmp(address, agents[i].public_address) == 0) && (agents[i].public_port == port)) {
             //std::cout << "Found agent!\n";
             return 0;
         }
     }
     if (num_agents < MAX_AGENTS) {
-        strcpy(agents[num_agents].address, address);
-        agents[num_agents].port = port;
+        strcpy(agents[num_agents].public_address, address);
+        agents[num_agents].public_port = port;
         agents[num_agents].agentType = agentType;
+        strcpy(agents[num_agents].private_address, private_address);
+        agents[num_agents].private_port = private_port;
         std::cout << "Added Agent # " << num_agents << " with Address " <<
-            agents[num_agents].address << ":" << agents[num_agents].port << " T: " <<
-            agentType << "\n";
+            agents[num_agents].public_address << ":" << agents[num_agents].public_port << " T: " <<
+            agentType << " (" << agents[num_agents].private_address << ":" << agents[num_agents].private_port << ")\n";
         
         num_agents++;
         return 1;
@@ -134,19 +138,16 @@ int add_agent(char * address, unsigned short port, char agentType) {
 int broadcastToAgents(UDPSocket *handle, char * data, int length, int sendToSelf) {
     int sent_bytes;
     //printf("broadcasting to %d agents\n", num_agents);
-    for (int i = 0; i < num_agents; i++) {       
-        if  (sendToSelf || (((strcmp((char *)"127.0.0.1", agents[i].address) != 0)
-            && (agents[i].port != AGENT_UDP_PORT))))
+    for (int i = 0; i < num_agents; i++) {
+        if (agents[i].agentType != 'M'  && agents[i].goodAddress != NULL) {
+//            std::cout << "broadcasting my agent data to:  " << agents[i].goodAddress << " : " << agents[i].goodPort << "\n";
             
-            if (agents[i].agentType != 'M') {
-                //std::cout << "broadcasting my agent data to:  " << agents[i].address << " : " << agents[i].port << "\n";
-
-                sent_bytes = handle->send(agents[i].address, agents[i].port, data, length);
-                if (sent_bytes != length) {
-                    std::cout << "Broadcast to agents FAILED\n";
-                    return 0;
-                }
+            sent_bytes = handle->send(agents[i].goodAddress, agents[i].goodPort, data, length);
+            if (sent_bytes != length) {
+                std::cout << "Broadcast to agents FAILED\n";
+                return 0;
             }
+        }            
     }
     return 1;
 }
@@ -157,7 +158,12 @@ void pingAgents(UDPSocket *handle) {
     for (int i = 0; i < num_agents; i++) {
         if (agents[i].agentType != 'M') {
             gettimeofday(&agents[i].pingStarted, NULL);
-            handle->send(agents[i].address, agents[i].port, payload, 1);
+            if (agents[i].goodAddress == NULL) {
+                handle->send(agents[i].public_address, agents[i].public_port, payload, 1);
+                handle->send(agents[i].private_address, agents[i].private_port, payload, 1);
+            } else {
+                handle->send(agents[i].goodAddress, agents[i].goodPort, payload, 1);
+            }
             //printf("\nSent Ping at %d usecs\n", agents[i].pingStarted.tv_usec);
         }
         
@@ -167,7 +173,19 @@ void pingAgents(UDPSocket *handle) {
 //  On receiving a ping reply, save that with the agent record
 void setAgentPing(char * address, unsigned short port) {
     for (int i = 0; i < num_agents; i++) {
-        if ((strcmp(address, agents[i].address) == 0) && (agents[i].port == port)) {
+        bool isLocal = false;
+        bool isPublic = false;
+        if ((strcmp(address, agents[i].public_address) == 0) && (agents[i].public_port == port)) {
+            isPublic = true;
+            agents[i].goodAddress = agents[i].public_address;
+            agents[i].goodPort = agents[i].public_port;
+        } else if ((strcmp(address, agents[i].private_address) == 0) && (agents[i].private_port == port)) {
+            isLocal = true;
+            agents[i].goodAddress = agents[i].private_address;
+            agents[i].goodPort = agents[i].private_port;
+        }
+        
+        if (isPublic || isLocal) {
             timeval pingReceived;
             gettimeofday(&pingReceived, NULL);
             float pingMsecs = diffclock(&agents[i].pingStarted, &pingReceived);
@@ -180,7 +198,7 @@ void setAgentPing(char * address, unsigned short port) {
 void kludgyMixerUpdate(Audio audio) {
     for (int i = 0; i < num_agents; i++) {
         if (agents[i].agentType == 'M') {
-            audio.updateMixerParams(agents[i].address, agents[i].port);
+            audio.updateMixerParams(agents[i].public_address, agents[i].public_port);
         }
     }
 }

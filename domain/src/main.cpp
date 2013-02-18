@@ -42,8 +42,10 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 struct AgentList {
     char agentType;
     uint32_t ip;
-    in_addr sin_addr;
-    in_port_t port;
+    in_addr public_sin_addr;
+    in_port_t public_port;
+    char *private_addr;
+    in_port_t private_port;
     float x, y, z;
     bool active;
     timeval time, connectTime;
@@ -61,11 +63,11 @@ double diffclock(timeval clock1,timeval clock2)
 	return diffms;
 }
 
-int addAgent(uint32_t ip, in_port_t port, char agentType, float x, float y, float z) {
+int addAgent(uint32_t ip, in_port_t port, char *private_ip, unsigned short private_port, char agentType, float x, float y, float z) {
     //  Search for agent in list and add if needed 
     int i = 0;
     int is_new = 0; 
-    while ((ip != agents[i].ip || port != agents[i].port) && (i < num_agents))  {
+    while ((ip != agents[i].ip || port != agents[i].public_port) && (i < num_agents))  {
         i++;
     }
     if ((i == num_agents) || (agents[i].active == false)) is_new = 1;
@@ -74,8 +76,10 @@ int addAgent(uint32_t ip, in_port_t port, char agentType, float x, float y, floa
     agents[i].y = y; 
     agents[i].z = z;
     agents[i].active = true;
-    agents[i].sin_addr.s_addr = ip;
-    agents[i].port = port;
+    agents[i].public_sin_addr.s_addr = ip;
+    agents[i].public_port = port;
+    agents[i].private_addr = private_ip;
+    agents[i].private_port = private_port;
     agents[i].agentType = agentType;
     gettimeofday(&agents[i].time, NULL);
     if (is_new) gettimeofday(&agents[i].connectTime, NULL);
@@ -92,7 +96,7 @@ void update_agent_list(timeval now) {
         if ((diffclock(agents[i].time, now) > LOGOFF_CHECK_INTERVAL) &&
             agents[i].active) {
             std::cout << "Expired Agent type " << agents[i].agentType << " from " <<
-            inet_ntoa(agents[i].sin_addr) << ":" << agents[i].port << "\n";
+            inet_ntoa(agents[i].public_sin_addr) << ":" << agents[i].public_port << "\n";
             agents[i].active = false; 
         }
     }
@@ -102,8 +106,10 @@ void send_agent_list(sockaddr_in *agentAddrPointer) {
     int i, length = 0;
     ssize_t sentBytes;
     char buffer[MAX_PACKET_SIZE];
-    char * address;
-    char portstring[10];
+    char * public_address;
+    char public_portstring[10];
+    char * private_address;
+    char private_portstring[10];
     int numSent = 0;
     buffer[length++] = 'D';
     //std::cout << "send list to:  " << inet_ntoa(dest_address->sin_addr) << "\n";
@@ -111,20 +117,30 @@ void send_agent_list(sockaddr_in *agentAddrPointer) {
         if (agents[i].active) {
             // Write the type of the agent
             buffer[length++] = agents[i].agentType;
-            // Write agent's IP address
-            address = inet_ntoa(agents[i].sin_addr);
-            memcpy(&buffer[length], address, strlen(address));
-            length += strlen(address);
-            //  Add port number
+            // Write agent's public IP address
+            public_address = inet_ntoa(agents[i].public_sin_addr);
+            memcpy(&buffer[length], public_address, strlen(public_address));
+            length += strlen(public_address);
+            //  Add public port number
             buffer[length++] = ' ';
-            sprintf(portstring, "%d\n", agents[i].port);
-            memcpy(&buffer[length], portstring, strlen(portstring));
-            length += strlen(portstring);
-            //  Add comma separator between agents 
-            buffer[length++] = ',';
+            sprintf(public_portstring, "%hd", agents[i].public_port);
+            memcpy(&buffer[length], public_portstring, strlen(public_portstring));
+            length += strlen(public_portstring);
+            // Write agent's private IP address
+            buffer[length++] = ' ';
+            private_address = agents[i].private_addr;
+            memcpy(&buffer[length], private_address, strlen(private_address));
+            length += strlen(private_address);
+            // Add private port number
+            buffer[length++] = ' ';
+            sprintf(private_portstring, "%hd,", agents[i].private_port);
+            memcpy(&buffer[length], private_portstring, strlen(private_portstring));
+            length += strlen(private_portstring);
             numSent++;
         }
     }
+    
+    std::cout << "The sent buffer was " << buffer << "\n";
     
     if (length > 1) {
         sentBytes = domainSocket.send(agentAddrPointer, buffer, length);
@@ -150,11 +166,14 @@ int main(int argc, const char * argv[])
     while (true) {
         if (domainSocket.receive(&agentAddress, packet_data, &receivedBytes)) {
             float x,y,z;
-            char agentType; 
-            sscanf(packet_data, "%c %f,%f,%f", &agentType, &x, &y, &z);
-            if (addAgent(agentAddress.sin_addr.s_addr, ntohs(agentAddress.sin_port), agentType, x, y, z)) {
+            char agentType;
+            char private_ip[50];
+            unsigned short private_port;
+            sscanf(packet_data, "%c %f,%f,%f,%s %hd", &agentType, &x, &y, &z, private_ip, &private_port);
+            if (addAgent(agentAddress.sin_addr.s_addr, ntohs(agentAddress.sin_port), private_ip, private_port, agentType, x, y, z)) {
                 std::cout << "Added Agent, type " << agentType << " from " <<
-                inet_ntoa(agentAddress.sin_addr) << ":" << ntohs(agentAddress.sin_port) << "\n";
+                inet_ntoa(agentAddress.sin_addr) << ":" << ntohs(agentAddress.sin_port) <<
+                " (" << private_ip << ":" << private_port << ")" << "\n";
             }
             //  Reply with packet listing nearby active agents
             send_agent_list(&agentAddress);
