@@ -70,7 +70,12 @@ int addAgent(uint32_t ip, in_port_t port, char *private_ip, unsigned short priva
     while ((ip != agents[i].ip || port != agents[i].public_port) && (i < num_agents))  {
         i++;
     }
-    if ((i == num_agents) || (agents[i].active == false)) is_new = 1;
+    
+    if ((i == num_agents) || (agents[i].active == false)) {
+        is_new = 1;
+        agents[i].private_addr = new char[255];
+    }
+    
     agents[i].ip = ip; 
     agents[i].x = x; 
     agents[i].y = y; 
