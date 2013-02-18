@@ -35,7 +35,7 @@ const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 const int MAX_SOURCE_BUFFERS = 20;
