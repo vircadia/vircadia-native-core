@@ -60,7 +60,7 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 UDPSocket agentSocket(AGENT_UDP_PORT);
 
@@ -231,7 +231,7 @@ void Timer(int extra)
     //  Send a message to the domainserver telling it we are ALIVE
     // 
     char output[100];
-    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, (unsigned short) AGENT_UDP_PORT);
+    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_UDP_PORT);
     std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
     agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);

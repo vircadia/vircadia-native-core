@@ -18,7 +18,7 @@
 const int MAX_AGENTS = 1000;
 const int LOGOFF_CHECK_INTERVAL = 1000;
 
-const int MIXER_LISTEN_PORT = 55443;
+const unsigned short MIXER_LISTEN_PORT = 55443;
 
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
@@ -229,7 +229,7 @@ void *reportAliveToDS(void *args) {
     while (true) {
         gettimeofday(&lastSend, NULL);
         
-        sprintf(output, "%c %f,%f,%f,54.241.92.53 %hd", 'M', 0.f, 0.f, 0.f, (unsigned short)MIXER_LISTEN_PORT);
+        sprintf(output, "%c %f,%f,%f,54.241.92.53 %hd", 'M', 0.f, 0.f, 0.f, MIXER_LISTEN_PORT);
         int packetSize = strlen(output);
         audioSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packetSize);
         

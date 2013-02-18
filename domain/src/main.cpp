@@ -43,9 +43,9 @@ struct AgentList {
     char agentType;
     uint32_t ip;
     in_addr public_sin_addr;
-    in_port_t public_port;
+    unsigned short public_port;
     char *private_addr;
-    in_port_t private_port;
+    unsigned short private_port;
     float x, y, z;
     bool active;
     timeval time, connectTime;
