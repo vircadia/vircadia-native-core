@@ -229,7 +229,7 @@ void *reportAliveToDS(void *args) {
     while (true) {
         gettimeofday(&lastSend, NULL);
         
-        sprintf(output, "%c %f,%f,%f,54.241.92.53 %hd", 'M', 0.f, 0.f, 0.f, MIXER_LISTEN_PORT);
+        sprintf(output, "%c %f,%f,%f,54.241.92.53 %hd", 'M', 0.f, 0.f, 0.f, (unsigned short)MIXER_LISTEN_PORT);
         int packetSize = strlen(output);
         audioSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packetSize);
         
