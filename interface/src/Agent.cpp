@@ -199,7 +199,7 @@ void setAgentPing(char * address, unsigned short port) {
 void kludgyMixerUpdate(Audio audio) {
     for (int i = 0; i < num_agents; i++) {
         if (agents[i].agentType == 'M') {
-            audio.updateMixerParams(agents[i].public_address, agents[i].public_port);
+            audio.updateMixerParams(agents[i].private_address, agents[i].private_port);
         }
     }
 }
