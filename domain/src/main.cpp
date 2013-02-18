@@ -78,7 +78,7 @@ int addAgent(uint32_t ip, in_port_t port, char *private_ip, unsigned short priva
     agents[i].active = true;
     agents[i].public_sin_addr.s_addr = ip;
     agents[i].public_port = port;
-    agents[i].private_addr = private_ip;
+    strcpy(agents[i].private_addr, private_ip);
     agents[i].private_port = private_port;
     agents[i].agentType = agentType;
     gettimeofday(&agents[i].time, NULL);

@@ -62,6 +62,7 @@ int update_agents(char * data, int length) {
     spot = packet.find_first_of (",", 0);
     while (spot != std::string::npos) {
         std::string thisAgent = packet.substr(start_spot, spot-start_spot);
+        std::cout << "RAW: " << thisAgent << "\n";
         sscanf(thisAgent.c_str(), "%c %s %hd %s %hd", &agentType, public_address, &public_port, private_address, &private_port);
         add_agent(public_address, public_port, private_address, private_port, agentType);
         numAgents++;
