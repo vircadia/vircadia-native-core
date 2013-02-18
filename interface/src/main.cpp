@@ -42,7 +42,7 @@
 #include "Texture.h"
 #include "Cloud.h"
 #include "Agent.h"
-#include "Cube.h"
+#include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
 #include "Oscilloscope.h"
@@ -104,7 +104,7 @@ Cloud cloud(0,                             //  Particles
             false                          //  Wrap
             );
 
-VoxelSystem voxels(1000, box);
+VoxelSystem voxels;
 
 Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
@@ -314,6 +314,10 @@ void initDisplay(void)
 
 void init(void)
 {
+    voxels.init();
+    int voxelsMade = voxels.initVoxels(NULL, 1.0);
+    std::cout << voxelsMade << " voxels made. \n";
+    
     myHead.setRenderYaw(start_yaw);
 
     head_mouse_x = WIDTH/2;
@@ -401,7 +405,7 @@ void update_pos(float frametime)
     if (powf(measured_yaw_rate*measured_yaw_rate + 
              measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
     {
-        head_mouse_x -= measured_yaw_rate*MOUSE_SENSITIVITY;
+        head_mouse_x += measured_yaw_rate*MOUSE_SENSITIVITY;
         head_mouse_y += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
     }
     head_mouse_x = max(head_mouse_x, 0);
@@ -424,18 +428,18 @@ void update_pos(float frametime)
     */
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates
-    const int MIN_YAW_RATE = 3000;
-    const float YAW_SENSITIVITY = 0.03;
-    const int MIN_PITCH_RATE = 3000;
+    const int MIN_YAW_RATE = 100;
+    const float YAW_SENSITIVITY = 0.08;
+    const int MIN_PITCH_RATE = 100;
     
     const float PITCH_SENSITIVITY = 0.04;
     
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
         if (measured_yaw_rate > 0)
-            render_yaw_rate -= (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            render_yaw_rate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
         else 
-            render_yaw_rate -= (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            render_yaw_rate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
     }
     if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
     {
@@ -561,7 +565,7 @@ void display(void)
         if (!display_head) cloud.render();
     
         //  Draw voxels
-        voxels.render();
+        //voxels.render(NULL, 10.0);
     
         //  Draw field vectors
         if (display_field) field.render();

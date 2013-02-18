@@ -15,19 +15,20 @@
 #include "InterfaceConfig.h"
 #include <iostream>
 
-class VoxelSystem {
-public:
-    VoxelSystem(int num,
-                   glm::vec3 box);
-    void simulate(float deltaTime);
-    void render();
-private:
-    struct Voxel {
-        glm::vec3 color;
-        bool hasChildren;
-        Voxel * children;
-    } *voxels;    
+const int NUM_CHILDREN = 8;
+
+struct Voxel {
+    glm::vec3 color;
+    Voxel * children[NUM_CHILDREN];
 };
 
+class VoxelSystem {
+public:
+    void simulate(float deltaTime);
+    void render(Voxel * voxel, float scale);
+    void init();
+    int initVoxels(Voxel * root, float scale);
+    Voxel * root;
+};
 
 #endif

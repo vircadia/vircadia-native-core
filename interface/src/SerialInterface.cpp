@@ -203,7 +203,7 @@ void SerialInterface::readData() {
             serial_buffer_pos = 0;
         }
     }
-    
+    /*
     if (initialSamples == totalSamples) {
         noReadCount++;
         std::cout << "#" << noReadCount << " blank read from serial.\n";
@@ -212,6 +212,7 @@ void SerialInterface::readData() {
             resetSerial();
         }
     }
+     */
 }
 
 void SerialInterface::resetSerial() {
