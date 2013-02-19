@@ -9,6 +9,8 @@
 #include <iostream>
 #include <cstdio>
 #include <stdlib.h>
+#include <string.h>
+
 #include "TreeNode.h"
 #include "UDPSocket.h"
 
@@ -93,13 +95,13 @@ bool loadSpaceData(void) {
                     // pull as many bits as are left
                     int goodBits = 8 - paddingBits;
                     sprintf(formatString, "%%%dc", goodBits);
-                    fscanf(configFile, formatString, fullByteBitString);
+                    itemsRead = fscanf(configFile, formatString, fullByteBitString);
                     
                     // fill out the rest with zeros
                     memset(fullByteBitString + goodBits, '0', paddingBits);
                 } else {
                     // pull 8 bits (which will be one byte) from the file
-                    fscanf(configFile, "%8c", fullByteBitString);
+                    itemsRead = fscanf(configFile, "%8c", fullByteBitString);
                 }
                 
                 // set the corresponding value in the unsigned char array
@@ -108,7 +110,7 @@ bool loadSpaceData(void) {
     
             char *nodeHostname = new char[MAX_NAME_LENGTH];
             char *nodeNickname = new char[MAX_NAME_LENGTH];
-            fscanf(configFile, "%s %s\n", nodeHostname, nodeNickname);
+            itemsRead = fscanf(configFile, "%s %s\n", nodeHostname, nodeNickname);
          
             findOrCreateNode(bitsInAddress, paddedAddress, nodeHostname, nodeNickname, 0);
         }
