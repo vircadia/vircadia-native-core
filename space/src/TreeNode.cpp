@@ -14,6 +14,7 @@ TreeNode::TreeNode() {
     for (int i = 0; i < CHILDREN_PER_NODE; ++i) {
         child[i] = NULL;
     }
-    hostname = &EMPTY_STRING;
-    nickname = &EMPTY_STRING;
+    
+    hostname = NULL;
+    nickname = NULL;
 }

@@ -184,11 +184,7 @@ double elapsedTime;
 
 // Particles
 
-// To add a new texture:
-// 1. Add to the XCode project in the Resources/images group
-//    (ensure "Copy file" is checked
-// 2. Add to the "Copy files" build phase in the project
-char texture_filename[] = "./int-texture256-v4.png";
+char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
@@ -231,7 +227,7 @@ void Timer(int extra)
     //  Send a message to the domainserver telling it we are ALIVE
     // 
     char output[100];
-    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, (unsigned short) AGENT_UDP_PORT);
+    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_UDP_PORT);
     std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
     agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
@@ -311,7 +307,7 @@ void initDisplay(void)
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-    //load_png_as_texture(texture_filename);
+//    load_png_as_texture(texture_filename);
 
     if (fullscreen) glutFullScreen();
 }

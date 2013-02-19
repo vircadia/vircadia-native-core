@@ -7,82 +7,53 @@
 //
 
 #include <iostream>
-#include <fstream>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <vector>
-#include <sstream>
-#include <algorithm>
-#include <iterator>
-#include <stack>
-#include <bitset>
 #include "TreeNode.h"
 #include "UDPSocket.h"
 
-const char *CONFIG_FILE = "/etc/below92/spaceserver.data.txt";
-const int SPACE_LISTENING_PORT = 55551;
-std::vector< std::vector<std::string> > configData;
-sockaddr_in address, destAddress;
-socklen_t destLength = sizeof(destAddress);
+const char *CONFIG_FILE = "/Users/birarda/code/worklist/checkouts/hifi/space/example.data.txt";
+const unsigned short SPACE_LISTENING_PORT = 55551;
+const short MAX_NAME_LENGTH = 63;
 
-std::string ROOT_HOSTNAME = "root.highfidelity.co";
-std::string ROOT_NICKNAME = "root";
-std::string *LAST_KNOWN_HOSTNAME = new std::string();
+const char ROOT_HOSTNAME[] = "root.highfidelity.co";
+const char ROOT_NICKNAME[] = "root";
 
 const size_t PACKET_LENGTH_BYTES = 1024;
+
+sockaddr_in destAddress;
+socklen_t destLength = sizeof(destAddress);
+
+char *lastKnownHostname;
 
 TreeNode rootNode;
 UDPSocket spaceSocket(SPACE_LISTENING_PORT);
 
-void printBinaryValue(char element) {
-    std::bitset<8> x(element);
-    std::cout << "Printing binary value: " << x << std::endl;
-}
-
-TreeNode *findOrCreateNode(unsigned long lengthInBits,
+TreeNode *findOrCreateNode(int lengthInBits,
                            unsigned char *addressBytes,
-                           std::string *hostname,
-                           std::string *nickname,
-                           int domain_id) {
+                           char *hostname,
+                           char *nickname,
+                           int domainID) {
     
     TreeNode *currentNode = &rootNode;
     
     for (int i = 0; i < lengthInBits; i += 3) {
-        unsigned char octetA;
-        unsigned char octetB;
         unsigned char octet;
         
-        /*
-         * @TODO Put those shifts into a nice single statement, leaving as is for now
-         */
         if (i%8 < 6) {
-            octetA = addressBytes[i/8] << i%8;
-            octet = octetA >> (5);
+            octet = addressBytes[i/8] << i%8 >> (5);
         } else {
-            octetA = addressBytes[i/8] << i;
-            octetA = octetA >>  (11 - i);
-            octetB = addressBytes[i/8 + 1] >> (11 - i + 2);
-            octet = octetA | octetB;
+            octet = (addressBytes[i/8] << i >>  (11 - i)) | (addressBytes[i/8 + 1] >> (11 - i + 2));
         }
         
         if (currentNode->child[octet] == NULL) {
             currentNode->child[octet] = new TreeNode;
-        } else if (!currentNode->child[octet]->hostname->empty()) {
-            LAST_KNOWN_HOSTNAME = currentNode->child[octet]->hostname;
+        } else if (currentNode->child[octet]->hostname != NULL) {
+            lastKnownHostname = currentNode->child[octet]->hostname;
         }
         
         currentNode = currentNode->child[octet];
     }
     
-    if (currentNode->hostname->empty()) {
+    if (currentNode->hostname == NULL) {
         currentNode->hostname = hostname;
         currentNode->nickname = nickname;
     }
@@ -91,73 +62,59 @@ TreeNode *findOrCreateNode(unsigned long lengthInBits,
 };
 
 bool loadSpaceData(void) {
-    std::ifstream configFile(CONFIG_FILE);
-    std::string line;
+    FILE *configFile = std::fopen(CONFIG_FILE, "r");
+    char formatString[10];
     
-    if (configFile.is_open()) {
-        while (getline(configFile, line)) {
-            std::istringstream iss(line);
-            std::vector<std::string> thisEntry;
-            copy(std::istream_iterator<std::string>(iss),
-                 std::istream_iterator<std::string>(),
-                 std::back_inserter(thisEntry));
-            configData.push_back(thisEntry);
-            thisEntry.clear();
-        }
-    } else {
-        std::cout << "Unable to load config file\n";
+    if (configFile == NULL) {
+        std::cout << "Unable to load config file!\n";
         return false;
-    }
+    } else {
+        char *lengthBitString = new char[8];
+        int itemsRead = 0;
+        
+        while ((itemsRead = fscanf(configFile, "0 %8c", lengthBitString)) > 0) {
+            
+            // calculate the number of bits in the address and bits required for padding
+            unsigned long threeBitCodes = strtoul(lengthBitString, NULL, 2);
+            int bitsInAddress = threeBitCodes * 3;
+            int paddingBits = 8 - (bitsInAddress % 8);
+            int addressByteLength = (bitsInAddress + paddingBits) / 8;
+            
+            // create an unsigned char * to hold the padded address
+            unsigned char *paddedAddress = new unsigned char[addressByteLength];
+            
+            char *fullByteBitString = new char[8];
+   
+            for (int c = 0; c < addressByteLength; c++) {
+                if (c + 1 == addressByteLength && paddingBits > 0) {
+                    // this is the last byte, and we need some padding bits
+                    // pull as many bits as are left
+                    int goodBits = 8 - paddingBits;
+                    sprintf(formatString, "%%%dc", goodBits);
+                    fscanf(configFile, formatString, fullByteBitString);
+                    
+                    // fill out the rest with zeros
+                    memset(fullByteBitString + goodBits, '0', paddingBits);
+                } else {
+                    // pull 8 bits (which will be one byte) from the file
+                    fscanf(configFile, "%8c", fullByteBitString);
+                }
+                
+                // set the corresponding value in the unsigned char array
+                *(paddedAddress + c) = strtoul(fullByteBitString, NULL, 2);
+            }
     
-    for (std::vector< std::vector<std::string> >::iterator it = configData.begin(); it != configData.end(); ++it) {
-        std::string *thisAddress = &(*it)[1];
-        std::string *thisHostname = &(*it)[2];
-        std::string *thisNickname = &(*it)[3];
-        
-        char lengthByteString[8];
-        unsigned long lengthByte;
-        unsigned long bitsInAddress;
-        std::size_t bytesForAddress;
-        
-        std::size_t lengthByteSlice = (*thisAddress).copy(lengthByteString, 8, 0);
-        lengthByteString[lengthByteSlice] = '\0';
-        lengthByte = strtoul(lengthByteString, NULL, 2);
-        
-        bitsInAddress = lengthByte * 3;
-        bytesForAddress = (((bitsInAddress + 7) & ~7));
-        char *addressBitStream = new char();
-        std::size_t addressBitSlice = (*thisAddress).copy(addressBitStream, (*thisAddress).length(), 8);
-
-        if (bitsInAddress != addressBitSlice) {
-            std::cout << "[FATAL] Mismatching byte length: " << bitsInAddress
-                      << " and address bits: " << sizeof(addressBitStream) << std::endl;
-            return false;
+            char *nodeHostname = new char[MAX_NAME_LENGTH];
+            char *nodeNickname = new char[MAX_NAME_LENGTH];
+            fscanf(configFile, "%s %s\n", nodeHostname, nodeNickname);
+         
+            findOrCreateNode(bitsInAddress, paddedAddress, nodeHostname, nodeNickname, 0);
         }
         
-        char paddedBitString[bytesForAddress];
-        strcpy(paddedBitString, addressBitStream);
-        for (unsigned long i = addressBitSlice; i < bytesForAddress; ++i ) {
-            paddedBitString[i] = '0';
-        }
-        paddedBitString[bytesForAddress] = '\0';
+        std::fclose(configFile);
         
-        std::string byteBufferHolder = *new std::string(paddedBitString);
-        unsigned char addressBytes[bytesForAddress / 8];
-        addressBytes[bytesForAddress / 8] = '\0';
-        int j = 0;
-        
-        for (unsigned long i = 0; i < bytesForAddress; i += 8) {
-            char *byteHolder = new char;
-            unsigned long thisByte;
-            byteBufferHolder.copy(byteHolder, 8, i);
-            thisByte = strtoul(byteHolder, NULL, 2);
-            addressBytes[j] = thisByte;
-            ++j;
-        }
-        
-        findOrCreateNode(bitsInAddress, addressBytes, thisHostname, thisNickname, 0);
+        return true;
     }
-    return true;
 }
 
 int main (int argc, const char *argv[]) {
@@ -165,8 +122,11 @@ int main (int argc, const char *argv[]) {
     unsigned char packetData[PACKET_LENGTH_BYTES];
     ssize_t receivedBytes = 0;
     
-    rootNode.hostname = &ROOT_HOSTNAME;
-    rootNode.nickname = &ROOT_NICKNAME;
+    rootNode.hostname = new char[MAX_NAME_LENGTH];
+    rootNode.nickname = new char[MAX_NAME_LENGTH];
+    
+    strcpy(rootNode.hostname, ROOT_HOSTNAME);
+    strcpy(rootNode.nickname, ROOT_NICKNAME);
     
     loadSpaceData();
     
@@ -181,24 +141,13 @@ int main (int argc, const char *argv[]) {
             for (int i = 0; i < sizeof(packetData)-1; ++i) {
                 addressData[i] = packetData[i+1];
             }
-            std::string thisHostname;
-            std::string thisNickname;
-            std::string hostnameHolder;
-            int domain_id = 0;
             
-            TreeNode thisNode = *findOrCreateNode(lengthInBits, addressData, &thisHostname, &thisNickname, domain_id);
+            TreeNode *thisNode = findOrCreateNode(lengthInBits, addressData, NULL, NULL, 0);
+            char *hostnameToSend = (thisNode->hostname == NULL)
+                ? lastKnownHostname
+                : thisNode->hostname;
             
-            if (thisNode.hostname->empty()) {
-                hostnameHolder = *LAST_KNOWN_HOSTNAME;
-            } else {
-                hostnameHolder = *thisNode.hostname;
-            }
-            
-            char hostname[hostnameHolder.size() + 1];
-            std::copy(hostnameHolder.begin(), hostnameHolder.end(), hostname);
-            hostname[hostnameHolder.size()] = '\0';
-            
-            spaceSocket.send(&destAddress, &hostname, PACKET_LENGTH_BYTES);
+            spaceSocket.send(&destAddress, &hostnameToSend, sizeof(hostnameToSend));
         }
     }
 }

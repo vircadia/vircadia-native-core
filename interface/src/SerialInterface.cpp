@@ -27,7 +27,7 @@ char serial_buffer[MAX_BUFFER];
 int serial_buffer_pos = 0;
 
 const int ZERO_OFFSET = 2048;
-const short NO_READ_MAXIMUM = 10;
+const short NO_READ_MAXIMUM_MSECS = 3000;
 const short SAMPLES_TO_DISCARD = 100;
 
 void SerialInterface::pair() {
@@ -166,14 +166,12 @@ void SerialInterface::readData() {
     
     int initialSamples = totalSamples;
     
-    while (read(serial_fd, &bufchar, 1) > 0)
-    {        
+    while (read(serial_fd, &bufchar, 1) > 0) {        
         //std::cout << bufchar[0];
         serial_buffer[serial_buffer_pos] = bufchar[0];
         serial_buffer_pos++;
         //  Have we reached end of a line of input?
-        if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER))
-        {
+        if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER)) {
             std::string serialLine(serial_buffer, serial_buffer_pos-1);
             //std::cout << serialLine << "\n";
             int spot;
@@ -203,28 +201,28 @@ void SerialInterface::readData() {
             serial_buffer_pos = 0;
         }
     }
-    /*
-    if (initialSamples == totalSamples) {
-        noReadCount++;
-        std::cout << "#" << noReadCount << " blank read from serial.\n";
+    
+    if (initialSamples == totalSamples) {        
+        timeval now;
+        gettimeofday(&now, NULL);
         
-        if (noReadCount >= NO_READ_MAXIMUM) {
+        if (diffclock(&lastGoodRead, &now) > NO_READ_MAXIMUM_MSECS) {
+            std::cout << "No data coming over serial. Shutting down SerialInterface.\n";
             resetSerial();
         }
+    } else {
+        gettimeofday(&lastGoodRead, NULL);
     }
-     */
 }
 
 void SerialInterface::resetSerial() {
-    std::cout << "Reached maximum blank read count. Shutting down serial.\n";
-    
     active = false;
-    noReadCount = 0;
     totalSamples = 0;
     
+    gettimeofday(&lastGoodRead, NULL);
+    
     //  Clear the measured and average channel data
-    for (int i = 0; i < NUM_CHANNELS; i++)
-    {
+    for (int i = 0; i < NUM_CHANNELS; i++) {
         lastMeasured[i] = 0;
         trailingAverage[i] = 0.0;
     }

@@ -19,7 +19,7 @@
 #include "UDPSocket.h"
 #include "Audio.h"
 
-const int AGENT_UDP_PORT = 40103;
+const unsigned short AGENT_UDP_PORT = 40103;
 
 int update_agents(char * data, int length);
 int add_agent(char * address, unsigned short port, char *private_address, unsigned short private_port, char agentType);

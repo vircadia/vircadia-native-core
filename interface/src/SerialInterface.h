@@ -49,8 +49,8 @@ private:
     float trailingAverage[NUM_CHANNELS];
     int samplesAveraged;
     int LED;
-    int noReadCount;
     int totalSamples;
+    timeval lastGoodRead;
 };
 
 #endif
