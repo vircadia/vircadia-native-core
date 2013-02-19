@@ -18,8 +18,8 @@ public:
     TreeNode();
     
     TreeNode *child[CHILDREN_PER_NODE];
-    std::string *hostname;
-    std::string *nickname;
+    char *hostname;
+    char *nickname;
     int domain_id;
 };
 
