@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <cstdio>
 #include "TreeNode.h"
 #include "UDPSocket.h"
 
