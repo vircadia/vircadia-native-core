@@ -12,7 +12,7 @@
 
 const char *CONFIG_FILE = "/Users/birarda/code/worklist/checkouts/hifi/space/example.data.txt";
 const unsigned short SPACE_LISTENING_PORT = 55551;
-const short MAX_NAME_LENGTH = 63;
+const short MAX_NAME_LENGTH = 255;
 
 const char ROOT_HOSTNAME[] = "root.highfidelity.co";
 const char ROOT_NICKNAME[] = "root";
