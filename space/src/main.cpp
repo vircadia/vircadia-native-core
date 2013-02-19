@@ -36,21 +36,12 @@ TreeNode *findOrCreateNode(int lengthInBits,
     TreeNode *currentNode = &rootNode;
     
     for (int i = 0; i < lengthInBits; i += 3) {
-        unsigned char octetA;
-        unsigned char octetB;
         unsigned char octet;
         
-        /*
-         * @TODO Put those shifts into a nice single statement, leaving as is for now
-         */
         if (i%8 < 6) {
-            octetA = addressBytes[i/8] << i%8;
-            octet = octetA >> (5);
+            octet = addressBytes[i/8] << i%8 >> (5);
         } else {
-            octetA = addressBytes[i/8] << i;
-            octetA = octetA >>  (11 - i);
-            octetB = addressBytes[i/8 + 1] >> (11 - i + 2);
-            octet = octetA | octetB;
+            octet = (addressBytes[i/8] << i >>  (11 - i)) | (addressBytes[i/8 + 1] >> (11 - i + 2));
         }
         
         if (currentNode->child[octet] == NULL) {
