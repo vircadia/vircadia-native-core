@@ -16,7 +16,7 @@
 #define MAX_BUFFER_LENGTH_BYTES 1024
 
 class UDPSocket {    
-    public:    
+    public:
         UDPSocket(int listening_port);
         ~UDPSocket();
         int send(sockaddr_in *destAddress, const void *data, size_t byteLength);
@@ -25,15 +25,6 @@ class UDPSocket {
         bool receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *receivedBytes);
     private:
         int handle;
-    
-        UDPSocket(); // private default constructor
-    
-        struct AgentData {
-            char * address;
-            int listening_port;
-        };
-
-        AgentData *known_agents;
 };
 
 #endif /* defined(__interface__UDPSocket__) */

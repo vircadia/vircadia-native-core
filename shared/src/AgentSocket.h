@@ -17,8 +17,6 @@ class AgentSocket {
         AgentSocket(const AgentSocket &otherAgentSocket);
         AgentSocket& operator=(AgentSocket otherAgentSocket);
         ~AgentSocket();
-        
-        
     
         char *address;
         unsigned short port;

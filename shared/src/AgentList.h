@@ -12,18 +12,22 @@
 #include <iostream>
 #include <vector>
 #include "Agent.h"
+#include "UDPSocket.h"
 
 const unsigned short AGENT_SOCKET_LISTEN_PORT = 40103;
 
 class AgentList {
     public:
+        AgentList();
         std::vector<Agent> agents;
         int updateList(char *packetData);
         
         int processAgentData(char *address, unsigned short port, char *packetData, size_t dataBytes);
         int broadcastToAgents(char *broadcastData, size_t dataBytes, bool sendToSelf);
         void pingAgents();
+        UDPSocket* getAgentSocket();
     private:
+        UDPSocket agentSocket;
         int addAgent(AgentSocket *publicSocket, AgentSocket *localSocket, char agentType);
         int indexOfMatchingAgent(AgentSocket *publicSocket, AgentSocket *privateSocket, char agentType);
 

@@ -8,6 +8,14 @@
 
 #include "AgentList.h"
 
+AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
+    
+}
+
+UDPSocket * AgentList::getAgentSocket() {
+    return &agentSocket;
+}
+
 int AgentList::updateList(char *packetData) {
     int readAgents = 0;
     int scannedItems = 0;

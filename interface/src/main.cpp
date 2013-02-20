@@ -57,7 +57,7 @@ const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
-UDPSocket agentSocket(AGENT_SOCKET_LISTEN_PORT);
+
 AgentList agentList;
 
 //  For testing, add milliseconds of delay for received UDP packets
@@ -226,7 +226,7 @@ void Timer(int extra)
     sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_SOCKET_LISTEN_PORT);
     std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
-    agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
+    agentList.getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
     //  Ping the agents we can see
 //    pingAgents(&agentSocket);
@@ -765,7 +765,7 @@ void *networkReceive(void *args)
     sockaddr_in senderAddress;
     ssize_t bytesReceived;
     while (true) {
-        if (agentSocket.receive(&senderAddress, (void *)incomingPacket, &bytesReceived)) {
+        if (agentList.getAgentSocket()->receive(&senderAddress, (void *)incomingPacket, &bytesReceived)) {
             
             packetcount++;
             bytescount += bytesReceived;
