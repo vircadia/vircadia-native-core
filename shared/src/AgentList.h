@@ -21,16 +21,15 @@ class AgentList {
         AgentList();
         std::vector<Agent> agents;
         int updateList(char *packetData);
-        
-        int processAgentData(char *address, unsigned short port, char *packetData, size_t dataBytes);
+        void processAgentData(sockaddr *senderAddress, char *packetData, size_t dataBytes);
+    
         int broadcastToAgents(char *broadcastData, size_t dataBytes, bool sendToSelf);
         void pingAgents();
         UDPSocket* getAgentSocket();
     private:
         UDPSocket agentSocket;
-        int addAgent(AgentSocket *publicSocket, AgentSocket *localSocket, char agentType);
-        int indexOfMatchingAgent(AgentSocket *publicSocket, AgentSocket *privateSocket, char agentType);
-
+        int addAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
+        void handlePingReply(sockaddr *agentAddress);
 };
 
 #endif /* defined(__hifi__AgentList__) */

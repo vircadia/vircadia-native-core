@@ -762,54 +762,57 @@ void key(unsigned char k, int x, int y)
 //
 void *networkReceive(void *args)
 {
-    sockaddr_in senderAddress;
+    sockaddr senderAddress;
     ssize_t bytesReceived;
     while (true) {
         if (agentList.getAgentSocket()->receive(&senderAddress, (void *)incomingPacket, &bytesReceived)) {
-            
             packetcount++;
             bytescount += bytesReceived;
-            //  If packet is a Mouse data packet, copy it over
-            if (incomingPacket[0] == 'P') {
-                //
-                //  Got Ping, reply immediately!
-                //
-                //printf("Replying to ping!\n");
-                char reply[] = "R";
-//                agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
-            } else if (incomingPacket[0] == 'R') {
-                //
-                //  Got Reply, record as appropriate
-                //
-//                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
-                
-            } else if (incomingPacket[0] == 'M') {
-                //
-                //  mouse location packet
-                //
-                sscanf(incomingPacket, "M %d %d", &target_x, &target_y);
-                target_display = 1;
-                //printf("X = %d Y = %d\n", target_x, target_y);
-            } else if (incomingPacket[0] == 'D') {
-                //
-                //  Message from domainserver
-                //
-                  //printf("agent list received!\n");
-                nearbyAgents = agentList.updateList(&incomingPacket[1]);
-                std::cout << "Received " << nearbyAgents << " from DS!\n";
-//                kludgyMixerUpdate(audio);
-            } else if (incomingPacket[0] == 'H') {
-                //
-                //  Broadcast packet from another agent
-                //
-                //printf("broadcast received");
-//                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
-            } else if (incomingPacket[0] == 'T') {
-                //  Received a self-test packet (to get one's own IP), copy it to local variable!
-//                printf("My Address: %s:%u\n",
-//                       inet_ntoa(senderAddress.sin_addr),
-//                       senderAddress.sin_port);
-            }
+            
+            agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            
+           
+//            //  If packet is a Mouse data packet, copy it over
+//            if (incomingPacket[0] == 'P') {
+//                //
+//                //  Got Ping, reply immediately!
+//                //
+//                //printf("Replying to ping!\n");
+//                char reply[] = "R";
+//                agentList.getAgentSocket()->send(&senderAddress, reply, 1);
+//            } else if (incomingPacket[0] == 'R') {
+//                //
+//                //  Got Reply, record as appropriate
+//                //
+////                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
+//                
+//            } else if (incomingPacket[0] == 'M') {
+//                //
+//                //  mouse location packet
+//                //
+//                sscanf(incomingPacket, "M %d %d", &target_x, &target_y);
+//                target_display = 1;
+//                //printf("X = %d Y = %d\n", target_x, target_y);
+//            } else if (incomingPacket[0] == 'D') {
+//                //
+//                //  Message from domainserver
+//                //
+//                  //printf("agent list received!\n");
+//                nearbyAgents = agentList.updateList(&incomingPacket[1]);
+//                std::cout << "Received " << nearbyAgents << " from DS!\n";
+////                kludgyMixerUpdate(audio);
+//            } else if (incomingPacket[0] == 'H') {
+//                //
+//                //  Broadcast packet from another agent
+//                //
+//                //printf("broadcast received");
+////                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
+//            } else if (incomingPacket[0] == 'T') {
+//                //  Received a self-test packet (to get one's own IP), copy it to local variable!
+////                printf("My Address: %s:%u\n",
+////                       inet_ntoa(senderAddress.sin_addr),
+////                       senderAddress.sin_port);
+//            }
         }
     }
     

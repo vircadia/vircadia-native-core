@@ -16,6 +16,26 @@
 
 sockaddr_in destSockaddr, senderAddress;
 
+bool socketMatch(sockaddr *first, sockaddr *second) {
+    // utility function that indicates if two sockets are equivalent
+   
+    // currently only compares two IPv4 addresses
+    // expandable to IPv6 by adding else if for AF_INET6
+    
+    if (first->sa_family != second->sa_family) {
+        // not the same family, can't be equal
+        return false;
+    } else if (first->sa_family == AF_INET) {
+        sockaddr_in *firstIn = (sockaddr_in *) first;
+        sockaddr_in *secondIn = (sockaddr_in *) second;
+        
+        return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
+            && firstIn->sin_port == secondIn->sin_port;
+    } else {
+        return false;
+    }
+}
+
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -48,21 +68,21 @@ UDPSocket::~UDPSocket() {
 //  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
     
-    return receive(&senderAddress, receivedData, receivedBytes);
+    return receive((sockaddr *)&senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *receivedBytes) {
+bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes) {
     
     socklen_t addressSize = sizeof(&recvAddress);
     
     *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, (sockaddr *) recvAddress, &addressSize);
+                              0, recvAddress, &addressSize);
     
     return (*receivedBytes > 0);
 }
 
-int UDPSocket::send(sockaddr_in *destAddress, const void *data, size_t byteLength) {
+int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) {
     // send data via UDP
     
     int sent_bytes = sendto(handle, (const char*)data, byteLength,
@@ -82,12 +102,5 @@ int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t b
     destSockaddr.sin_addr.s_addr = inet_addr(destAddress);
     destSockaddr.sin_port = htons((uint16_t)destPort);
     
-    return send(&destSockaddr, data, byteLength);
-}
-
-int UDPSocket::send(AgentSocket *destAgentSocket, const void *data, size_t byteLength) {
-    destSockaddr.sin_addr.s_addr = inet_addr(destAgentSocket->address);
-    destSockaddr.sin_port = htons(destAgentSocket->port);
-    
-    return send(&destSockaddr, data, byteLength);
+    return send((sockaddr *)&destSockaddr, data, byteLength);
 }

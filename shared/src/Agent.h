@@ -10,19 +10,20 @@
 #define __hifi__Agent__
 
 #include <iostream>
-#include "AgentSocket.h"
 #include "AgentData.h"
+#include <sys/socket.h>
 
 class Agent {
     public:
         Agent();
-        Agent(AgentSocket *agentPublicSocket, AgentSocket *agentLocalSocket, char agentType);
+        Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType);
         Agent(const Agent &otherAgent);
         Agent& operator=(Agent otherAgent);
+        bool operator==(const Agent& otherAgent);
         ~Agent();
         
-        bool matches(AgentSocket *otherPublicSocket, AgentSocket *otherLocalSocket, char otherAgentType);
-        AgentSocket *publicSocket, *localSocket, *activeSocket;
+        bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
+        sockaddr *publicSocket, *localSocket, *activeSocket;
         char type;
         timeval pingStarted;
         int pingMsecs;

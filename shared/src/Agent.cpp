@@ -7,23 +7,32 @@
 //
 
 #include "Agent.h"
+#include <arpa/inet.h>
+#include "UDPSocket.h"
 
 Agent::Agent() {
     
 }
 
-Agent::Agent(AgentSocket *agentPublicSocket, AgentSocket *agentLocalSocket, char agentType) {
-    publicSocket = new AgentSocket(*agentPublicSocket);
-    localSocket = new AgentSocket(*agentLocalSocket);
-    activeSocket = NULL;
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType) {
+    publicSocket = new sockaddr;
+    memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    
+    localSocket = new sockaddr;
+    memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    
     type = agentType;
     
+    activeSocket = NULL;
     linkedData = NULL;
 }
 
 Agent::Agent(const Agent &otherAgent) {
-    publicSocket = new AgentSocket(*otherAgent.publicSocket);
-    localSocket = new AgentSocket(*otherAgent.localSocket);
+    publicSocket = new sockaddr;
+    memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+    
+    localSocket = new sockaddr;
+    memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
     
     if (otherAgent.activeSocket == otherAgent.publicSocket) {
         activeSocket = publicSocket;
@@ -36,11 +45,16 @@ Agent::Agent(const Agent &otherAgent) {
     type = otherAgent.type;
     
     // copy over linkedData
+    linkedData = NULL;
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
     swap(*this, otherAgent);
     return *this;
+}
+
+bool Agent::operator==(const Agent& otherAgent) {
+    return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
 }
 
 void Agent::swap(Agent &first, Agent &second) {
@@ -58,10 +72,9 @@ Agent::~Agent() {
     delete linkedData;
 }
 
-bool Agent::matches(AgentSocket *otherPublicSocket, AgentSocket *otherLocalSocket, char otherAgentType) {
-    return publicSocket->port == otherPublicSocket->port
-        && localSocket->port == otherLocalSocket->port
-        && type == otherAgentType
-        && strcmp(publicSocket->address, otherPublicSocket->address) == 0
-        && strcmp(localSocket->address, otherLocalSocket->address) == 0;    
+bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
+    // checks if two agent objects are the same agent (same type + local + public address)
+    return type == otherAgentType
+        && socketMatch(publicSocket, otherPublicSocket)
+        && socketMatch(localSocket, otherLocalSocket);
 }

@@ -12,7 +12,6 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <netdb.h>
-#include "AgentSocket.h"
 
 #define MAX_BUFFER_LENGTH_BYTES 1024
 
@@ -20,13 +19,14 @@ class UDPSocket {
     public:
         UDPSocket(int listening_port);
         ~UDPSocket();
-        int send(sockaddr_in *destAddress, const void *data, size_t byteLength);
+        int send(sockaddr *destAddress, const void *data, size_t byteLength);
         int send(char *destAddress, int destPort, const void *data, size_t byteLength);
-        int send(AgentSocket *destAgentSocket, const void *data, size_t byteLength);
         bool receive(void *receivedData, ssize_t *receivedBytes);
-        bool receive(sockaddr_in *recvAddress, void *receivedData, ssize_t *receivedBytes);
+        bool receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes);
     private:
         int handle;
 };
+
+bool socketMatch(sockaddr *first, sockaddr *second);
 
 #endif /* defined(__interface__UDPSocket__) */
