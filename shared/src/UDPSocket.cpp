@@ -84,3 +84,10 @@ int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t b
     
     return send(&destSockaddr, data, byteLength);
 }
+
+int UDPSocket::send(AgentSocket *destAgentSocket, const void *data, size_t byteLength) {
+    destSockaddr.sin_addr.s_addr = inet_addr(destAgentSocket->address);
+    destSockaddr.sin_port = htons(destAgentSocket->port);
+    
+    return send(&destSockaddr, data, byteLength);
+}

@@ -229,7 +229,7 @@ void Timer(int extra)
     agentList.getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
     //  Ping the agents we can see
-//    pingAgents(&agentSocket);
+    agentList.pingAgents();
 
     if (0) {
         //  Massive send packet speed test

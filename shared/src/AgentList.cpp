@@ -34,18 +34,19 @@ int AgentList::updateList(char *packetData) {
                                 &agentLocalSocket.port
                                 ))) {
         
-        std::vector<Agent>::iterator it;
+        std::vector<Agent>::iterator agent;
         
-        for(it = agents.begin(); it != agents.end(); ++it) {
-            if (it->matches(&agentPublicSocket, &agentLocalSocket, agentType)) {
+        for(agent = agents.begin(); agent != agents.end(); agent++) {
+            if (agent->matches(&agentPublicSocket, &agentLocalSocket, agentType)) {
                 // we already have this agent, stop checking
                 break;
             }
         }
         
-        if (it == agents.end()) {
+        if (agent == agents.end()) {
             // we didn't have this agent, so add them
             newAgent = Agent(&agentPublicSocket, &agentLocalSocket, agentType);
+            std::cout << "Added new agent - PS: " << agentPublicSocket << " LS: " << agentLocalSocket << " AT: " << agentType << "\n";
             agents.push_back(newAgent);
         } else {
             // we had this agent already, don't do anything
@@ -55,4 +56,20 @@ int AgentList::updateList(char *packetData) {
     }
     
     return readAgents;
+}
+
+void AgentList::pingAgents() {
+    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+        char payload[] = "P";
+        
+        if (agent->activeSocket != NULL) {
+            // we know which socket is good for this agent, send there
+            agentSocket.send(agent->activeSocket, payload, 1);
+        } else {
+            // ping both of the sockets for the agent so we can figure out
+            // which socket we can use
+            agentSocket.send(agent->publicSocket, payload, 1);
+            agentSocket.send(agent->localSocket, payload, 1);
+        }
+    }
 }
