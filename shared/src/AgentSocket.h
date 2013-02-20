@@ -15,10 +15,12 @@ class AgentSocket {
     public:
         AgentSocket();
         AgentSocket(const AgentSocket &otherAgentSocket);
-        AgentSocket& operator=(const AgentSocket &otherAgentSocket);
+        AgentSocket& operator=(AgentSocket otherAgentSocket);
         ~AgentSocket();
         char *address;
         unsigned short port;
+    private:
+        void swap(AgentSocket &first, AgentSocket &second);
 };
 
 #endif /* defined(__hifi__AgentSocket__) */

@@ -18,7 +18,7 @@ class Agent {
         Agent();
         Agent(AgentSocket *agentPublicSocket, AgentSocket *agentLocalSocket, char agentType);
         Agent(const Agent &otherAgent);
-        Agent& operator=(const Agent &otherAgent);
+        Agent& operator=(Agent otherAgent);
         ~Agent();
         
         bool matches(AgentSocket *otherPublicSocket, AgentSocket *otherLocalSocket, char otherAgentType);
@@ -28,6 +28,8 @@ class Agent {
         int pingMsecs;
         bool isSelf;
         AgentData *linkedData;
+    private:
+        void swap(Agent &first, Agent &second);
 };
 
 #endif /* defined(__hifi__Agent__) */

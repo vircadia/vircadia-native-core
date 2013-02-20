@@ -18,7 +18,7 @@ Agent::Agent(AgentSocket *agentPublicSocket, AgentSocket *agentLocalSocket, char
     activeSocket = NULL;
     type = agentType;
     
-    linkedData = 0;
+    linkedData = NULL;
 }
 
 Agent::Agent(const Agent &otherAgent) {
@@ -38,28 +38,18 @@ Agent::Agent(const Agent &otherAgent) {
     // copy over linkedData
 }
 
-Agent& Agent::operator=(const Agent &otherAgent) {
-    if (this != &otherAgent) {
-        // deallocate old memory
-        delete publicSocket;
-        delete localSocket;
-        delete linkedData;
-        
-        publicSocket = new AgentSocket(*otherAgent.publicSocket);
-        localSocket = new AgentSocket(*otherAgent.localSocket);
-        
-        if (otherAgent.activeSocket == otherAgent.publicSocket) {
-            activeSocket = publicSocket;
-        } else if (otherAgent.activeSocket == otherAgent.localSocket) {
-            activeSocket = localSocket;
-        } else {
-            activeSocket = NULL;
-        }
-        
-        type = otherAgent.type;
-    }
-    
+Agent& Agent::operator=(Agent otherAgent) {
+    swap(*this, otherAgent);
     return *this;
+}
+
+void Agent::swap(Agent &first, Agent &second) {
+    using std::swap;
+    swap(first.publicSocket, second.publicSocket);
+    swap(first.localSocket, second.localSocket);
+    swap(first.activeSocket, second.activeSocket);
+    swap(first.type, second.type);
+    swap(first.linkedData, second.linkedData);
 }
 
 Agent::~Agent() {
