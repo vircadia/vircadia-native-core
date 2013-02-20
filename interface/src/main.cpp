@@ -25,13 +25,8 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <ifaddrs.h>
-
-//  These includes are for the serial port reading/writing
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
 #include <glm/glm.hpp>
-
+#include <arpa/inet.h>
 #include "SerialInterface.h"
 #include "Field.h"
 #include "world.h"
@@ -42,7 +37,7 @@
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
-#include "Agent.h"
+#include "AgentList.h"
 #include "Cube.h"
 #include "Lattice.h"
 #include "Finger.h"
@@ -62,7 +57,8 @@ const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
-UDPSocket agentSocket(AGENT_UDP_PORT);
+UDPSocket agentSocket(AGENT_SOCKET_LISTEN_PORT);
+AgentList agentList;
 
 //  For testing, add milliseconds of delay for received UDP packets
 char* incomingPacket;
@@ -227,13 +223,13 @@ void Timer(int extra)
     //  Send a message to the domainserver telling it we are ALIVE
     // 
     char output[100];
-    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_UDP_PORT);
+    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_SOCKET_LISTEN_PORT);
     std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
     agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
     //  Ping the agents we can see
-    pingAgents(&agentSocket);
+//    pingAgents(&agentSocket);
 
     if (0) {
         //  Massive send packet speed test
@@ -243,7 +239,7 @@ void Timer(int extra)
         junk[0] = 'J';
         for (int i = 0; i < 10000; i++)
         {
-            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
+//            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
         }
         gettimeofday(&endtest, NULL);
         float sendTime = diffclock(&starttest, &endtest);
@@ -273,12 +269,12 @@ void display_stats(void)
     }
     
     //  Output the ping times to the various agents 
-    std::stringstream pingTimes;
-    pingTimes << "Agent Pings, msecs:";
-    for (int i = 0; i < getAgentCount(); i++) {
-        pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
-    }
-    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
+//    std::stringstream pingTimes;
+//    pingTimes << "Agent Pings, msecs:";
+//    for (int i = 0; i < getAgentCount(); i++) {
+//        pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
+//    }
+//    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
 
     
     std::stringstream angles;
@@ -518,7 +514,7 @@ void update_pos(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes, sendToSelf);
+//    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes, sendToSelf);
 }
 
 int render_test_spot = WIDTH/2;
@@ -567,8 +563,8 @@ void display(void)
         if (display_field) field.render();
             
         //  Render heads of other agents 
-        render_agents(sendToSelf, &location[0]);
-        
+//        render_agents(sendToSelf, &location[0]);
+    
         if (display_hand) myHand.render();   
      
         if (!display_head) balls.render();
@@ -780,12 +776,12 @@ void *networkReceive(void *args)
                 //
                 //printf("Replying to ping!\n");
                 char reply[] = "R";
-                agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
+//                agentSocket.send(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port), reply, 1);
             } else if (incomingPacket[0] == 'R') {
                 //
                 //  Got Reply, record as appropriate
                 //
-                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
+//                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
                 
             } else if (incomingPacket[0] == 'M') {
                 //
@@ -799,19 +795,20 @@ void *networkReceive(void *args)
                 //  Message from domainserver
                 //
                   //printf("agent list received!\n");
-                nearbyAgents = update_agents(&incomingPacket[1], bytesReceived - 1);
-                kludgyMixerUpdate(audio);
+                nearbyAgents = agentList.updateList(&incomingPacket[1]);
+                std::cout << "Received " << nearbyAgents << " from DS!\n";
+//                kludgyMixerUpdate(audio);
             } else if (incomingPacket[0] == 'H') {
                 //
                 //  Broadcast packet from another agent
                 //
                 //printf("broadcast received");
-                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
+//                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
             } else if (incomingPacket[0] == 'T') {
                 //  Received a self-test packet (to get one's own IP), copy it to local variable!
-                printf("My Address: %s:%u\n",
-                       inet_ntoa(senderAddress.sin_addr),
-                       senderAddress.sin_port);
+//                printf("My Address: %s:%u\n",
+//                       inet_ntoa(senderAddress.sin_addr),
+//                       senderAddress.sin_port);
             }
         }
     }
@@ -939,7 +936,7 @@ int main(int argc, char** argv)
         if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
             // is a valid IP4 Address
             tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-            inet_ntop(AF_INET, tmpAddrPtr, localAddressBuffer, INET_ADDRSTRLEN);
+//            inet_ntop(AF_INET, tmpAddrPtr, localAddressBuffer, INET_ADDRSTRLEN);
         }
     }
     
