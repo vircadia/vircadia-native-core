@@ -25,6 +25,7 @@ int AgentList::updateList(char *packetData) {
                                 agentLocalSocket.address,
                                 &agentLocalSocket.port
                                 ))) {
+        
         std::vector<Agent>::iterator it;
         
         for(it = agents.begin(); it != agents.end(); ++it) {

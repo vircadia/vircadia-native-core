@@ -35,3 +35,4 @@ void AgentSocket::swap(AgentSocket &first, AgentSocket &second) {
 AgentSocket::~AgentSocket() {
     delete address;
 }
+
