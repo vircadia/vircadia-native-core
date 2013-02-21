@@ -282,7 +282,7 @@ int main(int argc, const char * argv[])
     pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
 
     while (true) {
-        if(audioSocket.receive(&agentAddress, packetData, &receivedBytes)) {
+        if(audioSocket.receive((sockaddr *)&agentAddress, packetData, &receivedBytes)) {
             if (receivedBytes == BUFFER_LENGTH_BYTES) {
                 if (addAgent(&agentAddress, packetData)) {
                     std::cout << "Added agent: " <<
