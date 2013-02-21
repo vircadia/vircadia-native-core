@@ -137,7 +137,7 @@ int main (int argc, const char *argv[]) {
     std::cout << "[DEBUG] Listening for Datagrams" << std::endl;
     
     while (true) {
-        if (spaceSocket.receive(&destAddress, &packetData, &receivedBytes)) {
+        if (spaceSocket.receive((sockaddr *)&destAddress, &packetData, &receivedBytes)) {
             unsigned long lengthInBits;
             lengthInBits = packetData[0] * 3;
             
@@ -151,7 +151,7 @@ int main (int argc, const char *argv[]) {
                 ? lastKnownHostname
                 : thisNode->hostname;
             
-            spaceSocket.send(&destAddress, &hostnameToSend, sizeof(hostnameToSend));
+            spaceSocket.send((sockaddr *)&destAddress, &hostnameToSend, sizeof(hostnameToSend));
         }
     }
 }
