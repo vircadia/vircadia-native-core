@@ -25,10 +25,14 @@ struct Voxel {
 class VoxelSystem {
 public:
     void simulate(float deltaTime);
-    void render(Voxel * voxel, float scale);
+    int render(Voxel * voxel, float scale, glm::vec3 * distance);
     void init();
-    int initVoxels(Voxel * root, float scale);
+    int initVoxels(Voxel * root, float scale, glm::vec3 * position);
+    void setVoxelsRendered(int v) {voxelsRendered = v;};
+    int getVoxelsRendered() {return voxelsRendered;};
     Voxel * root;
+private:
+    int voxelsRendered;
 };
 
 #endif

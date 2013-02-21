@@ -228,7 +228,7 @@ void Timer(int extra)
     // 
     char output[100];
     sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_UDP_PORT);
-    std::cout << "sending " << output << " to domain server\n";
+    //std::cout << "sending " << output << " to domain server\n";
     int packet_size = strlen(output);
     agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
     
@@ -280,11 +280,17 @@ void display_stats(void)
     }
     drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
 
+    std::stringstream voxelStats;
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
+    drawtext(10,70,0.10, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
     
+    /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
     drawtext(10,50,0.10, 0, 1.0, 0, (char *)angles.str().c_str());
-
+    */
+    
     /*
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
@@ -315,7 +321,8 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    int voxelsMade = voxels.initVoxels(NULL, 1.0);
+    glm::vec3 position(0,0,0);
+    int voxelsMade = voxels.initVoxels(NULL, 10.0, &position);
     std::cout << voxelsMade << " voxels made. \n";
     
     myHead.setRenderYaw(start_yaw);
@@ -559,13 +566,24 @@ void display(void)
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
     
+        glColor3f(1,0,0);
+        glutSolidSphere(0.25, 15, 15);
+    
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
         if (!display_head) cloud.render();
     
         //  Draw voxels
-        //voxels.render(NULL, 10.0);
+        glPushMatrix();
+        glTranslatef(WORLD_SIZE/2.0, WORLD_SIZE/2.0, WORLD_SIZE/2.0);
+        glm::vec3 distance(5.0 + location[0], 5.0 + location[1], 5.0 + location[2]);
+        //std::cout << "length: " << glm::length(distance) << "\n";
+        int voxelsRendered = voxels.render(NULL, 10.0, &distance);
+        voxels.setVoxelsRendered(voxelsRendered);
+        //glColor4f(0,0,1,0.5);
+        //glutSolidCube(10.0);
+        glPopMatrix();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -573,7 +591,7 @@ void display(void)
         //  Render heads of other agents 
         render_agents(sendToSelf, &location[0]);
         
-        if (display_hand) myHand.render();   
+        if (display_hand) myHand.render();
      
         if (!display_head) balls.render();
     

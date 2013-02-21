@@ -15,47 +15,91 @@ void VoxelSystem::init() {
 //
 //  Recursively initialize the voxel tree
 //
-int VoxelSystem::initVoxels(Voxel * voxel, float scale) {
-    float childColor[3], averageColor[3];
-    int averageCount = 0;
+int VoxelSystem::initVoxels(Voxel * voxel, float scale, glm::vec3 * position) {
+    glm::vec3 averageColor(0,0,0);
+    int childrenCreated = 0;
     int newVoxels = 0;
     if (voxel == NULL) voxel = root;
     averageColor[0] = averageColor[1] = averageColor[2] = 0.0;
-    for (unsigned char i = 0; i < NUM_CHILDREN; i++) {
-        if ((scale > 0.01) && (randFloat() < 0.5)) {
-            voxel->children[i] = new Voxel;
-            newVoxels += initVoxels(voxel->children[i], scale/2.0);
-            for (int j = 0; j < 3; j++) averageColor[j] += childColor[j];
-            averageCount++;
-        }
-        else {
-            voxel->children[i] = NULL;
-        }
-    }
-    if (averageCount == 0) {
-        //  This is a leaf, so just pick a random color
-        voxel->color.x = voxel->color.y = voxel->color.z = randFloat();
+    //
+    //  First, decide whether I should be a leaf node and set/return if so 
+    //
+    if ((randFloat() < 0.1) && (scale < 1.0))
+    {
+        voxel->color.x = voxel->color.y = voxel->color.z = 0.5 + randFloat()*0.5;
+        for (unsigned char i = 0; i < NUM_CHILDREN; i++) voxel->children[i] = NULL;
+        return 0;
     } else {
-        voxel->color.x = averageColor[0]/averageCount;
-        voxel->color.y = averageColor[1]/averageCount;
-        voxel->color.z = averageColor[2]/averageCount;
+        // Decide whether to make kids, recurse into them 
+        for (unsigned char i = 0; i < NUM_CHILDREN; i++) {
+            if  ((scale > 0.01) && (randFloat() > 0.6))
+            {
+                //  Make a new child
+                voxel->children[i] = new Voxel;
+                newVoxels++;
+                childrenCreated++;
+                glm::vec3 shift(scale/4.0*((i&4)>>2), scale/4.0*((i&2)>>1), scale/4.0*(i&1));
+                *position += shift;
+                newVoxels += initVoxels(voxel->children[i], scale/2.0, position);
+                *position -= shift;
+                averageColor += voxel->children[i]->color;
+            } else {
+                //  No child made: Set pointer to null, nothing to see here. 
+                voxel->children[i] = NULL;
+            }
+        }
+        if (childrenCreated > 0) {
+            //  If there were children created, set this voxels color to the average of it's children
+            averageColor *= 1.0/childrenCreated;
+            voxel->color = averageColor;
+            return newVoxels;
+        } else {
+            //  Tested and didn't make any children, so i've still got to be a leaf
+            voxel->color.x = voxel->color.y = voxel->color.z = 0.5 + randFloat()*0.5;
+            for (unsigned char i = 0; i < NUM_CHILDREN; i++) voxel->children[i] = NULL;
+            return 0;
+
+        }
     }
-    newVoxels++;
-    return newVoxels;
 }
 
-void VoxelSystem::render(Voxel * voxel, float scale) {
-    if (voxel == NULL) voxel = root;
+const float RENDER_DISCARD = 0.01;
+
+//
+//  Returns the total number of voxels actually rendered
+//
+int VoxelSystem::render(Voxel * voxel, float scale, glm::vec3 * distance) {
+    // If null passed in, start at root
+    if (voxel == NULL) voxel = root;    
     unsigned char i;
+    bool renderedChildren = false;
+    int vRendered = 0;
+    // Recursively render children
     for (i = 0; i < NUM_CHILDREN; i++) {
-        if (voxel->children[i] != NULL) {
-            glTranslatef(scale/2.0*((i&4)>>2), scale/2.0*((i&2)>>1), scale/2.0*(i&1));
-            render(voxel->children[i], scale/2.0);
-            glTranslatef(-scale/2.0*((i&4)>>2), -scale/2.0*((i&2)>>1), -scale/2.0*(i&1));
+        glm::vec3 shift(scale/2.0*((i&4)>>2)-scale/4.0,
+                        scale/2.0*((i&2)>>1)-scale/4.0,
+                        scale/2.0*(i&1)-scale/4.0);
+        if ((voxel->children[i] != NULL) && (scale / glm::length(*distance) > RENDER_DISCARD)) {
+            glTranslatef(shift.x, shift.y, shift.z);
+            //std::cout << "x,y,z: " << shift.x <<  "," << shift.y << "," << shift.z << "\n";
+            *distance += shift;
+            vRendered += render(voxel->children[i], scale/2.0, distance);
+            *distance -= shift;
+            glTranslatef(-shift.x, -shift.y, -shift.z);
+            renderedChildren = true;
         }
     }
-    glColor4f(voxel->color.x, voxel->color.y, voxel->color.z, 0.5);
-    glutSolidCube(scale);
+    //  Render this voxel if the children were not rendered 
+    if (!renderedChildren)
+    {
+        //glColor4f(1,1,1,1);
+        glColor4f(voxel->color.x, voxel->color.y, voxel->color.z, 1.0);
+        //float bright = 1.0 - glm::length(*distance)/20.0;
+        //glColor3f(bright,bright,bright);
+        glutSolidCube(scale);
+        vRendered++;
+    }
+    return vRendered;
 }
 
 void VoxelSystem::simulate(float deltaTime) {

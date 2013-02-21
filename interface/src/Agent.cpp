@@ -79,8 +79,11 @@ void render_agents(int renderSelf, float * myLocation) {
         glm::vec3 pos = agents[i].head.getPos();
         glPushMatrix();
         if (!agents[i].isSelf || renderSelf) {
-            glTranslatef(-pos.x, -pos.y, -pos.z);
-            agents[i].head.render(0, myLocation);
+            if (!((pos.x == 0.0) && (pos.y == 0.0) && (pos.z == 0.0))) {
+                //  ZERO ZERO ZERO means we are not getting data for this head, so don't render it
+                glTranslatef(-pos.x, -pos.y, -pos.z);
+                agents[i].head.render(0, myLocation);
+            }
         }
         glPopMatrix();
     }
