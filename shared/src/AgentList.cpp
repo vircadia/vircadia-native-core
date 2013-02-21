@@ -70,7 +70,7 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, s
 
 int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (socketMatch(agent->activeSocket, senderAddress)) {
+        if (agent->activeSocket != NULL && socketMatch(agent->activeSocket, senderAddress)) {
             return agent - agents.begin();
         }
     }

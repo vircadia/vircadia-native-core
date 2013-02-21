@@ -873,7 +873,6 @@ void mouseoverFunc( int x, int y)
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->linkedData == NULL) {
         newAgent->linkedData = new Head();
-        std::cout << "LD: " << newAgent->linkedData << "\n";
     }
 }
 
