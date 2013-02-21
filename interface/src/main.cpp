@@ -523,7 +523,6 @@ void update_pos(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    std::cout << "BS: " << broadcast_string << "\n";
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes);
 }
 
@@ -586,7 +585,11 @@ void display(void)
         //  Render heads of other agents
         for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
             if (agent->linkedData != NULL) {
-                ((Head *)agent->linkedData)->render(0, &location[0]);
+                Head *agentHead = (Head *)agent->linkedData;
+                
+                glm::vec3 pos = agentHead->getPos();
+                glTranslatef(-pos.x, -pos.y, -pos.z);
+                agentHead->render(0, &location[0]);
             }
         }
     

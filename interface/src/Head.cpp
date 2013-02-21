@@ -344,7 +344,6 @@ int Head::getBroadcastData(char* data)
 
 void Head::parseData(void *data, int size) {
     // parse head data for this agent
-    std::cout << "HD: " << (char *)data << "\n";
     sscanf((char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f",
            &Pitch, &Yaw, &Roll,
            &position.x, &position.y, &position.z,
