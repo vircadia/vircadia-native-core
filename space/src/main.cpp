@@ -7,12 +7,16 @@
 //
 
 #include <iostream>
+#include <cstdio>
+#include <stdlib.h>
+#include <string.h>
+
 #include "TreeNode.h"
 #include "UDPSocket.h"
 
 const char *CONFIG_FILE = "/Users/birarda/code/worklist/checkouts/hifi/space/example.data.txt";
 const unsigned short SPACE_LISTENING_PORT = 55551;
-const short MAX_NAME_LENGTH = 63;
+const short MAX_NAME_LENGTH = 255;
 
 const char ROOT_HOSTNAME[] = "root.highfidelity.co";
 const char ROOT_NICKNAME[] = "root";
@@ -91,13 +95,13 @@ bool loadSpaceData(void) {
                     // pull as many bits as are left
                     int goodBits = 8 - paddingBits;
                     sprintf(formatString, "%%%dc", goodBits);
-                    fscanf(configFile, formatString, fullByteBitString);
+                    itemsRead = fscanf(configFile, formatString, fullByteBitString);
                     
                     // fill out the rest with zeros
                     memset(fullByteBitString + goodBits, '0', paddingBits);
                 } else {
                     // pull 8 bits (which will be one byte) from the file
-                    fscanf(configFile, "%8c", fullByteBitString);
+                    itemsRead = fscanf(configFile, "%8c", fullByteBitString);
                 }
                 
                 // set the corresponding value in the unsigned char array
@@ -106,7 +110,7 @@ bool loadSpaceData(void) {
     
             char *nodeHostname = new char[MAX_NAME_LENGTH];
             char *nodeNickname = new char[MAX_NAME_LENGTH];
-            fscanf(configFile, "%s %s\n", nodeHostname, nodeNickname);
+            itemsRead = fscanf(configFile, "%s %s\n", nodeHostname, nodeNickname);
          
             findOrCreateNode(bitsInAddress, paddedAddress, nodeHostname, nodeNickname, 0);
         }
