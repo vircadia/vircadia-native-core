@@ -12,13 +12,10 @@
 #include <iostream>
 #include <stdint.h>
 #include "AudioRingBuffer.h"
-#include "Head.h"
 #include "UDPSocket.h"
 
 class AudioData {
-    public:
-        Head *linkedHead;
-    
+    public:    
         AudioRingBuffer *ringBuffer;
 
         UDPSocket *audioSocket;

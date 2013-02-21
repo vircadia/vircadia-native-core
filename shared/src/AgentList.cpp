@@ -21,13 +21,18 @@ UDPSocket * AgentList::getAgentSocket() {
     return &agentSocket;
 }
 
-void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
-    switch (packetData[0]) {
+void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
+    switch (((char *)packetData)[0]) {
         case 'D':
         {
             // list of agents from domain server
-            updateList(packetData, dataBytes);
+            updateList((unsigned char *)packetData, dataBytes);
             break;
+        }
+        case 'H':
+        {
+            // head data from another agent
+            updateAgentWithData(senderAddress, packetData, dataBytes);
         }
         case 'P':
         {
@@ -43,6 +48,30 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
     }
+}
+
+void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
+    // find the agent by the sockaddr
+    int agentIndex = indexOfMatchingAgent(senderAddress);
+    
+    if (agentIndex != -1) {
+        Agent matchingAgent = agents[agentIndex];
+        
+        if (matchingAgent.linkedData != NULL) {
+            matchingAgent.linkedData->parseData(packetData, dataBytes);
+        }
+    }
+
+}
+
+int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
+    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+        if (socketMatch(agent->activeSocket, senderAddress)) {
+            return agent - agents.begin();
+        }
+    }
+    
+    return -1;
 }
 
 int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
@@ -84,9 +113,16 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         // we didn't have this agent, so add them
         Agent newAgent = Agent(publicSocket, localSocket, agentType);
         
+        if (socketMatch(publicSocket, localSocket)) {
+            // likely debugging scenario with DS + agent on local network
+            // set the agent active right away
+            newAgent.activeSocket = newAgent.localSocket;
+        }
+        
         std::cout << "Added agent - " << &newAgent << "\n";
-
-        agents.push_back(newAgent);
+        
+        newAgentCallback(&newAgent);
+        agents.push_back(newAgent);       
         
         return true;
     } else {
@@ -94,6 +130,16 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return false;
     }    
 }
+
+void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
+    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+        if (agent->activeSocket != NULL) {
+            // we know which socket is good for this agent, send there
+            agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, sizeof(&broadcastData));
+        }
+    }
+}
+
 
 void AgentList::pingAgents() {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
@@ -126,6 +172,7 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
         if (matchedSocket != NULL) {
             // matched agent, stop checking
             // update the agent's ping
+            agent->activeSocket = matchedSocket;
             break;
         }
     }

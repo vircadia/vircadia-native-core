@@ -44,8 +44,10 @@ Agent::Agent(const Agent &otherAgent) {
     
     type = otherAgent.type;
     
+    
+    linkedData = (AgentData *) malloc(sizeof(otherAgent.linkedData));
     // copy over linkedData
-    linkedData = NULL;
+    memcpy((void*)linkedData, (void *)otherAgent.linkedData, sizeof(otherAgent.linkedData));
 }
 
 Agent& Agent::operator=(Agent otherAgent) {

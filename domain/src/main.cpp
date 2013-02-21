@@ -36,18 +36,24 @@ unsigned char packetData[MAX_PACKET_SIZE];
 
 const int LOGOFF_CHECK_INTERVAL = 5000;
 
+#define DEBUG_TO_SELF 0
+
 int lastActiveCount = 0;
 AgentList agentList(DOMAIN_LISTEN_PORT);
 
-int listForBroadcast(unsigned char *listBuffer) {
+int listForBroadcast(unsigned char *listBuffer, sockaddr *agentPublicAddress, sockaddr *agentLocalAddress, char agentType) {
     unsigned char *currentBufferPos = listBuffer + 1;
     unsigned char *startPointer = currentBufferPos;
     
     for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
         *currentBufferPos++ = agent->type;
         
-        currentBufferPos += packSocket(currentBufferPos, agent->publicSocket);
-        currentBufferPos += packSocket(currentBufferPos, agent->localSocket);
+        if (DEBUG_TO_SELF || !agent->matches(agentPublicAddress, agentLocalAddress, agentType)) {
+            *currentBufferPos++ = agent->type;
+            
+            currentBufferPos += packSocket(currentBufferPos, agent->publicSocket);
+            currentBufferPos += packSocket(currentBufferPos, agent->localSocket);
+        }
     }
     
     return 1 + (currentBufferPos - startPointer); // 1 is added for the leading 'D'
@@ -71,7 +77,7 @@ int main(int argc, const char * argv[])
             
             agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
             
-            int listBytes = listForBroadcast(broadcastPacket);
+            int listBytes = listForBroadcast(broadcastPacket, (sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
             
             if (listBytes > 0) {
                 agentList.getAgentSocket()->send((sockaddr *)&agentPublicAddress, broadcastPacket, listBytes);

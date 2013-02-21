@@ -11,7 +11,8 @@
 
 class AgentData {
     public:
-        virtual ~AgentData();
+        virtual ~AgentData() = 0;
+        virtual void parseData(void * data, int size) = 0;
 };
 
 #endif

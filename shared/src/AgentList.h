@@ -21,17 +21,19 @@ class AgentList {
         AgentList();
         AgentList(int socketListenPort);
         std::vector<Agent> agents;
+        void(*newAgentCallback)(Agent *);
     
         UDPSocket* getAgentSocket();
     
         int updateList(unsigned char *packetData, size_t dataBytes);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
-        void processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-        void broadcastToAgents(char *broadcastData, size_t dataBytes, bool sendToSelf);
+        void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+        void broadcastToAgents(char *broadcastData, size_t dataBytes);
         void pingAgents();
     private:
         UDPSocket agentSocket;
-        
+        int indexOfMatchingAgent(sockaddr *senderAddress);
+        void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void handlePingReply(sockaddr *agentAddress);
 };
 

@@ -12,7 +12,6 @@
 #include "Head.h"
 #include "Util.h"
 #include "SerialInterface.h"
-#include "Audio.h"
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -58,6 +57,10 @@ Head::Head()
     renderYaw = 0.0;
     renderPitch = 0.0;
     setNoise(0);
+}
+
+Head::~Head() {
+    // all data is primitive, do nothing
 }
 
 void Head::reset()
@@ -328,7 +331,6 @@ void Head::render(int faceToFace, float * myLocation)
     
  }
 
-
 //  Transmit data to agents requesting it 
 
 int Head::getBroadcastData(char* data)
@@ -341,12 +343,12 @@ int Head::getBroadcastData(char* data)
     return strlen(data);
 }
 
-void Head::recvBroadcastData(char * data, int size)
-{
-    sscanf(data, "%f,%f,%f,%f,%f,%f,%f,%f", &Pitch, &Yaw, &Roll,
+void Head::parseData(void *data, int size) {
+    // parse head data for this agent
+    sscanf((char *)data, "%f,%f,%f,%f,%f,%f,%f,%f",
+           &Pitch, &Yaw, &Roll,
            &position.x, &position.y, &position.z,
            &loudness, &averageLoudness);
-    //printf("%f,%f,%f,%f,%f,%f\n", Pitch, Yaw, Roll, position.x, position.y, position.z);
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw)

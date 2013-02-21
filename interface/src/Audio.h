@@ -11,14 +11,13 @@
 
 #include <iostream>
 #include <portaudio.h>
-#include "Head.h"
 #include "AudioData.h"
 #include "Oscilloscope.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Head* mainHead, Oscilloscope * s);
+    Audio(Oscilloscope * s);
     
     void render();
     void render(int screenWidth, int screenHeight);

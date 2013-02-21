@@ -107,7 +107,7 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
-Audio audio(&myHead, &audioScope);
+Audio audio(&audioScope);
 
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
@@ -512,7 +512,7 @@ void update_pos(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-//    broadcastToAgents(&agentSocket, broadcast_string, broadcast_bytes, sendToSelf);
+    agentList.broadcastToAgents(broadcast_string, broadcast_bytes);
 }
 
 int render_test_spot = WIDTH/2;
@@ -560,8 +560,12 @@ void display(void)
         //  Draw field vectors
         if (display_field) field.render();
             
-        //  Render heads of other agents 
-//        render_agents(sendToSelf, &location[0]);
+        //  Render heads of other agents
+        for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
+            if (agent->linkedData != NULL) {
+                ((Head *)agent->linkedData)->render(0, &location[0]);
+            }
+        }
     
         if (display_hand) myHand.render();   
      
@@ -647,22 +651,6 @@ void display(void)
     char agents[100];
     sprintf(agents, "Agents nearby: %d\n", nearbyAgents);
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
-
-
-#ifdef MARKER_CAPTURE
-        /* Render marker acquisition stuff */
-        pthread_mutex_lock(&frame_lock);
-        if(marker_capture_frame){
-            marker_acq_view.render(marker_capture_frame); // render the acquisition view, if it's visible.
-        }
-        // Draw marker images, if requested.
-        if (marker_capture_enabled && marker_capture_display && marker_capture_frame){
-            marker_capturer.glDrawIplImage(marker_capture_frame, WIDTH - 140, 10, 0.1, -0.1);
-            marker_capturer.glDrawIplImage(marker_capture_blob_frame, WIDTH - 280, 10, 0.1, -0.1);
-        }
-        pthread_mutex_unlock(&frame_lock);
-        /* Done rendering marker acquisition stuff */
-#endif
     
     glPopMatrix();
     
@@ -693,22 +681,6 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-    
-    // marker capture
-#ifdef MARKER_CAPTURE
-    if(k == 'x'){
-        printf("Toggling marker capture display.\n");
-        marker_capture_display = !marker_capture_display;
-        marker_capture_display ? marker_acq_view.show() : marker_acq_view.hide();
-    }
-	
-    // delegate keypresses to the marker acquisition view when it's visible;
-    // override other key mappings by returning...
-    if(marker_acq_view.visible){
-        marker_acq_view.handle_key(k);
-        return;
-    }
-#endif
     
     if (k == '/')  stats_on = !stats_on;		// toggle stats
 	if (k == 'n') 
@@ -762,7 +734,7 @@ void *networkReceive(void *args)
 {
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
+    char *incomingPacket = new char[MAX_PACKET_SIZE];
 
     while (true) {
         if (agentList.getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
@@ -770,49 +742,6 @@ void *networkReceive(void *args)
             bytescount += bytesReceived;
             
             agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
-            
-           
-//            //  If packet is a Mouse data packet, copy it over
-//            if (incomingPacket[0] == 'P') {
-//                //
-//                //  Got Ping, reply immediately!
-//                //
-//                //printf("Replying to ping!\n");
-//                char reply[] = "R";
-//                agentList.getAgentSocket()->send(&senderAddress, reply, 1);
-//            } else if (incomingPacket[0] == 'R') {
-//                //
-//                //  Got Reply, record as appropriate
-//                //
-////                setAgentPing(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port));
-//                
-//            } else if (incomingPacket[0] == 'M') {
-//                //
-//                //  mouse location packet
-//                //
-//                sscanf(incomingPacket, "M %d %d", &target_x, &target_y);
-//                target_display = 1;
-//                //printf("X = %d Y = %d\n", target_x, target_y);
-//            } else if (incomingPacket[0] == 'D') {
-//                //
-//                //  Message from domainserver
-//                //
-//                  //printf("agent list received!\n");
-//                nearbyAgents = agentList.updateList(&incomingPacket[1]);
-//                std::cout << "Received " << nearbyAgents << " from DS!\n";
-////                kludgyMixerUpdate(audio);
-//            } else if (incomingPacket[0] == 'H') {
-//                //
-//                //  Broadcast packet from another agent
-//                //
-//                //printf("broadcast received");
-////                update_agent(inet_ntoa(senderAddress.sin_addr), ntohs(senderAddress.sin_port),  &incomingPacket[1], bytesReceived - 1);
-//            } else if (incomingPacket[0] == 'T') {
-//                //  Received a self-test packet (to get one's own IP), copy it to local variable!
-////                printf("My Address: %s:%u\n",
-////                       inet_ntoa(senderAddress.sin_addr),
-////                       senderAddress.sin_port);
-//            }
         }
     }
     
@@ -915,14 +844,9 @@ void mouseoverFunc( int x, int y)
     }
 }
 
-
-#ifdef MARKER_CAPTURE
-void *poll_marker_capture(void *threadarg){
-    while(1){
-        marker_capturer.tick();
-    }
+void attachNewHeadToAgent(Agent *newAgent) {
+    newAgent->linkedData = new Head();
 }
-#endif
 
 int main(int argc, char** argv)
 {
@@ -952,13 +876,6 @@ int main(int argc, char** argv)
         }
     } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     
-    //std::cout << "Test address: " << inet_ntoa(testAddress.sin_addr) << "\n";
-    
-    //gethostbyname(hostname);
-    //  Send one test packet to detect own IP, port:
-    //char selfTest[] = "T";
-    //agentSocket.send((char *)"127.0.0.1", AGENT_UDP_PORT, selfTest, 1);
-    
     printf("Testing stats math... ");
     StDev stdevtest;
     stdevtest.reset();
@@ -983,6 +900,8 @@ int main(int argc, char** argv)
         printf("Stdev=FAIL ");
     printf("\n");
 
+    // the callback for our instance of AgentList is attachNewHeadToAgent
+    agentList.newAgentCallback = &attachNewHeadToAgent;
     
     // create thread for receipt of data via UDP
     pthread_t networkReceiveThread;
@@ -1014,28 +933,8 @@ int main(int argc, char** argv)
     
     glutTimerFunc(1000, Timer, 0);
     
-#ifdef MARKER_CAPTURE
-    
-    if (marker_capture_enabled) {
-        // start capture thread
-        if (pthread_mutex_init(&frame_lock, NULL) != 0){
-            printf("Frame lock mutext init failed. Exiting.\n");
-            return 1;
-        }
-        pthread_t capture_thread;
-        pthread_create(&capture_thread, NULL, poll_marker_capture, NULL);
-    }
-#endif
-    
     glutMainLoop();
-    
-#ifdef MARKER_CAPTURE
-    if (marker_capture_enabled) {
-        pthread_mutex_destroy(&frame_lock);
-        pthread_exit(NULL);
-    }
-#endif
-    
+
     pthread_join(networkReceiveThread, NULL);
     ::terminate();
     return EXIT_SUCCESS;

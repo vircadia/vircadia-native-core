@@ -272,7 +272,7 @@ void *receiveAudioViaUDP(void *args) {
  * @return  Returns true if successful or false if an error occurred.
 Use Audio::getError() to retrieve the error code.
  */
-Audio::Audio(Head *mainHead, Oscilloscope * s)
+Audio::Audio(Oscilloscope * s)
 {
     paError = Pa_Initialize();
     if (paError != paNoError) goto error;
@@ -291,8 +291,6 @@ Audio::Audio(Head *mainHead, Oscilloscope * s)
     threadArgs.sharedAudioData = audioData;
     
     pthread_create(&audioReceiveThread, NULL, receiveAudioViaUDP, (void *) &threadArgs);
-    
-    audioData->linkedHead = mainHead;
     
     paError = Pa_OpenDefaultStream(&stream,
                                2,       // input channels
