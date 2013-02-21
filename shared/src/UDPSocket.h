@@ -28,5 +28,8 @@ class UDPSocket {
 };
 
 bool socketMatch(sockaddr *first, sockaddr *second);
+int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkOrderPort);
+int packSocket(unsigned char *packStore, sockaddr *socketToPack);
+int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket);
 
 #endif /* defined(__interface__UDPSocket__) */

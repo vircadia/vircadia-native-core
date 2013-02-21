@@ -55,14 +55,12 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 
 AgentList agentList;
 
 //  For testing, add milliseconds of delay for received UDP packets
-char* incomingPacket;
-
 int packetcount = 0;
 int packets_per_second = 0; 
 int bytes_per_second = 0;
@@ -79,7 +77,7 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
-char localAddressBuffer[INET_ADDRSTRLEN];
+in_addr_t localAddress;
 
 Oscilloscope audioScope(512,200,true);
 
@@ -222,11 +220,11 @@ void Timer(int extra)
     //
     //  Send a message to the domainserver telling it we are ALIVE
     // 
-    char output[100];
-    sprintf(output, "%c %f,%f,%f,%s %hd", 'I', location[0], location[1], location[2], localAddressBuffer, AGENT_SOCKET_LISTEN_PORT);
-    std::cout << "sending " << output << " to domain server\n";
-    int packet_size = strlen(output);
-    agentList.getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, output, packet_size);
+    unsigned char output[7];
+    output[0] = 'I';    
+    packSocket(output + 1, localAddress, htons(AGENT_SOCKET_LISTEN_PORT));
+    
+    agentList.getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
     
     //  Ping the agents we can see
     agentList.pingAgents();
@@ -764,8 +762,10 @@ void *networkReceive(void *args)
 {
     sockaddr senderAddress;
     ssize_t bytesReceived;
+    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
+
     while (true) {
-        if (agentList.getAgentSocket()->receive(&senderAddress, (void *)incomingPacket, &bytesReceived)) {
+        if (agentList.getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetcount++;
             bytescount += bytesReceived;
             
@@ -926,20 +926,15 @@ void *poll_marker_capture(void *threadarg){
 
 int main(int argc, char** argv)
 {
-    //  Create network socket and buffer
-    incomingPacket = new char[MAX_PACKET_SIZE];
-    
     struct ifaddrs * ifAddrStruct=NULL;
     struct ifaddrs * ifa=NULL;
-    void * tmpAddrPtr=NULL;
     
     getifaddrs(&ifAddrStruct);
     
     for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
             // is a valid IP4 Address
-            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-//            inet_ntop(AF_INET, tmpAddrPtr, localAddressBuffer, INET_ADDRSTRLEN);
+            localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
         }
     }
     

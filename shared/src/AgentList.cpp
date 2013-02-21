@@ -7,8 +7,13 @@
 //
 
 #include "AgentList.h"
+#include <arpa/inet.h>
 
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
+    
+}
+
+AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     
 }
 
@@ -16,12 +21,12 @@ UDPSocket * AgentList::getAgentSocket() {
     return &agentSocket;
 }
 
-void AgentList::processAgentData(sockaddr *senderAddress, char *packetData, size_t dataBytes) {
+void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (packetData[0]) {
         case 'D':
         {
             // list of agents from domain server
-            updateList(packetData);
+            updateList(packetData, dataBytes);
             break;
         }
         case 'P':
@@ -40,52 +45,54 @@ void AgentList::processAgentData(sockaddr *senderAddress, char *packetData, size
     }
 }
 
-int AgentList::updateList(char *packetData) {
+int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
-    int scannedItems = 0;
-    
+
     char agentType;
     
     // assumes only IPv4 addresses
-    sockaddr_in *agentPublicSocket = new sockaddr_in;
-    agentPublicSocket->sin_family = AF_INET;
-    sockaddr_in *agentLocalSocket = new sockaddr_in;
-    agentLocalSocket->sin_family = AF_INET;
+    sockaddr_in agentPublicSocket;
+    agentPublicSocket.sin_family = AF_INET;
+    sockaddr_in agentLocalSocket;
+    agentLocalSocket.sin_family = AF_INET;
     
+    unsigned char *readPtr = packetData + 1;
+    unsigned char *startPtr = packetData;
     
-    Agent newAgent;
-    
-    while((scannedItems = sscanf(packetData,
-                                "%c %u %hd %u %hd,",
-                                &agentType,
-                                &agentPublicSocket->sin_addr.s_addr,
-                                &agentPublicSocket->sin_port,
-                                &agentLocalSocket->sin_addr.s_addr,
-                                &agentLocalSocket->sin_port
-                                ))) {
+    while((readPtr - startPtr) < dataBytes) {
+        agentType = *readPtr++;
+        readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
+        readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
-        std::vector<Agent>::iterator agent;
-        
-        for(agent = agents.begin(); agent != agents.end(); agent++) {
-            if (agent->matches((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType)) {
-                // we already have this agent, stop checking
-                break;
-            }
+        addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType);
+    }  
+
+    return readAgents;
+}
+
+bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType) {
+    std::vector<Agent>::iterator agent;
+    
+    for(agent = agents.begin(); agent != agents.end(); agent++) {
+        if (agent->matches(publicSocket, localSocket, agentType)) {
+            // we already have this agent, stop checking
+            break;
         }
-        
-        if (agent == agents.end()) {
-            // we didn't have this agent, so add them
-            newAgent = Agent((sockaddr *)agentPublicSocket, (sockaddr *)agentLocalSocket, agentType);
-            std::cout << "Added new agent - PS: " << agentPublicSocket << " LS: " << agentLocalSocket << " AT: " << agentType << "\n";
-            agents.push_back(newAgent);
-        } else {
-            // we had this agent already, don't do anything
-        }
-        
-        readAgents++;
     }
     
-    return readAgents;
+    if (agent == agents.end()) {
+        // we didn't have this agent, so add them
+        Agent newAgent = Agent(publicSocket, localSocket, agentType);
+        
+        std::cout << "Added agent - " << &newAgent << "\n";
+
+        agents.push_back(newAgent);
+        
+        return true;
+    } else {
+        // we had this agent already
+        return false;
+    }    
 }
 
 void AgentList::pingAgents() {

@@ -19,16 +19,19 @@ const unsigned short AGENT_SOCKET_LISTEN_PORT = 40103;
 class AgentList {
     public:
         AgentList();
+        AgentList(int socketListenPort);
         std::vector<Agent> agents;
-        int updateList(char *packetData);
-        void processAgentData(sockaddr *senderAddress, char *packetData, size_t dataBytes);
     
-        int broadcastToAgents(char *broadcastData, size_t dataBytes, bool sendToSelf);
-        void pingAgents();
         UDPSocket* getAgentSocket();
+    
+        int updateList(unsigned char *packetData, size_t dataBytes);
+        bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
+        void processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
+        void broadcastToAgents(char *broadcastData, size_t dataBytes, bool sendToSelf);
+        void pingAgents();
     private:
         UDPSocket agentSocket;
-        int addAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
+        
         void handlePingReply(sockaddr *agentAddress);
 };
 

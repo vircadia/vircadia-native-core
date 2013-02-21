@@ -21,16 +21,21 @@ class Agent {
         Agent& operator=(Agent otherAgent);
         bool operator==(const Agent& otherAgent);
         ~Agent();
-        
+    
         bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
+    
         sockaddr *publicSocket, *localSocket, *activeSocket;
         char type;
         timeval pingStarted;
         int pingMsecs;
         bool isSelf;
         AgentData *linkedData;
+    
+        friend std::ostream& operator<<(std::ostream& os, const Agent* agent);
     private:
         void swap(Agent &first, Agent &second);
 };
+
+std::ostream& operator<<(std::ostream& os, const Agent* agent);
 
 #endif /* defined(__hifi__Agent__) */

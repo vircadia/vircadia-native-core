@@ -78,3 +78,13 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
         && socketMatch(publicSocket, otherPublicSocket)
         && socketMatch(localSocket, otherLocalSocket);
 }
+
+std::ostream& operator<<(std::ostream& os, const Agent* agent) {
+    sockaddr_in *agentPublicSocket = (sockaddr_in *)agent->publicSocket;
+    sockaddr_in *agentLocalSocket = (sockaddr_in *)agent->localSocket;
+    
+    os << "T: " << agent->type << " PA: " << inet_ntoa(agentPublicSocket->sin_addr) <<
+        ":" << ntohs(agentPublicSocket->sin_port) << " LA: " << inet_ntoa(agentLocalSocket->sin_addr) <<
+        ":" << ntohs(agentLocalSocket->sin_port);
+    return os;
+}

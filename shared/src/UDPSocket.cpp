@@ -36,6 +36,29 @@ bool socketMatch(sockaddr *first, sockaddr *second) {
     }
 }
 
+int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkOrderPort) {
+    packStore[0] = inAddress >> 24;
+    packStore[1] = inAddress >> 16;
+    packStore[2] = inAddress >> 8;
+    packStore[3] = inAddress;
+    
+    packStore[4] = networkOrderPort >> 8;
+    packStore[5] = networkOrderPort;
+    
+    return 6; // could be dynamically more if we need IPv6
+}
+
+int packSocket(unsigned char *packStore, sockaddr *socketToPack) {
+    return packSocket(packStore, ((sockaddr_in *) socketToPack)->sin_addr.s_addr, ((sockaddr_in *) socketToPack)->sin_port);
+}
+
+int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket) {
+    sockaddr_in *destinationSocket = (sockaddr_in *) unpackDestSocket;
+    destinationSocket->sin_addr.s_addr = (packedData[0] << 24) + (packedData[1] << 16) + (packedData[2] << 8) + packedData[3];
+    destinationSocket->sin_port = (packedData[4] << 8) + packedData[5];
+    return 6; // this could be more if we ever need IPv6
+}
+
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
