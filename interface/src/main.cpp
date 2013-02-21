@@ -675,7 +675,7 @@ void display(void)
     
     //  Draw number of nearby people always
     char agents[100];
-    sprintf(agents, "Agents nearby: %d\n", nearbyAgents);
+    sprintf(agents, "Agents nearby: %ld\n", agentList.agents.size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
     
     glPopMatrix();
