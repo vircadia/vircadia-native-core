@@ -22,6 +22,7 @@ class AgentList {
         AgentList(int socketListenPort);
         std::vector<Agent> agents;
         void(*linkedDataCreateCallback)(Agent *);
+        void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
     
         UDPSocket* getAgentSocket();
     

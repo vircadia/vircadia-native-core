@@ -84,8 +84,13 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     if (inputLeft != NULL) {
-        if (data->mixerAddress != NULL) {
-             data->audioSocket->send(data->mixerAddress, data->mixerPort, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+        
+        if (data->mixerAddress != 0) {
+            sockaddr_in audioMixerSocket;
+            audioMixerSocket.sin_family = AF_INET;
+            audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
+            audioMixerSocket.sin_port = data->mixerPort;
+             data->audioSocket->send((sockaddr *)&audioMixerSocket, (void *)inputLeft, BUFFER_LENGTH_BYTES);
         }
        
         //
@@ -162,15 +167,9 @@ int audioCallback (const void *inputBuffer,
     return paContinue;
 }
 
-void Audio::updateMixerParams(char *newAddress, unsigned short newPort) {
-    if (audioData->mixerAddress == NULL) {
-        audioData->mixerAddress = new char[255];
-    }
-    
-    strcpy(audioData->mixerAddress, newAddress);
-    audioData->mixerPort = newPort;
-    
-    std::cout << "Audio Mixer now at " << audioData->mixerAddress << ":" << newPort << ".\n";
+void Audio::updateMixerParams(in_addr_t newMixerAddress, in_port_t newMixerPort) {
+    audioData->mixerAddress = newMixerAddress;
+    audioData->mixerPort = newMixerPort;
 }
 
 struct AudioRecThreadStruct {

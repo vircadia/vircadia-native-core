@@ -876,6 +876,10 @@ void attachNewHeadToAgent(Agent *newAgent) {
     }
 }
 
+void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
+    audio.updateMixerParams(newMixerAddress, newMixerPort);
+}
+
 int main(int argc, char** argv)
 {
     struct ifaddrs * ifAddrStruct=NULL;
@@ -930,6 +934,7 @@ int main(int argc, char** argv)
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
+    agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     
     // create thread for receipt of data via UDP
     pthread_t networkReceiveThread;

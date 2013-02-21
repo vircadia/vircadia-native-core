@@ -22,8 +22,9 @@ class AudioData {
     
         int16_t *samplesToQueue;
     
-        char *mixerAddress;
-        unsigned short mixerPort;
+        // store current mixer address and port
+        in_addr_t mixerAddress;
+        in_port_t mixerPort;
     
         timeval lastCallback;
         float averagedLatency;

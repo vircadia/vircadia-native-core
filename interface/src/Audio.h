@@ -23,7 +23,7 @@ public:
     void render(int screenWidth, int screenHeight);
     
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
-    void updateMixerParams(char *mixerAddress, unsigned short mixerPort);
+    void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
     // terminates audio I/O
     bool terminate();
@@ -34,10 +34,6 @@ private:
     
     // protects constructor so that public init method is used
     Audio();
-    
-    // store current mixer address and port
-    char *mixerAddress;
-    int mixerPort;
     
     // hold potential error returned from PortAudio functions
     PaError paError;

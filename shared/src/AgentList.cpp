@@ -11,6 +11,7 @@
 
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
+    audioMixerSocketUpdate = NULL;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
@@ -123,6 +124,14 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activeSocket = newAgent.localSocket;
         }
         
+        if (newAgent.type == 'M' && audioMixerSocketUpdate != NULL) {
+            // this is an audio mixer
+            // for now that means we need to tell the audio class
+            // to use the local socket information the domain server gave us
+            sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
+            audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
+        }
+        
         std::cout << "Added agent - " << &newAgent << "\n";
         
         agents.push_back(newAgent);       
@@ -136,7 +145,9 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
 
 void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->activeSocket != NULL) {
+        // for now assume we only want to send to other interface clients
+        // until the Audio class uses the AgentList
+        if (agent->activeSocket != NULL && agent->type == 'I') {
             // we know which socket is good for this agent, send there
             agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, dataBytes);
         }
@@ -145,17 +156,19 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
 
 
 void AgentList::pingAgents() {
+    char payload[] = "P";
+    
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        char payload[] = "P";
-        
-        if (agent->activeSocket != NULL) {
-            // we know which socket is good for this agent, send there
-            agentSocket.send((sockaddr *)agent->activeSocket, payload, 1);
-        } else {
-            // ping both of the sockets for the agent so we can figure out
-            // which socket we can use
-            agentSocket.send(agent->publicSocket, payload, 1);
-            agentSocket.send(agent->localSocket, payload, 1);
+        if (agent->type == 'I') {
+            if (agent->activeSocket != NULL) {
+                // we know which socket is good for this agent, send there
+                agentSocket.send((sockaddr *)agent->activeSocket, payload, 1);
+            } else {
+                // ping both of the sockets for the agent so we can figure out
+                // which socket we can use
+                agentSocket.send(agent->publicSocket, payload, 1);
+                agentSocket.send(agent->localSocket, payload, 1);
+            }
         }
     }
 }

@@ -224,14 +224,14 @@ int addAgent(sockaddr_in *newAddress, void *audioData) {
 void *reportAliveToDS(void *args) {
     
     timeval lastSend, now;
-    char output[100];
+    unsigned char output[7];
    
     while (true) {
         gettimeofday(&lastSend, NULL);
         
-        sprintf(output, "%c %f,%f,%f,54.241.92.53 %hd", 'M', 0.f, 0.f, 0.f, MIXER_LISTEN_PORT);
-        int packetSize = strlen(output);
-        audioSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, packetSize);
+        *output = 'M';
+        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        audioSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         gettimeofday(&now, NULL);
         
