@@ -8,6 +8,7 @@
 
 #include "Agent.h"
 #include <arpa/inet.h>
+#include <cstring>
 #include "UDPSocket.h"
 
 Agent::Agent() {
