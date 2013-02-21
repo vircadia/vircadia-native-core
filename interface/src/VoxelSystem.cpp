@@ -38,7 +38,9 @@ int VoxelSystem::initVoxels(Voxel * voxel, float scale, glm::vec3 * position) {
                 voxel->children[i] = new Voxel;
                 newVoxels++;
                 childrenCreated++;
-                glm::vec3 shift(scale/4.0*((i&4)>>2), scale/4.0*((i&2)>>1), scale/4.0*(i&1));
+                glm::vec3 shift(scale/2.0*((i&4)>>2)-scale/4.0,
+                                scale/2.0*((i&2)>>1)-scale/4.0,
+                                scale/2.0*(i&1)-scale/4.0);
                 *position += shift;
                 newVoxels += initVoxels(voxel->children[i], scale/2.0, position);
                 *position -= shift;
