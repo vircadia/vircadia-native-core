@@ -46,7 +46,6 @@ int listForBroadcast(unsigned char *listBuffer, sockaddr *agentPublicAddress, so
     unsigned char *startPointer = currentBufferPos;
     
     for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
-        *currentBufferPos++ = agent->type;
         
         if (DEBUG_TO_SELF || !agent->matches(agentPublicAddress, agentLocalAddress, agentType)) {
             *currentBufferPos++ = agent->type;

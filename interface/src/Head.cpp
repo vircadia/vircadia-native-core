@@ -339,13 +339,13 @@ int Head::getBroadcastData(char* data)
     sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
             position.x + leanSideways, position.y, position.z + leanForward,
             loudness, averageLoudness);
-    //printf("x: %3.1f\n", position.x);
     return strlen(data);
 }
 
 void Head::parseData(void *data, int size) {
     // parse head data for this agent
-    sscanf((char *)data, "%f,%f,%f,%f,%f,%f,%f,%f",
+    std::cout << "HD: " << (char *)data << "\n";
+    sscanf((char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f",
            &Pitch, &Yaw, &Roll,
            &position.x, &position.y, &position.z,
            &loudness, &averageLoudness);

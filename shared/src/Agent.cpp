@@ -44,10 +44,8 @@ Agent::Agent(const Agent &otherAgent) {
     
     type = otherAgent.type;
     
-    
-    linkedData = (AgentData *) malloc(sizeof(otherAgent.linkedData));
-    // copy over linkedData
-    memcpy((void*)linkedData, (void *)otherAgent.linkedData, sizeof(otherAgent.linkedData));
+    // linked data is transient, gets re-assigned on next packet receive
+    linkedData = NULL;
 }
 
 Agent& Agent::operator=(Agent otherAgent) {

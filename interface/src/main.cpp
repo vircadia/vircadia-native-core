@@ -523,6 +523,7 @@ void update_pos(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
+    std::cout << "BS: " << broadcast_string << "\n";
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes);
 }
 
@@ -867,7 +868,10 @@ void mouseoverFunc( int x, int y)
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
-    newAgent->linkedData = new Head();
+    if (newAgent->linkedData == NULL) {
+        newAgent->linkedData = new Head();
+        std::cout << "LD: " << newAgent->linkedData << "\n";
+    }
 }
 
 int main(int argc, char** argv)
@@ -923,7 +927,7 @@ int main(int argc, char** argv)
     printf("\n");
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
-    agentList.newAgentCallback = &attachNewHeadToAgent;
+    agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     
     // create thread for receipt of data via UDP
     pthread_t networkReceiveThread;

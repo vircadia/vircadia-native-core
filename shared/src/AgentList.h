@@ -21,7 +21,7 @@ class AgentList {
         AgentList();
         AgentList(int socketListenPort);
         std::vector<Agent> agents;
-        void(*newAgentCallback)(Agent *);
+        void(*linkedDataCreateCallback)(Agent *);
     
         UDPSocket* getAgentSocket();
     

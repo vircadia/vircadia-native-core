@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
-    
+    linkedDataCreateCallback = NULL;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
@@ -55,11 +55,15 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, s
     int agentIndex = indexOfMatchingAgent(senderAddress);
     
     if (agentIndex != -1) {
-        Agent matchingAgent = agents[agentIndex];
+        Agent *matchingAgent = &agents[agentIndex];
         
-        if (matchingAgent.linkedData != NULL) {
-            matchingAgent.linkedData->parseData(packetData, dataBytes);
+        if (matchingAgent->linkedData == NULL) {
+            if (linkedDataCreateCallback != NULL) {
+                linkedDataCreateCallback(matchingAgent);
+            }
         }
+        
+        matchingAgent->linkedData->parseData(packetData, dataBytes);
     }
 
 }
@@ -121,7 +125,6 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         
         std::cout << "Added agent - " << &newAgent << "\n";
         
-        newAgentCallback(&newAgent);
         agents.push_back(newAgent);       
         
         return true;
@@ -135,7 +138,7 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->activeSocket != NULL) {
             // we know which socket is good for this agent, send there
-            agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, sizeof(&broadcastData));
+            agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, dataBytes);
         }
     }
 }
