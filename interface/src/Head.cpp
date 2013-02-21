@@ -219,7 +219,7 @@ void Head::render(int faceToFace, float * myLocation)
     //std::cout << distanceToCamera << "\n";
     
     //  Don't render a head if it is really close to your location, because that is your own head!
-    if ((distanceToCamera > 0.1) || faceToFace) {
+    if ((distanceToCamera > 1.0) || faceToFace) {
         glEnable(GL_DEPTH_TEST);
         glPushMatrix();
 

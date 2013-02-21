@@ -38,7 +38,7 @@
 #include "Texture.h"
 #include "Cloud.h"
 #include "AgentList.h"
-#include "Cube.h"
+#include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
 #include "Oscilloscope.h"
@@ -101,7 +101,7 @@ Cloud cloud(0,                             //  Particles
             false                          //  Wrap
             );
 
-VoxelSystem voxels(1000, box);
+VoxelSystem voxels;
 
 Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
@@ -274,11 +274,17 @@ void display_stats(void)
 //    }
 //    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
 
+    std::stringstream voxelStats;
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
+    drawtext(10,70,0.10, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
     
+    /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
     drawtext(10,50,0.10, 0, 1.0, 0, (char *)angles.str().c_str());
-
+    */
+    
     /*
     char adc[200];
 	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
@@ -308,6 +314,11 @@ void initDisplay(void)
 
 void init(void)
 {
+    voxels.init();
+    glm::vec3 position(0,0,0);
+    int voxelsMade = voxels.initVoxels(NULL, 10.0, &position);
+    std::cout << voxelsMade << " voxels made. \n";
+    
     myHead.setRenderYaw(start_yaw);
 
     head_mouse_x = WIDTH/2;
@@ -395,7 +406,7 @@ void update_pos(float frametime)
     if (powf(measured_yaw_rate*measured_yaw_rate + 
              measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
     {
-        head_mouse_x -= measured_yaw_rate*MOUSE_SENSITIVITY;
+        head_mouse_x += measured_yaw_rate*MOUSE_SENSITIVITY;
         head_mouse_y += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
     }
     head_mouse_x = max(head_mouse_x, 0);
@@ -418,18 +429,18 @@ void update_pos(float frametime)
     */
                        
     //  Update render direction (pitch/yaw) based on measured gyro rates
-    const int MIN_YAW_RATE = 3000;
-    const float YAW_SENSITIVITY = 0.03;
-    const int MIN_PITCH_RATE = 3000;
+    const int MIN_YAW_RATE = 100;
+    const float YAW_SENSITIVITY = 0.08;
+    const int MIN_PITCH_RATE = 100;
     
     const float PITCH_SENSITIVITY = 0.04;
     
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
         if (measured_yaw_rate > 0)
-            render_yaw_rate -= (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            render_yaw_rate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
         else 
-            render_yaw_rate -= (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            render_yaw_rate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
     }
     if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
     {
@@ -549,13 +560,24 @@ void display(void)
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
     
+        glColor3f(1,0,0);
+        glutSolidSphere(0.25, 15, 15);
+    
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
         if (!display_head) cloud.render();
     
         //  Draw voxels
-        voxels.render();
+        glPushMatrix();
+        glTranslatef(WORLD_SIZE/2.0, WORLD_SIZE/2.0, WORLD_SIZE/2.0);
+        glm::vec3 distance(5.0 + location[0], 5.0 + location[1], 5.0 + location[2]);
+        //std::cout << "length: " << glm::length(distance) << "\n";
+        int voxelsRendered = voxels.render(NULL, 10.0, &distance);
+        voxels.setVoxelsRendered(voxelsRendered);
+        //glColor4f(0,0,1,0.5);
+        //glutSolidCube(10.0);
+        glPopMatrix();
     
         //  Draw field vectors
         if (display_field) field.render();
