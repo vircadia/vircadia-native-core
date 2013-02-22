@@ -578,14 +578,12 @@ void display(void)
         if (!display_head && stats_on) render_world_box();
     
         //  Render my own head
-    
-        if (display_head) {
-            glPushMatrix();
-            glLoadIdentity();
-            glTranslatef(0.f, 0.f, -7.f);
-            myHead.render(1, &location[0]);
-            glPopMatrix();
-        }    
+        glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(0.f, 0.f, -7.f);
+        myHead.render(display_head, &location[0]);
+        glPopMatrix();
+            
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
 

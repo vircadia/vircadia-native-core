@@ -218,19 +218,19 @@ void Head::render(int faceToFace, float * myLocation)
     glm::vec3 cameraHead(myLocation[0], myLocation[1], myLocation[2]);
     float distanceToCamera = glm::distance(cameraHead, position);
     
+    //  Always render own hand, but don't render head unless showing face2face
+    glEnable(GL_DEPTH_TEST);
+    glPushMatrix();
+    
+    glScalef(scale, scale, scale);
+    glTranslatef(leanSideways, 0.f, leanForward);
+    
+    glRotatef(Yaw, 0, 1, 0);
+    
+    hand->render();
     
     //  Don't render a head if it is really close to your location, because that is your own head!
     if ((distanceToCamera > 1.0) || faceToFace) {
-        glEnable(GL_DEPTH_TEST);
-        glPushMatrix();
-
-
-        glScalef(scale, scale, scale);
-        glTranslatef(leanSideways, 0.f, leanForward);
-
-        glRotatef(Yaw, 0, 1, 0);
-        
-        hand->render();
         
         glRotatef(Pitch, 1, 0, 0);
         glRotatef(Roll, 0, 0, 1);
@@ -335,9 +335,9 @@ void Head::render(int faceToFace, float * myLocation)
             glutSolidSphere(PupilSize, 15, 15);
         glPopMatrix();
         
-        glPopMatrix();
+
     }
-    
+    glPopMatrix();
  }
 
 //  Transmit data to agents requesting it 
