@@ -1,5 +1,15 @@
+#include "Oscilloscope.h"
+
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
+
+#import "InterfaceMacOSX.h"
+
+@class InterfaceMainMenuTarget;
+
+static InterfaceMainMenuTarget *sharedInterfaceMainMenuTarget = nil;
+static Oscilloscope *sharedAudioScope;
+
 
 @interface InterfaceMainMenuTarget : NSObject
 
@@ -8,21 +18,27 @@
 
 @end
 
+
 @implementation InterfaceMainMenuTarget
 
 - (void)scopeAudioAction {
-    NSLog(@"scopeAudioAction");
+    sharedAudioScope->setState(true);
+    [self.scopeAudioMenuItem setState:NSOnState];
+    [self.scopeNoneMenuItem setState:NSOffState];
 }
 
 - (void)scopeNoneAction {
-    NSLog(@"scopeNoneAction");
+    sharedAudioScope->setState(false);
+    [self.scopeAudioMenuItem setState:NSOffState];
+    [self.scopeNoneMenuItem setState:NSOnState];
 }
 
 @end
 
-static InterfaceMainMenuTarget *sharedInterfaceMainMenuTarget = nil;
 
-void initMacOSXMenu() {
+void initMacOSXMenu(Oscilloscope *audioScope) {
+    sharedAudioScope = audioScope;
+    
     @autoreleasepool {
         if (NSApp) {
             if (!sharedInterfaceMainMenuTarget) {

@@ -974,7 +974,7 @@ int main(int argc, char** argv)
     glutTimerFunc(1000, Timer, 0);
 
 #ifdef __APPLE__
-    initMacOSXMenu();
+    initMacOSXMenu(&audioScope);
 #endif
 
     glutMainLoop();
