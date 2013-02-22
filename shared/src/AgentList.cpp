@@ -150,7 +150,7 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
         // until the Audio class uses the AgentList
         if (agent->activeSocket != NULL && agent->type == 'I') {
             // we know which socket is good for this agent, send there
-            agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, dataBytes);
+            agentSocket.send(agent->activeSocket, broadcastData, dataBytes);
         }
     }
 }
@@ -163,7 +163,7 @@ void AgentList::pingAgents() {
         if (agent->type == 'I') {
             if (agent->activeSocket != NULL) {
                 // we know which socket is good for this agent, send there
-                agentSocket.send((sockaddr *)agent->activeSocket, payload, 1);
+                agentSocket.send(agent->activeSocket, payload, 1);
             } else {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
