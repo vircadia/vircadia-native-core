@@ -44,9 +44,8 @@ const char EC2_WEST_MIXER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 int starve_counter = 0;
-bool stopAudioReceiveThread = false;
-
 StDev stdev;
+bool stopAudioReceiveThread = false;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -263,6 +262,8 @@ void *receiveAudioViaUDP(void *args) {
             }
         }
     }
+    
+    pthread_exit(0);
 }
 
 /**
@@ -305,6 +306,7 @@ Audio::Audio(Oscilloscope * s)
     // start the stream now that sources are good to go
     Pa_StartStream(stream);
     if (paError != paNoError) goto error;
+    
     
     return;
     
@@ -420,6 +422,9 @@ void Audio::render(int screenWidth, int screenHeight)
  */
 bool Audio::terminate ()
 {
+    stopAudioReceiveThread = true;
+    pthread_join(audioReceiveThread, NULL);
+    
     if (initialized) {
         initialized = false;
         
@@ -428,14 +433,10 @@ bool Audio::terminate ()
         
         paError = Pa_Terminate();
         if (paError != paNoError) goto error;
-        
-        delete audioData;
-        
-        logFile.close();
     }
     
-    stopAudioReceiveThread = true;
-    pthread_join(audioReceiveThread, NULL);
+    logFile.close();    
+    delete audioData;
     
     return true;
     

@@ -81,6 +81,12 @@ UDPSocket::UDPSocket(int listeningPort) {
         return;
     }
     
+    // set timeout on socket recieve to 0.5 seconds
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500000;
+    setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
+    
     printf("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
