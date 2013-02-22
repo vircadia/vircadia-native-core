@@ -34,6 +34,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
         {
             // head data from another agent
             updateAgentWithData(senderAddress, packetData, dataBytes);
+            break;
         }
         case 'P':
         {
