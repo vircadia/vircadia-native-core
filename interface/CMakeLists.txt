@@ -21,7 +21,7 @@ endif (APPLE)
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
 
 # grab the implementation and header files from src dir
-file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
+file(GLOB INTERFACE_SRCS src/*.mm src/*.cpp src/*.h)
 
 if (APPLE)
   # set how the icon shows up in the Info.plist file
