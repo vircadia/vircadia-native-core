@@ -16,26 +16,20 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 
-const float RADIUS_RANGE = 10.0; 
-
 class Hand {
 public:
-    Hand(float initradius, glm::vec3 color);
+    Hand(glm::vec3 color);
     void simulate (float deltaTime);
     void render ();
     void reset ();
     void setNoise (float mag) { noise = mag; };
-    void addVel (glm::vec3 add) { velocity += add; }; 
+    void addVel (glm::vec3 v) { velocity += v; };
     glm::vec3 getPos() { return position; };
-    void setPos(glm::vec3 newpos) { position = newpos; };
-    float getRadius() { return radius; };
-    void  setRadius(float newradius) { radius = newradius; };
-    void setColliding(bool newcollide) { isColliding = newcollide; };
+    void setPos(glm::vec3 p) { position = p; };
+    void setTarget(glm::vec3 t) { target = t; };
 private:
-    glm::vec3 position, velocity, color;
+    glm::vec3 position, target, velocity, color, scale;
     float noise;
-    float radius;
-    bool isColliding;
     
 };
 

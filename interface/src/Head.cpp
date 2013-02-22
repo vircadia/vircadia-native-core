@@ -57,6 +57,7 @@ Head::Head()
     renderYaw = 0.0;
     renderPitch = 0.0;
     setNoise(0);
+    hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 }
 
 Head::~Head() {
@@ -205,6 +206,7 @@ void Head::simulate(float deltaTime)
         }
                          
     }
+    hand->simulate(deltaTime);
                          
                          
 }
@@ -216,27 +218,34 @@ void Head::render(int faceToFace, float * myLocation)
     glm::vec3 cameraHead(myLocation[0], myLocation[1], myLocation[2]);
     float distanceToCamera = glm::distance(cameraHead, position);
     
-    //std::cout << distanceToCamera << "\n";
     
     //  Don't render a head if it is really close to your location, because that is your own head!
     if ((distanceToCamera > 1.0) || faceToFace) {
         glEnable(GL_DEPTH_TEST);
         glPushMatrix();
 
+
         glScalef(scale, scale, scale);
         glTranslatef(leanSideways, 0.f, leanForward);
 
-        glRotatef(Yaw, 0, 1, 0);    
+        glRotatef(Yaw, 0, 1, 0);
+        
+        hand->render();
+        
         glRotatef(Pitch, 1, 0, 0);
         glRotatef(Roll, 0, 0, 1);
+        
         
         // Overall scale of head
         if (faceToFace) glScalef(1.5, 2.0, 2.0);
         else glScalef(0.75, 1.0, 1.0);
         glColor3fv(skinColor);
-        
+
+
         //  Head
-        glutSolidSphere(1, 30, 30);           
+        glutSolidSphere(1, 30, 30);
+        
+        //std::cout << distanceToCamera << "\n";
         
         //  Ears
         glPushMatrix();

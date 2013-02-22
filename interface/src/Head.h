@@ -13,6 +13,8 @@
 #include "AgentData.h"
 #include "Field.h"
 #include "world.h"
+#include "Head.h"
+#include "Hand.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
@@ -95,7 +97,9 @@ class Head : public AgentData {
         int eyeContact;
         eyeContactTargets eyeContactTarget;
         void readSensors();
-        float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head. 
+        float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
+    
+        Hand * hand;
 };
 
 #endif
