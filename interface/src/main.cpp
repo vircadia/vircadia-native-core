@@ -59,6 +59,8 @@ char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty stri
 const int DOMAINSERVER_PORT = 40102;
 
 AgentList agentList;
+pthread_t networkReceiveThread;
+bool stopAgentDataReceiveThread = false;
 
 //  For testing, add milliseconds of delay for received UDP packets
 int packetcount = 0;
@@ -360,6 +362,8 @@ void terminate () {
     //close(serial_fd);
 
     audio.terminate();
+    stopAgentDataReceiveThread = true;
+    pthread_join(networkReceiveThread, NULL);
     exit(EXIT_SUCCESS);
 }
 
@@ -763,7 +767,7 @@ void *networkReceive(void *args)
     ssize_t bytesReceived;
     char *incomingPacket = new char[MAX_PACKET_SIZE];
 
-    while (true) {
+    while (!stopAgentDataReceiveThread) {
         if (agentList.getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetcount++;
             bytescount += bytesReceived;
@@ -938,7 +942,6 @@ int main(int argc, char** argv)
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     
     // create thread for receipt of data via UDP
-    pthread_t networkReceiveThread;
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 
     glutInit(&argc, argv);
@@ -969,7 +972,6 @@ int main(int argc, char** argv)
     
     glutMainLoop();
 
-    pthread_join(networkReceiveThread, NULL);
     ::terminate();
     return EXIT_SUCCESS;
 }   

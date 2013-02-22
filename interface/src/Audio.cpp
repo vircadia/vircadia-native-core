@@ -44,6 +44,7 @@ const char EC2_WEST_MIXER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 int starve_counter = 0;
+bool stopAudioReceiveThread = false;
 
 StDev stdev;
 
@@ -202,7 +203,7 @@ void *receiveAudioViaUDP(void *args) {
         delete[] filename;
     }
     
-    while (true) {
+    while (!stopAudioReceiveThread) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
 
             bool firstSample = (currentReceiveTime.tv_sec == 0);
@@ -283,8 +284,6 @@ Audio::Audio(Oscilloscope * s)
     // setup a UDPSocket
     audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
     audioData->ringBuffer = new AudioRingBuffer(RING_BUFFER_SIZE_SAMPLES);
-    
-    pthread_t audioReceiveThread;
     
     AudioRecThreadStruct threadArgs;
     threadArgs.sharedAudioData = audioData;
@@ -434,6 +433,9 @@ bool Audio::terminate ()
         
         logFile.close();
     }
+    
+    stopAudioReceiveThread = true;
+    pthread_join(audioReceiveThread, NULL);
     
     return true;
     
