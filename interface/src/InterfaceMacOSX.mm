@@ -37,13 +37,12 @@ static Oscilloscope *sharedAudioScope;
 
 
 void initMacOSXMenu(Oscilloscope *audioScope) {
-    sharedAudioScope = audioScope;
-    
     @autoreleasepool {
         if (NSApp) {
             if (!sharedInterfaceMainMenuTarget) {
                 sharedInterfaceMainMenuTarget = [[InterfaceMainMenuTarget alloc] init];
             }
+            sharedAudioScope = audioScope;
             
             NSMenu *mainMenu = [NSApp mainMenu];
             
@@ -55,17 +54,15 @@ void initMacOSXMenu(Oscilloscope *audioScope) {
             NSMenu *scopeMenu = [[[NSMenu alloc] init] initWithTitle:@"Scope"];
             [scopeMenuItem setSubmenu:scopeMenu];
             sharedInterfaceMainMenuTarget.scopeAudioMenuItem = [scopeMenu addItemWithTitle:@"Audio"
-                                                                                 action:@selector(scopeAudioAction)
-                                                                          keyEquivalent:@""];
+                                                                                    action:@selector(scopeAudioAction)
+                                                                             keyEquivalent:@""];
             [sharedInterfaceMainMenuTarget.scopeAudioMenuItem setTarget:sharedInterfaceMainMenuTarget];
             [sharedInterfaceMainMenuTarget.scopeAudioMenuItem setState:NSOnState];
             
             sharedInterfaceMainMenuTarget.scopeNoneMenuItem = [scopeMenu addItemWithTitle:@"None"
-                                                                                action:@selector(scopeNoneAction)
-                                                                         keyEquivalent:@""];
+                                                                                   action:@selector(scopeNoneAction)
+                                                                            keyEquivalent:@""];
             [sharedInterfaceMainMenuTarget.scopeNoneMenuItem setTarget:sharedInterfaceMainMenuTarget];
-            
-            [NSApp setMainMenu:mainMenu];
         }
     }
 }
