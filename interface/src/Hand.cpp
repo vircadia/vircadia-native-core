@@ -21,7 +21,7 @@ Hand::Hand(glm::vec3 initcolor)
     noise = 0.2;
     scale.x = 0.07;
     scale.y = scale.x * 5.0;
-    scale.z = scale.y * 2.0;
+    scale.z = scale.y * 1.0;
 }
 
 void Hand::render()
@@ -46,8 +46,8 @@ void Hand::reset()
 void Hand::simulate(float deltaTime)
 {
     //  If noise, add wandering movement
-    if (noise && (randFloat() < 0.1)) {
-        position += noise * glm::vec3(randFloat() - 0.5, randFloat() - 0.5, randFloat() - 0.5);
+    if (noise) {
+        position += noise * 0.1f * glm::vec3(randFloat() - 0.5, randFloat() - 0.5, randFloat() - 0.5);
     }
     //  Decay position of hand toward target
     position -= deltaTime*(position - target);
