@@ -586,10 +586,11 @@ void display(void)
         for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
             if (agent->linkedData != NULL) {
                 Head *agentHead = (Head *)agent->linkedData;
-                
+                glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
                 agentHead->render(0, &location[0]);
+                glPopMatrix();
             }
         }
     
