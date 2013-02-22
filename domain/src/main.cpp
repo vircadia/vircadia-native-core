@@ -67,7 +67,8 @@ int main(int argc, const char * argv[])
     
     sockaddr_in agentPublicAddress, agentLocalAddress;
     agentLocalAddress.sin_family = AF_INET;
-
+    
+    agentList.startSilentAgentRemovalThread();
     
     while (true) {
         if (agentList.getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
@@ -83,6 +84,7 @@ int main(int argc, const char * argv[])
             }
         }
     }
+
     return 0;
 }
 

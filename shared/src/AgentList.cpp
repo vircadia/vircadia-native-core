@@ -153,7 +153,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         
         return true;
     } else {
-        // we had this agent already
+        // we had this agent already, just update receive timestamp
+        agent->lastRecvTimeUsecs = usecTimestampNow();
         return false;
     }    
 }
