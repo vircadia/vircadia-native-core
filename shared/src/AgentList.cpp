@@ -153,8 +153,14 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         
         return true;
     } else {
-        // we had this agent already, just update receive timestamp
-        agent->lastRecvTimeUsecs = usecTimestampNow();
+        
+        if (agent->type == 'M') {
+            // until the Audio class also uses our agentList, we need to update
+            // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
+            agent->lastRecvTimeUsecs = usecTimestampNow();
+        }
+        
+        // we had this agent already, do nothing for now
         return false;
     }    
 }

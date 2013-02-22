@@ -43,6 +43,7 @@ Agent::Agent(const Agent &otherAgent) {
         activeSocket = NULL;
     }
     
+    lastRecvTimeUsecs = otherAgent.lastRecvTimeUsecs;
     type = otherAgent.type;
     
     // linked data is transient, gets re-assigned on next packet receive
