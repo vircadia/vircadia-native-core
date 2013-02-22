@@ -8,33 +8,29 @@
 
 #include "Hand.h"
 
-const float DEFAULT_X = 0.0; 
-const float DEFAULT_Y = 0.0; 
-const float DEFAULT_Z = -7.0; 
+const float PHI = 1.618;
 
-Hand::Hand(float initradius, glm::vec3 initcolor)
+const float DEFAULT_X = 0;
+const float DEFAULT_Y = -1.5;
+const float DEFAULT_Z = 2.0;
+
+Hand::Hand(glm::vec3 initcolor)
 {
     color = initcolor;
-    radius = initradius;
     reset();
-    noise = 0;
+    noise = 0.2;
+    scale.x = 0.07;
+    scale.y = scale.x * 5.0;
+    scale.z = scale.y * 1.0;
 }
 
 void Hand::render()
 {
-    glEnable(GL_DEPTH_TEST);
     glPushMatrix();
-    glLoadIdentity();
-    if (isColliding) glColor3f(1,0,0);
-    else glColor3f(color.x, color.y, color.z);
-    glBegin(GL_LINES);
-        glVertex3f(-0.05, -0.5, 0.0);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(0.05, -0.5, 0.0);
-        glVertex3f(position.x, position.y, position.z);
-    glEnd();
     glTranslatef(position.x, position.y, position.z);
-    glutSolidSphere(radius, 15, 15);
+    glColor3f(color.x, color.y, color.z);
+    glScalef(scale.x, scale.y, scale.z);
+    glutSolidSphere(1.5, 20, 20);
     glPopMatrix();
 }
 
@@ -43,22 +39,17 @@ void Hand::reset()
     position.x = DEFAULT_X;
     position.y = DEFAULT_Y;
     position.z = DEFAULT_Z;
+    setTarget(position);
     velocity.x = velocity.y = velocity.z = 0;
-    isColliding = false;
 }
 
 void Hand::simulate(float deltaTime)
 {
-    position += velocity*deltaTime;
-    
-    velocity *= (1.f - 4.0*deltaTime);
-    
-    if ((noise) && (randFloat() < 0.1))
-    {
-        velocity.x += (randFloat() - 0.5)*noise;
-        velocity.y += (randFloat() - 0.5)*noise;
-        velocity.z += (randFloat() - 0.5)*noise;
-
+    //  If noise, add wandering movement
+    if (noise) {
+        position += noise * 0.1f * glm::vec3(randFloat() - 0.5, randFloat() - 0.5, randFloat() - 0.5);
     }
+    //  Decay position of hand toward target
+    position -= deltaTime*(position - target);
     
 }
