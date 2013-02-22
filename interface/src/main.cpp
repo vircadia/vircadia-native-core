@@ -942,6 +942,9 @@ int main(int argc, char** argv)
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     
+    // start the thread which checks for silent agents
+    agentList.startSilentAgentRemovalThread();
+    
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 

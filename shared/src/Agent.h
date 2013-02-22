@@ -28,6 +28,7 @@ class Agent {
         char type;
         timeval pingStarted;
         int pingMsecs;
+        double lastRecvTimeUsecs;
         bool isSelf;
         AgentData *linkedData;
     
