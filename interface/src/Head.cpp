@@ -345,18 +345,23 @@ void Head::render(int faceToFace, float * myLocation)
 int Head::getBroadcastData(char* data)
 {
     // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f", getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
+    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+            getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
             position.x + leanSideways, position.y, position.z + leanForward,
-            loudness, averageLoudness);
+            loudness, averageLoudness,
+            hand->getPos().x, hand->getPos().y, hand->getPos().z);
     return strlen(data);
 }
 
 void Head::parseData(void *data, int size) {
     // parse head data for this agent
-    sscanf((char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f",
+    glm::vec3 handPos(0,0,0);
+    sscanf((char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
            &Pitch, &Yaw, &Roll,
            &position.x, &position.y, &position.z,
-           &loudness, &averageLoudness);
+           &loudness, &averageLoudness,
+           &handPos.x, &handPos.y, &handPos.z);
+    if (glm::length(handPos) > 0.0) hand->setPos(handPos);
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw)
