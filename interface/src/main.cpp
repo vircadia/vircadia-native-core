@@ -61,10 +61,12 @@ int simulate_on = 1;
 
 const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 
 AgentList agentList;
+pthread_t networkReceiveThread;
+bool stopNetworkReceiveThread = false;
 
 //  For testing, add milliseconds of delay for received UDP packets
 int packetcount = 0;
@@ -90,8 +92,6 @@ Oscilloscope audioScope(512,200,true);
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
 
-Hand myHand(HAND_RADIUS, 
-            glm::vec3(0,1,1));      //  My hand (used to manipulate things in world)
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
@@ -144,7 +144,6 @@ float noise = 1.0;                  //  Overall magnitude scaling for random noi
 int step_on = 0;                    
 int display_levels = 0;
 int display_head = 0;
-int display_hand = 0;
 int display_field = 0;
 
 int display_head_mouse = 1;         //  Display sample mouse pointer controlled by head movement
@@ -338,7 +337,6 @@ void init(void)
 
     if (noise_on) 
     {   
-        myHand.setNoise(noise);
         myHead.setNoise(noise);
     }
     
@@ -366,6 +364,9 @@ void terminate () {
     //close(serial_fd);
 
     audio.terminate();
+    stopNetworkReceiveThread = true;
+    pthread_join(networkReceiveThread, NULL);
+    
     exit(EXIT_SUCCESS);
 }
 
@@ -389,7 +390,6 @@ void reset_sensors()
     head_lean_y = HEIGHT/2; 
     
     myHead.reset();
-    myHand.reset();
     
     if (serialPort.active) {
         serialPort.resetTrailingAverages();
@@ -420,20 +420,6 @@ void update_pos(float frametime)
     head_mouse_y = max(head_mouse_y, 0);
     head_mouse_y = min(head_mouse_y, HEIGHT);
     
-    //  Update hand/manipulator location for measured forces from serial channel
-    /*
-    const float MIN_HAND_ACCEL = 30.0;
-    const float HAND_FORCE_SCALE = 0.5;
-    glm::vec3 hand_accel(-(avg_adc_channels[6] - adc_channels[6]),
-                         -(avg_adc_channels[7] - adc_channels[7]),
-                         -(avg_adc_channels[5] - adc_channels[5]));
-    
-    if (glm::length(hand_accel) > MIN_HAND_ACCEL)
-    {
-        myHand.addVel(frametime*hand_accel*HAND_FORCE_SCALE);
-    }
-    */
-                       
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 100;
     const float YAW_SENSITIVITY = 0.08;
@@ -510,9 +496,6 @@ void update_pos(float frametime)
     //  Slide location sideways
     location[0] += fwd_vec[2]*-lateral_vel;
     location[2] += fwd_vec[0]*lateral_vel;
-    
-    //  Update manipulator objects with object with current location
-    balls.updateHand(myHead.getPos() + myHand.getPos(), glm::vec3(0,0,0), myHand.getRadius());
     
     //  Update own head data
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
@@ -600,22 +583,18 @@ void display(void)
             }
         }
     
-        if (display_hand) myHand.render();   
-     
         if (!display_head) balls.render();
     
         //  Render the world box 
         if (!display_head && stats_on) render_world_box();
     
         //  Render my own head
-    
-        if (display_head) {
-            glPushMatrix();
-            glLoadIdentity();
-            glTranslatef(0.f, 0.f, -7.f);
-            myHead.render(1, &location[0]);
-            glPopMatrix();
-        }    
+        glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(0.f, 0.f, -7.f);
+        myHead.render(display_head, &location[0]);
+        glPopMatrix();
+            
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
 
@@ -721,18 +700,15 @@ void key(unsigned char k, int x, int y)
         noise_on = !noise_on;                   // Toggle noise 
         if (noise_on)
         {
-            myHand.setNoise(noise);
             myHead.setNoise(noise);
         }
         else 
         {
-            myHand.setNoise(0);
             myHead.setNoise(0);
         }
 
     }
     if (k == 'h') display_head = !display_head;
-    if (k == 'b') display_hand = !display_hand;
     if (k == 'm') head_mirror = !head_mirror;
     
     if (k == 'f') display_field = !display_field;
@@ -769,7 +745,7 @@ void *networkReceive(void *args)
     ssize_t bytesReceived;
     char *incomingPacket = new char[MAX_PACKET_SIZE];
 
-    while (true) {
+    while (!stopNetworkReceiveThread) {
         if (agentList.getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetcount++;
             bytescount += bytesReceived;
@@ -795,7 +771,6 @@ void idle(void)
         if (simulate_on) {
             field.simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
-            myHand.simulate(1.f/FPS);
             balls.simulate(1.f/FPS);
             cloud.simulate(1.f/FPS);
             lattice.simulate(1.f/FPS);
@@ -943,8 +918,10 @@ int main(int argc, char** argv)
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     
+    // start the thread which checks for silent agents
+    agentList.startSilentAgentRemovalThread();
+    
     // create thread for receipt of data via UDP
-    pthread_t networkReceiveThread;
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 
     glutInit(&argc, argv);
@@ -979,7 +956,6 @@ int main(int argc, char** argv)
 
     glutMainLoop();
 
-    pthread_join(networkReceiveThread, NULL);
     ::terminate();
     return EXIT_SUCCESS;
 }   

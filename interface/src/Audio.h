@@ -41,6 +41,9 @@ private:
     // audio stream handle
     PaStream *stream;
     
+    // audio receive thread
+    pthread_t audioReceiveThread;
+    
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
 };

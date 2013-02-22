@@ -8,6 +8,11 @@
 
 #include "AgentList.h"
 #include <arpa/inet.h>
+#include <pthread.h>
+#include "SharedUtil.h"
+
+bool stopAgentRemovalThread = false;
+pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
@@ -15,7 +20,12 @@ AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
-    
+    linkedDataCreateCallback = NULL;
+    audioMixerSocketUpdate = NULL;
+}
+
+AgentList::~AgentList() {
+    stopSilentAgentRemovalThread();
 }
 
 UDPSocket * AgentList::getAgentSocket() {
@@ -58,6 +68,8 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, s
     
     if (agentIndex != -1) {
         Agent *matchingAgent = &agents[agentIndex];
+        
+        matchingAgent->lastRecvTimeUsecs = usecTimestampNow();
         
         if (matchingAgent->linkedData == NULL) {
             if (linkedDataCreateCallback != NULL) {
@@ -135,11 +147,20 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         
         std::cout << "Added agent - " << &newAgent << "\n";
         
-        agents.push_back(newAgent);       
+        pthread_mutex_lock(&vectorChangeMutex);
+        agents.push_back(newAgent);
+        pthread_mutex_unlock(&vectorChangeMutex);
         
         return true;
     } else {
-        // we had this agent already
+        
+        if (agent->type == 'M') {
+            // until the Audio class also uses our agentList, we need to update
+            // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
+            agent->lastRecvTimeUsecs = usecTimestampNow();
+        }
+        
+        // we had this agent already, do nothing for now
         return false;
     }    
 }
@@ -150,11 +171,10 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
         // until the Audio class uses the AgentList
         if (agent->activeSocket != NULL && agent->type == 'I') {
             // we know which socket is good for this agent, send there
-            agentSocket.send((sockaddr *)agent->activeSocket, broadcastData, dataBytes);
+            agentSocket.send(agent->activeSocket, broadcastData, dataBytes);
         }
     }
 }
-
 
 void AgentList::pingAgents() {
     char payload[] = "P";
@@ -163,7 +183,7 @@ void AgentList::pingAgents() {
         if (agent->type == 'I') {
             if (agent->activeSocket != NULL) {
                 // we know which socket is good for this agent, send there
-                agentSocket.send((sockaddr *)agent->activeSocket, payload, 1);
+                agentSocket.send(agent->activeSocket, payload, 1);
             } else {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
@@ -193,4 +213,39 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
             break;
         }
     }
+}
+
+void *removeSilentAgents(void *args) {
+    std::vector<Agent> *agents = (std::vector<Agent> *)args;
+    double checkTimeUSecs, sleepTime;
+    
+    while (!stopAgentRemovalThread) {
+        checkTimeUSecs = usecTimestampNow();
+        
+        for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
+            if ((checkTimeUSecs - agent->lastRecvTimeUsecs) > AGENT_SILENCE_THRESHOLD_USECS) {
+                std::cout << "Killing agent " << &(*agent)  << "\n";
+                pthread_mutex_lock(&vectorChangeMutex);
+                agent = agents->erase(agent);
+                pthread_mutex_unlock(&vectorChangeMutex);
+            } else {
+                agent++;
+            }
+        }
+        
+        
+        sleepTime = AGENT_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
+        usleep(sleepTime);
+    }
+    
+    pthread_exit(0);
+}
+
+void AgentList::startSilentAgentRemovalThread() {
+    pthread_create(&removeSilentAgentsThread, NULL, removeSilentAgents, (void *)&agents);
+}
+
+void AgentList::stopSilentAgentRemovalThread() {
+    stopAgentRemovalThread = true;
+    pthread_join(removeSilentAgentsThread, NULL);
 }

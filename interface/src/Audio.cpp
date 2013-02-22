@@ -44,8 +44,8 @@ const char EC2_WEST_MIXER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 int starve_counter = 0;
-
 StDev stdev;
+bool stopAudioReceiveThread = false;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -202,7 +202,7 @@ void *receiveAudioViaUDP(void *args) {
         delete[] filename;
     }
     
-    while (true) {
+    while (!stopAudioReceiveThread) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
 
             bool firstSample = (currentReceiveTime.tv_sec == 0);
@@ -262,6 +262,8 @@ void *receiveAudioViaUDP(void *args) {
             }
         }
     }
+    
+    pthread_exit(0);
 }
 
 /**
@@ -284,8 +286,6 @@ Audio::Audio(Oscilloscope * s)
     audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
     audioData->ringBuffer = new AudioRingBuffer(RING_BUFFER_SIZE_SAMPLES);
     
-    pthread_t audioReceiveThread;
-    
     AudioRecThreadStruct threadArgs;
     threadArgs.sharedAudioData = audioData;
     
@@ -306,6 +306,7 @@ Audio::Audio(Oscilloscope * s)
     // start the stream now that sources are good to go
     Pa_StartStream(stream);
     if (paError != paNoError) goto error;
+    
     
     return;
     
@@ -421,6 +422,9 @@ void Audio::render(int screenWidth, int screenHeight)
  */
 bool Audio::terminate ()
 {
+    stopAudioReceiveThread = true;
+    pthread_join(audioReceiveThread, NULL);
+    
     if (initialized) {
         initialized = false;
         
@@ -429,11 +433,10 @@ bool Audio::terminate ()
         
         paError = Pa_Terminate();
         if (paError != paNoError) goto error;
-        
-        delete audioData;
-        
-        logFile.close();
     }
+    
+    logFile.close();    
+    delete audioData;
     
     return true;
     

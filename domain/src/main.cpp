@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include "AgentList.h"
+#include "SharedUtil.h"
 
 const int DOMAIN_LISTEN_PORT = 40102;
 
@@ -41,33 +42,23 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 int lastActiveCount = 0;
 AgentList agentList(DOMAIN_LISTEN_PORT);
 
-int listForBroadcast(unsigned char *listBuffer, sockaddr *agentPublicAddress, sockaddr *agentLocalAddress, char agentType) {
-    unsigned char *currentBufferPos = listBuffer + 1;
-    unsigned char *startPointer = currentBufferPos;
-    
-    for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
-        
-        if (DEBUG_TO_SELF || !agent->matches(agentPublicAddress, agentLocalAddress, agentType)) {
-            *currentBufferPos++ = agent->type;
-            
-            currentBufferPos += packSocket(currentBufferPos, agent->publicSocket);
-            currentBufferPos += packSocket(currentBufferPos, agent->localSocket);
-        }
-    }
-    
-    return 1 + (currentBufferPos - startPointer); // 1 is added for the leading 'D'
-}
 
 int main(int argc, const char * argv[])
 {
     ssize_t receivedBytes = 0;
     char agentType;
+    
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
     *broadcastPacket = 'D';
     
+    unsigned char *currentBufferPos;
+    unsigned char *startPointer;
+    int packetBytesWithoutLeadingChar;
+    
     sockaddr_in agentPublicAddress, agentLocalAddress;
     agentLocalAddress.sin_family = AF_INET;
-
+    
+    agentList.startSilentAgentRemovalThread();
     
     while (true) {
         if (agentList.getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
@@ -76,13 +67,30 @@ int main(int argc, const char * argv[])
             
             agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
             
-            int listBytes = listForBroadcast(broadcastPacket, (sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
+            currentBufferPos = broadcastPacket + 1;
+            startPointer = currentBufferPos;
             
-            if (listBytes > 0) {
-                agentList.getAgentSocket()->send((sockaddr *)&agentPublicAddress, broadcastPacket, listBytes);
+            for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
+                
+                if (DEBUG_TO_SELF || !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
+                    *currentBufferPos++ = agent->type;
+                    
+                    currentBufferPos += packSocket(currentBufferPos, agent->publicSocket);
+                    currentBufferPos += packSocket(currentBufferPos, agent->localSocket);
+                } else {
+                    // this is the agent, just update last receive to now
+                    agent->lastRecvTimeUsecs = usecTimestampNow();
+                }
+            }
+            
+            ;
+            
+            if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
+                agentList.getAgentSocket()->send((sockaddr *)&agentPublicAddress, broadcastPacket, packetBytesWithoutLeadingChar);
             }
         }
     }
+
     return 0;
 }
 

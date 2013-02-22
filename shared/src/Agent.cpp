@@ -10,10 +10,9 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include "UDPSocket.h"
+#include "SharedUtil.h"
 
-Agent::Agent() {
-    
-}
+Agent::Agent() {}
 
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType) {
     publicSocket = new sockaddr;
@@ -23,6 +22,7 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
     
     type = agentType;
+    lastRecvTimeUsecs = usecTimestampNow();
     
     activeSocket = NULL;
     linkedData = NULL;
@@ -43,6 +43,7 @@ Agent::Agent(const Agent &otherAgent) {
         activeSocket = NULL;
     }
     
+    lastRecvTimeUsecs = otherAgent.lastRecvTimeUsecs;
     type = otherAgent.type;
     
     // linked data is transient, gets re-assigned on next packet receive
