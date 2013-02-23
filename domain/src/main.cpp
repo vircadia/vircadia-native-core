@@ -86,7 +86,7 @@ int main(int argc, const char * argv[])
             ;
             
             if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
-                agentList.getAgentSocket()->send((sockaddr *)&agentPublicAddress, broadcastPacket, packetBytesWithoutLeadingChar);
+                agentList.getAgentSocket()->send((sockaddr *)&agentPublicAddress, broadcastPacket, packetBytesWithoutLeadingChar + 1);
             }
         }
     }
