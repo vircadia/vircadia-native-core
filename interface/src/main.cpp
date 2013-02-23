@@ -417,10 +417,10 @@ void update_pos(float frametime)
     
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 100;
-    const float YAW_SENSITIVITY = 0.08;
     const int MIN_PITCH_RATE = 100;
     
-    const float PITCH_SENSITIVITY = 0.04;
+    const float YAW_SENSITIVITY = 0.02;
+    const float PITCH_SENSITIVITY = 0.05;
     
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
