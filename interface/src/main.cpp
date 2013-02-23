@@ -393,8 +393,11 @@ void reset_sensors()
 void update_pos(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
-    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
-    float measured_yaw_rate = serialPort.getRelativeValue(YAW_RATE);
+//    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
+//    float measured_yaw_rate = serialPort.getRelativeValue(YAW_RATE);
+    
+    float measured_pitch_rate = 0;
+    float measured_yaw_rate = 0;
     
     //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);

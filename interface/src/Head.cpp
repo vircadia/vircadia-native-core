@@ -361,7 +361,7 @@ void Head::parseData(void *data, int size) {
            &position.x, &position.y, &position.z,
            &loudness, &averageLoudness,
            &handPos.x, &handPos.y, &handPos.z);
-    if (glm::length(handPos) > 0.0) hand->setPos(handPos);
+//    if (glm::length(handPos) > 0.0) hand->setPos(handPos);
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw)
