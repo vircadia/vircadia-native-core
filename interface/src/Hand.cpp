@@ -26,7 +26,13 @@ Hand::Hand(glm::vec3 initcolor)
 
 void Hand::render()
 {
-g}
+//    glPushMatrix();
+//    glTranslatef(position.x, position.y, position.z);
+//    glColor3f(color.x, color.y, color.z);
+//    glScalef(scale.x, scale.y, scale.z);
+//    glutSolidSphere(1.5, 20, 20);
+//    glPopMatrix();
+}
 
 void Hand::reset()
 {
