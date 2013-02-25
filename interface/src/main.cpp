@@ -571,8 +571,8 @@ void display(void)
             
         //  Render heads of other agents
         for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            if (agent->linkedData != NULL) {
-                Head *agentHead = (Head *)agent->linkedData;
+            if (agent->getLinkedData() != NULL) {
+                Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
@@ -583,7 +583,7 @@ void display(void)
     
         if (!display_head) balls.render();
     
-        //  Render the world box 
+        //  Render the world box
         if (!display_head && stats_on) render_world_box();
     
         //  Render my own head
@@ -851,8 +851,8 @@ void mouseoverFunc( int x, int y)
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
-    if (newAgent->linkedData == NULL) {
-        newAgent->linkedData = new Head();
+    if (newAgent->getLinkedData() == NULL) {
+        newAgent->setLinkedData(new Head());
     }
 }
 

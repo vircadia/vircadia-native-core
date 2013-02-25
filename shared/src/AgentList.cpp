@@ -75,22 +75,22 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, s
     if (agentIndex != -1) {
         Agent *matchingAgent = &agents[agentIndex];
         
-        matchingAgent->lastRecvTimeUsecs = usecTimestampNow();
+        matchingAgent->setLastRecvTimeUsecs(usecTimestampNow());
         
-        if (matchingAgent->linkedData == NULL) {
+        if (matchingAgent->getLinkedData() == NULL) {
             if (linkedDataCreateCallback != NULL) {
                 linkedDataCreateCallback(matchingAgent);
             }
         }
         
-        matchingAgent->linkedData->parseData(packetData, dataBytes);
+        matchingAgent->getLinkedData()->parseData(packetData, dataBytes);
     }
 
 }
 
 int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->activeSocket != NULL && socketMatch(agent->activeSocket, senderAddress)) {
+        if (agent->getActiveSocket() != NULL && socketMatch(agent->getActiveSocket(), senderAddress)) {
             return agent - agents.begin();
         }
     }
@@ -140,10 +140,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with DS + agent on local network
             // set the agent active right away
-            newAgent.activeSocket = newAgent.localSocket;
+            newAgent.activatePublicSocket();
         }
         
-        if (newAgent.type == 'M' && audioMixerSocketUpdate != NULL) {
+        if (newAgent.getType() == 'M' && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
@@ -160,10 +160,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->type == 'M') {
+        if (agent->getType() == 'M') {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            agent->lastRecvTimeUsecs = usecTimestampNow();
+            agent->setLastRecvTimeUsecs(usecTimestampNow());
         }
         
         // we had this agent already, do nothing for now
@@ -175,9 +175,9 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // for now assume we only want to send to other interface clients
         // until the Audio class uses the AgentList
-        if (agent->activeSocket != NULL && agent->type == 'I') {
+        if (agent->getActiveSocket() != NULL && agent->getType() == 'I') {
             // we know which socket is good for this agent, send there
-            agentSocket.send(agent->activeSocket, broadcastData, dataBytes);
+            agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
     }
 }
@@ -186,15 +186,15 @@ void AgentList::pingAgents() {
     char payload[] = "P";
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->type == 'I') {
-            if (agent->activeSocket != NULL) {
+        if (agent->getType() == 'I') {
+            if (agent->getActiveSocket() != NULL) {
                 // we know which socket is good for this agent, send there
-                agentSocket.send(agent->activeSocket, payload, 1);
+                agentSocket.send(agent->getActiveSocket(), payload, 1);
             } else {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
-                agentSocket.send(agent->publicSocket, payload, 1);
-                agentSocket.send(agent->localSocket, payload, 1);
+                agentSocket.send(agent->getPublicSocket(), payload, 1);
+                agentSocket.send(agent->getLocalSocket(), payload, 1);
             }
         }
     }
@@ -203,19 +203,12 @@ void AgentList::pingAgents() {
 void AgentList::handlePingReply(sockaddr *agentAddress) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // check both the public and local addresses for each agent to see if we find a match
-        // prioritize the private address so that we prune erroneous local matches
-        sockaddr *matchedSocket = NULL;
-        
-        if (socketMatch(agent->publicSocket, agentAddress)) {
-            matchedSocket = agent->publicSocket;
-        } else if (socketMatch(agent->localSocket, agentAddress)) {
-            matchedSocket = agent->localSocket;
-        }
-        
-        if (matchedSocket != NULL) {
-            // matched agent, stop checking
-            // update the agent's ping
-            agent->activeSocket = matchedSocket;
+        // prioritize the private address so that we prune erroneous local matches        
+        if (socketMatch(agent->getPublicSocket(), agentAddress)) {
+            agent->activatePublicSocket();
+            break;
+        } else if (socketMatch(agent->getLocalSocket(), agentAddress)) {
+            agent->activateLocalSocket();
             break;
         }
     }
@@ -229,7 +222,7 @@ void *removeSilentAgents(void *args) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
-            if ((checkTimeUSecs - agent->lastRecvTimeUsecs) > AGENT_SILENCE_THRESHOLD_USECS) {
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS) {
                 std::cout << "Killing agent " << &(*agent)  << "\n";
                 pthread_mutex_lock(&vectorChangeMutex);
                 agent = agents->erase(agent);
