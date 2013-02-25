@@ -144,14 +144,15 @@ int display_head_mouse = 1;         //  Display sample mouse pointer controlled 
 int head_mouse_x, head_mouse_y; 
 int head_lean_x, head_lean_y;
 
-int mouse_x, mouse_y;				//  Where is the mouse 
+int mouse_x, mouse_y;				//  Where is the mouse
+int mouse_start_x, mouse_start_y;   //  Mouse location at start of last down click
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
 
 int nearbyAgents = 0;               //  How many other people near you is the domain server reporting?
 
 int speed;
 
-//  
+//
 //  Serial USB Variables
 // 
 
@@ -813,6 +814,8 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_y = y;
 		mouse_pressed = 1;
         lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+        mouse_start_x = x;
+        mouse_start_y = y;
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {
@@ -833,6 +836,12 @@ void motionFunc( int x, int y)
         char mouse_string[20];
         sprintf(mouse_string, "M %d %d\n", mouse_x, mouse_y);
         //network_send(UDP_socket, mouse_string, strlen(mouse_string));
+        
+        //  Send dragged mouse vector to the hand;
+        float dx = mouse_x - mouse_start_x;
+        float dy = mouse_y - mouse_start_y;
+        glm::vec3 vel(dx*0.003, -dy*0.003, 0);
+        myHead.hand->addVelocity(vel);
     }
     
     lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
