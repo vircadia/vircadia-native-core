@@ -58,6 +58,75 @@ Agent& Agent::operator=(Agent otherAgent) {
     return *this;
 }
 
+Agent::~Agent() {
+    delete publicSocket;
+    delete localSocket;
+    delete linkedData;
+}
+
+char Agent::getType() {
+    return type;
+}
+
+void Agent::setType(char newType) {
+    type = newType;
+}
+
+double Agent::getFirstRecvTimeUsecs() {
+    return firstRecvTimeUsecs;
+}
+
+void Agent::setFirstRecvTimeUsecs(double newTimeUsecs) {
+    firstRecvTimeUsecs = newTimeUsecs;
+}
+
+double Agent::getLastRecvTimeUsecs() {
+    return lastRecvTimeUsecs;
+}
+
+void Agent::setLastRecvTimeUsecs(double newTimeUsecs) {
+    lastRecvTimeUsecs = newTimeUsecs;
+}
+
+sockaddr* Agent::getPublicSocket() {
+    return publicSocket;
+}
+
+void Agent::setPublicSocket(sockaddr *newSocket) {
+    publicSocket = newSocket;
+}
+
+sockaddr* Agent::getLocalSocket() {
+    return localSocket;
+}
+
+void Agent::setLocalSocket(sockaddr *newSocket) {
+    publicSocket = newSocket;
+}
+
+sockaddr* Agent::getActiveSocket() {
+    return activeSocket;
+}
+
+void Agent::activateLocalSocket() {
+    activeSocket = localSocket;
+}
+
+void Agent::activatePublicSocket() {
+    activeSocket = publicSocket;
+}
+
+
+
+AgentData* Agent::getLinkedData() {
+    return linkedData;
+}
+
+void Agent::setLinkedData(AgentData *newData) {
+    linkedData = newData;
+}
+
+
 bool Agent::operator==(const Agent& otherAgent) {
     return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
 }
@@ -69,12 +138,6 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.activeSocket, second.activeSocket);
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
-}
-
-Agent::~Agent() {
-    delete publicSocket;
-    delete localSocket;
-    delete linkedData;
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
