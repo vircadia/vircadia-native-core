@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include "SharedUtil.h"
 
+const char * SOLO_AGENT_TYPES_STRING = "M";
+
 bool stopAgentRemovalThread = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 

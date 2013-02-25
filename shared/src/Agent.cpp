@@ -22,6 +22,8 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
     
     type = agentType;
+    
+    firstRecvTimeUsecs = usecTimestampNow();
     lastRecvTimeUsecs = usecTimestampNow();
     
     activeSocket = NULL;
@@ -43,6 +45,7 @@ Agent::Agent(const Agent &otherAgent) {
         activeSocket = NULL;
     }
     
+    firstRecvTimeUsecs = otherAgent.firstRecvTimeUsecs;
     lastRecvTimeUsecs = otherAgent.lastRecvTimeUsecs;
     type = otherAgent.type;
     
