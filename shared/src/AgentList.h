@@ -16,18 +16,19 @@
 
 const unsigned short AGENT_SOCKET_LISTEN_PORT = 40103;
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
-extern const char *SOLO_AGENT_TYPES_STRINGg;
+extern const char *SOLO_AGENT_TYPES_STRING;
 
 class AgentList {
     public:
         AgentList();
         AgentList(int socketListenPort);
         ~AgentList();
-        std::vector<Agent> agents;
+        
         void(*linkedDataCreateCallback)(Agent *);
         void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
-    
-        UDPSocket* getAgentSocket();
+
+        std::vector<Agent>& getAgents();
+        UDPSocket& getAgentSocket();
     
         int updateList(unsigned char *packetData, size_t dataBytes);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
@@ -38,11 +39,13 @@ class AgentList {
         void startSilentAgentRemovalThread();
         void stopSilentAgentRemovalThread();
     private:
+        UDPSocket agentSocket;
+        std::vector<Agent> agents;
+        pthread_t removeSilentAgentsThread;
+    
         int indexOfMatchingAgent(sockaddr *senderAddress);
         void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void handlePingReply(sockaddr *agentAddress);
-        UDPSocket agentSocket;
-        pthread_t removeSilentAgentsThread;
 };
 
 #endif /* defined(__hifi__AgentList__) */
