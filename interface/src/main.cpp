@@ -223,7 +223,7 @@ void Timer(int extra)
     output[0] = 'I';    
     packSocket(output + 1, localAddress, htons(AGENT_SOCKET_LISTEN_PORT));
     
-    agentList.getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
+    agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
     
     //  Ping the agents we can see
     agentList.pingAgents();
@@ -570,7 +570,7 @@ void display(void)
         if (display_field) field.render();
             
         //  Render heads of other agents
-        for(std::vector<Agent>::iterator agent = agentList.agents.begin(); agent != agentList.agents.end(); agent++) {
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
             if (agent->linkedData != NULL) {
                 Head *agentHead = (Head *)agent->linkedData;
                 glPushMatrix();
@@ -659,7 +659,7 @@ void display(void)
     
     //  Draw number of nearby people always
     char agents[100];
-    sprintf(agents, "Agents nearby: %ld\n", agentList.agents.size());
+    sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
     
     glPopMatrix();
@@ -744,7 +744,7 @@ void *networkReceive(void *args)
     char *incomingPacket = new char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
-        if (agentList.getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
+        if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetcount++;
             bytescount += bytesReceived;
             

@@ -30,8 +30,12 @@ AgentList::~AgentList() {
     stopSilentAgentRemovalThread();
 }
 
-UDPSocket * AgentList::getAgentSocket() {
-    return &agentSocket;
+std::vector<Agent>& AgentList::getAgents() {
+    return agents;
+}
+
+UDPSocket& AgentList::getAgentSocket() {
+    return agentSocket;
 }
 
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
