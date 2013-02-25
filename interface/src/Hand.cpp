@@ -57,9 +57,11 @@ void Hand::reset()
 
 void Hand::simulate(float deltaTime)
 {
-    const float VNOISE = 0.1;
+    const float VNOISE = 0.01;
     const float RSPRING = 0.01;
+    const float PSPRING = 0.4;
     const float RNOISE = 0.1;
+    const float VDECAY = 5.0;
 
     //  If noise, add a bit of random velocity
     if (noise) {
@@ -77,11 +79,15 @@ void Hand::simulate(float deltaTime)
     yaw += yawRate;
     roll += rollRate;
     
+    //  Spring effect to return hand to target;
+    glm::vec3 sVel = target - position;
+    sVel *= PSPRING;
+    addVelocity(sVel);
     //  Decay position of hand toward target
-    position -= deltaTime*(position - target);
+    //position -= deltaTime*(position - target);
     
     //  Decay velocity
-    velocity *= 1.0 - deltaTime;
+    velocity *= 1.0 - deltaTime*VDECAY;
     
     //  Decay Angular Velocity
     pitchRate *= 1.0 - deltaTime;
