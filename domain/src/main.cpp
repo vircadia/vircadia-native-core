@@ -89,7 +89,6 @@ int main(int argc, const char * argv[])
                         // this is an agent of which there can be multiple, just add them to the packet
                         currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
                     } else {
-                        std::cout << "We have a solo agent: " << &(*agent) << "\n";
                         // solo agent, we need to only send newest
                         if (newestSoloAgents[agent->getType()] == NULL ||
                             newestSoloAgents[agent->getType()]->getFirstRecvTimeUsecs() < agent->getFirstRecvTimeUsecs()) {
@@ -106,7 +105,6 @@ int main(int argc, const char * argv[])
             for (std::map<char, Agent *>::iterator agentIterator = newestSoloAgents.begin();
                  agentIterator != newestSoloAgents.end();
                  agentIterator++) {
-                std::cout << "Newest agent: " << agentIterator->second << "\n";
                 // this is the newest alive solo agent, add them to the packet
                 currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, agentIterator->second);
             }
