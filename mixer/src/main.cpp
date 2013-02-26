@@ -16,11 +16,7 @@
 #include <AgentList.h>
 #include <SharedUtil.h>
 
-const int MAX_AGENTS = 1000;
-const int LOGOFF_CHECK_INTERVAL = 1000;
-
 const unsigned short MIXER_LISTEN_PORT = 55443;
-
 
 const float SAMPLE_RATE = 22050.0;
 const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES/SAMPLE_RATE) * 1000000;
@@ -35,7 +31,6 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
-const int MAX_SOURCE_BUFFERS = 20;
 
 AgentList agentList(MIXER_LISTEN_PORT);
 
@@ -182,7 +177,7 @@ int main(int argc, const char * argv[])
         printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     }
 
-    int16_t *packetData = new int16_t[BUFFER_LENGTH_SAMPLES];
+    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 
     pthread_t sendBufferThread;
     pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
@@ -191,9 +186,9 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (receivedBytes == BUFFER_LENGTH_BYTES) {
+            if (receivedBytes > BUFFER_LENGTH_BYTES) {
                 // add or update the existing interface agent
-                agentList.addOrUpdateAgent(agentAddress, agentAddress, 'I');
+                agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
                 agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
             }
         }

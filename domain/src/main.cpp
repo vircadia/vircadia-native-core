@@ -32,8 +32,6 @@
 #include "SharedUtil.h"
 
 const int DOMAIN_LISTEN_PORT = 40102;
-
-const int MAX_PACKET_SIZE = 1500;
 unsigned char packetData[MAX_PACKET_SIZE];
 
 const int LOGOFF_CHECK_INTERVAL = 5000;
