@@ -225,26 +225,7 @@ void *receiveAudioViaUDP(void *args) {
             }
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
-            
-            if (ringBuffer->getEndOfLastWrite() == NULL) {
-                ringBuffer->setEndOfLastWrite(ringBuffer->getBuffer());
-            } else if (ringBuffer->diffLastWriteNextOutput() > RING_BUFFER_SAMPLES - PACKET_LENGTH_SAMPLES) {
-                
-                // reset us to started state
-                ringBuffer->setEndOfLastWrite(ringBuffer->getBuffer());
-                ringBuffer->setNextOutput(ringBuffer->getBuffer());
-                ringBuffer->setStarted(false);
-            }
-            
-            int16_t *copyToPointer = ringBuffer->getEndOfLastWrite();
-            
-            // just copy the recieved data to the right spot and then add packet length to previous pointer
-            memcpy(copyToPointer, receivedData, PACKET_LENGTH_BYTES);
-            ringBuffer->setEndOfLastWrite(ringBuffer->getEndOfLastWrite() + PACKET_LENGTH_SAMPLES);
-            
-            if (ringBuffer->getEndOfLastWrite() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
-                ringBuffer->setEndOfLastWrite(ringBuffer->getBuffer());
-            }
+            ringBuffer->parseData(receivedData, PACKET_LENGTH_BYTES);
     
             if (LOG_SAMPLE_DELAY) {
                 gettimeofday(&previousReceiveTime, NULL);
