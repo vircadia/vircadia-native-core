@@ -24,6 +24,8 @@ class Head : public AgentData {
     public:
         Head();
         ~Head();
+        Head* clone() const;
+    
         void reset();
         void UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
         void setNoise (float mag) { noise = mag; }

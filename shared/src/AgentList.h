@@ -33,6 +33,7 @@ class AgentList {
         int updateList(unsigned char *packetData, size_t dataBytes);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+        void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void broadcastToAgents(char *broadcastData, size_t dataBytes);
         void sendToAgent(Agent *destAgent, void *packetData, size_t dataBytes);
         void pingAgents();
@@ -44,7 +45,6 @@ class AgentList {
         pthread_t removeSilentAgentsThread;
     
         int indexOfMatchingAgent(sockaddr *senderAddress);
-        void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void handlePingReply(sockaddr *agentAddress);
 };
 
