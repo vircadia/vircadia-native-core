@@ -59,7 +59,8 @@ void Hand::simulate(float deltaTime)
 {
     const float VNOISE = 0.01;
     const float RSPRING = 0.01;
-    const float PSPRING = 0.4;
+    const float LINEAR_SPRING_CONSTANT = 500;
+    const float LINEAR_DAMPING_COEFFICIENT = 2.0*powf(LINEAR_SPRING_CONSTANT,0.5);
     const float RNOISE = 0.1;
     const float VDECAY = 5.0;
 
@@ -79,15 +80,15 @@ void Hand::simulate(float deltaTime)
     yaw += yawRate;
     roll += rollRate;
     
-    //  Spring effect to return hand to target;
-    glm::vec3 sVel = target - position;
-    sVel *= PSPRING;
-    addVelocity(sVel);
-    //  Decay position of hand toward target
-    //position -= deltaTime*(position - target);
+    //  Use a spring to attempt to return the hand to the target position
+    glm::vec3 springForce = target - position;
+    springForce *= LINEAR_SPRING_CONSTANT;
+    addVelocity(springForce * deltaTime);
     
-    //  Decay velocity
-    velocity *= 1.0 - deltaTime*VDECAY;
+    //  Critically damp the spring
+    glm::vec3 dampingForce(velocity);
+    dampingForce *= LINEAR_DAMPING_COEFFICIENT;
+    addVelocity(-dampingForce * deltaTime);
     
     //  Decay Angular Velocity
     pitchRate *= 1.0 - deltaTime;
