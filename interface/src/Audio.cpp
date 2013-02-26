@@ -84,7 +84,25 @@ int audioCallback (const void *inputBuffer,
             audioMixerSocket.sin_family = AF_INET;
             audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
             audioMixerSocket.sin_port = data->mixerPort;
-            data->audioSocket->send((sockaddr *)&audioMixerSocket, (void *)inputLeft, BUFFER_LENGTH_BYTES);
+            
+            int leadingBytes = 1 + (sizeof(float) * 3);
+            
+            // we need the amount of bytes in the buffer + 1 for type + 12 for 3 floats for position
+            unsigned char *dataPacket = new unsigned char[BUFFER_LENGTH_BYTES + leadingBytes];
+            
+            dataPacket[0] = 'I';
+            
+            // memcpy the three float positions
+            for (int p = 0; p < 3; p++) {
+                memcpy(dataPacket + 1 + (p * sizeof(float)), &data->sourcePosition[p], sizeof(float));
+            }
+            
+            // copy the audio data to the last 1024 bytes of the data packet
+            memcpy(dataPacket + leadingBytes, inputLeft, BUFFER_LENGTH_BYTES);
+            
+            data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            
+            delete dataPacket;
         }
        
         //
@@ -234,6 +252,10 @@ void *receiveAudioViaUDP(void *args) {
     }
     
     pthread_exit(0);
+}
+
+void Audio::setSourcePosition(glm::vec3 newPosition) {
+    audioData->sourcePosition = newPosition;
 }
 
 /**

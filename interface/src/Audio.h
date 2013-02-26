@@ -25,11 +25,12 @@ public:
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
+    void setSourcePosition(glm::vec3 position);
+    
     // terminates audio I/O
     bool terminate();
 private:    
     bool initialized;
-    
     AudioData *audioData;
     
     // protects constructor so that public init method is used

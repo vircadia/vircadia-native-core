@@ -147,7 +147,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
-            sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
+            sockaddr_in *localSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
         }
         
