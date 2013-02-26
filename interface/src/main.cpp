@@ -144,14 +144,15 @@ int display_head_mouse = 1;         //  Display sample mouse pointer controlled 
 int head_mouse_x, head_mouse_y; 
 int head_lean_x, head_lean_y;
 
-int mouse_x, mouse_y;				//  Where is the mouse 
+int mouse_x, mouse_y;				//  Where is the mouse
+int mouse_start_x, mouse_start_y;   //  Mouse location at start of last down click
 int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
 
 int nearbyAgents = 0;               //  How many other people near you is the domain server reporting?
 
 int speed;
 
-//  
+//
 //  Serial USB Variables
 // 
 
@@ -390,7 +391,20 @@ void reset_sensors()
     }
 }
 
-void update_pos(float frametime)
+void simulateHand(float deltaTime) {
+    //  If mouse is being dragged, send current force to the hand controller
+    if (mouse_pressed == 1)
+    {
+        //  Add a velocity to the hand corresponding to the detected size of the drag vector
+        const float MOUSE_HAND_FORCE = 3.0;
+        float dx = mouse_x - mouse_start_x;
+        float dy = mouse_y - mouse_start_y;
+        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
+        myHead.hand->addVelocity(vel*deltaTime);
+    }
+}
+
+void simulateHead(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
 //    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
@@ -765,7 +779,9 @@ void idle(void)
     {
         steps_per_frame++;
         //  Simulation
-        update_pos(1.f/FPS);
+        simulateHead(1.f/FPS);
+        simulateHand(1.f/FPS);
+        
         if (simulate_on) {
             field.simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
@@ -813,6 +829,8 @@ void mouseFunc( int button, int state, int x, int y )
 		mouse_y = y;
 		mouse_pressed = 1;
         lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+        mouse_start_x = x;
+        mouse_start_y = y;
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {
@@ -827,16 +845,8 @@ void motionFunc( int x, int y)
 {
 	mouse_x = x;
 	mouse_y = y;
-    if (mouse_pressed == 1)
-    {
-        //  Send network packet containing mouse location
-        char mouse_string[20];
-        sprintf(mouse_string, "M %d %d\n", mouse_x, mouse_y);
-        //network_send(UDP_socket, mouse_string, strlen(mouse_string));
-    }
     
     lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-	
 }
 
 void mouseoverFunc( int x, int y)

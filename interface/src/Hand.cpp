@@ -24,14 +24,24 @@ Hand::Hand(glm::vec3 initcolor)
     scale.z = scale.y * 1.0;
 }
 
+void Hand::addAngularVelocity (float pRate, float yRate, float rRate) {
+    pitchRate += pRate;
+    yawRate += yRate;
+    rollRate += rRate;
+}
+
 void Hand::render()
 {
-//    glPushMatrix();
-//    glTranslatef(position.x, position.y, position.z);
-//    glColor3f(color.x, color.y, color.z);
-//    glScalef(scale.x, scale.y, scale.z);
-//    glutSolidSphere(1.5, 20, 20);
-//    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(position.x, position.y, position.z);
+    glRotatef(yaw, 0, 1, 0);
+    glRotatef(pitch, 1, 0, 0);
+    glRotatef(roll, 0, 0, 1);
+    glColor3f(color.x, color.y, color.z);
+    glScalef(scale.x, scale.y, scale.z);
+    //glutSolidSphere(1.5, 20, 20);
+    glutSolidCube(1.0);
+    glPopMatrix();
 }
 
 void Hand::reset()
@@ -39,17 +49,55 @@ void Hand::reset()
     position.x = DEFAULT_X;
     position.y = DEFAULT_Y;
     position.z = DEFAULT_Z;
+    pitch = yaw = roll = 0;
+    pitchRate = yawRate = rollRate = 0;
     setTarget(position);
     velocity.x = velocity.y = velocity.z = 0;
 }
 
 void Hand::simulate(float deltaTime)
 {
-    //  If noise, add wandering movement
+    const float VNOISE = 0.01;
+    const float RSPRING = 0.01;
+    const float LINEAR_SPRING_CONSTANT = 500;
+    const float LINEAR_DAMPING_COEFFICIENT = 2.0*powf(LINEAR_SPRING_CONSTANT,0.5);
+    const float RNOISE = 0.1;
+    const float VDECAY = 5.0;
+
+    //  If noise, add a bit of random velocity
     if (noise) {
-        position += noise * 0.1f * glm::vec3(randFloat() - 0.5, randFloat() - 0.5, randFloat() - 0.5);
+        glm::vec3 nVel(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f);
+        nVel *= VNOISE;
+        addVelocity(nVel);
+        
+        addAngularVelocity(RNOISE*(randFloat() - 0.5f),
+                           RNOISE*(randFloat() - 0.5f),
+                           RNOISE*(randFloat() - 0.5f));        
     }
-    //  Decay position of hand toward target
-    position -= deltaTime*(position - target);
+    position += velocity*deltaTime;
+    
+    pitch += pitchRate;
+    yaw += yawRate;
+    roll += rollRate;
+    
+    //  Use a spring to attempt to return the hand to the target position
+    glm::vec3 springForce = target - position;
+    springForce *= LINEAR_SPRING_CONSTANT;
+    addVelocity(springForce * deltaTime);
+    
+    //  Critically damp the spring
+    glm::vec3 dampingForce(velocity);
+    dampingForce *= LINEAR_DAMPING_COEFFICIENT;
+    addVelocity(-dampingForce * deltaTime);
+    
+    //  Decay Angular Velocity
+    pitchRate *= 1.0 - deltaTime;
+    yawRate *= 1.0 - deltaTime;
+    rollRate *= 1.0 - deltaTime;
+    
+    //  Add spring effect to return hand rotation to zero
+    pitchRate -= pitch * RSPRING;
+    yawRate -= yaw * RSPRING;
+    rollRate -= roll * RSPRING;
     
 }

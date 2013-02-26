@@ -23,12 +23,14 @@ public:
     void render ();
     void reset ();
     void setNoise (float mag) { noise = mag; };
-    void addVel (glm::vec3 v) { velocity += v; };
+    void addVelocity (glm::vec3 v) { velocity += v; };
+    void addAngularVelocity (float pRate, float yRate, float rRate);
     glm::vec3 getPos() { return position; };
     void setPos(glm::vec3 p) { position = p; };
     void setTarget(glm::vec3 t) { target = t; };
 private:
     glm::vec3 position, target, velocity, color, scale;
+    float pitch, yaw, roll, pitchRate, yawRate, rollRate;
     float noise;
     
 };

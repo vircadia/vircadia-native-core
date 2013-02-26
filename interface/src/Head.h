@@ -62,6 +62,9 @@ class Head : public AgentData {
         void SetNewHeadTarget(float, float);
         glm::vec3 getPos() { return position; };
         void setPos(glm::vec3 newpos) { position = newpos; };
+    
+        Hand * hand;
+    
     private:
         float noise;
         float Pitch;
@@ -101,7 +104,6 @@ class Head : public AgentData {
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     
-        Hand * hand;
 };
 
 #endif
