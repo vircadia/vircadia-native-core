@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <cstring>
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer() {
