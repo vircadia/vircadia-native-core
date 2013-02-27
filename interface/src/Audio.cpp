@@ -88,7 +88,7 @@ int audioCallback (const void *inputBuffer,
             int leadingBytes = 1 + (sizeof(float) * 3);
             
             // we need the amount of bytes in the buffer + 1 for type + 12 for 3 floats for position
-            unsigned char *dataPacket = new unsigned char[BUFFER_LENGTH_BYTES + leadingBytes];
+            unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
             
             dataPacket[0] = 'I';
             
@@ -101,8 +101,6 @@ int audioCallback (const void *inputBuffer,
             memcpy(dataPacket + leadingBytes, inputLeft, BUFFER_LENGTH_BYTES);
             
             data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
-            
-            delete dataPacket;
         }
        
         //

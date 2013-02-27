@@ -27,10 +27,11 @@ const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0)
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
+const float DISTANCE_RATIO = 3.0/4.2;
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102;
-
+const int DOMAINSERVER_PORT = 40102; 
 
 AgentList agentList(MIXER_LISTEN_PORT);
 
@@ -39,76 +40,68 @@ void *sendBuffer(void *args)
     int sentBytes;
     int nextFrame = 0;
     timeval startTime;
-
-    int16_t *clientMix = new int16_t[BUFFER_LENGTH_SAMPLES];
-    long *masterMix = new long[BUFFER_LENGTH_SAMPLES];
     
     gettimeofday(&startTime, NULL);
 
     while (true) {
         sentBytes = 0;
         
-        for (int ms = 0; ms < BUFFER_LENGTH_SAMPLES; ms++) {
-            masterMix[ms] = 0;
-        }
-
-        for (int ab = 0; ab < agentList.getAgents().size(); ab++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList.getAgents()[ab].getLinkedData();
+        for (int i = 0; i < agentList.getAgents().size(); i++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList.getAgents()[i].getLinkedData();
             
             if (agentBuffer != NULL && agentBuffer->getEndOfLastWrite() != NULL) {
+                
                 if (!agentBuffer->isStarted() && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer %d.\n", ab);
+                    printf("Held back buffer %d.\n", i);
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
-                    printf("Buffer %d starved.\n", ab);
+                    printf("Buffer %d starved.\n", i);
                     agentBuffer->setStarted(false);
                 } else {
                     // good buffer, add this to the mix
                     agentBuffer->setStarted(true);
                     agentBuffer->setAddedToMix(true);
-                    
-                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                        masterMix[s] += agentBuffer->getNextOutput()[s];
-                    }
-                    
-                    agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES);
-                    
-                    if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
-                        agentBuffer->setNextOutput(agentBuffer->getBuffer());
-                    }
                 }
+                
             }
         }
-        
-        for (int ab = 0; ab < agentList.getAgents().size(); ab++) {
-            Agent *agent = &agentList.getAgents()[ab];
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agent->getLinkedData();
 
-            int16_t *previousOutput = NULL;
-
-            if (agentBuffer != NULL && agentBuffer->wasAddedToMix()) {
-                previousOutput = (agentBuffer->getNextOutput() == agentBuffer->getBuffer())
-                    ? agentBuffer->getBuffer() + RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES
-                    : agentBuffer->getNextOutput() - BUFFER_LENGTH_SAMPLES;
-                agentBuffer->setAddedToMix(false);
-            }
-
-            for (int s = 0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                long longSample = (previousOutput != NULL)
-                    ? masterMix[s] - previousOutput[s]
-                    : masterMix[s];
+        for (int i = 0; i < agentList.getAgents().size(); i++) {
+            Agent *agent = &agentList.getAgents()[i];
             
-                int16_t shortSample;
-                
-                if (longSample < 0) {
-                    shortSample = std::max(longSample, MIN_SAMPLE_VALUE);
-                } else {
-                    shortSample = std::min(longSample, MAX_SAMPLE_VALUE);
+            int16_t clientMix[BUFFER_LENGTH_SAMPLES] = {};
+            
+            for (int j = 0; j < agentList.getAgents().size(); j++) {
+                if (i != j) {
+                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
+                    
+                    float *agentPosition = ((AudioRingBuffer *)agent->getLinkedData())->getPosition();
+                    float *otherAgentPosition = otherAgentBuffer->getPosition();
+                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
+                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
+                    float distanceCoeff = 1 / (log(DISTANCE_RATIO * distanceToAgent) / log(3));
+                    
+                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                        int16_t sample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeff);
+                        clientMix[s] += sample;
+                    }
                 }
-                
-                clientMix[s] = shortSample;
             }
             
             agentList.getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
+        }
+        
+        for (int i = 0; i < agentList.getAgents().size(); i++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList.getAgents()[i].getLinkedData();
+            if (agentBuffer->wasAddedToMix()) {
+                agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES);
+                
+                if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
+                    agentBuffer->setNextOutput(agentBuffer->getBuffer());
+                }
+                
+                agentBuffer->setAddedToMix(false);
+            }
         }
         
         double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
@@ -132,7 +125,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
@@ -186,7 +180,7 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (receivedBytes > BUFFER_LENGTH_BYTES) {
+            if (receivedBytes >= BUFFER_LENGTH_BYTES) {
                 // add or update the existing interface agent
                 agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
                 agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);

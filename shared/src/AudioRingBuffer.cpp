@@ -74,20 +74,27 @@ void AudioRingBuffer::setAddedToMix(bool added) {
     addedToMix = added;
 }
 
+float* AudioRingBuffer::getPosition() {
+    return position;
+}
+
+void AudioRingBuffer::setPosition(float *newPosition) {
+    position[0] = newPosition[0];
+    position[1] = newPosition[1];
+    position[2] = newPosition[2];
+}
+
 void AudioRingBuffer::parseData(void *data, int size) {
-    int16_t *audioDataStart = (int16_t *) data;
+    unsigned char *audioDataStart = (unsigned char *) data;
     
     if (size > BUFFER_LENGTH_BYTES) {
-        float position[3];
-        unsigned char *charData = (unsigned char *) data;
         
         for (int p = 0; p < 3; p ++) {
-            memcpy(&position[p], charData + 1 + (sizeof(float) * p), sizeof(float));
+            memcpy(&position[p], audioDataStart + 1 + (sizeof(float) * p), sizeof(float));
         }
         
-        audioDataStart = (int16_t *) charData + 1 + (sizeof(float) * 3);
+        audioDataStart += (1 + (sizeof(float) * 3));
     }
-   
 
     if (endOfLastWrite == NULL) {
         endOfLastWrite = buffer;
@@ -98,7 +105,10 @@ void AudioRingBuffer::parseData(void *data, int size) {
     }
     
     memcpy(endOfLastWrite, audioDataStart, BUFFER_LENGTH_BYTES);
+    
     endOfLastWrite += BUFFER_LENGTH_SAMPLES;
+    
+    addedToMix = false;
     
     if (endOfLastWrite >= buffer + RING_BUFFER_SAMPLES) {
         endOfLastWrite = buffer;
