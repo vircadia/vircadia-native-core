@@ -62,7 +62,6 @@ void Hand::simulate(float deltaTime)
     const float LINEAR_SPRING_CONSTANT = 500;
     const float LINEAR_DAMPING_COEFFICIENT = 2.0*powf(LINEAR_SPRING_CONSTANT,0.5);
     const float RNOISE = 0.1;
-    const float VDECAY = 5.0;
 
     //  If noise, add a bit of random velocity
     if (noise) {

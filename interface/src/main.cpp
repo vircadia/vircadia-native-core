@@ -396,7 +396,7 @@ void simulateHand(float deltaTime) {
     if (mouse_pressed == 1)
     {
         //  Add a velocity to the hand corresponding to the detected size of the drag vector
-        const float MOUSE_HAND_FORCE = 3.0;
+        const float MOUSE_HAND_FORCE = 1.5;
         float dx = mouse_x - mouse_start_x;
         float dy = mouse_y - mouse_start_y;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
