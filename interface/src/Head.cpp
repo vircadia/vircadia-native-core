@@ -8,10 +8,13 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
-#include <cstring>
 #include "Head.h"
-#include "Util.h"
-#include "SerialInterface.h"
+#include <vector>
+#include <lodepng.h>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -27,6 +30,12 @@ float browWidth = 0.8;
 float browThickness = 0.16;
 
 const float DECAY = 0.1;
+
+char iris_texture_file[] = "interface.app/Contents/Resources/images/green_eye.png";
+
+static vector<unsigned char> iris_texture;
+unsigned int iris_texture_width = 512;
+unsigned int iris_texture_height = 256;
 
 Head::Head()
 {
@@ -58,6 +67,14 @@ Head::Head()
     renderPitch = 0.0;
     setNoise(0);
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+
+
+    if (iris_texture.size() == 0) {
+        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
+        if (error != 0) {
+            std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+        }
+    }
 }
 
 Head::~Head() {
@@ -212,11 +229,11 @@ void Head::simulate(float deltaTime)
         {
             SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
         }
-        
+
         if (0)
         {
-            
-            //  Pick new target 
+
+            //  Pick new target
             PitchTarget = (randFloat() - 0.5)*45;
             YawTarget = (randFloat() - 0.5)*22;
         }
@@ -326,14 +343,27 @@ void Head::render(int faceToFace, float * myLocation)
             glutSolidSphere(0.25, 30, 30);
         }
         glPopMatrix();
+        
         // Right Pupil
+        GLUquadric *sphere = gluNewQuadric();
+        gluQuadricTexture(sphere, GL_TRUE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gluQuadricOrientation(sphere, GLU_OUTSIDE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+
         glPushMatrix();
+        {
             glRotatef(EyeballPitch[1], 1, 0, 0);
             glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
             glTranslatef(0,0,.35);
-                    if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-            //glRotatef(90,0,1,0);
-            glutSolidSphere(PupilSize, 15, 15);
+            glRotatef(-75,1,0,0);
+            glScalef(1.0, 0.4, 1.0);
+            
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, PupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }
 
         glPopMatrix();
         // Left Eye
@@ -349,14 +379,20 @@ void Head::render(int faceToFace, float * myLocation)
         glPopMatrix();
         // Left Pupil
         glPushMatrix();
+        {
             glRotatef(EyeballPitch[0], 1, 0, 0);
             glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-            glTranslatef(0,0,.35);
-            if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-            //glRotatef(90,0,1,0);
-            glutSolidSphere(PupilSize, 15, 15);
-        glPopMatrix();
+            glTranslatef(0, 0, .35);
+            glRotatef(-75, 1, 0, 0);
+            glScalef(1.0, 0.4, 1.0);
+
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, PupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }
         
+        gluDeleteQuadric(sphere);
+        glPopMatrix();
 
     }
     glPopMatrix();

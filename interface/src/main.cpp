@@ -531,7 +531,7 @@ void display(void)
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        GLfloat light_position0[] = { 1.0, 1.0, 0.75, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
         GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
@@ -539,10 +539,10 @@ void display(void)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-        
+
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-           
+
         //  Rotate, translate to camera location
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
