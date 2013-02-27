@@ -151,6 +151,8 @@ int main(int argc, const char * argv[])
     
     agentList.linkedDataCreateCallback = attachNewBufferToAgent;
     
+    agentList.startSilentAgentRemovalThread();
+    
     // setup the agentSocket to report to domain server
     pthread_t reportAliveThread;
     pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
@@ -188,6 +190,7 @@ int main(int argc, const char * argv[])
         }
     }
     
+    agentList.stopSilentAgentRemovalThread();
     pthread_join(reportAliveThread, NULL);
     pthread_join(sendBufferThread, NULL);
     
