@@ -76,13 +76,15 @@ void *sendBuffer(void *args)
                     
                     float *agentPosition = ((AudioRingBuffer *)agent->getLinkedData())->getPosition();
                     float *otherAgentPosition = otherAgentBuffer->getPosition();
+                    
                     float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
                                                   powf(agentPosition[1] - otherAgentPosition[1], 2) +
                                                   powf(agentPosition[2] - otherAgentPosition[2], 2));
-                    float distanceCoeff = 1 / (log(DISTANCE_RATIO * distanceToAgent) / log(3));
+                    
+                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
                     
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES; s++) {
-                        int16_t sample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeff);
+                        int16_t sample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);
                         clientMix[s] += sample;
                     }
                 }
