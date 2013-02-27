@@ -95,9 +95,11 @@ class Head : public AgentData {
         float scale;
         
         //  Sound loudness information
-        float loudness;
+        float loudness, lastLoudness;
         float averageLoudness;
-        
+        float audioAttack;
+        float browAudioLift;
+    
         glm::vec3 position;
         int eyeContact;
         eyeContactTargets eyeContactTarget;

@@ -36,9 +36,9 @@ Head::Head()
     interBrowDistance = 0.75;
     NominalPupilSize = 0.10;
     Yaw = 0.0;
-    EyebrowPitch[0] = EyebrowPitch[1] = BrowPitchAngle[0];
-    EyebrowRoll[0] = 30;
-    EyebrowRoll[1] = -30;
+    EyebrowPitch[0] = EyebrowPitch[1] = -30;
+    EyebrowRoll[0] = 20;
+    EyebrowRoll[1] = -20;
     MouthPitch = 0;
     MouthYaw = 0;
     MouthWidth = 1.0;
@@ -56,6 +56,12 @@ Head::Head()
     scale = 1.0;
     renderYaw = 0.0;
     renderPitch = 0.0;
+    audioAttack = 0.0;
+    loudness = 0.0;
+    averageLoudness = 0.0;
+    lastLoudness = 0.0;
+    browAudioLift = 0.0;
+    
     setNoise(0);
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 }
@@ -284,13 +290,22 @@ void Head::render(int faceToFace, float * myLocation)
         
 
         // Eyebrows
+        audioAttack = 0.9*audioAttack + 0.1*fabs(loudness - lastLoudness);
+        lastLoudness = loudness;
+    
+        const float BROW_LIFT_THRESHOLD = 100;
+        if (audioAttack > BROW_LIFT_THRESHOLD)
+            browAudioLift += sqrt(audioAttack)/1000.0;
+        
+        browAudioLift *= .90;
+        
         glPushMatrix();
             glTranslatef(-interBrowDistance/2.0,0.4,0.45);
             for(side = 0; side < 2; side++)
             {
                 glColor3fv(browColor);
                 glPushMatrix();
-                    glTranslatef(0, 0.4, 0);
+                    glTranslatef(0, 0.35 + browAudioLift, 0);
                     glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
                     glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
                     glScalef(browWidth, browThickness, 1);
@@ -305,10 +320,10 @@ void Head::render(int faceToFace, float * myLocation)
         
         glPushMatrix();
             glTranslatef(0,-0.35,0.75);
-            glColor3f(loudness/1000.0,0,0);
+            glColor3f(0,0,0);
             glRotatef(MouthPitch, 1, 0, 0);
             glRotatef(MouthYaw, 0, 0, 1);
-            glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/60.0), 1);
+            glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/30.0), 1);
             glutSolidCube(0.5);
         glPopMatrix();
         
