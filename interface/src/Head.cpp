@@ -64,6 +64,10 @@ Head::~Head() {
     // all data is primitive, do nothing
 }
 
+Head* Head::clone() const {
+    return new Head(*this);
+}
+
 void Head::reset()
 {
     Pitch = Yaw = Roll = 0;

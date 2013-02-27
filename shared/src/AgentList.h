@@ -14,6 +14,7 @@
 #include "Agent.h"
 #include "UDPSocket.h"
 
+const int MAX_PACKET_SIZE = 1500;
 const unsigned short AGENT_SOCKET_LISTEN_PORT = 40103;
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 extern const char *SOLO_AGENT_TYPES_STRING;
@@ -33,6 +34,7 @@ class AgentList {
         int updateList(unsigned char *packetData, size_t dataBytes);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+        void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void broadcastToAgents(char *broadcastData, size_t dataBytes);
         void sendToAgent(Agent *destAgent, void *packetData, size_t dataBytes);
         void pingAgents();
@@ -44,7 +46,6 @@ class AgentList {
         pthread_t removeSilentAgentsThread;
     
         int indexOfMatchingAgent(sockaddr *senderAddress);
-        void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void handlePingReply(sockaddr *agentAddress);
 };
 

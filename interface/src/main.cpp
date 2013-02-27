@@ -53,7 +53,6 @@ int simulate_on = 1;
 //  Network Socket and network constants
 //
 
-const int MAX_PACKET_SIZE = 1500;
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
@@ -513,6 +512,7 @@ void simulateHead(float frametime)
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     myHead.setRenderPitch(render_pitch);
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    audio.setSourcePosition(glm::vec3(location[0], location[1], location[2]));
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;

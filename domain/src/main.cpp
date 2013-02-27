@@ -32,8 +32,6 @@
 #include "SharedUtil.h"
 
 const int DOMAIN_LISTEN_PORT = 40102;
-
-const int MAX_PACKET_SIZE = 1500;
 unsigned char packetData[MAX_PACKET_SIZE];
 
 const int LOGOFF_CHECK_INTERVAL = 5000;
@@ -70,10 +68,10 @@ int main(int argc, const char * argv[])
     
     agentList.startSilentAgentRemovalThread();
     
-    std::map<char, Agent *> newestSoloAgents;
-    
     while (true) {
         if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
+            std::map<char, Agent *> newestSoloAgents;
+            
             agentType = packetData[0];
             unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
             

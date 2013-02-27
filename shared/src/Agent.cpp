@@ -49,8 +49,11 @@ Agent::Agent(const Agent &otherAgent) {
     lastRecvTimeUsecs = otherAgent.lastRecvTimeUsecs;
     type = otherAgent.type;
     
-    // linked data is transient, gets re-assigned on next packet receive
-    linkedData = NULL;
+    if (otherAgent.linkedData != NULL) {
+        linkedData = otherAgent.linkedData->clone();
+    } else {
+        linkedData = NULL;
+    }
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
@@ -115,8 +118,6 @@ void Agent::activateLocalSocket() {
 void Agent::activatePublicSocket() {
     activeSocket = publicSocket;
 }
-
-
 
 AgentData* Agent::getLinkedData() {
     return linkedData;

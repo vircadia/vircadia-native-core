@@ -113,7 +113,6 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
 
 int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) {
     // send data via UDP
-    
     int sent_bytes = sendto(handle, (const char*)data, byteLength,
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
     

@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MAX_BUFFER_LENGTH_BYTES 1024
+#define MAX_BUFFER_LENGTH_BYTES 1500
 
 class UDPSocket {    
     public:
