@@ -18,8 +18,16 @@
 
 Oscilloscope * scope;
 
-const short PACKET_LENGTH_BYTES = 1024;
-const short PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
+const int PACKET_LENGTH_BYTES = 1024;
+const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
+const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
+const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
+
+const int BUFFER_LENGTH_BYTES = 512;
+const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+
+const int RING_BUFFER_FRAMES = 10;
+const int RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
@@ -97,7 +105,7 @@ int audioCallback (const void *inputBuffer,
                 memcpy(dataPacket + 1 + (p * sizeof(float)), &data->sourcePosition[p], sizeof(float));
             }
             
-            // copy the audio data to the last 1024 bytes of the data packet
+            // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(dataPacket + leadingBytes, inputLeft, BUFFER_LENGTH_BYTES);
             
             data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
@@ -126,20 +134,10 @@ int audioCallback (const void *inputBuffer,
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
     
-    memset(outputLeft, 0, BUFFER_LENGTH_BYTES);
-    memset(outputRight, 0, BUFFER_LENGTH_BYTES);
-    
-    //  Copy output data to oscilloscope
-    if (scope->getState()) {
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-            scope->addData((float)outputRight[i]/32767.0, 2, i);
-        }
-    }
+    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
 
     AudioRingBuffer *ringBuffer = data->ringBuffer;
-    
-    int16_t *queueBuffer = data->samplesToQueue;
-    memset(queueBuffer, 0, BUFFER_LENGTH_BYTES);
     
     // if we've been reset, and there isn't any new packets yet
     // just play some silence
@@ -158,20 +156,16 @@ int audioCallback (const void *inputBuffer,
             ringBuffer->setStarted(true);
             // play whatever we have in the audio buffer
             
-            // no sample overlap, either a direct copy of the audio data, or a copy with some appended silence
-            memcpy(queueBuffer, ringBuffer->getNextOutput(), BUFFER_LENGTH_BYTES);
+            memcpy(outputLeft, ringBuffer->getNextOutput(), PACKET_LENGTH_BYTES_PER_CHANNEL);
+            memcpy(outputRight, ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES_PER_CHANNEL, PACKET_LENGTH_BYTES_PER_CHANNEL);
             
-            ringBuffer->setNextOutput(ringBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES);
+            ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
             if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
                 ringBuffer->setNextOutput(ringBuffer->getBuffer());
             }
         }
     }
-    
-    // copy whatever is in the queueBuffer to the outputLeft and outputRight buffers
-    memcpy(outputLeft, queueBuffer, BUFFER_LENGTH_BYTES);
-    memcpy(outputRight, queueBuffer, BUFFER_LENGTH_BYTES);
     
     gettimeofday(&data->lastCallback, NULL);
     return paContinue;
@@ -190,7 +184,7 @@ void *receiveAudioViaUDP(void *args) {
     AudioRecThreadStruct *threadArgs = (AudioRecThreadStruct *) args;
     AudioData *sharedAudioData = threadArgs->sharedAudioData;
     
-    int16_t *receivedData = new int16_t[BUFFER_LENGTH_SAMPLES];
+    int16_t *receivedData = new int16_t[PACKET_LENGTH_SAMPLES];
     ssize_t receivedBytes;
     
     timeval previousReceiveTime, currentReceiveTime = {};
@@ -270,11 +264,11 @@ Audio::Audio(Oscilloscope * s)
     
     scope = s;
     
-    audioData = new AudioData(BUFFER_LENGTH_BYTES);
+    audioData = new AudioData();
     
     // setup a UDPSocket
     audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
-    audioData->ringBuffer = new AudioRingBuffer();
+    audioData->ringBuffer = new AudioRingBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES);
     
     AudioRecThreadStruct threadArgs;
     threadArgs.sharedAudioData = audioData;
@@ -285,8 +279,8 @@ Audio::Audio(Oscilloscope * s)
                                2,       // input channels
                                2,       // output channels
                                (paInt16 | paNonInterleaved), // sample format
-                               22050,   // sample rate (hz)
-                               512,     // frames per buffer
+                               SAMPLE_RATE,   // sample rate (hz)
+                               BUFFER_LENGTH_SAMPLES,     // frames per buffer
                                audioCallback, // callback function
                                (void *) audioData);  // user data to be passed to callback
     if (paError != paNoError) goto error;
@@ -297,7 +291,7 @@ Audio::Audio(Oscilloscope * s)
     Pa_StartStream(stream);
     if (paError != paNoError) goto error;
     
-    
+     
     return;
     
 error:
@@ -347,10 +341,10 @@ void Audio::render(int screenWidth, int screenHeight)
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
         float timeLeftInCurrentBuffer = 0;
-        if (audioData->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(&audioData->lastCallback, &currentTime)/(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        if (audioData->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(&audioData->lastCallback, &currentTime)/(1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
         
         if (audioData->ringBuffer->getEndOfLastWrite() != NULL)
-            remainingBuffer = audioData->ringBuffer->diffLastWriteNextOutput() / BUFFER_LENGTH_SAMPLES * frameWidth;
+            remainingBuffer = audioData->ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * frameWidth;
         
         if (audioData->wasStarved == 0) glColor3f(0, 1, 0);
         else {
@@ -378,12 +372,12 @@ void Audio::render(int screenWidth, int screenHeight)
         glEnd();
         
         char out[20];
-        sprintf(out, "%3.0f\n", audioData->averagedLatency/(float)frameWidth*(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE));
+        sprintf(out, "%3.0f\n", audioData->averagedLatency/(float)frameWidth*(1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE));
         drawtext(startX + audioData->averagedLatency - 10, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
-        int jitterPels = (float) audioData->measuredJitter/ ((1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
+        int jitterPels = (float) audioData->measuredJitter/ ((1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
         
         glColor3f(0,1,1);
         glBegin(GL_QUADS);

@@ -17,7 +17,7 @@
 
 class AudioData {
     public:
-        AudioData(int bufferLength);
+        AudioData();
         ~AudioData();
         AudioRingBuffer *ringBuffer;
 

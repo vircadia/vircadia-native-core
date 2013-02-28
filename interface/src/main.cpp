@@ -80,7 +80,7 @@ int fullscreen = 0;
 
 in_addr_t localAddress;
 
-Oscilloscope audioScope(512,200,true);
+Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself

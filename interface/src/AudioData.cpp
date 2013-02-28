@@ -8,11 +8,10 @@
 
 #include "AudioData.h"
 
-AudioData::AudioData(int bufferLength) {
+AudioData::AudioData() {
     mixerAddress = 0;
     mixerPort = 0;
     
-    samplesToQueue = new int16_t[bufferLength / sizeof(int16_t)];
     averagedLatency = 0.0;
     lastCallback.tv_usec = 0;
     wasStarved = 0;
@@ -22,6 +21,5 @@ AudioData::AudioData(int bufferLength) {
 
 
 AudioData::~AudioData() {    
-    delete[] samplesToQueue;
     delete audioSocket;
 }

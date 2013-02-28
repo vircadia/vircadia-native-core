@@ -19,10 +19,17 @@
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
 const float SAMPLE_RATE = 22050.0;
-const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES/SAMPLE_RATE) * 1000000;
 
 const short JITTER_BUFFER_MSECS = 20;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
+
+const int BUFFER_LENGTH_BYTES = 1024;
+const int BUFFER_LENGTH_SAMPLES_PER_CHANNEL = (BUFFER_LENGTH_BYTES / 2) / sizeof(int16_t);
+
+const short RING_BUFFER_FRAMES = 10;
+const short RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+
+const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -51,9 +58,10 @@ void *sendBuffer(void *args)
             
             if (agentBuffer != NULL && agentBuffer->getEndOfLastWrite() != NULL) {
                 
-                if (!agentBuffer->isStarted() && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
+                if (!agentBuffer->isStarted()
+                    && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
                     printf("Held back buffer %d.\n", i);
-                } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES) {
+                } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                     printf("Buffer %d starved.\n", i);
                     agentBuffer->setStarted(false);
                 } else {
@@ -68,24 +76,26 @@ void *sendBuffer(void *args)
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             Agent *agent = &agentList.getAgents()[i];
             
-            int16_t clientMix[BUFFER_LENGTH_SAMPLES] = {};
+            int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
             for (int j = 0; j < agentList.getAgents().size(); j++) {
-                if (i != j) {
+                if (i == j) {
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
-                    float *agentPosition = ((AudioRingBuffer *)agent->getLinkedData())->getPosition();
-                    float *otherAgentPosition = otherAgentBuffer->getPosition();
+//                    float *agentPosition = ((AudioRingBuffer *)agent->getLinkedData())->getPosition();
+//                    float *otherAgentPosition = otherAgentBuffer->getPosition();
+//                    
+//                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+//                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
+//                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
+//                    
+//                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
+                    float distanceCoeff = 1;
                     
-                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
-                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
-                    
-                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
-                    
-                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES; s++) {
+                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                         int16_t sample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);
                         clientMix[s] += sample;
+                        clientMix[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL] += sample;
                     }
                 }
             }
@@ -96,7 +106,7 @@ void *sendBuffer(void *args)
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList.getAgents()[i].getLinkedData();
             if (agentBuffer->wasAddedToMix()) {
-                agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES);
+                agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
                 if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
                     agentBuffer->setNextOutput(agentBuffer->getBuffer());
@@ -127,8 +137,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
@@ -143,7 +153,7 @@ void *reportAliveToDS(void *args) {
 
 void attachNewBufferToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new AudioRingBuffer());
+        newAgent->setLinkedData(new AudioRingBuffer(RING_BUFFER_SAMPLES, BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
     }
 }
 
@@ -184,7 +194,7 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (receivedBytes >= BUFFER_LENGTH_BYTES) {
+            if (packetData[0] == 'I') {
                 // add or update the existing interface agent
                 agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
                 agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
