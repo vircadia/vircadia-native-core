@@ -93,20 +93,34 @@ int audioCallback (const void *inputBuffer,
             audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
             audioMixerSocket.sin_port = data->mixerPort;
             
-            int leadingBytes = 1 + (sizeof(float) * 3);
+            int leadingBytes = 1 + (sizeof(float) * 4);
             
             // we need the amount of bytes in the buffer + 1 for type + 12 for 3 floats for position
             unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
             
             dataPacket[0] = 'I';
+            unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
             for (int p = 0; p < 3; p++) {
-                memcpy(dataPacket + 1 + (p * sizeof(float)), &data->sourcePosition[p], sizeof(float));
+                memcpy(currentPacketPtr, &data->linkedHead->getPos()[p], sizeof(float));
+                currentPacketPtr += sizeof(float);
             }
             
+            // memcpy the corrected render yaw
+            float correctedYaw = fmodf(data->linkedHead->getRenderYaw(), 360);
+            
+            if (correctedYaw > 180) {
+                correctedYaw -= 360;
+            } else if (correctedYaw < -180) {
+                correctedYaw += 360;
+            }
+            
+            memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
+            currentPacketPtr += sizeof(float);
+                        
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(dataPacket + leadingBytes, inputLeft, BUFFER_LENGTH_BYTES);
+            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
             
             data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
@@ -118,6 +132,7 @@ int audioCallback (const void *inputBuffer,
         for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
             loudness += abs(inputLeft[i]);
         }
+        
         loudness /= BUFFER_LENGTH_SAMPLES;
         data->lastInputLoudness = loudness;
         data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
@@ -246,10 +261,6 @@ void *receiveAudioViaUDP(void *args) {
     pthread_exit(0);
 }
 
-void Audio::setSourcePosition(glm::vec3 newPosition) {
-    audioData->sourcePosition = newPosition;
-}
-
 /**
  * Initialize portaudio and start an audio stream.
  * Should be called at the beginning of program exection.
@@ -257,7 +268,7 @@ void Audio::setSourcePosition(glm::vec3 newPosition) {
  * @return  Returns true if successful or false if an error occurred.
 Use Audio::getError() to retrieve the error code.
  */
-Audio::Audio(Oscilloscope * s)
+Audio::Audio(Oscilloscope *s, Head *linkedHead)
 {
     paError = Pa_Initialize();
     if (paError != paNoError) goto error;
@@ -265,6 +276,8 @@ Audio::Audio(Oscilloscope * s)
     scope = s;
     
     audioData = new AudioData();
+    
+    audioData->linkedHead = linkedHead;
     
     // setup a UDPSocket
     audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);

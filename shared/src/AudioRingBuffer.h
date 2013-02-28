@@ -33,12 +33,15 @@ class AudioRingBuffer : public AgentData {
         void setAddedToMix(bool added);
         float* getPosition();
         void setPosition(float newPosition[]);
+        float getBearing();
+        float setBearing(float newBearing);
     
         short diffLastWriteNextOutput();
     private:
         int ringBufferLengthSamples;
         int bufferLengthSamples;
         float position[3];
+        float bearing;
         int16_t *nextOutput;
         int16_t *endOfLastWrite;
         int16_t *buffer;

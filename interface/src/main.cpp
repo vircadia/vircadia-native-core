@@ -106,7 +106,7 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
-Audio audio(&audioScope);
+Audio audio(&audioScope, &myHead);
 
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
@@ -512,7 +512,6 @@ void simulateHead(float frametime)
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     myHead.setRenderPitch(render_pitch);
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
-    audio.setSourcePosition(glm::vec3(location[0], location[1], location[2]));
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;

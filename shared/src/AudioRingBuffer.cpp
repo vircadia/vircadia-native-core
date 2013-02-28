@@ -94,11 +94,17 @@ void AudioRingBuffer::parseData(void *data, int size) {
     
     if (size > (bufferLengthSamples * sizeof(int16_t))) {
         
+        unsigned char *dataPtr = audioDataStart + 1;
+        
         for (int p = 0; p < 3; p ++) {
-            memcpy(&position[p], audioDataStart + 1 + (sizeof(float) * p), sizeof(float));
+            memcpy(&position[p], dataPtr, sizeof(float));
+            dataPtr += sizeof(float);
         }
         
-        audioDataStart += (1 + (sizeof(float) * 3));
+        memcpy(&bearing, dataPtr, sizeof(float));
+        dataPtr += sizeof(float);
+        
+        audioDataStart = dataPtr;
     }
 
     if (endOfLastWrite == NULL) {

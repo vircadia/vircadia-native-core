@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include "AudioRingBuffer.h"
 #include "UDPSocket.h"
+#include "Head.h"
 
 class AudioData {
     public:
@@ -23,9 +24,7 @@ class AudioData {
 
         UDPSocket *audioSocket;
     
-        int16_t *samplesToQueue;
-    
-        glm::vec3 sourcePosition;
+        Head *linkedHead;
     
         // store current mixer address and port
         in_addr_t mixerAddress;
