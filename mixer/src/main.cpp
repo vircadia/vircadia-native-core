@@ -35,6 +35,7 @@ const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const float DISTANCE_RATIO = 3.0/4.2;
+const int PHASE_DELAY_AT_90 = 20;
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
@@ -69,7 +70,6 @@ void *sendBuffer(void *args)
                     agentBuffer->setStarted(true);
                     agentBuffer->setAddedToMix(true);
                 }
-                
             }
         }
 
@@ -79,13 +79,13 @@ void *sendBuffer(void *args)
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
             for (int j = 0; j < agentList.getAgents().size(); j++) {
-                if (i == j) {
+                if (i != j) {
                     AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
                     
                     float *agentPosition = agentRingBuffer->getPosition();
-                    float otherAgentPosition[3] = {0,0,0};
+                    float *otherAgentPosition = otherAgentBuffer->getPosition();
                    
                     // calculate the distance to the other agent
                     float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
@@ -93,6 +93,7 @@ void *sendBuffer(void *args)
                                                   powf(agentPosition[2] - otherAgentPosition[2], 2));
                     // use the distance to the other agent to calculate the change in volume for this frame
                     float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
+                    distanceCoeff = std::max(1.0f, distanceCoeff);
                     
                     // get the angle from the right-angle triangle
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
@@ -115,10 +116,39 @@ void *sendBuffer(void *args)
                         }
                     }
                     
+                    if (angleToSource > 180) {
+                        angleToSource -= 360;
+                    } else if (angleToSource < -180) {
+                        angleToSource += 360;
+                    }
+                    
+                    angleToSource *= (M_PI / 180);
+                    
+                    float sinRatio = fabsf(sinf(angleToSource));
+                    int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                    
+                    int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
+                    int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                    
+                    int16_t *delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
+                        ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
+                        : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                    
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                        int16_t sample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);
-                        clientMix[s] += sample;
-                        clientMix[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL] += sample;
+                        
+                        if (s < numSamplesDelay) {
+                            // pull the earlier sample for the delayed channel
+                            
+                            int earlierSample = delaySamplePointer[s] / distanceCoeff;
+                            delayedChannel[s] = earlierSample;
+                        }
+                        
+                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);
+                        goodChannel[s] = currentSample;
+                        
+                        if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                            delayedChannel[s + numSamplesDelay] = currentSample;
+                        }
                     }
                 }
             }
