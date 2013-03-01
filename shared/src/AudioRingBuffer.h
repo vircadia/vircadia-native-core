@@ -34,7 +34,7 @@ class AudioRingBuffer : public AgentData {
         float* getPosition();
         void setPosition(float newPosition[]);
         float getBearing();
-        float setBearing(float newBearing);
+        void setBearing(float newBearing);
     
         short diffLastWriteNextOutput();
     private:

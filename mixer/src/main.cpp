@@ -80,17 +80,40 @@ void *sendBuffer(void *args)
             
             for (int j = 0; j < agentList.getAgents().size(); j++) {
                 if (i == j) {
+                    AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
-//                    float *agentPosition = ((AudioRingBuffer *)agent->getLinkedData())->getPosition();
-//                    float *otherAgentPosition = otherAgentBuffer->getPosition();
-//                    
-//                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-//                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
-//                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
-//                    
-//                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
-                    float distanceCoeff = 1;
+                    
+                    float *agentPosition = agentRingBuffer->getPosition();
+                    float otherAgentPosition[3] = {0,0,0};
+                   
+                    // calculate the distance to the other agent
+                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
+                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
+                    // use the distance to the other agent to calculate the change in volume for this frame
+                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
+                    
+                    // get the angle from the right-angle triangle
+                    float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
+                    float angleToSource;
+                    
+                    float agentBearing = agentRingBuffer->getBearing();
+                    
+                    // find the angle we need for calculation based on the orientation of the triangle
+                    if (otherAgentPosition[0] > agentPosition[0]) {
+                        if (otherAgentPosition[2] > agentPosition[2]) {
+                            angleToSource = -90 + triangleAngle - agentBearing;
+                        } else {
+                            angleToSource = -90 - triangleAngle - agentBearing;
+                        }
+                    } else {
+                        if (otherAgentPosition[2] > agentPosition[2]) {
+                            angleToSource = 90 - triangleAngle - agentBearing;
+                        } else {
+                            angleToSource = 90 + triangleAngle - agentBearing;
+                        }
+                    }
                     
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                         int16_t sample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);

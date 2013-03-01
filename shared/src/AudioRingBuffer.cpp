@@ -89,6 +89,14 @@ void AudioRingBuffer::setPosition(float *newPosition) {
     position[2] = newPosition[2];
 }
 
+float AudioRingBuffer::getBearing() {
+    return bearing;
+}
+
+void AudioRingBuffer::setBearing(float newBearing) {
+    bearing = newBearing;
+}
+
 void AudioRingBuffer::parseData(void *data, int size) {
     unsigned char *audioDataStart = (unsigned char *) data;
     
