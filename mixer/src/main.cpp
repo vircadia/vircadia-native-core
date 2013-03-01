@@ -37,19 +37,11 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 const float DISTANCE_RATIO = 3.0/4.2;
 const int PHASE_DELAY_AT_90 = 20;
 
-const float BEARING_LOW_PASS_FACTOR = 0.1;
-const float ANGLE_TO_SOURCE_LOW_PASS_FACTOR = 0.4;
-
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
 
 AgentList agentList(MIXER_LISTEN_PORT);
-
-int16_t lowPassSampleCenteredAtPointer(int16_t *samplePointer) {
-    return (0.0625 * *(samplePointer - 3)) + (0.125 * *(samplePointer - 2)) + (0.1875 * *(samplePointer - 1)) + (0.25 * *samplePointer) +
-    (0.1875 * *(samplePointer + 1)) + (0.125 * *(samplePointer + 2)) + (0.0625 * *(samplePointer + 3));
-}
 
 void *sendBuffer(void *args)
 {
@@ -142,13 +134,8 @@ void *sendBuffer(void *args)
                         ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                         : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                     
-                    int16_t *lowPassFrame = new int16_t[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2) / 4];
-                    // calculate the low-pass filter intensity
-                    float lowPassIntensity = ((agentBearing - otherAgentBuffer->getBearing()) * BEARING_LOW_PASS_FACTOR) +
-                        (fabsf(angleToSource) * ANGLE_TO_SOURCE_LOW_PASS_FACTOR);
-                    
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                      
+                        
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
@@ -162,15 +149,6 @@ void *sendBuffer(void *args)
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                             delayedChannel[s + numSamplesDelay] = currentSample;
                         }
-                        
-                        if ((s + 1) % 4 == 0) {
-                            int sampleIndex = ((s + 1) / 4) - 1;
-                            // this will be a sample in the lowPassFrame
-                            lowPassFrame[sampleIndex] = lowPassSampleCenteredAtPointer(clientMix + s);
-                            lowPassFrame[sampleIndex + (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 4)] = lowPassSampleCenteredAtPointer(clientMix + s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-                        }
-                        
-                        clientMix[s] = lowPassFrame[s / 4];
                     }
                 }
             }
