@@ -142,7 +142,7 @@ void *sendBuffer(void *args)
                         ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                         : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                     
-                    
+                    int16_t *lowPassFrame = new int16_t[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2) / 4];
                     // calculate the low-pass filter intensity
                     float lowPassIntensity = ((agentBearing - otherAgentBuffer->getBearing()) * BEARING_LOW_PASS_FACTOR) +
                         (fabsf(angleToSource) * ANGLE_TO_SOURCE_LOW_PASS_FACTOR);
@@ -162,11 +162,7 @@ void *sendBuffer(void *args)
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                             delayedChannel[s + numSamplesDelay] = currentSample;
                         }
-                    }
-                    
-                    int16_t lowPassFrame[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2) / 4];
-                    
-                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                        
                         if ((s + 1) % 4 == 0) {
                             int sampleIndex = ((s + 1) / 4) - 1;
                             // this will be a sample in the lowPassFrame
@@ -175,7 +171,6 @@ void *sendBuffer(void *args)
                         }
                         
                         clientMix[s] = lowPassFrame[s / 4];
-                        clientMix[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL] = lowPassFrame[(s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL) / 4];
                     }
                 }
             }
