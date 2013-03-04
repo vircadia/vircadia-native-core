@@ -58,6 +58,8 @@ class Head : public AgentData {
         float getAverageLoudness() {return averageLoudness;};
         void setAverageLoudness(float al) {averageLoudness = al;};
         void setLoudness(float l) {loudness = l;};
+        float getLastMeasuredYaw() {return yawRate;};
+    
         
         void SetNewHeadTarget(float, float);
         glm::vec3 getPos() { return position; };
@@ -71,7 +73,7 @@ class Head : public AgentData {
         float Yaw;
         float Roll;
         float PitchRate;
-        float YawRate;
+        float yawRate;
         float RollRate;
         float EyeballPitch[2];
         float EyeballYaw[2];
