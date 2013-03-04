@@ -72,6 +72,10 @@ void *sendBuffer(void *args)
                 }
             }
         }
+        
+        int numAgents = agentList.getAgents().size();
+        float distanceCoeffs[numAgents][numAgents];
+        memset(distanceCoeffs, 0, sizeof(distanceCoeffs));
 
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             Agent *agent = &agentList.getAgents()[i];
@@ -83,17 +87,23 @@ void *sendBuffer(void *args)
                     AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
-                    
                     float *agentPosition = agentRingBuffer->getPosition();
                     float *otherAgentPosition = otherAgentBuffer->getPosition();
                    
                     // calculate the distance to the other agent
-                    float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-                                                  powf(agentPosition[1] - otherAgentPosition[1], 2) +
-                                                  powf(agentPosition[2] - otherAgentPosition[2], 2));
+                    
                     // use the distance to the other agent to calculate the change in volume for this frame
-                    float distanceCoeff = powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2);
-                    distanceCoeff = std::max(1.0f, distanceCoeff);
+                    int lowAgentIndex = std::min(i, j);
+                    int highAgentIndex = std::max(i, j);
+                    
+                    if (distanceCoeffs[lowAgentIndex][highAgentIndex] != 0) {
+                        float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+                                                      powf(agentPosition[1] - otherAgentPosition[1], 2) +
+                                                      powf(agentPosition[2] - otherAgentPosition[2], 2));
+                        
+                        distanceCoeffs[lowAgentIndex][highAgentIndex] = std::max(1.0f, powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2));
+                    }
+                    
                     
                     // get the angle from the right-angle triangle
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
@@ -139,11 +149,11 @@ void *sendBuffer(void *args)
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
-                            int earlierSample = delaySamplePointer[s] / distanceCoeff;
+                            int earlierSample = delaySamplePointer[s] / distanceCoeffs[lowAgentIndex][highAgentIndex];
                             delayedChannel[s] = earlierSample;
                         }
                         
-                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeff);
+                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeffs[lowAgentIndex][highAgentIndex]);
                         goodChannel[s] = currentSample;
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
