@@ -13,7 +13,7 @@ if (APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices -framework Carbon")
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)
-  set(CMAKE_OSX_SYSROOT macosx10.8)
+  set(CMAKE_OSX_SYSROOT macosx)
 else (APPLE)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
