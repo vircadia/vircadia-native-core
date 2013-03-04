@@ -9,9 +9,9 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#include <iostream.h>
-#include <sys/socket.h>
+#include <iostream>
 #include "AgentData.h"
+#include <sys/socket.h>
 
 class Agent {
     public:
