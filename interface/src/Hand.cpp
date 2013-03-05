@@ -7,6 +7,7 @@
 //
 
 #include "Hand.h"
+#include <sys/time.h>
 
 const float PHI = 1.618;
 
@@ -24,10 +25,52 @@ Hand::Hand(glm::vec3 initcolor)
     scale.z = scale.y * 1.0;
 }
 
+void Hand::reset()
+{
+    position.x = DEFAULT_X;
+    position.y = DEFAULT_Y;
+    position.z = DEFAULT_Z;
+    pitch = yaw = roll = 0;
+    pitchRate = yawRate = rollRate = 0;
+    setTarget(position);
+    velocity.x = velocity.y = velocity.z = 0;
+    transmitterPackets = 0;
+}
+
+
 void Hand::addAngularVelocity (float pRate, float yRate, float rRate) {
     pitchRate += pRate;
     yawRate += yRate;
     rollRate += rRate;
+}
+
+void Hand::processTransmitterData(char *packetData, int numBytes) {
+    //  Read a packet from a transmitter app, process the data
+    float accX, accY, accZ,
+        graX, graY, graZ,
+        gyrX, gyrY, gyrZ,
+        linX, linY, linZ,
+        rot1, rot2, rot3, rot4;
+    sscanf((char *)packetData, "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f",
+           &accX, &accY, &accZ,
+           &graX, &graY, &graZ,
+           &gyrX, &gyrY, &gyrZ,
+           &linX, &linY, &linZ,
+           &rot1, &rot2, &rot3, &rot4);
+    
+    if (transmitterPackets++ == 0) {
+            gettimeofday(&transmitterTimer, NULL);
+    }
+    const int TRANSMITTER_COUNT = 100;
+    if (transmitterPackets % TRANSMITTER_COUNT == 0) {
+        // Every 100 packets, record the observed Hz of the transmitter data
+        timeval now;
+        gettimeofday(&now, NULL);
+        double msecsElapsed = diffclock(&transmitterTimer, &now);
+        std::cout << "Transmitter Hz: " << (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0) << "\n";
+        //memcpy(&transmitterTimer, &now, sizeof(timeval));
+        transmitterTimer = now; 
+    }
 }
 
 void Hand::render()
@@ -42,17 +85,6 @@ void Hand::render()
     //glutSolidSphere(1.5, 20, 20);
     glutSolidCube(1.0);
     glPopMatrix();
-}
-
-void Hand::reset()
-{
-    position.x = DEFAULT_X;
-    position.y = DEFAULT_Y;
-    position.z = DEFAULT_Z;
-    pitch = yaw = roll = 0;
-    pitchRate = yawRate = rollRate = 0;
-    setTarget(position);
-    velocity.x = velocity.y = velocity.z = 0;
 }
 
 void Hand::simulate(float deltaTime)

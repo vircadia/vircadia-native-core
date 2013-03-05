@@ -761,7 +761,12 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            if (incomingPacket[0] != 't') {
+                //  Pass everything but transmitter data to the agent list 
+                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            } else {
+                myHead.hand->processTransmitterData(incomingPacket, bytesReceived);
+            }
         }
     }
     
