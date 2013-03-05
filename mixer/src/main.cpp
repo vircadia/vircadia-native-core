@@ -96,7 +96,7 @@ void *sendBuffer(void *args)
                     int lowAgentIndex = std::min(i, j);
                     int highAgentIndex = std::max(i, j);
                     
-                    if (distanceCoeffs[lowAgentIndex][highAgentIndex] != 0) {
+                    if (distanceCoeffs[lowAgentIndex][highAgentIndex] == 0) {
                         float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
                                                       powf(agentPosition[1] - otherAgentPosition[1], 2) +
                                                       powf(agentPosition[2] - otherAgentPosition[2], 2));

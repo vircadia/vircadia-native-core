@@ -44,6 +44,12 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 
+#ifdef __APPLE__
+
+#include "InterfaceMacOSX.h"
+
+#endif
+
 using namespace std;
 
 int audio_on = 1;                   //  Whether to turn on the audio support
@@ -961,7 +967,11 @@ int main(int argc, char** argv)
     printf( "Init() complete.\n" );
     
     glutTimerFunc(1000, Timer, 0);
-    
+
+#ifdef __APPLE__
+    initMacOSXMenu(&audioScope);
+#endif
+
     glutMainLoop();
 
     ::terminate();
