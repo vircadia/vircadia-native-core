@@ -29,11 +29,13 @@ public:
     void setPos(glm::vec3 p) { position = p; };
     void setTarget(glm::vec3 t) { target = t; };
     void processTransmitterData(char * packetData, int numBytes);
+    float getTransmitterHz() { return transmitterHz; };
 private:
     glm::vec3 position, target, velocity, color, scale;
     float pitch, yaw, roll, pitchRate, yawRate, rollRate;
     float noise;
     timeval transmitterTimer;
+    float transmitterHz;
     int transmitterPackets;
 };
 

@@ -14,6 +14,7 @@ const float PHI = 1.618;
 const float DEFAULT_X = 0;
 const float DEFAULT_Y = -1.5;
 const float DEFAULT_Z = 2.0;
+const float DEFAULT_TRANSMITTER_HZ = 60.0;
 
 Hand::Hand(glm::vec3 initcolor)
 {
@@ -35,8 +36,22 @@ void Hand::reset()
     setTarget(position);
     velocity.x = velocity.y = velocity.z = 0;
     transmitterPackets = 0;
+    transmitterHz = DEFAULT_TRANSMITTER_HZ;
 }
 
+void Hand::render()
+{
+    glPushMatrix();
+    glTranslatef(position.x, position.y, position.z);
+    glRotatef(yaw, 0, 1, 0);
+    glRotatef(pitch, 1, 0, 0);
+    glRotatef(roll, 0, 0, 1);
+    glColor3f(color.x, color.y, color.z);
+    glScalef(scale.x, scale.y, scale.z);
+    //glutSolidSphere(1.5, 20, 20);
+    glutSolidCube(1.0);
+    glPopMatrix();
+}
 
 void Hand::addAngularVelocity (float pRate, float yRate, float rRate) {
     pitchRate += pRate;
@@ -67,36 +82,36 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
         timeval now;
         gettimeofday(&now, NULL);
         double msecsElapsed = diffclock(&transmitterTimer, &now);
-        std::cout << "Transmitter Hz: " << (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0) << "\n";
+        transmitterHz = (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0);
+        //std::cout << "Transmitter Hz: " << (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0) << "\n";
         //memcpy(&transmitterTimer, &now, sizeof(timeval));
         transmitterTimer = now; 
     }
-}
-
-void Hand::render()
-{
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    glRotatef(yaw, 0, 1, 0);
-    glRotatef(pitch, 1, 0, 0);
-    glRotatef(roll, 0, 0, 1);
-    glColor3f(color.x, color.y, color.z);
-    glScalef(scale.x, scale.y, scale.z);
-    //glutSolidSphere(1.5, 20, 20);
-    glutSolidCube(1.0);
-    glPopMatrix();
+    //  Add rotational forces to the hand
+    const float ANG_VEL_SENSITIVITY = 4.0;
+    float angVelScale = ANG_VEL_SENSITIVITY*(1.0/getTransmitterHz());
+    addAngularVelocity(gyrX*angVelScale,gyrZ*angVelScale,-gyrY*angVelScale);
+    
+    //  Add linear forces to the hand
+    const float LINEAR_VEL_SENSITIVITY = 50.0;
+    float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0/getTransmitterHz());
+    glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
+    addVelocity(linVel);
+    
 }
 
 void Hand::simulate(float deltaTime)
 {
-    const float VNOISE = 0.01;
-    const float RSPRING = 0.01;
-    const float LINEAR_SPRING_CONSTANT = 500;
+    const float ANGULAR_SPRING_CONSTANT = 0.25;
+    const float ANGULAR_DAMPING_COEFFICIENT = 5*2.0*powf(ANGULAR_SPRING_CONSTANT,0.5);
+    const float LINEAR_SPRING_CONSTANT = 100;
     const float LINEAR_DAMPING_COEFFICIENT = 2.0*powf(LINEAR_SPRING_CONSTANT,0.5);
-    const float RNOISE = 0.1;
-
+    
     //  If noise, add a bit of random velocity
+    const float RNOISE = 0.0;
+    const float VNOISE = 0.01;
     if (noise) {
+        
         glm::vec3 nVel(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f);
         nVel *= VNOISE;
         addVelocity(nVel);
@@ -111,24 +126,24 @@ void Hand::simulate(float deltaTime)
     yaw += yawRate;
     roll += rollRate;
     
-    //  Use a spring to attempt to return the hand to the target position
+    //  Use a linear spring to attempt to return the hand to the target position
     glm::vec3 springForce = target - position;
     springForce *= LINEAR_SPRING_CONSTANT;
     addVelocity(springForce * deltaTime);
     
-    //  Critically damp the spring
+    //  Critically damp the linear spring
     glm::vec3 dampingForce(velocity);
     dampingForce *= LINEAR_DAMPING_COEFFICIENT;
     addVelocity(-dampingForce * deltaTime);
     
-    //  Decay Angular Velocity
-    pitchRate *= 1.0 - deltaTime;
-    yawRate *= 1.0 - deltaTime;
-    rollRate *= 1.0 - deltaTime;
-    
-    //  Add spring effect to return hand rotation to zero
-    pitchRate -= pitch * RSPRING;
-    yawRate -= yaw * RSPRING;
-    rollRate -= roll * RSPRING;
-    
+    // Use angular spring to return hand to target rotation (0,0,0)
+    addAngularVelocity(-pitch * ANGULAR_SPRING_CONSTANT * deltaTime,
+                       -yaw * ANGULAR_SPRING_CONSTANT * deltaTime,
+                       -roll * ANGULAR_SPRING_CONSTANT * deltaTime);
+
+    //  Critically damp angular spring
+    addAngularVelocity(-pitchRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime,
+                       -yawRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime,
+                       -rollRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime);
+        
 }
