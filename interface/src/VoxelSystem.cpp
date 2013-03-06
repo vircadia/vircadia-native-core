@@ -8,6 +8,29 @@
 
 #include "VoxelSystem.h"
 
+const float MAX_UNIT_ANY_AXIS = 20.0f;
+const float CUBE_WIDTH = 0.01f;
+const int VERTICES_PER_VOXEL = 8;
+const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
+const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
+const int INDICES_PER_VOXEL = 3 * 12;
+
+GLfloat identityVertices[] = { -1, -1, 1,
+                               1, -1, 1,
+                               1, -1, -1,
+                               -1, -1, -1,
+                               1, 1, 1,
+                              -1, 1, 1,
+                              -1, 1, -1,
+                               1, 1, -1 };
+
+GLubyte identityIndices[] = { 0,1,2, 0,2,3,
+                              0,4,1, 0,4,5,
+                              0,3,6, 0,5,6,
+                              1,2,4, 2,4,7,
+                              2,3,6, 2,6,7,
+                              4,5,6, 4,6,7 };
+
 
 bool onSphereShell(float radius, float scale, glm::vec3 * position) {
     float vRadius = glm::length(*position);
@@ -16,6 +39,87 @@ bool onSphereShell(float radius, float scale, glm::vec3 * position) {
 
 void VoxelSystem::init() {
     root = new Voxel;
+}
+
+float randomFloat(float maximumValue) {
+    return ((float) rand() / ((float) RAND_MAX / maximumValue));
+}
+
+void VoxelSystem::init(int numberOfRandomVoxels) {
+    // create the arrays needed to pass to glDrawElements later
+    // position / color are random for now
+    
+    voxelsRendered = numberOfRandomVoxels;
+    
+    // there are 3 points for each vertices, 24 vertices in each cube
+    GLfloat *verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * numberOfRandomVoxels];
+    
+    // we need a color for each vertex in each voxel
+    GLfloat *colorsArray = new GLfloat[COLOR_VALUES_PER_VOXEL * numberOfRandomVoxels];
+    
+    // there are 12 triangles in each cube, with three indices for each triangle
+    GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * numberOfRandomVoxels];
+    
+    // new seed based on time now so voxels are different each time
+    srand((unsigned)time(0));
+    
+    for (int n = 0; n < numberOfRandomVoxels; n++) {        
+        // pick a random point for the center of the cube
+        glm::vec3 position = glm::vec3(
+            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS,
+            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS,
+            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS
+        );
+        
+        // fill the vertices array
+        GLfloat *currentVerticesPos = verticesArray + (n * VERTEX_POINTS_PER_VOXEL);
+        
+        for (int v = 0; v < VERTEX_POINTS_PER_VOXEL; v++) {
+            currentVerticesPos[v] = position[v % 3] + (identityVertices[v] * CUBE_WIDTH);
+        }
+        
+        // fill the colors array
+        GLfloat *currentColorPos = colorsArray + (n * COLOR_VALUES_PER_VOXEL);
+        float voxelR = randomFloat(1);
+        float voxelG = randomFloat(1);
+        float voxelB = randomFloat(1);
+        
+        for (int c = 0; c < VERTICES_PER_VOXEL; c++) {
+            currentColorPos[0 + (c * 3)] = voxelR;
+            currentColorPos[1 + (c * 3)] = voxelG;
+            currentColorPos[2 + (c * 3)] = voxelB;
+        }
+
+        // fill the indices array
+        int voxelIndexOffset = n * INDICES_PER_VOXEL;
+        GLuint *currentIndicesPos = indicesArray + voxelIndexOffset;
+        int startIndex = (n * VERTICES_PER_VOXEL);
+        
+        for (int i = 0; i < INDICES_PER_VOXEL; i++) {
+            // add indices for this side of the cube
+            currentIndicesPos[i] = startIndex + identityIndices[i];
+        }
+    }
+    
+    // VBO for the verticesArray
+    glGenBuffers(1, &vboVerticesID);
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * numberOfRandomVoxels, verticesArray, GL_STATIC_DRAW);
+    
+    // VBO for colorsArray
+    glGenBuffers(1, &vboColorsID);
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+    glBufferData(GL_ARRAY_BUFFER, VERTICES_PER_VOXEL * sizeof(GLfloat) * numberOfRandomVoxels, colorsArray, GL_STATIC_DRAW);
+    
+    // VBO for the indicesArray
+    glGenBuffers(1, &vboIndicesID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numberOfRandomVoxels * INDICES_PER_VOXEL * sizeof(GLuint), indicesArray, GL_STATIC_DRAW);
+
+    // delete the verticesArray, indicesArray
+    delete[] verticesArray;
+    delete[] indicesArray;
+    delete[] colorsArray;
 }
 
 //
@@ -118,11 +222,30 @@ int VoxelSystem::render(Voxel * voxel, float scale, glm::vec3 * distance) {
     return vRendered;
 }
 
+void VoxelSystem::render() {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    glVertexPointer(3, GL_FLOAT, 0, 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+    glColorPointer(3, GL_FLOAT, 0, 0);
+    
+    glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
+    
+    // deactivate vertex and color arrays after drawing
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    
+    // bind with 0 to switch back to normal operation
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
 void VoxelSystem::simulate(float deltaTime) {
     
 }
-
-
-
-
 
