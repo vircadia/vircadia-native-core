@@ -33,9 +33,11 @@ const float DECAY = 0.1;
 
 char iris_texture_file[] = "interface.app/Contents/Resources/images/green_eye.png";
 
-static vector<unsigned char> iris_texture;
+vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
+
+GLUquadric *sphere = gluNewQuadric();
 
 Head::Head()
 {
@@ -79,6 +81,7 @@ Head::Head()
 
 Head::~Head() {
     // all data is primitive, do nothing
+    gluDeleteQuadric(sphere);
 }
 
 Head* Head::clone() const {
@@ -345,12 +348,14 @@ void Head::render(int faceToFace, float * myLocation)
         glPopMatrix();
         
         // Right Pupil
-        GLUquadric *sphere = gluNewQuadric();
-        gluQuadricTexture(sphere, GL_TRUE);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        gluQuadricOrientation(sphere, GLU_OUTSIDE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+        if (!sphere) {
+            sphere = gluNewQuadric();
+            gluQuadricTexture(sphere, GL_TRUE);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            gluQuadricOrientation(sphere, GLU_OUTSIDE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+        }
 
         glPushMatrix();
         {
@@ -391,7 +396,6 @@ void Head::render(int faceToFace, float * myLocation)
             glDisable(GL_TEXTURE_2D);
         }
         
-        gluDeleteQuadric(sphere);
         glPopMatrix();
 
     }
