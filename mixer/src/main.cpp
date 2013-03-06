@@ -101,7 +101,7 @@ void *sendBuffer(void *args)
                                                       powf(agentPosition[1] - otherAgentPosition[1], 2) +
                                                       powf(agentPosition[2] - otherAgentPosition[2], 2));
                         
-                        distanceCoeffs[lowAgentIndex][highAgentIndex] = std::max(1.0f, powf((logf(DISTANCE_RATIO * distanceToAgent) / logf(3)), 2));
+                        distanceCoeffs[lowAgentIndex][highAgentIndex] = std::min(1.0f, powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
                     }
                     
                     
@@ -149,11 +149,11 @@ void *sendBuffer(void *args)
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
-                            int earlierSample = delaySamplePointer[s] / distanceCoeffs[lowAgentIndex][highAgentIndex];
+                            int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
                             delayedChannel[s] = earlierSample;
                         }
                         
-                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] / distanceCoeffs[lowAgentIndex][highAgentIndex]);
+                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
                         goodChannel[s] = currentSample;
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
@@ -200,8 +200,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
