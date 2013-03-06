@@ -24,6 +24,7 @@ Hand::Hand(glm::vec3 initcolor)
     scale.x = 0.07;
     scale.y = scale.x * 5.0;
     scale.z = scale.y * 1.0;
+    renderPointer = true;
 }
 
 void Hand::reset()
@@ -41,6 +42,7 @@ void Hand::reset()
 
 void Hand::render()
 {
+    const float POINTER_LENGTH = 10.0;
     glPushMatrix();
     glTranslatef(position.x, position.y, position.z);
     glRotatef(yaw, 0, 1, 0);
@@ -50,6 +52,15 @@ void Hand::render()
     glScalef(scale.x, scale.y, scale.z);
     //glutSolidSphere(1.5, 20, 20);
     glutSolidCube(1.0);
+    if (renderPointer) {
+        glBegin(GL_TRIANGLES);
+        glColor3f(1,0,0);
+        glNormal3f(0,-1,0);
+        glVertex3f(-0.4,0,0);
+        glVertex3f(0.4,0,0);
+        glVertex3f(0,0,-POINTER_LENGTH);
+        glEnd();
+    }
     glPopMatrix();
 }
 

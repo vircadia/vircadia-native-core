@@ -98,10 +98,10 @@ ParticleSystem balls(0,
                      false,                     //  Wrap?
                      0.02,                      //  Noise
                      0.3,                       //  Size scale 
-                     0.0                        //  Gravity 
+                     0.0                        //  Gravity
                      );
 
-Cloud cloud(0,                             //  Particles
+Cloud cloud(20000,                             //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -540,8 +540,9 @@ void display(void)
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
+    
     glPushMatrix();
         glLoadIdentity();
     
@@ -569,6 +570,7 @@ void display(void)
         glColor3f(1,0,0);
         glutSolidSphere(0.25, 15, 15);
     
+        
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
@@ -614,7 +616,8 @@ void display(void)
             
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
-
+         
+        
     glPopMatrix();
 
     //  Render 2D overlay:  I/O level bar graphs and text  
@@ -683,6 +686,7 @@ void display(void)
     
     glPopMatrix();
     
+
     glutSwapBuffers();
     framecount++;
 }
