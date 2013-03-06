@@ -36,6 +36,7 @@ public:
 private:
     int voxelsRendered;
     GLuint vboVerticesID;
+    GLuint vboColorsID;
     GLuint vboIndicesID;
 };
 
