@@ -319,10 +319,7 @@ void initDisplay(void)
 
 void init(void)
 {
-    voxels.init();
-    glm::vec3 position(0,0,0);
-    int voxelsMade = voxels.initVoxels(NULL, 10.0, &position);
-    std::cout << voxelsMade << " voxels made. \n";
+    voxels.init(50000);
     
     myHead.setRenderYaw(start_yaw);
 
@@ -575,15 +572,7 @@ void display(void)
         if (!display_head) cloud.render();
     
         //  Draw voxels
-        glPushMatrix();
-        glTranslatef(WORLD_SIZE/2.0, WORLD_SIZE/2.0, WORLD_SIZE/2.0);
-        glm::vec3 distance(5.0 + location[0], 5.0 + location[1], 5.0 + location[2]);
-        //std::cout << "length: " << glm::length(distance) << "\n";
-        int voxelsRendered = voxels.render(NULL, 10.0, &distance);
-        voxels.setVoxelsRendered(voxelsRendered);
-        //glColor4f(0,0,1,0.5);
-        //glutSolidCube(10.0);
-        glPopMatrix();
+        voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();

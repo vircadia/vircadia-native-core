@@ -26,13 +26,17 @@ class VoxelSystem {
 public:
     void simulate(float deltaTime);
     int render(Voxel * voxel, float scale, glm::vec3 * distance);
+    void render();
     void init();
+    void init(int numberOfRandomVoxels);
     int initVoxels(Voxel * root, float scale, glm::vec3 * position);
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
     Voxel * root;
 private:
     int voxelsRendered;
+    GLfloat *verticesArray;
+    GLuint *indicesArray;
 };
 
 #endif
