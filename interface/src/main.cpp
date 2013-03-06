@@ -319,7 +319,7 @@ void initDisplay(void)
 
 void init(void)
 {
-    voxels.init(50000);
+    voxels.init(200000);
     
     myHead.setRenderYaw(start_yaw);
 

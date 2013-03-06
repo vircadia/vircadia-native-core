@@ -35,8 +35,8 @@ public:
     Voxel * root;
 private:
     int voxelsRendered;
-    GLfloat *verticesArray;
-    GLuint *indicesArray;
+    GLuint vboVerticesID;
+    GLuint vboIndicesID;
 };
 
 #endif

@@ -9,7 +9,7 @@
 #include "VoxelSystem.h"
 
 const float MAX_UNIT_ANY_AXIS = 20.0f;
-const float CUBE_WIDTH = 0.05f;
+const float CUBE_WIDTH = 0.005f;
 const int VERTICES_PER_VOXEL = 8;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 const int INDICES_PER_VOXEL = 3 * 12;
@@ -47,10 +47,10 @@ void VoxelSystem::init(int numberOfRandomVoxels) {
     voxelsRendered = numberOfRandomVoxels;
     
     // there are 3 points for each vertices, 24 vertices in each cube
-    verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * numberOfRandomVoxels];
+    GLfloat *verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * numberOfRandomVoxels];
     
     // there are 12 triangles in each cube, with three indices for each triangle
-    indicesArray = new GLuint[INDICES_PER_VOXEL * numberOfRandomVoxels];
+    GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * numberOfRandomVoxels];
     
     // new seed based on time now so voxels are different each time
     srand((unsigned)time(0));
@@ -81,6 +81,27 @@ void VoxelSystem::init(int numberOfRandomVoxels) {
         }
     }
     
+    // generate new VBO for the verticesArray
+    glGenBuffers(1, &vboVerticesID);
+    
+    // bind VBO in order to use
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    
+    // upload data to VBO
+    glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * numberOfRandomVoxels, verticesArray, GL_STATIC_DRAW);
+    
+    // generate new VBO for the indicesArray
+    glGenBuffers(1, &vboIndicesID);
+    
+    // bind VBO in order to use
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    
+    // upload data to VBO
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numberOfRandomVoxels * INDICES_PER_VOXEL * sizeof(GLuint), indicesArray, GL_STATIC_DRAW);
+
+    // delete the verticesArray, indicesArray
+    delete[] verticesArray;
+    delete[] indicesArray;
 }
 
 //
@@ -184,14 +205,23 @@ int VoxelSystem::render(Voxel * voxel, float scale, glm::vec3 * distance) {
 }
 
 void VoxelSystem::render() {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, verticesArray);
+    // bind VBOs for vertices and indices array
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
     
-    // draw a cube
-    glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, indicesArray);
+    // draw the cubes
+    glEnableClientState(GL_VERTEX_ARRAY);
+    
+    glVertexPointer(3, GL_FLOAT, 0, 0);
+    
+    glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
+    
+    // bind with 0 to switch back to normal operation
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void VoxelSystem::simulate(float deltaTime) {
