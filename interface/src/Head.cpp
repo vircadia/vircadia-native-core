@@ -80,8 +80,9 @@ Head::Head()
 }
 
 Head::~Head() {
-    // all data is primitive, do nothing
-    gluDeleteQuadric(sphere);
+    if (sphere) {
+        gluDeleteQuadric(sphere);
+    }
 }
 
 Head* Head::clone() const {
