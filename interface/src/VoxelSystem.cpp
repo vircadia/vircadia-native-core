@@ -8,8 +8,10 @@
 
 #include "VoxelSystem.h"
 
-const float MAX_UNIT_ANY_AXIS = 20.0f;
-const float CUBE_WIDTH = 0.01f;
+const float MAX_Y_AXIS = 2.0;
+const float MAX_X_AXIS = 20.0;
+const float MAX_Z_AXIS = 20.0;
+
 const int VERTICES_PER_VOXEL = 8;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
@@ -50,7 +52,7 @@ void VoxelSystem::init(int numberOfRandomVoxels) {
     // position / color are random for now
     
     voxelsRendered = numberOfRandomVoxels;
-    
+        
     // there are 3 points for each vertices, 24 vertices in each cube
     GLfloat *verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * numberOfRandomVoxels];
     
@@ -65,24 +67,32 @@ void VoxelSystem::init(int numberOfRandomVoxels) {
     
     for (int n = 0; n < numberOfRandomVoxels; n++) {        
         // pick a random point for the center of the cube
+        const float DEATH_STAR_RADIUS = 4.0;
+        const float MAX_CUBE = 0.05;
+        float azimuth = randFloat()*2*PI;
+        float altitude = randFloat()*PI - PI/2;
+        float radius = DEATH_STAR_RADIUS;
+        float thisScale = MAX_CUBE*1/(float)(rand()%8 + 1);
+        float radius_twiddle = (DEATH_STAR_RADIUS/100)*powf(2, (float)(rand()%8));
+        radius += radius_twiddle + (randFloat()*DEATH_STAR_RADIUS/12 - DEATH_STAR_RADIUS/24);
         glm::vec3 position = glm::vec3(
-            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS,
-            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS,
-            randomFloat(MAX_UNIT_ANY_AXIS * 2) - MAX_UNIT_ANY_AXIS
+            radius * cosf(azimuth) * cosf(altitude),
+            radius * sinf(azimuth) * cosf(altitude),
+            radius * sinf(altitude)
         );
         
-        // fill the vertices array
+        // fill the vertices array, and scale the voxels 
         GLfloat *currentVerticesPos = verticesArray + (n * VERTEX_POINTS_PER_VOXEL);
-        
         for (int v = 0; v < VERTEX_POINTS_PER_VOXEL; v++) {
-            currentVerticesPos[v] = position[v % 3] + (identityVertices[v] * CUBE_WIDTH);
+            currentVerticesPos[v] = position[v % 3] + (identityVertices[v] * thisScale);
         }
         
         // fill the colors array
+        const float MIN_BRIGHTNESS = 0.25;
         GLfloat *currentColorPos = colorsArray + (n * COLOR_VALUES_PER_VOXEL);
-        float voxelR = randomFloat(1);
-        float voxelG = randomFloat(1);
-        float voxelB = randomFloat(1);
+        float voxelR = MIN_BRIGHTNESS + randomFloat(1)*(1.0 - MIN_BRIGHTNESS);
+        float voxelG = voxelR;
+        float voxelB = voxelR;
         
         for (int c = 0; c < VERTICES_PER_VOXEL; c++) {
             currentColorPos[0 + (c * 3)] = voxelR;
@@ -109,7 +119,7 @@ void VoxelSystem::init(int numberOfRandomVoxels) {
     // VBO for colorsArray
     glGenBuffers(1, &vboColorsID);
     glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
-    glBufferData(GL_ARRAY_BUFFER, VERTICES_PER_VOXEL * sizeof(GLfloat) * numberOfRandomVoxels, colorsArray, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, COLOR_VALUES_PER_VOXEL * sizeof(GLfloat) * numberOfRandomVoxels, colorsArray, GL_STATIC_DRAW);
     
     // VBO for the indicesArray
     glGenBuffers(1, &vboIndicesID);
