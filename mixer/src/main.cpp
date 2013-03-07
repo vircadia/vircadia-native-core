@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -47,8 +46,8 @@ AgentList agentList(MIXER_LISTEN_PORT);
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
     
-    long normalizedSample = std::max((long)INT16_MAX, sumSample);
-    normalizedSample = std::min((long)INT16_MIN, sumSample);
+    long normalizedSample = std::max(MAX_SAMPLE_VALUE, sumSample);
+    normalizedSample = std::min(MIN_SAMPLE_VALUE, sumSample);
     
     mixSample = normalizedSample;    
 }
