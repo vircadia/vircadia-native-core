@@ -46,8 +46,8 @@ AgentList agentList(MIXER_LISTEN_PORT);
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
     
-    long normalizedSample = std::max(MAX_SAMPLE_VALUE, sumSample);
-    normalizedSample = std::min(MIN_SAMPLE_VALUE, sumSample);
+    long normalizedSample = std::min(MAX_SAMPLE_VALUE, sumSample);
+    normalizedSample = std::max(MIN_SAMPLE_VALUE, sumSample);
     
     mixSample = normalizedSample;    
 }
