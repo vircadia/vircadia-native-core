@@ -43,6 +43,15 @@ const int DOMAINSERVER_PORT = 40102;
 
 AgentList agentList(MIXER_LISTEN_PORT);
 
+void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
+    long sumSample = sampleToAdd + mixSample;
+    
+    long normalizedSample = std::max((long)INT16_MAX, sumSample);
+    normalizedSample = std::min((long)INT16_MIN, sumSample);
+    
+    mixSample = normalizedSample;    
+}
+
 void *sendBuffer(void *args)
 {
     int sentBytes;
@@ -144,20 +153,21 @@ void *sendBuffer(void *args)
                         ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                         : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                     
+                    
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                         
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
                             int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
-                            delayedChannel[s] = earlierSample;
+                            plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                         }
                         
                         int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
-                        goodChannel[s] = currentSample;
+                        plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            delayedChannel[s + numSamplesDelay] = currentSample;
+                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample);
                         }
                     }
                 }
@@ -228,10 +238,6 @@ int main(int argc, const char * argv[])
     
     agentList.startSilentAgentRemovalThread();
     
-    // setup the agentSocket to report to domain server
-    pthread_t reportAliveThread;
-    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
-    
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -247,6 +253,10 @@ int main(int argc, const char * argv[])
     } else {
         printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     }
+    
+    // setup the agentSocket to report to domain server
+    pthread_t reportAliveThread;
+    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
 
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 
