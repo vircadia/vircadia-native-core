@@ -17,3 +17,8 @@ double usecTimestampNow() {
     gettimeofday(&now, NULL);
     return (now.tv_sec * 1000000.0 + now.tv_usec);
 }
+
+
+float randFloat () {
+    return (rand()%10000)/10000.f;
+}

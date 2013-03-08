@@ -55,11 +55,6 @@ float StDev::getStDev() {
         return 0;
 }
 
-
-float randFloat () {
-    return (rand()%10000)/10000.f;
-}
-
 //  Return the azimuth angle in degrees between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI;
