@@ -23,6 +23,9 @@ public:
     void render();
     void render(int screenWidth, int screenHeight);
     
+    bool getMixerLoopbackFlag();
+    void setMixerLoopbackFlag(bool newMixerLoopbackFlag);
+    
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
@@ -30,6 +33,7 @@ public:
     bool terminate();
 private:    
     bool initialized;
+    
     AudioData *audioData;
     
     // protects constructor so that public init method is used

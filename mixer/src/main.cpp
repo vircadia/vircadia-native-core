@@ -37,6 +37,8 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 const float DISTANCE_RATIO = 3.0/4.2;
 const int PHASE_DELAY_AT_90 = 20;
 
+const int AGENT_LOOPBACK_MODIFIER = 307;
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
@@ -89,11 +91,23 @@ void *sendBuffer(void *args)
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             Agent *agent = &agentList.getAgents()[i];
             
+            AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
+            float agentBearing = agentRingBuffer->getBearing();
+            bool agentWantsLoopback = false;
+            
+            if (agentBearing > 180 || agentBearing < -180) {
+                // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
+                agentWantsLoopback = true;
+                
+                // correct the bearing
+                agentBearing = agentBearing > 0 ? agentBearing - AGENT_LOOPBACK_MODIFIER : agentBearing + AGENT_LOOPBACK_MODIFIER;
+            }
+            
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
+            
             for (int j = 0; j < agentList.getAgents().size(); j++) {
-                if (i != j) {
-                    AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
+                if (i != j || ( i == j && agentWantsLoopback)) {
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
@@ -118,7 +132,9 @@ void *sendBuffer(void *args)
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                     float angleToSource;
                     
-                    float agentBearing = agentRingBuffer->getBearing();
+                    if (agentWantsLoopback) {
+                        
+                    }
                     
                     // find the angle we need for calculation based on the orientation of the triangle
                     if (otherAgentPosition[0] > agentPosition[0]) {
@@ -210,8 +226,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));

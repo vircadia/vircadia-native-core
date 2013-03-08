@@ -720,7 +720,12 @@ void key(unsigned char k, int x, int y)
         }
 
     }
-    if (k == 'h') display_head = !display_head;
+    
+    if (k == 'h') {
+        display_head = !display_head;
+        audio.setMixerLoopbackFlag(display_head);
+    }
+    
     if (k == 'm') head_mirror = !head_mirror;
     
     if (k == 'f') display_field = !display_field;

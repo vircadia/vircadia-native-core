@@ -17,6 +17,8 @@ AudioData::AudioData() {
     wasStarved = 0;
     measuredJitter = 0;
     jitterBuffer = 0;
+    
+    mixerLoopbackFlag = false;
 }
 
 
