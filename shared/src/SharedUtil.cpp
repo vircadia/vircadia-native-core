@@ -7,6 +7,7 @@
 //
 
 #include "SharedUtil.h"
+#include <cstdlib>
 
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);
