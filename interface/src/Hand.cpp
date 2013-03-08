@@ -20,7 +20,7 @@ Hand::Hand(glm::vec3 initcolor)
 {
     color = initcolor;
     reset();
-    noise = 0.2;
+    noise = 0.0;  //0.2;
     scale.x = 0.07;
     scale.y = scale.x * 5.0;
     scale.z = scale.y * 1.0;
@@ -42,7 +42,7 @@ void Hand::reset()
 
 void Hand::render()
 {
-    const float POINTER_LENGTH = 10.0;
+    const float POINTER_LENGTH = 20.0;
     glPushMatrix();
     glTranslatef(position.x, position.y, position.z);
     glRotatef(yaw, 0, 1, 0);
@@ -60,8 +60,27 @@ void Hand::render()
         glVertex3f(0.4,0,0);
         glVertex3f(0,0,-POINTER_LENGTH);
         glEnd();
+        glPushMatrix();
+        glTranslatef(0,0,-POINTER_LENGTH);
+        glutSolidCube(1.0);
+        glPopMatrix();
     }
     glPopMatrix();
+    
+    if (1) {
+        //  Render debug info from the transmitter
+        /*
+        glPushMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        //gluOrtho2D(0, WIDTH, HEIGHT, 0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
+        glPopMatrix();
+         */
+
+    }
+    
 }
 
 void Hand::addAngularVelocity (float pRate, float yRate, float rRate) {
@@ -100,11 +119,16 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
     }
     //  Add rotational forces to the hand
     const float ANG_VEL_SENSITIVITY = 4.0;
+    const float ANG_VEL_THRESHOLD = 0.0;
     float angVelScale = ANG_VEL_SENSITIVITY*(1.0/getTransmitterHz());
-    addAngularVelocity(gyrX*angVelScale,gyrZ*angVelScale,-gyrY*angVelScale);
+    //addAngularVelocity(gyrX*angVelScale,gyrZ*angVelScale,-gyrY*angVelScale);
+    addAngularVelocity(0,
+                       fabs(gyrZ*angVelScale)>ANG_VEL_THRESHOLD?gyrZ*angVelScale:0,
+                       0);
     
     //  Add linear forces to the hand
-    const float LINEAR_VEL_SENSITIVITY = 50.0;
+    //const float LINEAR_VEL_SENSITIVITY = 50.0;
+    const float LINEAR_VEL_SENSITIVITY = 0.0;
     float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0/getTransmitterHz());
     glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
     addVelocity(linVel);
@@ -137,6 +161,8 @@ void Hand::simulate(float deltaTime)
     yaw += yawRate;
     roll += rollRate;
     
+    //  The spring method
+    if (0) {
     //  Use a linear spring to attempt to return the hand to the target position
     glm::vec3 springForce = target - position;
     springForce *= LINEAR_SPRING_CONSTANT;
@@ -156,5 +182,16 @@ void Hand::simulate(float deltaTime)
     addAngularVelocity(-pitchRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime,
                        -yawRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime,
                        -rollRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime);
+    }
+    
+    //  The absolute threshold method 
+    if (1) {
+        const float YAW_LIMIT = 20;
+        if (yaw > YAW_LIMIT) { yaw = YAW_LIMIT; yawRate = 0.0; }
+        if (yaw < -YAW_LIMIT) { yaw = -YAW_LIMIT; yawRate = 0.0; }
         
+        //  Damp Yaw Rate
+        yawRate *= 0.99;    
+    }
+    
 }

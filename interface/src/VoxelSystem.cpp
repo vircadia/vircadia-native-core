@@ -244,6 +244,8 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
     glColorPointer(3, GL_FLOAT, 0, 0);
     
+    glNormal3f(0, 1, 0);
+    
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
     // deactivate vertex and color arrays after drawing
