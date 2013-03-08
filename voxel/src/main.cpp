@@ -32,14 +32,14 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05;
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;
 
 unsigned char randomColorValue() {
-    return MIN_BRIGHTNESS + (rand() % (255 - MIN_BRIGHTNESS))
+    return MIN_BRIGHTNESS + (rand() % (255 - MIN_BRIGHTNESS));
 }
 
 void *reportAliveToDS(void *args) {
