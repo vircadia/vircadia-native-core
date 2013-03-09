@@ -38,6 +38,8 @@ class AudioData {
         
         float lastInputLoudness;
         float averagedInputLoudness;
+    
+        bool mixerLoopbackFlag;
 };
 
 #endif /* defined(__interface__AudioData__) */

@@ -37,11 +37,22 @@ const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 const float DISTANCE_RATIO = 3.0/4.2;
 const int PHASE_DELAY_AT_90 = 20;
 
+const int AGENT_LOOPBACK_MODIFIER = 307;
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
 
 AgentList agentList(MIXER_LISTEN_PORT);
+
+void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
+    long sumSample = sampleToAdd + mixSample;
+    
+    long normalizedSample = std::min(MAX_SAMPLE_VALUE, sumSample);
+    normalizedSample = std::max(MIN_SAMPLE_VALUE, sumSample);
+    
+    mixSample = normalizedSample;    
+}
 
 void *sendBuffer(void *args)
 {
@@ -80,11 +91,23 @@ void *sendBuffer(void *args)
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             Agent *agent = &agentList.getAgents()[i];
             
+            AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
+            float agentBearing = agentRingBuffer->getBearing();
+            bool agentWantsLoopback = false;
+            
+            if (agentBearing > 180 || agentBearing < -180) {
+                // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
+                agentWantsLoopback = true;
+                
+                // correct the bearing
+                agentBearing = agentBearing > 0 ? agentBearing - AGENT_LOOPBACK_MODIFIER : agentBearing + AGENT_LOOPBACK_MODIFIER;
+            }
+            
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
+            
             for (int j = 0; j < agentList.getAgents().size(); j++) {
-                if (i != j) {
-                    AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
+                if (i != j || ( i == j && agentWantsLoopback)) {
                     AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
@@ -109,7 +132,9 @@ void *sendBuffer(void *args)
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                     float angleToSource;
                     
-                    float agentBearing = agentRingBuffer->getBearing();
+                    if (agentWantsLoopback) {
+                        
+                    }
                     
                     // find the angle we need for calculation based on the orientation of the triangle
                     if (otherAgentPosition[0] > agentPosition[0]) {
@@ -144,20 +169,21 @@ void *sendBuffer(void *args)
                         ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                         : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                     
+                    
                     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                         
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
                             int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
-                            delayedChannel[s] = earlierSample;
+                            plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                         }
                         
                         int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
-                        goodChannel[s] = currentSample;
+                        plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            delayedChannel[s + numSamplesDelay] = currentSample;
+                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample);
                         }
                     }
                 }
@@ -228,10 +254,6 @@ int main(int argc, const char * argv[])
     
     agentList.startSilentAgentRemovalThread();
     
-    // setup the agentSocket to report to domain server
-    pthread_t reportAliveThread;
-    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
-    
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -247,6 +269,10 @@ int main(int argc, const char * argv[])
     } else {
         printf("Using static domainserver IP: %s\n", DOMAIN_IP);
     }
+    
+    // setup the agentSocket to report to domain server
+    pthread_t reportAliveThread;
+    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
 
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 

@@ -39,6 +39,8 @@ const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 
 const short NUM_AUDIO_SOURCES = 2;
 const short ECHO_SERVER_TEST = 1;
 
+const int AGENT_LOOPBACK_MODIFIER = 307;
+
 const char LOCALHOST_MIXER[] = "0.0.0.0";
 const char WORKCLUB_MIXER[] = "192.168.1.19";
 const char EC2_WEST_MIXER[] = "54.241.92.53";
@@ -114,6 +116,10 @@ int audioCallback (const void *inputBuffer,
                 correctedYaw -= 360;
             } else if (correctedYaw < -180) {
                 correctedYaw += 360;
+            }
+            
+            if (data->mixerLoopbackFlag) {
+                correctedYaw = correctedYaw > 0 ? correctedYaw + AGENT_LOOPBACK_MODIFIER : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
@@ -259,6 +265,14 @@ void *receiveAudioViaUDP(void *args) {
     }
     
     pthread_exit(0);
+}
+
+void Audio::setMixerLoopbackFlag(bool newMixerLoopbackFlag) {
+    audioData->mixerLoopbackFlag = newMixerLoopbackFlag;
+}
+
+bool Audio::getMixerLoopbackFlag() {
+    return audioData->mixerLoopbackFlag;
 }
 
 /**

@@ -319,8 +319,7 @@ void initDisplay(void)
 
 void init(void)
 {
-    //  Number of voxels to create
-    voxels.init(100000);
+    voxels.init();
     
     myHead.setRenderYaw(start_yaw);
 
@@ -333,11 +332,13 @@ void init(void)
     field = Field();
     printf( "Field Initialized.\n" );
 
-    if (noise_on) 
-    {   
+    if (noise_on) {   
         myHead.setNoise(noise);
     }
     
+    char output[] = "I";
+    char address[] = "10.0.0.10";
+    agentList.getAgentSocket().send(address, 40106, output, 1);
     
     
 #ifdef MARKER_CAPTURE
@@ -719,7 +720,12 @@ void key(unsigned char k, int x, int y)
         }
 
     }
-    if (k == 'h') display_head = !display_head;
+    
+    if (k == 'h') {
+        display_head = !display_head;
+        audio.setMixerLoopbackFlag(display_head);
+    }
+    
     if (k == 'm') head_mirror = !head_mirror;
     
     if (k == 'f') display_field = !display_field;
@@ -751,7 +757,7 @@ void key(unsigned char k, int x, int y)
 //  Receive packets from other agents/servers and decide what to do with them!
 //
 void *networkReceive(void *args)
-{
+{    
     sockaddr senderAddress;
     ssize_t bytesReceived;
     char *incomingPacket = new char[MAX_PACKET_SIZE];
@@ -761,11 +767,13 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            if (incomingPacket[0] != 't') {
-                //  Pass everything but transmitter data to the agent list 
-                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            if (incomingPacket[0] == 't') {
+                //  Pass everything but transmitter data to the agent list
+                 myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
+            } else if (incomingPacket[0] == 'V') {
+                voxels.parseData(incomingPacket, bytesReceived);
             } else {
-                myHead.hand->processTransmitterData(incomingPacket, bytesReceived);
+               agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
             }
         }
     }
@@ -874,6 +882,12 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
 
+void voxelServerAddCallback(sockaddr *voxelServerAddress) {
+    char voxelAsk[] = "I";
+    printf("Asking VS for data!\n");
+    agentList.getAgentSocket().send(voxelServerAddress, voxelAsk, 1);
+}
+
 int main(int argc, char** argv)
 {
     struct ifaddrs * ifAddrStruct=NULL;
@@ -929,12 +943,10 @@ int main(int argc, char** argv)
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    agentList.voxelServerAddCallback = &voxelServerAddCallback;
     
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
-    
-    // create thread for receipt of data via UDP
-    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -957,6 +969,9 @@ int main(int argc, char** argv)
     printf( "Initialized Display.\n" );
 
     init();
+    
+    // create thread for receipt of data via UDP
+    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
     
     printf( "Init() complete.\n" );
     
