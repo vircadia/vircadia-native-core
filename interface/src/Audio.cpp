@@ -36,18 +36,20 @@ const int SAMPLE_RATE = 22050;
 const float JITTER_BUFFER_LENGTH_MSECS = 30.0;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
 
-const int FLANGE_EFFECT_THRESHOLD = 200;
-const float FLANGE_RATE = 4;
-const float FLANGE_SAMPLE_WEIGHT = 0.50;
+const short NUM_AUDIO_SOURCES = 2;
+const short ECHO_SERVER_TEST = 1;
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
+
+const char LOCALHOST_MIXER[] = "0.0.0.0";
+const char WORKCLUB_MIXER[] = "192.168.1.19";
+const char EC2_WEST_MIXER[] = "54.241.92.53";
 
 const int AUDIO_UDP_LISTEN_PORT = 55444;
 
 int starve_counter = 0;
 StDev stdev;
 bool stopAudioReceiveThread = false;
-int samplesLeftForFlange = 0;
 
 #define LOG_SAMPLE_DELAY 1
 
@@ -175,49 +177,8 @@ int audioCallback (const void *inputBuffer,
             ringBuffer->setStarted(true);
             // play whatever we have in the audio buffer
             
-            // if we haven't fired off the flange effect, check if we should
-            if (!samplesLeftForFlange && fabsf(data->linkedHead->getLastMeasuredYaw()) > FLANGE_EFFECT_THRESHOLD) {
-                // we should flange for one second
-                samplesLeftForFlange = SAMPLE_RATE;
-            }
-            
-            for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                
-                int leftSample = ringBuffer->getNextOutput()[s];
-                int rightSample = ringBuffer->getNextOutput()[s + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
-                
-                if (samplesLeftForFlange > 0) {
-                    float exponent = (SAMPLE_RATE - samplesLeftForFlange - (SAMPLE_RATE / FLANGE_RATE)) / (SAMPLE_RATE / FLANGE_RATE);
-                    int sampleFlangeDelay = (SAMPLE_RATE / 1000.0) * powf(2, exponent);
-                    
-                    if (samplesLeftForFlange != SAMPLE_RATE || s >= (SAMPLE_RATE / 2000)) {
-                        // we have a delayed sample to add to this sample
-                        
-                        int16_t *flangeFrame = ringBuffer->getNextOutput();
-                        int flangeIndex = s - sampleFlangeDelay;
-                        
-                        if (flangeIndex < 0) {
-                            // we need to grab the flange sample from earlier in the buffer
-                            flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
-                                ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
-                                : ringBuffer->getNextOutput() + RING_BUFFER_SAMPLES - PACKET_LENGTH_SAMPLES;
-                        
-                            flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
-                        }
-                        
-                        int16_t leftFlangeSample = flangeFrame[flangeIndex];
-                        int16_t rightFlangeSample = flangeFrame[flangeIndex + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
-                        
-                        leftSample = (1 - FLANGE_SAMPLE_WEIGHT) * leftSample + (FLANGE_SAMPLE_WEIGHT * leftFlangeSample);
-                        rightSample = (1 - FLANGE_SAMPLE_WEIGHT) * rightSample + (FLANGE_SAMPLE_WEIGHT * rightFlangeSample);
-                        
-                        samplesLeftForFlange--;
-                    }
-                }
-                
-                outputLeft[s] = leftSample;
-                outputRight[s] = rightSample;
-            }
+            memcpy(outputLeft, ringBuffer->getNextOutput(), PACKET_LENGTH_BYTES_PER_CHANNEL);
+            memcpy(outputRight, ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES_PER_CHANNEL, PACKET_LENGTH_BYTES_PER_CHANNEL);
             
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
@@ -375,7 +336,7 @@ void Audio::getInputLoudness(float * lastLoudness, float * averageLoudness) {
 
 void Audio::render(int screenWidth, int screenHeight)
 {
-    if (initialized) {
+    if (initialized && ECHO_SERVER_TEST) {
         glBegin(GL_LINES);
         glColor3f(1,1,1);
         

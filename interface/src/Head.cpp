@@ -87,7 +87,7 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     const float PITCH_ACCEL_COUPLING = 0.5;
     const float ROLL_ACCEL_COUPLING = -1.0;
     float measured_pitch_rate = serialInterface->getRelativeValue(PITCH_RATE);
-    yawRate = serialInterface->getRelativeValue(YAW_RATE);
+    float measured_yaw_rate = serialInterface->getRelativeValue(YAW_RATE);
     float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
                                 ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(ROLL_RATE);
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
@@ -115,11 +115,11 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
 
     if (head_mirror) {
         if ((Yaw < MAX_YAW) && (Yaw > MIN_YAW))
-            addYaw(-yawRate * HEAD_ROTATION_SCALE * frametime);
+            addYaw(-measured_yaw_rate * HEAD_ROTATION_SCALE * frametime);
         addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
     } else {
         if ((Yaw < MAX_YAW) && (Yaw > MIN_YAW))
-            addYaw(yawRate * -HEAD_ROTATION_SCALE * frametime);
+            addYaw(measured_yaw_rate * -HEAD_ROTATION_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
 }
