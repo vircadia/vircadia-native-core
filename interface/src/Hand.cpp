@@ -40,7 +40,7 @@ void Hand::reset()
     transmitterHz = DEFAULT_TRANSMITTER_HZ;
 }
 
-void Hand::render()
+void Hand::render(int isMine)
 {
     const float POINTER_LENGTH = 20.0;
     glPushMatrix();
@@ -122,13 +122,13 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
     const float ANG_VEL_THRESHOLD = 0.0;
     float angVelScale = ANG_VEL_SENSITIVITY*(1.0/getTransmitterHz());
     //addAngularVelocity(gyrX*angVelScale,gyrZ*angVelScale,-gyrY*angVelScale);
-    addAngularVelocity(0,
+    addAngularVelocity(fabs(gyrX*angVelScale)>ANG_VEL_THRESHOLD?gyrX*angVelScale:0,
                        fabs(gyrZ*angVelScale)>ANG_VEL_THRESHOLD?gyrZ*angVelScale:0,
-                       0);
+                       fabs(-gyrY*angVelScale)>ANG_VEL_THRESHOLD?-gyrY*angVelScale:0);
     
     //  Add linear forces to the hand
     //const float LINEAR_VEL_SENSITIVITY = 50.0;
-    const float LINEAR_VEL_SENSITIVITY = 0.0;
+    const float LINEAR_VEL_SENSITIVITY = 5.0;
     float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0/getTransmitterHz());
     glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
     addVelocity(linVel);
@@ -184,14 +184,37 @@ void Hand::simulate(float deltaTime)
                        -rollRate*ANGULAR_DAMPING_COEFFICIENT*deltaTime);
     }
     
-    //  The absolute threshold method 
+    //  The absolute limits method  (no springs)
     if (1) {
+        //  Limit rotation 
         const float YAW_LIMIT = 20;
+        const float PITCH_LIMIT = 20;
+        
         if (yaw > YAW_LIMIT) { yaw = YAW_LIMIT; yawRate = 0.0; }
         if (yaw < -YAW_LIMIT) { yaw = -YAW_LIMIT; yawRate = 0.0; }
+        if (pitch > PITCH_LIMIT) { pitch = PITCH_LIMIT; pitchRate = 0.0; }
+        if (pitch < -PITCH_LIMIT) { pitch = -PITCH_LIMIT; pitchRate = 0.0; }
         
-        //  Damp Yaw Rate
-        yawRate *= 0.99;    
+        //  Damp Rotation Rates
+        yawRate *= 0.99;
+        pitchRate *= 0.99;
+        rollRate *= 0.99;
+        
+        //  Limit position
+        const float X_LIMIT = 1.0;
+        const float Y_LIMIT = 1.0;
+        const float Z_LIMIT = 1.0;
+        
+        if (position.x > DEFAULT_X + X_LIMIT) { position.x = DEFAULT_X + X_LIMIT; velocity.x = 0; }
+        if (position.x < DEFAULT_X - X_LIMIT) { position.x = DEFAULT_X - X_LIMIT; velocity.x = 0; }
+        if (position.y > DEFAULT_Y + Y_LIMIT) { position.y = DEFAULT_Y + Y_LIMIT; velocity.y = 0; }
+        if (position.y < DEFAULT_Y - Y_LIMIT) { position.y = DEFAULT_Y - Y_LIMIT; velocity.y = 0; }
+        if (position.z > DEFAULT_Z + Z_LIMIT) { position.z = DEFAULT_Z + Z_LIMIT; velocity.z = 0; }
+        if (position.z < DEFAULT_Z - Z_LIMIT) { position.z = DEFAULT_Z - Z_LIMIT; velocity.z = 0; }
+  
+        //  Damp Velocity
+        velocity *= 0.99;
+        
     }
     
 }

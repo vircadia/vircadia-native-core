@@ -20,7 +20,7 @@ class Hand {
 public:
     Hand(glm::vec3 color);
     void simulate (float deltaTime);
-    void render ();
+    void render (int isMine);
     void reset ();
     void setNoise (float mag) { noise = mag; };
     void addVelocity (glm::vec3 v) { velocity += v; };

@@ -588,7 +588,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, &location[0]);
+                agentHead->render(0, 0, &location[0]);
                 glPopMatrix();
             }
         }
@@ -602,7 +602,7 @@ void display(void)
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(display_head, &location[0]);
+        myHead.render(display_head, 1, &location[0]);
         glPopMatrix();
             
         //glm::vec3 test(0.5, 0.5, 0.5); 

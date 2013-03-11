@@ -239,7 +239,7 @@ void Head::simulate(float deltaTime)
                          
 }
       
-void Head::render(int faceToFace, float * myLocation)
+void Head::render(int faceToFace, int isMine, float * myLocation)
 {
     int side = 0;
     
@@ -255,7 +255,7 @@ void Head::render(int faceToFace, float * myLocation)
     
     glRotatef(Yaw, 0, 1, 0);
     
-    hand->render();
+    hand->render(1);
     
     //  Don't render a head if it is really close to your location, because that is your own head!
     if ((distanceToCamera > 1.0) || faceToFace) {

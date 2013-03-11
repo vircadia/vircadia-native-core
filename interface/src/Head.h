@@ -47,7 +47,7 @@ class Head : public AgentData {
         float getRoll() {return Roll;}
         float getYaw() {return Yaw;}
         
-        void render(int faceToFace, float * myLocation);
+        void render(int faceToFace, int isMine, float * myLocation);
         void simulate(float);
         
         //  Send and receive network data

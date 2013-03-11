@@ -14,9 +14,12 @@
 #include <cstring>
 #include "Audio.h"
 #include "Util.h"
+#include <SharedUtil.h>
 #include "UDPSocket.h"
 
 Oscilloscope * scope;
+
+const int NUM_AUDIO_CHANNELS = 2;
 
 const int PACKET_LENGTH_BYTES = 1024;
 const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
@@ -33,8 +36,11 @@ const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
 const int SAMPLE_RATE = 22050;
-const float JITTER_BUFFER_LENGTH_MSECS = 30.0;
-const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * (SAMPLE_RATE / 1000.0);
+const float JITTER_BUFFER_LENGTH_MSECS = 4;
+const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
+                                    NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
+
+const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_RATE * 1000.0;
 
 const int FLANGE_EFFECT_THRESHOLD = 200;
 const float FLANGE_RATE = 4;
@@ -49,7 +55,10 @@ StDev stdev;
 bool stopAudioReceiveThread = false;
 int samplesLeftForFlange = 0;
 
-#define LOG_SAMPLE_DELAY 1
+timeval firstPlaybackTimer;
+int packetsReceivedThisPlayback = 0;
+
+#define LOG_SAMPLE_DELAY 0
 
 std::ofstream logFile;
 
@@ -84,6 +93,8 @@ int audioCallback (const void *inputBuffer,
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
+    
+    //printf("Audio callback at %6.0f\n", usecTimestampNow()/1000);
     
     if (inputLeft != NULL) {
         
@@ -163,16 +174,23 @@ int audioCallback (const void *inputBuffer,
     
     if (ringBuffer->getEndOfLastWrite() != NULL) {
         
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() <= PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            printf("Held back\n");
+        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
+            printf("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
             starve_counter++;
+            packetsReceivedThisPlayback = 0;
+
             printf("Starved #%d\n", starve_counter);
             data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
-            ringBuffer->setStarted(true);
+            if (!ringBuffer->isStarted()) {
+                ringBuffer->setStarted(true);
+                printf("starting playback %3.1f msecs delayed, \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
+            } else {
+                //printf("pushing buffer\n");
+            }
             // play whatever we have in the audio buffer
             
             // if we haven't fired off the flange effect, check if we should
@@ -265,7 +283,7 @@ void *receiveAudioViaUDP(void *args) {
         delete[] directory;
         delete[] filename;
     }
-    
+        
     while (!stopAudioReceiveThread) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
             bool firstSample = (currentReceiveTime.tv_sec == 0);
@@ -295,6 +313,17 @@ void *receiveAudioViaUDP(void *args) {
             }
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
+            
+            
+            if (!ringBuffer->isStarted()) {
+                printf("Audio packet %d received at %6.0f\n", ++packetsReceivedThisPlayback, usecTimestampNow()/1000);
+             }
+            else {
+                //printf("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
+            }
+            
+            if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
+
             ringBuffer->parseData(receivedData, PACKET_LENGTH_BYTES);
     
             if (LOG_SAMPLE_DELAY) {
@@ -407,10 +436,14 @@ void Audio::render(int screenWidth, int screenHeight)
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
         float timeLeftInCurrentBuffer = 0;
-        if (audioData->lastCallback.tv_usec > 0) timeLeftInCurrentBuffer = diffclock(&audioData->lastCallback, &currentTime)/(1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth;
+        if (audioData->lastCallback.tv_usec > 0) {
+            timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&audioData->lastCallback, &currentTime);
+        }
+    
+        //  /(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth
         
         if (audioData->ringBuffer->getEndOfLastWrite() != NULL)
-            remainingBuffer = audioData->ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * frameWidth;
+            remainingBuffer = audioData->ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
         
         if (audioData->wasStarved == 0) glColor3f(0, 1, 0);
         else {
@@ -420,8 +453,8 @@ void Audio::render(int screenWidth, int screenHeight)
         
         glBegin(GL_QUADS);
         glVertex2f(startX, topY + 5);
-        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, topY + 5);
-        glVertex2f(startX + remainingBuffer + timeLeftInCurrentBuffer, bottomY - 5);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, topY + 5);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, bottomY - 5);
         glVertex2f(startX, bottomY - 5);
         glEnd();
         
@@ -431,15 +464,16 @@ void Audio::render(int screenWidth, int screenHeight)
         //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
         glColor3f(1,1,0);
         glBegin(GL_QUADS);
-        glVertex2f(startX + audioData->averagedLatency - 2, topY - 2);
-        glVertex2f(startX + audioData->averagedLatency + 2, topY - 2);
-        glVertex2f(startX + audioData->averagedLatency + 2, bottomY + 2);
-        glVertex2f(startX + audioData->averagedLatency - 2, bottomY + 2);
+        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 2, topY - 2);
+        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth + 2, topY - 2);
+        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth + 2, bottomY + 2);
+        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 2, bottomY + 2);
         glEnd();
         
-        char out[20];
-        sprintf(out, "%3.0f\n", audioData->averagedLatency/(float)frameWidth*(1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE));
-        drawtext(startX + audioData->averagedLatency - 10, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
+        char out[40];
+        sprintf(out, "%3.0f\n", audioData->averagedLatency);
+        drawtext(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 10, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
+        //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
