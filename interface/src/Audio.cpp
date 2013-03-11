@@ -42,8 +42,6 @@ const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
 
 const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_RATE * 1000.0;
 
-const short NUM_AUDIO_SOURCES = 2;
-const short ECHO_SERVER_TEST = 1;
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
@@ -365,7 +363,7 @@ void Audio::getInputLoudness(float * lastLoudness, float * averageLoudness) {
 
 void Audio::render(int screenWidth, int screenHeight)
 {
-    if (initialized && ECHO_SERVER_TEST) {
+    if (initialized) {
         glBegin(GL_LINES);
         glColor3f(1,1,1);
         
