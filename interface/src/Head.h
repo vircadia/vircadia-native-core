@@ -47,6 +47,7 @@ class Head : public AgentData {
         float getPitch() {return Pitch;}
         float getRoll() {return Roll;}
         float getYaw() {return Yaw;}
+        float getLastMeasuredYaw() {return YawRate;}
         
         void render(int faceToFace, int isMine, float * myLocation);
         void simulate(float);

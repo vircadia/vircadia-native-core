@@ -36,6 +36,12 @@ const int RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
+const int MIN_FLANGE_EFFECT_THRESHOLD = 600;
+const int MAX_FLANGE_EFFECT_THRESHOLD = 1500;
+const float FLANGE_BASE_RATE = 4;
+const float MAX_FLANGE_SAMPLE_WEIGHT = 0.50;
+const float MIN_FLANGE_INTENSITY = 0.25;
+
 const int SAMPLE_RATE = 22050;
 const float JITTER_BUFFER_LENGTH_MSECS = 4;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
@@ -55,6 +61,11 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 int starve_counter = 0;
 StDev stdev;
 bool stopAudioReceiveThread = false;
+int samplesLeftForFlange = 0;
+int lastYawMeasuredMaximum = 0;
+float flangeIntensity = 0;
+float flangeRate = 0;
+float flangeWeight = 0;
 
 timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
@@ -195,6 +206,25 @@ int audioCallback (const void *inputBuffer,
             }
             // play whatever we have in the audio buffer
             
+            // if we haven't fired off the flange effect, check if we should
+            int lastYawMeasured = fabsf(data->linkedHead->getLastMeasuredYaw());
+            
+            if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
+                // we should flange for one second
+                if ((lastYawMeasuredMaximum = std::max(lastYawMeasuredMaximum, lastYawMeasured)) != lastYawMeasured) {
+                    lastYawMeasuredMaximum = std::min(lastYawMeasuredMaximum, MIN_FLANGE_EFFECT_THRESHOLD);
+                    
+                    samplesLeftForFlange = SAMPLE_RATE;
+                    
+                    flangeIntensity = MIN_FLANGE_INTENSITY +
+                        ((lastYawMeasuredMaximum - MIN_FLANGE_EFFECT_THRESHOLD) / (float)(MAX_FLANGE_EFFECT_THRESHOLD - MIN_FLANGE_EFFECT_THRESHOLD)) *
+                        (1 - MIN_FLANGE_INTENSITY);
+                    
+                    flangeRate = FLANGE_BASE_RATE * flangeIntensity;
+                    flangeWeight = MAX_FLANGE_SAMPLE_WEIGHT * flangeIntensity;
+                }
+            }
+            
             // check if we have more than we need to play out
             int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
             int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
@@ -210,8 +240,47 @@ int audioCallback (const void *inputBuffer,
                 }
             }
             
-            memcpy(outputLeft, ringBuffer->getNextOutput(), PACKET_LENGTH_BYTES_PER_CHANNEL);
-            memcpy(outputRight, ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES_PER_CHANNEL, PACKET_LENGTH_BYTES_PER_CHANNEL);
+            for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                
+                int leftSample = ringBuffer->getNextOutput()[s];
+                int rightSample = ringBuffer->getNextOutput()[s + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
+                
+                if (samplesLeftForFlange > 0) {
+                    float exponent = (SAMPLE_RATE - samplesLeftForFlange - (SAMPLE_RATE / flangeRate)) / (SAMPLE_RATE / flangeRate);
+                    int sampleFlangeDelay = (SAMPLE_RATE / (1000 * flangeIntensity)) * powf(2, exponent);
+                    
+                    if (samplesLeftForFlange != SAMPLE_RATE || s >= (SAMPLE_RATE / 2000)) {
+                        // we have a delayed sample to add to this sample
+                    
+                        int16_t *flangeFrame = ringBuffer->getNextOutput();
+                        int flangeIndex = s - sampleFlangeDelay;
+                        
+                        if (flangeIndex < 0) {
+                            // we need to grab the flange sample from earlier in the buffer
+                            flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
+                            ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
+                            : ringBuffer->getNextOutput() + RING_BUFFER_SAMPLES - PACKET_LENGTH_SAMPLES;
+                            
+                            flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
+                        }
+                        
+                        int16_t leftFlangeSample = flangeFrame[flangeIndex];
+                        int16_t rightFlangeSample = flangeFrame[flangeIndex + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
+                        
+                        leftSample = (1 - flangeWeight) * leftSample + (flangeWeight * leftFlangeSample);
+                        rightSample = (1 - flangeWeight) * rightSample + (flangeWeight * rightFlangeSample);
+                        
+                        samplesLeftForFlange--;
+                        
+                        if (samplesLeftForFlange == 0) {
+                            lastYawMeasuredMaximum = 0;
+                        }
+                    }
+                }
+                
+                outputLeft[s] = leftSample;
+                outputRight[s] = rightSample;
+            }
             
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
