@@ -7,122 +7,172 @@
 //
 
 #include "VoxelSystem.h"
+#include <AgentList.h>
 
+const int MAX_VOXELS_PER_SYSTEM = 500000;
 
-bool onSphereShell(float radius, float scale, glm::vec3 * position) {
-    float vRadius = glm::length(*position);
-    return ((vRadius + scale/2.0 > radius) && (vRadius - scale/2.0 < radius));
+const int VERTICES_PER_VOXEL = 8;
+const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
+const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
+const int INDICES_PER_VOXEL = 3 * 12;
+
+const float CUBE_WIDTH = 0.025f;
+
+float identityVertices[] = { -1, -1, 1,
+                            1, -1, 1,
+                            1, -1, -1,
+                            -1, -1, -1,
+                            1, 1, 1,
+                            -1, 1, 1,
+                            -1, 1, -1,
+                            1, 1, -1 };
+
+GLubyte identityIndices[] = { 0,1,2, 0,2,3,
+                              0,4,1, 0,4,5,
+                              0,3,6, 0,5,6,
+                              1,2,4, 2,4,7,
+                              2,3,6, 2,6,7,
+                              4,5,6, 4,6,7 };
+
+VoxelSystem::VoxelSystem() {
+    voxelsRendered = 0;
+}
+
+VoxelSystem::~VoxelSystem() {    
+    delete[] verticesArray;
+    delete[] colorsArray;
+}
+
+void VoxelSystem::parseData(void *data, int size) {
+    // ignore the first char, it's a V to tell us that this is voxel data
+    char *voxelDataPtr = (char *) data + 1;
+
+    float *position = new float[3];
+    char *color = new char[3];
+
+    // get pointers to position of last append of data
+    GLfloat *parseVerticesPtr = lastAddPointer;
+    GLubyte *parseColorsPtr = colorsArray + (lastAddPointer - verticesArray);
+    
+    int voxelsInData = 0;    
+    
+    // pull voxels out of the received data and put them into our internal memory structure
+    while ((voxelDataPtr - (char *) data) < size) {
+        
+        memcpy(position, voxelDataPtr, 3 * sizeof(float));
+        voxelDataPtr += 3 * sizeof(float);
+        memcpy(color, voxelDataPtr, 3);
+        voxelDataPtr += 3;
+        
+        for (int v = 0; v < VERTEX_POINTS_PER_VOXEL; v++) {
+            parseVerticesPtr[v] = position[v % 3] + (identityVertices[v] * CUBE_WIDTH);
+        }
+        
+        parseVerticesPtr += VERTEX_POINTS_PER_VOXEL;
+        
+        for (int c = 0; c < COLOR_VALUES_PER_VOXEL; c++) {
+            parseColorsPtr[c] = color[c % 3];
+        }
+        
+        parseColorsPtr += COLOR_VALUES_PER_VOXEL;
+        
+        voxelsInData++;
+    }
+    
+    // increase the lastAddPointer to the new spot, increase the number of rendered voxels
+    lastAddPointer = parseVerticesPtr;
+    voxelsRendered += voxelsInData;
+}
+
+VoxelSystem* VoxelSystem::clone() const {
+    // this still needs to be implemented, will need to be used if VoxelSystem is attached to agent
+    return NULL;
 }
 
 void VoxelSystem::init() {
-    root = new Voxel;
+    // prep the data structures for incoming voxel data
+    lastDrawPointer = lastAddPointer = verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    colorsArray = new GLubyte[COLOR_VALUES_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    
+    GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    
+    // populate the indicesArray
+    // this will not change given new voxels, so we can set it all up now
+    for (int n = 0; n < MAX_VOXELS_PER_SYSTEM; n++) {
+        // fill the indices array
+        int voxelIndexOffset = n * INDICES_PER_VOXEL;
+        GLuint *currentIndicesPos = indicesArray + voxelIndexOffset;
+        int startIndex = (n * VERTICES_PER_VOXEL);
+        
+        for (int i = 0; i < INDICES_PER_VOXEL; i++) {
+            // add indices for this side of the cube
+            currentIndicesPos[i] = startIndex + identityIndices[i];
+        }
+    }
+    
+    // VBO for the verticesArray
+    glGenBuffers(1, &vboVerticesID);
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+    
+    // VBO for colorsArray
+    glGenBuffers(1, &vboColorsID);
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+    glBufferData(GL_ARRAY_BUFFER, COLOR_VALUES_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+    
+    // VBO for the indicesArray
+    glGenBuffers(1, &vboIndicesID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES_PER_VOXEL * sizeof(GLuint) * MAX_VOXELS_PER_SYSTEM, indicesArray, GL_STATIC_DRAW);
+    
+    // delete the indices array that is no longer needed
+    delete[] indicesArray;
 }
 
-//
-//  Recursively initialize the voxel tree
-//
-int VoxelSystem::initVoxels(Voxel * voxel, float scale, glm::vec3 * position) {
-    glm::vec3 averageColor(0,0,0);
-    int childrenCreated = 0;
-    int newVoxels = 0;
-    if (voxel == NULL) voxel = root;
-    averageColor[0] = averageColor[1] = averageColor[2] = 0.0;
+void VoxelSystem::render() {
+    // check if there are new voxels to draw
+    int vertexValuesToDraw = lastAddPointer - lastDrawPointer;
     
-    const float RADIUS = 3.9;
+    if (vertexValuesToDraw > 0) {
+        // calculate the offset into each VBO, in vertex point values
+        int vertexBufferOffset = lastDrawPointer - verticesArray;
+        
+        // bind the vertices VBO, copy in new data
+        glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+        glBufferSubData(GL_ARRAY_BUFFER, vertexBufferOffset * sizeof(float), vertexValuesToDraw * sizeof(float), lastDrawPointer);
+        
+        // bind the colors VBO, copy in new data
+        glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+        glBufferSubData(GL_ARRAY_BUFFER, vertexBufferOffset * sizeof(GLubyte), vertexValuesToDraw * sizeof(GLubyte), (colorsArray + (lastDrawPointer - verticesArray)));
+        
+        // increment the lastDrawPointer to the lastAddPointer value used for this draw
+        lastDrawPointer += vertexValuesToDraw;
+    }
+
+    // tell OpenGL where to find vertex and color information
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
     
-    //
-    //  First, randomly decide whether to stop here without recursing for children 
-    //
-    if (onSphereShell(RADIUS, scale, position) && (scale < 0.25) && (randFloat() < 0.01))
-    {
-        voxel->color.x = 0.1;
-        voxel->color.y = 0.5 + randFloat()*0.5;
-        voxel->color.z = 0.1;
-        for (unsigned char i = 0; i < NUM_CHILDREN; i++) voxel->children[i] = NULL;
-        return 0;
-    } else {
-        // Decide whether to make kids, recurse into them 
-        for (unsigned char i = 0; i < NUM_CHILDREN; i++) {
-            if  (scale > 0.01)              {
-                glm::vec3 shift(scale/2.0*((i&4)>>2)-scale/4.0,
-                                scale/2.0*((i&2)>>1)-scale/4.0,
-                                scale/2.0*(i&1)-scale/4.0);
-                *position += shift;
-                //  Test to see whether the child is also on edge of sphere
-                if (onSphereShell(RADIUS, scale/2.0, position)) {
-                    voxel->children[i] = new Voxel;
-                    newVoxels++;
-                    childrenCreated++;
-                    newVoxels += initVoxels(voxel->children[i], scale/2.0, position);
-                    averageColor += voxel->children[i]->color;
-                } else voxel->children[i] = NULL;
-                *position -= shift;
-            } else {
-                //  No child made: Set pointer to null, nothing to see here. 
-                voxel->children[i] = NULL;
-            }
-        }
-        if (childrenCreated > 0) {
-            //  If there were children created, the color of this voxel node is average of children
-            averageColor *= 1.0/childrenCreated;
-            voxel->color = averageColor;
-            return newVoxels;
-        } else {
-            //  Tested and didn't make any children, so choose my color as a leaf, return
-            voxel->color.x = voxel->color.y = voxel->color.z = 0.5 + randFloat()*0.5;
-            for (unsigned char i = 0; i < NUM_CHILDREN; i++) voxel->children[i] = NULL;
-            return 0;
-
-        }
-    }
-}
-
-//
-//  The Render Discard is the ratio of the size of the voxel to the distance from the camera
-//  at which the voxel will no longer be shown.  Smaller = show more detail.  
-//  
-
-const float RENDER_DISCARD = 0.04;  //0.01;
-
-//
-//  Returns the total number of voxels actually rendered
-//
-int VoxelSystem::render(Voxel * voxel, float scale, glm::vec3 * distance) {
-    // If null passed in, start at root
-    if (voxel == NULL) voxel = root;    
-    unsigned char i;
-    bool renderedChildren = false;
-    int vRendered = 0;
-    // Recursively render children
-    for (i = 0; i < NUM_CHILDREN; i++) {
-        glm::vec3 shift(scale/2.0*((i&4)>>2)-scale/4.0,
-                        scale/2.0*((i&2)>>1)-scale/4.0,
-                        scale/2.0*(i&1)-scale/4.0);
-        if ((voxel->children[i] != NULL) && (scale / glm::length(*distance) > RENDER_DISCARD)) {
-            glTranslatef(shift.x, shift.y, shift.z);
-            *distance += shift;
-            vRendered += render(voxel->children[i], scale/2.0, distance);
-            *distance -= shift;
-            glTranslatef(-shift.x, -shift.y, -shift.z);
-            renderedChildren = true;
-        }
-    }
-    //  Render this voxel if the children were not rendered 
-    if (!renderedChildren)
-    {
-        //  This is the place where we need to copy this data to a VBO to make this FAST
-        glColor4f(voxel->color.x, voxel->color.y, voxel->color.z, 1.0);
-        glutSolidCube(scale);
-        vRendered++;
-    }
-    return vRendered;
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+    glVertexPointer(3, GL_FLOAT, 0, 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+    
+    glNormal3f(0, 1, 0);
+    
+    glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
+    
+    // deactivate vertex and color arrays after drawing
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    
+    // bind with 0 to switch back to normal operation
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void VoxelSystem::simulate(float deltaTime) {
     
 }
-
-
-
-
 

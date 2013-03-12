@@ -13,15 +13,9 @@
 #include <stdint.h>
 #include "AgentData.h"
 
-const int BUFFER_LENGTH_BYTES = 1024;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-
-const short RING_BUFFER_FRAMES = 10;
-const short RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
-
 class AudioRingBuffer : public AgentData {
     public:
-        AudioRingBuffer();
+        AudioRingBuffer(int ringSamples, int bufferSamples);
         ~AudioRingBuffer();
         AudioRingBuffer(const AudioRingBuffer &otherRingBuffer);
     
@@ -37,9 +31,17 @@ class AudioRingBuffer : public AgentData {
         void setStarted(bool status);
         bool wasAddedToMix();
         void setAddedToMix(bool added);
+        float* getPosition();
+        void setPosition(float newPosition[]);
+        float getBearing();
+        void setBearing(float newBearing);
     
         short diffLastWriteNextOutput();
     private:
+        int ringBufferLengthSamples;
+        int bufferLengthSamples;
+        float position[3];
+        float bearing;
         int16_t *nextOutput;
         int16_t *endOfLastWrite;
         int16_t *buffer;

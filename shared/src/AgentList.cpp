@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include "SharedUtil.h"
 
-const char * SOLO_AGENT_TYPES_STRING = "M";
+const char * SOLO_AGENT_TYPES_STRING = "MV";
 
 bool stopAgentRemovalThread = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -19,11 +19,13 @@ pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
+    voxelServerAddCallback = NULL;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
+    voxelServerAddCallback = NULL;
 }
 
 AgentList::~AgentList() {
@@ -55,13 +57,15 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
         case 'P':
         {
             // ping from another agent
+            //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             char reply[] = "R";
-            agentSocket.send(senderAddress, reply, 1);
+            agentSocket.send(senderAddress, reply, 1);  
             break;
         }
         case 'R':
         {
             // ping reply from another agent
+            //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
             break;
         }
@@ -149,6 +153,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // to use the local socket information the domain server gave us
             sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
             audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
+        } else if (newAgent.getType() == 'V' && voxelServerAddCallback != NULL) {
+            voxelServerAddCallback(localSocket);
         }
         
         std::cout << "Added agent - " << &newAgent << "\n";
@@ -160,7 +166,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->getType() == 'M') {
+        if (agent->getType() == 'M' || agent->getType() == 'V') {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastRecvTimeUsecs(usecTimestampNow());

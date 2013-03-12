@@ -44,6 +44,12 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 
+#ifdef __APPLE__
+
+#include "InterfaceMacOSX.h"
+
+#endif
+
 using namespace std;
 
 int audio_on = 1;                   //  Whether to turn on the audio support
@@ -80,7 +86,7 @@ int fullscreen = 0;
 
 in_addr_t localAddress;
 
-Oscilloscope audioScope(512,200,true);
+Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
@@ -92,10 +98,10 @@ ParticleSystem balls(0,
                      false,                     //  Wrap?
                      0.02,                      //  Noise
                      0.3,                       //  Size scale 
-                     0.0                        //  Gravity 
+                     0.0                        //  Gravity
                      );
 
-Cloud cloud(0,                             //  Particles
+Cloud cloud(0,                         //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -106,7 +112,7 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
-Audio audio(&audioScope);
+Audio audio(&audioScope, &myHead);
 
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
@@ -314,9 +320,6 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    glm::vec3 position(0,0,0);
-    int voxelsMade = voxels.initVoxels(NULL, 10.0, &position);
-    std::cout << voxelsMade << " voxels made. \n";
     
     myHead.setRenderYaw(start_yaw);
 
@@ -329,11 +332,13 @@ void init(void)
     field = Field();
     printf( "Field Initialized.\n" );
 
-    if (noise_on) 
-    {   
+    if (noise_on) {   
         myHead.setNoise(noise);
     }
     
+    char output[] = "I";
+    char address[] = "10.0.0.10";
+    agentList.getAgentSocket().send(address, 40106, output, 1);
     
     
 #ifdef MARKER_CAPTURE
@@ -390,7 +395,20 @@ void reset_sensors()
     }
 }
 
-void update_pos(float frametime)
+void simulateHand(float deltaTime) {
+    //  If mouse is being dragged, send current force to the hand controller
+    if (mouse_pressed == 1)
+    {
+        //  Add a velocity to the hand corresponding to the detected size of the drag vector
+        const float MOUSE_HAND_FORCE = 1.5;
+        float dx = mouse_x - mouse_start_x;
+        float dy = mouse_y - mouse_start_y;
+        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
+        myHead.hand->addVelocity(vel*deltaTime);
+    }
+}
+
+void simulateHead(float frametime)
 //  Using serial data, update avatar/render position and angles
 {
 //    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
@@ -499,7 +517,6 @@ void update_pos(float frametime)
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     myHead.setRenderPitch(render_pitch);
     myHead.setPos(glm::vec3(location[0], location[1], location[2]));
-    audio.setSourcePosition(glm::vec3(location[0], location[1], location[2]));
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
@@ -524,6 +541,7 @@ void display(void)
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
+    
     glPushMatrix();
         glLoadIdentity();
     
@@ -531,7 +549,7 @@ void display(void)
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        GLfloat light_position0[] = { 1.0, 1.0, 0.75, 0.0 };
+        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
         GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
@@ -539,10 +557,10 @@ void display(void)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-
+        
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-
+           
         //  Rotate, translate to camera location
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
@@ -551,21 +569,14 @@ void display(void)
         glColor3f(1,0,0);
         glutSolidSphere(0.25, 15, 15);
     
+        
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
         if (!display_head) cloud.render();
     
         //  Draw voxels
-        glPushMatrix();
-        glTranslatef(WORLD_SIZE/2.0, WORLD_SIZE/2.0, WORLD_SIZE/2.0);
-        glm::vec3 distance(5.0 + location[0], 5.0 + location[1], 5.0 + location[2]);
-        //std::cout << "length: " << glm::length(distance) << "\n";
-        int voxelsRendered = voxels.render(NULL, 10.0, &distance);
-        voxels.setVoxelsRendered(voxelsRendered);
-        //glColor4f(0,0,1,0.5);
-        //glutSolidCube(10.0);
-        glPopMatrix();
+        voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -577,7 +588,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, &location[0]);
+                agentHead->render(0, 0, &location[0]);
                 glPopMatrix();
             }
         }
@@ -591,12 +602,13 @@ void display(void)
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(display_head, &location[0]);
+        myHead.render(display_head, 1, &location[0]);
         glPopMatrix();
             
         //glm::vec3 test(0.5, 0.5, 0.5); 
         //render_vector(&test);
-
+         
+        
     glPopMatrix();
 
     //  Render 2D overlay:  I/O level bar graphs and text  
@@ -665,6 +677,7 @@ void display(void)
     
     glPopMatrix();
     
+
     glutSwapBuffers();
     framecount++;
 }
@@ -707,7 +720,12 @@ void key(unsigned char k, int x, int y)
         }
 
     }
-    if (k == 'h') display_head = !display_head;
+    
+    if (k == 'h') {
+        display_head = !display_head;
+        audio.setMixerLoopbackFlag(display_head);
+    }
+    
     if (k == 'm') head_mirror = !head_mirror;
     
     if (k == 'f') display_field = !display_field;
@@ -739,7 +757,7 @@ void key(unsigned char k, int x, int y)
 //  Receive packets from other agents/servers and decide what to do with them!
 //
 void *networkReceive(void *args)
-{
+{    
     sockaddr senderAddress;
     ssize_t bytesReceived;
     char *incomingPacket = new char[MAX_PACKET_SIZE];
@@ -749,7 +767,14 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            if (incomingPacket[0] == 't') {
+                //  Pass everything but transmitter data to the agent list
+                 myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
+            } else if (incomingPacket[0] == 'V') {
+                voxels.parseData(incomingPacket, bytesReceived);
+            } else {
+               agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            }
         }
     }
     
@@ -766,7 +791,9 @@ void idle(void)
     {
         steps_per_frame++;
         //  Simulation
-        update_pos(1.f/FPS);
+        simulateHead(1.f/FPS);
+        simulateHand(1.f/FPS);
+        
         if (simulate_on) {
             field.simulate(1.f/FPS);
             myHead.simulate(1.f/FPS);
@@ -830,22 +857,8 @@ void motionFunc( int x, int y)
 {
 	mouse_x = x;
 	mouse_y = y;
-    if (mouse_pressed == 1)
-    {
-        //  Send network packet containing mouse location
-        char mouse_string[20];
-        sprintf(mouse_string, "M %d %d\n", mouse_x, mouse_y);
-        //network_send(UDP_socket, mouse_string, strlen(mouse_string));
-        
-        //  Send dragged mouse vector to the hand;
-        float dx = mouse_x - mouse_start_x;
-        float dy = mouse_y - mouse_start_y;
-        glm::vec3 vel(dx*0.003, -dy*0.003, 0);
-        myHead.hand->addVelocity(vel);
-    }
     
     lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-	
 }
 
 void mouseoverFunc( int x, int y)
@@ -867,6 +880,12 @@ void attachNewHeadToAgent(Agent *newAgent) {
 
 void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
+}
+
+void voxelServerAddCallback(sockaddr *voxelServerAddress) {
+    char voxelAsk[] = "I";
+    printf("Asking VS for data!\n");
+    agentList.getAgentSocket().send(voxelServerAddress, voxelAsk, 1);
 }
 
 int main(int argc, char** argv)
@@ -924,12 +943,10 @@ int main(int argc, char** argv)
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    agentList.voxelServerAddCallback = &voxelServerAddCallback;
     
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
-    
-    // create thread for receipt of data via UDP
-    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -953,10 +970,17 @@ int main(int argc, char** argv)
 
     init();
     
+    // create thread for receipt of data via UDP
+    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
+    
     printf( "Init() complete.\n" );
     
     glutTimerFunc(1000, Timer, 0);
-    
+
+#ifdef __APPLE__
+    initMacOSXMenu(&audioScope);
+#endif
+
     glutMainLoop();
 
     ::terminate();

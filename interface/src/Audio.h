@@ -13,14 +13,18 @@
 #include <portaudio.h>
 #include "AudioData.h"
 #include "Oscilloscope.h"
+#include "Head.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope * s);
+    Audio(Oscilloscope *s, Head *linkedHead);
     
     void render();
     void render(int screenWidth, int screenHeight);
+    
+    bool getMixerLoopbackFlag();
+    void setMixerLoopbackFlag(bool newMixerLoopbackFlag);
     
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);

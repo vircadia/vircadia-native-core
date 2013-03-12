@@ -14,5 +14,6 @@
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();
+float randFloat();
 
 #endif /* defined(__hifi__SharedUtil__) */

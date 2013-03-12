@@ -9,11 +9,13 @@
 #ifndef __interface__Cube__
 #define __interface__Cube__
 
+#include "InterfaceConfig.h"
 #include <glm/glm.hpp>
+#include <iostream>
+#include <UDPSocket.h>
+#include <AgentData.h>
 #include "Util.h"
 #include "world.h"
-#include "InterfaceConfig.h"
-#include <iostream>
 
 const int NUM_CHILDREN = 8;
 
@@ -22,17 +24,31 @@ struct Voxel {
     Voxel * children[NUM_CHILDREN];
 };
 
-class VoxelSystem {
+class VoxelSystem : public AgentData {
 public:
+    VoxelSystem();
+    ~VoxelSystem();
+    
+    void parseData(void *data, int size);
+    VoxelSystem* clone() const;
+    
+    void init();
     void simulate(float deltaTime);
     int render(Voxel * voxel, float scale, glm::vec3 * distance);
-    void init();
+    void render();
     int initVoxels(Voxel * root, float scale, glm::vec3 * position);
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
     Voxel * root;
 private:
     int voxelsRendered;
+    GLfloat *verticesArray;
+    GLubyte *colorsArray;
+    GLfloat *lastAddPointer;
+    GLfloat *lastDrawPointer;
+    GLuint vboVerticesID;
+    GLuint vboColorsID;
+    GLuint vboIndicesID;
 };
 
 #endif

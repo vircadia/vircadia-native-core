@@ -9,22 +9,27 @@
 #include <cstring>
 #include "AudioRingBuffer.h"
 
-AudioRingBuffer::AudioRingBuffer() {
+AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) {
+    ringBufferLengthSamples = ringSamples;
+    bufferLengthSamples = bufferSamples;
+    
     started = false;
     addedToMix = false;
     
     endOfLastWrite = NULL;
     
-    buffer = new int16_t[RING_BUFFER_SAMPLES];
+    buffer = new int16_t[ringBufferLengthSamples];
     nextOutput = buffer;
 };
 
 AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
+    ringBufferLengthSamples = otherRingBuffer.ringBufferLengthSamples;
+    bufferLengthSamples = otherRingBuffer.bufferLengthSamples;
     started = otherRingBuffer.started;
     addedToMix = otherRingBuffer.addedToMix;
     
-    buffer = new int16_t[RING_BUFFER_SAMPLES];
-    memcpy(buffer, otherRingBuffer.buffer, sizeof(int16_t) * RING_BUFFER_SAMPLES);
+    buffer = new int16_t[ringBufferLengthSamples];
+    memcpy(buffer, otherRingBuffer.buffer, sizeof(int16_t) * ringBufferLengthSamples);
     
     nextOutput = buffer + (otherRingBuffer.nextOutput - otherRingBuffer.buffer);
     endOfLastWrite = buffer + (otherRingBuffer.endOfLastWrite - otherRingBuffer.buffer);
@@ -74,33 +79,57 @@ void AudioRingBuffer::setAddedToMix(bool added) {
     addedToMix = added;
 }
 
+float* AudioRingBuffer::getPosition() {
+    return position;
+}
+
+void AudioRingBuffer::setPosition(float *newPosition) {
+    position[0] = newPosition[0];
+    position[1] = newPosition[1];
+    position[2] = newPosition[2];
+}
+
+float AudioRingBuffer::getBearing() {
+    return bearing;
+}
+
+void AudioRingBuffer::setBearing(float newBearing) {
+    bearing = newBearing;
+}
+
 void AudioRingBuffer::parseData(void *data, int size) {
-    int16_t *audioDataStart = (int16_t *) data;
+    unsigned char *audioDataStart = (unsigned char *) data;
     
-    if (size > BUFFER_LENGTH_BYTES) {
-        float position[3];
-        unsigned char *charData = (unsigned char *) data;
+    if (size > (bufferLengthSamples * sizeof(int16_t))) {
+        
+        unsigned char *dataPtr = audioDataStart + 1;
         
         for (int p = 0; p < 3; p ++) {
-            memcpy(&position[p], charData + 1 + (sizeof(float) * p), sizeof(float));
+            memcpy(&position[p], dataPtr, sizeof(float));
+            dataPtr += sizeof(float);
         }
         
-        audioDataStart = (int16_t *) charData + 1 + (sizeof(float) * 3);
+        memcpy(&bearing, dataPtr, sizeof(float));
+        dataPtr += sizeof(float);
+        
+        audioDataStart = dataPtr;
     }
-   
 
     if (endOfLastWrite == NULL) {
         endOfLastWrite = buffer;
-    } else if (diffLastWriteNextOutput() > RING_BUFFER_SAMPLES - BUFFER_LENGTH_SAMPLES) {
+    } else if (diffLastWriteNextOutput() > ringBufferLengthSamples - bufferLengthSamples) {
         endOfLastWrite = buffer;
         nextOutput = buffer;
         started = false;
     }
     
-    memcpy(endOfLastWrite, audioDataStart, BUFFER_LENGTH_BYTES);
-    endOfLastWrite += BUFFER_LENGTH_SAMPLES;
+    memcpy(endOfLastWrite, audioDataStart, bufferLengthSamples * sizeof(int16_t));
     
-    if (endOfLastWrite >= buffer + RING_BUFFER_SAMPLES) {
+    endOfLastWrite += bufferLengthSamples;
+    
+    addedToMix = false;
+    
+    if (endOfLastWrite >= buffer + ringBufferLengthSamples) {
         endOfLastWrite = buffer;
     }    
 }
@@ -113,7 +142,7 @@ short AudioRingBuffer::diffLastWriteNextOutput()
         short sampleDifference = endOfLastWrite - nextOutput;
         
         if (sampleDifference < 0) {
-            sampleDifference += RING_BUFFER_SAMPLES;
+            sampleDifference += ringBufferLengthSamples;
         }
         
         return sampleDifference;

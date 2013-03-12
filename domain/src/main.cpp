@@ -68,10 +68,10 @@ int main(int argc, const char * argv[])
     
     agentList.startSilentAgentRemovalThread();
     
-    std::map<char, Agent *> newestSoloAgents;
-    
     while (true) {
         if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
+            std::map<char, Agent *> newestSoloAgents;
+            
             agentType = packetData[0];
             unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
             

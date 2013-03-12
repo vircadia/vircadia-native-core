@@ -47,7 +47,7 @@ class Head : public AgentData {
         float getRoll() {return Roll;}
         float getYaw() {return Yaw;}
         
-        void render(int faceToFace, float * myLocation);
+        void render(int faceToFace, int isMine, float * myLocation);
         void simulate(float);
         
         //  Send and receive network data
@@ -95,9 +95,11 @@ class Head : public AgentData {
         float scale;
         
         //  Sound loudness information
-        float loudness;
+        float loudness, lastLoudness;
         float averageLoudness;
-        
+        float audioAttack;
+        float browAudioLift;
+    
         glm::vec3 position;
         int eyeContact;
         eyeContactTargets eyeContactTarget;
