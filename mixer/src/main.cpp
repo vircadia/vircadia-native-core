@@ -39,7 +39,7 @@ const int PHASE_DELAY_AT_90 = 20;
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
-const int LOOPBACK_SANITY_CHECK = 1;
+const int LOOPBACK_SANITY_CHECK = 0;
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
