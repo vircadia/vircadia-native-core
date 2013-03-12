@@ -57,6 +57,7 @@ bool stopAudioReceiveThread = false;
 
 timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
+float usecsAtStartup = 0;
 
 #define LOG_SAMPLE_DELAY 0
 
@@ -224,10 +225,16 @@ void *receiveAudioViaUDP(void *args) {
     int16_t *receivedData = new int16_t[PACKET_LENGTH_SAMPLES];
     ssize_t receivedBytes;
     
+    //  Init Jitter timer values 
     timeval previousReceiveTime, currentReceiveTime = {};
+    gettimeofday(&previousReceiveTime, NULL);
+    gettimeofday(&currentReceiveTime, NULL);
+    
+    int totalPacketsReceived = 0;
+    
+    stdev.reset();
     
     if (LOG_SAMPLE_DELAY) {
-        gettimeofday(&previousReceiveTime, NULL);
         
         char *directory = new char[50];
         char *filename = new char[50];
@@ -245,30 +252,24 @@ void *receiveAudioViaUDP(void *args) {
         
     while (!stopAudioReceiveThread) {
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
-            bool firstSample = (currentReceiveTime.tv_sec == 0);
             
             gettimeofday(&currentReceiveTime, NULL);
+            totalPacketsReceived++;
 
             if (LOG_SAMPLE_DELAY) {
-                if (!firstSample) {
-                    // write time difference (in microseconds) between packet receipts to file
-                    double timeDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
-                    logFile << timeDiff << std::endl;
-                }
+                // write time difference (in microseconds) between packet receipts to file
+                double timeDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
+                logFile << timeDiff << std::endl;
             }
             
-            //  Compute and report standard deviation for jitter calculation
-            if (firstSample) {
+            double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
+            //printf("tDiff %4.1f\n", tDiff);
+            //  Discard first few received packets for computing jitter (often they pile up on start)    
+            if (totalPacketsReceived > 3) stdev.addValue(tDiff);
+            if (stdev.getSamples() > 500) {
+                sharedAudioData->measuredJitter = stdev.getStDev();
+                printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
                 stdev.reset();
-            } else {
-                double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
-                //printf(\n";
-                stdev.addValue(tDiff);
-                if (stdev.getSamples() > 500) {
-                    sharedAudioData->measuredJitter = stdev.getStDev();
-                    printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
-                    stdev.reset();
-                }
             }
             
             AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
@@ -280,14 +281,11 @@ void *receiveAudioViaUDP(void *args) {
             else {
                 //printf("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
             }
-            
             if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
 
             ringBuffer->parseData(receivedData, PACKET_LENGTH_BYTES);
-    
-            if (LOG_SAMPLE_DELAY) {
-                gettimeofday(&previousReceiveTime, NULL);
-            }
+
+            previousReceiveTime = currentReceiveTime;
         }
     }
     
