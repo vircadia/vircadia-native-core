@@ -12,9 +12,10 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
-#include "AudioRingBuffer.h"
 #include <AgentList.h>
 #include <SharedUtil.h>
+#include <StdDev.h>
+#include "AudioRingBuffer.h"
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
@@ -39,11 +40,14 @@ const int PHASE_DELAY_AT_90 = 20;
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
+const int LOOPBACK_SANITY_CHECK = 0;
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
 
 AgentList agentList(MIXER_LISTEN_PORT);
+StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
@@ -58,16 +62,12 @@ void *sendBuffer(void *args)
 {
     int sentBytes;
     int nextFrame = 0;
-    timeval startTime, lastSend;
+    timeval startTime;
     
     gettimeofday(&startTime, NULL);
-    gettimeofday(&lastSend, NULL);
 
     while (true) {
         sentBytes = 0;
-        
-        printf("Last send was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastSend)) / 1000);
-        gettimeofday(&lastSend, NULL);
         
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList.getAgents()[i].getLinkedData();
@@ -81,6 +81,22 @@ void *sendBuffer(void *args)
                     printf("Buffer %d starved.\n", i);
                     agentBuffer->setStarted(false);
                 } else {
+                    
+                    // check if we have more than we need to play out
+                    int thresholdFrames = ceilf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) / (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                    int thresholdSamples = thresholdFrames * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                    
+                    if (agentBuffer->diffLastWriteNextOutput() > thresholdSamples) {
+                        // we need to push the next output forwards
+                        int samplesToPush = agentBuffer->diffLastWriteNextOutput() - thresholdSamples;
+                        
+                        if (agentBuffer->getNextOutput() + samplesToPush > agentBuffer->getBuffer()) {
+                            agentBuffer->setNextOutput(agentBuffer->getBuffer() + (samplesToPush - (agentBuffer->getBuffer() + RING_BUFFER_SAMPLES - agentBuffer->getNextOutput())));
+                        } else {
+                            agentBuffer->setNextOutput(agentBuffer->getNextOutput() + samplesToPush);
+                        }
+                    }
+                    
                     // good buffer, add this to the mix
                     agentBuffer->setStarted(true);
                     agentBuffer->setAddedToMix(true);
@@ -283,14 +299,45 @@ int main(int argc, const char * argv[])
     pthread_t sendBufferThread;
     pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
     
+    int16_t *loopbackAudioPacket;
+    if (LOOPBACK_SANITY_CHECK) {
+        loopbackAudioPacket = new int16_t[1024];
+    }
+    
     sockaddr *agentAddress = new sockaddr;
+    timeval lastReceive;
+    gettimeofday(&lastReceive, NULL);
+    
+    bool firstSample = true;
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'I') {
+                                
+                //  Compute and report standard deviation for jitter calculation
+                if (firstSample) {
+                    stdev.reset();
+                    firstSample = false;
+                } else {
+                    double tDiff = (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000;
+                    stdev.addValue(tDiff);
+                    
+                    if (stdev.getSamples() > 500) {
+                        printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                        stdev.reset();
+                    }
+                }
+                
+                gettimeofday(&lastReceive, NULL);
+                
                 // add or update the existing interface agent
-                agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
-                agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                if (!LOOPBACK_SANITY_CHECK) {
+                    agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
+                    agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                } else {
+                    memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
+                    agentList.getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);
+                }
             }
         }
     }

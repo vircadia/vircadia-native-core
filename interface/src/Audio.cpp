@@ -12,10 +12,11 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <cstring>
+#include <SharedUtil.h>
+#include <StdDev.h>
+#include <UDPSocket.h>
 #include "Audio.h"
 #include "Util.h"
-#include <SharedUtil.h>
-#include "UDPSocket.h"
 
 Oscilloscope * scope;
 

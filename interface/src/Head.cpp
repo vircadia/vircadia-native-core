@@ -8,10 +8,13 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
-#include <cstring>
 #include "Head.h"
-#include "Util.h"
-#include "SerialInterface.h"
+#include <vector>
+#include <lodepng.h>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
 
 float skinColor[] = {1.0, 0.84, 0.66};
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -27,6 +30,14 @@ float browWidth = 0.8;
 float browThickness = 0.16;
 
 const float DECAY = 0.1;
+
+char iris_texture_file[] = "interface.app/Contents/Resources/images/green_eye.png";
+
+vector<unsigned char> iris_texture;
+unsigned int iris_texture_width = 512;
+unsigned int iris_texture_height = 256;
+
+GLUquadric *sphere = gluNewQuadric();
 
 Head::Head()
 {
@@ -61,13 +72,66 @@ Head::Head()
     averageLoudness = 0.0;
     lastLoudness = 0.0;
     browAudioLift = 0.0;
+    noise = 0;
     
-    setNoise(0);
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+
+    if (iris_texture.size() == 0) {
+        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
+        if (error != 0) {
+            std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+        }
+    }
+}
+
+Head::Head(const Head &otherHead) {
+    position = otherHead.position;
+    PupilSize = otherHead.PupilSize;
+    interPupilDistance = otherHead.interPupilDistance;
+    interBrowDistance = otherHead.interBrowDistance;
+    NominalPupilSize = otherHead.NominalPupilSize;
+    Yaw = otherHead.Yaw;
+    EyebrowPitch[0] = otherHead.EyebrowPitch[0];
+    EyebrowPitch[1] = otherHead.EyebrowPitch[1];
+    EyebrowRoll[0] = otherHead.EyebrowRoll[0];
+    EyebrowRoll[1] = otherHead.EyebrowRoll[1];
+    MouthPitch = otherHead.MouthPitch;
+    MouthYaw = otherHead.MouthYaw;
+    MouthWidth = otherHead.MouthWidth;
+    MouthHeight = otherHead.MouthHeight;
+    EyeballPitch[0] = otherHead.EyeballPitch[0];
+    EyeballPitch[1] = otherHead.EyeballPitch[1];
+    EyeballScaleX = otherHead.EyeballScaleX;
+    EyeballScaleY = otherHead.EyeballScaleY;
+    EyeballScaleZ = otherHead.EyeballScaleZ;
+    EyeballYaw[0] = otherHead.EyeballYaw[0];
+    EyeballYaw[1] = otherHead.EyeballYaw[1];
+    PitchTarget = otherHead.PitchTarget;
+    YawTarget = otherHead.YawTarget;
+    NoiseEnvelope = otherHead.NoiseEnvelope;
+    PupilConverge = otherHead.PupilConverge;
+    leanForward = otherHead.leanForward;
+    leanSideways = otherHead.leanSideways;
+    eyeContact = otherHead.eyeContact;
+    eyeContactTarget = otherHead.eyeContactTarget;
+    scale = otherHead.scale;
+    renderYaw = otherHead.renderYaw;
+    renderPitch = otherHead.renderPitch;
+    audioAttack = otherHead.audioAttack;
+    loudness = otherHead.loudness;
+    averageLoudness = otherHead.averageLoudness;
+    lastLoudness = otherHead.lastLoudness;
+    browAudioLift = otherHead.browAudioLift;
+    noise = otherHead.noise;
+    
+    Hand newHand = Hand(*otherHead.hand);
+    hand = &newHand;
 }
 
 Head::~Head() {
-    // all data is primitive, do nothing
+    if (sphere) {
+        gluDeleteQuadric(sphere);
+    }
 }
 
 Head* Head::clone() const {
@@ -218,11 +282,11 @@ void Head::simulate(float deltaTime)
         {
             SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
         }
-        
+
         if (0)
         {
-            
-            //  Pick new target 
+
+            //  Pick new target
             PitchTarget = (randFloat() - 0.5)*45;
             YawTarget = (randFloat() - 0.5)*22;
         }
@@ -341,14 +405,29 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
             glutSolidSphere(0.25, 30, 30);
         }
         glPopMatrix();
+        
         // Right Pupil
+        if (!sphere) {
+            sphere = gluNewQuadric();
+            gluQuadricTexture(sphere, GL_TRUE);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            gluQuadricOrientation(sphere, GLU_OUTSIDE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+        }
+
         glPushMatrix();
+        {
             glRotatef(EyeballPitch[1], 1, 0, 0);
             glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
             glTranslatef(0,0,.35);
-                    if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-            //glRotatef(90,0,1,0);
-            glutSolidSphere(PupilSize, 15, 15);
+            glRotatef(-75,1,0,0);
+            glScalef(1.0, 0.4, 1.0);
+            
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, PupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }
 
         glPopMatrix();
         // Left Eye
@@ -364,14 +443,19 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
         glPopMatrix();
         // Left Pupil
         glPushMatrix();
+        {
             glRotatef(EyeballPitch[0], 1, 0, 0);
             glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-            glTranslatef(0,0,.35);
-            if (!eyeContact) glColor3f(0,0,0); else glColor3f(0.3,0.3,0.3);
-            //glRotatef(90,0,1,0);
-            glutSolidSphere(PupilSize, 15, 15);
-        glPopMatrix();
+            glTranslatef(0, 0, .35);
+            glRotatef(-75, 1, 0, 0);
+            glScalef(1.0, 0.4, 1.0);
+
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, PupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }
         
+        glPopMatrix();
 
     }
     glPopMatrix();

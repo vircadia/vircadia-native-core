@@ -24,6 +24,7 @@ class Head : public AgentData {
     public:
         Head();
         ~Head();
+        Head(const Head &otherHead);
         Head* clone() const;
     
         void reset();

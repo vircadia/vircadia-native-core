@@ -19,6 +19,7 @@
 class Hand {
 public:
     Hand(glm::vec3 color);
+    Hand(const Hand &otherHand);
     void simulate (float deltaTime);
     void render (int isMine);
     void reset ();

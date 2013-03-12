@@ -33,7 +33,6 @@ public:
     bool terminate();
 private:    
     bool initialized;
-    
     AudioData *audioData;
     
     // protects constructor so that public init method is used
