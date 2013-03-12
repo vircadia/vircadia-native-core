@@ -915,30 +915,6 @@ int main(int argc, char** argv)
             printf("Failed lookup domainserver\n");
         }
     } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
-    
-    printf("Testing stats math... ");
-    StDev stdevtest;
-    stdevtest.reset();
-    stdevtest.addValue(1345);
-    stdevtest.addValue(1301);
-    stdevtest.addValue(1368);
-    stdevtest.addValue(1322);
-    stdevtest.addValue(1310);
-    stdevtest.addValue(1370);
-    stdevtest.addValue(1318);
-    stdevtest.addValue(1350);
-    stdevtest.addValue(1303);
-    stdevtest.addValue(1299);
-    
-    if (stdevtest.getSamples() != 10)
-        printf("Samples=FAIL ");
-        
-    if (floor(stdevtest.getAverage()*100.0) != 132859.0)
-        printf("Average=FAIL ");
-
-    if (floor(stdevtest.getStDev()*100.0) != 2746.0)
-        printf("Stdev=FAIL ");
-    printf("\n");
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
