@@ -4,7 +4,7 @@ interface
 Test platform for various render and interface tests for next-gen VR system.
 
 CMake
-=====
+-----
 
 This project uses CMake to generate build files and project files for your platform.
 
