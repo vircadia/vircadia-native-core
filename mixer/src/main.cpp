@@ -58,12 +58,16 @@ void *sendBuffer(void *args)
 {
     int sentBytes;
     int nextFrame = 0;
-    timeval startTime;
+    timeval startTime, lastSend;
     
     gettimeofday(&startTime, NULL);
+    gettimeofday(&lastSend, NULL);
 
     while (true) {
         sentBytes = 0;
+        
+        printf("Last send was %f us ago", usecTimestampNow() - usecTimestamp(&lastSend));
+        gettimeofday(&lastSend, NULL);
         
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList.getAgents()[i].getLinkedData();
