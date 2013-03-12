@@ -72,10 +72,9 @@ Head::Head()
     averageLoudness = 0.0;
     lastLoudness = 0.0;
     browAudioLift = 0.0;
+    noise = 0;
     
-    setNoise(0);
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
-
 
     if (iris_texture.size() == 0) {
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -85,14 +84,54 @@ Head::Head()
     }
 }
 
+Head::Head(const Head &otherHead) {
+    position = otherHead.position;
+    PupilSize = otherHead.PupilSize;
+    interPupilDistance = otherHead.interPupilDistance;
+    interBrowDistance = otherHead.interBrowDistance;
+    NominalPupilSize = otherHead.NominalPupilSize;
+    Yaw = otherHead.Yaw;
+    EyebrowPitch[0] = otherHead.EyebrowPitch[0];
+    EyebrowPitch[1] = otherHead.EyebrowPitch[1];
+    EyebrowRoll[0] = otherHead.EyebrowRoll[0];
+    EyebrowRoll[1] = otherHead.EyebrowRoll[1];
+    MouthPitch = otherHead.MouthPitch;
+    MouthYaw = otherHead.MouthYaw;
+    MouthWidth = otherHead.MouthWidth;
+    MouthHeight = otherHead.MouthHeight;
+    EyeballPitch[0] = otherHead.EyeballPitch[0];
+    EyeballPitch[1] = otherHead.EyeballPitch[1];
+    EyeballScaleX = otherHead.EyeballScaleX;
+    EyeballScaleY = otherHead.EyeballScaleY;
+    EyeballScaleZ = otherHead.EyeballScaleZ;
+    EyeballYaw[0] = otherHead.EyeballYaw[0];
+    EyeballYaw[1] = otherHead.EyeballYaw[1];
+    PitchTarget = otherHead.PitchTarget;
+    YawTarget = otherHead.YawTarget;
+    NoiseEnvelope = otherHead.NoiseEnvelope;
+    PupilConverge = otherHead.PupilConverge;
+    leanForward = otherHead.leanForward;
+    leanSideways = otherHead.leanSideways;
+    eyeContact = otherHead.eyeContact;
+    eyeContactTarget = otherHead.eyeContactTarget;
+    scale = otherHead.scale;
+    renderYaw = otherHead.renderYaw;
+    renderPitch = otherHead.renderPitch;
+    audioAttack = otherHead.audioAttack;
+    loudness = otherHead.loudness;
+    averageLoudness = otherHead.averageLoudness;
+    lastLoudness = otherHead.lastLoudness;
+    browAudioLift = otherHead.browAudioLift;
+    noise = otherHead.noise;
+    
+    Hand newHand = Hand(*otherHead.hand);
+    hand = &newHand;
+}
+
 Head::~Head() {
     if (sphere) {
         gluDeleteQuadric(sphere);
     }
-}
-
-Head* Head::clone() const {
-    return new Head(*this);
 }
 
 Head* Head::clone() const {

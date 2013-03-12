@@ -27,6 +27,25 @@ Hand::Hand(glm::vec3 initcolor)
     renderPointer = true;
 }
 
+Hand::Hand(const Hand &otherHand) {
+    color = otherHand.color;
+    noise = otherHand.noise;
+    scale = otherHand.scale;
+    position = otherHand.position;
+    target = otherHand.target;
+    velocity = otherHand.color;
+    pitch = otherHand.pitch;
+    yaw = otherHand.yaw;
+    roll = otherHand.roll;
+    pitchRate = otherHand.pitchRate;
+    yawRate = otherHand.yawRate;
+    rollRate = otherHand.rollRate;
+    transmitterTimer = otherHand.transmitterTimer;
+    transmitterHz = otherHand.transmitterHz;
+    transmitterPackets = otherHand.transmitterPackets;
+    renderPointer = otherHand.renderPointer;
+}
+
 void Hand::reset()
 {
     position.x = DEFAULT_X;
