@@ -12,9 +12,10 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
-#include "AudioRingBuffer.h"
 #include <AgentList.h>
 #include <SharedUtil.h>
+#include <StdDev.h>
+#include "AudioRingBuffer.h"
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
@@ -46,6 +47,7 @@ char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
 
 AgentList agentList(MIXER_LISTEN_PORT);
+StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
@@ -60,7 +62,7 @@ void *sendBuffer(void *args)
 {
     int sentBytes;
     int nextFrame = 0;
-    timeval startTime, lastSend;
+    timeval startTime;
     
     gettimeofday(&startTime, NULL);
 
@@ -305,12 +307,27 @@ int main(int argc, const char * argv[])
     sockaddr *agentAddress = new sockaddr;
     timeval lastReceive;
     gettimeofday(&lastReceive, NULL);
+    
+    bool firstSample = true;
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'I') {
+                                
+                //  Compute and report standard deviation for jitter calculation
+                if (firstSample) {
+                    stdev.reset();
+                    firstSample = false;
+                } else {
+                    double tDiff = (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000;
+                    stdev.addValue(tDiff);
+                    
+                    if (stdev.getSamples() > 500) {
+                        printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                        stdev.reset();
+                    }
+                }
                 
-                printf("Last receive was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000);
                 gettimeofday(&lastReceive, NULL);
                 
                 // add or update the existing interface agent
