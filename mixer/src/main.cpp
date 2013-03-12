@@ -81,6 +81,22 @@ void *sendBuffer(void *args)
                     printf("Buffer %d starved.\n", i);
                     agentBuffer->setStarted(false);
                 } else {
+                    
+                    // check if we have more than we need to play out
+                    int thresholdFrames = ceilf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) / (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                    int thresholdSamples = thresholdFrames * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                    
+                    if (agentBuffer->diffLastWriteNextOutput() > thresholdSamples) {
+                        // we need to push the next output forwards
+                        int samplesToPush = agentBuffer->diffLastWriteNextOutput() - thresholdSamples;
+                        
+                        if (agentBuffer->getNextOutput() + samplesToPush > agentBuffer->getBuffer()) {
+                            agentBuffer->setNextOutput(agentBuffer->getBuffer() + (samplesToPush - (agentBuffer->getBuffer() + RING_BUFFER_SAMPLES - agentBuffer->getNextOutput())));
+                        } else {
+                            agentBuffer->setNextOutput(agentBuffer->getNextOutput() + samplesToPush);
+                        }
+                    }
+                    
                     // good buffer, add this to the mix
                     agentBuffer->setStarted(true);
                     agentBuffer->setAddedToMix(true);
