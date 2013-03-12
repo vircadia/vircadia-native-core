@@ -9,7 +9,7 @@
 #include "Texture.h"
 
 #include "InterfaceConfig.h"
-#include <LodePNG/lodepng.h>
+#include <lodepng.h>
 #include <vector>
 #include <cstdio>
 
