@@ -24,12 +24,3 @@ profile
 DerivedData
 .idea/
 *.hmap
-
-interface/Debug/
-interface/external/
-interface/hifi.build/
-
-shared/Debug/
-shared/hifi.build/
-
-interface/includes/InterfaceConfig.h
