@@ -63,13 +63,9 @@ void *sendBuffer(void *args)
     timeval startTime, lastSend;
     
     gettimeofday(&startTime, NULL);
-    gettimeofday(&lastSend, NULL);
 
     while (true) {
         sentBytes = 0;
-        
-        printf("Last send was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastSend)) / 1000);
-        gettimeofday(&lastSend, NULL);
         
         for (int i = 0; i < agentList.getAgents().size(); i++) {
             AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList.getAgents()[i].getLinkedData();
@@ -307,10 +303,16 @@ int main(int argc, const char * argv[])
     }
     
     sockaddr *agentAddress = new sockaddr;
+    timeval lastReceive;
+    gettimeofday(&lastReceive, NULL);
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'I') {
+                
+                printf("Last receive was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000);
+                gettimeofday(&lastreceive, NULL);
+                
                 // add or update the existing interface agent
                 if (!LOOPBACK_SANITY_CHECK) {
                     agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
