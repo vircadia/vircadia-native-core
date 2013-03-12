@@ -8,7 +8,7 @@ CMake
 
 This project uses CMake to generate build files and project files for your platform.
 
-Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean, and makes the gitignore a little easier to handle, since we can just ignore build.
+Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean, and makes the gitignore a little easier to handle (since we can just ignore build).
 
     mkdir build
     cd build
