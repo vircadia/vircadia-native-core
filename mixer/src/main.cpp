@@ -66,7 +66,7 @@ void *sendBuffer(void *args)
     while (true) {
         sentBytes = 0;
         
-        printf("Last send was %f us ago", usecTimestampNow() - usecTimestamp(&lastSend));
+        printf("Last send was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastSend)) / 1000);
         gettimeofday(&lastSend, NULL);
         
         for (int i = 0; i < agentList.getAgents().size(); i++) {
