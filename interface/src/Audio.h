@@ -29,8 +29,6 @@ public:
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
-    void setSourcePosition(glm::vec3 position);
-    
     // terminates audio I/O
     bool terminate();
 private:    
