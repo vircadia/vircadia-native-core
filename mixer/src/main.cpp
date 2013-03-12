@@ -311,7 +311,7 @@ int main(int argc, const char * argv[])
             if (packetData[0] == 'I') {
                 
                 printf("Last receive was %f ms ago\n", (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000);
-                gettimeofday(&lastreceive, NULL);
+                gettimeofday(&lastReceive, NULL);
                 
                 // add or update the existing interface agent
                 if (!LOOPBACK_SANITY_CHECK) {
