@@ -39,6 +39,8 @@ const int PHASE_DELAY_AT_90 = 20;
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
+const int LOOPBACK_SANITY_CHECK = 1;
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102; 
@@ -299,14 +301,24 @@ int main(int argc, const char * argv[])
     pthread_t sendBufferThread;
     pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
     
+    int16_t *loopbackAudioPacket;
+    if (LOOPBACK_SANITY_CHECK) {
+        loopbackAudioPacket = new int16_t[1024];
+    }
+    
     sockaddr *agentAddress = new sockaddr;
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'I') {
                 // add or update the existing interface agent
-                agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
-                agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                if (!LOOPBACK_SANITY_CHECK) {
+                    agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
+                    agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                } else {
+                    memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
+                    agentList.getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);
+                }
             }
         }
     }
