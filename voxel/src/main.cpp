@@ -53,7 +53,7 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'V';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 895283510, htons(VOXEL_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
