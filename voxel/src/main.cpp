@@ -14,6 +14,7 @@
 #include <cstring>
 #include <cstdio>
 #include <SharedUtil.h>
+#include <AgentList.h>
 
 const int VOXEL_LISTEN_PORT = 40106;
 
