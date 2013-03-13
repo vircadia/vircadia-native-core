@@ -68,6 +68,8 @@ void *reportAliveToDS(void *args) {
 
 int main(int argc, const char * argv[])
 {
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    
     // get the local address of the voxel server
     struct ifaddrs * ifAddrStruct=NULL;
     struct ifaddrs * ifa=NULL;

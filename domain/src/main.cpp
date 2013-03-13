@@ -53,6 +53,8 @@ unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent 
 
 int main(int argc, const char * argv[])
 {
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    
     ssize_t receivedBytes = 0;
     char agentType;
     

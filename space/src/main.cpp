@@ -123,6 +123,8 @@ bool loadSpaceData(void) {
 
 int main (int argc, const char *argv[]) {
     
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    
     unsigned char packetData[PACKET_LENGTH_BYTES];
     ssize_t receivedBytes = 0;
     
