@@ -47,8 +47,8 @@ void VoxelSystem::parseData(void *data, int size) {
     // ignore the first char, it's a V to tell us that this is voxel data
     char *voxelDataPtr = (char *) data + 1;
 
-    float *position = new float[3];
-    char *color = new char[3];
+    GLfloat *position = new GLfloat[3];
+    GLubyte *color = new GLubyte[3];
 
     // get pointers to position of last append of data
     GLfloat *parseVerticesPtr = lastAddPointer;
@@ -75,6 +75,7 @@ void VoxelSystem::parseData(void *data, int size) {
         }
         
         parseColorsPtr += COLOR_VALUES_PER_VOXEL;
+      
         
         voxelsInData++;
     }
@@ -139,7 +140,7 @@ void VoxelSystem::render() {
         
         // bind the vertices VBO, copy in new data
         glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
-        glBufferSubData(GL_ARRAY_BUFFER, vertexBufferOffset * sizeof(float), vertexValuesToDraw * sizeof(float), lastDrawPointer);
+        glBufferSubData(GL_ARRAY_BUFFER, vertexBufferOffset * sizeof(GLfloat), vertexValuesToDraw * sizeof(GLfloat), lastDrawPointer);
         
         // bind the colors VBO, copy in new data
         glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
@@ -158,9 +159,9 @@ void VoxelSystem::render() {
     
     glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-    
-    glNormal3f(0, 1, 0);
-    
+   
+    // draw the number of voxels we have
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
     // deactivate vertex and color arrays after drawing
