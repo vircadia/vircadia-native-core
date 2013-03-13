@@ -6,12 +6,13 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include <AgentList.h>
 #include <sys/time.h>
-#include <SharedUtil.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
 #include <SharedUtil.h>
 
 const int VOXEL_LISTEN_PORT = 40106;
