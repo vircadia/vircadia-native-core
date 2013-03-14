@@ -36,7 +36,9 @@ const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const float DISTANCE_RATIO = 3.0/4.2;
+const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
+
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
@@ -165,6 +167,9 @@ void *sendBuffer(void *args)
                     
                     float sinRatio = fabsf(sinf(angleToSource));
                     int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                    float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                    
+                    printf("The weak channel AR is %f\n", weakChannelAmplitudeRatio);
                     
                     int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
                     int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
@@ -180,14 +185,14 @@ void *sendBuffer(void *args)
                             // pull the earlier sample for the delayed channel
                             
                             int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
-                            plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                            plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                         }
                         
                         int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
                         plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample);
+                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample * weakChannelAmplitudeRatio);
                         }
                     }
                 }
@@ -230,8 +235,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
