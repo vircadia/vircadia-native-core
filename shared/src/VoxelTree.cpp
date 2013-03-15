@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include "OctalCode.h"
 #include "VoxelTree.h"
 
 const int MAX_TREE_SLICE_BYTES = 26;
@@ -21,14 +22,44 @@ char * VoxelTree::loadBitstream(char * bitstreamBuffer,
     
     if (bitstreamRootNode->childMask != 0) {
         
-        if ((bitstreamBuffer + MAX_TREE_SLICE_BYTES - *packetSplitPtr) > MAX_VOXEL_PACKET_SIZE) {
+        if (bitstreamRootNode == rootNode || (bitstreamBuffer + MAX_TREE_SLICE_BYTES - *packetSplitPtr) > MAX_VOXEL_PACKET_SIZE) {
             // we need to add a packet split here
             
-            // add the octal code for the current root
             
-            // increment packetSplitPtr and set the pointer it points to
-            // to the beginning of the next tree section
-            *(++packetSplitPtr) = bitstreamBuffer;
+            if (bitstreamRootNode == rootNode) {
+                // set the packetSplitPtr and increment bitstream buffer by 1 for leading V
+                *packetSplitPtr = bitstreamBuffer;
+                
+                // lead packet with a V
+                *(bitstreamBuffer++) = 'V';
+                // root node octal code length byte is 0
+                *(bitstreamBuffer++) = 0;
+            } else {
+                // increment packetSplitPtr and set the pointer it points to
+                // to the beginning of this tree section
+                
+                // bistreamBuffer is incremented for leading V
+                *(++packetSplitPtr) = bitstreamBuffer;
+                
+                // lead packet with a V
+                *(bitstreamBuffer++) = 'V';
+                
+                // add the octal code for the current root
+                int bytesForOctalCode = bytesRequiredForCodeLength(*bitstreamRootNode->octalCode);
+                memcpy(bitstreamBuffer, bitstreamRootNode->octalCode, bytesForOctalCode);
+                
+                // push the bitstreamBuffer forwards by the number of bytes used for the octal code
+                bitstreamBuffer += bytesForOctalCode;
+            }            
+        
+            // set the color bit for this node
+            *(bitstreamBuffer++) = (int)(bitstreamRootNode->color[3] != 0);
+            
+            // copy this node's color into the bitstreamBuffer, if required
+            if (bitstreamRootNode->color[3] != 0) {
+                memcpy(bitstreamBuffer, bitstreamRootNode->color, 3);
+                bitstreamBuffer += 3;
+            }
         }
         
         // default color mask is 0, increment pointer for colors
@@ -55,7 +86,8 @@ char * VoxelTree::loadBitstream(char * bitstreamBuffer,
         
         // push the bitstreamBuffer forwards for the number of added colors
         bitstreamBuffer += (colorPointer - bitstreamBuffer);
-        // copy the childMask to the current position of the bitstreamBuffer, and increment it
+        // copy the childMask to the current position of the bitstreamBuffer
+        // and push the buffer pointer forwards
         *(bitstreamBuffer++) = bitstreamRootNode->childMask;
         
         for (int j = 0; j < 8; j++) {
