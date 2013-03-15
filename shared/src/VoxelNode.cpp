@@ -10,6 +10,9 @@
 
 VoxelNode::VoxelNode() {
     
+    childMask = 0;
+    octalCode = NULL;
+    
     // default pointers to child nodes to NULL
     for (int i = 0; i < 8; i++) {
         children[i] = NULL;

@@ -15,6 +15,7 @@ class VoxelNode {
 public:
     VoxelNode();
     
+    unsigned char *octalCode;
     unsigned char color[4];
     VoxelNode *children[8];
     unsigned char childMask;
