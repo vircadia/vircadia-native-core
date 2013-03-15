@@ -14,7 +14,9 @@
 #include <cstring>
 #include <cstdio>
 #include <SharedUtil.h>
+#include <OctalCode.h>
 #include <AgentList.h>
+#include <VoxelTree.h>
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -37,11 +39,19 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 1;
+const int MAX_VOXEL_BITSTREAM_BYTES = 100000;
+
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;
+char voxelBitStream[MAX_VOXEL_BITSTREAM_BYTES];
 
 unsigned char randomColorValue() {
     return MIN_BRIGHTNESS + (rand() % (255 - MIN_BRIGHTNESS));
+}
+
+bool randomBoolean() {
+    return rand() % 2;
 }
 
 void *reportAliveToDS(void *args) {
@@ -53,7 +63,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'V';
-        packSocket(output + 1, 895283510, htons(VOXEL_LISTEN_PORT));
+//        packSocket(output + 1, 895283510, htons(VOXEL_LISTEN_PORT));
+        packSocket(output + 1, 788637888, htons(VOXEL_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
@@ -63,6 +74,76 @@ void *reportAliveToDS(void *args) {
         } else {
             std::cout << "No sleep required!";
         }
+    }
+}
+
+void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
+    // randomly generate children for this node
+    // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
+    if (levelsToGo > 0) {
+        
+        int coloredChildren = 0;
+        bool createdChildren = false;
+        unsigned char sumColor[3] = {};
+        
+        createdChildren = false;
+
+        for (int i = 0; i < 8; i++) {
+            if (randomBoolean() || levelsToGo == MAX_VOXEL_TREE_DEPTH_LEVELS) {
+                // create a new VoxelNode to put here
+                currentRootNode->children[i] = new VoxelNode();
+                
+                // give this child it's octal code
+                currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
+                
+                printf("Child node in position %d at level %d\n", i, MAX_VOXEL_TREE_DEPTH_LEVELS - levelsToGo);
+                
+                // fill out the lower levels of the tree using that node as the root node
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
+                
+                if (currentRootNode->children[i]) {
+                    for (int c = 0; c < 3; c++) {
+                        sumColor[c] += currentRootNode->children[i]->color[c];
+                    }
+                    
+                    coloredChildren++;
+                }
+                
+                currentRootNode->childMask += (1 << (7 - i));
+                createdChildren = true;
+            }
+        }
+        
+        // figure out the color value for this node
+        
+        if (coloredChildren > 4 || !createdChildren) {
+            // we need at least 4 colored children to have an average color value
+            // or if we have none we generate random values
+            
+            for (int c = 0; c < 3; c++) {
+                if (coloredChildren > 4) {
+                    // set the average color value
+                    currentRootNode->color[c] = sumColor[c] / coloredChildren;
+                } else {
+                    // we have no children, we're a leaf
+                    // generate a random color value
+                    currentRootNode->color[c] = randomColorValue();
+                }
+            }
+            
+            // set the alpha to 1 to indicate that this isn't transparent
+            currentRootNode->color[3] = 1;
+        } else {
+            // some children, but not enough
+            // set this node's alpha to 0
+            currentRootNode->color[3] = 0;
+        }
+    } else {
+        // this is a leaf node, just give it a color
+        currentRootNode->color[0] = randomColorValue();
+        currentRootNode->color[1] = randomColorValue();
+        currentRootNode->color[2] = randomColorValue();
+        currentRootNode->color[3] = 1;
     }
 }
 
@@ -103,64 +184,40 @@ int main(int argc, const char * argv[])
     pthread_t reportAliveThread;
     pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
     
-    // new seed based on time now so voxels are different each time
     srand((unsigned)time(0));
     
-    // create the vertex and color arrays to send back to requesting clients
+    // use our method to create a random voxel tree
+    VoxelTree randomTree;
     
-    // setup data structures for our array of points and array of colors
-    float *pointsArray = new float[NUMBER_OF_VOXELS * 3];
-    char *colorsArray = new char[NUMBER_OF_VOXELS * 3];
+    // create an octal code buffer and load it with 0 so that the recursive tree fill can give
+    // octal codes to the tree nodes that it is creating
+    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
     
-    for (int n = 0; n < NUMBER_OF_VOXELS; n++) {
-        
-        // pick a random point for the center of the cube
-        float azimuth = randFloat() * 2 * M_PI;
-        float altitude = randFloat() * M_PI - M_PI/2;
-        float radius = DEATH_STAR_RADIUS;
-        float radius_twiddle = (DEATH_STAR_RADIUS/100) * powf(2, (float)(rand()%8));
-        float thisScale = MAX_CUBE * 1 / (float)(rand() % 8 + 1);
-        radius += radius_twiddle + (randFloat() * DEATH_STAR_RADIUS/12 - DEATH_STAR_RADIUS / 24);
-        
-        // fill the vertices array
-        float *currentPointsPos = pointsArray + (n * 3);
-        currentPointsPos[0] = radius * cosf(azimuth) * cosf(altitude);
-        currentPointsPos[1] = radius * sinf(azimuth) * cosf(altitude);
-        currentPointsPos[2] = radius * sinf(altitude);
-        
-        // fill the colors array
-        char *currentColorPos = colorsArray + (n * 3);
-        currentColorPos[0] = randomColorValue();
-        currentColorPos[1] = randomColorValue();
-        currentColorPos[2] = randomColorValue();
-    }
+    char *packetSplitsPtrs[MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE] = {};
     
-    // we need space for each voxel and for the 'V' characters at the beginning of each voxel packet
-    int voxelDataBytes = VOXEL_SIZE_BYTES * NUMBER_OF_VOXELS + ceil(NUMBER_OF_VOXELS / VOXELS_PER_PACKET);
-    char *voxelData = new char[voxelDataBytes];
+    // returned unsigned char * is end of last write to bitstream
+    char *lastPacketSplit = randomTree.loadBitstream(voxelBitStream, randomTree.rootNode, packetSplitsPtrs);
     
-    // setup the interleaved voxelData packet
-    for (int v = 0; v < NUMBER_OF_VOXELS; v++) {
-        char *startPointer = voxelData + (v * VOXEL_SIZE_BYTES) + ((v / VOXELS_PER_PACKET) + 1);
-        
-        // if this is the start of a voxel packet we need to prepend with a 'V'
-        if (v % VOXELS_PER_PACKET == 0) {
-            *(startPointer - 1) = 'V';
+    // set the last packet split pointer to lastPacketSplit
+    for (int i = 1; i < MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE; i++) {
+        if (packetSplitsPtrs[i] == NULL) {
+            if (lastPacketSplit != NULL) {
+                // lastPacketSplit has not been read yet
+                // set this packetSplitPtr to that and set it NULL so we know it's been read
+                packetSplitsPtrs[i] = lastPacketSplit;
+                lastPacketSplit = NULL;
+            } else {
+                // no more split pointers to read, break out
+                break;
+            }
         }
-        
-        memcpy(startPointer, pointsArray + (v * 3), sizeof(float) * 3);
-        memcpy(startPointer + (3 * sizeof(float)), colorsArray + (v * 3), 3);
     }
-    
-    // delete the pointsArray and colorsArray that we no longer need
-    delete[] pointsArray;
-    delete[] colorsArray;
     
     sockaddr_in agentPublicAddress;
     
     char *packetData = new char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
-                             
+    
     int sentVoxels = 0;
     
     // loop to send to agents requesting data
@@ -169,23 +226,26 @@ int main(int argc, const char * argv[])
             if (packetData[0] == 'I') {
                 printf("Sending voxels to agent at address %s\n", inet_ntoa(agentPublicAddress.sin_addr));
                 
-                // send the agent all voxels for now
-                // each packet has VOXELS_PER_PACKET, unless it's the last
-                while (sentVoxels != NUMBER_OF_VOXELS) {
-                    int voxelsToSend = std::min(VOXELS_PER_PACKET, NUMBER_OF_VOXELS - sentVoxels);
+                // send the bitstream to the client
+                for (int i = 1; i < MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE; i++) {
+                    if (packetSplitsPtrs[i] == NULL) {
+                        // no more split pointers to read, break out
+                        break;
+                    }
+                    
+                    // figure out the number of bytes in this packet
+                    int thisPacketBytes = packetSplitsPtrs[i] - packetSplitsPtrs[i - 1];
                     
                     agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
-                                                    voxelData + (sentVoxels * VOXEL_SIZE_BYTES) + ((sentVoxels / VOXELS_PER_PACKET)),
-                                                    (voxelsToSend * VOXEL_SIZE_BYTES + 1));
+                                                    packetSplitsPtrs[i - 1],
+                                                    thisPacketBytes);
+
                     
-                    // sleep for 500 microseconds to not overload send and have lost packets
-                    usleep(500);
-                    
-                    sentVoxels += voxelsToSend;
+                    // output the bits in each byte of this packet
+                    for (int j = 0; j < thisPacketBytes; j++) {
+                        outputBits(*(packetSplitsPtrs[i - 1] + j));
+                    }
                 }
-                
-                printf("Sent %d voxels to agent.\n", sentVoxels);
-                sentVoxels = 0;
             }
         }
     }
