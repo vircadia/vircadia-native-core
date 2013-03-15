@@ -8,7 +8,7 @@
 
 #include "VoxelSystem.h"
 #include <AgentList.h>
-#include <cstring>g
+#include <cstring>
 
 const int MAX_VOXELS_PER_SYSTEM = 500000;
 

@@ -19,11 +19,6 @@
 
 const int NUM_CHILDREN = 8;
 
-struct Voxel {
-    glm::vec3 color;
-    Voxel * children[NUM_CHILDREN];
-};
-
 class VoxelSystem : public AgentData {
 public:
     VoxelSystem();
@@ -34,12 +29,9 @@ public:
     
     void init();
     void simulate(float deltaTime);
-    int render(Voxel * voxel, float scale, glm::vec3 * distance);
     void render();
-    int initVoxels(Voxel * root, float scale, glm::vec3 * position);
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
-    Voxel * root;
 private:
     int voxelsRendered;
     GLfloat *verticesArray;
