@@ -8,19 +8,20 @@
 
 #include "VoxelTree.h"
 
-const int MAX_VOXEL_PACKET_SIZE = 1492;
-const int MAX_TREE_SIZE_BYTES = 26;
+const int MAX_TREE_SLICE_BYTES = 26;
 
 VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
 }
 
-unsigned char * VoxelTree::loadBitstream(unsigned char * bitstreamBuffer, VoxelNode *bitstreamRootNode, unsigned char ** startSplitPtr) {
-    static unsigned char **packetSplitPtr = startSplitPtr;
+char * VoxelTree::loadBitstream(char * bitstreamBuffer,
+                                VoxelNode *bitstreamRootNode,
+                                char ** startSplitPtr) {
+    static char **packetSplitPtr = startSplitPtr;
     
     if (bitstreamRootNode->childMask != 0) {
         
-        if ((bitstreamBuffer + MAX_TREE_SIZE_BYTES - *packetSplitPtr) > MAX_VOXEL_PACKET_SIZE) {
+        if ((bitstreamBuffer + MAX_TREE_SLICE_BYTES - *packetSplitPtr) > MAX_VOXEL_PACKET_SIZE) {
             // we need to add a packet split here
             
             // add the octal code for the current root
@@ -34,7 +35,7 @@ unsigned char * VoxelTree::loadBitstream(unsigned char * bitstreamBuffer, VoxelN
         *(bitstreamBuffer++) = 0;
         
         // keep a colorPointer so we can check how many colors were added
-        unsigned char *colorPointer = bitstreamBuffer;
+        char *colorPointer = bitstreamBuffer;
         
         for (int i = 0; i < 8; i++) {
             // grab this child
