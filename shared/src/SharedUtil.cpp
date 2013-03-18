@@ -21,13 +21,15 @@ double usecTimestampNow() {
 }
 
 float randFloat () {
-    return (rand()%10000)/10000.f;
+    return (rand() % 10000)/10000.f;
 }
 
 void outputBits(char byte) {
     printf("%d: ", byte);
+    
     for (int i = 0; i < 8; i++) {
         printf("%d", byte >> (7 - i) & 1);
     }
+    
     printf("\n");
 }
