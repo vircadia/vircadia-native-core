@@ -13,7 +13,7 @@
 #include <iostream>
 
 // These includes are for serial port reading/writing
-#ifdef UNIX
+#ifdef __APPLE__
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
