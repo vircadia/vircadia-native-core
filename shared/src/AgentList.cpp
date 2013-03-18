@@ -20,12 +20,14 @@ AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
     voxelServerAddCallback = NULL;
+    lastAgentId = 0;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
     voxelServerAddCallback = NULL;
+    lastAgentId = 0;
 }
 
 AgentList::~AgentList() {
@@ -139,7 +141,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (agent == agents.end()) {
         // we didn't have this agent, so add them
-        Agent newAgent = Agent(publicSocket, localSocket, agentType);
+        Agent newAgent = Agent(publicSocket, localSocket, agentType, this->lastAgentId);
+        ++this->lastAgentId;
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with DS + agent on local network

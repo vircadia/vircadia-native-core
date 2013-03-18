@@ -45,7 +45,7 @@ class AgentList {
         UDPSocket agentSocket;
         std::vector<Agent> agents;
         pthread_t removeSilentAgentsThread;
-    
+        int16_t lastAgentId;
         int indexOfMatchingAgent(sockaddr *senderAddress);
         void handlePingReply(sockaddr *agentAddress);
 };

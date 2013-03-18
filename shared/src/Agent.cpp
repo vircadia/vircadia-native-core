@@ -14,7 +14,7 @@
 
 Agent::Agent() {}
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType) {
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, int16_t thisAgentId) {
     publicSocket = new sockaddr;
     memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
     
@@ -22,6 +22,7 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
     
     type = agentType;
+    agentId = thisAgentId;
     
     firstRecvTimeUsecs = usecTimestampNow();
     lastRecvTimeUsecs = usecTimestampNow();
@@ -73,6 +74,14 @@ char Agent::getType() {
 
 void Agent::setType(char newType) {
     type = newType;
+}
+
+int16_t Agent::getAgentId() {
+    return agentId;
+}
+
+void Agent::setAgentId(int16_t thisAgentId) {
+    agentId = thisAgentId;
 }
 
 double Agent::getFirstRecvTimeUsecs() {
