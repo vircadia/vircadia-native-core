@@ -20,12 +20,10 @@ public:
     
     VoxelNode *rootNode;
     
-    void addBitstreamPacketMarker();
+    unsigned char * loadBitstreamBuffer(char *& bitstreamBuffer,
+                               unsigned char * octalCode,
+                               VoxelNode *currentVoxelNode);
     
-    void outputDebugInformation(VoxelNode *currentRootNode = NULL);    
-    char * loadBitstream(char * bitstreamBuffer,
-                                  VoxelNode *bitstreamRootNode,
-                                  char ** curPacketSplitPtr = NULL);
 };
 
 #endif /* defined(__hifi__VoxelTree__) */

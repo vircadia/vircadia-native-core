@@ -39,12 +39,10 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
-const int MAX_VOXEL_TREE_DEPTH_LEVELS = 1;
-const int MAX_VOXEL_BITSTREAM_BYTES = 100000;
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 5;
 
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;
-char voxelBitStream[MAX_VOXEL_BITSTREAM_BYTES];
 
 unsigned char randomColorValue() {
     return MIN_BRIGHTNESS + (rand() % (255 - MIN_BRIGHTNESS));
@@ -95,8 +93,6 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
                 
                 // give this child it's octal code
                 currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-                
-                printf("Child node in position %d at level %d\n", i, MAX_VOXEL_TREE_DEPTH_LEVELS - levelsToGo);
                 
                 // fill out the lower levels of the tree using that node as the root node
                 randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
@@ -192,24 +188,22 @@ int main(int argc, const char * argv[])
     // create an octal code buffer and load it with 0 so that the recursive tree fill can give
     // octal codes to the tree nodes that it is creating
     randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
-    
-    char *packetSplitsPtrs[MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE] = {};
-    
+
+    char *voxelPacket = new char[MAX_VOXEL_PACKET_SIZE];
+    char *voxelPacketEnd;
     // returned unsigned char * is end of last write to bitstream
-    char *lastPacketSplit = randomTree.loadBitstream(voxelBitStream, randomTree.rootNode, packetSplitsPtrs);
+    int packetCount = 0;
     
-    // set the last packet split pointer to lastPacketSplit
-    for (int i = 1; i < MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE; i++) {
-        if (packetSplitsPtrs[i] == NULL) {
-            if (lastPacketSplit != NULL) {
-                // lastPacketSplit has not been read yet
-                // set this packetSplitPtr to that and set it NULL so we know it's been read
-                packetSplitsPtrs[i] = lastPacketSplit;
-                lastPacketSplit = NULL;
-            } else {
-                // no more split pointers to read, break out
-                break;
-            }
+    unsigned char *stopOctal = randomTree.rootNode->octalCode;
+    
+    while (true) {
+        voxelPacketEnd = voxelPacket;
+        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd, stopOctal, randomTree.rootNode);
+        
+        printf("Packet %d is %ld bytes\n", ++packetCount, voxelPacketEnd - voxelPacket);
+        
+        if (stopOctal == NULL) {
+            break;
         }
     }
     
@@ -221,34 +215,34 @@ int main(int argc, const char * argv[])
     int sentVoxels = 0;
     
     // loop to send to agents requesting data
-    while (true) {
-        if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'I') {
-                printf("Sending voxels to agent at address %s\n", inet_ntoa(agentPublicAddress.sin_addr));
-                
-                // send the bitstream to the client
-                for (int i = 1; i < MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE; i++) {
-                    if (packetSplitsPtrs[i] == NULL) {
-                        // no more split pointers to read, break out
-                        break;
-                    }
-                    
-                    // figure out the number of bytes in this packet
-                    int thisPacketBytes = packetSplitsPtrs[i] - packetSplitsPtrs[i - 1];
-                    
-                    agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
-                                                    packetSplitsPtrs[i - 1],
-                                                    thisPacketBytes);
-
-                    
-                    // output the bits in each byte of this packet
-                    for (int j = 0; j < thisPacketBytes; j++) {
-                        outputBits(*(packetSplitsPtrs[i - 1] + j));
-                    }
-                }
-            }
-        }
-    }
+//    while (true) {
+//        if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
+//            if (packetData[0] == 'I') {
+//                printf("Sending voxels to agent at address %s\n", inet_ntoa(agentPublicAddress.sin_addr));
+//                
+//                // send the bitstream to the client
+//                for (int i = 1; i < MAX_VOXEL_BITSTREAM_BYTES / MAX_PACKET_SIZE; i++) {
+//                    if (packetSplitsPtrs[i] == NULL) {
+//                        // no more split pointers to read, break out
+//                        break;
+//                    }
+//                    
+//                    // figure out the number of bytes in this packet
+//                    int thisPacketBytes = packetSplitsPtrs[i] - packetSplitsPtrs[i - 1];
+//                    
+//                    agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
+//                                                    packetSplitsPtrs[i - 1],
+//                                                    thisPacketBytes);
+//
+//                    
+//                    // output the bits in each byte of this packet
+//                    for (int j = 0; j < thisPacketBytes; j++) {
+//                        outputBits(*(packetSplitsPtrs[i - 1] + j));
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     pthread_join(reportAliveThread, NULL);
     

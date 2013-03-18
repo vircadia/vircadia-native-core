@@ -13,91 +13,99 @@ const int MAX_TREE_SLICE_BYTES = 26;
 
 VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
+    rootNode->octalCode = new unsigned char[1];
+    *rootNode->octalCode = (char)0;
 }
 
-char * VoxelTree::loadBitstream(char * bitstreamBuffer,
-                                VoxelNode *bitstreamRootNode,
-                                char ** startSplitPtr) {
-    static char **packetSplitPtr = startSplitPtr;
+unsigned char * VoxelTree::loadBitstreamBuffer(char *& bitstreamBuffer,
+                                               unsigned char * stopOctalCode,
+                                               VoxelNode *currentVoxelNode)
+{
+    static char *initialBitstreamPos = bitstreamBuffer;
     
-    if (bitstreamRootNode->childMask != 0) {
-        
-        if (bitstreamRootNode == rootNode || (bitstreamBuffer + MAX_TREE_SLICE_BYTES - *packetSplitPtr) > MAX_VOXEL_PACKET_SIZE) {
-            // we need to add a packet split here
+    char firstIndexToCheck = 0;
+    
+    // we'll only be writing data if we're lower than
+    // or at the same level as the stopOctalCode
+    if (*currentVoxelNode->octalCode >= *stopOctalCode) {
+        if (currentVoxelNode->childMask != 0) {
+            if ((bitstreamBuffer - initialBitstreamPos) + MAX_TREE_SLICE_BYTES > MAX_VOXEL_PACKET_SIZE) {
+                // we can't send this packet, not enough room
+                // return our octal code as the stop
+                return currentVoxelNode->octalCode;
+            }
             
-            
-            if (bitstreamRootNode == rootNode) {
-                // set the packetSplitPtr and increment bitstream buffer by 1 for leading V
-                *packetSplitPtr = bitstreamBuffer;
-                
-                // lead packet with a V
+            if (strcmp((char *)stopOctalCode, (char *)currentVoxelNode->octalCode) == 0) {
+                // this is is the root node for this packet
+                // add the leading V
                 *(bitstreamBuffer++) = 'V';
-                // root node octal code length byte is 0
-                *(bitstreamBuffer++) = 0;
+                
+                // add its octal code to the packet
+                int octalCodeBytes = bytesRequiredForCodeLength(*currentVoxelNode->octalCode);
+                
+                memcpy(bitstreamBuffer, currentVoxelNode->octalCode, octalCodeBytes);
+                bitstreamBuffer += octalCodeBytes;
+            }
+            
+            // default color mask is 0, increment pointer for colors
+            *bitstreamBuffer = 0;
+            
+            // keep a colorPointer so we can check how many colors were added
+            char *colorPointer = bitstreamBuffer + 1;
+            
+            for (int i = 0; i < 8; i++) {
+                
+                // check if the child exists and is not transparent
+                if (currentVoxelNode->children[i] != NULL
+                    && currentVoxelNode->children[i]->color[3] != 0) {
+                    
+                    // copy in the childs color to bitstreamBuffer
+                    memcpy(colorPointer, currentVoxelNode->children[i]->color, 3);
+                    colorPointer += 3;
+                    
+                    // set the colorMask by bitshifting the value of childExists
+                    *bitstreamBuffer += (1 << (7 - i));
+                }
+            }
+            
+            // push the bitstreamBuffer forwards for the number of added colors
+            bitstreamBuffer += (colorPointer - bitstreamBuffer);
+            
+            // copy the childMask to the current position of the bitstreamBuffer
+            // and push the buffer pointer forwards
+            
+            *(bitstreamBuffer++) = currentVoxelNode->childMask;
+        } else {
+            // if this node is a leaf, return a NULL stop code
+            // it has been visited
+            return NULL;
+        }
+    } else {
+        firstIndexToCheck = *stopOctalCode > 0
+            ? branchIndexWithDescendant(currentVoxelNode->octalCode, stopOctalCode)
+            : 0;
+    }
+    
+    unsigned char * childStopOctalCode = NULL;
+    
+    for (int i = firstIndexToCheck; i < 8; i ++) {
+        
+        // ask the child to load this bitstream buffer
+        // if they or their descendants fill the MTU we will receive the childStopOctalCode back
+        if (currentVoxelNode->children[i] != NULL) {
+            if (*currentVoxelNode->octalCode < *stopOctalCode
+                && i > firstIndexToCheck
+                && childStopOctalCode == NULL) {
+                return currentVoxelNode->children[i]->octalCode;
             } else {
-                // increment packetSplitPtr and set the pointer it points to
-                // to the beginning of this tree section
-                
-                // bistreamBuffer is incremented for leading V
-                *(++packetSplitPtr) = bitstreamBuffer;
-                
-                // lead packet with a V
-                *(bitstreamBuffer++) = 'V';
-                
-                // add the octal code for the current root
-                int bytesForOctalCode = bytesRequiredForCodeLength(*bitstreamRootNode->octalCode);
-                memcpy(bitstreamBuffer, bitstreamRootNode->octalCode, bytesForOctalCode);
-                
-                // push the bitstreamBuffer forwards by the number of bytes used for the octal code
-                bitstreamBuffer += bytesForOctalCode;
-            }            
-        
-            // set the color bit for this node
-            *(bitstreamBuffer++) = (int)(bitstreamRootNode->color[3] != 0);
-            
-            // copy this node's color into the bitstreamBuffer, if required
-            if (bitstreamRootNode->color[3] != 0) {
-                memcpy(bitstreamBuffer, bitstreamRootNode->color, 3);
-                bitstreamBuffer += 3;
+                childStopOctalCode = loadBitstreamBuffer(bitstreamBuffer, stopOctalCode, currentVoxelNode->children[i]);
             }
         }
         
-        // default color mask is 0, increment pointer for colors
-        *(bitstreamBuffer++) = 0;
-        
-        // keep a colorPointer so we can check how many colors were added
-        char *colorPointer = bitstreamBuffer;
-        
-        for (int i = 0; i < 8; i++) {
-            // grab this child
-            VoxelNode *child = bitstreamRootNode->children[i];
-            
-            // check if the child exists and is not transparent
-            if (child != NULL && child->color[3] != 0) {
-                
-                // copy in the childs color to bitstreamBuffer
-                memcpy(colorPointer, child->color, 3);
-                colorPointer += 3;
-                
-                // set the colorMask by bitshifting the value of childExists
-                *(bitstreamBuffer - 1) += (1 << (7 - i));
-            }
-        }
-        
-        // push the bitstreamBuffer forwards for the number of added colors
-        bitstreamBuffer += (colorPointer - bitstreamBuffer);
-        // copy the childMask to the current position of the bitstreamBuffer
-        // and push the buffer pointer forwards
-        *(bitstreamBuffer++) = bitstreamRootNode->childMask;
-        
-        for (int j = 0; j < 8; j++) {
-            // make sure we have a child to visit
-            if (bitstreamRootNode->children[j] != NULL) {
-                bitstreamBuffer = loadBitstream(bitstreamBuffer,
-                                                bitstreamRootNode->children[j]);
-            }
+        if (childStopOctalCode != NULL) {
+            break;
         }
     }
     
-    return bitstreamBuffer;
+    return childStopOctalCode;    
 }
