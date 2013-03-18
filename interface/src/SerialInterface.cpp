@@ -30,6 +30,8 @@ const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const short SAMPLES_TO_DISCARD = 100;
 
+#ifdef UNIX
+
 void SerialInterface::pair() {
     
 #ifdef __APPLE__
@@ -232,6 +234,7 @@ void SerialInterface::resetSerial() {
     }
 }
 
+#endif
 
 
 

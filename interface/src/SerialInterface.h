@@ -13,9 +13,11 @@
 #include <iostream>
 
 // These includes are for serial port reading/writing
+#ifdef UNIX
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#endif
 
 #define NUM_CHANNELS 6
 
@@ -31,7 +33,7 @@
 
 class SerialInterface {
 public:
-    SerialInterface() {};
+    SerialInterface() { active = false; };
     void pair();
     void readData();
     int getLED() {return LED;};

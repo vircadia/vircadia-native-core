@@ -27,7 +27,6 @@
 #include <ifaddrs.h>
 #include <glm/glm.hpp>
 #include <arpa/inet.h>
-#include "SerialInterface.h"
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
@@ -43,7 +42,7 @@
 #include "Finger.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
-
+#include "SerialInterface.h"
 
 using namespace std;
 
