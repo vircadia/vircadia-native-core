@@ -14,7 +14,6 @@
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 
-void outstring(char * string, int length);
 float randFloat();
 void render_world_box();
 void render_vector(glm::vec3 * vec);
