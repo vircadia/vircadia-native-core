@@ -18,6 +18,3 @@ VoxelNode::VoxelNode() {
         children[i] = NULL;
     }
 }
-
-
-
