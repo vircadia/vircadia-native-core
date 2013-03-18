@@ -18,19 +18,35 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
     }
 }
 
+void printOctalCode(unsigned char * octalCode) {
+    for (int i = 1; i < bytesRequiredForCodeLength(*octalCode); i++) {
+        outputBits(octalCode[i]);
+    }
+}
+
+char sectionValue(unsigned char * startByte, char startIndexInByte) {
+    char rightShift = 8 - startIndexInByte - 3;
+    
+    if (rightShift < 0) {
+        return ((startByte[0] << -rightShift) & 7) + (startByte[1] >> 7);
+    } else {
+        return (startByte[0] >> rightShift) & 7;
+    }
+}
+
 int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     if (threeBitCodes == 0) {
         return 1;
     } else {
         return 1 + (int)ceilf((threeBitCodes * 3) / 8.0);
     }
-    
 }
 
-void printOctalCode(unsigned char * octalCode) {
-    for (int i = 1; i < bytesRequiredForCodeLength(*octalCode); i++) {
-        outputBits(octalCode[i]);
-    }
+char branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode) {
+    int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
+    
+    int branchStartBit = parentSections * 3;
+    return sectionValue(descendantOctalCode + 1 + (branchStartBit / 8), branchStartBit % 8);
 }
 
 unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber) {
