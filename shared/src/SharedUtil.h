@@ -19,7 +19,13 @@
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();
+
 float randFloat();
-void outputBits(char);
+unsigned char randomColorValue(uint8_t minimum);
+bool randomBoolean();
+
+void outputBits(unsigned char byte);
+int8_t numberOfOnes(unsigned char byte);
+bool oneAtBit(unsigned char byte, int8_t bitIndex);
 
 #endif /* defined(__hifi__SharedUtil__) */

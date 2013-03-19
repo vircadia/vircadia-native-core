@@ -24,7 +24,16 @@ float randFloat () {
     return (rand() % 10000)/10000.f;
 }
 
-void outputBits(char byte) {
+
+unsigned char randomColorValue(uint8_t miniumum) {
+    return miniumum + (rand() % (255 - miniumum));
+}
+
+bool randomBoolean() {
+    return rand() % 2;
+}
+
+void outputBits(unsigned char byte) {
     printf("%d: ", byte);
     
     for (int i = 0; i < 8; i++) {
@@ -32,4 +41,19 @@ void outputBits(char byte) {
     }
     
     printf("\n");
+}
+
+int8_t numberOfOnes(unsigned char byte) {
+    return (byte >> 7)
+        + ((byte >> 6) & 1)
+        + ((byte >> 5) & 1)
+        + ((byte >> 4) & 1)
+        + ((byte >> 3) & 1)
+        + ((byte >> 2) & 1)
+        + ((byte >> 1) & 1)
+        + (byte & 1);
+}
+
+bool oneAtBit(unsigned char byte, int8_t bitIndex) {
+    return (byte >> (7 - bitIndex) & 1);
 }
