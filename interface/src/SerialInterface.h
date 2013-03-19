@@ -40,7 +40,7 @@ public:
     int getLED() {return LED;};
     int getNumSamples() {return samplesAveraged;};
     int getValue(int num) {return lastMeasured[num];};
-    int getRelativeValue(int num) {return lastMeasured[num] - trailingAverage[num];};
+    int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
     float getTrailingValue(int num) {return trailingAverage[num];};
     void resetTrailingAverages();
     void renderLevels(int width, int height);
