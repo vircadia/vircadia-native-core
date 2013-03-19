@@ -7,7 +7,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
 #include <pthread.h>
 #include <errno.h>
 #include <fstream>

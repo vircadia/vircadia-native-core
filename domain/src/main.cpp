@@ -26,7 +26,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
 #include <map>
 #include "AgentList.h"
 #include "SharedUtil.h"

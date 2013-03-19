@@ -22,7 +22,13 @@
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
+
 #include <pthread.h>
 #include <ifaddrs.h>
 #include <glm/glm.hpp>

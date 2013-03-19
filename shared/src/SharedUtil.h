@@ -10,7 +10,12 @@
 #define __hifi__SharedUtil__
 
 #include <iostream>
+
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();

@@ -16,7 +16,11 @@
 
 #include "SerialInterface.h"
 #include <dirent.h>
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
 #ifdef __APPLE__
 #include <regex.h>
 #endif

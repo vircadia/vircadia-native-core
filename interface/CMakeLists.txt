@@ -17,6 +17,11 @@ else (APPLE)
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 endif (APPLE)
 
+if (WIN32)
+  set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
+  set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+endif (WIN32)
+
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
 
@@ -53,8 +58,8 @@ find_package(LodePNG REQUIRED)
 # include headers for external libraries and InterfaceConfig.
 include_directories(
     ${PROJECT_BINARY_DIR}/includes
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLUT_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
 )

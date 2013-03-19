@@ -6,7 +6,12 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif _WIN32
+
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <cmath>

@@ -8,6 +8,15 @@
 
 #include "Finger.h"
 
+#ifdef _WIN32
+
+float fminf( float x, float y )
+{
+  return x < y ? x : y;
+}
+
+#endif _WIN32
+
 const int NUM_BEADS = 75;
 const float RADIUS = 50;        //  Radius of beads around finger
 
@@ -28,20 +37,20 @@ Finger::Finger(int w, int h) {
     
     float alpha = 0;
     for (int i = 0; i < NUM_BEADS; i++) {
-        beads[i].target.x = cosf(alpha)*RADIUS + 2.0*(randFloat() - 0.5);
-        beads[i].target.y = sinf(alpha)*RADIUS + 2.0*(randFloat() - 0.5);
+        beads[i].target.x = cosf(alpha)*RADIUS + 2.0f*(randFloat() - 0.5f);
+        beads[i].target.y = sinf(alpha)*RADIUS + 2.0f*(randFloat() - 0.5f);
         beads[i].pos.x = beads[i].pos.y = 0.0;
         beads[i].vel.x = beads[i].vel.y = 0.0;
-        alpha += 2*PI/NUM_BEADS;
-        beads[i].color[0] = randFloat()*0.05; beads[i].color[1] = randFloat()*0.05; beads[i].color[2] = 0.75 + randFloat()*0.25;
+        alpha += 2.0f*PIf/NUM_BEADS;
+        beads[i].color[0] = randFloat()*0.05f; beads[i].color[1] = randFloat()*0.05f; beads[i].color[2] = 0.75f + randFloat()*0.25f;
         beads[i].brightness = 0.0;
     }
     for (int i = 0; i < NUM_PUCKS; i++) {
         pucks[i].pos.x = randFloat()*width;
         pucks[i].pos.y = randFloat()*height;
-        pucks[i].radius = 5.0 + randFloat()*30.0;
+        pucks[i].radius = 5.0f + randFloat()*30.0f;
         pucks[i].vel.x = pucks[i].vel.y = 0.0;
-        pucks[i].mass = pucks[i].radius*pucks[i].radius/25.0;   
+        pucks[i].mass = pucks[i].radius*pucks[i].radius/25.0f;   
     }
     
 }
@@ -56,7 +65,7 @@ void Finger::render() {
     glBegin(GL_POINTS);
     glColor4fv(SHADOW_COLOR);
     glVertex2f(pos.x + SHADOW_OFFSET, pos.y + SHADOW_OFFSET);
-    glColor4f(0.0, 0.0, 0.7, 1.0);
+    glColor4f(0.0, 0.0, 0.7f, 1.0);
     glVertex2f(pos.x, pos.y);
     glEnd();
     
@@ -87,8 +96,8 @@ void Finger::render() {
 }
 
 void Finger::setTarget(int x, int y) {
-    target.x = x;
-    target.y = y;
+    target.x = static_cast<float>(x);
+    target.y = static_cast<float>(y);
     if (start) {
         // On startup, set finger to first target location
         pos.x = target.x;
@@ -148,7 +157,7 @@ void Finger::simulate(float deltaTime) {
             for (int j = 0; j < NUM_PUCKS; j++) {
                
                 separation = glm::distance(beads[i].pos, pucks[j].pos);
-                contact = 2.5 + pucks[j].radius;
+                contact = 2.5f + pucks[j].radius;
                 
                 //  Hard Sphere Scattering
                 
@@ -158,9 +167,9 @@ void Finger::simulate(float deltaTime) {
                     pucks[j].vel -= glm::normalize(beads[i].pos - pucks[j].pos)*
                         deltaTime*HARD_SPHERE_FORCE*(contact - separation)/pucks[j].mass;
                     if (beads[i].brightness < 0.5) beads[i].brightness = 0.5;
-                    beads[i].brightness *= 1.1;
+                    beads[i].brightness *= 1.1f;
                 } else {
-                    beads[i].brightness *= 0.95;
+                    beads[i].brightness *= 0.95f;
                 }
                 beads[i].brightness = fminf(beads[i].brightness, 1.f);
             }
@@ -183,9 +192,9 @@ void Finger::simulate(float deltaTime) {
             
             //  wrap at edges
             if (pucks[j].pos.x > width) pucks[j].pos.x = 0.0;
-            if (pucks[j].pos.x < 0) pucks[j].pos.x = width;
+            if (pucks[j].pos.x < 0) pucks[j].pos.x = static_cast<float>(width);
             if (pucks[j].pos.y > height) pucks[j].pos.y = 0.0;
-            if (pucks[j].pos.y < 0) pucks[j].pos.y = height;
+            if (pucks[j].pos.y < 0) pucks[j].pos.y = static_cast<float>(height);
         }
         
     }

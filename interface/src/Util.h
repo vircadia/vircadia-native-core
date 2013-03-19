@@ -9,6 +9,12 @@
 #ifndef __interface__Util__
 #define __interface__Util__
 
+#ifdef _WIN32
+#include "Systime.h"
+#else
+#include <sys/time.h>
+#endif _WIN32
+
 #include <glm/glm.hpp>
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);

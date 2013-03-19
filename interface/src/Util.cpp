@@ -15,12 +15,12 @@
 
 //  Return the azimuth angle in degrees between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI;
+    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf;
 }
 
 //  Return the angle in degrees between the head and an object in the scene.  The value is zero if you are looking right at it.  The angle is negative if the object is to your right.   
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180 / PI + render_yaw + head_yaw;
+    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
 void render_vector(glm::vec3 * vec)
@@ -98,7 +98,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono, ch
     //
     int len, i;
     glPushMatrix();
-    glTranslatef(x, y, 0);
+    glTranslatef( static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3f(r,g,b);
     glRotated(180+rotate,0,0,1);
     glRotated(180,0,1,0);
@@ -125,7 +125,7 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     sprintf(vectext,"%3.1f,%3.1f,%3.1f", vec.x, vec.y, vec.z);
     int len, i;
     glPushMatrix();
-    glTranslatef(x, y, 0);
+    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0);
     glColor3f(r,g,b);
     glRotated(180+rotate,0,0,1);
     glRotated(180,0,1,0);
