@@ -10,8 +10,13 @@
 #define __interface__UDPSocket__
 
 #include <iostream>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
 #include <netdb.h>
+#endif
 
 #define MAX_BUFFER_LENGTH_BYTES 1500
 

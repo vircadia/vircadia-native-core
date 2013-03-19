@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <dirent.h>
 #endif
 
 #define NUM_CHANNELS 6

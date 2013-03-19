@@ -3,15 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif _WIN32
 #include <pthread.h>
 #include <errno.h>
 #include <fstream>
@@ -20,6 +12,16 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
+
+#ifdef _WIN32
+#include "Systime.h"
+#include <winsock2.h>
+#else
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif _WIN32
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 

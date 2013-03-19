@@ -15,14 +15,10 @@
 //
 
 #include "SerialInterface.h"
-#include <dirent.h>
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
+
 #ifdef __APPLE__
 #include <regex.h>
+#include <sys/time.h>
 #endif
 
 int serial_fd;
@@ -224,6 +220,7 @@ void SerialInterface::readData() {
 }
 
 void SerialInterface::resetSerial() {
+#ifdef __APPLE__
     active = false;
     totalSamples = 0;
     
@@ -238,6 +235,7 @@ void SerialInterface::resetSerial() {
     for (int i = 1; i < MAX_BUFFER; i++) {
         serial_buffer[i] = ' ';
     }
+#endif
 }
 
 

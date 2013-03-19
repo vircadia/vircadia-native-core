@@ -25,14 +25,16 @@
 
 #ifdef _WIN32
 #include "Systime.h"
+#include <winsock2.h>
 #else
 #include <sys/time.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 #endif
 
 #include <pthread.h>
-#include <ifaddrs.h>
+
 #include <glm/glm.hpp>
-#include <arpa/inet.h>
 #include "Field.h"
 #include "world.h"
 #include "Util.h"

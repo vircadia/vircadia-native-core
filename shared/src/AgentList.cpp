@@ -7,9 +7,14 @@
 //
 
 #include "AgentList.h"
-#include <arpa/inet.h>
 #include <pthread.h>
 #include "SharedUtil.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 

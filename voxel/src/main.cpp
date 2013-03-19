@@ -6,14 +6,7 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif _WIN32
 
-#include <arpa/inet.h>
-#include <ifaddrs.h>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -22,6 +15,15 @@
 #include <OctalCode.h>
 #include <AgentList.h>
 #include <VoxelTree.h>
+
+#ifdef _WIN32
+#include "Systime.h"
+#include <winsock2.h>
+#else
+#include <sys/time.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#endif _WIN32
 
 const int VOXEL_LISTEN_PORT = 40106;
 
