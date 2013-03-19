@@ -14,7 +14,7 @@
 
 Agent::Agent() {}
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, int16_t thisAgentId) {
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
     memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
     
@@ -76,11 +76,11 @@ void Agent::setType(char newType) {
     type = newType;
 }
 
-int16_t Agent::getAgentId() {
+uint16_t Agent::getAgentId() {
     return agentId;
 }
 
-void Agent::setAgentId(int16_t thisAgentId) {
+void Agent::setAgentId(uint16_t thisAgentId) {
     agentId = thisAgentId;
 }
 

@@ -16,7 +16,7 @@
 class Agent {
     public:
         Agent();
-        Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, int16_t thisAgentId);
+        Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId);
         Agent(const Agent &otherAgent);
         ~Agent();
         Agent& operator=(Agent otherAgent);
@@ -25,8 +25,8 @@ class Agent {
         bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
         char getType();
         void setType(char newType);
-        int16_t getAgentId();
-        void setAgentId(int16_t thisAgentId);
+        uint16_t getAgentId();
+        void setAgentId(uint16_t thisAgentId);
         double getFirstRecvTimeUsecs();
         void setFirstRecvTimeUsecs(double newTimeUsecs);
         double getLastRecvTimeUsecs();
@@ -46,7 +46,7 @@ class Agent {
         void swap(Agent &first, Agent &second);
         sockaddr *publicSocket, *localSocket, *activeSocket;
         char type;
-        int16_t agentId;
+        uint16_t agentId;
         double firstRecvTimeUsecs;
         double lastRecvTimeUsecs;
         AgentData *linkedData;
