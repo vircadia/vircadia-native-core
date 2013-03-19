@@ -6,9 +6,10 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "VoxelSystem.h"
-#include <AgentList.h>
 #include <cstring>
+#include <SharedUtil.h>
+#include <AgentList.h>
+#include "VoxelSystem.h"
 
 const int MAX_VOXELS_PER_SYSTEM = 500000;
 
@@ -37,53 +38,66 @@ GLubyte identityIndices[] = { 0,1,2, 0,2,3,
 
 VoxelSystem::VoxelSystem() {
     voxelsRendered = 0;
+    tree = new VoxelTree();
 }
 
 VoxelSystem::~VoxelSystem() {    
     delete[] verticesArray;
     delete[] colorsArray;
+    delete tree;
 }
 
 void VoxelSystem::parseData(void *data, int size) {
-    // ignore the first char, it's a V to tell us that this is voxel data
-    char *voxelDataPtr = (char *) data + 1;
+    // output the bits received from the voxel server
+    unsigned char *voxelData = (unsigned char *) data + 1;
+    
+    printf("Received a packet of %d bytes from VS\n", size);
+    
+    // ask the VoxelTree to read the bitstream into the tree
+    tree->readBitstreamToTree(voxelData, size - 1);
+    
+    // output the VoxelTree data to see if it matches the server
+    tree->printTreeForDebugging(tree->rootNode);
 
-    GLfloat *position = new GLfloat[3];
-    GLubyte *color = new GLubyte[3];
-
-    // get pointers to position of last append of data
-    GLfloat *parseVerticesPtr = lastAddPointer;
-    GLubyte *parseColorsPtr = colorsArray + (lastAddPointer - verticesArray);
-    
-    int voxelsInData = 0;    
-    
-    // pull voxels out of the received data and put them into our internal memory structure
-    while ((voxelDataPtr - (char *) data) < size) {
-        
-        memcpy(position, voxelDataPtr, 3 * sizeof(float));
-        voxelDataPtr += 3 * sizeof(float);
-        memcpy(color, voxelDataPtr, 3);
-        voxelDataPtr += 3;
-        
-        for (int v = 0; v < VERTEX_POINTS_PER_VOXEL; v++) {
-            parseVerticesPtr[v] = position[v % 3] + (identityVertices[v] * CUBE_WIDTH);
-        }
-        
-        parseVerticesPtr += VERTEX_POINTS_PER_VOXEL;
-        
-        for (int c = 0; c < COLOR_VALUES_PER_VOXEL; c++) {
-            parseColorsPtr[c] = color[c % 3];
-        }
-        
-        parseColorsPtr += COLOR_VALUES_PER_VOXEL;
-      
-        
-        voxelsInData++;
-    }
-    
-    // increase the lastAddPointer to the new spot, increase the number of rendered voxels
-    lastAddPointer = parseVerticesPtr;
-    voxelsRendered += voxelsInData;
+//    // ignore the first char, it's a V to tell us that this is voxel data
+//    char *voxelDataPtr = (char *) data + 1;
+//
+//    GLfloat *position = new GLfloat[3];
+//    GLubyte *color = new GLubyte[3];
+//
+//    // get pointers to position of last append of data
+//    GLfloat *parseVerticesPtr = lastAddPointer;
+//    GLubyte *parseColorsPtr = colorsArray + (lastAddPointer - verticesArray);
+//    
+//    int voxelsInData = 0;    
+//    
+//    // pull voxels out of the received data and put them into our internal memory structure
+//    while ((voxelDataPtr - (char *) data) < size) {
+//        
+//        memcpy(position, voxelDataPtr, 3 * sizeof(float));
+//        voxelDataPtr += 3 * sizeof(float);
+//        memcpy(color, voxelDataPtr, 3);
+//        voxelDataPtr += 3;
+//        
+//        for (int v = 0; v < VERTEX_POINTS_PER_VOXEL; v++) {
+//            parseVerticesPtr[v] = position[v % 3] + (identityVertices[v] * CUBE_WIDTH);
+//        }
+//        
+//        parseVerticesPtr += VERTEX_POINTS_PER_VOXEL;
+//        
+//        for (int c = 0; c < COLOR_VALUES_PER_VOXEL; c++) {
+//            parseColorsPtr[c] = color[c % 3];
+//        }
+//        
+//        parseColorsPtr += COLOR_VALUES_PER_VOXEL;
+//      
+//        
+//        voxelsInData++;
+//    }
+//    
+//    // increase the lastAddPointer to the new spot, increase the number of rendered voxels
+//    lastAddPointer = parseVerticesPtr;
+//    voxelsRendered += voxelsInData;
 }
 
 VoxelSystem* VoxelSystem::clone() const {
