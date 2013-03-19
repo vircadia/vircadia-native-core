@@ -71,28 +71,32 @@ target_link_libraries(interface
     ${LODEPNG_LIBRARY}
 )
 
-# include PortAudio as external project
-include(ExternalProject)
-set(PORTAUDIO_PROJ_DIR external/portaudio)
-ExternalProject_Add(
-    portaudio
-    PREFIX ${PORTAUDIO_PROJ_DIR}
-    BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
-    URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${PROJECT_BINARY_DIR}/${PORTAUDIO_PROJ_DIR}"
-    BUILD_COMMAND make
-)
+if (WIN32)
+else (WIN32)
+  # include PortAudio as external project
+  include(ExternalProject)
+  set(PORTAUDIO_PROJ_DIR external/portaudio)
+  ExternalProject_Add(
+      portaudio
+      PREFIX ${PORTAUDIO_PROJ_DIR}
+      BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
+      URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
+      CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${PROJECT_BINARY_DIR}/${PORTAUDIO_PROJ_DIR}"
+      BUILD_COMMAND make
+  )
 
-# make PortAudio a dependency of the interface executable
-add_dependencies(interface portaudio)
+  # make PortAudio a dependency of the interface executable
+  add_dependencies(interface portaudio)
 
-# include the PortAudio headers
-ExternalProject_Get_Property(portaudio source_dir)
-include_directories(${source_dir}/include)
+  # include the PortAudio headers
+  ExternalProject_Get_Property(portaudio source_dir)
+  include_directories(${source_dir}/include)
 
-# link the PortAudio library
-ExternalProject_Get_Property(portaudio binary_dir)
-target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+  # link the PortAudio library
+  ExternalProject_Get_Property(portaudio binary_dir)
+  target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+
+endif (WIN32)
 
 # link required libraries on UNIX
 if (UNIX AND NOT APPLE)

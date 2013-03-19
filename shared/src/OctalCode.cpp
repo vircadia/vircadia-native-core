@@ -38,7 +38,7 @@ int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     if (threeBitCodes == 0) {
         return 1;
     } else {
-        return 1 + (int)ceilf((threeBitCodes * 3) / 8.0);
+        return 1 + (int)ceilf((threeBitCodes * 3) / 8.0f);
     }
 }
 
