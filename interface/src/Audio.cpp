@@ -14,7 +14,7 @@
 #include "Systime.h"
 #else
 #include <sys/time.h>
-#endif _WIN32
+#endif
 
 #include <sys/stat.h>
 #include <cstring>

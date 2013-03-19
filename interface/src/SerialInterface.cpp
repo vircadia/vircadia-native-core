@@ -20,7 +20,7 @@
 #include "Systime.h"
 #else
 #include <sys/time.h>
-#endif _WIN32
+#endif
 #ifdef __APPLE__
 #include <regex.h>
 #endif

@@ -13,7 +13,7 @@
 #include "Systime.h"
 #else
 #include <sys/time.h>
-#endif _WIN32
+#endif
 
 #include <glm/glm.hpp>
 

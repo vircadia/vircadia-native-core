@@ -12,7 +12,7 @@
 #include "Systime.h"
 #else
 #include <sys/time.h>
-#endif _WIN32
+#endif
 
 const float PHI = 1.618f;
 

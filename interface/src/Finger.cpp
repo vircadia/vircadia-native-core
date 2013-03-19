@@ -15,7 +15,7 @@ float fminf( float x, float y )
   return x < y ? x : y;
 }
 
-#endif _WIN32
+#endif
 
 const int NUM_BEADS = 75;
 const float RADIUS = 50;        //  Radius of beads around finger
