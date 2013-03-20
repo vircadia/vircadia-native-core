@@ -27,10 +27,6 @@
 
 const int VOXEL_LISTEN_PORT = 40106;
 
-const int NUMBER_OF_VOXELS = 250000;
-
-const float MAX_UNIT_ANY_AXIS = 20.0f;
-
 const int VERTICES_PER_VOXEL = 8;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
@@ -46,7 +42,7 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
-const int MAX_VOXEL_TREE_DEPTH_LEVELS = 2;
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;

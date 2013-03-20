@@ -10,6 +10,7 @@
 #define __hifi__SharedUtil__
 
 #include <iostream>
+#include <cstdio>
 
 #ifdef _WIN32
 #include "Systime.h"

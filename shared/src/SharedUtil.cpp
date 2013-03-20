@@ -24,7 +24,6 @@ float randFloat () {
     return (rand() % 10000)/10000.f;
 }
 
-
 unsigned char randomColorValue(uint8_t miniumum) {
     return miniumum + (rand() % (255 - miniumum));
 }
