@@ -29,7 +29,7 @@ char sectionValue(unsigned char * startByte, char startIndexInByte) {
     char rightShift = 8 - startIndexInByte - 3;
     
     if (rightShift < 0) {
-        return ((startByte[0] << -rightShift) & 7) + (startByte[1] >> 7);
+        return ((startByte[0] << -rightShift) & 7) + (startByte[1] >> (8 + rightShift));
     } else {
         return (startByte[0] >> rightShift) & 7;
     }
