@@ -31,7 +31,7 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode == 0) {
         return ancestorNode;
-    } else if (ancestorNode->childMask != 0) {
+    } else {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
         VoxelNode *childNode = ancestorNode->children[branchForNeedle];
         
@@ -73,7 +73,6 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode, unsigned char * nodeData
     for (int i = 0; i < 8; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(*nodeData, i)) {
-            printf("Adding child with color at index %d\n", i);
             
             // create the child if it doesn't exist
             if (destinationNode->children[i] == NULL) {
