@@ -177,6 +177,7 @@ int main(int argc, const char * argv[])
     
     unsigned char *stopOctal;
     int packetCount;
+    int totalBytesSent;
 
     sockaddr_in agentPublicAddress;
     
@@ -198,11 +199,14 @@ int main(int argc, const char * argv[])
                                                     voxelPacket,
                                                     voxelPacketEnd - voxelPacket);
                     
-                    printf("Packet %d sent to agent at address %s is %ld bytes\n",
-                           ++packetCount,
-                           inet_ntoa(agentPublicAddress.sin_addr),
-                           voxelPacketEnd - voxelPacket);
+                    packetCount++;
+                    totalBytesSent += voxelPacketEnd - voxelPacket;
                 }
+                
+                printf("%d packets sent to agent %s totalling %d bytes\n",
+                       packetCount,
+                       inet_ntoa(agentPublicAddress.sin_addr),
+                       totalBytesSent);
             }
         }
     }
