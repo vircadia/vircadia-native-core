@@ -65,14 +65,24 @@ include_directories(
 )
 
 # link target to external libraries
-target_link_libraries(interface 
+if (WIN32)
+  target_link_libraries(interface 
+    ${OPENGL_LIBRARY}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
+    wsock32.lib
+    )
+else (WIN32)
+  target_link_libraries(interface 
     ${OPENGL_LIBRARY}
     ${GLUT_LIBRARY}
     ${LODEPNG_LIBRARY}
-)
+    )
+endif (WIN32)
 
-if (WIN32)
-else (WIN32)
+if (NOT WIN32)
   # include PortAudio as external project
   include(ExternalProject)
   set(PORTAUDIO_PROJ_DIR external/portaudio)
@@ -96,7 +106,7 @@ else (WIN32)
   ExternalProject_Get_Property(portaudio binary_dir)
   target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
 
-endif (WIN32)
+endif (NOT WIN32)
 
 # link required libraries on UNIX
 if (UNIX AND NOT APPLE)

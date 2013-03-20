@@ -11,7 +11,7 @@
 #include "SharedUtil.h"
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
@@ -245,10 +245,15 @@ void *removeSilentAgents(void *args) {
         
         
         sleepTime = AGENT_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
+        #ifdef _WIN32
+        Sleep( static_cast<int>(1000.0f*sleepTime) );
+        #else
         usleep(sleepTime);
+        #endif
     }
     
     pthread_exit(0);
+    return NULL;
 }
 
 void AgentList::startSilentAgentRemovalThread() {

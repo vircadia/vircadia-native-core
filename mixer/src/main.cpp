@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #include <iostream>
 #include <math.h>
 #include <string.h>
@@ -14,8 +16,9 @@
 #include "AudioRingBuffer.h"
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
+#include <math.h>
 #else
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -28,7 +31,7 @@ const unsigned short MIXER_LISTEN_PORT = 55443;
 const float SAMPLE_RATE = 22050.0;
 
 const short JITTER_BUFFER_MSECS = 5;
-const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
+const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0f);
 
 const int BUFFER_LENGTH_BYTES = 1024;
 const int BUFFER_LENGTH_SAMPLES_PER_CHANNEL = (BUFFER_LENGTH_BYTES / 2) / sizeof(int16_t);
@@ -41,8 +44,8 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float DISTANCE_RATIO = 3.0/4.2;
-const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+const float DISTANCE_RATIO = 3.0f/4.2f;
+const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5f;
 const int PHASE_DELAY_AT_90 = 20;
 
 
@@ -346,3 +349,11 @@ int main(int argc, const char * argv[])
     return 0;
 }
 
+#else
+
+int main(int argc, const char * argv[])
+{
+  return 0;
+}
+
+#endif _WIN32

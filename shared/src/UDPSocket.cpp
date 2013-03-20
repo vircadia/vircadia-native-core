@@ -13,7 +13,7 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -96,7 +96,11 @@ UDPSocket::UDPSocket(int listeningPort) {
 }
 
 UDPSocket::~UDPSocket() {
+#ifdef _WIN32
+    closesocket(handle);
+#else
     close(handle);
+#endif
 }
 
 //  Receive data on this socket with retrieving address of sender
@@ -110,8 +114,8 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
     
     socklen_t addressSize = sizeof(&recvAddress);
     
-    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
-                              0, recvAddress, &addressSize);
+    *receivedBytes = recvfrom(handle, static_cast<char*>(receivedData), MAX_BUFFER_LENGTH_BYTES,
+                              0, recvAddress, reinterpret_cast<int*>(&addressSize));
     
     return (*receivedBytes > 0);
 }

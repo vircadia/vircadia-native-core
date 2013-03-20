@@ -11,19 +11,19 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include <SharedUtil.h>
 #include <OctalCode.h>
 #include <AgentList.h>
 #include <VoxelTree.h>
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
 #else
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #endif _WIN32
+#include <SharedUtil.h>
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -40,7 +40,7 @@ const int VOXELS_PER_PACKET = (MAX_PACKET_SIZE - 1) / VOXEL_SIZE_BYTES;
 
 const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
-const float MAX_CUBE = 0.05;
+const float MAX_CUBE = 0.05f;
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
@@ -56,7 +56,7 @@ unsigned char randomColorValue() {
 }
 
 bool randomBoolean() {
-    return rand() % 2;
+    return rand() % 2 != 0;
 }
 
 void *reportAliveToDS(void *args) {
@@ -75,7 +75,11 @@ void *reportAliveToDS(void *args) {
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
+        #ifdef _WIN32
+            Sleep( static_cast<int>(1000.0f*usecToSleep) );
+        #else
             usleep(usecToSleep);
+        #endif
         } else {
             std::cout << "No sleep required!";
         }
@@ -153,7 +157,8 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
 int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    
+
+#ifndef _WIN32    
     // get the local address of the voxel server
     struct ifaddrs * ifAddrStruct=NULL;
     struct ifaddrs * ifa=NULL;
@@ -166,6 +171,7 @@ int main(int argc, const char * argv[])
             localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
         }
     }
+#endif
     
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {
