@@ -16,7 +16,7 @@ public:
     VoxelNode();
     ~VoxelNode();
     
-    void addChildAtIndex(int8_t childIndex);
+    void addChildAtIndex(int childIndex);
     void setColorFromAverageOfChildren(int * colorArray = NULL);
     void setRandomColor(int minimumBrightness);
     

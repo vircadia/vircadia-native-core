@@ -30,7 +30,7 @@ VoxelNode::~VoxelNode() {
     }
 }
 
-void VoxelNode::addChildAtIndex(int8_t childIndex) {
+void VoxelNode::addChildAtIndex(int childIndex) {
     children[childIndex] = new VoxelNode();
     
     // give this child its octal code

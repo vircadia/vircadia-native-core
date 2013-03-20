@@ -24,7 +24,7 @@ float randFloat () {
     return (rand() % 10000)/10000.f;
 }
 
-unsigned char randomColorValue(uint8_t miniumum) {
+unsigned char randomColorValue(int miniumum) {
     return miniumum + (rand() % (255 - miniumum));
 }
 
@@ -42,7 +42,7 @@ void outputBits(unsigned char byte) {
     printf("\n");
 }
 
-int8_t numberOfOnes(unsigned char byte) {
+int numberOfOnes(unsigned char byte) {
     return (byte >> 7)
         + ((byte >> 6) & 1)
         + ((byte >> 5) & 1)
@@ -53,6 +53,6 @@ int8_t numberOfOnes(unsigned char byte) {
         + (byte & 1);
 }
 
-bool oneAtBit(unsigned char byte, int8_t bitIndex) {
+bool oneAtBit(unsigned char byte, int bitIndex) {
     return (byte >> (7 - bitIndex) & 1);
 }

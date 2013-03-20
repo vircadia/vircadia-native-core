@@ -31,7 +31,7 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
     if (*needleCode == 0) {
         return ancestorNode;
     } else if (ancestorNode->childMask != 0) {
-        int8_t branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
+        int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
         VoxelNode *childNode = ancestorNode->children[branchForNeedle];
         
         if (childNode != NULL) {
@@ -53,7 +53,7 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
 }
 
 VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned char *codeToReach) {
-    uint8_t indexOfNewChild = branchIndexWithDescendant(lastParentNode->octalCode, codeToReach);
+    int indexOfNewChild = branchIndexWithDescendant(lastParentNode->octalCode, codeToReach);
     lastParentNode->addChildAtIndex(indexOfNewChild);
     
     if (*lastParentNode->children[indexOfNewChild]->octalCode == *codeToReach) {
@@ -139,7 +139,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
 {
     static unsigned char *initialBitstreamPos = bitstreamBuffer;
     
-    uint8_t firstIndexToCheck = 0;
+    int firstIndexToCheck = 0;
     
     // we'll only be writing data if we're lower than
     // or at the same level as the stopOctalCode
@@ -224,7 +224,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
 }
 
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
-    uint8_t colorMask = 0;
+    int colorMask = 0;
     
     // create the color mask
     for (int i = 0; i < 8; i++) {
