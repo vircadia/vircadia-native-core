@@ -233,7 +233,7 @@ void *removeSilentAgents(void *args) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS) {
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V') {
                 std::cout << "Killing agent " << &(*agent)  << "\n";
                 pthread_mutex_lock(&vectorChangeMutex);
                 agent = agents->erase(agent);
