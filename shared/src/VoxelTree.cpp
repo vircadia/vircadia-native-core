@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
