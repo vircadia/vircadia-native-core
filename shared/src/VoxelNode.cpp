@@ -6,6 +6,7 @@
 //
 //
 
+#include <cstring>
 #include "SharedUtil.h"
 #include "VoxelNode.h"
 #include "OctalCode.h"
