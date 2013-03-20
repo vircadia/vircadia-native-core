@@ -78,22 +78,20 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
     
     // if we didn't get any voxels added then we're a leaf
     // add our vertex and color information to the interleaved array
-    if (voxelsAdded == 0) {
+    if (voxelsAdded == 0 && currentNode->color[3] == 1) {
         float * startVertex = firstVertexForCode(currentNode->octalCode);
         float voxelScale = 1 / powf(2, *currentNode->octalCode);
         
-        if (currentNode->color[3] == 1) {
-            // populate the array with points for the 8 vertices
-            // and RGB color for each added vertex
-            for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-                *verticesEndPointer = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-                *(colorsArray + (verticesEndPointer - verticesArray)) = currentNode->color[j % 3];
-                
-                verticesEndPointer++;
-            }
+        // populate the array with points for the 8 vertices
+        // and RGB color for each added vertex
+        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
+            *verticesEndPointer = startVertex[j % 3] + (identityVertices[j] * voxelScale);
+            *(colorsArray + (verticesEndPointer - verticesArray)) = currentNode->color[j % 3];
             
-            voxelsAdded++;
+            verticesEndPointer++;
         }
+        
+        voxelsAdded++;
        
         delete [] startVertex;
     }
