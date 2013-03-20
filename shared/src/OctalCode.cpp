@@ -7,6 +7,7 @@
 //
 
 #include <cmath>
+#include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
