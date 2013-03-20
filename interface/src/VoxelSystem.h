@@ -36,13 +36,15 @@ public:
 private:
     int voxelsRendered;
     VoxelTree *tree;
+    bool voxelsToRender;
     GLfloat *verticesArray;
     GLubyte *colorsArray;
-    GLfloat *lastAddPointer;
-    GLfloat *lastDrawPointer;
+    GLfloat *verticesEndPointer;
     GLuint vboVerticesID;
     GLuint vboColorsID;
     GLuint vboIndicesID;
+    
+    int treeToArrays(VoxelNode *currentNode);
 };
 
 #endif
