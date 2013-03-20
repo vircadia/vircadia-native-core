@@ -102,3 +102,17 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     
     return newCode;
 }
+
+float * firstVertexForCode(unsigned char * octalCode) {
+    float * firstVertex = new float[3];
+    memset(firstVertex, 0, 3 * sizeof(float));
+    
+    for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
+        int8_t sectionIndex = sectionValue(octalCode + 1 + (3 * i / 8), (3 * i) % 8);
+        for (int j = 0; j < 3; j++) {
+            firstVertex[j] += 0.5 * (int)oneAtBit(sectionIndex, 7 -j);
+        }
+    }
+    
+    return firstVertex;
+}
