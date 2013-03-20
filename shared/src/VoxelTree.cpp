@@ -96,9 +96,6 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode, unsigned char * nodeData
     destinationNode->setColorFromAverageOfChildren(colorArray);
     
     // give this destination node the child mask from the packet
-    printf("The child mask is\n");
-    outputBits(*(nodeData + bytesRead));
-    printf("\n");
     destinationNode->childMask = *(nodeData + bytesRead);
     
     int childIndex = 0;
