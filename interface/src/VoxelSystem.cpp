@@ -82,8 +82,6 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
         float * startVertex = firstVertexForCode(currentNode->octalCode);
         float voxelScale = 1 / powf(2, *currentNode->octalCode);
         
-        printf("Adding a voxel at %f, %f, %f\n", startVertex[0], startVertex[1], startVertex[2]);
-        
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
         for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
@@ -92,6 +90,8 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
             
             verticesEndPointer++;
         }
+        
+        delete [] startVertex;
         
         voxelsAdded++;
     }
@@ -170,6 +170,7 @@ void VoxelSystem::render() {
    
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    glScalef(10, 10, 10);
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
     // deactivate vertex and color arrays after drawing

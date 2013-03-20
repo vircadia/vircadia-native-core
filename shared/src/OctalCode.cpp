@@ -20,7 +20,7 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
 }
 
 void printOctalCode(unsigned char * octalCode) {
-    for (int i = 1; i < bytesRequiredForCodeLength(*octalCode); i++) {
+    for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
         outputBits(octalCode[i]);
     }
 }
@@ -108,11 +108,16 @@ float * firstVertexForCode(unsigned char * octalCode) {
     float * firstVertex = new float[3];
     memset(firstVertex, 0, 3 * sizeof(float));
     
+    float currentScale = 0.5;
+    
     for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
         int sectionIndex = sectionValue(octalCode + 1 + (3 * i / 8), (3 * i) % 8);
+        
         for (int j = 0; j < 3; j++) {
-            firstVertex[j] += 0.5 * (int)oneAtBit(sectionIndex, 7 -j);
+            firstVertex[j] += currentScale * (int)oneAtBit(sectionIndex, 5 + j);
         }
+        
+        currentScale *= 0.5;
     }
     
     return firstVertex;
