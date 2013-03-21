@@ -193,8 +193,6 @@ unsigned int texture_height = 256;
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
-
-
 #ifdef MARKER_CAPTURE
 
     /***  Marker Capture ***/
@@ -690,17 +688,20 @@ const float KEYBOARD_FLY_RATE = 0.08;
 
 void specialkey(int k, int x, int y)
 {
-    if (k == GLUT_KEY_UP) fwd_vel += KEYBOARD_FLY_RATE;
-    if (k == GLUT_KEY_DOWN) fwd_vel -= KEYBOARD_FLY_RATE;
-    if (k == GLUT_KEY_LEFT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= KEYBOARD_STRAFE_RATE;
+    if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
+        if (k == GLUT_KEY_UP) fwd_vel += KEYBOARD_FLY_RATE;
+        if (k == GLUT_KEY_DOWN) fwd_vel -= KEYBOARD_FLY_RATE;
+        if (k == GLUT_KEY_LEFT) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= KEYBOARD_STRAFE_RATE;
             else render_yaw_rate -= KEYBOARD_YAW_RATE;
-    }
-    if (k == GLUT_KEY_RIGHT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += KEYBOARD_STRAFE_RATE;
-        else render_yaw_rate += KEYBOARD_YAW_RATE;        
-    }
-    
+        }
+        if (k == GLUT_KEY_RIGHT) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += KEYBOARD_STRAFE_RATE;
+            else render_yaw_rate += KEYBOARD_YAW_RATE;
+        }
+        
+        audio.setWalkingState(true);
+    }    
 }
 void key(unsigned char k, int x, int y)
 {

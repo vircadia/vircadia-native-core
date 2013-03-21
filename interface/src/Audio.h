@@ -29,6 +29,8 @@ public:
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
+    void setWalkingState(bool newWalkState);
+    
     // terminates audio I/O
     bool terminate();
 private:    

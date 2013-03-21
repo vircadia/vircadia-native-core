@@ -49,7 +49,7 @@ const float MAX_FLANGE_SAMPLE_WEIGHT = 0.50;
 const float MIN_FLANGE_INTENSITY = 0.25;
 
 const int SAMPLE_RATE = 22050;
-const float JITTER_BUFFER_LENGTH_MSECS = 4;
+const float JITTER_BUFFER_LENGTH_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
                                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
@@ -67,11 +67,17 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 int starve_counter = 0;
 StDev stdev;
 bool stopAudioReceiveThread = false;
+
 int samplesLeftForFlange = 0;
 int lastYawMeasuredMaximum = 0;
 float flangeIntensity = 0;
 float flangeRate = 0;
 float flangeWeight = 0;
+
+int16_t *walkingSoundArray;
+int walkingSoundSamples;
+int samplesLeftForWalk = 0;
+int16_t *sampleWalkPointer;
 
 timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
@@ -117,6 +123,26 @@ int audioCallback (const void *inputBuffer,
     
     if (inputLeft != NULL) {
         
+        //
+        //  Measure the loudness of the signal from the microphone and store in audio object
+        //
+        float loudness = 0;
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+            loudness += abs(inputLeft[i]);
+        }
+        
+        loudness /= BUFFER_LENGTH_SAMPLES;
+        data->lastInputLoudness = loudness;
+        data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
+        //
+        //  If scope is turned on, copy input buffer to scope
+        //
+        if (scope->getState()) {
+            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+                scope->addData((float)inputLeft[i]/32767.0, 1, i);
+            }
+        }
+        
         if (data->mixerAddress != 0) {
             sockaddr_in audioMixerSocket;
             audioMixerSocket.sin_family = AF_INET;
@@ -152,31 +178,42 @@ int audioCallback (const void *inputBuffer,
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
             currentPacketPtr += sizeof(float);
-                        
+            
+            if (samplesLeftForWalk == 0) {
+                sampleWalkPointer = walkingSoundArray;
+            }
+            
+            if (data->playWalkSound) {
+                // if this boolean is true and we aren't currently playing the walk sound
+                // set the number of samples left for walk
+                samplesLeftForWalk = walkingSoundSamples;
+                data->playWalkSound = false;
+            }
+            
+            if (samplesLeftForWalk > 0) {
+                // we need to play part of the walking sound
+                // so add it in
+                int affectedSamples = std::min(samplesLeftForWalk, BUFFER_LENGTH_SAMPLES);
+                for (int i = 0; i < affectedSamples; i++) {
+                    inputLeft[i] += *sampleWalkPointer;
+                    inputLeft[i] = std::max(inputLeft[i], std::numeric_limits<int16_t>::min());
+                    inputLeft[i] = std::min(inputLeft[i], std::numeric_limits<int16_t>::max());
+                    
+                    sampleWalkPointer++;
+                    samplesLeftForWalk--;
+                    
+                    if (sampleWalkPointer - walkingSoundArray > walkingSoundSamples) {
+                        sampleWalkPointer = walkingSoundArray;
+                    };
+                }
+            }
+            
+            
+            
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
             
             data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
-        }
-       
-        //
-        //  Measure the loudness of the signal from the microphone and store in audio object
-        //
-        float loudness = 0;
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-            loudness += abs(inputLeft[i]);
-        }
-        
-        loudness /= BUFFER_LENGTH_SAMPLES;
-        data->lastInputLoudness = loudness;
-        data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
-        //
-        //  If scope is turned on, copy input buffer to scope
-        //
-        if (scope->getState()) {
-            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-                scope->addData((float)inputLeft[i]/32767.0, 1, i);
-            }
         }
     }
     
@@ -391,6 +428,10 @@ bool Audio::getMixerLoopbackFlag() {
     return audioData->mixerLoopbackFlag;
 }
 
+void Audio::setWalkingState(bool newWalkState) {
+    audioData->playWalkSound = newWalkState;
+}
+
 /**
  * Initialize portaudio and start an audio stream.
  * Should be called at the beginning of program exection.
@@ -400,6 +441,19 @@ Use Audio::getError() to retrieve the error code.
  */
 Audio::Audio(Oscilloscope *s, Head *linkedHead)
 {
+    // read the walking sound from the raw file and store it
+    // in the in memory array
+    FILE *soundFile = fopen("interface.app/Contents/Resources/audio/walking.raw", "r");
+    
+    // get length of file:
+    std::fseek(soundFile, 0, SEEK_END);
+    walkingSoundSamples = std::ftell(soundFile) / sizeof(int16_t);
+    walkingSoundArray = new int16_t[walkingSoundSamples];
+    std::rewind(soundFile);
+    
+    std::fread(walkingSoundArray, sizeof(int16_t), walkingSoundSamples, soundFile);
+    std::fclose(soundFile);
+    
     paError = Pa_Initialize();
     if (paError != paNoError) goto error;
     
