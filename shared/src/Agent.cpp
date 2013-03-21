@@ -12,7 +12,7 @@
 #include "SharedUtil.h"
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif

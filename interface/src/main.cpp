@@ -24,8 +24,8 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
 #else
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -38,7 +38,9 @@
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
+#ifndef _WIN32
 #include "Audio.h"
+#endif
 #include "Head.h"
 #include "Hand.h"
 #include "Particle.h"
@@ -98,12 +100,12 @@ glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
                      box, 
                      false,                     //  Wrap?
-                     0.02,                      //  Noise
-                     0.3,                       //  Size scale 
+                     0.02f,                      //  Noise
+                     0.3f,                       //  Size scale 
                      0.0                        //  Gravity
                      );
 
-Cloud cloud(0,                         //  Particles
+Cloud cloud(20000,                         //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -114,7 +116,9 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
+#ifndef _WIN32
 Audio audio(&audioScope, &myHead);
+#endif
 
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
@@ -132,7 +136,7 @@ GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
 //GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
 //GLfloat start_location[] = { 0.1, -0.15, 0.1};
 
-GLfloat start_location[] = {6.1, 0, 1.4};
+GLfloat start_location[] = {6.1f, 0, 1.4f};
 
 GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
@@ -245,7 +249,7 @@ void Timer(int extra)
 //            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
         }
         gettimeofday(&endtest, NULL);
-        float sendTime = diffclock(&starttest, &endtest);
+        float sendTime = static_cast<float>( diffclock(&starttest, &endtest) );
         printf("packet test = %4.1f\n", sendTime);
     }
     
@@ -259,16 +263,16 @@ void display_stats(void)
 {
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
+    drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
             FPS, packets_per_second,  bytes_per_second);
-    drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
+    drawtext(10, 30, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(300, 30, 0.10, 0, 1.0, 0, stats);
+        drawtext(300, 30, 0.10f, 0, 1.0, 0, stats);
     }
     
     //  Output the ping times to the various agents 
@@ -281,7 +285,7 @@ void display_stats(void)
 
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
-    drawtext(10,70,0.10, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     
     /*
@@ -362,7 +366,9 @@ void terminate () {
     // Close serial port
     //close(serial_fd);
 
+    #ifndef _WIN32
     audio.terminate();
+    #endif
     stopNetworkReceiveThread = true;
     pthread_join(networkReceiveThread, NULL);
     
@@ -424,7 +430,7 @@ void simulateHead(float frametime)
     
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
-    const float MOUSE_SENSITIVITY = 0.1;
+    const float MOUSE_SENSITIVITY = 0.1f;
     if (powf(measured_yaw_rate*measured_yaw_rate + 
              measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
     {
@@ -520,9 +526,11 @@ void simulateHead(float frametime)
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
+    #ifndef _WIN32
     audio.getInputLoudness(&loudness, &averageLoudness);
     myHead.setLoudness(loudness);
     myHead.setAverageLoudness(averageLoudness);
+    #endif
 
     //  Send my streaming head data to agents that are nearby and need to see it!
     const int MAX_BROADCAST_STRING = 200;
@@ -621,8 +629,10 @@ void display(void)
 
         // lattice.render(WIDTH, HEIGHT);
         // myFinger.render();
+        #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
+        #endif
 
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
@@ -726,7 +736,9 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'h') {
         display_head = !display_head;
+        #ifndef _WIN32
         audio.setMixerLoopbackFlag(display_head);
+        #endif
     }
     
     if (k == 'm') head_mirror = !head_mirror;
@@ -782,6 +794,7 @@ void *networkReceive(void *args)
     }
     
     pthread_exit(0); 
+    return NULL;
 }
 
 void idle(void)
@@ -881,9 +894,11 @@ void attachNewHeadToAgent(Agent *newAgent) {
     }
 }
 
+#ifndef _WIN32
 void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
+#endif
 
 void voxelServerAddCallback(sockaddr *voxelServerAddress) {
     char voxelAsk[] = "I";
@@ -893,6 +908,7 @@ void voxelServerAddCallback(sockaddr *voxelServerAddress) {
 
 int main(int argc, char** argv)
 {
+#ifndef _WIN32
     struct ifaddrs * ifAddrStruct=NULL;
     struct ifaddrs * ifa=NULL;
     
@@ -904,7 +920,7 @@ int main(int argc, char** argv)
             localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
         }
     }
-    
+#endif
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -921,17 +937,28 @@ int main(int argc, char** argv)
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
+    #ifndef _WIN32
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    #endif
     agentList.voxelServerAddCallback = &voxelServerAddCallback;
     
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
+
+#ifdef _WIN32
+    WSADATA WsaData;
+    int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
+#endif
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
     
+    #ifdef _WIN32
+    glewInit();
+    #endif
+
     printf( "Created Display Window.\n" );
     
     initDisplay();

@@ -10,6 +10,7 @@
 #define __interface__Audio__
 
 #include <iostream>
+
 #include <portaudio.h>
 #include "AudioData.h"
 #include "Oscilloscope.h"

@@ -101,9 +101,9 @@ int SerialInterface::init(char* portname, int baud)
     printf("Serial interface opened!\n");
     resetSerial();    
     active = true;
-    
+ #endif
+   
     return 0;
-#endif
 }
 
 //  Reset Trailing averages to the current measurement

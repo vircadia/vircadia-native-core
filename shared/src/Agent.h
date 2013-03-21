@@ -13,7 +13,7 @@
 #include "AgentData.h"
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <sys/socket.h>
 #endif
