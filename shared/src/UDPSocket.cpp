@@ -115,7 +115,7 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
     socklen_t addressSize = sizeof(&recvAddress);
     
     *receivedBytes = recvfrom(handle, static_cast<char*>(receivedData), MAX_BUFFER_LENGTH_BYTES,
-                              0, recvAddress, reinterpret_cast<int*>(&addressSize));
+                              0, recvAddress, &addressSize);
     
     return (*receivedBytes > 0);
 }
