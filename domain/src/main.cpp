@@ -28,8 +28,8 @@
 #include "SharedUtil.h"
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
 #else
 #include <sys/time.h>
 #include <sys/socket.h>

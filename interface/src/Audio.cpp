@@ -5,22 +5,17 @@
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
+#ifndef _WIN32
 
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <sys/stat.h>
 #include <cstring>
-#include <SharedUtil.h>
 #include <StdDev.h>
 #include <UDPSocket.h>
+#include <SharedUtil.h>
 #include "Audio.h"
 #include "Util.h"
 
@@ -578,3 +573,4 @@ error:
     return false;
 }
 
+#endif

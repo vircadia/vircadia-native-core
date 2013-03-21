@@ -24,5 +24,4 @@ int gettimeofday( struct timeval* p_tv, struct timezone* p_tz );
 
 #endif _Win32
 
-
 #endif __Systime__
