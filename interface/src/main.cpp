@@ -581,7 +581,7 @@ void display(void)
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
-        if (!display_head) cloud.render();
+//        if (!display_head) cloud.render();
     
         //  Draw voxels
         voxels.render();
