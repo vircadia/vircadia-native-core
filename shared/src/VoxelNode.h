@@ -14,6 +14,11 @@
 class VoxelNode {
 public:
     VoxelNode();
+    ~VoxelNode();
+    
+    void addChildAtIndex(int childIndex);
+    void setColorFromAverageOfChildren(int * colorArray = NULL);
+    void setRandomColor(int minimumBrightness);
     
     unsigned char *octalCode;
     unsigned char color[4];

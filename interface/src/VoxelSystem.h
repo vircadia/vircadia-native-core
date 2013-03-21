@@ -14,6 +14,7 @@
 #include <iostream>
 #include <UDPSocket.h>
 #include <AgentData.h>
+#include <VoxelTree.h>
 #include "Util.h"
 #include "world.h"
 
@@ -34,13 +35,16 @@ public:
     int getVoxelsRendered() {return voxelsRendered;};
 private:
     int voxelsRendered;
+    VoxelTree *tree;
+    bool voxelsToRender;
     GLfloat *verticesArray;
     GLubyte *colorsArray;
-    GLfloat *lastAddPointer;
-    GLfloat *lastDrawPointer;
+    GLfloat *verticesEndPointer;
     GLuint vboVerticesID;
     GLuint vboColorsID;
     GLuint vboIndicesID;
+    
+    int treeToArrays(VoxelNode *currentNode);
 };
 
 #endif

@@ -841,7 +841,7 @@ void reshape(int width, int height)
     gluPerspective(45, //view angle
                    1.0, //aspect ratio
                    0.1, //near clip
-                   50.0);//far clip
+                   500.0);//far clip
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
