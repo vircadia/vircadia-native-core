@@ -9,12 +9,17 @@
 #ifndef __interface__Util__
 #define __interface__Util__
 
+#ifdef _WIN32
+#include "Systime.h"
+#else
+#include <sys/time.h>
+#endif
+
 #include <glm/glm.hpp>
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 
-void outstring(char * string, int length);
 float randFloat();
 void render_world_box();
 void render_vector(glm::vec3 * vec);

@@ -22,11 +22,19 @@
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
+#include "Systime.h"
+#include <winsock2.h>
+#else
 #include <sys/time.h>
-#include <pthread.h>
-#include <ifaddrs.h>
-#include <glm/glm.hpp>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
+#endif
+
+#include <pthread.h>
+
+#include <glm/glm.hpp>
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
@@ -820,7 +828,7 @@ void reshape(int width, int height)
     gluPerspective(45, //view angle
                    1.0, //aspect ratio
                    0.1, //near clip
-                   50.0);//far clip
+                   500.0);//far clip
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 

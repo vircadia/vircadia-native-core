@@ -17,6 +17,11 @@ else (APPLE)
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 endif (APPLE)
 
+if (WIN32)
+  set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
+  set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+endif (WIN32)
+
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
 
@@ -53,8 +58,8 @@ find_package(LodePNG REQUIRED)
 # include headers for external libraries and InterfaceConfig.
 include_directories(
     ${PROJECT_BINARY_DIR}/includes
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLUT_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
 )
@@ -66,28 +71,32 @@ target_link_libraries(interface
     ${LODEPNG_LIBRARY}
 )
 
-# include PortAudio as external project
-include(ExternalProject)
-set(PORTAUDIO_PROJ_DIR external/portaudio)
-ExternalProject_Add(
-    portaudio
-    PREFIX ${PORTAUDIO_PROJ_DIR}
-    BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
-    URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${PROJECT_BINARY_DIR}/${PORTAUDIO_PROJ_DIR}"
-    BUILD_COMMAND make
-)
+if (WIN32)
+else (WIN32)
+  # include PortAudio as external project
+  include(ExternalProject)
+  set(PORTAUDIO_PROJ_DIR external/portaudio)
+  ExternalProject_Add(
+      portaudio
+      PREFIX ${PORTAUDIO_PROJ_DIR}
+      BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
+      URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
+      CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${PROJECT_BINARY_DIR}/${PORTAUDIO_PROJ_DIR}"
+      BUILD_COMMAND make
+  )
 
-# make PortAudio a dependency of the interface executable
-add_dependencies(interface portaudio)
+  # make PortAudio a dependency of the interface executable
+  add_dependencies(interface portaudio)
 
-# include the PortAudio headers
-ExternalProject_Get_Property(portaudio source_dir)
-include_directories(${source_dir}/include)
+  # include the PortAudio headers
+  ExternalProject_Get_Property(portaudio source_dir)
+  include_directories(${source_dir}/include)
 
-# link the PortAudio library
-ExternalProject_Get_Property(portaudio binary_dir)
-target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+  # link the PortAudio library
+  ExternalProject_Get_Property(portaudio binary_dir)
+  target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+
+endif (WIN32)
 
 # link required libraries on UNIX
 if (UNIX AND NOT APPLE)

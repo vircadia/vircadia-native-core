@@ -15,10 +15,10 @@
 //
 
 #include "SerialInterface.h"
-#include <dirent.h>
-#include <sys/time.h>
+
 #ifdef __APPLE__
 #include <regex.h>
+#include <sys/time.h>
 #endif
 
 int serial_fd;
@@ -29,8 +29,6 @@ int serial_buffer_pos = 0;
 const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const short SAMPLES_TO_DISCARD = 100;
-
-#ifdef UNIX
 
 void SerialInterface::pair() {
     
@@ -65,6 +63,7 @@ void SerialInterface::pair() {
 //  Init the serial port to the specified values
 int SerialInterface::init(char* portname, int baud)
 {
+#ifdef __APPLE__
     serial_fd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
     printf("Attemping to open serial interface: %s\n", portname);
@@ -104,6 +103,7 @@ int SerialInterface::init(char* portname, int baud)
     active = true;
     
     return 0;
+#endif
 }
 
 //  Reset Trailing averages to the current measurement
@@ -161,6 +161,7 @@ void SerialInterface::renderLevels(int width, int height) {
 
 }
 void SerialInterface::readData() {
+#ifdef __APPLE__
     //  This array sets the rate of trailing averaging for each channel.
     //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
     const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
@@ -215,9 +216,11 @@ void SerialInterface::readData() {
     } else {
         gettimeofday(&lastGoodRead, NULL);
     }
+#endif
 }
 
 void SerialInterface::resetSerial() {
+#ifdef __APPLE__
     active = false;
     totalSamples = 0;
     
@@ -232,9 +235,9 @@ void SerialInterface::resetSerial() {
     for (int i = 1; i < MAX_BUFFER; i++) {
         serial_buffer[i] = ' ';
     }
+#endif
 }
 
-#endif
 
 
 

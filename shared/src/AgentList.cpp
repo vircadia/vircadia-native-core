@@ -7,9 +7,14 @@
 //
 
 #include "AgentList.h"
-#include <arpa/inet.h>
 #include <pthread.h>
 #include "SharedUtil.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 
@@ -231,7 +236,7 @@ void *removeSilentAgents(void *args) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS) {
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V') {
                 std::cout << "Killing agent " << &(*agent)  << "\n";
                 pthread_mutex_lock(&vectorChangeMutex);
                 agent = agents->erase(agent);

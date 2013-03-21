@@ -9,6 +9,7 @@
 #include "Field.h"
 
 #define FIELD_SCALE 0.00050
+#define FIELD_SCALEf 0.00050f
 #define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
 
@@ -40,17 +41,17 @@ Field::Field()
     float fx, fy, fz;
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
-        field[i].val.x = (randFloat() - 0.5)*FIELD_SCALE;
-        field[i].val.y = (randFloat() - 0.5)*FIELD_SCALE;
-        field[i].val.z = (randFloat() - 0.5)*FIELD_SCALE;
+        field[i].val.x = (randFloat() - 0.5f)*FIELD_SCALEf;
+        field[i].val.y = (randFloat() - 0.5f)*FIELD_SCALEf;
+        field[i].val.z = (randFloat() - 0.5f)*FIELD_SCALEf;
         field[i].scalar = 0; 
         //  Record center point for this field cell
-        fx = (int)(i % 10);
-        fy = (int)(i%100 / 10);
-        fz = (int)(i / 100);
-        field[i].center.x = fx + 0.5;
-        field[i].center.y = fy + 0.5;
-        field[i].center.z = fz + 0.5;
+        fx = static_cast<float>(i % 10);
+        fy = static_cast<float>(i%100 / 10);
+        fz = static_cast<float>(i / 100);
+        field[i].center.x = fx + 0.5f;
+        field[i].center.y = fy + 0.5f;
+        field[i].center.z = fz + 0.5f;
         
         // and set up the RGB values for each field element.
         float color_mult = 1 - COLOR_MIN;
@@ -179,7 +180,7 @@ void Field::render()
 {
     int i;
     float fx, fy, fz;
-    float scale_view = 0.1;
+    float scale_view = 0.1f;
     
     glDisable(GL_LIGHTING);
     glBegin(GL_LINES);
@@ -197,12 +198,12 @@ void Field::render()
         if (USE_SCALAR) {
             glColor3f(1, 0, 0);
             glVertex3f(fx, fy, fz);        
-            glVertex3f(fx, fy+field[i].scalar*0.01, fz);
+            glVertex3f(fx, fy+field[i].scalar*0.01f, fz);
             glColor3f(1, 1, 0);
             glVertex3f(fx, fy, fz);
-            glVertex3f(fx + field[i].fld.x*0.0001, 
-                       fy + field[i].fld.y*0.0001, 
-                       fz + field[i].fld.z*0.0001);
+            glVertex3f(fx + field[i].fld.x*0.0001f, 
+                       fy + field[i].fld.y*0.0001f, 
+                       fz + field[i].fld.z*0.0001f);
         }
 
     }
@@ -215,9 +216,9 @@ void Field::render()
     
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
-        fx = (int)(i % 10);
-        fy = (int)(i%100 / 10);
-        fz = (int)(i / 100);
+        fx = static_cast<float>(i % 10);
+        fy = static_cast<float>(i%100 / 10);
+        fz = static_cast<float>(i / 100);
         
         glVertex3f(fx, fy, fz);
     }

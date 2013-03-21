@@ -13,10 +13,11 @@
 #include <iostream>
 
 // These includes are for serial port reading/writing
-#ifdef UNIX
+#ifdef __APPLE__
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <dirent.h>
 #endif
 
 #define NUM_CHANNELS 6
@@ -39,7 +40,7 @@ public:
     int getLED() {return LED;};
     int getNumSamples() {return samplesAveraged;};
     int getValue(int num) {return lastMeasured[num];};
-    int getRelativeValue(int num) {return lastMeasured[num] - trailingAverage[num];};
+    int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
     float getTrailingValue(int num) {return trailingAverage[num];};
     void resetTrailingAverages();
     void renderLevels(int width, int height);

@@ -9,7 +9,13 @@
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
+
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif
+
 #include <sys/stat.h>
 #include <cstring>
 #include <SharedUtil.h>

@@ -22,14 +22,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <map>
 #include "AgentList.h"
 #include "SharedUtil.h"
+
+#ifdef _WIN32
+#include "Systime.h"
+#include <winsock2.h>
+#else
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif _WIN32
 
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];

@@ -7,10 +7,15 @@
 //
 
 #include "Agent.h"
-#include <arpa/inet.h>
 #include <cstring>
 #include "UDPSocket.h"
 #include "SharedUtil.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 Agent::Agent() {}
 

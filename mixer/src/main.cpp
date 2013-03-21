@@ -3,11 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <pthread.h>
 #include <errno.h>
 #include <fstream>
@@ -16,6 +12,16 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
+
+#ifdef _WIN32
+#include "Systime.h"
+#include <winsock2.h>
+#else
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif _WIN32
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
@@ -235,8 +241,8 @@ void *reportAliveToDS(void *args) {
         gettimeofday(&lastSend, NULL);
         
         *output = 'M';
-//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
+        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
+//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
         agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
         double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));

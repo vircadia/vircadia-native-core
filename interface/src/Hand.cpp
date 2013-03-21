@@ -7,9 +7,14 @@
 //
 
 #include "Hand.h"
-#include <sys/time.h>
 
-const float PHI = 1.618;
+#ifdef _WIN32
+#include "Systime.h"
+#else
+#include <sys/time.h>
+#endif
+
+const float PHI = 1.618f;
 
 const float DEFAULT_X = 0;
 const float DEFAULT_Y = -1.5;
@@ -21,9 +26,9 @@ Hand::Hand(glm::vec3 initcolor)
     color = initcolor;
     reset();
     noise = 0.0;  //0.2;
-    scale.x = 0.07;
-    scale.y = scale.x * 5.0;
-    scale.z = scale.y * 1.0;
+    scale.x = 0.07f;
+    scale.y = scale.x * 5.0f;
+    scale.z = scale.y * 1.0f;
     renderPointer = true;
 }
 
@@ -75,8 +80,8 @@ void Hand::render(int isMine)
         glBegin(GL_TRIANGLES);
         glColor3f(1,0,0);
         glNormal3f(0,-1,0);
-        glVertex3f(-0.4,0,0);
-        glVertex3f(0.4,0,0);
+        glVertex3f(-0.4f,0,0);
+        glVertex3f(0.4f,0,0);
         glVertex3f(0,0,-POINTER_LENGTH);
         glEnd();
         glPushMatrix();
@@ -131,7 +136,7 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
         timeval now;
         gettimeofday(&now, NULL);
         double msecsElapsed = diffclock(&transmitterTimer, &now);
-        transmitterHz = (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0);
+        transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT/(msecsElapsed/1000.0) );
         //std::cout << "Transmitter Hz: " << (float)TRANSMITTER_COUNT/(msecsElapsed/1000.0) << "\n";
         //memcpy(&transmitterTimer, &now, sizeof(timeval));
         transmitterTimer = now; 
@@ -139,7 +144,7 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
     //  Add rotational forces to the hand
     const float ANG_VEL_SENSITIVITY = 4.0;
     const float ANG_VEL_THRESHOLD = 0.0;
-    float angVelScale = ANG_VEL_SENSITIVITY*(1.0/getTransmitterHz());
+    float angVelScale = ANG_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
     //addAngularVelocity(gyrX*angVelScale,gyrZ*angVelScale,-gyrY*angVelScale);
     addAngularVelocity(fabs(gyrX*angVelScale)>ANG_VEL_THRESHOLD?gyrX*angVelScale:0,
                        fabs(gyrZ*angVelScale)>ANG_VEL_THRESHOLD?gyrZ*angVelScale:0,
@@ -148,7 +153,7 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
     //  Add linear forces to the hand
     //const float LINEAR_VEL_SENSITIVITY = 50.0;
     const float LINEAR_VEL_SENSITIVITY = 5.0;
-    float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0/getTransmitterHz());
+    float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
     glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
     addVelocity(linVel);
     
@@ -157,13 +162,13 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
 void Hand::simulate(float deltaTime)
 {
     const float ANGULAR_SPRING_CONSTANT = 0.25;
-    const float ANGULAR_DAMPING_COEFFICIENT = 5*2.0*powf(ANGULAR_SPRING_CONSTANT,0.5);
+    const float ANGULAR_DAMPING_COEFFICIENT = 5*2.0f*powf(ANGULAR_SPRING_CONSTANT,0.5f);
     const float LINEAR_SPRING_CONSTANT = 100;
-    const float LINEAR_DAMPING_COEFFICIENT = 2.0*powf(LINEAR_SPRING_CONSTANT,0.5);
+    const float LINEAR_DAMPING_COEFFICIENT = 2.0f*powf(LINEAR_SPRING_CONSTANT,0.5f);
     
     //  If noise, add a bit of random velocity
     const float RNOISE = 0.0;
-    const float VNOISE = 0.01;
+    const float VNOISE = 0.01f;
     if (noise) {
         
         glm::vec3 nVel(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f);
@@ -215,9 +220,9 @@ void Hand::simulate(float deltaTime)
         if (pitch < -PITCH_LIMIT) { pitch = -PITCH_LIMIT; pitchRate = 0.0; }
         
         //  Damp Rotation Rates
-        yawRate *= 0.99;
-        pitchRate *= 0.99;
-        rollRate *= 0.99;
+        yawRate *= 0.99f;
+        pitchRate *= 0.99f;
+        rollRate *= 0.99f;
         
         //  Limit position
         const float X_LIMIT = 1.0;

@@ -12,6 +12,6 @@ Create a build directory in the root of your checkout and then run the CMake bui
 
     mkdir build
     cd build
-    cmake .. -GXCode
+    cmake .. -GXcode
 
 Those are the commands used on OS X to run CMake from the build folder and generate XCode project files.

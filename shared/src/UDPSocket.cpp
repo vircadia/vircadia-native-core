@@ -7,12 +7,17 @@
 //
 
 #include "UDPSocket.h"
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
 #include <cstdio>
 #include <errno.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif
 
 sockaddr_in destSockaddr, senderAddress;
 

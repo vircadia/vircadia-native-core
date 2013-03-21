@@ -10,11 +10,23 @@
 #define __hifi__SharedUtil__
 
 #include <iostream>
+#include <cstdio>
+
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();
+
 float randFloat();
-void outputBits(char);
+unsigned char randomColorValue(int minimum);
+bool randomBoolean();
+
+void outputBits(unsigned char byte);
+int numberOfOnes(unsigned char byte);
+bool oneAtBit(unsigned char byte, int bitIndex);
 
 #endif /* defined(__hifi__SharedUtil__) */

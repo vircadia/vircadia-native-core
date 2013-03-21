@@ -15,7 +15,7 @@ glm::vec3 color1(0,1,0);             //  Spring force
 glm::vec3 color2(0,0,1);
 glm::vec3 color3(0,1,1);
 
-float radii[NUM_ELEMENTS] = {0.3, 0.5, 0.2, 0.4};
+float radii[NUM_ELEMENTS] = {0.3f, 0.5f, 0.2f, 0.4f};
 
 ParticleSystem::ParticleSystem(int num, 
                                glm::vec3 box, 
@@ -24,7 +24,7 @@ ParticleSystem::ParticleSystem(int num,
                                float setscale,
                                float setgravity) {
     //  Create and initialize particles 
-    int i, element;
+    int element;
     bounds = box;
     count = num;
     wrapBounds = false;
@@ -33,7 +33,7 @@ ParticleSystem::ParticleSystem(int num,
     scale = setscale; 
     particles = new Particle[count];
     
-    for (i = 0; i < count; i++) {
+    for (unsigned i = 0; i < count; i++) {
         particles[i].position.x = randFloat()*box.x;
         particles[i].position.y = randFloat()*box.y;
         particles[i].position.z = randFloat()*box.z;
@@ -58,7 +58,7 @@ ParticleSystem::ParticleSystem(int num,
         else if (element == 2) particles[i].color = color2;
         else if (element == 3) particles[i].color = color3;
         
-        particles[i].radius = 0.10;  //radii[element]*scale;
+        particles[i].radius = 0.10f;  //radii[element]*scale;
         particles[i].isColliding = false;
         
         
@@ -103,7 +103,7 @@ void ParticleSystem::link(int child, int parent) {
 }
 
 void ParticleSystem::simulate (float deltaTime) {
-    int i, j;
+    unsigned int i, j;
     for (i = 0; i < count; ++i) {
         if (particles[i].element != 0) {
             
@@ -115,7 +115,7 @@ void ParticleSystem::simulate (float deltaTime) {
                 particles[i].velocity.y -= gravity*deltaTime;
                 
                 // Drag: decay velocity
-                const float CONSTANT_DAMPING = 0.1;
+                const float CONSTANT_DAMPING = 0.1f;
                 particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                
                 // Add velocity from field
@@ -123,7 +123,7 @@ void ParticleSystem::simulate (float deltaTime) {
                 //particles[i].velocity += Field::valueAt(particles[i].position);
            
                 // Add noise 
-                const float RAND_VEL = 0.05;
+                const float RAND_VEL = 0.05f;
                 if (noise) {
                     if (1) {
                         particles[i].velocity += glm::vec3((randFloat() - 0.5)*RAND_VEL,
@@ -152,7 +152,7 @@ void ParticleSystem::simulate (float deltaTime) {
             const float SPRING_FORCE = 10.0;
             const float SPRING_DAMPING = 0.5;
             float spring_length = 0.5; //2*radii[1];
-            float spring_range = spring_length * 1.2;
+            float spring_range = spring_length * 1.2f;
             float contact; 
             
             particles[i].isColliding = false; 

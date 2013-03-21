@@ -15,9 +15,9 @@ Lattice::Lattice(int w, int h) {
     lastindex = -1;
     tiles = new Tile[width*height];
     for (int i = 0; i < (width*height); i++) {
-        tiles[i].color[0] = tiles[i].color[1] = tiles[i].color[2] = 0.2 + randFloat()*0.3;
-        tiles[i].x = (i % width);
-        tiles[i].y = int(i/width);
+        tiles[i].color[0] = tiles[i].color[1] = tiles[i].color[2] = 0.2f + randFloat()*0.3f;
+        tiles[i].x = static_cast<float>(i % width);
+        tiles[i].y = static_cast<float>(i/width);
         tiles[i].brightness = 1.0;
         tiles[i].type = 0;
         tiles[i].excited = tiles[i].inhibited = 0.0;
@@ -25,8 +25,8 @@ Lattice::Lattice(int w, int h) {
 }
 
 void Lattice::render(int screenWidth, int screenHeight) {
-    float tilewidth = screenWidth/width;
-    float tileheight = screenHeight/height;
+    float tilewidth = static_cast<float>(screenWidth/width);
+    float tileheight = static_cast<float>(screenHeight/height);
     float tilecolor[3];
     glBegin(GL_QUADS);
     for (int i = 0; i < (width*height); i++) {
@@ -34,9 +34,9 @@ void Lattice::render(int screenWidth, int screenHeight) {
             tilecolor[0] = 0.25; tilecolor[1] = 0.25; tilecolor[2] = 0.25;
         } else if (tiles[i].type == 1) {
             if (tiles[i].inhibited >= 0.1) {
-                tilecolor[0] = 0.5; tilecolor[1] = 0.0; tilecolor[2] = 0.0;
+                tilecolor[0] = 0.5f; tilecolor[1] = 0.0; tilecolor[2] = 0.0;
             } else {
-                tilecolor[0] = 0.2; tilecolor[1] = 0.0; tilecolor[2] = 0.5;
+                tilecolor[0] = 0.2f; tilecolor[1] = 0.0; tilecolor[2] = 0.5f;
             }
         }
         glColor3f(tilecolor[0]*(1.f+tiles[i].excited), tilecolor[1]*(1.f+tiles[i].excited), tilecolor[2]*(1.f+tiles[i].excited));
@@ -66,7 +66,7 @@ void Lattice::mouseOver(float x, float y) {
     //printf("X = %3.1f Y = %3.1f\n", x, y);
     if (0) {
         int index = int(x*(float)width) + int(y*(float)height)*width;
-        if (tiles[index].type > 0) tiles[index].excited += 0.05;
+        if (tiles[index].type > 0) tiles[index].excited += 0.05f;
     //printf("excited = %3.1f, inhibited = %3.1f\n", tiles[index].excited, tiles[index].inhibited);
     }
 }
@@ -94,8 +94,8 @@ void Lattice::simulate(float deltaTime) {
                     
                 }
             }
-            tiles[i].excited *= 0.98;
-            tiles[i].inhibited *= 0.98;
+            tiles[i].excited *= 0.98f;
+            tiles[i].inhibited *= 0.98f;
         }
     }
 }

@@ -17,10 +17,10 @@ Cloud::Cloud(int num,
              glm::vec3 box,
              int wrap) {
     //  Create and initialize particles 
-    int i;
+    unsigned int i;
     bounds = box;
     count = num;
-    wrapBounds = wrap;
+    wrapBounds = wrap != 0;
     particles = new Particle[count];
     field = new Field();
     
@@ -32,9 +32,9 @@ Cloud::Cloud(int num,
         particles[i].position.y = y;
         particles[i].position.z = z;
                 
-        particles[i].velocity.x = randFloat() - 0.5;
-        particles[i].velocity.y = randFloat() - 0.5;
-        particles[i].velocity.z = randFloat() - 0.5;
+        particles[i].velocity.x = randFloat() - 0.5f;
+        particles[i].velocity.y = randFloat() - 0.5f;
+        particles[i].velocity.z = randFloat() - 0.5f;
         
         float color_mult = 1 - COLOR_MIN;
         particles[i].color = glm::vec3(x*color_mult/WORLD_SIZE + COLOR_MIN,
@@ -64,7 +64,7 @@ void Cloud::render() {
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );
     glBegin( GL_POINTS );
-        for (int i = 0; i < count; i++)
+        for (unsigned int i = 0; i < count; i++)
         {
             glColor3f(particles[i].color.x,
                       particles[i].color.y,
@@ -79,7 +79,7 @@ void Cloud::render() {
 }
 
 void Cloud::simulate (float deltaTime) {
-    int i;
+    unsigned int i;
     for (i = 0; i < count; ++i) {
         
         // Update position 
@@ -91,7 +91,7 @@ void Cloud::simulate (float deltaTime) {
         particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                 
         // Interact with Field
-        const float FIELD_COUPLE = 0.005;  //0.0000001;
+        const float FIELD_COUPLE = 0.005f;  //0.0000001;
         field->interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
         
         //  Update color to velocity 
