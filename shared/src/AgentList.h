@@ -38,8 +38,6 @@ class AgentList {
 
         int updateList(unsigned char *packetData, size_t dataBytes);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
-        int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
-        int packAgentId(unsigned char *packStore, uint16_t agentId);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void broadcastToAgents(char *broadcastData, size_t dataBytes);
@@ -55,5 +53,8 @@ class AgentList {
         int indexOfMatchingAgent(sockaddr *senderAddress);
         void handlePingReply(sockaddr *agentAddress);
 };
+
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
+int packAgentId(unsigned char *packStore, uint16_t agentId);
 
 #endif /* defined(__hifi__AgentList__) */

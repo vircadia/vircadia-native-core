@@ -50,9 +50,7 @@ AgentList agentList(DOMAIN_LISTEN_PORT);
 unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
     
-    // FIX THIS - NOT ONE BYTE
-    currentPosition += agentToAdd->getAgentId();
-    // ---
+    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
     currentPosition += packSocket(currentPosition, agentToAdd->getPublicSocket());
     currentPosition += packSocket(currentPosition, agentToAdd->getLocalSocket());
     
