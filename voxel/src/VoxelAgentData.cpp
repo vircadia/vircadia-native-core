@@ -8,6 +8,7 @@
 
 #include "VoxelAgentData.h"
 #include <cstring>
+#include <cstdio>
 
 VoxelAgentData::VoxelAgentData() {
     lastSentLevel = 0;
