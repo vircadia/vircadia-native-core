@@ -7,6 +7,7 @@
 //
 
 #include <cstring>
+#include <cmath>
 #include "SharedUtil.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
@@ -24,6 +25,22 @@ VoxelTree::~VoxelTree() {
     // this recursively deletes the tree
     for (int i = 0; i < 8; i++) {
         delete rootNode->children[i];
+    }
+}
+
+int VoxelTree::levelForViewerPosition(float *position) {
+    // get the distance to the viewer
+    // for now the voxel tree starts at 0,0,0
+    float distance = sqrtf(powf(position[0] + 30, 2) + powf(position[2] + 30, 2));
+    
+    // go through the if else branch to return the right level
+    // this is a gross way to do this for now for a friday demo
+    if (distance >= 50) {
+        return 3;
+    } else if (distance >= 20) {
+        return 4;
+    } else {
+        return 5;
     }
 }
 
@@ -135,7 +152,8 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                unsigned char * stopOctalCode,
-                                               VoxelNode *currentVoxelNode)
+                                               VoxelNode *currentVoxelNode,
+                                               int deepestLevel)
 {
     static unsigned char *initialBitstreamPos = bitstreamBuffer;
     
@@ -188,7 +206,9 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         
         // copy the childMask to the current position of the bitstreamBuffer
         // and push the buffer pointer forwards
-        *(bitstreamBuffer++) = currentVoxelNode->childMask;
+        *(bitstreamBuffer++) = *currentVoxelNode->octalCode < deepestLevel
+            ? currentVoxelNode->childMask
+            : 0;
     } else {
         firstIndexToCheck = *stopOctalCode > 0
             ? branchIndexWithDescendant(currentVoxelNode->octalCode, stopOctalCode)
@@ -197,26 +217,28 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
     
     unsigned char * childStopOctalCode = NULL;
     
-    for (int i = firstIndexToCheck; i < 8; i ++) {
-        
-        // ask the child to load this bitstream buffer
-        // if they or their descendants fill the MTU we will receive the childStopOctalCode back
-        if (currentVoxelNode->children[i] != NULL) {
-            if (*currentVoxelNode->octalCode < *stopOctalCode
-                && i > firstIndexToCheck
-                && childStopOctalCode == NULL) {
-                return currentVoxelNode->children[i]->octalCode;
-            } else {
-                if (oneAtBit(currentVoxelNode->childMask, i)) {
-                    childStopOctalCode = loadBitstreamBuffer(bitstreamBuffer, stopOctalCode, currentVoxelNode->children[i]);
+    if (*currentVoxelNode->octalCode < deepestLevel) {
+        for (int i = firstIndexToCheck; i < 8; i ++) {
+            
+            // ask the child to load this bitstream buffer
+            // if they or their descendants fill the MTU we will receive the childStopOctalCode back
+            if (currentVoxelNode->children[i] != NULL) {
+                if (*currentVoxelNode->octalCode < *stopOctalCode
+                    && i > firstIndexToCheck
+                    && childStopOctalCode == NULL) {
+                    return currentVoxelNode->children[i]->octalCode;
                 } else {
-                    childStopOctalCode = NULL;
+                    if (oneAtBit(currentVoxelNode->childMask, i)) {
+                        childStopOctalCode = loadBitstreamBuffer(bitstreamBuffer, stopOctalCode, currentVoxelNode->children[i], deepestLevel);
+                    } else {
+                        childStopOctalCode = NULL;
+                    }
                 }
             }
-        }
-        
-        if (childStopOctalCode != NULL) {
-            break;
+            
+            if (childStopOctalCode != NULL) {
+                break;
+            }
         }
     }
     

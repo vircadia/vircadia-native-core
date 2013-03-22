@@ -9,7 +9,7 @@
 #include "VoxelAgentData.h"
 
 VoxelAgentData::VoxelAgentData() {
-    lastSeenLevel = 0;
+    lastSentLevel = 0;
 }
 
 VoxelAgentData::~VoxelAgentData() {
@@ -17,7 +17,7 @@ VoxelAgentData::~VoxelAgentData() {
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    lastSeenLevel = otherAgentData.lastSeenLevel;
+    lastSentLevel = otherAgentData.lastSentLevel;
     memcpy(position, otherAgentData.position, sizeof(float) * 3);
 }
 

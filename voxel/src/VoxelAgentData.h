@@ -15,7 +15,7 @@
 class VoxelAgentData : public AgentData {
 public:
     float position[3];
-    int lastSeenLevel;
+    int lastSentLevel;
 
     VoxelAgentData();
     ~VoxelAgentData();
