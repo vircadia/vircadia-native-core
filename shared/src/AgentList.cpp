@@ -25,14 +25,14 @@ AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
     voxelServerAddCallback = NULL;
-    lastAgentId = 0;
+    lastAgentId = 1;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
     voxelServerAddCallback = NULL;
-    lastAgentId = 0;
+    lastAgentId = 1;
 }
 
 AgentList::~AgentList() {
@@ -111,6 +111,11 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
 
 int AgentList::unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
     memcpy(packedData, agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int AgentList::packAgentId(unsigned char *packStore, uint16_t agentId) {
+    memcpy(&agentId, packStore, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
