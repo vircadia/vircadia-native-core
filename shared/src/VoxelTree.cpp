@@ -231,6 +231,10 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
     
     unsigned char * childStopOctalCode = NULL;
     
+    if (currentVoxelNode->childMask == 0) {
+        leavesWrittenToBitstream++;
+    }
+    
     if (*currentVoxelNode->octalCode < deepestLevel - 1) {
         for (int i = firstIndexToCheck; i < 8; i ++) {
             

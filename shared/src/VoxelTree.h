@@ -23,6 +23,7 @@ public:
     ~VoxelTree();
     
     VoxelNode *rootNode;
+    int leavesWrittenToBitstream;
     
     int levelForViewerPosition(float * position);
     void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
