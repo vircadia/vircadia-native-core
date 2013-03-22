@@ -109,12 +109,12 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     return -1;
 }
 
-int AgentList::unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
     memcpy(packedData, agentId, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
-int AgentList::packAgentId(unsigned char *packStore, uint16_t agentId) {
+int packAgentId(unsigned char *packStore, uint16_t agentId) {
     memcpy(&agentId, packStore, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
