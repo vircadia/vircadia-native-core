@@ -35,9 +35,11 @@ class AgentList {
 
         std::vector<Agent>& getAgents();
         UDPSocket& getAgentSocket();
-    
+
         int updateList(unsigned char *packetData, size_t dataBytes);
-        bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
+        bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
+        int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
+        int packAgentId(unsigned char *packStore, uint16_t agentId);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void broadcastToAgents(char *broadcastData, size_t dataBytes);

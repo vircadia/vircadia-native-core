@@ -109,10 +109,16 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     return -1;
 }
 
+int AgentList::unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+    memcpy(packedData, agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
 int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 
     char agentType;
+    uint16_t agentId;
     
     // assumes only IPv4 addresses
     sockaddr_in agentPublicSocket;
@@ -125,17 +131,21 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     
     while((readPtr - startPtr) < dataBytes) {
         agentType = *readPtr++;
+        readPtr += unpackAgentId(readPtr, (uint16_t *)&agentId);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
-        addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType);
+        //syncClientAgentList(agentId, (sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType);
+        
+        addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType, agentId);
     }  
 
     return readAgents;
 }
 
-bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType) {
+bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId = 0) {
     std::vector<Agent>::iterator agent;
+    uint16_t thisAgentId;
     
     for(agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->matches(publicSocket, localSocket, agentType)) {
@@ -146,8 +156,15 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (agent == agents.end()) {
         // we didn't have this agent, so add them
-        Agent newAgent = Agent(publicSocket, localSocket, agentType, this->lastAgentId);
-        ++this->lastAgentId;
+        
+        if (agentId == 0) {
+            thisAgentId = this->lastAgentId;
+            ++this->lastAgentId;
+        } else {
+            thisAgentId = agentId;
+        }
+        
+        Agent newAgent = Agent(publicSocket, localSocket, agentType, thisAgentId);
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with DS + agent on local network

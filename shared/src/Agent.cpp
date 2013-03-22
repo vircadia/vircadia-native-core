@@ -162,6 +162,10 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
         && socketMatch(localSocket, otherLocalSocket);
 }
 
+bool Agent::exists(uint16_t *otherAgentId) {
+    return agentId == *otherAgentId;
+}
+
 std::ostream& operator<<(std::ostream& os, const Agent* agent) {
     sockaddr_in *agentPublicSocket = (sockaddr_in *)agent->publicSocket;
     sockaddr_in *agentLocalSocket = (sockaddr_in *)agent->localSocket;

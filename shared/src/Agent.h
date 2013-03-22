@@ -28,6 +28,7 @@ class Agent {
         bool operator==(const Agent& otherAgent);
         
         bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
+        bool exists(uint16_t *agentId);
         char getType();
         void setType(char newType);
         uint16_t getAgentId();
