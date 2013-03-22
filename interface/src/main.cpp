@@ -900,12 +900,6 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-void voxelServerAddCallback(sockaddr *voxelServerAddress) {
-    char voxelAsk[] = "I";
-    printf("Asking VS for data!\n");
-    agentList.getAgentSocket().send(voxelServerAddress, voxelAsk, 1);
-}
-
 int main(int argc, char** argv)
 {
 #ifndef _WIN32
@@ -941,8 +935,7 @@ int main(int argc, char** argv)
     #ifndef _WIN32
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
-    agentList.voxelServerAddCallback = &voxelServerAddCallback;
-    
+
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
 
