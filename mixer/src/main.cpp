@@ -30,7 +30,7 @@ const unsigned short MIXER_LISTEN_PORT = 55443;
 
 const float SAMPLE_RATE = 22050.0;
 
-const short JITTER_BUFFER_MSECS = 5;
+const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0f);
 
 const int BUFFER_LENGTH_BYTES = 1024;
