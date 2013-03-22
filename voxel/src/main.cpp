@@ -178,6 +178,7 @@ int main(int argc, const char * argv[])
     pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
 
     agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
+    agentList.startSilentAgentRemovalThread();
     
     srand((unsigned)time(0));
 
@@ -239,6 +240,7 @@ int main(int argc, const char * argv[])
     }
 
     pthread_join(reportAliveThread, NULL);
+    agentlist.stopSilentAgentRemovalThread();
 
     return 0;
 }
