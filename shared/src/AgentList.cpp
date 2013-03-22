@@ -140,8 +140,6 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
-        //syncClientAgentList(agentId, (sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType);
-        
         addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType, agentId);
     }  
 

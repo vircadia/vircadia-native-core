@@ -73,6 +73,7 @@ int main(int argc, const char * argv[])
     int packetBytesWithoutLeadingChar;
     
     sockaddr_in agentPublicAddress, agentLocalAddress;
+    uint16_t agentId = 0;
     agentLocalAddress.sin_family = AF_INET;
     
     agentList.startSilentAgentRemovalThread();
@@ -82,9 +83,10 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[0];
-            unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
+            unpackAgentId(&packetData[1], (uint16_t *)&agentId);
+            unpackSocket(&packetData[2], (sockaddr *)&agentLocalAddress);
             
-            agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
+            agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType, agentId);
             
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
