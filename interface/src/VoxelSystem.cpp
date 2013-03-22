@@ -145,6 +145,8 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::render() {
+
+    glPushMatrix();
     
     if (voxelsToRender) {
         glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
@@ -182,7 +184,7 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     // scale back down to 1 so heads aren't massive
-    glScalef(1, 1, 1);
+    glPopMatrix();
 }
 
 void VoxelSystem::simulate(float deltaTime) {
