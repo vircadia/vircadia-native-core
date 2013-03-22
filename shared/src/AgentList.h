@@ -37,6 +37,8 @@ class AgentList {
 
         int updateList(unsigned char *packetData, size_t dataBytes);
         int indexOfMatchingAgent(sockaddr *senderAddress);
+        uint16_t getLastAgentId();
+        void increaseAgentId();
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);

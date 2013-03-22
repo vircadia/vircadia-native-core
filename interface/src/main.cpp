@@ -228,9 +228,9 @@ void Timer(int extra)
     
     //
     //  Send a message to the domainserver telling it we are ALIVE
-    // 
+    //
     unsigned char output[7];
-    output[0] = 'I';    
+    output[0] = 'I';
     packSocket(output + 1, localAddress, htons(AGENT_SOCKET_LISTEN_PORT));
     
     agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);

@@ -108,14 +108,12 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     return -1;
 }
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
-    memcpy(packedData, agentId, sizeof(uint16_t));
-    return sizeof(uint16_t);
+uint16_t AgentList::getLastAgentId() {
+    return lastAgentId;
 }
 
-int packAgentId(unsigned char *packStore, uint16_t agentId) {
-    memcpy(&agentId, packStore, sizeof(uint16_t));
-    return sizeof(uint16_t);
+void AgentList::increaseAgentId() {
+    ++lastAgentId;
 }
 
 int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
@@ -149,7 +147,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     std::vector<Agent>::iterator agent;
     uint16_t thisAgentId;
     
-    for(agent = agents.begin(); agent != agents.end(); agent++) {
+    for (agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->matches(publicSocket, localSocket, agentType)) {
             // we already have this agent, stop checking
             break;
@@ -159,14 +157,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     if (agent == agents.end()) {
         // we didn't have this agent, so add them
         
-        if (agentId == 0) {
-            thisAgentId = this->lastAgentId;
-            ++this->lastAgentId;
-        } else {
-            thisAgentId = agentId;
-        }
-        
-        Agent newAgent = Agent(publicSocket, localSocket, agentType, thisAgentId);
+        Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with DS + agent on local network
@@ -285,4 +276,14 @@ void AgentList::startSilentAgentRemovalThread() {
 void AgentList::stopSilentAgentRemovalThread() {
     stopAgentRemovalThread = true;
     pthread_join(removeSilentAgentsThread, NULL);
+}
+
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+    memcpy(packedData, agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int packAgentId(unsigned char *packStore, uint16_t agentId) {
+    memcpy(&agentId, packStore, sizeof(uint16_t));
+    return sizeof(uint16_t);
 }
