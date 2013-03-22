@@ -921,6 +921,7 @@ int main(int argc, char** argv)
         }
     }
 #endif
+    
     //  Lookup the IP address of things we have hostnames
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;

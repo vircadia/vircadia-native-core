@@ -438,7 +438,9 @@ Audio::Audio(Oscilloscope *s, Head *linkedHead)
 {
     // read the walking sound from the raw file and store it
     // in the in memory array
-    FILE *soundFile = fopen("interface.app/Contents/Resources/audio/walking.raw", "r");
+    
+    switchToResourcesIfRequired();
+    FILE *soundFile = fopen("audio/walking.raw", "r");
     
     // get length of file:
     std::fseek(soundFile, 0, SEEK_END);

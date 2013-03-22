@@ -8,11 +8,12 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
-#include "Head.h"
 #include <vector>
 #include <lodepng.h>
 #include <fstream>
 #include <sstream>
+#include <SharedUtil.h>
+#include "Head.h"
 
 using namespace std;
 
@@ -31,7 +32,7 @@ float browThickness = 0.16;
 
 const float DECAY = 0.1;
 
-char iris_texture_file[] = "interface.app/Contents/Resources/images/green_eye.png";
+char iris_texture_file[] = "images/green_eye.png";
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
@@ -77,6 +78,7 @@ Head::Head()
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
     if (iris_texture.size() == 0) {
+        switchToResourcesIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
         if (error != 0) {
             std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
