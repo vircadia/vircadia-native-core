@@ -35,7 +35,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif _WIN32
+#endif
 
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
