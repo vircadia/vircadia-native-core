@@ -220,7 +220,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         
         // copy the childMask to the current position of the bitstreamBuffer
         // and push the buffer pointer forwards
-        *(bitstreamBuffer++) = *currentVoxelNode->octalCode < deepestLevel
+        *(bitstreamBuffer++) = *currentVoxelNode->octalCode < deepestLevel - 1
             ? currentVoxelNode->childMask
             : 0;
     } else {
@@ -231,7 +231,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
     
     unsigned char * childStopOctalCode = NULL;
     
-    if (*currentVoxelNode->octalCode < deepestLevel) {
+    if (*currentVoxelNode->octalCode < deepestLevel - 1) {
         for (int i = firstIndexToCheck; i < 8; i ++) {
             
             // ask the child to load this bitstream buffer
