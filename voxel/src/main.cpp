@@ -14,6 +14,8 @@
 #include <OctalCode.h>
 #include <AgentList.h>
 #include <VoxelTree.h>
+#include "VoxelAgentData.h"
+#include <SharedUtil.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -41,7 +43,7 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
-const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 6;
 
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;
@@ -85,7 +87,7 @@ int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
         createdChildren = false;
 
         for (int i = 0; i < 8; i++) {
-            if (randomBoolean() || levelsToGo == MAX_VOXEL_TREE_DEPTH_LEVELS) {
+            if (((i == 0 || i == 1 | i == 4 | i == 5) && (randomBoolean() || levelsToGo != 1)) ) {
                 // create a new VoxelNode to put here
                 currentRootNode->children[i] = new VoxelNode();
 
@@ -129,6 +131,13 @@ int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     }
 }
 
+void attachVoxelAgentDataToAgent(Agent *newAgent) {
+    if (newAgent->getLinkedData() == NULL) {
+        newAgent->setLinkedData(new VoxelAgentData());
+    }
+}
+
+
 int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -168,6 +177,9 @@ int main(int argc, const char * argv[])
     pthread_t reportAliveThread;
     pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
 
+    agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
+    agentList.startSilentAgentRemovalThread();
+    
     srand((unsigned)time(0));
 
     // use our method to create a random voxel tree
@@ -184,39 +196,51 @@ int main(int argc, const char * argv[])
     int packetCount;
     int totalBytesSent;
 
-    sockaddr_in agentPublicAddress;
-
+    sockaddr agentPublicAddress;
+    
     char *packetData = new char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
 
     // loop to send to agents requesting data
     while (true) {
-        if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'I') {
-                stopOctal = randomTree.rootNode->octalCode;
-                packetCount = 0;
-
-                while (stopOctal != NULL) {
-                    voxelPacketEnd = voxelPacket;
-                    stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd, stopOctal, randomTree.rootNode);
-
-                    agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
-                                                    voxelPacket,
-                                                    voxelPacketEnd - voxelPacket);
-
-                    packetCount++;
-                    totalBytesSent += voxelPacketEnd - voxelPacket;
+        if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+            if (packetData[0] == 'H') {
+                agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0]);
+                agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
+                
+                VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
+                int newLevel = 6;
+                if (newLevel > agentData->lastSentLevel) {
+                    // the agent has already received a deeper level than this from us
+                    // do nothing
+                    
+                    stopOctal = randomTree.rootNode->octalCode;
+                    packetCount = 0;
+                    totalBytesSent = 0;
+                    
+                    while (stopOctal != NULL) {
+                        voxelPacketEnd = voxelPacket;
+                        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
+                                                                   stopOctal,
+                                                                   randomTree.rootNode,
+                                                                   newLevel);
+                        
+                        agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
+                                                        voxelPacket,
+                                                        voxelPacketEnd - voxelPacket);
+                        
+                        packetCount++;
+                        totalBytesSent += voxelPacketEnd - voxelPacket;
+                    }
+                    
+                    agentData->lastSentLevel = newLevel;
                 }
-
-                printf("%d packets sent to agent %s totalling %d bytes\n",
-                       packetCount,
-                       inet_ntoa(agentPublicAddress.sin_addr),
-                       totalBytesSent);
             }
         }
     }
 
     pthread_join(reportAliveThread, NULL);
+    agentList.stopSilentAgentRemovalThread();
 
     return 0;
 }

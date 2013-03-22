@@ -31,12 +31,12 @@ class AgentList {
         
         void(*linkedDataCreateCallback)(Agent *);
         void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
-        void(*voxelServerAddCallback)(sockaddr *);
 
         std::vector<Agent>& getAgents();
         UDPSocket& getAgentSocket();
 
         int updateList(unsigned char *packetData, size_t dataBytes);
+        int indexOfMatchingAgent(sockaddr *senderAddress);
         bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
         void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
         void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
@@ -50,7 +50,6 @@ class AgentList {
         std::vector<Agent> agents;
         pthread_t removeSilentAgentsThread;
         uint16_t lastAgentId;
-        int indexOfMatchingAgent(sockaddr *senderAddress);
         void handlePingReply(sockaddr *agentAddress);
 };
 
