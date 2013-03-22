@@ -150,6 +150,20 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
 }
 
+void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
+    int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
+    VoxelNode *lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer);
+    
+    // create the node if it does not exist
+    if (*lastCreatedNode->octalCode != *codeColorBuffer) {
+        lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+    }
+    
+    // give this node its color
+    memcpy(lastCreatedNode->color, codeColorBuffer + octalCodeBytes, 3);
+    lastCreatedNode->color[3] = 1;
+}
+
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                unsigned char * stopOctalCode,
                                                VoxelNode *currentVoxelNode,

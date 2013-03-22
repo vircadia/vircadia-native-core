@@ -26,6 +26,7 @@ public:
     
     int levelForViewerPosition(float * position);
     void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
+    void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
     unsigned char * loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                         unsigned char * octalCode,
                                         VoxelNode *currentVoxelNode,
