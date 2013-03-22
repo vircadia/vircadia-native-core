@@ -66,13 +66,11 @@ void switchToResourcesIfRequired() {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
     char path[PATH_MAX];
-    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX)) // Error: expected unqualified-id before 'if'
-    {
+    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX)) {
         // error!
     }
-    CFRelease(resourcesURL); // error: expected constructor, destructor or type conversion before '(' token
+    CFRelease(resourcesURL);
     
-    chdir(path); // error: expected constructor, destructor or type conversion before '(' token
-    std::cout << "Current Path: " << path << std::endl; // error: expected constructor, destructor or type conversion before '<<' token
+    chdir(path);
 #endif
 }
