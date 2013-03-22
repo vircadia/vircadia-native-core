@@ -217,6 +217,7 @@ int main(int argc, const char * argv[])
                     stopOctal = randomTree.rootNode->octalCode;
                     packetCount = 0;
                     totalBytesSent = 0;
+                    randomTree.leavesWrittenToBitstream = 0;
                     
                     while (stopOctal != NULL) {
                         voxelPacketEnd = voxelPacket;
@@ -232,6 +233,11 @@ int main(int argc, const char * argv[])
                         packetCount++;
                         totalBytesSent += voxelPacketEnd - voxelPacket;
                     }
+                    
+                    printf("%d packets sent to client totalling %d bytes\n", packetCount, totalBytesSent);
+                    printf("%d leaves were sent - %f bpv\n",
+                           randomTree.leavesWrittenToBitstream,
+                           (float)totalBytesSent / randomTree.leavesWrittenToBitstream);
                     
                     agentData->lastSentLevel = newLevel;
                 }
