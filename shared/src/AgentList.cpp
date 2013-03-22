@@ -24,13 +24,11 @@ pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
-    voxelServerAddCallback = NULL;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
-    voxelServerAddCallback = NULL;
 }
 
 AgentList::~AgentList() {
@@ -158,8 +156,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // to use the local socket information the domain server gave us
             sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
             audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
-        } else if (newAgent.getType() == 'V' && voxelServerAddCallback != NULL) {
-            voxelServerAddCallback(localSocket);
+        } else if (newAgent.getType() == 'V') {
+            newAgent.activateLocalSocket();
         }
         
         std::cout << "Added agent - " << &newAgent << "\n";
@@ -186,7 +184,7 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // for now assume we only want to send to other interface clients
         // until the Audio class uses the AgentList
-        if (agent->getActiveSocket() != NULL && agent->getType() == 'I') {
+        if (agent->getActiveSocket() != NULL && (agent->getType() == 'I' || agent->getType() == 'V')) {
             // we know which socket is good for this agent, send there
             agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }

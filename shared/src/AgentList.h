@@ -31,7 +31,6 @@ class AgentList {
         
         void(*linkedDataCreateCallback)(Agent *);
         void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
-        void(*voxelServerAddCallback)(sockaddr *);
 
         std::vector<Agent>& getAgents();
         UDPSocket& getAgentSocket();
