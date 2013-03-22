@@ -240,7 +240,7 @@ int main(int argc, const char * argv[])
     }
 
     pthread_join(reportAliveThread, NULL);
-    agentlist.stopSilentAgentRemovalThread();
+    agentList.stopSilentAgentRemovalThread();
 
     return 0;
 }
