@@ -24,13 +24,13 @@ pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
-    lastAgentId = 1;
+    lastAgentId = 0;
 }
 
 AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
-    lastAgentId = 1;
+    lastAgentId = 0;
     
 }
 
@@ -143,7 +143,7 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     return readAgents;
 }
 
-bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId = 0) {
+bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
     std::vector<Agent>::iterator agent;
     uint16_t thisAgentId;
     
