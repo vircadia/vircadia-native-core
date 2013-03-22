@@ -10,6 +10,10 @@
 #include <cstdio>
 #include "SharedUtil.h"
 
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);
 }
@@ -55,4 +59,20 @@ int numberOfOnes(unsigned char byte) {
 
 bool oneAtBit(unsigned char byte, int bitIndex) {
     return (byte >> (7 - bitIndex) & 1);
+}
+
+void switchToResourcesIfRequired() {
+#ifdef __APPLE__
+    CFBundleRef mainBundle = CFBundleGetMainBundle();
+    CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+    char path[PATH_MAX];
+    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX)) // Error: expected unqualified-id before 'if'
+    {
+        // error!
+    }
+    CFRelease(resourcesURL); // error: expected constructor, destructor or type conversion before '(' token
+    
+    chdir(path); // error: expected constructor, destructor or type conversion before '(' token
+    std::cout << "Current Path: " << path << std::endl; // error: expected constructor, destructor or type conversion before '<<' token
+#endif
 }

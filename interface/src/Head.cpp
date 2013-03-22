@@ -8,30 +8,31 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
-#include "Head.h"
 #include <vector>
 #include <lodepng.h>
 #include <fstream>
 #include <sstream>
+#include <SharedUtil.h>
+#include "Head.h"
 
 using namespace std;
 
-float skinColor[] = {1.0f, 0.84f, 0.66f};
-float browColor[] = {210.0f/255.0f, 105.0f/255.0f, 30.0f/255.0f};
+float skinColor[] = {1.0, 0.84, 0.66};
+float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
 float BrowRollAngle[5] = {0, 15, 30, -30, -15};
 float BrowPitchAngle[3] = {-70, -60, -50};
 float eyeColor[3] = {1,1,1};
 
-float MouthWidthChoices[3] = {0.5f, 0.77f, 0.3f};
+float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 
-float browWidth = 0.8f;
-float browThickness = 0.16f;
+float browWidth = 0.8;
+float browThickness = 0.16;
 
-const float DECAY = 0.1f;
+const float DECAY = 0.1;
 
-char iris_texture_file[] = "interface.app/Contents/Resources/images/green_eye.png";
+char iris_texture_file[] = "images/green_eye.png";
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
@@ -42,20 +43,20 @@ GLUquadric *sphere = gluNewQuadric();
 Head::Head()
 {
     position.x = position.y = position.z = 0;
-    PupilSize = 0.10f;
-    interPupilDistance = 0.6f;
-    interBrowDistance = 0.75f;
-    NominalPupilSize = 0.10f;
-    Yaw = 0.0f;
+    PupilSize = 0.10;
+    interPupilDistance = 0.6;
+    interBrowDistance = 0.75;
+    NominalPupilSize = 0.10;
+    Yaw = 0.0;
     EyebrowPitch[0] = EyebrowPitch[1] = -30;
     EyebrowRoll[0] = 20;
     EyebrowRoll[1] = -20;
     MouthPitch = 0;
     MouthYaw = 0;
     MouthWidth = 1.0;
-    MouthHeight = 0.2f;
+    MouthHeight = 0.2;
     EyeballPitch[0] = EyeballPitch[1] = 0;
-    EyeballScaleX = 1.2f;  EyeballScaleY = 1.5f; EyeballScaleZ = 1.0f;
+    EyeballScaleX = 1.2;  EyeballScaleY = 1.5; EyeballScaleZ = 1.0;
     EyeballYaw[0] = EyeballYaw[1] = 0;
     PitchTarget = YawTarget = 0; 
     NoiseEnvelope = 1.0;
@@ -77,6 +78,7 @@ Head::Head()
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
     if (iris_texture.size() == 0) {
+        switchToResourcesIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
         if (error != 0) {
             std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -150,13 +152,13 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     
     const float PITCH_ACCEL_COUPLING = 0.5;
     const float ROLL_ACCEL_COUPLING = -1.0;
-    float measured_pitch_rate = static_cast<float>(serialInterface->getRelativeValue(PITCH_RATE));
-    YawRate = static_cast<float>(serialInterface->getRelativeValue(YAW_RATE));
+    float measured_pitch_rate = serialInterface->getRelativeValue(PITCH_RATE);
+    YawRate = serialInterface->getRelativeValue(YAW_RATE);
     float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
                                 ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(ROLL_RATE);
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
                                 PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(PITCH_RATE);
-    float measured_roll_rate = static_cast<float>(serialInterface->getRelativeValue(ROLL_RATE));
+    float measured_roll_rate = serialInterface->getRelativeValue(ROLL_RATE);
     
     //std::cout << "Pitch Rate: " << serialInterface->getRelativeValue(PITCH_RATE) <<
     //    " fwd_accel: " << serialInterface->getRelativeValue(ACCEL_Z) << "\n";
@@ -165,9 +167,9 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
     //std::cout << "Pitch: " << Pitch << "\n";
     
     //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.70f;
-    const float HEAD_ROLL_SCALE = 0.40f;
-    const float HEAD_LEAN_SCALE = 0.01f;
+    const float HEAD_ROTATION_SCALE = 0.70;
+    const float HEAD_ROLL_SCALE = 0.40;
+    const float HEAD_LEAN_SCALE = 0.01;
     const float MAX_PITCH = 45;
     const float MIN_PITCH = -45;
     const float MAX_YAW = 85;
@@ -230,8 +232,8 @@ void Head::simulate(float deltaTime)
         eyeContact = 1;
         if (!eyeContact) {
             //  If we just stopped making eye contact,move the eyes markedly away
-            EyeballPitch[0] = EyeballPitch[1] = EyeballPitch[0] + 5.0f + (randFloat() - 0.5f)*10.0f;
-            EyeballYaw[0] = EyeballYaw[1] = EyeballYaw[0] + 5.0f + (randFloat()- 0.5f)*5.0f;
+            EyeballPitch[0] = EyeballPitch[1] = EyeballPitch[0] + 5.0 + (randFloat() - 0.5)*10;
+            EyeballYaw[0] = EyeballYaw[1] = EyeballYaw[0] + 5.0 + (randFloat()- 0.5)*5;
         } else {
             //  If now making eye contact, turn head to look right at viewer
             SetNewHeadTarget(0,0);
@@ -256,15 +258,15 @@ void Head::simulate(float deltaTime)
     
     if (noise)
     {
-        Pitch += (randFloat() - 0.5f)*0.2f*NoiseEnvelope;
-        Yaw += (randFloat() - 0.5f)*0.3f*NoiseEnvelope;
+        Pitch += (randFloat() - 0.5)*0.2*NoiseEnvelope;
+        Yaw += (randFloat() - 0.5)*0.3*NoiseEnvelope;
         //PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
         
         if (randFloat() < 0.005) MouthWidth = MouthWidthChoices[rand()%3];
         
         if (!eyeContact) {
-            if (randFloat() < 0.01f)  EyeballPitch[0] = EyeballPitch[1] = (randFloat() - 0.5f)*20.0f;
-            if (randFloat() < 0.01f)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5f)*10.0f;
+            if (randFloat() < 0.01)  EyeballPitch[0] = EyeballPitch[1] = (randFloat() - 0.5)*20;
+            if (randFloat() < 0.01)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5)*10;
         } else {
             float eye_target_yaw_adjust = 0;
             float eye_target_pitch_adjust = 0;
@@ -280,17 +282,17 @@ void Head::simulate(float deltaTime)
         
         if ((randFloat() < 0.005) && (fabs(PitchTarget - Pitch) < 1.0) && (fabs(YawTarget - Yaw) < 1.0))
         {
-            SetNewHeadTarget((randFloat()-0.5f)*20.0f, (randFloat()-0.5f)*45.0f);
+            SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
         }
 
         if (0)
         {
 
             //  Pick new target
-            PitchTarget = (randFloat() - 0.5f)*45.0f;
-            YawTarget = (randFloat() - 0.5f)*22.0f;
+            PitchTarget = (randFloat() - 0.5)*45;
+            YawTarget = (randFloat() - 0.5)*22;
         }
-        if (randFloat() < 0.01f)
+        if (randFloat() < 0.01)
         {
             EyebrowPitch[0] = EyebrowPitch[1] = BrowPitchAngle[rand()%3];
             EyebrowRoll[0] = EyebrowRoll[1] = BrowRollAngle[rand()%5];
@@ -345,35 +347,35 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
             for(side = 0; side < 2; side++)
             {
                 glPushMatrix();
-                    glScalef(0.3f, 0.65f, .65f);
-                    glutSolidSphere(0.5f, 30, 30);  
+                    glScalef(0.3, 0.65, .65);
+                    glutSolidSphere(0.5, 30, 30);  
                 glPopMatrix();
-                glTranslatef(-2.0f, 0, 0);
+                glTranslatef(-2.0, 0, 0);
             }
         glPopMatrix();
         
 
         // Eyebrows
-        audioAttack = 0.9f*audioAttack + 0.1f*fabs(loudness - lastLoudness);
+        audioAttack = 0.9*audioAttack + 0.1*fabs(loudness - lastLoudness);
         lastLoudness = loudness;
     
         const float BROW_LIFT_THRESHOLD = 100;
         if (audioAttack > BROW_LIFT_THRESHOLD)
-            browAudioLift += sqrt(audioAttack)/1000.0f;
+            browAudioLift += sqrt(audioAttack)/1000.0;
         
-        browAudioLift *= .90f;
+        browAudioLift *= .90;
         
         glPushMatrix();
-            glTranslatef(-interBrowDistance/2.0f,0.4f,0.45f);
+            glTranslatef(-interBrowDistance/2.0,0.4,0.45);
             for(side = 0; side < 2; side++)
             {
                 glColor3fv(browColor);
                 glPushMatrix();
-                    glTranslatef(0, 0.35f + browAudioLift, 0);
-                    glRotatef(EyebrowPitch[side]/2.0f, 1, 0, 0);
-                    glRotatef(EyebrowRoll[side]/2.0f, 0, 0, 1);
+                    glTranslatef(0, 0.35 + browAudioLift, 0);
+                    glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
+                    glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
                     glScalef(browWidth, browThickness, 1);
-                    glutSolidCube(0.5f);
+                    glutSolidCube(0.5);
                 glPopMatrix();
                 glTranslatef(interBrowDistance, 0, 0);
             }
@@ -383,23 +385,23 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
         // Mouth
         
         glPushMatrix();
-            glTranslatef(0,-0.35f,0.75f);
+            glTranslatef(0,-0.35,0.75);
             glColor3f(0,0,0);
             glRotatef(MouthPitch, 1, 0, 0);
             glRotatef(MouthYaw, 0, 0, 1);
-            glScalef(MouthWidth*(.7f + sqrt(averageLoudness)/60.0f), MouthHeight*(1.0f + sqrt(averageLoudness)/30.0f), 1);
-            glutSolidCube(0.5f);
+            glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/30.0), 1);
+            glutSolidCube(0.5);
         glPopMatrix();
         
         glTranslatef(0, 1.0, 0);
        
-        glTranslatef(-interPupilDistance/2.0f,-0.68f,0.7f);
+        glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
         // Right Eye
         glRotatef(-10, 1, 0, 0);
         glColor3fv(eyeColor);
         glPushMatrix(); 
         {
-            glTranslatef(interPupilDistance/10.0f, 0, 0.05f);
+            glTranslatef(interPupilDistance/10.0, 0, 0.05);
             glRotatef(20, 0, 0, 1);
             glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
             glutSolidSphere(0.25, 30, 30);
@@ -420,9 +422,9 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
         {
             glRotatef(EyeballPitch[1], 1, 0, 0);
             glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
-            glTranslatef(0,0,.35f);
+            glTranslatef(0,0,.35);
             glRotatef(-75,1,0,0);
-            glScalef(1.0f, 0.4f, 1.0f);
+            glScalef(1.0, 0.4, 1.0);
             
             glEnable(GL_TEXTURE_2D);
             gluSphere(sphere, PupilSize, 15, 15);
@@ -435,7 +437,7 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
         glTranslatef(interPupilDistance, 0, 0);
         glPushMatrix(); 
         {
-            glTranslatef(-interPupilDistance/10.0f, 0, .05f);
+            glTranslatef(-interPupilDistance/10.0, 0, .05);
             glRotatef(-20, 0, 0, 1);
             glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
             glutSolidSphere(0.25, 30, 30);
@@ -446,9 +448,9 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
         {
             glRotatef(EyeballPitch[0], 1, 0, 0);
             glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-            glTranslatef(0, 0, .35f);
+            glTranslatef(0, 0, .35);
             glRotatef(-75, 1, 0, 0);
-            glScalef(1.0f, 0.4f, 1.0f);
+            glScalef(1.0, 0.4, 1.0);
 
             glEnable(GL_TEXTURE_2D);
             gluSphere(sphere, PupilSize, 15, 15);

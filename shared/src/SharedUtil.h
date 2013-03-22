@@ -29,4 +29,6 @@ void outputBits(unsigned char byte);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 
+void switchToResourcesIfRequired();
+
 #endif /* defined(__hifi__SharedUtil__) */
