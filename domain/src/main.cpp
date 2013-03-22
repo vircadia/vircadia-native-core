@@ -84,7 +84,7 @@ int main(int argc, const char * argv[])
             
             agentType = packetData[0];
             unpackAgentId(&packetData[1], (uint16_t *)&agentId);
-            unpackSocket(&packetData[2], (sockaddr *)&agentLocalAddress);
+            unpackSocket(&packetData[3], (sockaddr *)&agentLocalAddress);
             
             agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType, agentId);
             
