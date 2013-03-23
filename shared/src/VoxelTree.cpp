@@ -12,8 +12,6 @@
 #include "OctalCode.h"
 #include "VoxelTree.h"
 
-const int MAX_TREE_SLICE_BYTES = 26;
-
 VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
@@ -46,9 +44,7 @@ int VoxelTree::levelForViewerPosition(float *position) {
 
 VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode) {
     // find the appropriate branch index based on this ancestorNode
-    if (*needleCode == 0) {
-        return ancestorNode;
-    } else {
+    if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
         VoxelNode *childNode = ancestorNode->children[branchForNeedle];
         
@@ -156,7 +152,8 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {
-        lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        VoxelNode *parentNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        lastCreatedNode = parentNode->children[branchIndexWithDescendant(parentNode->octalCode, codeColorBuffer)];
     }
     
     // give this node its color

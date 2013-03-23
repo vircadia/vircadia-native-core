@@ -43,7 +43,7 @@ int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     }
 }
 
-char branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode) {
+int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode) {
     int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
     
     int branchStartBit = parentSections * 3;

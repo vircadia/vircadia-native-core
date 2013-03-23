@@ -13,6 +13,7 @@
 #include "VoxelNode.h"
 
 const int MAX_VOXEL_PACKET_SIZE = 1492;
+const int MAX_TREE_SLICE_BYTES = 26;
 
 class VoxelTree {
     VoxelNode * nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode);
