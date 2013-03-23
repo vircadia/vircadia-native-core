@@ -159,31 +159,6 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     // give this node its color
     memcpy(lastCreatedNode->color, codeColorBuffer + octalCodeBytes, 3);
     lastCreatedNode->color[3] = 1;
-    
-    repairChildMasks(rootNode);
-}
-
-int VoxelTree::repairChildMasks(VoxelNode *currentNode) {
-    
-    currentNode->childMask = 0;
-    int grandChildren = 0;
-    int thisNodeGrandChildren = 0;
-    
-    for (int i = 0; i < 8; i++) {
-        
-        if (currentNode->children[i] != NULL) {
-            thisNodeGrandChildren = repairChildMasks(currentNode->children[i]);
-            
-            if (thisNodeGrandChildren > 0) {
-                currentNode->childMask += (1 << (7 - i));
-            }
-            
-            thisNodeGrandChildren += grandChildren;
-        }
-    }
-    
-    return grandChildren;
-        
 }
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
@@ -311,7 +286,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     // ask children to recursively output their trees
     // if they aren't a leaf
     for (int k = 0; k < 8; k++) {
-        if (startNode->children[k] != NULL && oneAtBit(startNode->childMask, k)) {
+        if (startNode->children[k] != NULL) {
             printTreeForDebugging(startNode->children[k]);
         }
     }
