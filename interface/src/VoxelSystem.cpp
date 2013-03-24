@@ -107,6 +107,34 @@ void VoxelSystem::loadVoxelsFile(char* fileName) {
 // Complaints:  Brad :)
 void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid)
 {
+    // About the color of the sphere... we're going to make this sphere be a gradient
+    // between two RGB colors. We will do the gradient along the phi spectrum
+    unsigned char r1 = randomColorValue(165);
+    unsigned char g1 = randomColorValue(165);
+    unsigned char b1 = randomColorValue(165);
+    unsigned char r2 = randomColorValue(65);
+    unsigned char g2 = randomColorValue(65);
+    unsigned char b2 = randomColorValue(65);
+    
+    // we don't want them to match!!
+    if (r1==r2 && g1==g2 && b1==b2)
+    {
+        r2=r1/2;
+        g2=g1/2;
+        b2=b1/2;
+    }
+
+    /**
+    std::cout << "creatSphere COLORS ";
+    std::cout << " r1=" << (int)r1;
+    std::cout << " g1=" << (int)g1;
+    std::cout << " b1=" << (int)b1;
+    std::cout << " r2=" << (int)r2;
+    std::cout << " g2=" << (int)g2;
+    std::cout << " b2=" << (int)b2;
+    std::cout << std::endl;
+    **/
+    
     // Psuedocode for creating a sphere: 
     //
     // for (theta from 0 to 2pi):
@@ -157,10 +185,11 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
 				std::cout << std::endl;
                 */
                 
-                // random color data
-                unsigned char red   = randomColorValue(65);
-                unsigned char green = randomColorValue(65);
-                unsigned char blue  = randomColorValue(65);
+                // gradient color data
+                float gradient = (phi/M_PI);
+                unsigned char red   = r1+((r2-r1)*gradient);
+                unsigned char green = g1+((g2-g1)*gradient);
+                unsigned char blue  = b1+((b2-b1)*gradient);
 				
 				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
                 tree->readCodeColorBufferToTree(voxelData);

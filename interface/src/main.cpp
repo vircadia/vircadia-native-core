@@ -718,7 +718,7 @@ void addRandomSphere()
 	float xc = randFloatInRange(r,(1-r));
 	float yc = randFloatInRange(r,(1-r));
 	float zc = randFloatInRange(r,(1-r));
-	float s = 0.002; // size of voxels to make up surface of sphere
+	float s = 0.001; // size of voxels to make up surface of sphere
 	bool solid = false;
 
 	printf("random sphere\n");
