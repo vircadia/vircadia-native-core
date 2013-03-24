@@ -9,7 +9,6 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include <iostream>
 #include "VoxelNode.h"
 
 const int MAX_VOXEL_PACKET_SIZE = 1492;

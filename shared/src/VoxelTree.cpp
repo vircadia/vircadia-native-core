@@ -10,6 +10,8 @@
 #include "OctalCode.h"
 #include "VoxelTree.h"
 
+#include <stdio.h>
+
 const int MAX_TREE_SLICE_BYTES = 26;
 
 VoxelTree::VoxelTree() {

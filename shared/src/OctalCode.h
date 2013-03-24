@@ -9,7 +9,7 @@
 #ifndef __hifi__OctalCode__
 #define __hifi__OctalCode__
 
-#include <iostream>
+#include <string.h>
 
 void printOctalCode(unsigned char * octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
