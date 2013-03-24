@@ -35,10 +35,15 @@
 #include <pthread.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
 #include "Audio.h"
+#include "FieldOfView.h"
+#include "Stars.h"
 #include "Head.h"
 #include "Hand.h"
 #include "Particle.h"
@@ -54,7 +59,7 @@
 
 using namespace std;
 
-int audio_on = 1;                   //  Whether to turn on the audio support
+int audio_on = 0;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 //
@@ -93,6 +98,10 @@ Oscilloscope audioScope(256,200,true);
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
 
+#define USE_FOV
+FieldOfView fov;
+
+Stars stars;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
@@ -329,7 +338,9 @@ void init(void)
     head_mouse_y = HEIGHT/2; 
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2;
-    
+
+    stars.readInput("file://stars.txt");
+ 
     //  Initialize Field values
     field = Field();
     printf( "Field Initialized.\n" );
@@ -564,14 +575,29 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
            
         //  Rotate, translate to camera location
+#ifdef USE_FOV
+        fov.setOrientation(
+            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), 
+                glm::vec3(-location[0], -location[1], -location[2])), 
+                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
+                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
+
+        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
+#else
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
         glTranslatef(location[0], location[1], location[2]);
-    
+#endif
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        stars.render(fov);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_DEPTH_TEST);
+        
         glColor3f(1,0,0);
         glutSolidSphere(0.25, 15, 15);
     
-        
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
@@ -684,6 +710,7 @@ void display(void)
     framecount++;
 }
 
+const float KEYBOARD_PITCH_RATE = 0.8;
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_STRAFE_RATE = 0.03;
 const float KEYBOARD_FLY_RATE = 0.08;
@@ -741,6 +768,8 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 'a') render_yaw_rate -= KEYBOARD_YAW_RATE;
     if (k == 'd') render_yaw_rate += KEYBOARD_YAW_RATE;
+    if (k == 't') render_pitch_rate += KEYBOARD_PITCH_RATE;
+    if (k == 'g') render_pitch_rate -= KEYBOARD_PITCH_RATE;
     if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
@@ -820,19 +849,26 @@ void reshape(int width, int height)
 {
     WIDTH = width;
     HEIGHT = height; 
-    
-    glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION); //hello
+#ifdef USE_FOV 
+    fov.setResolution(width, height)
+            .setFrustum(glm::vec3(-0.5f,-0.5f,-50.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
+            .setPerspective(0.78f);
+
+    glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
+#else
+
     glLoadIdentity();
     gluPerspective(45, //view angle
-                   1.0, //aspect ratio
-                   0.1, //near clip
-                   50.0);//far clip
+                 1.0, //aspect ratio
+                 0.1, //near clip
+                 50.0);//far clip
+#endif   
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-     
+    glViewport(0, 0, width, height);
 }
 
 void mouseFunc( int button, int state, int x, int y ) 

@@ -1,3 +1,12 @@
+#
+# gen_stars.py
+# interface
+#
+# Created by Tobias Schwinger on 3/22/13.
+# Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+#
+
+# Input file generator for the starfield. 
 
 from random import random,randint
 from sys import argv

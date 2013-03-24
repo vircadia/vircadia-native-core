@@ -54,6 +54,7 @@ find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
+find_package(CURL REQUIRED)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
@@ -62,6 +63,7 @@ include_directories(
     ${GLUT_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
 )
 
 # link target to external libraries
@@ -69,6 +71,7 @@ target_link_libraries(interface
     ${OPENGL_LIBRARY}
     ${GLUT_LIBRARY}
     ${LODEPNG_LIBRARY}
+    ${CURL_LIBRARY}
 )
 
 if (WIN32)

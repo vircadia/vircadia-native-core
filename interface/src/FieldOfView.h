@@ -1,5 +1,5 @@
 //
-// FieldOfView.cpp
+// FieldOfView.h
 // interface
 //
 // Created by Tobias Schwinger on 3/21/13.
