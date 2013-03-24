@@ -692,6 +692,45 @@ void display(void)
     framecount++;
 }
 
+void testPointToVoxel()
+{
+	float y=0;
+	float z=0;
+	float s=0.1;
+	for (float x=0; x<=1; x+= 0.05)
+	{
+		std::cout << " x=" << x << " ";
+
+		unsigned char red   = 200; //randomColorValue(65);
+		unsigned char green = 200; //randomColorValue(65);
+		unsigned char blue  = 200; //randomColorValue(65);
+	
+		unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
+		printVoxelCode(voxelCode);
+		delete voxelCode;
+		std::cout << std::endl;
+	}
+}
+
+void addRandomSphere()
+{
+	float r = randFloatInRange(0.05,0.1);
+	float xc = randFloatInRange(r,(1-r));
+	float yc = randFloatInRange(r,(1-r));
+	float zc = randFloatInRange(r,(1-r));
+	float s = 0.002; // size of voxels to make up surface of sphere
+	bool solid = false;
+
+	printf("random sphere\n");
+	printf("radius=%f\n",r);
+	printf("xc=%f\n",xc);
+	printf("yc=%f\n",yc);
+	printf("zc=%f\n",zc);
+
+	voxels.createSphere(r,xc,yc,zc,s,solid);
+}
+
+
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_STRAFE_RATE = 0.03;
 const float KEYBOARD_FLY_RATE = 0.08;
@@ -765,6 +804,13 @@ void key(unsigned char k, int x, int y)
     if (k == '1')
     {
         myHead.SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*20.0);
+    }
+
+	// press the . key to get a new random sphere of voxels added 
+    if (k == '.')
+    {
+        addRandomSphere();
+        //testPointToVoxel();
     }
 }
 

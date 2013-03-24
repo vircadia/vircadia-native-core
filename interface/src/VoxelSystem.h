@@ -34,7 +34,7 @@ public:
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
     void loadVoxelsFile(char* fileName);
-
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid);
 private:
     int voxelsRendered;
     VoxelTree *tree;
