@@ -25,6 +25,7 @@
 #include <new>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -41,7 +42,7 @@
  *                     V  |
  *            (sort by (tile,brightness))
  *                        |         |
- * ->> setLOD  ---+       |    >retile<   ->> setLOD --> (just parameterize
+ * ->> setLOD  ---+       |    >retile<   ->> setLOD --> (just parameterizes
  *                V       V                             renderer when on-GPU
  *          (filter by max-LOD brightness,              data suffices)
  *            build tile info for rendering)
@@ -57,8 +58,6 @@
  * -----------
  *
  * o FOV culling is too eager - gotta revisit
- * o LOD adjustment in a living renderer still needs to be coded (planned)
- * o input limit (while keeping the brightest) needs to be coded (planned)
  * o atomics/mutexes need to be added as annotated in the source to allow
  *   concurrent threads to pull the strings to e.g. have a low priority
  *   thread run the data pipeline for update -- rendering is wait-free
@@ -98,6 +97,151 @@ namespace
 
     typedef std::vector<InputVertex> InputVertices;
 
+    typedef uint16_t BrightnessLevel;
+    typedef std::vector<BrightnessLevel> BrightnessLevels;
+    const unsigned BrightnessBits = 16u;
+
+    BrightnessLevel getBrightness(unsigned c)
+    {
+        unsigned r = (c >> 16) & 0xff;
+        unsigned g = (c >> 8) & 0xff;
+        unsigned b = c & 0xff;
+        return BrightnessLevel((r*r+g*g+b*b) >> 1);
+    }
+
+    struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel>
+    {
+        typedef Radix2IntegerScanner<BrightnessLevel> Base;
+        BrightnessSortScanner() : Base(BrightnessBits) { }
+        bool bit(BrightnessLevel const& k, state_type& s)
+        { return ! Base::bit(k,s); }
+    };
+
+    void extractBrightnessLevels(BrightnessLevels& dst, InputVertices const& src)
+    {
+        dst.clear();
+        dst.reserve(src.size());
+        for (InputVertices::const_iterator i = 
+                src.begin(), e = src.end(); i != e; ++i)
+            dst.push_back( getBrightness(i->getColor()) );
+
+        radix2InplaceSort(dst.begin(), dst.end(), BrightnessSortScanner());
+    }
+
+    template< class Unit >
+    class HorizontalTiling
+    {
+            unsigned    val_k;
+            float       val_rcp_slice;
+            unsigned    val_bits;
+        public:
+
+            HorizontalTiling(unsigned k)
+                : val_k(k), val_rcp_slice(k / Unit::twice_pi())
+            {
+                val_bits = ceil(log2(getTileCount() ));
+            }
+
+            unsigned getAzimuthalTiles() const { return val_k; }
+            unsigned getAltitudinalTiles() const { return val_k / 2 + 1; }
+            unsigned getTileIndexBits() const { return val_bits; }
+
+            unsigned getTileCount() const
+            {
+                return getAzimuthalTiles() * getAltitudinalTiles();
+            }
+
+            unsigned getTileIndex(float azimuth, float altitude) const
+            {
+                unsigned result;
+                return discreteAngle(azimuth) % val_k +
+                    discreteAngle(altitude + Unit::half_pi()) * val_k;
+            }
+
+            unsigned getTileIndex(InputVertex const& v) const
+            {
+                return getTileIndex(v.getAzimuth(), v.getAltitude());
+            }
+
+            unsigned discreteAngle(float unsigned_angle) const
+            {
+                return unsigned(round(unsigned_angle * val_rcp_slice));
+            }
+    };
+
+    class TileSortScanner : public Radix2IntegerScanner<unsigned>
+    {
+            HorizontalTiling<Degrees> obj_tiling;
+
+            typedef Radix2IntegerScanner<unsigned> Base;
+        public:
+
+            explicit TileSortScanner(HorizontalTiling<Degrees> const& tiling)
+                : Base(tiling.getTileIndexBits() + BrightnessBits),
+                obj_tiling(tiling)
+            { }
+
+            bool bit(InputVertex const& v, state_type const& s) const
+            {
+                // inspect (tile_index, brightness) tuples
+                unsigned key = getBrightness(v.getColor());
+                key |= obj_tiling.getTileIndex(v) << BrightnessBits;
+                return Base::bit(key, s); 
+            }
+    };
+
+    struct Tile
+    {
+        uint16_t offset;
+        uint16_t count; // according to previous lod setting
+    };
+
+
+    struct GpuVertex
+    {
+            unsigned    val_color;
+            float       val_x;
+            float       val_y;
+            float       val_z;
+        //
+
+            GpuVertex() { }
+
+            GpuVertex(InputVertex const& in)
+            {
+                val_color = in.getColor();
+                float azimuth = in.getAzimuth() * DEG2RAD;
+                float altitude = in.getAltitude() * DEG2RAD;
+
+                // ground vector in x/z plane...
+                float gx =  sin(azimuth);
+                float gz = -cos(azimuth);
+
+                // ...elevated in y direction by altitude
+                float exz = cos(altitude);
+                val_x = gx * exz;
+                val_y = sin(altitude);
+                val_z = gz * exz;
+
+//fprintf(stderr, "Stars.cpp: GpuVertex created (%x,%f,%f,%f)\n", val_color, val_x, val_y, val_z);
+            }
+
+            unsigned getColor() const { return val_color; } 
+    };
+
+    struct GreaterBrightness
+    {
+        bool operator()(InputVertex const& lhs, InputVertex const& rhs) const
+        {
+            return getBrightness(lhs.getColor())
+                    > getBrightness(rhs.getColor());
+        }
+        bool operator()(BrightnessLevel lhs, GpuVertex const& rhs) const
+        {
+            return lhs > getBrightness(rhs.getColor());;
+        }
+    };
+
     class Loader : UrlReader
     {
             InputVertices*  ptr_vertices;
@@ -105,6 +249,9 @@ namespace
 
             unsigned        val_lineno;
             char const*     str_actual_url;
+
+            unsigned        val_records_read;
+            BrightnessLevel val_min_brightness;
         public:
 
             bool loadVertices(
@@ -163,13 +310,40 @@ namespace
                     // parse
                     float azi, alt;
                     unsigned c;
-                    if (sscanf(line, "%f %f #%x", & azi, & alt, & c) == 3)
+                    if (sscanf(line, " %f %f #%x", & azi, & alt, & c) == 3)
                     {
-                        if (ptr_vertices->size() < val_limit)
-                            ptr_vertices->push_back( InputVertex(azi, alt, c) );
+                        if (val_records_read++ == val_limit)
+                        {
+                            std::make_heap(
+                                ptr_vertices->begin(), ptr_vertices->end(),
+                                GreaterBrightness() );
 
-                        // TODO handle limit by switching to a minheap when
-                        // buffer is full
+                            val_min_brightness = getBrightness(
+                                    ptr_vertices->begin()->getColor() );
+                        }
+                        if (ptr_vertices->size() == val_limit)
+                        {
+                            if (val_min_brightness >= getBrightness(c))
+                                continue;
+
+                            std::pop_heap(
+                                ptr_vertices->begin(), ptr_vertices->end(),
+                                GreaterBrightness() );
+                            ptr_vertices->pop_back();
+                        }
+
+                        ptr_vertices->push_back( InputVertex(azi, alt, c) );
+
+                        if (val_records_read > val_limit)
+                        {
+                            std::push_heap(
+                                ptr_vertices->begin(), ptr_vertices->end(),
+                                GreaterBrightness() );
+                            ptr_vertices->pop_back();
+
+                            val_min_brightness = getBrightness(
+                                    ptr_vertices->begin()->getColor() );
+                        }
                     }
                     else
                     {
@@ -186,146 +360,11 @@ namespace
             }
     };
 
-    typedef uint16_t BrightnessLevel;
-    typedef std::vector<BrightnessLevel> BrightnessLevels;
-    const unsigned BrightnessBits = 16u;
-
-    template< class Vertex > 
-    BrightnessLevel getBrightness(Vertex const& v)
-    {
-        unsigned c = v.getColor();
-        unsigned r = (c >> 16) & 0xff;
-        unsigned g = (c >> 8) & 0xff;
-        unsigned b = c & 0xff;
-        return BrightnessLevel((r*r+g*g+b*b) >> 1);
-    }
-
-    struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel>
-    {
-        typedef Radix2IntegerScanner<BrightnessLevel> Base;
-        BrightnessSortScanner() : Base(BrightnessBits) { }
-        bool bit(BrightnessLevel const& k, state_type& s)
-        { return ! Base::bit(k,s); }
-    };
-
-    void extractBrightnessLevels(BrightnessLevels& dst, InputVertices const& src)
-    {
-        dst.clear();
-        dst.reserve(src.size());
-        for (InputVertices::const_iterator i = 
-                src.begin(), e = src.end(); i != e; ++i)
-            dst.push_back( getBrightness(*i) );
-
-        radix2InplaceSort(dst.begin(), dst.end(), BrightnessSortScanner());
-    }
-
-
-    template< class Unit >
-    class HorizontalTiling
-    {
-            unsigned    val_k;
-            float       val_rcp_slice;
-            unsigned    val_bits;
-        public:
-
-            HorizontalTiling(unsigned k)
-                : val_k(k), val_rcp_slice(k / Unit::twice_pi())
-            {
-                val_bits = ceil(log2(getTileCount() ));
-            }
-
-            unsigned getAzimuthalTiles() const { return val_k; }
-            unsigned getAltitudinalTiles() const { return val_k / 2 + 1; }
-            unsigned getTileIndexBits() const { return val_bits; }
-
-            unsigned getTileCount() const
-            {
-                return getAzimuthalTiles() * getAltitudinalTiles();
-            }
-
-            unsigned getTileIndex(float azimuth, float altitude) const
-            {
-                unsigned result;
-                return discreteAngle(azimuth) % val_k +
-                    discreteAngle(altitude + Unit::half_pi()) * val_k;
-            }
-
-            unsigned getTileIndex(InputVertex const& v) const
-            {
-                return getTileIndex(v.getAzimuth(), v.getAltitude());
-            }
-
-            unsigned discreteAngle(float unsigned_angle) const
-            {
-                return unsigned(round(unsigned_angle * val_rcp_slice));
-            }
-    };
-
-    class TileSortScanner : public Radix2IntegerScanner<unsigned>
-    {
-            HorizontalTiling<Degrees> obj_tiling;
-
-            typedef Radix2IntegerScanner<unsigned> Base;
-        public:
-
-            explicit TileSortScanner(HorizontalTiling<Degrees> const& tiling)
-                : Base(tiling.getTileIndexBits() + BrightnessBits),
-                obj_tiling(tiling)
-            { }
-
-            bool bit(InputVertex const& v, state_type const& s) const
-            {
-                // inspect (tile_index, brightness) tuples
-                unsigned key = getBrightness(v);
-                key |= obj_tiling.getTileIndex(v) << BrightnessBits;
-                return Base::bit(key, s); 
-            }
-    };
-
-    struct Tile
-    {
-        uint16_t offset;
-        uint16_t count; // according to previous lod setting
-    };
-
-
-    struct GpuVertex
-    {
-            unsigned    val_color;
-            float       val_x;
-            float       val_y;
-            float       val_z;
-        //
-
-            GpuVertex() { }
-
-            GpuVertex(InputVertex const& in)
-            {
-                val_color = in.getColor();
-                float azimuth = in.getAzimuth() * DEG2RAD;
-                float altitude = in.getAltitude() * DEG2RAD;
-
-                // ground vector in x/z plane...
-                float gx =  sin(azimuth);
-                float gz = -cos(azimuth);
-
-                // ...elevated in y direction by altitude
-                float exz = cos(altitude);
-                val_x = gx * exz;
-                val_y = sin(altitude);
-                val_z = gz * exz;
-
-//fprintf(stderr, "Stars.cpp: GpuVertex created (%x,%f,%f,%f)\n", val_color, val_x, val_y, val_z);
-            }
-
-            unsigned getColor() const { return val_color; } 
-    };
-
     class Renderer
     {
             GpuVertex*      ptr_data;
             Tile*           ptr_tiles;
-            BrightnessLevel val_brightness;
+            BrightnessLevel val_lod;
             unsigned        val_tile_resolution;
             GLint*          ptr_batch_offs;
             GLsizei*        ptr_batch_count;
@@ -335,14 +374,14 @@ namespace
             Renderer(InputVertices const& src, size_t n,
                     unsigned k, BrightnessLevel b, BrightnessLevel b_max)
                 : ptr_data(0l), ptr_tiles(0l), 
-                    val_brightness(b), val_tile_resolution(k)
+                    val_lod(b), val_tile_resolution(k)
             {
 
                 HorizontalTiling<Degrees> tiling(k);
                 size_t n_tiles = tiling.getTileCount();
 
                 ptr_data = new GpuVertex[n];
-                ptr_tiles = new Tile[n_tiles];
+                ptr_tiles = new Tile[n_tiles + 1];
                 // TODO tighten bounds and save some memory
                 ptr_batch_offs = new GLint[n_tiles]; 
                 ptr_batch_count = new GLsizei[n_tiles];
@@ -352,7 +391,7 @@ namespace
                 for (InputVertices::const_iterator i = 
                         src.begin(), e = src.end(); i != e; ++i)
                 {
-                    BrightnessLevel bv = getBrightness(*i);
+                    BrightnessLevel bv = getBrightness(i->getColor());
                     // filter by alloc brightness
                     if (bv >= b_max)
                     {
@@ -391,10 +430,9 @@ namespace
                 }
                 assert(vertex_index == n);
                 // finish last tile (see above)
-                Tile* t = ptr_tiles + curr_tile_index;
-                Tile* t_last = ptr_tiles + n_tiles;
+                Tile* t = ptr_tiles + curr_tile_index; 
                 t->count = count_active;
-                for(; ++t != t_last ;)
+                for (Tile* e = ptr_tiles + n_tiles + 1; ++t != e ;)
                     t->offset = vertex_index, t->count = 0u;
 
                 // OpenGL upload
@@ -472,18 +510,42 @@ fprintf(stderr, "Stars.cpp: grid range: [%d;%d) [%d;%d]\n", azi_from, azi_to, al
                             azi != azi_to; azi = (azi + 1) % azi_dim)
                     {
                         unsigned tile_index = azi + alt * azi_dim;
-                        Tile& t = ptr_tiles[tile_index];
+                        Tile* t = ptr_tiles + tile_index;
 
-                        // TODO handle LOD changes by performing a binary
-                        // search for the new brightness, if any
+                        // LOD brightness changed? 
+                        if (lod != val_lod)
+                        {
+                            // determine bounds for binary search
+                            //
+                            // a growing number of stars needs to be rendereed
+                            // at decreasing minimum brightness - perform a
+                            // binary search in the so found partition for the
+                            // new vertex count in this tile
 
-                        if (! t.count)
+                            GpuVertex const* start = ptr_data + t[0].offset;
+                            GpuVertex const* end = ptr_data + t[1].offset;
+
+                            if (start == end)
+                                continue;
+
+                            if (lod < val_lod)
+                                start += (t->count > 0 ? t->count - 1 : 0);
+                            else
+                                end = start + t->count;
+
+                            end = std::upper_bound(
+                                    start, end, lod, GreaterBrightness());
+
+                            t->count = end - ptr_data + t[0].offset;
+                        }
+
+                        if (! t->count)
                             continue;
 
-fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t.count, t.offset);
+fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t->count, t->offset);
 
-                        *offs++ = t.offset;
-                        *count++ = t.count;
+                        *offs++ = t->offset;
+                        *count++ = t->count;
 
                         ++n_batches;
                     }
