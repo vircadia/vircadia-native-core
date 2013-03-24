@@ -74,3 +74,33 @@ void switchToResourcesIfRequired() {
     chdir(path);
 #endif
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Function:    getCmdOption()
+// Description: Handy little function to tell you if a command line flag and option was
+//              included while launching the application, and to get the option value
+//              immediately following the flag. For example if you ran:
+//                      ./app -i filename.txt
+//              then you're using the "-i" flag to set the input file name.
+// Usage:       char * inputFilename = getCmdOption(argv, argv + argc, "-i");
+// Complaints:  Brad :)
+char* getCmdOption(char ** begin, char ** end, const std::string & option)
+{
+    char ** itr = std::find(begin, end, option);
+    if (itr != end && ++itr != end)
+    {
+        return *itr;
+    }
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Function:    getCmdOption()
+// Description: Handy little function to tell you if a command line option flag was
+//              included while launching the application. Returns bool true/false
+// Usage:       bool wantDump   = cmdOptionExists(argv, argv+argc, "-d");
+// Complaints:  Brad :)
+bool cmdOptionExists(char** begin, char** end, const std::string& option)
+{
+    return std::find(begin, end, option) != end;
+}

@@ -8,6 +8,8 @@
 
 #include <cstring>
 #include <cmath>
+#include <iostream> // to load voxels from file
+#include <fstream> // to load voxels from file
 #include <SharedUtil.h>
 #include <OctalCode.h>
 #include <AgentList.h>
@@ -46,6 +48,56 @@ VoxelSystem::~VoxelSystem() {
     delete tree;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Method:      VoxelSystem::loadVoxelsFile()
+// Description: Loads HiFidelity encoded Voxels from a binary file. The current file
+//              format is a stream of single voxels with NO color data. Currently
+//              colors are set randomly
+// Complaints:  Brad :)
+// To Do:       Need to add color data to the file.
+void VoxelSystem::loadVoxelsFile(char* fileName) {
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary);
+
+    char octets;
+    unsigned int lengthInBytes;
+    
+    int totalBytesRead = 0;
+    if(file.is_open())
+    {
+        while (!file.eof()) {
+            file.get(octets);
+            totalBytesRead++;
+            lengthInBytes = (octets*3/8)+1;
+            unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
+            voxelData[0]=octets;
+            char byte;
+
+            for (size_t i = 0; i < lengthInBytes; i++) {
+                file.get(byte);
+                totalBytesRead++;
+                voxelData[i+1] = byte;
+            }
+            // random color data
+            voxelData[lengthInBytes+1] = randomColorValue(65);
+            voxelData[lengthInBytes+2] = randomColorValue(65);
+            voxelData[lengthInBytes+3] = randomColorValue(65);
+            
+            tree->readCodeColorBufferToTree(voxelData);
+            delete voxelData;
+        }
+        file.close();
+    }
+
+    // reset the verticesEndPointer so we're writing to the beginning of the array
+    verticesEndPointer = verticesArray;
+    // call recursive function to populate in memory arrays
+    // it will return the number of voxels added
+    voxelsRendered = treeToArrays(tree->rootNode);
+    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
+    voxelsToRender = (voxelsRendered > 0);
+}
+
 void VoxelSystem::parseData(void *data, int size) {
     // output the bits received from the voxel server
     unsigned char *voxelData = (unsigned char *) data + 1;
@@ -68,7 +120,7 @@ void VoxelSystem::parseData(void *data, int size) {
 
 int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
     int voxelsAdded = 0;
-    
+
     for (int i = 0; i < 8; i++) {
         // check if there is a child here
         if (currentNode->children[i] != NULL) {
@@ -95,7 +147,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
        
         delete [] startVertex;
     }
-    
+
     return voxelsAdded;
 }
 

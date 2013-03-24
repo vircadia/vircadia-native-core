@@ -31,4 +31,7 @@ bool oneAtBit(unsigned char byte, int bitIndex);
 
 void switchToResourcesIfRequired();
 
+char* getCmdOption(char ** begin, char ** end, const std::string& option);
+bool cmdOptionExists(char** begin, char** end, const std::string& option);
+
 #endif /* defined(__hifi__SharedUtil__) */

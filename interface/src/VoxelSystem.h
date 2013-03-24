@@ -33,6 +33,8 @@ public:
     void render();
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
+    void loadVoxelsFile(char* fileName);
+
 private:
     int voxelsRendered;
     VoxelTree *tree;
