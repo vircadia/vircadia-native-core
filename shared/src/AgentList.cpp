@@ -17,22 +17,25 @@
 #endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
+const int DOMAINSERVER_PORT = 40102;
 
-bool stopAgentRemovalThread = false;
+bool silentAgentThreadStopFlag = false;
+bool domainServerCheckinStopFlag = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
-AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
-    linkedDataCreateCallback = NULL;
-    audioMixerSocketUpdate = NULL;
-}
-
-AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
+AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) : agentSocket(newSocketListenPort) {
+    ownerType = newOwnerType;
+    socketListenPort = newSocketListenPort;
     linkedDataCreateCallback = NULL;
     audioMixerSocketUpdate = NULL;
 }
 
 AgentList::~AgentList() {
+    // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
+    stopDomainServerCheckInThread();
 }
 
 std::vector<Agent>& AgentList::getAgents() {
@@ -41,6 +44,14 @@ std::vector<Agent>& AgentList::getAgents() {
 
 UDPSocket& AgentList::getAgentSocket() {
     return agentSocket;
+}
+
+char AgentList::getOwnerType() {
+    return ownerType;
+}
+
+unsigned int AgentList::getSocketListenPort() {
+    return socketListenPort;
 }
 
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
@@ -154,10 +165,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
-            sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
-            audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
+            sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
+            audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
         } else if (newAgent.getType() == 'V') {
-            newAgent.activateLocalSocket();
+            newAgent.activatePublicSocket();
         }
         
         std::cout << "Added agent - " << &newAgent << "\n";
@@ -227,7 +238,7 @@ void *removeSilentAgents(void *args) {
     std::vector<Agent> *agents = (std::vector<Agent> *)args;
     double checkTimeUSecs, sleepTime;
     
-    while (!stopAgentRemovalThread) {
+    while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
@@ -259,6 +270,58 @@ void AgentList::startSilentAgentRemovalThread() {
 }
 
 void AgentList::stopSilentAgentRemovalThread() {
-    stopAgentRemovalThread = true;
+    silentAgentThreadStopFlag = true;
     pthread_join(removeSilentAgentsThread, NULL);
+}
+
+void *checkInWithDomainServer(void *args) {
+    
+    AgentList *parentAgentList = (AgentList *)args;
+    
+    timeval lastSend;
+    unsigned char output[7];
+    
+    in_addr_t localAddress = getLocalAddress();
+    
+    //  Lookup the IP address of the domain server if we need to
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            
+        } else {
+            printf("Failed lookup domainserver\n");
+        }
+    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    
+    
+    while (!domainServerCheckinStopFlag) {
+        gettimeofday(&lastSend, NULL);
+        
+        output[0] = parentAgentList->getOwnerType();
+        packSocket(output + 1, localAddress, htons(parentAgentList->getSocketListenPort()));
+        
+        parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
+        
+        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
+    }
+    
+    pthread_exit(0);
+    return NULL;
+}
+
+void AgentList::startDomainServerCheckInThread() {
+    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void *)this);
+}
+
+void AgentList::stopDomainServerCheckInThread() {
+    domainServerCheckinStopFlag = true;
+    pthread_join(checkInWithDomainServerThread, NULL);
 }
