@@ -19,7 +19,7 @@
 
 Agent::Agent() {}
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType) {
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
     memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
     
@@ -27,6 +27,7 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
     
     type = agentType;
+    agentId = thisAgentId;
     
     firstRecvTimeUsecs = usecTimestampNow();
     lastRecvTimeUsecs = usecTimestampNow();
@@ -41,6 +42,8 @@ Agent::Agent(const Agent &otherAgent) {
     
     localSocket = new sockaddr;
     memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    
+    agentId = otherAgent.agentId;
     
     if (otherAgent.activeSocket == otherAgent.publicSocket) {
         activeSocket = publicSocket;
@@ -78,6 +81,14 @@ char Agent::getType() {
 
 void Agent::setType(char newType) {
     type = newType;
+}
+
+uint16_t Agent::getAgentId() {
+    return agentId;
+}
+
+void Agent::setAgentId(uint16_t thisAgentId) {
+    agentId = thisAgentId;
 }
 
 double Agent::getFirstRecvTimeUsecs() {
@@ -144,6 +155,7 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.activeSocket, second.activeSocket);
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
+    swap(first.agentId, second.agentId);
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
