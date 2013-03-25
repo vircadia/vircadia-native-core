@@ -84,8 +84,13 @@ int main(int argc, const char * argv[])
             agentType = packetData[0];
             unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
             
-            if (agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType, agentList.getLastAgentId())) {
+            if (agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress,
+                                           (sockaddr *)&agentLocalAddress,
+                                           agentType,
+                                           agentList.getLastAgentId())) {
+                
                 agentList.increaseAgentId();
+            
             }
             
             currentBufferPos = broadcastPacket + 1;

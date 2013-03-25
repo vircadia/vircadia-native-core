@@ -43,6 +43,9 @@ Agent::Agent(const Agent &otherAgent) {
     localSocket = new sockaddr;
     memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
     
+    agentId = *new uint16_t;
+    memcpy(&agentId, &otherAgent.agentId, sizeof(uint16_t));
+    
     if (otherAgent.activeSocket == otherAgent.publicSocket) {
         activeSocket = publicSocket;
     } else if (otherAgent.activeSocket == otherAgent.localSocket) {
@@ -153,6 +156,7 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.activeSocket, second.activeSocket);
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
+    swap(first.agentId, second.agentId);
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
