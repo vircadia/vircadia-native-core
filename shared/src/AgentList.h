@@ -28,10 +28,12 @@ extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startu
 extern const int DOMAINSERVER_PORT;
 
 class AgentList {
+
     UDPSocket agentSocket;
     char ownerType;
     unsigned int socketListenPort;
     std::vector<Agent> agents;
+    uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
     
@@ -42,13 +44,15 @@ public:
     
     void(*linkedDataCreateCallback)(Agent *);
     void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
-
+    
     std::vector<Agent>& getAgents();
     UDPSocket& getAgentSocket();
-
+    
     int updateList(unsigned char *packetData, size_t dataBytes);
     int indexOfMatchingAgent(sockaddr *senderAddress);
-    bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType);
+    uint16_t getLastAgentId();
+    void increaseAgentId();
+    bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void broadcastToAgents(char *broadcastData, size_t dataBytes);
@@ -62,5 +66,8 @@ public:
     void startDomainServerCheckInThread();
     void stopDomainServerCheckInThread();
 };
+
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
+int packAgentId(unsigned char *packStore, uint16_t agentId);
 
 #endif /* defined(__hifi__AgentList__) */

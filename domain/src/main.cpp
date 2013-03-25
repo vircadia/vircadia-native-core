@@ -50,6 +50,7 @@ AgentList agentList('D', DOMAIN_LISTEN_PORT);
 unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
     
+    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
     currentPosition += packSocket(currentPosition, agentToAdd->getPublicSocket());
     currentPosition += packSocket(currentPosition, agentToAdd->getLocalSocket());
     
@@ -92,7 +93,14 @@ int main(int argc, const char * argv[])
                 agentPublicAddress.sin_addr.s_addr = 895283510;
             }
             
-            agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
+            if (agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress,
+                                           (sockaddr *)&agentLocalAddress,
+                                           agentType,
+                                           agentList.getLastAgentId())) {
+                
+                agentList.increaseAgentId();
+            
+            }
             
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
