@@ -10,6 +10,7 @@
 #define __hifi__Agent__
 
 #include <iostream>
+#include <stdint.h>
 #include "AgentData.h"
 
 #ifdef _WIN32

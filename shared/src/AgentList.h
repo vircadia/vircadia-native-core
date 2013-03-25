@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#include <stdint.h>
 #include "Agent.h"
 #include "UDPSocket.h"
 
