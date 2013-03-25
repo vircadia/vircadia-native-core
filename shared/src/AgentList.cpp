@@ -145,7 +145,6 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
 
 bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
     std::vector<Agent>::iterator agent;
-    uint16_t thisAgentId;
     
     for (agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->matches(publicSocket, localSocket, agentType)) {
