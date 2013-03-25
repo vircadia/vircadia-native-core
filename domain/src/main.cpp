@@ -45,7 +45,7 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 #define DEBUG_TO_SELF 0
 
 int lastActiveCount = 0;
-AgentList agentList(DOMAIN_LISTEN_PORT);
+AgentList agentList('D', DOMAIN_LISTEN_PORT);
 
 unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
@@ -74,6 +74,8 @@ int main(int argc, const char * argv[])
     sockaddr_in agentPublicAddress, agentLocalAddress;
     agentLocalAddress.sin_family = AF_INET;
     
+    in_addr_t serverLocalAddress = getLocalAddress();
+    
     agentList.startSilentAgentRemovalThread();
     
     while (true) {
@@ -82,6 +84,13 @@ int main(int argc, const char * argv[])
             
             agentType = packetData[0];
             unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
+            
+            // check the agent public address
+            // if it matches our local address we're on the same box
+            // so hardcode the EC2 public address for now
+            if (agentPublicAddress.sin_addr.s_addr == serverLocalAddress) {
+                agentPublicAddress.sin_addr.s_addr = 895283510;
+            }
             
             agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType);
             

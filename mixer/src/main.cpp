@@ -53,11 +53,7 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102; 
-
-AgentList agentList(MIXER_LISTEN_PORT);
+AgentList agentList('M', MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -235,29 +231,6 @@ void *sendBuffer(void *args)
     pthread_exit(0);  
 }
 
-void *reportAliveToDS(void *args) {
-    
-    timeval lastSend;
-    unsigned char output[7];
-   
-    while (true) {
-        gettimeofday(&lastSend, NULL);
-        
-        *output = 'M';
-        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
-        agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
-        
-        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        } else {
-            std::cout << "No sleep required!";
-        }
-    }    
-}
-
 void attachNewBufferToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
         newAgent->setLinkedData(new AudioRingBuffer(RING_BUFFER_SAMPLES, BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
@@ -273,26 +246,7 @@ int main(int argc, const char * argv[])
     agentList.linkedDataCreateCallback = attachNewBufferToAgent;
     
     agentList.startSilentAgentRemovalThread();
-    
-    //  Lookup the IP address of things we have hostnames
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
-            
-        } else {
-            printf("Failed lookup domainserver\n");
-        }
-    } else {
-        printf("Using static domainserver IP: %s\n", DOMAIN_IP);
-    }
-    
-    // setup the agentSocket to report to domain server
-    pthread_t reportAliveThread;
-    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
+    agentList.startDomainServerCheckInThread();
 
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 
@@ -342,8 +296,6 @@ int main(int argc, const char * argv[])
         }
     }
     
-    agentList.stopSilentAgentRemovalThread();
-    pthread_join(reportAliveThread, NULL);
     pthread_join(sendBufferThread, NULL);
     
     return 0;
