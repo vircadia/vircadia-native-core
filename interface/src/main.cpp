@@ -853,7 +853,7 @@ void reshape(int width, int height)
     glMatrixMode(GL_PROJECTION); //hello
 #ifdef USE_FOV 
     fov.setResolution(width, height)
-            .setFrustum(glm::vec3(-0.5f,-0.5f,-50.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
+            .setBounds(glm::vec3(-0.5f,-0.5f,-50.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
             .setPerspective(0.78f);
 
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
