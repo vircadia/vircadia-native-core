@@ -43,8 +43,7 @@ Agent::Agent(const Agent &otherAgent) {
     localSocket = new sockaddr;
     memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
     
-    agentId = *new uint16_t;
-    memcpy(&agentId, &otherAgent.agentId, sizeof(uint16_t));
+    agentId = otherAgent.agentId;
     
     if (otherAgent.activeSocket == otherAgent.publicSocket) {
         activeSocket = publicSocket;
