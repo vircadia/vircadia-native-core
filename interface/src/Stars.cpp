@@ -506,8 +506,9 @@ namespace
                 for (float alt = altitude - extent; 
                         alt <= altitude + extent + 0.1f; alt += slice)
                 {
-                    for (float azi = azimuth - extent;
-                            azi <= azimuth + extent + 0.1f; azi += slice)
+                    float azi_extent = extent / cos(alt);
+                    for (float azi = azimuth - azi_extent;
+                            azi <= azimuth + azi_extent + 0.1f; azi += slice)
                     {
                         float az = azi, al = alt;
                         angleHorizontalPolar<Radians>(az, al);
