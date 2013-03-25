@@ -973,14 +973,6 @@ int main(int argc, char** argv)
     printf( "Initialized Display.\n" );
 
     init();
-
-	// Check to see if the user passed in a command line option for loading a local
-	// Voxel File. If so, load it now.
-    char* voxelsFilename = getCmdOption(argv, argv + argc, "-i");
-    if (voxelsFilename)
-    {
-	    voxels.loadVoxelsFile(voxelsFilename);
-	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
