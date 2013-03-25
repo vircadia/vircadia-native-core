@@ -12,8 +12,6 @@
 #include "OctalCode.h"
 #include "VoxelTree.h"
 
-const int MAX_TREE_SLICE_BYTES = 26;
-
 VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
@@ -46,9 +44,7 @@ int VoxelTree::levelForViewerPosition(float *position) {
 
 VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode) {
     // find the appropriate branch index based on this ancestorNode
-    if (*needleCode == 0) {
-        return ancestorNode;
-    } else {
+    if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
         VoxelNode *childNode = ancestorNode->children[branchForNeedle];
         
@@ -156,7 +152,8 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {
-        lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        VoxelNode *parentNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        lastCreatedNode = parentNode->children[branchIndexWithDescendant(parentNode->octalCode, codeColorBuffer)];
     }
     
     // give this node its color
@@ -220,7 +217,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         
         // copy the childMask to the current position of the bitstreamBuffer
         // and push the buffer pointer forwards
-        *(bitstreamBuffer++) = *currentVoxelNode->octalCode < deepestLevel
+        *(bitstreamBuffer++) = *currentVoxelNode->octalCode < deepestLevel - 1
             ? currentVoxelNode->childMask
             : 0;
     } else {
@@ -231,7 +228,11 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
     
     unsigned char * childStopOctalCode = NULL;
     
-    if (*currentVoxelNode->octalCode < deepestLevel) {
+    if (currentVoxelNode->childMask == 0) {
+        leavesWrittenToBitstream++;
+    }
+    
+    if (*currentVoxelNode->octalCode < deepestLevel - 1) {
         for (int i = firstIndexToCheck; i < 8; i ++) {
             
             // ask the child to load this bitstream buffer
@@ -285,7 +286,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     // ask children to recursively output their trees
     // if they aren't a leaf
     for (int k = 0; k < 8; k++) {
-        if (startNode->children[k] != NULL && oneAtBit(startNode->childMask, k)) {
+        if (startNode->children[k] != NULL) {
             printTreeForDebugging(startNode->children[k]);
         }
     }

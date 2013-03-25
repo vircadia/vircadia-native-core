@@ -8,6 +8,8 @@
 
 #include <cstring>
 #include <cmath>
+#include <iostream> // to load voxels from file
+#include <fstream> // to load voxels from file
 #include <SharedUtil.h>
 #include <OctalCode.h>
 #include <AgentList.h>
@@ -46,6 +48,167 @@ VoxelSystem::~VoxelSystem() {
     delete tree;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Method:      VoxelSystem::loadVoxelsFile()
+// Description: Loads HiFidelity encoded Voxels from a binary file. The current file
+//              format is a stream of single voxels with NO color data. Currently
+//              colors are set randomly
+// Complaints:  Brad :)
+// To Do:       Need to add color data to the file.
+void VoxelSystem::loadVoxelsFile(char* fileName) {
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary);
+
+    char octets;
+    unsigned int lengthInBytes;
+    
+    int totalBytesRead = 0;
+    if(file.is_open())
+    {
+        while (!file.eof()) {
+            file.get(octets);
+            totalBytesRead++;
+            lengthInBytes = (octets*3/8)+1;
+            unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
+            voxelData[0]=octets;
+            char byte;
+
+            for (size_t i = 0; i < lengthInBytes; i++) {
+                file.get(byte);
+                totalBytesRead++;
+                voxelData[i+1] = byte;
+            }
+            // random color data
+            voxelData[lengthInBytes+1] = randomColorValue(65);
+            voxelData[lengthInBytes+2] = randomColorValue(65);
+            voxelData[lengthInBytes+3] = randomColorValue(65);
+            
+            tree->readCodeColorBufferToTree(voxelData);
+            delete voxelData;
+        }
+        file.close();
+    }
+
+    // reset the verticesEndPointer so we're writing to the beginning of the array
+    verticesEndPointer = verticesArray;
+    // call recursive function to populate in memory arrays
+    // it will return the number of voxels added
+    voxelsRendered = treeToArrays(tree->rootNode);
+    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
+    voxelsToRender = (voxelsRendered > 0);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Method:      VoxelSystem::createSphere()
+// Description: Creates a sphere of voxels in the local system at a given location/radius
+// To Do:       Move this function someplace better? I put it here because we need a
+//              mechanism to tell the system to redraw it's arrays after voxels are done
+//              being added. This is a concept mostly only understood by VoxelSystem.
+// Complaints:  Brad :)
+void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid)
+{
+    // About the color of the sphere... we're going to make this sphere be a gradient
+    // between two RGB colors. We will do the gradient along the phi spectrum
+    unsigned char r1 = randomColorValue(165);
+    unsigned char g1 = randomColorValue(165);
+    unsigned char b1 = randomColorValue(165);
+    unsigned char r2 = randomColorValue(65);
+    unsigned char g2 = randomColorValue(65);
+    unsigned char b2 = randomColorValue(65);
+    
+    // we don't want them to match!!
+    if (r1==r2 && g1==g2 && b1==b2)
+    {
+        r2=r1/2;
+        g2=g1/2;
+        b2=b1/2;
+    }
+
+    /**
+    std::cout << "creatSphere COLORS ";
+    std::cout << " r1=" << (int)r1;
+    std::cout << " g1=" << (int)g1;
+    std::cout << " b1=" << (int)b1;
+    std::cout << " r2=" << (int)r2;
+    std::cout << " g2=" << (int)g2;
+    std::cout << " b2=" << (int)b2;
+    std::cout << std::endl;
+    **/
+    
+    // Psuedocode for creating a sphere: 
+    //
+    // for (theta from 0 to 2pi):
+    //     for (phi from 0 to pi):
+	//          x = xc+r*cos(theta)*sin(phi)
+	//          y = yc+r*sin(theta)*sin(phi)
+	//          z = zc+r*cos(phi)
+	
+	int t=0; // total points
+
+    // We want to make sure that as we "sweep" through our angles
+    // we use a delta angle that's small enough to not skip any voxels
+    // we can calculate theta from our desired arc length
+    //	
+	//      lenArc = ndeg/360deg * 2pi*R
+	//      lenArc = theta/2pi * 2pi*R
+	//      lenArc = theta*R
+	//      theta = lenArc/R
+	//      theta = g/r	
+	float angleDelta = (s/r);
+
+	// assume solid for now
+	float ri = 0.0;
+	if (!solid)
+	{
+		ri=r; // just the outer surface
+	}
+	// If you also iterate form the interior of the sphere to the radius, makeing
+	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
+	for (; ri <= r; ri+=s)
+	{
+		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta)
+		{
+			for (float phi=0.0; phi <= M_PI; phi += angleDelta)
+			{
+				t++; // total voxels
+				float x = xc+r*cos(theta)*sin(phi);
+				float y = yc+r*sin(theta)*sin(phi);
+				float z = zc+r*cos(phi);
+				/*
+				std::cout << " r=" << r;
+				std::cout << " theta=" << theta;
+				std::cout << " phi=" << phi;
+				std::cout << " x=" << x;
+				std::cout << " y=" << y;
+				std::cout << " z=" << z;
+				std::cout << " t=" << t;
+				std::cout << std::endl;
+                */
+                
+                // gradient color data
+                float gradient = (phi/M_PI);
+                unsigned char red   = r1+((r2-r1)*gradient);
+                unsigned char green = g1+((g2-g1)*gradient);
+                unsigned char blue  = b1+((b2-b1)*gradient);
+				
+				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+                tree->readCodeColorBufferToTree(voxelData);
+                delete voxelData;
+				
+			}
+		}
+	}
+
+    // reset the verticesEndPointer so we're writing to the beginning of the array
+    verticesEndPointer = verticesArray;
+    // call recursive function to populate in memory arrays
+    // it will return the number of voxels added
+    voxelsRendered = treeToArrays(tree->rootNode);
+    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
+    voxelsToRender = (voxelsRendered > 0);
+}
+
+
 void VoxelSystem::parseData(void *data, int size) {
     // output the bits received from the voxel server
     unsigned char *voxelData = (unsigned char *) data + 1;
@@ -68,7 +231,7 @@ void VoxelSystem::parseData(void *data, int size) {
 
 int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
     int voxelsAdded = 0;
-    
+
     for (int i = 0; i < 8; i++) {
         // check if there is a child here
         if (currentNode->children[i] != NULL) {
@@ -95,7 +258,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
        
         delete [] startVertex;
     }
-    
+
     return voxelsAdded;
 }
 
@@ -190,4 +353,5 @@ void VoxelSystem::render() {
 void VoxelSystem::simulate(float deltaTime) {
     
 }
+
 

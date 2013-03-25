@@ -43,7 +43,7 @@ char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
-const int MAX_VOXEL_TREE_DEPTH_LEVELS = 6;
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 10;
 
 AgentList agentList(VOXEL_LISTEN_PORT);
 in_addr_t localAddress;
@@ -209,7 +209,7 @@ int main(int argc, const char * argv[])
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
                 
                 VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
-                int newLevel = 6;
+                int newLevel = 10;
                 if (newLevel > agentData->lastSentLevel) {
                     // the agent has already received a deeper level than this from us
                     // do nothing
@@ -217,6 +217,7 @@ int main(int argc, const char * argv[])
                     stopOctal = randomTree.rootNode->octalCode;
                     packetCount = 0;
                     totalBytesSent = 0;
+                    randomTree.leavesWrittenToBitstream = 0;
                     
                     while (stopOctal != NULL) {
                         voxelPacketEnd = voxelPacket;
@@ -232,6 +233,11 @@ int main(int argc, const char * argv[])
                         packetCount++;
                         totalBytesSent += voxelPacketEnd - voxelPacket;
                     }
+                    
+                    printf("%d packets sent to client totalling %d bytes\n", packetCount, totalBytesSent);
+                    printf("%d leaves were sent - %f bpv\n",
+                           randomTree.leavesWrittenToBitstream,
+                           (float)totalBytesSent / randomTree.leavesWrittenToBitstream);
                     
                     agentData->lastSentLevel = newLevel;
                 }
