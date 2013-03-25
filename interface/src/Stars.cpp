@@ -57,7 +57,8 @@
  * Open issues
  * -----------
  *
- * o FOV culling is too eager - gotta revisit
+ * o FOV culling is implemented naively and will become apparent when
+ *   looking up
  * o atomics/mutexes need to be added as annotated in the source to allow
  *   concurrent threads to pull the strings to e.g. have a low priority
  *   thread run the data pipeline for update -- rendering is wait-free
@@ -69,6 +70,8 @@ namespace
     using std::min;
     using std::max;
 
+    using glm::vec3;
+    using glm::vec4;
     using glm::mat4;
     using glm::value_ptr;
 
@@ -382,7 +385,6 @@ namespace
 
                 ptr_data = new GpuVertex[n];
                 ptr_tiles = new Tile[n_tiles + 1];
-                // TODO tighten bounds and save some memory
                 ptr_batch_offs = new GLint[n_tiles]; 
                 ptr_batch_count = new GLsizei[n_tiles];
 
@@ -461,7 +463,7 @@ namespace
                 glDeleteVertexArrays(1, & hnd_vao);
             }
 
-            void render(FieldOfView fov, BrightnessLevel lod)
+            void render(FieldOfView const& fov, BrightnessLevel lod)
             {
                 mat4 local_space = fov.getOrientation();
                 HorizontalTiling<Radians> tiling(val_tile_resolution);
@@ -471,14 +473,21 @@ namespace
                 float y = local_space[2][1];
                 float z = local_space[2][2];
 
+                // cancel all translations (including those in the projection
+                // matrix)
+                float translate = -fov.getTransformOffset();
+                local_space[3][0] = translate * x;
+                local_space[3][1] = translate * y;
+                local_space[3][2] = translate * z;
+
                 // to polar
                 float azimuth = atan2(x,-z) + Radians::pi();
-                float altitude = atan2(y, sqrt(x*x+z*z));
+                float altitude = atan2(-y, sqrt(x*x+z*z));
 
-fprintf(stderr, "Stars.cpp: viewer azimuth = %f, altitude = %f\n", azimuth, altitude);
+ fprintf(stderr, "Stars.cpp: viewer azimuth = %f, altitude = %f\n", azimuth, altitude);
 
                 // half diagonal perspective angle
-                float hd_pers = fov.getPerspective() * 0.5f;
+                float hd_pers = fov.getPerspective();
 
                 unsigned azi_dim = tiling.getAzimuthalTiles();
                 unsigned alt_dim = tiling.getAltitudinalTiles();
@@ -490,18 +499,19 @@ fprintf(stderr, "Stars.cpp: viewer azimuth = %f, altitude = %f\n", azimuth, alti
                         angleUnsignedNormal<Radians>(azimuth + hd_pers) )) % azi_dim;
 
                 // determine tile range in altitudinal direction (clamped)
+// TODO: clamping is bad - must wrap to azi
                 unsigned alt_from = tiling.discreteAngle(
-                        max(-Radians::half_pi(),min(Radians::half_pi(), 
+                        max(-Radians::half_pi(), min(Radians::half_pi(), 
                         altitude - hd_pers)) + Radians::half_pi() );
                 unsigned alt_to = tiling.discreteAngle(
-                        max(-Radians::half_pi(),min(Radians::half_pi(), 
+                        max(-Radians::half_pi(), min(Radians::half_pi(), 
                         altitude + hd_pers)) + Radians::half_pi() );
 
                 // iterate the grid...
                 unsigned n_batches = 0u;
 
-fprintf(stderr, "Stars.cpp: grid dimensions: %d x %d\n", azi_dim, alt_dim);
-fprintf(stderr, "Stars.cpp: grid range: [%d;%d) [%d;%d]\n", azi_from, azi_to, alt_from, alt_to);
+// fprintf(stderr, "Stars.cpp: grid dimensions: %d x %d\n", azi_dim, alt_dim);
+// fprintf(stderr, "Stars.cpp: grid range: [%d;%d) [%d;%d]\n", azi_from, azi_to, alt_from, alt_to);
 
                 GLint* offs = ptr_batch_offs, * count = ptr_batch_count;
                 for (unsigned alt = alt_from; alt <= alt_to; ++alt)
@@ -542,7 +552,7 @@ fprintf(stderr, "Stars.cpp: grid range: [%d;%d) [%d;%d]\n", azi_from, azi_to, al
                         if (! t->count)
                             continue;
 
-fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t->count, t->offset);
+// fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t->count, t->offset);
 
                         *offs++ = t->offset;
                         *count++ = t->count;
@@ -551,18 +561,12 @@ fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile
                     }
                 }
 
-fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_batches);
-
-                // cancel translation
-                local_space[3][0] = 0.0f;
-                local_space[3][1] = 0.0f;
-                local_space[3][2] = 0.0f;
+ fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_batches);
 
                 // and setup modelview matrix
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
-                glLoadMatrixf(glm::value_ptr(
-                        fov.setOrientation(local_space).getWorldViewerXform()));
+                glLoadMatrixf(value_ptr(glm::affineInverse(local_space)));
 
                 // render
                 glBindVertexArray(hnd_vao);
@@ -665,7 +669,7 @@ struct Stars::body
         assert(overalloc <= 1.0f && realloc <= 1.0f);
 
         float lwm, hwm;
-        float oa_fraction = min(fraction * (1.0f + oa_fraction), 1.0f);
+        float oa_fraction = std::min(fraction * (1.0f + oa_fraction), 1.0f);
         size_t oa_new_size;
         BrightnessLevel b, b_max;
         {
