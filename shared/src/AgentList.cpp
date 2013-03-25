@@ -6,8 +6,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "AgentList.h"
 #include <pthread.h>
+#include <cstring>
+#include "AgentList.h"
 #include "SharedUtil.h"
 
 #ifdef _WIN32
