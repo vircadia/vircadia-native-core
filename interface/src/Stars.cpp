@@ -166,10 +166,18 @@ namespace
                 return getTileIndex(v.getAzimuth(), v.getAltitude());
             }
 
+            float getSliceAngle() const
+            {
+                return 1.0f / val_rcp_slice;
+            }
+
+        private:
+
             unsigned discreteAngle(float unsigned_angle) const
             {
                 return unsigned(round(unsigned_angle * val_rcp_slice));
             }
+
     };
 
     class TileSortScanner : public Radix2IntegerScanner<unsigned>
@@ -195,8 +203,10 @@ namespace
 
     struct Tile
     {
-        uint16_t offset;
-        uint16_t count; // according to previous lod setting
+        uint16_t        offset;
+        uint16_t        count; 
+        BrightnessLevel lod;
+        bool            selected;
     };
 
 
@@ -367,7 +377,6 @@ namespace
     {
             GpuVertex*      ptr_data;
             Tile*           ptr_tiles;
-            BrightnessLevel val_lod;
             unsigned        val_tile_resolution;
             GLint*          ptr_batch_offs;
             GLsizei*        ptr_batch_count;
@@ -376,8 +385,7 @@ namespace
 
             Renderer(InputVertices const& src, size_t n,
                     unsigned k, BrightnessLevel b, BrightnessLevel b_max)
-                : ptr_data(0l), ptr_tiles(0l), 
-                    val_lod(b), val_tile_resolution(k)
+                : ptr_data(0l), ptr_tiles(0l), val_tile_resolution(k)
             {
 
                 HorizontalTiling<Degrees> tiling(k);
@@ -409,13 +417,15 @@ namespace
 
                             // set count of active vertices (upcoming lod)
                             t->count = count_active;
-
-                            // generate skipped entries
+                            // generate skipped, empty tiles
                             for(size_t offs = t_last->offset; ++t != t_last ;)
-                                t->offset = offs, t->count = 0u;
+                                t->offset = offs, t->count = 0u, 
+                                t->lod = b, t->selected = false;
 
-                            // set offset of the beginning tile`
+                            // initialize next tile as far as possible
                             t_last->offset = vertex_index;
+                            t_last->lod = b;
+                            t_last->selected = false;
 
                             curr_tile_index = tile_index;
                             count_active = 0u;
@@ -435,7 +445,8 @@ namespace
                 Tile* t = ptr_tiles + curr_tile_index; 
                 t->count = count_active;
                 for (Tile* e = ptr_tiles + n_tiles + 1; ++t != e ;)
-                    t->offset = vertex_index, t->count = 0u;
+                    t->offset = vertex_index, t->count = 0u,
+                    t->lod = b, t->selected = false;
 
                 // OpenGL upload
 
@@ -484,46 +495,30 @@ namespace
                 float azimuth = atan2(x,-z) + Radians::pi();
                 float altitude = atan2(-y, sqrt(x*x+z*z));
 
- fprintf(stderr, "Stars.cpp: viewer azimuth = %f, altitude = %f\n", azimuth, altitude);
+                // determine tiles around this centerpoint
+                float extent = fov.getPerspective();
+                float slice = tiling.getSliceAngle();
 
-                // half diagonal perspective angle
-                float hd_pers = fov.getPerspective();
+                // use batch array for temporary storage
+                GLint* tmp_tiles = ptr_batch_count;
 
-                unsigned azi_dim = tiling.getAzimuthalTiles();
-                unsigned alt_dim = tiling.getAltitudinalTiles();
-
-                // determine tile range in azimuthal direction (modulated)
-                unsigned azi_from = tiling.discreteAngle(
-                        angleUnsignedNormal<Radians>(azimuth - hd_pers) ) % azi_dim;
-                unsigned azi_to = (1 + tiling.discreteAngle(
-                        angleUnsignedNormal<Radians>(azimuth + hd_pers) )) % azi_dim;
-
-                // determine tile range in altitudinal direction (clamped)
-// TODO: clamping is bad - must wrap to azi
-                unsigned alt_from = tiling.discreteAngle(
-                        max(-Radians::half_pi(), min(Radians::half_pi(), 
-                        altitude - hd_pers)) + Radians::half_pi() );
-                unsigned alt_to = tiling.discreteAngle(
-                        max(-Radians::half_pi(), min(Radians::half_pi(), 
-                        altitude + hd_pers)) + Radians::half_pi() );
-
-                // iterate the grid...
-                unsigned n_batches = 0u;
-
-// fprintf(stderr, "Stars.cpp: grid dimensions: %d x %d\n", azi_dim, alt_dim);
-// fprintf(stderr, "Stars.cpp: grid range: [%d;%d) [%d;%d]\n", azi_from, azi_to, alt_from, alt_to);
-
-                GLint* offs = ptr_batch_offs, * count = ptr_batch_count;
-                for (unsigned alt = alt_from; alt <= alt_to; ++alt)
+                // select and eventually update tiles for rendering
+                for (float alt = altitude - extent; 
+                        alt <= altitude + extent + 0.1f; alt += slice)
                 {
-                    for (unsigned azi = azi_from; 
-                            azi != azi_to; azi = (azi + 1) % azi_dim)
+                    for (float azi = azimuth - extent;
+                            azi <= azimuth + extent + 0.1f; azi += slice)
                     {
-                        unsigned tile_index = azi + alt * azi_dim;
+                        float az = azi, al = alt;
+                        angleHorizontalPolar<Radians>(az, al);
+
+                        unsigned tile_index = tiling.getTileIndex(az, al);
                         Tile* t = ptr_tiles + tile_index;
 
-                        // LOD brightness changed? 
-                        if (lod != val_lod)
+                        if (t->selected) continue;
+
+                        // LOD brightness changed? update count
+                        if (t->lod != lod)
                         {
                             // determine bounds for binary search
                             //
@@ -538,7 +533,7 @@ namespace
                             if (start == end)
                                 continue;
 
-                            if (lod < val_lod)
+                            if (lod < t->lod)
                                 start += (t->count > 0 ? t->count - 1 : 0);
                             else
                                 end = start + t->count;
@@ -547,18 +542,31 @@ namespace
                                     start, end, lod, GreaterBrightness());
 
                             t->count = end - ptr_data + t[0].offset;
+                            t->lod = lod;
                         }
 
                         if (! t->count)
                             continue;
 
 // fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t->count, t->offset);
+                        t->selected = true;
+                        *tmp_tiles++ = tile_index;
 
-                        *offs++ = t->offset;
-                        *count++ = t->count;
-
-                        ++n_batches;
                     }
+                }
+
+                // build batches
+                GLint* offs = ptr_batch_offs;
+                GLsizei* count = ptr_batch_count, n_batches = 0;
+                for (GLsizei* i = ptr_batch_count; i != tmp_tiles; ++i)
+                {
+                    Tile* t = ptr_tiles + *i;
+
+                    *offs++ = t->offset;
+                    *count++ = t->count;
+                    t->selected = false;
+
+                    ++n_batches;
                 }
 
  fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_batches);
