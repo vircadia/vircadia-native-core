@@ -5,7 +5,7 @@ project(injector)
 # grab the implemenation and header files
 file(GLOB INJECTOR_SRCS src/*.cpp src/*.h)
 
-# add the mixer executable
+# add the executable
 add_executable(injector ${INJECTOR_SRCS})
 
 # link the shared hifi library

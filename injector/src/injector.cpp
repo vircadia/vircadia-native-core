@@ -1,6 +1,6 @@
 //
-//  main.cpp
-//  AudioInjector2
+//  injector.cpp
+//  Audio Injector
 //
 //  Created by Leonardo Murillo on 3/5/13.
 //  Copyright (c) 2013 Leonardo Murillo. All rights reserved.
@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <vector>
 #include <fstream>
-#include <bitset>
 #include <algorithm>
 #include <arpa/inet.h>
 #include <string.h>
@@ -34,7 +33,7 @@ bool loopAudio = true;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 float positionInUniverse[] = {0, 0, 0, 0};
-char attenuationModifier[] = {0};
+unsigned char attenuationModifier = 255;
 char *sourceAudioFile;
 const char *allowedParameters = ":rb::t::c::a::f:";
 
@@ -44,18 +43,6 @@ long length;
 
 UDPSocket *streamSocket;
 
-void printBinaryValue(char element) {
-    std::bitset<8> x(element);
-    std::cout << "Printing binary value: " << x << std::endl;
-}
-
-float randomFloat(float a, float b) {
-    float random = ((float) rand()) / (float) RAND_MAX;
-    float diff = b - a;
-    float r = random * diff;
-    return a + r;
-}
-
 void usage(void)
 {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
@@ -63,7 +50,7 @@ void usage(void)
     std::cout << "   -b FLOAT                       Min. number of seconds to sleep. Only valid in random sleep mode. Default 1.0" << std::endl;
     std::cout << "   -t FLOAT                       Max. number of seconds to sleep. Only valid in random sleep mode. Default 2.0" << std::endl;
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
-    std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 0" << std::endl;
+    std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
 };
 
@@ -105,7 +92,7 @@ bool processParameters(int parameterCount, char* parameterData[])
                 break;
             }
             case 'a':
-                attenuationModifier[0] = atoi(optarg);
+                attenuationModifier = atoi(optarg);
                 std::cout << "[DEBUG] Attenuation modifier: " << optarg << std::endl;
                 break;
             default:
@@ -142,8 +129,8 @@ void stream(void)
         currentPacketPtr += sizeof(float);
     }
     
-    memcpy(currentPacketPtr, &attenuationModifier[0], sizeof(char));
-    currentPacketPtr += sizeof(char);
+    *currentPacketPtr = attenuationModifier;
+    currentPacketPtr++;
     
     for (int i = 0; i < length; i += BUFFER_LENGTH_SAMPLES) {
         gettimeofday(&startTime, NULL);
@@ -176,13 +163,13 @@ int main(int argc, char* argv[])
 
         float delay;
         int usecDelay;
-        while (1) {
+        while (true) {
             stream();
             
             if (loopAudio) {
                 delay = 0;
             } else {
-                delay = randomFloat(sleepIntervalMin, sleepIntervalMax);
+                delay = randFloatInRange(sleepIntervalMin, sleepIntervalMax);
             }
             usecDelay = delay * 1000 * 1000;
             usleep(usecDelay);
