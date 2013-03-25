@@ -17,8 +17,8 @@
 class FieldOfView
 {
         glm::mat4   mat_orientation;
-        glm::vec3   vec_frustum_low;
-        glm::vec3   vec_frustum_high;
+        glm::vec3   vec_bounds_low;
+        glm::vec3   vec_bounds_high;
         float       val_width;
         float       val_height;
         float       val_angle;
@@ -30,8 +30,8 @@ class FieldOfView
 
         // mutators
 
-        FieldOfView& setFrustum(glm::vec3 const& low, glm::vec3 const& high)
-        { vec_frustum_low = low; vec_frustum_high = high; return *this; }
+        FieldOfView& setBounds(glm::vec3 const& low, glm::vec3 const& high)
+        { vec_bounds_low = low; vec_bounds_high = high; return *this; }
 
         FieldOfView& setOrientation(glm::mat4 const& matrix)
         { mat_orientation = matrix; return *this; }
@@ -57,8 +57,6 @@ class FieldOfView
 
         // dumb accessors
 
-        glm::vec3 const& getFrustumLow()     const   { return vec_frustum_low; }
-        glm::vec3 const& getFrustumHigh()    const   { return vec_frustum_high; }
         glm::mat4 const& getOrientation()    const   { return mat_orientation; }
         float            getWidthInPixels()  const   { return val_width; }
         float            getHeightInPixels() const   { return val_height; }
@@ -106,9 +104,19 @@ class FieldOfView
          */
         float getPixelSize() const;
 
-    private:
+        /**
+         * Returns the frustum as used for the projection matrices.
+         * The result depdends on the bounds, eventually aspect correction
+         * for the current resolution, the perspective angle (specified in
+         * respect to diagonal) and zoom.
+         */
+        void getFrustum(glm::vec3& low, glm::vec3& high) const;
 
-        void calcGlFrustum(glm::vec3& low, glm::vec3& high) const;
+        /**
+         * Returns the z-offset from the origin to where orientation ia
+         * applied.
+         */
+        float getTransformOffset() const { return vec_bounds_high.z; }
 };
 
 #endif
