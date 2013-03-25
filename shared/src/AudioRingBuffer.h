@@ -33,6 +33,8 @@ class AudioRingBuffer : public AgentData {
         void setAddedToMix(bool added);
         float* getPosition();
         void setPosition(float newPosition[]);
+        float getAttenuationRatio();
+        void setAttenuationRatio(float newAttenuation);
         float getBearing();
         void setBearing(float newBearing);
     
@@ -41,6 +43,7 @@ class AudioRingBuffer : public AgentData {
         int ringBufferLengthSamples;
         int bufferLengthSamples;
         float position[3];
+        float attenuationRatio;
         float bearing;
         int16_t *nextOutput;
         int16_t *endOfLastWrite;

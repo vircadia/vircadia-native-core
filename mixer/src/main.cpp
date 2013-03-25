@@ -147,9 +147,6 @@ void *sendBuffer(void *args)
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                     float angleToSource;
                     
-                    if (agentWantsLoopback) {
-                        
-                    }
                     
                     // find the angle we need for calculation based on the orientation of the triangle
                     if (otherAgentPosition[0] > agentPosition[0]) {
@@ -178,8 +175,6 @@ void *sendBuffer(void *args)
                     int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                     float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                     
-                    printf("The weak channel AR is %f\n", weakChannelAmplitudeRatio);
-                    
                     int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
                     int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                     
@@ -193,11 +188,16 @@ void *sendBuffer(void *args)
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
-                            int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
+                            int earlierSample = delaySamplePointer[s] *
+                                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                                otherAgentBuffer->getAttenuationRatio();
+                            
                             plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                         }
                         
-                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
+                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
+                                                 distanceCoeffs[lowAgentIndex][highAgentIndex]) *
+                                                 otherAgentBuffer->getAttenuationRatio();
                         plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {

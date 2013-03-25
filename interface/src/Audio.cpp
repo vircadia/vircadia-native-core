@@ -158,6 +158,9 @@ int audioCallback (const void *inputBuffer,
                 currentPacketPtr += sizeof(float);
             }
             
+            // tell the mixer not to add additional attenuation to our source
+            *(currentPacketPtr++) = 255;
+            
             // memcpy the corrected render yaw
             float correctedYaw = fmodf(data->linkedHead->getRenderYaw(), 360);
             
