@@ -286,7 +286,11 @@ int main(int argc, const char * argv[])
                 
                 // add or update the existing interface agent
                 if (!LOOPBACK_SANITY_CHECK) {
-                    agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
+                    
+                    if (agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList.getLastAgentId())) {
+                        agentList.increaseAgentId();
+                    }
+                    
                     agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
                 } else {
                     memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);

@@ -139,7 +139,11 @@ int main(int argc, const char * argv[])
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'H') {
-                agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0]);
+                
+                if (agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0], agentList.getLastAgentId())) {
+                    agentList.increaseAgentId();
+                }
+                
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
                 
                 VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
