@@ -65,6 +65,11 @@ class Head : public AgentData {
         glm::vec3 getPos() { return position; };
         void setPos(glm::vec3 newpos) { position = newpos; };
     
+        //  Set/Get update the thrust that will move the avatar around 
+        void setThrust(glm::vec3 newThrust) { thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { thrust += newThrust; };
+        glm::vec3 getThrust() { return thrust; };
+    
         Hand * hand;
     
     private:
@@ -103,8 +108,14 @@ class Head : public AgentData {
         float browAudioLift;
     
         glm::vec3 position;
+        glm::vec3 velocity;
+        glm::vec3 thrust;
+    
+        bool fwdKey, backKey, turnLeftKey, turnRightKey, slideLeftKey, slideRightKey, upKey, downKey;
+    
         int eyeContact;
         eyeContactTargets eyeContactTarget;
+    
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     

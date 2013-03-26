@@ -42,7 +42,10 @@ GLUquadric *sphere = gluNewQuadric();
 
 Head::Head()
 {
-    position.x = position.y = position.z = 0;
+    position = glm::vec3(0,0,0);
+    velocity = glm::vec3(0,0,0);
+    thrust = glm::vec3(0,0,0);
+    
     PupilSize = 0.10;
     interPupilDistance = 0.6;
     interBrowDistance = 0.75;
@@ -88,6 +91,8 @@ Head::Head()
 
 Head::Head(const Head &otherHead) {
     position = otherHead.position;
+    velocity = otherHead.velocity;
+    thrust = otherHead.thrust;
     PupilSize = otherHead.PupilSize;
     interPupilDistance = otherHead.interPupilDistance;
     interBrowDistance = otherHead.interBrowDistance;
@@ -207,6 +212,11 @@ void Head::setLeanSideways(float dist){
 //  Simulate the head over time 
 void Head::simulate(float deltaTime)
 {
+    //  Increment position as a function of velocity
+    position += velocity * deltaTime;
+    //  Increment velocity as time
+    velocity += thrust * deltaTime;
+    
     if (!noise)
     {
         //  Decay back toward center 
