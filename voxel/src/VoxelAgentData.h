@@ -9,13 +9,15 @@
 #ifndef __hifi__VoxelAgentData__
 #define __hifi__VoxelAgentData__
 
-#include <AgentData.h>
 #include <iostream>
+#include <AgentData.h>
+#include "MarkerNode.h"
 
 class VoxelAgentData : public AgentData {
 public:
     float position[3];
     int lastSentLevel;
+    MarkerNode *rootMarkerNode;
 
     VoxelAgentData();
     ~VoxelAgentData();

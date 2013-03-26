@@ -12,15 +12,17 @@
 
 VoxelAgentData::VoxelAgentData() {
     lastSentLevel = 0;
+    rootMarkerNode = new MarkerNode();
 }
 
 VoxelAgentData::~VoxelAgentData() {
-    // nothing to explicitly destroy here
+    delete rootMarkerNode;
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
     lastSentLevel = otherAgentData.lastSentLevel;
     memcpy(position, otherAgentData.position, sizeof(float) * 3);
+    rootMarkerNode = new MarkerNode(*otherAgentData.rootMarkerNode);
 }
 
 VoxelAgentData* VoxelAgentData::clone() const {
