@@ -11,4 +11,14 @@
 
 #include <iostream>
 
+class MarkerNode {
+public:
+    MarkerNode();
+    ~MarkerNode();
+    MarkerNode(const MarkerNode &otherMarkerNode);
+    
+    unsigned char childrenVisitedMask;
+    MarkerNode *children[8];
+};
+
 #endif /* defined(__hifi__MarkerNode__) */
