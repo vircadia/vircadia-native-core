@@ -60,13 +60,6 @@ using namespace std;
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
-//
-//  Network Socket and network constants
-//
-
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
-const int DOMAINSERVER_PORT = 40102;
 AgentList agentList('I');
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
