@@ -12,7 +12,6 @@
 #include <fstream> // to load voxels from file
 #include <SharedUtil.h>
 #include <OctalCode.h>
-#include <AgentList.h>
 #include "VoxelSystem.h"
 
 const int MAX_VOXELS_PER_SYSTEM = 250000;

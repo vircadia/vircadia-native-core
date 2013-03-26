@@ -39,41 +39,9 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102;
-
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 10;
 
-AgentList agentList(VOXEL_LISTEN_PORT);
-in_addr_t localAddress;
-
-void *reportAliveToDS(void *args) {
-
-    timeval lastSend;
-    unsigned char output[7];
-
-    while (true) {
-        gettimeofday(&lastSend, NULL);
-
-        *output = 'V';
-        packSocket(output + 1, 895283510, htons(VOXEL_LISTEN_PORT));
-//        packSocket(output + 1, 788637888, htons(VOXEL_LISTEN_PORT));
-        agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
-
-        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
-
-        if (usecToSleep > 0) {
-        #ifdef _WIN32
-            Sleep( static_cast<int>(1000.0f*usecToSleep) );
-        #else
-            usleep(usecToSleep);
-        #endif
-        } else {
-            std::cout << "No sleep required!";
-        }
-    }
-}
+AgentList agentList('V', VOXEL_LISTEN_PORT);
 
 int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -142,43 +110,9 @@ int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
-#ifndef _WIN32
-    // get the local address of the voxel server
-    struct ifaddrs * ifAddrStruct=NULL;
-    struct ifaddrs * ifa=NULL;
-
-    getifaddrs(&ifAddrStruct);
-
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
-            // is a valid IP4 Address
-            localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
-        }
-    }
-#endif
-
-    //  Lookup the IP address of things we have hostnames
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
-
-        } else {
-            printf("Failed lookup domainserver\n");
-        }
-    } else {
-        printf("Using static domainserver IP: %s\n", DOMAIN_IP);
-    }
-
-    // setup the agentSocket to report to domain server
-    pthread_t reportAliveThread;
-    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
-
     agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList.startSilentAgentRemovalThread();
+    agentList.startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
 
@@ -205,7 +139,11 @@ int main(int argc, const char * argv[])
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
             if (packetData[0] == 'H') {
-                agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0]);
+                
+                if (agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0], agentList.getLastAgentId())) {
+                    agentList.increaseAgentId();
+                }
+                
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
                 
                 VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
@@ -244,9 +182,6 @@ int main(int argc, const char * argv[])
             }
         }
     }
-
-    pthread_join(reportAliveThread, NULL);
-    agentList.stopSilentAgentRemovalThread();
 
     return 0;
 }

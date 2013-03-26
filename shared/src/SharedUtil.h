@@ -35,7 +35,6 @@ void switchToResourcesIfRequired();
 
 char* getCmdOption(int argc, char** argv,char* option);
 bool cmdOptionExists(int argc, char** argv,char* option);
-
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
 
 #endif /* defined(__hifi__SharedUtil__) */

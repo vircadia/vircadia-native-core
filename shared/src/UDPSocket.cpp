@@ -17,6 +17,7 @@
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #endif
 
 sockaddr_in destSockaddr, senderAddress;
@@ -62,6 +63,28 @@ int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket) {
     destinationSocket->sin_addr.s_addr = (packedData[0] << 24) + (packedData[1] << 16) + (packedData[2] << 8) + packedData[3];
     destinationSocket->sin_port = (packedData[4] << 8) + packedData[5];
     return 6; // this could be more if we ever need IPv6
+}
+
+int getLocalAddress() {
+    // get this agent's local address so we can pass that to DS
+    struct ifaddrs * ifAddrStruct = NULL;
+    struct ifaddrs * ifa = NULL;
+    
+    int family;
+    int localAddress = 0;
+    
+    getifaddrs(&ifAddrStruct);
+        
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET) {
+            localAddress = ((sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
+        }
+    }
+    
+    freeifaddrs(ifAddrStruct);
+    
+    return localAddress;
 }
 
 UDPSocket::UDPSocket(int listeningPort) {

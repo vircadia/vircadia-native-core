@@ -46,7 +46,7 @@
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
-#include "AgentList.h"
+#include <AgentList.h>
 #include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
@@ -64,11 +64,10 @@ int simulate_on = 1;
 //  Network Socket and network constants
 //
 
-char DOMAIN_HOSTNAME[100] = "highfidelity.below92.com";
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
-
-AgentList agentList;
+AgentList agentList('I');
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -89,13 +88,10 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
-in_addr_t localAddress;
-
 Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
-
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
@@ -226,15 +222,6 @@ void Timer(int extra)
     
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
-    
-    //
-    //  Send a message to the domainserver telling it we are ALIVE
-    // 
-    unsigned char output[7];
-    output[0] = 'I';    
-    packSocket(output + 1, localAddress, htons(AGENT_SOCKET_LISTEN_PORT));
-    
-    agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
     
     //  Ping the agents we can see
     agentList.pingAgents();
@@ -948,51 +935,17 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, char** argv)
 {
-	// pass --NoConnect as a command line option to force NOT connecting
-	// to the hifidelity domain, and therefore run locally.
-    if (cmdOptionExists(argc, argv, "--NoConnect"))
-    {
-	    strcpy(DOMAIN_HOSTNAME,"");
-	}
-	
-
-#ifndef _WIN32
-    struct ifaddrs * ifAddrStruct=NULL;
-    struct ifaddrs * ifa=NULL;
-    
-    getifaddrs(&ifAddrStruct);
-    
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
-            // is a valid IP4 Address
-            localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
-        }
-    }
-#endif
-    
-    //  Lookup the IP address of things we have hostnames
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
-
-        } else {
-            printf("Failed lookup domainserver\n");
-        }
-    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
-
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
+    
     #ifndef _WIN32
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
 
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
-
+    agentList.startDomainServerCheckInThread();
+    
 #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );

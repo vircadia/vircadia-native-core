@@ -89,6 +89,14 @@ void AudioRingBuffer::setPosition(float *newPosition) {
     position[2] = newPosition[2];
 }
 
+float AudioRingBuffer::getAttenuationRatio() {
+    return attenuationRatio;
+}
+
+void AudioRingBuffer::setAttenuationRatio(float newAttenuation) {
+    attenuationRatio = newAttenuation;
+}
+
 float AudioRingBuffer::getBearing() {
     return bearing;
 }
@@ -108,6 +116,9 @@ void AudioRingBuffer::parseData(void *data, int size) {
             memcpy(&position[p], dataPtr, sizeof(float));
             dataPtr += sizeof(float);
         }
+        
+        unsigned int attenuationByte = *(dataPtr++);
+        attenuationRatio = attenuationByte / 255.0f;
         
         memcpy(&bearing, dataPtr, sizeof(float));
         dataPtr += sizeof(float);
