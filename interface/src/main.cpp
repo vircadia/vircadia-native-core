@@ -320,11 +320,6 @@ void init(void)
         myHead.setNoise(noise);
     }
     
-    char output[] = "I";
-    char address[] = "10.0.0.10";
-    agentList.getAgentSocket().send(address, 40106, output, 1);
-    
-    
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
         marker_capturer.position_updated(&position_updated);
