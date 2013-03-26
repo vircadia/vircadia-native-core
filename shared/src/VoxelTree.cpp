@@ -77,6 +77,44 @@ VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned cha
     }
 }
 
+/// If node has color & <= 4 children then prune children
+void VoxelTree::pruneTree(VoxelNode* pruneAt) {
+	int childCount = 0;
+	
+	// determine how many children we have
+	for (int i = 0; i < 8; i++)
+	{
+		if (pruneAt->children[i])
+		{
+			childCount++;
+		}
+	}
+	// if appropriate, prune them
+	if (pruneAt->color[3] && childCount <= 4)
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			if (pruneAt->children[i])
+			{
+				delete pruneAt->children[i];
+				pruneAt->children[i]=NULL;
+			}
+		}
+	}
+	else
+	{
+		// Otherwise, iterate the children and recursively call
+		// prune on all of them
+		for (int i = 0; i < 8; i++)
+		{
+			if (pruneAt->children[i])
+			{
+				this->pruneTree(pruneAt->children[i]);
+			}
+		}
+	}
+}
+
 int VoxelTree::readNodeData(VoxelNode *destinationNode, unsigned char * nodeData, int bytesLeftToRead) {
     
     // instantiate variable for bytes already read

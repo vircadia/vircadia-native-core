@@ -56,6 +56,7 @@ VoxelSystem::~VoxelSystem() {
 // Complaints:  Brad :)
 // To Do:       Need to add color data to the file.
 void VoxelSystem::loadVoxelsFile(char* fileName) {
+    int vCount = 0;
 
     std::ifstream file(fileName, std::ios::in|std::ios::binary);
 
@@ -65,10 +66,11 @@ void VoxelSystem::loadVoxelsFile(char* fileName) {
     int totalBytesRead = 0;
     if(file.is_open())
     {
-        while (!file.eof()) {
+        bool bail = false;
+        while (!file.eof() && !bail) {
             file.get(octets);
             totalBytesRead++;
-            lengthInBytes = (octets*3/8)+1;
+            lengthInBytes = bytesRequiredForCodeLength(octets)-1; //(octets*3/8)+1;
             unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
             voxelData[0]=octets;
             char byte;
@@ -78,16 +80,32 @@ void VoxelSystem::loadVoxelsFile(char* fileName) {
                 totalBytesRead++;
                 voxelData[i+1] = byte;
             }
-            // random color data
-            voxelData[lengthInBytes+1] = randomColorValue(65);
-            voxelData[lengthInBytes+2] = randomColorValue(65);
-            voxelData[lengthInBytes+3] = randomColorValue(65);
-            
+            // read color data
+            char red,green,blue;
+            file.get(red);
+            file.get(green);
+            file.get(blue);
+
+            //printf("red:%d\n",red);
+            //printf("green:%d\n",green);
+            //printf("blue:%d\n",blue);
+            vCount++;
+            //printf("vCount:%d\n",vCount);
+
+            //randomColorValue(65);
+            float rf = randFloatInRange(.5,1); // add a little bit of variance to colors so we can see the voxels
+            voxelData[lengthInBytes+1] = red * rf;
+            voxelData[lengthInBytes+2] = green * rf;
+            voxelData[lengthInBytes+3] = blue * rf;
+
+            //printVoxelCode(voxelData);
             tree->readCodeColorBufferToTree(voxelData);
             delete voxelData;
         }
         file.close();
     }
+    
+    tree->pruneTree(tree->rootNode);
 
     // reset the verticesEndPointer so we're writing to the beginning of the array
     verticesEndPointer = verticesArray;

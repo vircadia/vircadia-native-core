@@ -33,8 +33,8 @@ bool oneAtBit(unsigned char byte, int bitIndex);
 
 void switchToResourcesIfRequired();
 
-char* getCmdOption(char ** begin, char ** end, const std::string& option);
-bool cmdOptionExists(char** begin, char** end, const std::string& option);
+char* getCmdOption(int argc, char** argv,char* option);
+bool cmdOptionExists(int argc, char** argv,char* option);
 
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
 

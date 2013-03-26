@@ -86,27 +86,42 @@ void switchToResourcesIfRequired() {
 //              immediately following the flag. For example if you ran:
 //                      ./app -i filename.txt
 //              then you're using the "-i" flag to set the input file name.
-// Usage:       char * inputFilename = getCmdOption(argv, argv + argc, "-i");
+// Usage:       char * inputFilename = getCmdOption(argc, argv, "-i");
 // Complaints:  Brad :)
-char* getCmdOption(char ** begin, char ** end, const std::string & option)
+char* getCmdOption(int argc, char** argv,char* option)
 {
-    char ** itr = std::find(begin, end, option);
-    if (itr != end && ++itr != end)
+    // check each arg
+    for (int i=0; i < argc; i++)
     {
-        return *itr;
+        // if the arg matches the desired option
+        if (strcmp(option,argv[i])==0 && i+1 < argc)
+        {
+            // then return the next option
+            return argv[i+1];
+        }
     }
-    return 0;
+    return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    getCmdOption()
 // Description: Handy little function to tell you if a command line option flag was
 //              included while launching the application. Returns bool true/false
-// Usage:       bool wantDump   = cmdOptionExists(argv, argv+argc, "-d");
+// Usage:       bool wantDump   = cmdOptionExists(argc, argv, "-d");
 // Complaints:  Brad :)
-bool cmdOptionExists(char** begin, char** end, const std::string& option)
+bool cmdOptionExists(int argc, char** argv,char* option)
 {
-    return std::find(begin, end, option) != end;
+    // check each arg
+    for (int i=0; i < argc; i++)
+    {
+        // if the arg matches the desired option
+        if (strcmp(option,argv[i])==0)
+        {
+            // then return the next option
+            return true;
+        }
+    }
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

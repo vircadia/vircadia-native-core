@@ -64,7 +64,7 @@ int simulate_on = 1;
 //  Network Socket and network constants
 //
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_HOSTNAME[100] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
 const int DOMAINSERVER_PORT = 40102;
 
@@ -948,6 +948,14 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, char** argv)
 {
+	// pass --NoConnect as a command line option to force NOT connecting
+	// to the hifidelity domain, and therefore run locally.
+    if (cmdOptionExists(argc, argv, "--NoConnect"))
+    {
+	    strcpy(DOMAIN_HOSTNAME,"");
+	}
+	
+
 #ifndef _WIN32
     struct ifaddrs * ifAddrStruct=NULL;
     struct ifaddrs * ifa=NULL;
@@ -1018,7 +1026,7 @@ int main(int argc, char** argv)
 
 	// Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-    char* voxelsFilename = getCmdOption(argv, argv + argc, "-i");
+    char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename)
     {
 	    voxels.loadVoxelsFile(voxelsFilename);

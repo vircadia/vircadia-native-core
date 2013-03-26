@@ -34,7 +34,8 @@ public:
                                         VoxelNode *currentVoxelNode,
                                         int deepestLevel);
     void printTreeForDebugging(VoxelNode *startNode);
-    
+
+	void pruneTree(VoxelNode* pruneAt);
 };
 
 #endif /* defined(__hifi__VoxelTree__) */
