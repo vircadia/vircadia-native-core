@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include "SharedUtil.h"
 
 #ifdef __APPLE__
