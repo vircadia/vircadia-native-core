@@ -87,7 +87,7 @@ struct radix2InplaceSort_impl : Scanner
 
 template< class Radix2Scanner, typename BidiIterator >
 void radix2InplaceSort( BidiIterator from, BidiIterator to,
-        Radix2Scanner const& scanner = Radix2Scanner() )
+        Radix2Scanner const& scanner)
 {
     radix2InplaceSort_impl<Radix2Scanner, BidiIterator>(scanner)
         .go(from, to, scanner.initial_state());
