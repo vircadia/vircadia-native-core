@@ -47,7 +47,9 @@ class Radix2IntegerScanner< UInt, false >
         Radix2IntegerScanner()
             : msb(~UInt(0) &~ (~UInt(0) >> 1)) { }
 
-        explicit Radix2IntegerScanner(int bits) : msb(1u << (bits - 1)) { }
+        explicit Radix2IntegerScanner(int bits)
+            : msb(UInt(1u) << (bits - 1))
+        { }
 
 
         typedef UInt state_type;
@@ -65,9 +67,12 @@ class Radix2IntegerScanner< Int, true >
     public:
 
         Radix2IntegerScanner()
-            : msb(~state_type(0) &~ (~state_type(0) >> 1)) { }
+            : msb(~state_type(0u) &~ (~state_type(0u) >> 1))
+        { }
 
-        explicit Radix2IntegerScanner(int bits) : msb(1u << (bits - 1)) { }
+        explicit Radix2IntegerScanner(int bits)
+            : msb(state_type(1u) << (bits - 1))
+        { }
 
 
         typedef typename type_traits::make_unsigned<Int>::type state_type;
@@ -75,7 +80,8 @@ class Radix2IntegerScanner< Int, true >
         state_type initial_state()  const   { return msb; }
         bool advance(state_type& s) const   { return (s >>= 1) != 0u; }
 
-        bool bit(Int const& v, state_type const& s) const { return !!((v-msb) & s); }
+        bool bit(Int const& v, state_type const& s) const
+        { return !!((v-msb) & s); }
 };
 
 #endif /* defined(__hifi__Radix2IntegerScanner__) */
