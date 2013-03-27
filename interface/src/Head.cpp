@@ -46,6 +46,8 @@ Head::Head()
     velocity = glm::vec3(0,0,0);
     thrust = glm::vec3(0,0,0);
     
+    for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
+    
     PupilSize = 0.10;
     interPupilDistance = 0.6;
     interBrowDistance = 0.75;
@@ -93,6 +95,8 @@ Head::Head(const Head &otherHead) {
     position = otherHead.position;
     velocity = otherHead.velocity;
     thrust = otherHead.thrust;
+    for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
+
     PupilSize = otherHead.PupilSize;
     interPupilDistance = otherHead.interPupilDistance;
     interBrowDistance = otherHead.interBrowDistance;
@@ -218,9 +222,9 @@ void Head::simulate(float deltaTime)
                       cosf(getRenderYaw()*PI/180));
     
     thrust = glm::vec3(0);
-    const float THRUST_MAG = 6.0;
-    const float THRUST_LATERAL_MAG = 6.0;
-    const float THRUST_VERTICAL_MAG = 6.0;
+    const float THRUST_MAG = 10.0;
+    const float THRUST_LATERAL_MAG = 10.0;
+    const float THRUST_VERTICAL_MAG = 10.0;
     
     if (driveKeys[FWD]) {
         thrust += THRUST_MAG*forward;

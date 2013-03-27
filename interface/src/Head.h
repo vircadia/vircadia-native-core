@@ -26,6 +26,9 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define RIGHT 3 
 #define UP 4 
 #define DOWN 5
+#define ROT_LEFT 6 
+#define ROT_RIGHT 7 
+#define MAX_DRIVE_KEYS 8
 
 class Head : public AgentData {
     public:
@@ -122,7 +125,7 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
     
-        int driveKeys[6];
+        int driveKeys[MAX_DRIVE_KEYS];
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;

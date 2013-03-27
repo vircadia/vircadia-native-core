@@ -87,7 +87,7 @@ Oscilloscope audioScope(256,200,true);
 Head myHead;                        //  The rendered head of oneself
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-ParticleSystem balls(0, 
+ParticleSystem balls(0,
                      box, 
                      false,                     //  Wrap?
                      0.02f,                      //  Noise
@@ -113,18 +113,15 @@ Audio audio(&audioScope, &myHead);
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
 
-float yaw =0.f;                         //  The yaw, pitch for the avatar head
-float pitch = 0.f;                      //      
+float yaw = 0.f;                         //  The yaw, pitch for the avatar head
+float pitch = 0.f;                            
 float start_yaw = 122;
-float render_pitch = 0.f;
-float render_yaw_rate = 0.f;
-float render_pitch_rate = 0.f; 
-float lateral_vel = 0.f;
+float renderPitch = 0.f;
+float renderYawRate = 0.f;
+float renderPitchRate = 0.f; 
 
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
-
-float fwd_vel = 0.0f;
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
 
@@ -153,12 +150,7 @@ int speed;
 // 
 
 SerialInterface serialPort;
-
 int latency_display = 1;
-//int adc_channels[NUM_CHANNELS];
-//float avg_adc_channels[NUM_CHANNELS];
-//int sensor_samples = 0;
-//int sensor_LED = 0;
 
 glm::vec3 gravity;
 int first_measurement = 1;
@@ -353,11 +345,9 @@ void reset_sensors()
     // 
     myHead.setRenderYaw(start_yaw);
     
-    yaw = render_yaw_rate = 0; 
-    pitch = render_pitch = render_pitch_rate = 0;
-    lateral_vel = 0;
+    yaw = renderYawRate = 0; 
+    pitch = renderPitch = renderPitchRate = 0;
     myHead.setPos(start_location);
-    fwd_vel = 0.0;
     head_mouse_x = WIDTH/2;
     head_mouse_y = HEIGHT/2;
     head_lean_x = WIDTH/2;
@@ -418,65 +408,38 @@ void simulateHead(float frametime)
     const float YAW_SENSITIVITY = 0.02;
     const float PITCH_SENSITIVITY = 0.05;
     
+    //  Update render pitch and yaw rates based on keyPositions
+    const float KEY_YAW_SENSITIVITY = 2.0;
+    if (myHead.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
+    if (myHead.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
+    
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
         if (measured_yaw_rate > 0)
-            render_yaw_rate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            renderYawRate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
         else 
-            render_yaw_rate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            renderYawRate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
     }
     if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
     {
         if (measured_pitch_rate > 0)
-            render_pitch_rate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+            renderPitchRate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
         else 
-            render_pitch_rate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+            renderPitchRate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
     }
          
-    render_pitch += render_pitch_rate;
+    renderPitch += renderPitchRate;
     
-    // Decay render_pitch toward zero because we never look constantly up/down 
-    render_pitch *= (1.f - 2.0*frametime);
+    // Decay renderPitch toward zero because we never look constantly up/down 
+    renderPitch *= (1.f - 2.0*frametime);
 
     //  Decay angular rates toward zero 
-    render_pitch_rate *= (1.f - 5.0*frametime);
-    render_yaw_rate *= (1.f - 7.0*frametime);
+    renderPitchRate *= (1.f - 5.0*frametime);
+    renderYawRate *= (1.f - 7.0*frametime);
     
-    //  Update slide left/right based on accelerometer reading
-    /*
-    const int MIN_LATERAL_ACCEL = 20;
-    const float LATERAL_SENSITIVITY = 0.001;
-    if (fabs(measured_lateral_accel) > MIN_LATERAL_ACCEL) 
-    {
-        if (measured_lateral_accel > 0)
-            lateral_vel += (measured_lateral_accel - MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
-        else 
-            lateral_vel += (measured_lateral_accel + MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
-    }*/
- 
-    //slide += lateral_vel;
-    lateral_vel *= (1.f - 4.0*frametime);
-    
-    //  Update fwd/back based on accelerometer reading
-    /*
-    const int MIN_FWD_ACCEL = 20;
-    const float FWD_SENSITIVITY = 0.001;
-    
-    if (fabs(measured_fwd_accel) > MIN_FWD_ACCEL) 
-    {
-        if (measured_fwd_accel > 0)
-            fwd_vel += (measured_fwd_accel - MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
-        else 
-            fwd_vel += (measured_fwd_accel + MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
-
-    }*/
-    //  Decrease forward velocity
-    fwd_vel *= (1.f - 4.0*frametime);
-        
     //  Update own head data
-    myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
-    myHead.setRenderPitch(render_pitch);
-    //myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    myHead.setRenderYaw(myHead.getRenderYaw() + renderYawRate);
+    myHead.setRenderPitch(renderPitch);
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
@@ -504,7 +467,7 @@ void display(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     
-    glPushMatrix();
+    glPushMatrix();  {
         glLoadIdentity();
     
         //  Setup 3D lights
@@ -565,7 +528,8 @@ void display(void)
         glTranslatef(0.f, 0.f, -7.f);
         myHead.render(display_head, 1);
         glPopMatrix();
-        
+    }
+    
     glPopMatrix();
 
     //  Render 2D overlay:  I/O level bar graphs and text  
@@ -576,8 +540,8 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        // lattice.render(WIDTH, HEIGHT);
-        // myFinger.render();
+        //lattice.render(WIDTH, HEIGHT);
+        //myFinger.render();
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
@@ -693,8 +657,14 @@ void specialkeyUp(int k, int x, int y) {
         myHead.setDriveKeys(BACK, 0);
         myHead.setDriveKeys(DOWN, 0);
     }
-    if (k == GLUT_KEY_LEFT) myHead.setDriveKeys(LEFT, 0);
-    if (k == GLUT_KEY_RIGHT) myHead.setDriveKeys(RIGHT, 0);
+    if (k == GLUT_KEY_LEFT) {
+        myHead.setDriveKeys(LEFT, 0);
+        myHead.setDriveKeys(ROT_LEFT, 0);
+    }
+    if (k == GLUT_KEY_RIGHT) {
+        myHead.setDriveKeys(RIGHT, 0);
+        myHead.setDriveKeys(ROT_RIGHT, 0);
+    }
     
 }
 
@@ -711,11 +681,11 @@ void specialkey(int k, int x, int y)
         }
         if (k == GLUT_KEY_LEFT) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(LEFT, 1);
-            else render_yaw_rate -= KEYBOARD_YAW_RATE;
+            else myHead.setDriveKeys(ROT_LEFT, 1);  
         }
         if (k == GLUT_KEY_RIGHT) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
-            else render_yaw_rate += KEYBOARD_YAW_RATE;
+            else myHead.setDriveKeys(ROT_RIGHT, 1);   
         }
         
         audio.setWalkingState(true);
@@ -726,6 +696,11 @@ void specialkey(int k, int x, int y)
 void keyUp(unsigned char k, int x, int y) {
     if (k == 'e') myHead.setDriveKeys(UP, 0);
     if (k == 'c') myHead.setDriveKeys(DOWN, 0);
+    if (k == 'w') myHead.setDriveKeys(FWD, 0);
+    if (k == 's') myHead.setDriveKeys(BACK, 0);
+    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 0);
+    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 0);
+
 }
 
 void key(unsigned char k, int x, int y)
@@ -762,11 +737,11 @@ void key(unsigned char k, int x, int y)
     if (k == 'l') display_levels = !display_levels;
     if (k == 'e') myHead.setDriveKeys(UP, 1);
     if (k == 'c') myHead.setDriveKeys(DOWN, 1);
-    if (k == 'w') fwd_vel += KEYBOARD_FLY_RATE;
-    if (k == 's') fwd_vel -= KEYBOARD_FLY_RATE;
+    if (k == 'w') myHead.setDriveKeys(FWD, 1);
+    if (k == 's') myHead.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
-    if (k == 'a') render_yaw_rate -= KEYBOARD_YAW_RATE;
-    if (k == 'd') render_yaw_rate += KEYBOARD_YAW_RATE;
+    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
     if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
