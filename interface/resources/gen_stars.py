@@ -34,7 +34,7 @@ def meridian(azimuth,n,(r0,g0,b0),(r1,g1,b1)):
         print "%f %f #%02x%02x%02x" % (azimuth,-altitude,r,g,b)
 
 if meridians:
-    meridian(.2,meridians,(255,255,255), (180, 60,255)) # N->S
+    meridian( 0,meridians,(255,255,255), (180, 60,255)) # N->S
     meridian(90,meridians,( 80,255, 80), (255,240, 40)) # E->W
 
 if equator:
