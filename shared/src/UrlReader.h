@@ -20,7 +20,7 @@
 class UrlReader
 {
         void*       ptr_impl;
-        char*       buf_xtra;
+        char*       arr_xtra;
         char const* str_error;
         void*       ptr_stream;
         size_t      val_xtra_size_size;
@@ -201,9 +201,9 @@ size_t UrlReader::callback_template(
             // fill extra buffer with beginning of input
             size_t fill = max_read_ahead - me->val_xtra_size_size;
             if (bytes < fill) fill = bytes;
-            memcpy(me->buf_xtra + me->val_xtra_size_size, buffer, fill);
+            memcpy(me->arr_xtra + me->val_xtra_size_size, buffer, fill);
             // use extra buffer for next transfer
-            buffer = me->buf_xtra;
+            buffer = me->arr_xtra;
             bytes = me->val_xtra_size_size + fill;
             input_offset += fill;
         }
@@ -223,7 +223,7 @@ size_t UrlReader::callback_template(
         size_t unprocessed = bytes - processed;
 
         // can switch to input buffer, now?
-        if (buffer == me->buf_xtra && unprocessed <= input_offset)
+        if (buffer == me->arr_xtra && unprocessed <= input_offset)
         {
             me->val_xtra_size_size = 0u;
             input_offset -= unprocessed;
@@ -236,9 +236,9 @@ size_t UrlReader::callback_template(
                 return 0;
             }
             me->val_xtra_size_size = unprocessed;
-            memmove(me->buf_xtra, buffer + processed, unprocessed);
+            memmove(me->arr_xtra, buffer + processed, unprocessed);
 
-            if (input_offset == size || buffer != me->buf_xtra)
+            if (input_offset == size || buffer != me->arr_xtra)
             {
                 return size;
             }
