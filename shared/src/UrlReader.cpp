@@ -23,10 +23,10 @@ char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete pro
 #define hnd_curl static_cast<CURL*>(ptr_impl)
 
 UrlReader::UrlReader()
-    : ptr_impl(0l), ptr_ra(0l), str_error(0l)
+    : ptr_impl(0l), buf_xtra(0l), str_error(0l)
 {
-    ptr_ra = new(std::nothrow) char[max_read_ahead];
-    if (! ptr_ra) { str_error = error_init_failed; return; }
+    buf_xtra = new(std::nothrow) char[max_read_ahead];
+    if (! buf_xtra) { str_error = error_init_failed; return; }
     ptr_impl =  curl_easy_init();
     if (! ptr_impl) { str_error = error_init_failed; return; }
     curl_easy_setopt(hnd_curl, CURLOPT_NOSIGNAL, 1l);
@@ -36,7 +36,7 @@ UrlReader::UrlReader()
 
 UrlReader::~UrlReader()
 {
-    delete ptr_ra;
+    delete buf_xtra;
     if (! hnd_curl) return;
     curl_easy_cleanup(hnd_curl);
 }
@@ -51,7 +51,7 @@ bool UrlReader::perform(char const* url, transfer_callback* cb)
 
     if (rc == CURLE_OK)
     {
-        while (val_ra_size > 0 && str_error == success)
+        while (val_xtra_size_size > 0 && str_error == success)
             cb(0l, 0, 0, this);
     }
     else if (str_error == success)

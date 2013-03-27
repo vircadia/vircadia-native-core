@@ -310,7 +310,7 @@ namespace
 
     class Loader : UrlReader
     {
-            InputVertices*  arr_vertex;
+            InputVertices&  ref_vertices;
             unsigned        val_limit;
 
             unsigned        val_lineno;
@@ -323,7 +323,7 @@ namespace
             bool loadVertices(
                     InputVertices& destination, char const* url, unsigned limit)
             {
-                arr_vertex = & destination;
+                ref_vertices = destination;
                 val_limit = limit;
                 str_actual_url = url; // in case we fail early
 
@@ -347,8 +347,8 @@ namespace
                 val_lineno = 0u;
                 str_actual_url = url; // new value in http redirect
 
-                arr_vertex->clear();
-                arr_vertex->reserve(val_limit);
+                ref_vertices.clear();
+                ref_vertices.reserve(val_limit);
             }
             
             size_t transfer(char* input, size_t bytes)
@@ -383,35 +383,35 @@ namespace
                             if (val_records_read++ == val_limit)
                             {
                                 std::make_heap(
-                                    arr_vertex->begin(), arr_vertex->end(),
+                                    ref_vertices.begin(), ref_vertices.end(),
                                     GreaterBrightness() );
 
                                 val_min_brightness = getBrightness(
-                                        arr_vertex->begin()->getColor() );
+                                        ref_vertices.begin()->getColor() );
                             }
-                            if (arr_vertex->size() == val_limit)
+                            if (ref_vertices.size() == val_limit)
                             {
                                 if (val_min_brightness >= getBrightness(c))
                                     continue;
 
                                 std::pop_heap(
-                                    arr_vertex->begin(), arr_vertex->end(),
+                                    ref_vertices.begin(), ref_vertices.end(),
                                     GreaterBrightness() );
-                                arr_vertex->pop_back();
+                                ref_vertices.pop_back();
                             }
                         }
 
-                        arr_vertex->push_back( InputVertex(azi, alt, c) );
+                        ref_vertices.push_back( InputVertex(azi, alt, c) );
 
                         if (val_limit > 0 && val_records_read > val_limit)
                         {
                             std::push_heap(
-                                arr_vertex->begin(), arr_vertex->end(),
+                                ref_vertices.begin(), ref_vertices.end(),
                                 GreaterBrightness() );
-                            arr_vertex->pop_back();
+                            ref_vertices.pop_back();
 
                             val_min_brightness = getBrightness(
-                                    arr_vertex->begin()->getColor() );
+                                    ref_vertices.begin()->getColor() );
                         }
                     }
                     else
@@ -433,9 +433,9 @@ namespace
     class TileCulling
     {
             Renderer&           ref_renderer;
-            Tile**              ptr_stack;
+            Tile**              itr_stack;
             Tile const* const   arr_tile;
-            Tile const* const   ptr_tiles_end;
+            Tile const* const   itr_tiles_end;
 
         public:
 
@@ -454,7 +454,7 @@ namespace
             void up(Tile*& cursor)    const   { cursor += yStride(); }
             void down(Tile*& cursor)  const   { cursor -= yStride(); }
 
-            void defer(Tile* t) { *ptr_stack++ = t; }
+            void defer(Tile* t) { *itr_stack++ = t; }
             inline bool deferred(Tile*& cursor);
 
         private:
@@ -787,12 +787,12 @@ namespace
             Tile const* tiles, Tile const* tiles_end, Tile** stack)
 
         :   ref_renderer(renderer),
-            ptr_stack(stack), arr_tile(tiles), ptr_tiles_end(tiles_end)
+            itr_stack(stack), arr_tile(tiles), itr_tiles_end(tiles_end)
     { }
 
     bool TileCulling::select(Tile* t)
     {
-        if (t < arr_tile || t >= ptr_tiles_end ||
+        if (t < arr_tile || t >= itr_tiles_end ||
                 !! (t->flags & Tile::visited))
             return false;
 
@@ -808,9 +808,9 @@ namespace
 
     bool TileCulling::deferred(Tile*& cursor)
     {
-        if (ptr_stack != (Tile**) ref_renderer.arr_batch_count)
+        if (itr_stack != (Tile**) ref_renderer.arr_batch_count)
         {
-            cursor = *--ptr_stack;
+            cursor = *--itr_stack;
             return true;
         }
         return false;
@@ -824,7 +824,7 @@ namespace
     
 struct Stars::body
 {
-    InputVertices   vec_input;
+    InputVertices   seq_input;
     unsigned        val_tile_resolution;
 
     BrightnessLevels    vec_lod_brightness;
@@ -857,7 +857,7 @@ struct Stars::body
         {
             // TODO input mutex
 
-            vec_input.swap(new_vertices);
+            seq_input.swap(new_vertices);
 
             try
             {
@@ -866,7 +866,7 @@ struct Stars::body
             catch (...)
             {
                 // rollback transaction
-                new_vertices.swap(vec_input);
+                new_vertices.swap(seq_input);
                 throw;
             }
 
@@ -894,9 +894,9 @@ struct Stars::body
     {
         HorizontalTiling<Degrees> tiling(k);
         TileSortScanner scanner(tiling);
-        radix2InplaceSort(vec_input.begin(), vec_input.end(), scanner);
+        radix2InplaceSort(seq_input.begin(), seq_input.end(), scanner);
 
-        recreateRenderer(vec_input.size(), k, 
+        recreateRenderer(seq_input.size(), k, 
                 val_lod_brightness, val_lod_max_brightness);
 
         val_tile_resolution = k;
@@ -944,7 +944,7 @@ struct Stars::body
     void recreateRenderer(
             size_t n, unsigned k, BrightnessLevel b, BrightnessLevel b_max)
     {
-        Renderer* renderer = new Renderer(vec_input, n, k, b, b_max);
+        Renderer* renderer = new Renderer(seq_input, n, k, b, b_max);
         swap(ptr_renderer, renderer); // TODO make atomic
         delete renderer; // will be NULL when was in use
     }
