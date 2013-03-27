@@ -310,7 +310,7 @@ namespace
 
     class Loader : UrlReader
     {
-            InputVertices&  ref_vertices;
+            InputVertices*  ptr_vertices;
             unsigned        val_limit;
 
             unsigned        val_lineno;
@@ -323,7 +323,7 @@ namespace
             bool loadVertices(
                     InputVertices& destination, char const* url, unsigned limit)
             {
-                ref_vertices = destination;
+                ptr_vertices = & destination;
                 val_limit = limit;
                 str_actual_url = url; // in case we fail early
 
@@ -347,8 +347,10 @@ namespace
                 val_lineno = 0u;
                 str_actual_url = url; // new value in http redirect
 
-                ref_vertices.clear();
-                ref_vertices.reserve(val_limit);
+                val_records_read = 0u;
+
+                ptr_vertices->clear();
+                ptr_vertices->reserve(val_limit);
             }
             
             size_t transfer(char* input, size_t bytes)
@@ -383,35 +385,35 @@ namespace
                             if (val_records_read++ == val_limit)
                             {
                                 std::make_heap(
-                                    ref_vertices.begin(), ref_vertices.end(),
+                                    ptr_vertices->begin(), ptr_vertices->end(),
                                     GreaterBrightness() );
 
                                 val_min_brightness = getBrightness(
-                                        ref_vertices.begin()->getColor() );
+                                        ptr_vertices->begin()->getColor() );
                             }
-                            if (ref_vertices.size() == val_limit)
+                            if (ptr_vertices->size() == val_limit)
                             {
                                 if (val_min_brightness >= getBrightness(c))
                                     continue;
 
                                 std::pop_heap(
-                                    ref_vertices.begin(), ref_vertices.end(),
+                                    ptr_vertices->begin(), ptr_vertices->end(),
                                     GreaterBrightness() );
-                                ref_vertices.pop_back();
+                                ptr_vertices->pop_back();
                             }
                         }
 
-                        ref_vertices.push_back( InputVertex(azi, alt, c) );
+                        ptr_vertices->push_back( InputVertex(azi, alt, c) );
 
                         if (val_limit > 0 && val_records_read > val_limit)
                         {
                             std::push_heap(
-                                ref_vertices.begin(), ref_vertices.end(),
+                                ptr_vertices->begin(), ptr_vertices->end(),
                                 GreaterBrightness() );
-                            ref_vertices.pop_back();
+                            ptr_vertices->pop_back();
 
                             val_min_brightness = getBrightness(
-                                    ref_vertices.begin()->getColor() );
+                                    ptr_vertices->begin()->getColor() );
                         }
                     }
                     else
@@ -725,6 +727,11 @@ namespace
 
         private: // gl API handling 
 
+#ifdef __APPLE__ 
+#define glBindVertexArray glBindVertexArrayAPPLE 
+#define glGenVertexArrays glGenVertexArraysAPPLE 
+#define glDeleteVertexArrays glDeleteVertexArraysAPPLE 
+#endif
             void glAlloc()
             {
                 glGenVertexArrays(1, & hnd_vao);
@@ -739,13 +746,12 @@ namespace
             {
                 GLuint vbo;
                 glGenBuffers(1, & vbo);
+
+                glBindVertexArray(hnd_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, vbo);
                 glBufferData(GL_ARRAY_BUFFER,
                         n * sizeof(GpuVertex), arr_data, GL_STATIC_DRAW);
-
-                glBindVertexArray(hnd_vao);
                 glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
-                glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
                 glBindVertexArray(0); 
             }
@@ -780,6 +786,11 @@ namespace
                 glMatrixMode(GL_MODELVIEW);
                 glPopMatrix();
             }
+#ifdef __APPLE__
+#undef glBindVertexArray 
+#undef glGenVertexArrays 
+#undef glDeleteVertexArrays
+#endif
     };
 
     TileCulling::TileCulling(
