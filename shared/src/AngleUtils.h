@@ -68,12 +68,12 @@ void angleHorizontalPolar(float& azimuth, float& altitude)
     if (altitude > Unit::half_pi())
     {
         altitude = Unit::pi() - altitude;
-        azimuth = -azimuth;
+        azimuth += Unit::pi();
     }
     else if (altitude < -Unit::half_pi())
     {
         altitude = -Unit::pi() - altitude;
-        azimuth = -azimuth;
+        azimuth += Unit::pi();
     }
     azimuth = angleUnsignedNormal<Unit>(azimuth);
 }
