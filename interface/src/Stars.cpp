@@ -105,6 +105,12 @@
  *   thread run the data pipeline for update -- rendering is wait-free
  */
 
+// Compile time configuration
+
+// #define FORCE_POSITIVE_ALTITUDE // uncomment for hemisphere only
+// #define SAVE_MEMORY // uncomment not to use 16-bit types
+// #define SEE_LOD // uncomment to peek behind the scenes
+
 namespace
 {
     using std::swap;
@@ -121,6 +127,14 @@ namespace
     using glm::mat4;
     using glm::column;
     using glm::row;
+
+#ifdef SAVE_MEMORY
+    typedef uint16_t nuint;
+    typedef uint32_t wuint;
+#else
+    typedef uint32_t nuint;
+    typedef uint64_t wuint;
+#endif
 
     class InputVertex
     {
@@ -149,14 +163,14 @@ namespace
 
     typedef uint16_t BrightnessLevel;
     typedef std::vector<BrightnessLevel> BrightnessLevels;
-    const unsigned BrightnessBits = 16u;
+    const unsigned BrightnessBits = 18u;
 
     BrightnessLevel getBrightness(unsigned c)
     {
         unsigned r = (c >> 16) & 0xff;
         unsigned g = (c >> 8) & 0xff;
         unsigned b = c & 0xff;
-        return BrightnessLevel((r*r+g*g+b*b) >> 1);
+        return BrightnessLevel(r*r+g*g+b*b);
     }
 
     struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel>
@@ -189,7 +203,7 @@ namespace
             HorizontalTiling(unsigned k)
                 : val_k(k), val_rcp_slice(k / Unit::twice_pi())
             {
-                val_bits = ceil(log2(getTileCount() ));
+                val_bits = ceil(log2(getTileCount()));
             }
 
             unsigned getAzimuthalTiles() const { return val_k; }
@@ -254,8 +268,8 @@ namespace
 
     struct Tile
     {
-        uint16_t        offset;
-        uint16_t        count; 
+        nuint           offset;
+        nuint           count; 
         BrightnessLevel lod;
         uint16_t        flags;
 
@@ -334,6 +348,9 @@ namespace
 
                     return false;
                 }
+// fprintf(stderr, "Stars.cpp: read %d vertices, using %d\n", 
+//      val_records_read, ptr_vertices->size());
+
                 return true;
             }
 
@@ -351,6 +368,7 @@ namespace
 
                 ptr_vertices->clear();
                 ptr_vertices->reserve(val_limit);
+// fprintf(stderr, "Stars.cpp: loader begin %s\n", url);
             }
             
             size_t transfer(char* input, size_t bytes)
@@ -384,6 +402,8 @@ namespace
                         {
                             if (val_records_read++ == val_limit)
                             {
+// fprintf(stderr, "Stars.cpp: vertex limit reached -> heap mode\n", val_limit);
+
                                 std::make_heap(
                                     ptr_vertices->begin(), ptr_vertices->end(),
                                     GreaterBrightness() );
@@ -391,7 +411,7 @@ namespace
                                 val_min_brightness = getBrightness(
                                         ptr_vertices->begin()->getColor() );
                             }
-                            if (ptr_vertices->size() == val_limit)
+                            if (ptr_vertices->size() > val_limit)
                             {
                                 if (val_min_brightness >= getBrightness(c))
                                     continue;
@@ -402,6 +422,7 @@ namespace
                                 ptr_vertices->pop_back();
                             }
                         }
+                        else ++val_records_read;
 
                         ptr_vertices->push_back( InputVertex(azi, alt, c) );
 
@@ -540,12 +561,14 @@ namespace
                 float azimuth = atan2(ahead.x,-ahead.z) + Radians::pi();
                 float altitude = atan2(-ahead.y, hypot(ahead.x, ahead.z));
                 angleHorizontalPolar<Radians>(azimuth, altitude);
+#ifdef FORCE_POSITIVE_ALTITUDE
+                altitude = std::max(0.0f, altitude);
+#endif
                 unsigned tile_index = 
                         obj_tiling.getTileIndex(azimuth, altitude);
 
 // fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tile_index);
 
-// #define SEE_LOD // define to peek behind the scenes
 
 #ifdef SEE_LOD 
  mat4 matrix_debug = glm::translate( 
@@ -849,7 +872,7 @@ struct Stars::body
 
 
     body()
-        : val_tile_resolution(16), val_lod_brightness(0),
+        : val_tile_resolution(20), val_lod_brightness(0),
             val_lod_max_brightness(0), val_lod_current_alloc(1.0f),
             val_lod_low_water_mark(0.99f), val_lod_high_water_mark(1.0f),
             ptr_renderer(0l)
@@ -989,7 +1012,7 @@ void Stars::setResolution(unsigned k)
 { ptr_body->setResolution(k); }
 
 void Stars::setLOD(float fraction, float overalloc, float realloc)
-{ ptr_body->setLOD(fraction, 0.0f, 0.0f); } // TODO enable once implemented
+{ ptr_body->setLOD(fraction, overalloc, realloc); } 
 
 void Stars::render(FieldOfView const& fov) 
 { ptr_body->render(fov); }
