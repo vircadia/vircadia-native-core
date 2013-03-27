@@ -24,13 +24,17 @@ void radix2InplaceSort( BidiIterator from, BidiIterator to,
 
 
 
-template< class S, typename I > struct radix2InplaceSort_impl : private S
+template< class Scanner, typename Iterator > 
+struct radix2InplaceSort_impl : Scanner
 {
-    radix2InplaceSort_impl(S const& scanner) : S(scanner) { }
+    radix2InplaceSort_impl(Scanner const& s) : Scanner(s) { }
 
-    void go(I& from, I& to, typename S::state_type s)
+    using Scanner::advance;
+    using Scanner::bit;
+
+    void go(Iterator& from, Iterator& to, typename Scanner::state_type s)
     {
-        I l(from), r(to);
+        Iterator l(from), r(to);
         unsigned cl, cr;
 
         using std::swap;
@@ -39,11 +43,11 @@ template< class S, typename I > struct radix2InplaceSort_impl : private S
         {
             // scan from left for set bit
             for (cl = cr = 0u; l != r ; ++l, ++cl)
-                if (S::bit(*l, s))
+                if (bit(*l, s))
                 {
                     // scan from the right for unset bit
                     for (++cr; --r != l ;++cr)
-                        if (! S::bit(*r, s))
+                        if (! bit(*r, s))
                         {
                             // swap, continue scanning from left
                             swap(*l, *r);
@@ -54,7 +58,7 @@ template< class S, typename I > struct radix2InplaceSort_impl : private S
                 }
 
             // on to the next digit, if any
-            if (! S::advance(s))
+            if (! advance(s))
                 return; 
 
             // recurse into smaller branch and prepare iterative
