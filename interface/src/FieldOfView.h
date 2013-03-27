@@ -117,6 +117,11 @@ class FieldOfView
          * applied.
          */
         float getTransformOffset() const { return vec_bounds_high.z; }
+
+        /**
+         * Returns the aspect ratio.
+         */
+        float getAspectRatio() const { return val_height / val_width; }
 };
 
 #endif
