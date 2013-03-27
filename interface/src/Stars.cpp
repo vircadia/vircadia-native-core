@@ -203,7 +203,6 @@ namespace
 
             unsigned getTileIndex(float azimuth, float altitude) const
             {
-                unsigned result;
                 return discreteAngle(azimuth) % val_k +
                     discreteAngle(altitude + Unit::half_pi()) * val_k;
             }
@@ -956,7 +955,8 @@ struct Stars::body
         float new_brightness = val_lod_brightness; // make atomic
 
         // have it render
-        renderer->render(fov, new_brightness);
+        if (renderer)
+            renderer->render(fov, new_brightness);
 
         // check in - or dispose if there is a new one
         // TODO make atomic (CAS)
