@@ -144,41 +144,8 @@ int main(int argc, const char * argv[])
                     agentList.increaseAgentId();
                 }
                 
+                // parse this agent's position
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
-                
-                VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
-                int newLevel = 10;
-                if (newLevel > agentData->lastSentLevel) {
-                    // the agent has already received a deeper level than this from us
-                    // do nothing
-                    
-                    stopOctal = randomTree.rootNode->octalCode;
-                    packetCount = 0;
-                    totalBytesSent = 0;
-                    randomTree.leavesWrittenToBitstream = 0;
-                    
-                    while (stopOctal != NULL) {
-                        voxelPacketEnd = voxelPacket;
-                        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
-                                                                   stopOctal,
-                                                                   randomTree.rootNode,
-                                                                   newLevel);
-                        
-                        agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
-                                                        voxelPacket,
-                                                        voxelPacketEnd - voxelPacket);
-                        
-                        packetCount++;
-                        totalBytesSent += voxelPacketEnd - voxelPacket;
-                    }
-                    
-                    printf("%d packets sent to client totalling %d bytes\n", packetCount, totalBytesSent);
-                    printf("%d leaves were sent - %f bpv\n",
-                           randomTree.leavesWrittenToBitstream,
-                           (float)totalBytesSent / randomTree.leavesWrittenToBitstream);
-                    
-                    agentData->lastSentLevel = newLevel;
-                }
             }
         }
     }
