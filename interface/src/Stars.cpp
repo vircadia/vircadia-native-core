@@ -543,7 +543,9 @@ namespace
 
 // fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tile_index);
 
-#ifdef SEE_LOD // define to peek behind the scenes
+// #define SEE_LOD // define to peek behind the scenes
+
+#ifdef SEE_LOD 
  mat4 matrix_debug = glm::translate( 
         glm::frustum(-hw,hw, -hh,hh, near,10.0f), 
         vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
@@ -562,7 +564,7 @@ namespace
                         (Tile**) arr_batch_count));
 
 #ifdef SEE_LOD
-#define matrix debug_matrix
+#define matrix matrix_debug
 #endif
                 this->glBatch(glm::value_ptr(matrix), prepareBatch(
                         (unsigned*) arr_batch_offs, itr_out_index) );
