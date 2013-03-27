@@ -14,9 +14,11 @@
 #include "AngleUtils.h"
 #include "Radix2InplaceSort.h"
 #include "Radix2IntegerScanner.h"
+#include "FloodFill.h"
 
 #include <stddef.h>
 #include <stdint.h>
+#include <float.h>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -30,11 +32,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/swizzle.hpp>
 
 #define DEG2RAD 0.017453292519f
 
 /* Data pipeline
- * -------------
+ * =============
  *
  * ->> readInput -(load)--+---- (get brightness & sort) ---> brightness LUT
  *                        |              |        
@@ -42,9 +47,9 @@
  *                     V  |
  *            (sort by (tile,brightness))
  *                        |         |
- * ->> setLOD  ---+       |    >retile<   ->> setLOD --> (just parameterizes
- *                V       V                             renderer when on-GPU
- *          (filter by max-LOD brightness,              data suffices)
+ * ->> setLOD  ---+       |    >retile<   ->> setLOD --> (just parameterize
+ *                V       V                          when enough data on-GPU)
+ *          (filter by max-LOD brightness,         
  *            build tile info for rendering)
  *                        |             |
  *                        V         >recreateRenderer<
@@ -54,11 +59,47 @@
  * (process), ->> entry point, ---> data flow, >internal routine<
  *
  *
- * Open issues
- * -----------
+ * FOV culling
+ * ===========
  *
- * o FOV culling is implemented naively and will become apparent when
- *   looking up
+ * As stars can be thought of as at infinity distance, the field of view only
+ * depends on perspective and rotation:
+ *
+ *                                 _----_  <-- visible stars
+ *             from above         +-near-+ -  -
+ *                                 \    /     |
+ *                near width:       \  /      | cos(p/2)
+ *                     2sin(p/2)     \/       _
+ *                                  center    
+ *
+ *
+ * Now it is important to note that a change in altitude maps uniformly to a 
+ * distance on a sphere. This is NOT the case for azimuthal angles: In this
+ * case a factor of 'cos(alt)' (the orbital radius) applies: 
+ *
+ *
+ *             |<-cos alt ->|    | |<-|<----->|->| d_azi cos(alt)
+ *                               |
+ *                      __--*    |    ---------   -
+ *                  __--     *   |   |         |  ^ d_alt 
+ *              __-- alt)    *   |  |           | v 
+ *             --------------*-  |  ------------- -
+ *                               |
+ *             side view         | tile on sphere
+ *
+ *
+ * This lets us find a worst case (Eigen) angle from the center to the edge
+ * of a tile as
+ *
+ *     hypot( 0.5 d_alt, 0.5 d_azi cos(alt_absmin) ).
+ *
+ * This angle must be added to 'p' (the perspective angle) in order to find
+ * an altered near plane for the culling decision.
+ *
+ *
+ * Still open 
+ * ==========
+ *
  * o atomics/mutexes need to be added as annotated in the source to allow
  *   concurrent threads to pull the strings to e.g. have a low priority
  *   thread run the data pipeline for update -- rendering is wait-free
@@ -67,13 +108,19 @@
 namespace
 {
     using std::swap;
-    using std::min;
-    using std::max;
 
     using glm::vec3;
     using glm::vec4;
+    using glm::dot;
+    using glm::normalize;
+    using glm::swizzle;
+    using glm::X;
+    using glm::Y;
+    using glm::Z;
+    using glm::W;
     using glm::mat4;
-    using glm::value_ptr;
+    using glm::column;
+    using glm::row;
 
     class InputVertex
     {
@@ -171,6 +218,11 @@ namespace
                 return 1.0f / val_rcp_slice;
             }
 
+            float getReciprocalSliceAngle() const
+            {
+                return val_rcp_slice;
+            }
+
         private:
 
             unsigned discreteAngle(float unsigned_angle) const
@@ -206,17 +258,21 @@ namespace
         uint16_t        offset;
         uint16_t        count; 
         BrightnessLevel lod;
-        bool            selected;
+        uint16_t        flags;
+
+        static uint16_t const checked = 1;
+        static uint16_t const visited = 2;
+        static uint16_t const render = 4;
     };
 
 
-    struct GpuVertex
+    class GpuVertex
     {
             unsigned    val_color;
             float       val_x;
             float       val_y;
             float       val_z;
-        //
+        public:
 
             GpuVertex() { }
 
@@ -235,8 +291,6 @@ namespace
                 val_x = gx * exz;
                 val_y = sin(altitude);
                 val_z = gz * exz;
-
-//fprintf(stderr, "Stars.cpp: GpuVertex created (%x,%f,%f,%f)\n", val_color, val_x, val_y, val_z);
             }
 
             unsigned getColor() const { return val_color; } 
@@ -257,7 +311,7 @@ namespace
 
     class Loader : UrlReader
     {
-            InputVertices*  ptr_vertices;
+            InputVertices*  arr_vertex;
             unsigned        val_limit;
 
             unsigned        val_lineno;
@@ -270,7 +324,7 @@ namespace
             bool loadVertices(
                     InputVertices& destination, char const* url, unsigned limit)
             {
-                ptr_vertices = & destination;
+                arr_vertex = & destination;
                 val_limit = limit;
                 str_actual_url = url; // in case we fail early
 
@@ -294,8 +348,8 @@ namespace
                 val_lineno = 0u;
                 str_actual_url = url; // new value in http redirect
 
-                ptr_vertices->clear();
-                ptr_vertices->reserve(val_limit);
+                arr_vertex->clear();
+                arr_vertex->reserve(val_limit);
             }
             
             size_t transfer(char* input, size_t bytes)
@@ -325,37 +379,40 @@ namespace
                     unsigned c;
                     if (sscanf(line, " %f %f #%x", & azi, & alt, & c) == 3)
                     {
-                        if (val_records_read++ == val_limit)
+                        if (val_limit > 0)
                         {
-                            std::make_heap(
-                                ptr_vertices->begin(), ptr_vertices->end(),
-                                GreaterBrightness() );
+                            if (val_records_read++ == val_limit)
+                            {
+                                std::make_heap(
+                                    arr_vertex->begin(), arr_vertex->end(),
+                                    GreaterBrightness() );
 
-                            val_min_brightness = getBrightness(
-                                    ptr_vertices->begin()->getColor() );
+                                val_min_brightness = getBrightness(
+                                        arr_vertex->begin()->getColor() );
+                            }
+                            if (arr_vertex->size() == val_limit)
+                            {
+                                if (val_min_brightness >= getBrightness(c))
+                                    continue;
+
+                                std::pop_heap(
+                                    arr_vertex->begin(), arr_vertex->end(),
+                                    GreaterBrightness() );
+                                arr_vertex->pop_back();
+                            }
                         }
-                        if (ptr_vertices->size() == val_limit)
-                        {
-                            if (val_min_brightness >= getBrightness(c))
-                                continue;
 
-                            std::pop_heap(
-                                ptr_vertices->begin(), ptr_vertices->end(),
-                                GreaterBrightness() );
-                            ptr_vertices->pop_back();
-                        }
+                        arr_vertex->push_back( InputVertex(azi, alt, c) );
 
-                        ptr_vertices->push_back( InputVertex(azi, alt, c) );
-
-                        if (val_records_read > val_limit)
+                        if (val_limit > 0 && val_records_read > val_limit)
                         {
                             std::push_heap(
-                                ptr_vertices->begin(), ptr_vertices->end(),
+                                arr_vertex->begin(), arr_vertex->end(),
                                 GreaterBrightness() );
-                            ptr_vertices->pop_back();
+                            arr_vertex->pop_back();
 
                             val_min_brightness = getBrightness(
-                                    ptr_vertices->begin()->getColor() );
+                                    arr_vertex->begin()->getColor() );
                         }
                     }
                     else
@@ -369,34 +426,165 @@ namespace
             }
 
             void end(bool ok)
-            {
-            }
+            { }
+    };
+
+    class Renderer;
+
+    class TileCulling
+    {
+            Renderer&           ref_renderer;
+            Tile**              ptr_stack;
+            Tile const* const   arr_tile;
+            Tile const* const   ptr_tiles_end;
+
+        public:
+
+            inline TileCulling(Renderer& renderer,
+                    Tile const* tiles, Tile const* tiles_end, Tile** stack);
+ 
+        protected:
+
+            // flood fill strategy
+
+            inline bool select(Tile* t);
+            inline void process(Tile* t);
+
+            void right(Tile*& cursor) const   { cursor += 1; }
+            void left(Tile*& cursor)  const   { cursor -= 1; }
+            void up(Tile*& cursor)    const   { cursor += yStride(); }
+            void down(Tile*& cursor)  const   { cursor -= yStride(); }
+
+            void defer(Tile* t) { *ptr_stack++ = t; }
+            inline bool deferred(Tile*& cursor);
+
+        private:
+
+            inline unsigned yStride() const;
     };
 
     class Renderer
     {
-            GpuVertex*      ptr_data;
-            Tile*           ptr_tiles;
-            unsigned        val_tile_resolution;
-            GLint*          ptr_batch_offs;
-            GLsizei*        ptr_batch_count;
+            typedef HorizontalTiling<Radians> Tiling;
+
+            GpuVertex*      arr_data;
+            Tile*           arr_tile;
+            GLint*          arr_batch_offs;
+            GLsizei*        arr_batch_count;
             GLuint          hnd_vao;
+            Tiling          obj_tiling;
+
+            unsigned*       itr_out_index;
+            vec3            vec_w_xform;
+            float           val_half_persp;
+            BrightnessLevel val_min_bright;
+
         public:
 
             Renderer(InputVertices const& src, size_t n,
                     unsigned k, BrightnessLevel b, BrightnessLevel b_max)
-                : ptr_data(0l), ptr_tiles(0l), val_tile_resolution(k)
+                : arr_data(0l), arr_tile(0l), obj_tiling(k)
             {
+                this->glAlloc();
 
                 HorizontalTiling<Degrees> tiling(k);
                 size_t n_tiles = tiling.getTileCount();
 
-                ptr_data = new GpuVertex[n];
-                ptr_tiles = new Tile[n_tiles + 1];
-                ptr_batch_offs = new GLint[n_tiles]; 
-                ptr_batch_count = new GLsizei[n_tiles];
+                arr_data = new GpuVertex[n];
+                arr_tile = new Tile[n_tiles + 1];
+                arr_batch_offs = new GLint[n_tiles]; 
+                arr_batch_count = new GLsizei[n_tiles];
 
+                prepareVertexData(src, n, tiling, b, b_max);
+
+                this->glUpload(n);
+            }
+
+            ~Renderer()
+            {
+                delete[] arr_data;
+                delete[] arr_tile;
+                delete[] arr_batch_count;
+                delete[] arr_batch_offs;
+
+                this->glFree();
+            }
+
+            void render(FieldOfView const& fov, BrightnessLevel min_bright)
+            {
+                float half_persp = fov.getPerspective() * 0.5f;
+                float aspect = fov.getAspectRatio();
+
+                // determine dimensions based on a sought screen diagonal
+                //
+                //  ww + hh = dd
+                //  a = h / w => h = wa
+                //  ww + ww aa = dd
+                //  ww = dd / (1 + aa)
+                float diag = 2.0f * std::sin(half_persp);
+                float near = std::cos(half_persp);
+                
+                float hw = 0.5f * sqrt(diag * diag / (1.0f + aspect * aspect));
+                float hh = hw * aspect;
+
+                // cancel all translation
+                mat4 matrix = fov.getOrientation();
+                matrix[3][0] = 0.0f;
+                matrix[3][1] = 0.0f;
+                matrix[3][2] = 0.0f;
+
+                // extract local z vector
+                vec3 ahead = swizzle<X,Y,Z>( column(matrix, 2) );
+
+                float azimuth = atan2(ahead.x,-ahead.z) + Radians::pi();
+                float altitude = atan2(-ahead.y, hypot(ahead.x, ahead.z));
+                angleHorizontalPolar<Radians>(azimuth, altitude);
+                unsigned tile_index = 
+                        obj_tiling.getTileIndex(azimuth, altitude);
+
+// fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tile_index);
+
+#ifdef SEE_LOD // define to peek behind the scenes
+ mat4 matrix_debug = glm::translate( 
+        glm::frustum(-hw,hw, -hh,hh, near,10.0f), 
+        vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
+#endif
+
+                matrix = glm::frustum(-hw,hw, -hh,hh, near,10.0f)
+                        * glm::affineInverse(matrix);
+
+                this->itr_out_index = (unsigned*) arr_batch_offs;
+                this->vec_w_xform = swizzle<X,Y,Z>(row(matrix, 3));
+                this->val_half_persp = half_persp;
+                this->val_min_bright = min_bright;
+
+                floodFill(arr_tile + tile_index, TileCulling(*this, 
+                        arr_tile, arr_tile + obj_tiling.getTileCount(),
+                        (Tile**) arr_batch_count));
+
+#ifdef SEE_LOD
+#define matrix debug_matrix
+#endif
+                this->glBatch(glm::value_ptr(matrix), prepareBatch(
+                        (unsigned*) arr_batch_offs, itr_out_index) );
+
+#ifdef SEE_LOD
+#undef matrix
+#endif
+            }
+
+        private: // renderer construction
+
+            void prepareVertexData(InputVertices const& src, size_t n, 
+                    HorizontalTiling<Degrees> const& tiling, BrightnessLevel b, 
+                    BrightnessLevel b_max)
+            {
+                size_t n_tiles = tiling.getTileCount();
                 size_t vertex_index = 0u, curr_tile_index = 0u, count_active = 0u;
+
+                arr_tile[0].offset = 0u;
+                arr_tile[0].lod = b;
+                arr_tile[0].flags = 0u;
 
                 for (InputVertices::const_iterator i = 
                         src.begin(), e = src.end(); i != e; ++i)
@@ -406,26 +594,25 @@ namespace
                     if (bv >= b_max)
                     {
                         size_t tile_index = tiling.getTileIndex(*i);
-
                         assert(tile_index >= curr_tile_index);
 
-                        // moved to another tile?
+                        // moved on to another tile? -> flush
                         if (tile_index != curr_tile_index)
                         {
-                            Tile* t = ptr_tiles + curr_tile_index;
-                            Tile* t_last = ptr_tiles + tile_index;
+                            Tile* t = arr_tile + curr_tile_index;
+                            Tile* t_last = arr_tile + tile_index;
 
                             // set count of active vertices (upcoming lod)
                             t->count = count_active;
                             // generate skipped, empty tiles
                             for(size_t offs = t_last->offset; ++t != t_last ;)
                                 t->offset = offs, t->count = 0u, 
-                                t->lod = b, t->selected = false;
+                                t->lod = b, t->flags = 0u;
 
-                            // initialize next tile as far as possible
+                            // initialize next (as far as possible here)
                             t_last->offset = vertex_index;
                             t_last->lod = b;
-                            t_last->selected = false;
+                            t_last->flags = 0u;
 
                             curr_tile_index = tile_index;
                             count_active = 0u;
@@ -434,161 +621,204 @@ namespace
                         if (bv >= b)
                             ++count_active;
 
-//fprintf(stderr, "Stars.cpp: Vertex %d on tile #%d\n", vertex_index, tile_index);
+// fprintf(stderr, "Stars.cpp: Vertex %d on tile #%d\n", vertex_index, tile_index);
 
                         // write converted vertex
-                        ptr_data[vertex_index++] = *i;
+                        arr_data[vertex_index++] = *i;
                     }
                 }
                 assert(vertex_index == n);
-                // finish last tile (see above)
-                Tile* t = ptr_tiles + curr_tile_index; 
+                // flush last tile (see above)
+                Tile* t = arr_tile + curr_tile_index; 
                 t->count = count_active;
-                for (Tile* e = ptr_tiles + n_tiles + 1; ++t != e ;)
+                for (Tile* e = arr_tile + n_tiles + 1; ++t != e ;)
                     t->offset = vertex_index, t->count = 0u,
-                    t->lod = b, t->selected = false;
+                    t->lod = b, t->flags = 0;
+            }
 
-                // OpenGL upload
+        private: // FOV culling / LOD
 
+            friend class TileCulling;
+
+            bool visitTile(Tile* t)
+            {
+                unsigned index =  t - arr_tile;
+                *itr_out_index++ = index;
+
+                if (! tileVisible(t, index))
+                    return false;
+
+                if (t->lod != val_min_bright)
+                    updateVertexCount(t, val_min_bright);
+
+                return true;
+            }
+
+            bool tileVisible(Tile* t, unsigned i)
+            {
+                float slice = obj_tiling.getSliceAngle();
+                unsigned stride = obj_tiling.getAzimuthalTiles();
+                float azimuth = (i % stride) * slice;
+                float altitude = (i / stride) * slice - Radians::half_pi();
+                float gx =  sin(azimuth);
+                float gz = -cos(azimuth);
+                float exz = cos(altitude);
+                vec3 tile_center = vec3(gx * exz, sin(altitude), gz * exz);
+                float w = dot(vec_w_xform, tile_center);
+
+                float half_slice = 0.5f * slice;
+                float daz = half_slice * cos(abs(altitude) - half_slice);
+                float dal = half_slice;
+                float near = cos(val_half_persp + sqrt(daz*daz+dal*dal));
+
+// fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, near);
+
+                return w > near;
+
+            }
+
+            void updateVertexCount(Tile* t, BrightnessLevel min_bright)
+            {
+                // a growing number of stars needs to be rendereed when the 
+                // minimum brightness decreases
+                // perform a binary search in the so found partition for the
+                // new vertex count of this tile
+
+                GpuVertex const* start = arr_data + t[0].offset;
+                GpuVertex const* end = arr_data + t[1].offset;
+
+                if (start == end)
+                    return;
+
+                if (t->lod < min_bright)
+                    end = start + t->count;
+                else
+                    start += (t->count > 0 ? t->count - 1 : 0);
+
+                end = std::upper_bound(
+                        start, end, min_bright, GreaterBrightness());
+
+                t->count = end - arr_data + t[0].offset;
+                t->lod = min_bright;
+            }
+
+            unsigned prepareBatch(unsigned* indices, unsigned* indices_end) 
+            {
+                unsigned n_ranges = 0u;
+                GLint* offs = arr_batch_offs;
+                GLsizei* count = arr_batch_count;
+                for (unsigned* i = (unsigned*) arr_batch_offs; 
+                        i != indices_end; ++i)
+                {
+                    Tile* t = arr_tile + *i;
+                    if ((t->flags & Tile::render) > 0u && t->count > 0u)
+                    {
+                        *offs++ = t->offset;
+                        *count++ = t->count;
+                        ++n_ranges;
+                    }
+                    t->flags = 0;
+                }
+                return n_ranges;
+            }
+
+        private: // gl API handling 
+
+            void glAlloc()
+            {
+                glGenVertexArrays(1, & hnd_vao);
+            }
+
+            void glFree()
+            {
+                glDeleteVertexArrays(1, & hnd_vao);
+            }
+
+            void glUpload(GLsizei n)
+            {
                 GLuint vbo;
                 glGenBuffers(1, & vbo);
                 glBindBuffer(GL_ARRAY_BUFFER, vbo);
                 glBufferData(GL_ARRAY_BUFFER,
-                        n * sizeof(GpuVertex), ptr_data, GL_STATIC_DRAW);
+                        n * sizeof(GpuVertex), arr_data, GL_STATIC_DRAW);
 
-                glGenVertexArrays(1, & hnd_vao);
                 glBindVertexArray(hnd_vao);
                 glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
                 glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
                 glBindVertexArray(0); 
-
             }
 
-            ~Renderer()
+            void glBatch(GLfloat const* matrix, GLsizei n_ranges)
             {
-                delete[] ptr_data;
-                delete[] ptr_tiles;
-                delete[] ptr_batch_count;
-                delete[] ptr_batch_offs;
-                glDeleteVertexArrays(1, & hnd_vao);
-            }
+// fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_ranges);
 
-            void render(FieldOfView const& fov, BrightnessLevel lod)
-            {
-                mat4 local_space = fov.getOrientation();
-                HorizontalTiling<Radians> tiling(val_tile_resolution);
+// for (int i = 0; i < n_ranges; ++i)
+//     fprintf(stderr, "Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
+//             arr_batch_offs[i], arr_batch_count[i]);
 
-                // get z direction
-                float x = local_space[2][0];
-                float y = local_space[2][1];
-                float z = local_space[2][2];
-
-                // cancel all translations (including those in the projection
-                // matrix)
-                float translate = -fov.getTransformOffset();
-                local_space[3][0] = translate * x;
-                local_space[3][1] = translate * y;
-                local_space[3][2] = translate * z;
-
-                // to polar
-                float azimuth = atan2(x,-z) + Radians::pi();
-                float altitude = atan2(-y, sqrt(x*x+z*z));
-
-                // determine tiles around this centerpoint
-                float extent = fov.getPerspective();
-                float slice = tiling.getSliceAngle();
-
-                // use batch array for temporary storage
-                GLint* tmp_tiles = ptr_batch_count;
-
-                // select and eventually update tiles for rendering
-                for (float alt = altitude - extent; 
-                        alt <= altitude + extent + 0.1f; alt += slice)
-                {
-                    float azi_extent = extent / cos(alt);
-                    for (float azi = azimuth - azi_extent;
-                            azi <= azimuth + azi_extent + 0.1f; azi += slice)
-                    {
-                        float az = azi, al = alt;
-                        angleHorizontalPolar<Radians>(az, al);
-
-                        unsigned tile_index = tiling.getTileIndex(az, al);
-                        Tile* t = ptr_tiles + tile_index;
-
-                        if (t->selected) continue;
-
-                        // LOD brightness changed? update count
-                        if (t->lod != lod)
-                        {
-                            // determine bounds for binary search
-                            //
-                            // a growing number of stars needs to be rendereed
-                            // at decreasing minimum brightness - perform a
-                            // binary search in the so found partition for the
-                            // new vertex count in this tile
-
-                            GpuVertex const* start = ptr_data + t[0].offset;
-                            GpuVertex const* end = ptr_data + t[1].offset;
-
-                            if (start == end)
-                                continue;
-
-                            if (lod < t->lod)
-                                start += (t->count > 0 ? t->count - 1 : 0);
-                            else
-                                end = start + t->count;
-
-                            end = std::upper_bound(
-                                    start, end, lod, GreaterBrightness());
-
-                            t->count = end - ptr_data + t[0].offset;
-                            t->lod = lod;
-                        }
-
-                        if (! t->count)
-                            continue;
-
-// fprintf(stderr, "Stars.cpp: tile %d selected (%d vertices at offset %d)\n", tile_index, t->count, t->offset);
-                        t->selected = true;
-                        *tmp_tiles++ = tile_index;
-
-                    }
-                }
-
-                // build batches
-                GLint* offs = ptr_batch_offs;
-                GLsizei* count = ptr_batch_count, n_batches = 0;
-                for (GLsizei* i = ptr_batch_count; i != tmp_tiles; ++i)
-                {
-                    Tile* t = ptr_tiles + *i;
-
-                    *offs++ = t->offset;
-                    *count++ = t->count;
-                    t->selected = false;
-
-                    ++n_batches;
-                }
-
- fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_batches);
-
-                // and setup modelview matrix
+                // setup modelview matrix (identity)
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
-                glLoadMatrixf(value_ptr(glm::affineInverse(local_space)));
+                glLoadIdentity();
+
+                // set projection matrix
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadMatrixf(matrix);
 
                 // render
                 glBindVertexArray(hnd_vao);
                 glPointSize(1.0);
                 glMultiDrawArrays(GL_POINTS,
-                        ptr_batch_offs, ptr_batch_count, n_batches);
+                        arr_batch_offs, arr_batch_count, n_ranges);
 
-                // restore state state
+                // restore state
                 glBindVertexArray(0); 
                 glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                glPopMatrix();
             }
-
     };
+
+    TileCulling::TileCulling(
+            Renderer& renderer,
+            Tile const* tiles, Tile const* tiles_end, Tile** stack)
+
+        :   ref_renderer(renderer),
+            ptr_stack(stack), arr_tile(tiles), ptr_tiles_end(tiles_end)
+    { }
+
+    bool TileCulling::select(Tile* t)
+    {
+        if (t < arr_tile || t >= ptr_tiles_end ||
+                !! (t->flags & Tile::visited))
+            return false;
+
+        if (! (t->flags & Tile::checked))
+        {
+            if (ref_renderer.visitTile(t))
+                t->flags |= Tile::render;
+        }
+        return !! (t->flags & Tile::render);
+    }
+
+    void TileCulling::process(Tile* t) { t->flags |= Tile::visited; }
+
+    bool TileCulling::deferred(Tile*& cursor)
+    {
+        if (ptr_stack != (Tile**) ref_renderer.arr_batch_count)
+        {
+            cursor = *--ptr_stack;
+            return true;
+        }
+        return false;
+    }
+
+    unsigned TileCulling::yStride() const
+    {
+        return ref_renderer.obj_tiling.getAzimuthalTiles();
+    }
 }
     
 struct Stars::body
@@ -607,7 +837,7 @@ struct Stars::body
 
 
     body()
-        : val_tile_resolution(12), val_lod_brightness(0),
+        : val_tile_resolution(16), val_lod_brightness(0),
             val_lod_max_brightness(0), val_lod_current_alloc(1.0f),
             val_lod_low_water_mark(0.99f), val_lod_high_water_mark(1.0f),
             ptr_renderer(0l)
@@ -750,5 +980,6 @@ void Stars::setLOD(float fraction, float overalloc, float realloc)
 
 void Stars::render(FieldOfView const& fov) 
 { ptr_body->render(fov); }
+
 
 
