@@ -303,6 +303,15 @@ void Head::simulate(float deltaTime)
                 if (randFloat() < 0.5) eyeContactTarget = LEFT_EYE; else eyeContactTarget = RIGHT_EYE;
             }
         }
+        //  Set eyeball pitch and yaw to make contact
+        float eye_target_yaw_adjust = 0;
+        float eye_target_pitch_adjust = 0;
+        if (eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
+        if (eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
+        if (eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
+        
+        EyeballPitch[0] = EyeballPitch[1] = -Pitch + eye_target_pitch_adjust;
+        EyeballYaw[0] = EyeballYaw[1] = -Yaw + eye_target_yaw_adjust;
     }
 
     
@@ -317,19 +326,8 @@ void Head::simulate(float deltaTime)
         if (!eyeContact) {
             if (randFloat() < 0.01)  EyeballPitch[0] = EyeballPitch[1] = (randFloat() - 0.5)*20;
             if (randFloat() < 0.01)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5)*10;
-        } else {
-            float eye_target_yaw_adjust = 0;
-            float eye_target_pitch_adjust = 0;
-            if (eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
-            if (eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
-            if (eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
-            
-            EyeballPitch[0] = EyeballPitch[1] = -Pitch + eye_target_pitch_adjust;
-            EyeballYaw[0] = EyeballYaw[1] = -Yaw + eye_target_yaw_adjust;
-        }
-        
-        
-        
+        }         
+
         if ((randFloat() < 0.005) && (fabs(PitchTarget - Pitch) < 1.0) && (fabs(YawTarget - Yaw) < 1.0))
         {
             SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
