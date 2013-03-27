@@ -121,14 +121,9 @@ float render_yaw_rate = 0.f;
 float render_pitch_rate = 0.f; 
 float lateral_vel = 0.f;
 
-// Manage speed and direction of motion
-GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
-//GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
-//GLfloat start_location[] = { 0.1, -0.15, 0.1};
+//  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
+glm::vec3 start_location(6.1f, 0, 1.4f);
 
-GLfloat start_location[] = {6.1f, 0, 1.4f};
-
-GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
 float fwd_vel = 0.0f;
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
@@ -319,6 +314,7 @@ void init(void)
     if (noise_on) {   
         myHead.setNoise(noise);
     }
+    myHead.setPos(start_location);
     
     char output[] = "I";
     char address[] = "10.0.0.10";
@@ -365,12 +361,10 @@ void reset_sensors()
     yaw = render_yaw_rate = 0; 
     pitch = render_pitch = render_pitch_rate = 0;
     lateral_vel = 0;
-    location[0] = start_location[0];
-    location[1] = start_location[1];
-    location[2] = start_location[2];
+    myHead.setPos(start_location);
     fwd_vel = 0.0;
     head_mouse_x = WIDTH/2;
-    head_mouse_y = HEIGHT/2; 
+    head_mouse_y = HEIGHT/2;
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2; 
     
@@ -483,26 +477,11 @@ void simulateHead(float frametime)
     }*/
     //  Decrease forward velocity
     fwd_vel *= (1.f - 4.0*frametime);
-    
-
-    //  Update forward vector based on pitch and yaw 
-    fwd_vec[0] = -sinf(myHead.getRenderYaw()*PI/180);
-    fwd_vec[1] = sinf(render_pitch*PI/180);
-    fwd_vec[2] = cosf(myHead.getRenderYaw()*PI/180);
-    
-    //  Advance location forward
-    location[0] += fwd_vec[0]*fwd_vel;
-    location[1] += fwd_vec[1]*fwd_vel;
-    location[2] += fwd_vec[2]*fwd_vel;
-    
-    //  Slide location sideways
-    location[0] += fwd_vec[2]*-lateral_vel;
-    location[2] += fwd_vec[0]*lateral_vel;
-    
+        
     //  Update own head data
     myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
     myHead.setRenderPitch(render_pitch);
-    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    //myHead.setPos(glm::vec3(location[0], location[1], location[2]));
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
@@ -552,12 +531,11 @@ void display(void)
         //  Rotate, translate to camera location
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
-        glTranslatef(location[0], location[1], location[2]);
+        glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
     
         glColor3f(1,0,0);
         glutSolidSphere(0.25, 15, 15);
     
-        
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
@@ -576,7 +554,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, 0, &location[0]);
+                agentHead->render(0, 0);
                 glPopMatrix();
             }
         }
@@ -590,12 +568,8 @@ void display(void)
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(display_head, 1, &location[0]);
+        myHead.render(display_head, 1);
         glPopMatrix();
-            
-        //glm::vec3 test(0.5, 0.5, 0.5); 
-        //render_vector(&test);
-         
         
     glPopMatrix();
 
@@ -715,23 +689,50 @@ const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_STRAFE_RATE = 0.03;
 const float KEYBOARD_FLY_RATE = 0.08;
 
+void specialkeyUp(int k, int x, int y) {
+    if (k == GLUT_KEY_UP) {
+        myHead.setDriveKeys(FWD, 0);
+        myHead.setDriveKeys(UP, 0);
+    }
+    if (k == GLUT_KEY_DOWN) {
+        myHead.setDriveKeys(BACK, 0);
+        myHead.setDriveKeys(DOWN, 0);
+    }
+    if (k == GLUT_KEY_LEFT) myHead.setDriveKeys(LEFT, 0);
+    if (k == GLUT_KEY_RIGHT) myHead.setDriveKeys(RIGHT, 0);
+    
+}
+
 void specialkey(int k, int x, int y)
 {
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
-        if (k == GLUT_KEY_UP) fwd_vel += KEYBOARD_FLY_RATE;
-        if (k == GLUT_KEY_DOWN) fwd_vel -= KEYBOARD_FLY_RATE;
+        if (k == GLUT_KEY_UP) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(UP, 1);
+            else myHead.setDriveKeys(FWD, 1);
+        }
+        if (k == GLUT_KEY_DOWN) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(DOWN, 1);
+            else myHead.setDriveKeys(BACK, 1);
+        }
         if (k == GLUT_KEY_LEFT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= KEYBOARD_STRAFE_RATE;
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(LEFT, 1);
             else render_yaw_rate -= KEYBOARD_YAW_RATE;
         }
         if (k == GLUT_KEY_RIGHT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += KEYBOARD_STRAFE_RATE;
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
             else render_yaw_rate += KEYBOARD_YAW_RATE;
         }
         
         audio.setWalkingState(true);
     }    
 }
+
+
+void keyUp(unsigned char k, int x, int y) {
+    if (k == 'e') myHead.setDriveKeys(UP, 0);
+    if (k == 'c') myHead.setDriveKeys(DOWN, 0);
+}
+
 void key(unsigned char k, int x, int y)
 {
     
@@ -764,10 +765,8 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'f') display_field = !display_field;
     if (k == 'l') display_levels = !display_levels;
-    
-    
-    if (k == 'e') location[1] -= WORLD_SIZE/100.0;
-    if (k == 'c') location[1] += WORLD_SIZE/100.0;
+    if (k == 'e') myHead.setDriveKeys(UP, 1);
+    if (k == 'c') myHead.setDriveKeys(DOWN, 1);
     if (k == 'w') fwd_vel += KEYBOARD_FLY_RATE;
     if (k == 's') fwd_vel -= KEYBOARD_FLY_RATE;
     if (k == ' ') reset_sensors();
@@ -960,7 +959,9 @@ int main(int argc, char** argv)
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(key);
+    glutKeyboardUpFunc(keyUp);
     glutSpecialFunc(specialkey);
+    glutSpecialUpFunc(specialkeyUp);
 	glutMotionFunc(motionFunc);
     glutPassiveMotionFunc(mouseoverFunc);
 	glutMouseFunc(mouseFunc);

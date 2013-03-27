@@ -212,10 +212,46 @@ void Head::setLeanSideways(float dist){
 //  Simulate the head over time 
 void Head::simulate(float deltaTime)
 {
-    //  Increment position as a function of velocity
-    position += velocity * deltaTime;
+    
+    glm::vec3 forward(-sinf(getRenderYaw()*PI/180),
+                      sinf(getRenderPitch()*PI/180),
+                      cosf(getRenderYaw()*PI/180));
+    
+    thrust = glm::vec3(0);
+    const float THRUST_MAG = 6.0;
+    const float THRUST_LATERAL_MAG = 6.0;
+    const float THRUST_VERTICAL_MAG = 6.0;
+    
+    if (driveKeys[FWD]) {
+        thrust += THRUST_MAG*forward;
+    }
+    if (driveKeys[BACK]) {
+        thrust += -THRUST_MAG*forward;
+    }
+    if (driveKeys[RIGHT]) {
+        thrust.x += forward.z*-THRUST_LATERAL_MAG;
+        thrust.z += forward.x*THRUST_LATERAL_MAG;
+    }
+    if (driveKeys[LEFT]) {
+        thrust.x += forward.z*THRUST_LATERAL_MAG;
+        thrust.z += forward.x*-THRUST_LATERAL_MAG;
+    }
+    if (driveKeys[UP]) {
+        thrust.y += -THRUST_VERTICAL_MAG;
+    }
+    if (driveKeys[DOWN]) {
+        thrust.y += THRUST_VERTICAL_MAG;
+    }
+
     //  Increment velocity as time
     velocity += thrust * deltaTime;
+
+    //  Increment position as a function of velocity
+    position += velocity * deltaTime;
+    
+    //  Decay velocity
+    const float LIN_VEL_DECAY = 5.0;
+    velocity *= (1.0 - LIN_VEL_DECAY*deltaTime);
     
     if (!noise)
     {
@@ -315,13 +351,10 @@ void Head::simulate(float deltaTime)
                          
 }
       
-void Head::render(int faceToFace, int isMine, float * myLocation)
+void Head::render(int faceToFace, int isMine)
 {
     int side = 0;
-    
-    glm::vec3 cameraHead(myLocation[0], myLocation[1], myLocation[2]);
-    float distanceToCamera = glm::distance(cameraHead, position);
-    
+        
     //  Always render own hand, but don't render head unless showing face2face
     glEnable(GL_DEPTH_TEST);
     glPushMatrix();
@@ -334,7 +367,7 @@ void Head::render(int faceToFace, int isMine, float * myLocation)
     hand->render(1);
     
     //  Don't render a head if it is really close to your location, because that is your own head!
-    if ((distanceToCamera > 1.0) || faceToFace) {
+    if (!isMine || faceToFace) {
         
         glRotatef(Pitch, 1, 0, 0);
         glRotatef(Roll, 0, 0, 1);
