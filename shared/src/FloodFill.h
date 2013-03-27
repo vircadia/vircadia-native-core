@@ -44,10 +44,9 @@ struct floodFill_impl : Strategy
 
             process(position);
 
-            Cursor higher = position, lower = position;
-            bool higher_found = false;
-            bool lower_found = false;
+            higher = position; higher_found = false;
             up(higher); yTest(higher, higher_found);
+            lower = position; lower_found = false;
             down(lower); yTest(lower, lower_found);
 
             i = position, h = higher, l = lower;
