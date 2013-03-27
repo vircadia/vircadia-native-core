@@ -29,7 +29,7 @@ class Stars
          * The limit parameter allows to reduce the number of stars
          * that are loaded, keeping the brightest ones.
          */
-        bool readInput(const char* url, unsigned limit = 50000);
+        bool readInput(const char* url, unsigned limit = 200000);
 
         /**
          * Renders the starfield from a local viewer's perspective.
