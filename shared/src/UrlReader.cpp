@@ -54,7 +54,7 @@ bool UrlReader::perform(char const* url, transfer_callback* cb)
         while (val_ra_size > 0 && str_error == success)
             cb(0l, 0, 0, this);
     }
-    else if (str_error != success)
+    else if (str_error == success)
         str_error = curl_easy_strerror(rc);
 
     return rc == CURLE_OK;

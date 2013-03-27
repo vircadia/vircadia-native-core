@@ -164,7 +164,7 @@ inline char const* UrlReader::getError() const { return this->str_error; }
 
 inline void UrlReader::setError(char const* static_c_string)
 {
-    if (this->str_error != success)
+    if (this->str_error == success)
         this->str_error = static_c_string;
 }
 
