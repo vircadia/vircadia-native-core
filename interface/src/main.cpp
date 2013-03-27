@@ -339,7 +339,7 @@ void init(void)
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2;
 
-    stars.readInput("file://stars.txt");
+    stars.readInput("file://stars.txt", 0);
  
     //  Initialize Field values
     field = Field();
