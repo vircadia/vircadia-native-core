@@ -12,10 +12,12 @@ from random import random,randint
 from math import sqrt, hypot, atan2, pi, fmod, degrees
 from sys import argv,stderr
 
-n = 10
 
+n = 10
 if len(argv) > 1:
     n = int(argv[1])
+
+hemisphere=False
 
 bars_total, bars_prev = 77, 0
 
@@ -27,6 +29,8 @@ for i in range(n):
     b = max(0,min(255,w + randint(-10,100)))
     # position
     x,y,z = random()*2-1,random(),random()*2-1
+    if not hemisphere:
+        y = y*2-1
     l = sqrt(x*x + y*y + z*z)
     x /= l; y /= l; z /= l
     xz = hypot(x,z)
