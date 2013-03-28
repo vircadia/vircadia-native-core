@@ -110,6 +110,14 @@ int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    // Handle Local Domain testing with the --local command line
+    bool wantLocalDomain = cmdOptionExists(argc, argv, "--local");
+    if (wantLocalDomain) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
+
     agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
@@ -119,9 +127,18 @@ int main(int argc, const char * argv[])
     // use our method to create a random voxel tree
     VoxelTree randomTree;
 
-    // create an octal code buffer and load it with 0 so that the recursive tree fill can give
-    // octal codes to the tree nodes that it is creating
-    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	// Check to see if the user passed in a command line option for loading a local
+	// Voxel File. If so, load it now.
+    bool wantColorRandomizer = !cmdOptionExists(argc, argv, "--NoColorRandomizer");
+    const char* voxelsFilename = getCmdOption(argc, argv, "-i");
+    if (voxelsFilename) {
+	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
+	if (!cmdOptionExists(argc, argv, "--NoRandomVoxelSheet")) {
+		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
+		// octal codes to the tree nodes that it is creating
+	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	}
 
     unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     unsigned char *voxelPacketEnd;
@@ -138,8 +155,25 @@ int main(int argc, const char * argv[])
     // loop to send to agents requesting data
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        	// XXXBHG: Hacked in support for 'I' insert command
+            if (packetData[0] == 'I') {
+            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+            	printf("got I command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	int atByte = 3;
+            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
+            	while (atByte < receivedBytes) {
+            		unsigned char octets = (unsigned char)*pVoxelData;
+            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+		            randomTree.readCodeColorBufferToTree(pVoxelData);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+            		// skip to next
+            		pVoxelData+=voxelDataSize;
+            		atByte+=voxelDataSize;
+            	}
+            	//printf("about to call pruneTree()\n");
+				//randomTree.pruneTree(randomTree.rootNode); // hack
+            }
             if (packetData[0] == 'H') {
-                
                 if (agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0], agentList.getLastAgentId())) {
                     agentList.increaseAgentId();
                 }
@@ -156,7 +190,6 @@ int main(int argc, const char * argv[])
                     packetCount = 0;
                     totalBytesSent = 0;
                     randomTree.leavesWrittenToBitstream = 0;
-                    
                     while (stopOctal != NULL) {
                         voxelPacketEnd = voxelPacket;
                         stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,

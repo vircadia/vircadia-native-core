@@ -11,6 +11,8 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
+#include <iostream> // to load voxels from file
+#include <fstream> // to load voxels from file
 
 VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
@@ -80,37 +82,37 @@ VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned cha
 /// If node has color & <= 4 children then prune children
 void VoxelTree::pruneTree(VoxelNode* pruneAt) {
 	int childCount = 0;
+    int childMask = 0;
 	
 	// determine how many children we have
-	for (int i = 0; i < 8; i++)
-	{
-		if (pruneAt->children[i])
-		{
+	for (int i = 0; i < 8; i++) {
+		if (pruneAt->children[i]) {
 			childCount++;
 		}
 	}
 	// if appropriate, prune them
-	if (pruneAt->color[3] && childCount <= 4)
-	{
-		for (int i = 0; i < 8; i++)
-		{
-			if (pruneAt->children[i])
-			{
+	if (pruneAt->color[3] && childCount <= 4) {
+		for (int i = 0; i < 8; i++) {
+			if (pruneAt->children[i]) {
 				delete pruneAt->children[i];
 				pruneAt->children[i]=NULL;
 			}
 		}
-	}
-	else
-	{
+	} else {
 		// Otherwise, iterate the children and recursively call
 		// prune on all of them
-		for (int i = 0; i < 8; i++)
-		{
-			if (pruneAt->children[i])
-			{
+		for (int i = 0; i < 8; i++) {
+			if (pruneAt->children[i]) {
 				this->pruneTree(pruneAt->children[i]);
 			}
+		}
+	}
+	// repair our child mask
+	// determine how many children we have
+	pruneAt->childMask = 0;
+	for (int i = 0; i < 8; i++) {
+		if (pruneAt->children[i]) {
+			pruneAt->childMask += (1 << (7 - i));
 		}
 	}
 }
@@ -328,4 +330,134 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
             printTreeForDebugging(startNode->children[k]);
         }
     }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Method:      VoxelTree::loadVoxelsFile()
+// Description: Loads HiFidelity encoded Voxels from a binary file. The current file
+//              format is a stream of single voxels with color data.
+// Complaints:  Brad :)
+void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
+    int vCount = 0;
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary);
+
+    char octets;
+    unsigned int lengthInBytes;
+    
+    int totalBytesRead = 0;
+    if(file.is_open()) {
+		printf("loading file...\n");    
+        bool bail = false;
+        while (!file.eof() && !bail) {
+            file.get(octets);
+			//printf("octets=%d...\n",octets);    
+            totalBytesRead++;
+            lengthInBytes = bytesRequiredForCodeLength(octets)-1; //(octets*3/8)+1;
+            unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
+            voxelData[0]=octets;
+            char byte;
+
+            for (size_t i = 0; i < lengthInBytes; i++) {
+                file.get(byte);
+                totalBytesRead++;
+                voxelData[i+1] = byte;
+            }
+            // read color data
+            char colorRead;
+            unsigned char red,green,blue;
+            file.get(colorRead);
+            red = (unsigned char)colorRead;
+            file.get(colorRead);
+            green = (unsigned char)colorRead;
+            file.get(colorRead);
+            blue = (unsigned char)colorRead;
+
+            printf("voxel color from file  red:%d\, green:%d, blue:%d \n",red,green,blue);
+            vCount++;
+            //printf("vCount:%d\n",vCount);
+
+            int colorRandomizer = wantColorRandomizer ? randIntInRange (-5, 5) : 0;
+            voxelData[lengthInBytes+1] = std::max(0,std::min(255,red + colorRandomizer));
+            voxelData[lengthInBytes+2] = std::max(0,std::min(255,green + colorRandomizer));
+            voxelData[lengthInBytes+3] = std::max(0,std::min(255,blue + colorRandomizer));
+            printf("voxel color after rand red:%d\, green:%d, blue:%d\n",voxelData[lengthInBytes+1],voxelData[lengthInBytes+2],voxelData[lengthInBytes+3]);
+
+            //printVoxelCode(voxelData);
+            this->readCodeColorBufferToTree(voxelData);
+            delete voxelData;
+        }
+        file.close();
+    }
+    
+    this->pruneTree(this->rootNode);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Method:      VoxelTree::createSphere()
+// Description: Creates a sphere of voxels in the local system at a given location/radius
+// To Do:       Move this function someplace better? Do we really need to call pruneTree()??
+// Complaints:  Brad :)
+void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid) {
+    // About the color of the sphere... we're going to make this sphere be a gradient
+    // between two RGB colors. We will do the gradient along the phi spectrum
+    unsigned char r1 = randomColorValue(165);
+    unsigned char g1 = randomColorValue(165);
+    unsigned char b1 = randomColorValue(165);
+    unsigned char r2 = randomColorValue(65);
+    unsigned char g2 = randomColorValue(65);
+    unsigned char b2 = randomColorValue(65);
+    
+    // we don't want them to match!!
+    if (r1==r2 && g1==g2 && b1==b2) {
+        r2=r1/2;
+        g2=g1/2;
+        b2=b1/2;
+    }
+
+    // Psuedocode for creating a sphere: 
+    //
+    // for (theta from 0 to 2pi):
+    //     for (phi from 0 to pi):
+	//          x = xc+r*cos(theta)*sin(phi)
+	//          y = yc+r*sin(theta)*sin(phi)
+	//          z = zc+r*cos(phi)
+	
+	int t=0; // total points
+
+    // We want to make sure that as we "sweep" through our angles we use a delta angle that's small enough to not skip any 
+    // voxels we can calculate theta from our desired arc length
+	//      lenArc = ndeg/360deg * 2pi*R  --->  lenArc = theta/2pi * 2pi*R
+	//      lenArc = theta*R ---> theta = lenArc/R ---> theta = g/r	
+	float angleDelta = (s/r);
+
+	// assume solid for now
+	float ri = 0.0;
+	if (!solid) {
+		ri=r; // just the outer surface
+	}
+	// If you also iterate form the interior of the sphere to the radius, makeing
+	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
+	for (; ri <= r; ri+=s) {
+		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta) {
+			for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
+				t++; // total voxels
+				float x = xc+r*cos(theta)*sin(phi);
+				float y = yc+r*sin(theta)*sin(phi);
+				float z = zc+r*cos(phi);
+                
+                // gradient color data
+                float gradient = (phi/M_PI);
+                unsigned char red   = r1+((r2-r1)*gradient);
+                unsigned char green = g1+((g2-g1)*gradient);
+                unsigned char blue  = b1+((b2-b1)*gradient);
+				
+				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+                this->readCodeColorBufferToTree(voxelData);
+                delete voxelData;
+			}
+		}
+	}
+    this->pruneTree(this->rootNode); // XXXBHG Hack: Need to call this for now???
 }
