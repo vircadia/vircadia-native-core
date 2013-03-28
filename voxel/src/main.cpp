@@ -43,6 +43,23 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 10;
 
 AgentList agentList('V', VOXEL_LISTEN_PORT);
 
+void addRandomSphere(VoxelTree * tree) {
+	float r = randFloatInRange(0.05,0.1);
+	float xc = randFloatInRange(r,(1-r));
+	float yc = randFloatInRange(r,(1-r));
+	float zc = randFloatInRange(r,(1-r));
+	float s = 0.001; // size of voxels to make up surface of sphere
+	bool solid = true;
+
+	printf("random sphere\n");
+	printf("radius=%f\n",r);
+	printf("xc=%f\n",xc);
+	printf("yc=%f\n",yc);
+	printf("zc=%f\n",zc);
+
+	tree->createSphere(r,xc,yc,zc,s,solid);
+}
+
 int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
@@ -138,6 +155,10 @@ int main(int argc, const char * argv[])
 		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	}
+	
+	if (cmdOptionExists(argc, argv, "--AddRandomSpheres")) {
+		addRandomSphere(&randomTree);
 	}
 
     unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
