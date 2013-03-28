@@ -122,7 +122,7 @@ void *distributeVoxelsToListeners(void *args) {
     unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     unsigned char *voxelPacketEnd;
     
-    float treeRoot[3] = {-40, 0, -40};
+    float treeRoot[3] = {0, 0, 0};
     
     while (true) {
         gettimeofday(&lastSendTime, NULL);

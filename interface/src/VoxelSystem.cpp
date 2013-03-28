@@ -219,7 +219,6 @@ void VoxelSystem::render() {
    
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
-    glTranslatef(40, 0, 40);
     glScalef(10, 10, 10);
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
