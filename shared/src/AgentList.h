@@ -57,7 +57,6 @@ public:
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void broadcastToAgents(char *broadcastData, size_t dataBytes);
-    void sendToAgent(Agent *destAgent, void *packetData, size_t dataBytes);
     void pingAgents();
     char getOwnerType();
     unsigned int getSocketListenPort();
