@@ -22,6 +22,7 @@ double usecTimestamp(timeval *time);
 double usecTimestampNow();
 
 float randFloat();
+int randIntInRange (int min, int max);
 float randFloatInRange (float min,float max);
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
@@ -33,8 +34,8 @@ bool oneAtBit(unsigned char byte, int bitIndex);
 
 void switchToResourcesIfRequired();
 
-char* getCmdOption(int argc, char** argv,char* option);
-bool cmdOptionExists(int argc, char** argv,char* option);
+const char* getCmdOption(int argc, const char * argv[],char* option);
+bool cmdOptionExists(int argc, const char * argv[],char* option);
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
 
 #endif /* defined(__hifi__SharedUtil__) */

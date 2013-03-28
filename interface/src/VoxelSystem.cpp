@@ -14,7 +14,7 @@
 #include <OctalCode.h>
 #include "VoxelSystem.h"
 
-const int MAX_VOXELS_PER_SYSTEM = 250000;
+const int MAX_VOXELS_PER_SYSTEM = 1500000; //250000;
 
 const int VERTICES_PER_VOXEL = 8;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
@@ -54,57 +54,9 @@ VoxelSystem::~VoxelSystem() {
 //              colors are set randomly
 // Complaints:  Brad :)
 // To Do:       Need to add color data to the file.
-void VoxelSystem::loadVoxelsFile(char* fileName) {
-    int vCount = 0;
-
-    std::ifstream file(fileName, std::ios::in|std::ios::binary);
-
-    char octets;
-    unsigned int lengthInBytes;
+void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     
-    int totalBytesRead = 0;
-    if(file.is_open())
-    {
-        bool bail = false;
-        while (!file.eof() && !bail) {
-            file.get(octets);
-            totalBytesRead++;
-            lengthInBytes = bytesRequiredForCodeLength(octets)-1; //(octets*3/8)+1;
-            unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
-            voxelData[0]=octets;
-            char byte;
-
-            for (size_t i = 0; i < lengthInBytes; i++) {
-                file.get(byte);
-                totalBytesRead++;
-                voxelData[i+1] = byte;
-            }
-            // read color data
-            char red,green,blue;
-            file.get(red);
-            file.get(green);
-            file.get(blue);
-
-            //printf("red:%d\n",red);
-            //printf("green:%d\n",green);
-            //printf("blue:%d\n",blue);
-            vCount++;
-            //printf("vCount:%d\n",vCount);
-
-            //randomColorValue(65);
-            float rf = randFloatInRange(.5,1); // add a little bit of variance to colors so we can see the voxels
-            voxelData[lengthInBytes+1] = red * rf;
-            voxelData[lengthInBytes+2] = green * rf;
-            voxelData[lengthInBytes+3] = blue * rf;
-
-            //printVoxelCode(voxelData);
-            tree->readCodeColorBufferToTree(voxelData);
-            delete voxelData;
-        }
-        file.close();
-    }
-    
-    tree->pruneTree(tree->rootNode);
+    tree->loadVoxelsFile(fileName,wantColorRandomizer);
 
     // reset the verticesEndPointer so we're writing to the beginning of the array
     verticesEndPointer = verticesArray;
@@ -122,99 +74,9 @@ void VoxelSystem::loadVoxelsFile(char* fileName) {
 //              mechanism to tell the system to redraw it's arrays after voxels are done
 //              being added. This is a concept mostly only understood by VoxelSystem.
 // Complaints:  Brad :)
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid)
-{
-    // About the color of the sphere... we're going to make this sphere be a gradient
-    // between two RGB colors. We will do the gradient along the phi spectrum
-    unsigned char r1 = randomColorValue(165);
-    unsigned char g1 = randomColorValue(165);
-    unsigned char b1 = randomColorValue(165);
-    unsigned char r2 = randomColorValue(65);
-    unsigned char g2 = randomColorValue(65);
-    unsigned char b2 = randomColorValue(65);
-    
-    // we don't want them to match!!
-    if (r1==r2 && g1==g2 && b1==b2)
-    {
-        r2=r1/2;
-        g2=g1/2;
-        b2=b1/2;
-    }
+void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid) {
 
-    /**
-    std::cout << "creatSphere COLORS ";
-    std::cout << " r1=" << (int)r1;
-    std::cout << " g1=" << (int)g1;
-    std::cout << " b1=" << (int)b1;
-    std::cout << " r2=" << (int)r2;
-    std::cout << " g2=" << (int)g2;
-    std::cout << " b2=" << (int)b2;
-    std::cout << std::endl;
-    **/
-    
-    // Psuedocode for creating a sphere: 
-    //
-    // for (theta from 0 to 2pi):
-    //     for (phi from 0 to pi):
-	//          x = xc+r*cos(theta)*sin(phi)
-	//          y = yc+r*sin(theta)*sin(phi)
-	//          z = zc+r*cos(phi)
-	
-	int t=0; // total points
-
-    // We want to make sure that as we "sweep" through our angles
-    // we use a delta angle that's small enough to not skip any voxels
-    // we can calculate theta from our desired arc length
-    //	
-	//      lenArc = ndeg/360deg * 2pi*R
-	//      lenArc = theta/2pi * 2pi*R
-	//      lenArc = theta*R
-	//      theta = lenArc/R
-	//      theta = g/r	
-	float angleDelta = (s/r);
-
-	// assume solid for now
-	float ri = 0.0;
-	if (!solid)
-	{
-		ri=r; // just the outer surface
-	}
-	// If you also iterate form the interior of the sphere to the radius, makeing
-	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
-	for (; ri <= r; ri+=s)
-	{
-		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta)
-		{
-			for (float phi=0.0; phi <= M_PI; phi += angleDelta)
-			{
-				t++; // total voxels
-				float x = xc+r*cos(theta)*sin(phi);
-				float y = yc+r*sin(theta)*sin(phi);
-				float z = zc+r*cos(phi);
-				/*
-				std::cout << " r=" << r;
-				std::cout << " theta=" << theta;
-				std::cout << " phi=" << phi;
-				std::cout << " x=" << x;
-				std::cout << " y=" << y;
-				std::cout << " z=" << z;
-				std::cout << " t=" << t;
-				std::cout << std::endl;
-                */
-                
-                // gradient color data
-                float gradient = (phi/M_PI);
-                unsigned char red   = r1+((r2-r1)*gradient);
-                unsigned char green = g1+((g2-g1)*gradient);
-                unsigned char blue  = b1+((b2-b1)*gradient);
-				
-				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-                tree->readCodeColorBufferToTree(voxelData);
-                delete voxelData;
-				
-			}
-		}
-	}
+    tree->createSphere(r,xc,yc,zc,s,solid);
 
     // reset the verticesEndPointer so we're writing to the beginning of the array
     verticesEndPointer = verticesArray;

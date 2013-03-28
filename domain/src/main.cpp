@@ -37,6 +37,7 @@
 #include <arpa/inet.h>
 #endif
 
+
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
 
@@ -60,6 +61,21 @@ unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent 
 
 int main(int argc, const char * argv[])
 {
+	// If user asks to run in "local" mode then we do NOT replace the IP
+	// with the EC2 IP. Otherwise, we will replace the IP like we used to
+	// this allows developers to run a local domain without recompiling the
+	// domain server
+	bool useLocal = cmdOptionExists(argc, argv, "--local");
+	if (useLocal) {
+		printf("NOTE: Running in Local Mode!\n");
+	} else {
+		printf("--------------------------------------------------\n");
+		printf("NOTE: Running in EC2 Mode. \n");
+		printf("If you're a developer testing a local system, you\n");
+		printf("probably want to include --local on command line.\n");
+		printf("--------------------------------------------------\n");
+	}
+
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     ssize_t receivedBytes = 0;
@@ -90,7 +106,11 @@ int main(int argc, const char * argv[])
             // if it matches our local address we're on the same box
             // so hardcode the EC2 public address for now
             if (agentPublicAddress.sin_addr.s_addr == serverLocalAddress) {
-                agentPublicAddress.sin_addr.s_addr = 895283510;
+            	// If we're not running "local" then we do replace the IP
+            	// with the EC2 IP. Otherwise, we use our normal public IP
+            	if (!useLocal) {
+	                agentPublicAddress.sin_addr.s_addr = 895283510; // local IP in this format...
+	            }
             }
             
             if (agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress,

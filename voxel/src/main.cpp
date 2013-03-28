@@ -180,6 +180,14 @@ int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    // Handle Local Domain testing with the --local command line
+    bool wantLocalDomain = cmdOptionExists(argc, argv, "--local");
+    if (wantLocalDomain) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
+
     agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
@@ -201,6 +209,24 @@ int main(int argc, const char * argv[])
     // loop to send to agents requesting data
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        	// XXXBHG: Hacked in support for 'I' insert command
+            if (packetData[0] == 'I') {
+            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+            	printf("got I command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	int atByte = 3;
+            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
+            	while (atByte < receivedBytes) {
+            		unsigned char octets = (unsigned char)*pVoxelData;
+            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+		            randomTree.readCodeColorBufferToTree(pVoxelData);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+            		// skip to next
+            		pVoxelData+=voxelDataSize;
+            		atByte+=voxelDataSize;
+            	}
+            	//printf("about to call pruneTree()\n");
+				//randomTree.pruneTree(randomTree.rootNode); // hack
+            }
             if (packetData[0] == 'H') {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,

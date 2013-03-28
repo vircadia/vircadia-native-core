@@ -11,6 +11,8 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
+#include <iostream> // to load voxels from file
+#include <fstream> // to load voxels from file
 
 const int TREE_SCALE = 10;
 
@@ -89,6 +91,7 @@ VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned cha
 // if node has color & <= 4 children then prune children
 void VoxelTree::pruneTree(VoxelNode* pruneAt) {
 	int childCount = 0;
+    int childMask = 0;
 	
 	// determine how many children we have
 	for (int i = 0; i < 8; i++)	{
@@ -112,6 +115,14 @@ void VoxelTree::pruneTree(VoxelNode* pruneAt) {
 			if (pruneAt->children[i]) {
 				this->pruneTree(pruneAt->children[i]);
 			}
+		}
+	}
+	// repair our child mask
+	// determine how many children we have
+	pruneAt->childMask = 0;
+	for (int i = 0; i < 8; i++) {
+		if (pruneAt->children[i]) {
+			pruneAt->childMask += (1 << (7 - i));
 		}
 	}
 }

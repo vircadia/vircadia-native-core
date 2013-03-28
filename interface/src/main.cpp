@@ -476,9 +476,9 @@ void display(void)
         
         GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };  //{ 0.125, 0.305, 0.5 };  
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  //{ 0.5, 0.42, 0.33 }; 
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
@@ -895,8 +895,16 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-int main(int argc, char** argv)
+int main(int argc, const char * argv[])
 {
+    // Handle Local Domain testing with the --local command line
+    bool wantLocalDomain = cmdOptionExists(argc, argv, "--local");
+    if (wantLocalDomain) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
+
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     
@@ -913,7 +921,7 @@ int main(int argc, char** argv)
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
 #endif
 
-    glutInit(&argc, argv);
+    glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
@@ -941,12 +949,17 @@ int main(int argc, char** argv)
 
     init();
 
+	bool wantColorRandomizer = true;
+	// Check to see if the user passed in a command line option for randomizing colors
+	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
+		wantColorRandomizer = false;
+	}
+	
 	// Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-    char* voxelsFilename = getCmdOption(argc, argv, "-i");
-    if (voxelsFilename)
-    {
-	    voxels.loadVoxelsFile(voxelsFilename);
+    const char* voxelsFilename = getCmdOption(argc, argv, "-i");
+    if (voxelsFilename) {
+	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
     
     // create thread for receipt of data via UDP
