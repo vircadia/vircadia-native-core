@@ -38,8 +38,6 @@ vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
-GLUquadric *sphere = gluNewQuadric();
-
 Head::Head()
 {
     position = glm::vec3(0,0,0);
@@ -79,6 +77,8 @@ Head::Head()
     lastLoudness = 0.0;
     browAudioLift = 0.0;
     noise = 0;
+    
+    sphere = NULL;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
@@ -140,7 +140,7 @@ Head::Head(const Head &otherHead) {
 }
 
 Head::~Head() {
-    if (sphere) {
+    if (sphere != NULL) {
         gluDeleteQuadric(sphere);
     }
 }
