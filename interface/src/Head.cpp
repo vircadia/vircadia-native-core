@@ -135,6 +135,8 @@ Head::Head(const Head &otherHead) {
     browAudioLift = otherHead.browAudioLift;
     noise = otherHead.noise;
     
+    sphere = NULL;
+    
     Hand newHand = Hand(*otherHead.hand);
     hand = &newHand;
 }
