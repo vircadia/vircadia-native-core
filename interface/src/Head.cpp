@@ -456,7 +456,7 @@ void Head::render(int faceToFace, int isMine)
         glPopMatrix();
         
         // Right Pupil
-        if (!sphere) {
+        if (sphere == NULL) {
             sphere = gluNewQuadric();
             gluQuadricTexture(sphere, GL_TRUE);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
