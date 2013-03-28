@@ -47,40 +47,40 @@ int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
     if (levelsToGo > 0) {
-
+        
         int grandChildrenFromNode = 0;
         bool createdChildren = false;
         int colorArray[4] = {};
-
+        
         createdChildren = false;
-
+        
         for (int i = 0; i < 8; i++) {
             if (((i == 0 || i == 1 | i == 4 | i == 5) && (randomBoolean() || levelsToGo != 1)) ) {
                 // create a new VoxelNode to put here
                 currentRootNode->children[i] = new VoxelNode();
-
+                
                 // give this child it's octal code
                 currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-
+                
                 // fill out the lower levels of the tree using that node as the root node
                 grandChildrenFromNode = randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
-
+                
                 if (currentRootNode->children[i]->color[3] == 1) {
                     for (int c = 0; c < 3; c++) {
                         colorArray[c] += currentRootNode->children[i]->color[c];
                     }
-
+                    
                     colorArray[3]++;
                 }
-
+                
                 if (grandChildrenFromNode > 0) {
                     currentRootNode->childMask += (1 << (7 - i));
                 }
-
+                
                 createdChildren = true;
             }
         }
-
+        
         if (!createdChildren) {
             // we didn't create any children for this node, making it a leaf
             // give it a random color
@@ -89,12 +89,12 @@ int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
             // set the color value for this node
             currentRootNode->setColorFromAverageOfChildren(colorArray);
         }
-
+        
         return createdChildren;
     } else {
         // this is a leaf node, just give it a color
         currentRootNode->setRandomColor(MIN_BRIGHTNESS);
-
+        
         return 0;
     }
 }
@@ -125,11 +125,11 @@ int main(int argc, const char * argv[])
 
     unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     unsigned char *voxelPacketEnd;
-
+    
     unsigned char *stopOctal;
     int packetCount;
     int totalBytesSent;
-
+    
     sockaddr agentPublicAddress;
     
     char *packetData = new char[MAX_PACKET_SIZE];
@@ -144,8 +144,41 @@ int main(int argc, const char * argv[])
                     agentList.increaseAgentId();
                 }
                 
-                // parse this agent's position
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
+                
+                VoxelAgentData *agentData = (VoxelAgentData *) agentList.getAgents()[agentList.indexOfMatchingAgent(&agentPublicAddress)].getLinkedData();
+                int newLevel = 10;
+                if (newLevel > agentData->lastSentLevel) {
+                    // the agent has already received a deeper level than this from us
+                    // do nothing
+                    
+                    stopOctal = randomTree.rootNode->octalCode;
+                    packetCount = 0;
+                    totalBytesSent = 0;
+                    randomTree.leavesWrittenToBitstream = 0;
+                    
+                    while (stopOctal != NULL) {
+                        voxelPacketEnd = voxelPacket;
+                        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
+                                                                   stopOctal,
+                                                                   randomTree.rootNode,
+                                                                   newLevel);
+                        
+                        agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
+                                                        voxelPacket,
+                                                        voxelPacketEnd - voxelPacket);
+                        
+                        packetCount++;
+                        totalBytesSent += voxelPacketEnd - voxelPacket;
+                    }
+                    
+                    printf("%d packets sent to client totalling %d bytes\n", packetCount, totalBytesSent);
+                    printf("%d leaves were sent - %f bpv\n",
+                           randomTree.leavesWrittenToBitstream,
+                           (float)totalBytesSent / randomTree.leavesWrittenToBitstream);
+                    
+                    agentData->lastSentLevel = newLevel;
+                }
             }
         }
     }
