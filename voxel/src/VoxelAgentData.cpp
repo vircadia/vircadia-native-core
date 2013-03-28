@@ -11,7 +11,6 @@
 #include <cstdio>
 
 VoxelAgentData::VoxelAgentData() {
-    lastSentLevel = 0;
     rootMarkerNode = new MarkerNode();
 }
 
@@ -20,7 +19,6 @@ VoxelAgentData::~VoxelAgentData() {
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    lastSentLevel = otherAgentData.lastSentLevel;
     memcpy(position, otherAgentData.position, sizeof(float) * 3);
     rootMarkerNode = new MarkerNode(*otherAgentData.rootMarkerNode);
 }
