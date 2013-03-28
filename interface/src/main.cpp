@@ -897,9 +897,13 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    const char* domainIP = getCmdOption(argc, argv, "--domain");
+    if (domainIP) {
+		sprintf(DOMAIN_IP,domainIP);
+	}
+
     // Handle Local Domain testing with the --local command line
-    bool wantLocalDomain = cmdOptionExists(argc, argv, "--local");
-    if (wantLocalDomain) {
+    if (cmdOptionExists(argc, argv, "--local")) {
     	printf("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
