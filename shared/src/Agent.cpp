@@ -34,6 +34,8 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     
     activeSocket = NULL;
     linkedData = NULL;
+    
+    pthread_mutex_init(&deleteMutex, NULL);
 }
 
 Agent::Agent(const Agent &otherAgent) {
@@ -62,11 +64,24 @@ Agent::Agent(const Agent &otherAgent) {
     } else {
         linkedData = NULL;
     }
+    
+    deleteMutex = otherAgent.deleteMutex;
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
     swap(*this, otherAgent);
     return *this;
+}
+
+void Agent::swap(Agent &first, Agent &second) {
+    using std::swap;
+    swap(first.publicSocket, second.publicSocket);
+    swap(first.localSocket, second.localSocket);
+    swap(first.activeSocket, second.activeSocket);
+    swap(first.type, second.type);
+    swap(first.linkedData, second.linkedData);
+    swap(first.agentId, second.agentId);
+    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {
@@ -146,16 +161,6 @@ void Agent::setLinkedData(AgentData *newData) {
 
 bool Agent::operator==(const Agent& otherAgent) {
     return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
-}
-
-void Agent::swap(Agent &first, Agent &second) {
-    using std::swap;
-    swap(first.publicSocket, second.publicSocket);
-    swap(first.localSocket, second.localSocket);
-    swap(first.activeSocket, second.activeSocket);
-    swap(first.type, second.type);
-    swap(first.linkedData, second.linkedData);
-    swap(first.agentId, second.agentId);
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
