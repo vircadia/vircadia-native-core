@@ -38,8 +38,6 @@ vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
-GLUquadric *sphere = gluNewQuadric();
-
 Head::Head()
 {
     position = glm::vec3(0,0,0);
@@ -79,6 +77,8 @@ Head::Head()
     lastLoudness = 0.0;
     browAudioLift = 0.0;
     noise = 0;
+    
+    sphere = NULL;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
@@ -135,12 +135,14 @@ Head::Head(const Head &otherHead) {
     browAudioLift = otherHead.browAudioLift;
     noise = otherHead.noise;
     
+    sphere = NULL;
+    
     Hand newHand = Hand(*otherHead.hand);
     hand = &newHand;
 }
 
 Head::~Head() {
-    if (sphere) {
+    if (sphere != NULL) {
         gluDeleteQuadric(sphere);
     }
 }
@@ -454,7 +456,7 @@ void Head::render(int faceToFace, int isMine)
         glPopMatrix();
         
         // Right Pupil
-        if (!sphere) {
+        if (sphere == NULL) {
             sphere = gluNewQuadric();
             gluQuadricTexture(sphere, GL_TRUE);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
