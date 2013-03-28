@@ -384,6 +384,21 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     }   
 }
 
+void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
+    bool hasChildren;
+    
+    for (int i = 0; i < 8; i++) {
+        if (startNode->children[i] != NULL) {
+            reaverageVoxelColors(startNode->children[i]);
+            hasChildren = true;
+        }
+    }
+    
+    if (hasChildren) {
+        startNode->setColorFromAverageOfChildren();
+    }
+    
+}
 //////////////////////////////////////////////////////////////////////////////////////////
 // Method:      VoxelTree::loadVoxelsFile()
 // Description: Loads HiFidelity encoded Voxels from a binary file. The current file

@@ -30,6 +30,7 @@ public:
     void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
     void printTreeForDebugging(VoxelNode *startNode);
+    void reaverageVoxelColors(VoxelNode *startNode);
     unsigned char * loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                         VoxelNode *currentVoxelNode,
                                         MarkerNode *currentMarkerNode,
