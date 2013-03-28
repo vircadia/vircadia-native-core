@@ -23,7 +23,6 @@ public:
     unsigned char *octalCode;
     unsigned char color[4];
     VoxelNode *children[8];
-    unsigned char childMask;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

@@ -12,8 +12,6 @@
 #include "OctalCode.h"
 
 VoxelNode::VoxelNode() {
-    
-    childMask = 0;
     octalCode = NULL;
     
     // default pointers to child nodes to NULL
