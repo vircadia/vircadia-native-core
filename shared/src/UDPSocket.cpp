@@ -85,21 +85,21 @@ int getLocalAddress() {
     
     freeifaddrs(ifAddrStruct);
 #else 
-	// Get the local hostname
-	char szHostName[255];
-	gethostname(szHostName, 255);
-	struct hostent *host_entry;
-	host_entry=gethostbyname(szHostName);
-	char * szLocalIP;
-	szLocalIP = inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list);
-	localAddress = inet_addr(szLocalIP);
+    // Get the local hostname
+    char szHostName[255];
+    gethostname(szHostName, 255);
+    struct hostent *host_entry;
+    host_entry=gethostbyname(szHostName);
+    char * szLocalIP;
+    szLocalIP = inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list);
+    localAddress = inet_addr(szLocalIP);
 #endif
     
     return localAddress;
 }
 
 UDPSocket::UDPSocket(int listeningPort) {
-	init();
+    init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     

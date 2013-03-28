@@ -9,7 +9,7 @@
 #define _timeval_
 /*
  * Structure returned by gettimeofday(2) system call,
- * and used in other calls. 
+ * and used in other calls.
  */
 struct timeval {
 	long	tv_sec;		/* seconds */

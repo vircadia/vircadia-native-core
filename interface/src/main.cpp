@@ -166,7 +166,7 @@ double elapsedTime;
 
 // Particles
 
-char texture_filename[] = "resources/images/int-texture256-v4.png";
+char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
@@ -562,7 +562,7 @@ void display(void)
             char val[20];
             sprintf(val, "%d,%d", target_x, target_y); 
             drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
-			glPointSize(1.0f);
+            glPointSize(1.0f);
         }
         if (display_head_mouse && !display_head && stats_on)
         {
@@ -572,7 +572,7 @@ void display(void)
             glBegin(GL_POINTS);
             glVertex2f(head_mouse_x, head_mouse_y);
             glEnd();
-			glPointSize(1.0f);
+            glPointSize(1.0f);
         }
         //  Spot bouncing back and forth on bottom of screen
         if (0)
