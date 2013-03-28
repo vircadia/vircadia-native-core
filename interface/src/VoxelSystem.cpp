@@ -230,8 +230,6 @@ void VoxelSystem::parseData(void *data, int size) {
     // output the bits received from the voxel server
     unsigned char *voxelData = (unsigned char *) data + 1;
     
-    printf("Received a packet of %d bytes from VS\n", size);
-    
     // ask the VoxelTree to read the bitstream into the tree
     tree->readBitstreamToTree(voxelData, size - 1);
     
@@ -240,10 +238,15 @@ void VoxelSystem::parseData(void *data, int size) {
     
     // call recursive function to populate in memory arrays
     // it will return the number of voxels added
-    voxelsRendered = treeToArrays(tree->rootNode);
+    int newVoxels = treeToArrays(tree->rootNode);
     
-    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
-    voxelsToRender = (voxelsRendered > 0);
+    if (newVoxels > voxelsRendered) {
+        
+        voxelsRendered = newVoxels;
+        
+        // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
+        voxelsToRender = true;
+    }
 }
 
 int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
@@ -318,7 +321,9 @@ void VoxelSystem::init() {
     // VBO for the indicesArray
     glGenBuffers(1, &vboIndicesID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES_PER_VOXEL * sizeof(GLuint) * MAX_VOXELS_PER_SYSTEM, indicesArray, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 INDICES_PER_VOXEL * sizeof(GLuint) * MAX_VOXELS_PER_SYSTEM,
+                 indicesArray, GL_STATIC_DRAW);
     
     // delete the indices array that is no longer needed
     delete[] indicesArray;
@@ -352,6 +357,7 @@ void VoxelSystem::render() {
    
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    glTranslatef(40, 0, 40);
     glScalef(10, 10, 10);
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
     
