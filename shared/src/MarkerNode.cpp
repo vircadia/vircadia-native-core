@@ -13,7 +13,7 @@ MarkerNode::MarkerNode() {
         children[i] = NULL;
     }
     
-    visitedMask = 0;
+    childrenVisitedMask = 0;
 }
 
 MarkerNode::~MarkerNode() {
@@ -23,7 +23,7 @@ MarkerNode::~MarkerNode() {
 }
 
 MarkerNode::MarkerNode(const MarkerNode &otherMarkerNode) {
-    visitedMask = otherMarkerNode.visitedMask;
+    childrenVisitedMask = otherMarkerNode.childrenVisitedMask;
     
     // recursively copy the children marker nodes
     for (int i = 0; i < 8; i++) {
