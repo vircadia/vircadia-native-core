@@ -36,8 +36,7 @@ public:
                                         float * agentPosition,
                                         float thisNodePosition[3],
                                         unsigned char * octalCode = NULL);
-
-	void pruneTree(VoxelNode* pruneAt);
+    
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid);
 };

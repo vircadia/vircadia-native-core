@@ -47,6 +47,23 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 AgentList agentList('V', VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
 
+void addRandomSphere(VoxelTree * tree) {
+	float r = randFloatInRange(0.05,0.1);
+	float xc = randFloatInRange(r,(1-r));
+	float yc = randFloatInRange(r,(1-r));
+	float zc = randFloatInRange(r,(1-r));
+	float s = 0.001; // size of voxels to make up surface of sphere
+	bool solid = true;
+
+	printf("random sphere\n");
+	printf("radius=%f\n",r);
+	printf("xc=%f\n",xc);
+	printf("yc=%f\n",yc);
+	printf("zc=%f\n",zc);
+
+	tree->createSphere(r,xc,yc,zc,s,solid);
+}
+
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
@@ -193,14 +210,29 @@ int main(int argc, const char * argv[])
     agentList.startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
-
-    // create an octal code buffer and load it with 0 so that the recursive tree fill can give
-    // octal codes to the tree nodes that it is creating
-    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+    
+    // Check to see if the user passed in a command line option for loading a local
+	// Voxel File. If so, load it now.
+    bool wantColorRandomizer = !cmdOptionExists(argc, argv, "--NoColorRandomizer");
+    const char* voxelsFilename = getCmdOption(argc, argv, "-i");
+    
+    if (voxelsFilename) {
+	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
+    
+	if (!cmdOptionExists(argc, argv, "--NoRandomVoxelSheet")) {
+		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
+		// octal codes to the tree nodes that it is creating
+	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	}
+	
+	if (cmdOptionExists(argc, argv, "--AddRandomSpheres")) {
+		addRandomSphere(&randomTree);
+    }
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
-
+    
     sockaddr agentPublicAddress;
     
     char *packetData = new char[MAX_PACKET_SIZE];
@@ -224,8 +256,6 @@ int main(int argc, const char * argv[])
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
             	}
-            	//printf("about to call pruneTree()\n");
-				//randomTree.pruneTree(randomTree.rootNode); // hack
             }
             if (packetData[0] == 'H') {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
