@@ -33,6 +33,16 @@ struct Rotations
 };
 
 /**
+ * Converts an angle from one unit to another.
+ */
+template< class UnitFrom, class UnitTo >
+float angleConvert(float a)
+{
+    return a * (UnitTo::half_pi() / UnitFrom::half_pi());
+}
+
+
+/**
  * Clamps an angle to the range of [-180; 180) degrees.
  */
 template< class Unit >
