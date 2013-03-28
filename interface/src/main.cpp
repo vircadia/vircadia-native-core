@@ -166,7 +166,7 @@ double elapsedTime;
 
 // Particles
 
-char texture_filename[] = "images/int-texture256-v4.png";
+char texture_filename[] = "resources/images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
@@ -562,6 +562,7 @@ void display(void)
             char val[20];
             sprintf(val, "%d,%d", target_x, target_y); 
             drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
+			glPointSize(1.0f);
         }
         if (display_head_mouse && !display_head && stats_on)
         {
@@ -571,6 +572,7 @@ void display(void)
             glBegin(GL_POINTS);
             glVertex2f(head_mouse_x, head_mouse_y);
             glEnd();
+			glPointSize(1.0f);
         }
         //  Spot bouncing back and forth on bottom of screen
         if (0)
@@ -583,7 +585,7 @@ void display(void)
             glEnd(); 
             render_test_spot += render_test_direction*50; 
             if ((render_test_spot > WIDTH-100) || (render_test_spot < 100)) render_test_direction *= -1.0;
-            
+            glPointSize(1.0f);
         }
     
         
@@ -687,8 +689,9 @@ void specialkey(int k, int x, int y)
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
             else myHead.setDriveKeys(ROT_RIGHT, 1);   
         }
-        
+#ifndef _WIN32
         audio.setWalkingState(true);
+#endif
     }    
 }
 
@@ -903,15 +906,15 @@ int main(int argc, char** argv)
     #ifndef _WIN32
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
-
-    // start the thread which checks for silent agents
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
     
 #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
 #endif
+
+    // start the thread which checks for silent agents
+    agentList.startSilentAgentRemovalThread();
+    agentList.startDomainServerCheckInThread();
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

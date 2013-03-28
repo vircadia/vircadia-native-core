@@ -4,8 +4,9 @@
 #ifdef _WIN32
 #define WINSOCK_API_LINKAGE
 #include <winsock2.h>
+#ifndef _timeval_
 #define _timeval_
-
+#endif
 typedef SSIZE_T ssize_t;
 typedef ULONG32 in_addr_t; 
 typedef USHORT in_port_t;

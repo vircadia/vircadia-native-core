@@ -9,6 +9,15 @@ file(GLOB HIFI_SHARED_SRCS src/*.h src/*.cpp)
 add_library(HifiShared ${HIFI_SHARED_SRCS})
 set(HIFI_SHARED_LIBRARY HifiShared)
 
+set(EXTERNAL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
+
+if (WIN32)
+# include headers for external libraries and InterfaceConfig.
+include_directories(
+    ${EXTERNAL_ROOT_DIR}
+)
+endif (WIN32)
+
 # link required libraries on UNIX
 if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)

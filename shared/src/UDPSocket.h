@@ -24,6 +24,7 @@ class UDPSocket {
     public:
         UDPSocket(int listening_port);
         ~UDPSocket();
+		bool init();
         int send(sockaddr *destAddress, const void *data, size_t byteLength);
         int send(char *destAddress, int destPort, const void *data, size_t byteLength);
         bool receive(void *receivedData, ssize_t *receivedBytes);

@@ -72,8 +72,9 @@ int getLocalAddress() {
     
     int family;
     int localAddress = 0;
-    
-    getifaddrs(&ifAddrStruct);
+ 
+#ifndef _WIN32
+    getifaddrs(&ifAddrStruct); 
         
     for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
         family = ifa->ifa_addr->sa_family;
@@ -83,11 +84,22 @@ int getLocalAddress() {
     }
     
     freeifaddrs(ifAddrStruct);
+#else 
+	// Get the local hostname
+	char szHostName[255];
+	gethostname(szHostName, 255);
+	struct hostent *host_entry;
+	host_entry=gethostbyname(szHostName);
+	char * szLocalIP;
+	szLocalIP = inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list);
+	localAddress = inet_addr(szLocalIP);
+#endif
     
     return localAddress;
 }
 
 UDPSocket::UDPSocket(int listeningPort) {
+	init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     
@@ -126,6 +138,38 @@ UDPSocket::~UDPSocket() {
 #endif
 }
 
+bool UDPSocket::init() { 
+#ifdef _WIN32
+WORD wVersionRequested;
+WSADATA wsaData;
+int err;
+ 
+wVersionRequested = MAKEWORD( 2, 2 );
+ 
+err = WSAStartup( wVersionRequested, &wsaData );
+if ( err != 0 ) {
+    /* Tell the user that we could not find a usable */
+    /* WinSock DLL.                                  */
+    return false;
+}
+ 
+/* Confirm that the WinSock DLL supports 2.2.*/
+/* Note that if the DLL supports versions later    */
+/* than 2.2 in addition to 2.2, it will still return */
+/* 2.2 in wVersion since that is the version we      */
+/* requested.                                        */
+ 
+if ( LOBYTE( wsaData.wVersion ) != 2 ||
+        HIBYTE( wsaData.wVersion ) != 2 ) {
+    /* Tell the user that we could not find a usable */
+    /* WinSock DLL.                                  */
+    WSACleanup( );
+    return false; 
+}
+#endif
+return true;
+}
+
 //  Receive data on this socket with retrieving address of sender
 bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
     
@@ -135,8 +179,11 @@ bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
 //  Receive data on this socket with the address of the sender 
 bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes) {
     
+#ifdef _WIN32
+    int addressSize = sizeof(*recvAddress);
+#else
     socklen_t addressSize = sizeof(&recvAddress);
-    
+#endif    
     *receivedBytes = recvfrom(handle, static_cast<char*>(receivedData), MAX_BUFFER_LENGTH_BYTES,
                               0, recvAddress, &addressSize);
     
