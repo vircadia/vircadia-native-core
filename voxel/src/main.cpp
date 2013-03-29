@@ -66,6 +66,13 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
+void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
+	printf("adding scene of spheres...\n");
+	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
+	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/2048),true,true);
+}
+
+
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
@@ -233,6 +240,7 @@ int main(int argc, const char * argv[])
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
 	}
+
 	
 	const char* ADD_SPHERE="--AddSphere";
 	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";
@@ -240,6 +248,11 @@ int main(int argc, const char * argv[])
 		addSphere(&randomTree,false,wantColorRandomizer);
     } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
 		addSphere(&randomTree,true,wantColorRandomizer);
+    }
+
+	const char* ADD_SCENE="--AddScene";
+	if (cmdOptionExists(argc, argv, ADD_SCENE)) {
+		addSphereScene(&randomTree,wantColorRandomizer);
     }
     
     pthread_t sendVoxelThread;
