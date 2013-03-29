@@ -11,15 +11,17 @@
 
 #include "FieldOfView.h"
 
+namespace starfield { class Controller; }
+
 /**
  * Starfield rendering component.
  */
-class Stars 
-{
-        struct body;
-        body* ptr_body;
+class Stars  {
+
+        starfield::Controller* _ptrController;
 
     public:
+
         Stars();
         ~Stars();
 
