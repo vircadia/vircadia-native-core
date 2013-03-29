@@ -58,6 +58,7 @@ find_package(CURL REQUIRED)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
+    ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_BINARY_DIR}/includes
     ${OPENGL_INCLUDE_DIR}
     ${GLUT_INCLUDE_DIR}
