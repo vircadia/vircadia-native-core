@@ -93,7 +93,7 @@ void switchToResourcesIfRequired() {
 //              then you're using the "-i" flag to set the input file name.
 // Usage:       char * inputFilename = getCmdOption(argc, argv, "-i");
 // Complaints:  Brad :)
-const char* getCmdOption(int argc, const char * argv[],char* option) {
+const char* getCmdOption(int argc, const char * argv[],const char* option) {
     // check each arg
     for (int i=0; i < argc; i++) {
         // if the arg matches the desired option
@@ -112,7 +112,7 @@ const char* getCmdOption(int argc, const char * argv[],char* option) {
 // Usage:       bool wantDump   = cmdOptionExists(argc, argv, "-d");
 // Complaints:  Brad :)
 
-bool cmdOptionExists(int argc, const char * argv[],char* option) {
+bool cmdOptionExists(int argc, const char * argv[],const char* option) {
     // check each arg
     for (int i=0; i < argc; i++) {
         // if the arg matches the desired option

@@ -463,7 +463,7 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
 // Description: Creates a sphere of voxels in the local system at a given location/radius
 // To Do:       Move this function someplace better?
 // Complaints:  Brad :)
-void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid) {
+void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
     unsigned char r1 = randomColorValue(165);
@@ -504,18 +504,19 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	// If you also iterate form the interior of the sphere to the radius, makeing
 	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
 	for (; ri <= r; ri+=s) {
+		//printf("radius: %f\n",ri);
 		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta) {
 			for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
 				t++; // total voxels
-				float x = xc+r*cos(theta)*sin(phi);
-				float y = yc+r*sin(theta)*sin(phi);
-				float z = zc+r*cos(phi);
+				float x = xc+ri*cos(theta)*sin(phi);
+				float y = yc+ri*sin(theta)*sin(phi);
+				float z = zc+ri*cos(phi);
                 
                 // gradient color data
                 float gradient = (phi/M_PI);
-                unsigned char red   = r1+((r2-r1)*gradient);
-                unsigned char green = g1+((g2-g1)*gradient);
-                unsigned char blue  = b1+((b2-b1)*gradient);
+                unsigned char red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
+                unsigned char green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
+                unsigned char blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
 				
 				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
                 this->readCodeColorBufferToTree(voxelData);
@@ -523,4 +524,5 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 			}
 		}
 	}
+	this->reaverageVoxelColors(this->rootNode);
 }

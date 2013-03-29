@@ -81,6 +81,8 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
+bool wantColorRandomizer = true; // for addSphere and load file
+
 Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
@@ -625,7 +627,7 @@ void testPointToVoxel()
 	}
 }
 
-void addRandomSphere()
+void addRandomSphere(bool wantColorRandomizer)
 {
 	float r = randFloatInRange(0.05,0.1);
 	float xc = randFloatInRange(r,(1-r));
@@ -640,7 +642,7 @@ void addRandomSphere()
 	printf("yc=%f\n",yc);
 	printf("zc=%f\n",zc);
 
-	voxels.createSphere(r,xc,yc,zc,s,solid);
+	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
 
@@ -758,7 +760,7 @@ void key(unsigned char k, int x, int y)
 	// press the . key to get a new random sphere of voxels added 
     if (k == '.')
     {
-        addRandomSphere();
+        addRandomSphere(wantColorRandomizer);
         //testPointToVoxel();
     }
 }
@@ -899,7 +901,7 @@ int main(int argc, const char * argv[])
 {
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
-		sprintf(DOMAIN_IP,domainIP);
+		strcpy(DOMAIN_IP,domainIP);
 	}
 
     // Handle Local Domain testing with the --local command line
@@ -953,7 +955,6 @@ int main(int argc, const char * argv[])
 
     init();
 
-	bool wantColorRandomizer = true;
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
 		wantColorRandomizer = false;

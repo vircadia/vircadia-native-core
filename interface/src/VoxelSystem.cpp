@@ -74,9 +74,9 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
 //              mechanism to tell the system to redraw it's arrays after voxels are done
 //              being added. This is a concept mostly only understood by VoxelSystem.
 // Complaints:  Brad :)
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid) {
+void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
 
-    tree->createSphere(r,xc,yc,zc,s,solid);
+    tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 
     // reset the verticesEndPointer so we're writing to the beginning of the array
     verticesEndPointer = verticesArray;

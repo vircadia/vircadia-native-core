@@ -34,7 +34,7 @@ public:
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid);
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 private:
     int voxelsRendered;
     VoxelTree *tree;

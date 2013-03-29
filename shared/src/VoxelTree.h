@@ -39,7 +39,7 @@ public:
                                         unsigned char * octalCode = NULL);
     
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid);
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 };
 
 #endif /* defined(__hifi__VoxelTree__) */
