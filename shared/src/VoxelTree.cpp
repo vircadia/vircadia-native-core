@@ -78,6 +78,8 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
 
 VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned char *codeToReach) {
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->octalCode, codeToReach);
+    printf("Adding child at %d for parent with octal code\n", indexOfNewChild);
+    printOctalCode(lastParentNode->octalCode);
     lastParentNode->addChildAtIndex(indexOfNewChild);
     
     if (*lastParentNode->children[indexOfNewChild]->octalCode == *codeToReach) {
@@ -161,8 +163,9 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
-    int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
     VoxelNode *lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer);
+    printf("Octal code for last created node\n");
+    printOctalCode(lastCreatedNode->octalCode);
     
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {
@@ -171,8 +174,12 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     }
     
     // give this node its color
+    int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
     memcpy(lastCreatedNode->color, codeColorBuffer + octalCodeBytes, 3);
     lastCreatedNode->color[3] = 1;
+    
+    printf("Final created octal code has color %d,%d,%d and code\n", lastCreatedNode->color[0], lastCreatedNode->color[1], lastCreatedNode->color[2]);
+    printOctalCode(lastCreatedNode->octalCode);
 }
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
