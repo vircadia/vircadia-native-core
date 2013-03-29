@@ -41,20 +41,20 @@ class Radix2IntegerScanner;
 template< typename UInt >
 class Radix2IntegerScanner< UInt, false >
 {
-        UInt msb;
+        UInt valMsb;
     public:
 
         Radix2IntegerScanner()
-            : msb(~UInt(0) &~ (~UInt(0) >> 1)) { }
+            : valMsb(~UInt(0) &~ (~UInt(0) >> 1)) { }
 
         explicit Radix2IntegerScanner(int bits)
-            : msb(UInt(1u) << (bits - 1))
+            : valMsb(UInt(1u) << (bits - 1))
         { }
 
 
         typedef UInt state_type;
 
-        state_type initial_state()  const   { return msb; }
+        state_type initial_state()  const   { return valMsb; }
         bool advance(state_type& s) const   { return (s >>= 1) != 0u; }
 
         bool bit(UInt const& v, state_type const& s) const { return !!(v & s); }
@@ -63,25 +63,24 @@ class Radix2IntegerScanner< UInt, false >
 template< typename Int >
 class Radix2IntegerScanner< Int, true >
 {
-        typename type_traits::make_unsigned<Int>::type msb;
+        typename type_traits::make_unsigned<Int>::type valMsb;
     public:
 
         Radix2IntegerScanner()
-            : msb(~state_type(0u) &~ (~state_type(0u) >> 1))
+            : valMsb(~state_type(0u) &~ (~state_type(0u) >> 1))
         { }
 
         explicit Radix2IntegerScanner(int bits)
-            : msb(state_type(1u) << (bits - 1))
+            : valMsb(state_type(1u) << (bits - 1))
         { }
 
 
         typedef typename type_traits::make_unsigned<Int>::type state_type;
         
-        state_type initial_state()  const   { return msb; }
+        state_type initial_state()  const   { return valMsb; }
         bool advance(state_type& s) const   { return (s >>= 1) != 0u; }
 
-        bool bit(Int const& v, state_type const& s) const
-        { return !!((v-msb) & s); }
+        bool bit(Int const& v, state_type const& s) const { return !!((v-valMsb) & s); }
 };
 
 #endif /* defined(__hifi__Radix2IntegerScanner__) */

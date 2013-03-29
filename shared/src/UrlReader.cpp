@@ -20,15 +20,15 @@ char const* const UrlReader::error_aborted          = "UrlReader: Processing err
 char const* const UrlReader::error_buffer_overflow  = "UrlReader: Buffer overflow.";
 char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete processing.";
 
-#define hnd_curl static_cast<CURL*>(ptr_impl)
+#define hnd_curl static_cast<CURL*>(_ptrImpl)
 
 UrlReader::UrlReader()
-    : ptr_impl(0l), arr_xtra(0l), str_error(0l)
+    : _ptrImpl(0l), _arrXtra(0l), _strError(0l)
 {
-    arr_xtra = new(std::nothrow) char[max_read_ahead];
-    if (! arr_xtra) { str_error = error_init_failed; return; }
-    ptr_impl =  curl_easy_init();
-    if (! ptr_impl) { str_error = error_init_failed; return; }
+    _arrXtra = new(std::nothrow) char[max_read_ahead];
+    if (! _arrXtra) { _strError = error_init_failed; return; }
+    _ptrImpl =  curl_easy_init();
+    if (! _ptrImpl) { _strError = error_init_failed; return; }
     curl_easy_setopt(hnd_curl, CURLOPT_NOSIGNAL, 1l);
     curl_easy_setopt(hnd_curl, CURLOPT_FAILONERROR, 1l);
     curl_easy_setopt(hnd_curl, CURLOPT_FILETIME, 1l);
@@ -36,7 +36,7 @@ UrlReader::UrlReader()
 
 UrlReader::~UrlReader()
 {
-    delete arr_xtra;
+    delete _arrXtra;
     if (! hnd_curl) return;
     curl_easy_cleanup(hnd_curl);
 }
@@ -51,11 +51,11 @@ bool UrlReader::perform(char const* url, transfer_callback* cb)
 
     if (rc == CURLE_OK)
     {
-        while (val_xtra_size_size > 0 && str_error == success)
+        while (_valXtraSize > 0 && _strError == success)
             cb(0l, 0, 0, this);
     }
-    else if (str_error == success)
-        str_error = curl_easy_strerror(rc);
+    else if (_strError == success)
+        _strError = curl_easy_strerror(rc);
 
     return rc == CURLE_OK;
 }

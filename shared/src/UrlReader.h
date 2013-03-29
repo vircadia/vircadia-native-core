@@ -19,11 +19,11 @@
  */
 class UrlReader
 {
-        void*       ptr_impl;
-        char*       arr_xtra;
-        char const* str_error;
-        void*       ptr_stream;
-        size_t      val_xtra_size_size;
+        void*       _ptrImpl;
+        char*       _arrXtra;
+        char const* _strError;
+        void*       _ptrStream;
+        size_t      _valXtraSize;
 
     public:
 
@@ -151,21 +151,21 @@ class UrlReader
 template< class ContentStream >
 bool UrlReader::readUrl(char const* url, ContentStream& s)
 {
-    if (! ptr_impl) return false;
-    str_error = success;
-    ptr_stream = & s;
-    val_xtra_size_size = ~size_t(0);
+    if (! _ptrImpl) return false;
+    _strError = success;
+    _ptrStream = & s;
+    _valXtraSize = ~size_t(0);
     this->perform(url, & callback_template<ContentStream>);
-    s.end(str_error == success);
-    return str_error == success;
+    s.end(_strError == success);
+    return _strError == success;
 }
 
-inline char const* UrlReader::getError() const { return this->str_error; }
+inline char const* UrlReader::getError() const { return this->_strError; }
 
 inline void UrlReader::setError(char const* static_c_string)
 {
-    if (this->str_error == success)
-        this->str_error = static_c_string;
+    if (this->_strError == success)
+        this->_strError = static_c_string;
 }
 
 template< class Stream >
@@ -175,12 +175,12 @@ size_t UrlReader::callback_template(
     size *= nmemb;
 
     UrlReader* me = static_cast<UrlReader*>(thiz);
-    Stream* stream = static_cast<Stream*>(me->ptr_stream);
+    Stream* stream = static_cast<Stream*>(me->_ptrStream);
 
     // first call?
-    if (me->val_xtra_size_size == ~size_t(0))
+    if (me->_valXtraSize == ~size_t(0))
     {
-        me->val_xtra_size_size = 0u;
+        me->_valXtraSize = 0u;
         // extract meta information and call 'begin'
         char const* url, * type;
         int64_t length, stardate;
@@ -196,15 +196,15 @@ size_t UrlReader::callback_template(
         size_t bytes = size - input_offset;
 
         // data in extra buffer?
-        if (me->val_xtra_size_size > 0)
+        if (me->_valXtraSize > 0)
         {
             // fill extra buffer with beginning of input
-            size_t fill = max_read_ahead - me->val_xtra_size_size;
+            size_t fill = max_read_ahead - me->_valXtraSize;
             if (bytes < fill) fill = bytes;
-            memcpy(me->arr_xtra + me->val_xtra_size_size, buffer, fill);
+            memcpy(me->_arrXtra + me->_valXtraSize, buffer, fill);
             // use extra buffer for next transfer
-            buffer = me->arr_xtra;
-            bytes = me->val_xtra_size_size + fill;
+            buffer = me->_arrXtra;
+            bytes = me->_valXtraSize + fill;
             input_offset += fill;
         }
 
@@ -223,9 +223,9 @@ size_t UrlReader::callback_template(
         size_t unprocessed = bytes - processed;
 
         // can switch to input buffer, now?
-        if (buffer == me->arr_xtra && unprocessed <= input_offset)
+        if (buffer == me->_arrXtra && unprocessed <= input_offset)
         {
-            me->val_xtra_size_size = 0u;
+            me->_valXtraSize = 0u;
             input_offset -= unprocessed;
         }
         else // no? unprocessed data -> extra buffer
@@ -235,10 +235,10 @@ size_t UrlReader::callback_template(
                 me->setError(error_buffer_overflow);
                 return 0;
             }
-            me->val_xtra_size_size = unprocessed;
-            memmove(me->arr_xtra, buffer + processed, unprocessed);
+            me->_valXtraSize = unprocessed;
+            memmove(me->_arrXtra, buffer + processed, unprocessed);
 
-            if (input_offset == size || buffer != me->arr_xtra)
+            if (input_offset == size || buffer != me->_arrXtra)
             {
                 return size;
             }

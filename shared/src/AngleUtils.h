@@ -13,23 +13,23 @@
 
 struct Degrees
 {
-    static float pi()       { return 180.0f; }
-    static float twice_pi() { return 360.0f; }
-    static float half_pi()  { return 90.0f; }
+    static float pi() { return 180.0f; }
+    static float twicePi() { return 360.0f; }
+    static float halfPi()  { return 90.0f; }
 };
 
 struct Radians
 {
-    static float pi()       { return 3.141592653589793f; }
-    static float twice_pi() { return 6.283185307179586f; }
-    static float half_pi()  { return 1.5707963267948966; }
+    static float pi() { return 3.141592653589793f; }
+    static float twicePi() { return 6.283185307179586f; }
+    static float halfPi()  { return 1.5707963267948966; }
 };
 
 struct Rotations
 {
-    static float pi()       { return 0.5f; }
-    static float twice_pi() { return 1.0f; }
-    static float half_pi()  { return 0.25f; }
+    static float pi() { return 0.5f; }
+    static float twicePi() { return 1.0f; }
+    static float halfPi()  { return 0.25f; }
 };
 
 /**
@@ -38,7 +38,7 @@ struct Rotations
 template< class UnitFrom, class UnitTo >
 float angleConvert(float a)
 {
-    return a * (UnitTo::half_pi() / UnitFrom::half_pi());
+    return a * (UnitTo::halfPi() / UnitFrom::halfPi());
 }
 
 
@@ -48,7 +48,7 @@ float angleConvert(float a)
 template< class Unit >
 float angleSignedNormal(float a)
 {
-    float result = remainder(a, Unit::twice_pi());
+    float result = remainder(a, Unit::twicePi());
     if (result == Unit::pi())
         result = -Unit::pi();
     return result;
@@ -75,12 +75,12 @@ template< class Unit >
 void angleHorizontalPolar(float& azimuth, float& altitude)
 {
     altitude = angleSignedNormal<Unit>(altitude);
-    if (altitude > Unit::half_pi())
+    if (altitude > Unit::halfPi())
     {
         altitude = Unit::pi() - altitude;
         azimuth += Unit::pi();
     }
-    else if (altitude < -Unit::half_pi())
+    else if (altitude < -Unit::halfPi())
     {
         altitude = -Unit::pi() - altitude;
         azimuth += Unit::pi();

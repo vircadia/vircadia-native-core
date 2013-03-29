@@ -349,7 +349,7 @@ namespace starfield {
             float slice = _objTiling.getSliceAngle();
             unsigned stride = _objTiling.getAzimuthalTiles();
             float azimuth = (i % stride) * slice;
-            float altitude = (i / stride) * slice - Radians::half_pi();
+            float altitude = (i / stride) * slice - Radians::halfPi();
             float gx =  sin(azimuth);
             float gz = -cos(azimuth);
             float exz = cos(altitude);

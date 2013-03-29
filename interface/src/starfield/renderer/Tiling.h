@@ -27,7 +27,7 @@ namespace starfield {
 
         Tiling(unsigned k) : 
             _valK(k),
-            _valRcpSlice(k / Radians::twice_pi()) {
+            _valRcpSlice(k / Radians::twicePi()) {
             _valBits = ceil(log2(getTileCount()));
         }
 
@@ -60,7 +60,7 @@ namespace starfield {
 
         unsigned discreteAltitude(float a) const {
             return min(getAltitudinalTiles() - 1, 
-                    discreteAngle(a + Radians::half_pi()) );
+                    discreteAngle(a + Radians::halfPi()) );
         }
 
     };

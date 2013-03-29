@@ -36,7 +36,7 @@ struct floodFill_impl : Strategy
     void go(Cursor position)
     {
         Cursor higher, lower, h,l, i;
-        bool higher_found, lower_found, hf, lf;
+        bool higherFound, lowerFound, hf, lf;
         do
         {
             if (! select(position))
@@ -44,18 +44,18 @@ struct floodFill_impl : Strategy
 
             process(position);
 
-            higher = position; higher_found = false;
-            up(higher); yTest(higher, higher_found);
-            lower = position; lower_found = false;
-            down(lower); yTest(lower, lower_found);
+            higher = position; higherFound = false;
+            up(higher); yTest(higher, higherFound);
+            lower = position; lowerFound = false;
+            down(lower); yTest(lower, lowerFound);
 
             i = position, h = higher, l = lower;
-            hf = higher_found, lf = lower_found;
+            hf = higherFound, lf = lowerFound;
             do { right(i), right(h), right(l); yTest(h,hf); yTest(l,lf); }
             while (selectAndProcess(i));
 
             i = position, h = higher, l = lower;
-            hf = higher_found, lf = lower_found;
+            hf = higherFound, lf = lowerFound;
             do { left(i); left(h); left(l); yTest(h,hf); yTest(l,lf); }
             while (selectAndProcess(i));
         }
