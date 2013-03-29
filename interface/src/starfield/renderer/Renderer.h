@@ -70,6 +70,8 @@ namespace starfield {
         GLint*          _arrBatchOffs;
         GLsizei*        _arrBatchCount;
         GLuint          _hndVertexArray;
+        OGlProgram      _objProgram;
+
         Tiling          _objTiling;
 
         unsigned*       _itrOutIndex;
@@ -426,7 +428,32 @@ namespace starfield {
 #endif
         void glAlloc() {
 
+//            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+            GLchar const* const VERTEX_SHADER =
+                    "#version 120\n"
+                    "void main(void) {\n"
+
+                    "   vec3 c = gl_Color.rgb * 1.0125;\n"
+                    "   float s = max(1.0, dot(c, c) * 0.7);\n"
+
+                    "   gl_Position = ftransform();\n"
+                    "   gl_FrontColor= gl_Color;\n"
+                    "   gl_PointSize = s;\n"
+                    "}\n";
+
+            _objProgram.addShader(GL_VERTEX_SHADER, VERTEX_SHADER);
+            GLchar const* const FRAGMENT_SHADER =
+                    "#version 120\n"
+                    "void main(void) {\n"
+                    "   gl_FragColor = gl_Color;\n"
+                    "}\n";
+            _objProgram.addShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+            _objProgram.link();
+
+//            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glGenVertexArrays(1, & _hndVertexArray);
+
         }
 
         void glFree() {
@@ -466,18 +493,24 @@ namespace starfield {
             glPushMatrix();
             glLoadMatrixf(matrix);
 
-            // render
-            glBindVertexArray(_hndVertexArray);
-
+            // set point size and smoothing + shader control
+            glPointSize(1.0f);
             glEnable(GL_POINT_SMOOTH);
             glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-            glPointSize(1.42f);
+            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
+            // select shader and vertex array
+            _objProgram.activate();
+            glBindVertexArray(_hndVertexArray);
+
+            // render
             glMultiDrawArrays(GL_POINTS,
                     _arrBatchOffs, _arrBatchCount, n_ranges);
 
             // restore state
             glBindVertexArray(0); 
+            glUseProgram(0);
+            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glPopMatrix();
             glMatrixMode(GL_MODELVIEW);
             glPopMatrix();
