@@ -29,6 +29,10 @@
 #define STARFIELD_DEBUG_LOD 0 // set to 1 to peek behind the scenes
 #endif
 
+#ifndef STARFIELD_MULTITHREADING
+#define STARFIELD_MULTITHREADING 0
+#endif
+
 //
 // Dependencies:
 //
@@ -45,8 +49,10 @@
 
 #include <stdint.h>
 
+#if STARFIELD_MULTITHREADING
 #include <mutex>
 #include <atomic>
+#endif
 
 #include <new>
 #include <vector>

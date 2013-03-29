@@ -56,11 +56,15 @@ namespace starfield {
 
     class Controller {
 
-        mutex                   _mtxInput;
         InputVertices           _seqInput;
+#if STARFIELD_MULTITHREADING
+        mutex                   _mtxInput;
         atomic<unsigned>        _valTileResolution;
 
         mutex                   _mtxLodState;
+#else
+        unsigned                _valTileResolution;
+#endif
         double                  _valLodFraction;
         double                  _valLodLowWaterMark;
         double                  _valLodHighWaterMark;
@@ -70,11 +74,20 @@ namespace starfield {
         BrightnessLevels        _seqLodBrightness;
         BrightnessLevel         _valLodAllocBrightness;
 
+#if STARFIELD_MULTITHREADING
         atomic<BrightnessLevel> _valLodBrightness;
 
-        atomic<Renderer*>   _ptrRenderer;
+        atomic<Renderer*>       _ptrRenderer;
 
         typedef lock_guard<mutex> lock;
+#else
+        BrightnessLevel         _valLodBrightness;
+
+        Renderer*               _ptrRenderer;
+
+        #define lock
+        #define _(x)
+#endif
 
     public:
 
@@ -106,9 +119,11 @@ namespace starfield {
             {   lock _(_mtxInput);
 
                 _seqInput.swap(vertices);
-
+#if STARFIELD_MULTITHREADING
                 unsigned k = _valTileResolution.load(memory_order_relaxed);
-
+#else
+                unsigned k = _valTileResolution;
+#endif
                 size_t n, nRender;
                 BrightnessLevel bMin, b;
                 double rcpChange;
@@ -174,8 +189,11 @@ namespace starfield {
                     _valLodNalloc = n;
                     _valLodNrender = nRender;
                     _valLodAllocBrightness = bMin;
-
+#if STARFIELD_MULTITHREADING
                     _valLodBrightness.store(b, memory_order_relaxed);
+#else
+                    _valLodBrightness = b;
+#endif
                 }
             }
 
@@ -190,9 +208,12 @@ namespace starfield {
 
 // fprintf(stderr, "Stars.cpp: setResolution(%d)\n", k);
 
-            if (k != _valTileResolution.load(memory_order_relaxed)) {
-
-                lock _(_mtxInput);
+#if STARFIELD_MULTITHREADING
+            if (k != _valTileResolution.load(memory_order_relaxed)) 
+#else
+            if (k != _valTileResolution) 
+#endif
+            {   lock _(_mtxInput);
 
                 unsigned n;
                 BrightnessLevel b, bMin;
@@ -200,7 +221,11 @@ namespace starfield {
                 {   lock _(_mtxLodState);
 
                     n = _valLodNalloc;
+#if STARFIELD_MULTITHREADING
                     b = _valLodBrightness.load(memory_order_relaxed);
+#else
+                    b = _valLodBrightness;
+#endif
                     bMin = _valLodAllocBrightness;
                 }
 
@@ -271,7 +296,11 @@ namespace starfield {
                 // this setting controls the renderer, also keep b as the 
                 // brightness becomes volatile as soon as the mutex is
                 // released, so keep b
+#if STARFIELD_MULTITHREADING
                 _valLodBrightness.store(b, memory_order_relaxed);
+#else
+                _valLodBrightness = b;
+#endif
 
 // fprintf(stderr, "Stars.cpp: "
 //        "fraction = %lf, oaFract = %lf, n = %d, n' = %d, bMin = %d, b = %d\n", 
@@ -317,24 +346,36 @@ namespace starfield {
         void recreateRenderer(size_t n, unsigned k, 
                               BrightnessLevel b, BrightnessLevel bMin) {
 
+#if STARFIELD_MULTITHREADING
             delete _ptrRenderer.exchange(new Renderer(_seqInput, n, k, b, bMin) ); 
+#else
+            delete _ptrRenderer;
+            _ptrRenderer = new Renderer(_seqInput, n, k, b, bMin);
+#endif
         }
 
     public:
 
         void render(float perspective, float angle, mat4 const& orientation) {
 
+#if STARFIELD_MULTITHREADING
             // check out renderer
             Renderer* renderer = _ptrRenderer.exchange(0l);
+#else
+            Renderer* renderer = _ptrRenderer;
+#endif
 
             // have it render
             if (renderer != 0l) {
-
+#if STARFIELD_MULTITHREADING
                 BrightnessLevel b = _valLodBrightness.load(memory_order_relaxed); 
-
+#else
+                BrightnessLevel b = _valLodBrightness; 
+#endif
                 renderer->render(perspective, angle, orientation, b);
             }
 
+#if STARFIELD_MULTITHREADING
             // check in - or dispose if there is a new one
             Renderer* newOne = 0l;
             if (! _ptrRenderer.compare_exchange_strong(newOne, renderer)) {
@@ -342,6 +383,10 @@ namespace starfield {
                 assert(!! newOne);
                 delete renderer;
             }
+#else
+#   undef lock
+#   undef _
+#endif
         }
 
     private:
