@@ -19,8 +19,8 @@
 #endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.commm";
+char DOMAIN_IP[100] = "192.168.0.6";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
@@ -67,28 +67,24 @@ unsigned int AgentList::getSocketListenPort() {
 
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
-        case 'D':
-        {
+        case 'D': {
             // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
-        case 'H':
-        {
+        case 'H': {
             // head data from another agent
             updateAgentWithData(senderAddress, packetData, dataBytes);
             break;
         }
-        case 'P':
-        {
+        case 'P': {
             // ping from another agent
             //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             char reply[] = "R";
             agentSocket.send(senderAddress, reply, 1);  
             break;
         }
-        case 'R':
-        {
+        case 'R': {
             // ping reply from another agent
             //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
@@ -264,11 +260,22 @@ void *removeSilentAgents(void *args) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V') {
+            
+            pthread_mutex_t * agentDeleteMutex = &agent->deleteMutex;
+            
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V'
+                && pthread_mutex_trylock(agentDeleteMutex) == 0) {
+                
                 std::cout << "Killing agent " << &(*agent)  << "\n";
+                
+                // make sure the vector isn't currently adding an agent
                 pthread_mutex_lock(&vectorChangeMutex);
                 agent = agents->erase(agent);
                 pthread_mutex_unlock(&vectorChangeMutex);
+                
+                // release the delete mutex and destroy it
+                pthread_mutex_unlock(agentDeleteMutex);
+                pthread_mutex_destroy(agentDeleteMutex);
             } else {
                 agent++;
             }

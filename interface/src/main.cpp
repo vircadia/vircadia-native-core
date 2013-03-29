@@ -81,6 +81,8 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
+bool wantColorRandomizer = true; // for addSphere and load file
+
 Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
@@ -292,6 +294,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
+    voxels.setViewerHead(&myHead);
     myHead.setRenderYaw(start_yaw);
 
     head_mouse_x = WIDTH/2;
@@ -476,9 +479,9 @@ void display(void)
         
         GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };  //{ 0.125, 0.305, 0.5 };  
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  //{ 0.5, 0.42, 0.33 }; 
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
@@ -627,7 +630,7 @@ void testPointToVoxel()
 	}
 }
 
-void addRandomSphere()
+void addRandomSphere(bool wantColorRandomizer)
 {
 	float r = randFloatInRange(0.05,0.1);
 	float xc = randFloatInRange(r,(1-r));
@@ -642,7 +645,7 @@ void addRandomSphere()
 	printf("yc=%f\n",yc);
 	printf("zc=%f\n",zc);
 
-	voxels.createSphere(r,xc,yc,zc,s,solid);
+	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
 
@@ -761,7 +764,7 @@ void key(unsigned char k, int x, int y)
 	// press the . key to get a new random sphere of voxels added 
     if (k == '.')
     {
-        addRandomSphere();
+        addRandomSphere(wantColorRandomizer);
         //testPointToVoxel();
     }
 }
@@ -898,8 +901,20 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-int main(int argc, char** argv)
+int main(int argc, const char * argv[])
 {
+    const char* domainIP = getCmdOption(argc, argv, "--domain");
+    if (domainIP) {
+		strcpy(DOMAIN_IP,domainIP);
+	}
+
+    // Handle Local Domain testing with the --local command line
+    if (cmdOptionExists(argc, argv, "--local")) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
+
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
     
@@ -916,7 +931,7 @@ int main(int argc, char** argv)
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
 
-    glutInit(&argc, argv);
+    glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
@@ -944,12 +959,16 @@ int main(int argc, char** argv)
 
     init();
 
+	// Check to see if the user passed in a command line option for randomizing colors
+	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
+		wantColorRandomizer = false;
+	}
+	
 	// Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-    char* voxelsFilename = getCmdOption(argc, argv, "-i");
-    if (voxelsFilename)
-    {
-	    voxels.loadVoxelsFile(voxelsFilename);
+    const char* voxelsFilename = getCmdOption(argc, argv, "-i");
+    if (voxelsFilename) {
+	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
     
     // create thread for receipt of data via UDP

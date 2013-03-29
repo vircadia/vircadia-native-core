@@ -130,6 +130,8 @@ class Head : public AgentData {
         int eyeContact;
         eyeContactTargets eyeContactTarget;
     
+        GLUquadric *sphere;
+    
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     

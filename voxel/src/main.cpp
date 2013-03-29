@@ -39,48 +39,72 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-const int MAX_VOXEL_TREE_DEPTH_LEVELS = 10;
+const int VOXEL_SEND_INTERVAL_USECS = 30 * 1000;
+const int PACKETS_PER_CLIENT_PER_INTERVAL = 3;
+
+const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 AgentList agentList('V', VOXEL_LISTEN_PORT);
+VoxelTree randomTree;
 
-int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
+void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
+	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
+	float xc = random ? randFloatInRange(r,(1-r)) : 0.5;
+	float yc = random ? randFloatInRange(r,(1-r)) : 0.5;
+	float zc = random ? randFloatInRange(r,(1-r)) : 0.5;
+	float s = (1.0/256); // size of voxels to make up surface of sphere
+	bool solid = true;
+
+	printf("adding sphere:");
+	if (random)
+		printf(" random");
+	printf("\nradius=%f\n",r);
+	printf("xc=%f\n",xc);
+	printf("yc=%f\n",yc);
+	printf("zc=%f\n",zc);
+
+	tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
+}
+
+void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
+	printf("adding scene of spheres...\n");
+	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
+	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
+}
+
+
+void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
     if (levelsToGo > 0) {
 
-        int grandChildrenFromNode = 0;
         bool createdChildren = false;
         int colorArray[4] = {};
-
+        
         createdChildren = false;
-
+        
         for (int i = 0; i < 8; i++) {
-            if (((i == 0 || i == 1 | i == 4 | i == 5) && (randomBoolean() || levelsToGo != 1)) ) {
+            if (true) {
                 // create a new VoxelNode to put here
                 currentRootNode->children[i] = new VoxelNode();
-
+                
                 // give this child it's octal code
                 currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-
-                // fill out the lower levels of the tree using that node as the root node
-                grandChildrenFromNode = randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
+                
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
 
                 if (currentRootNode->children[i]->color[3] == 1) {
                     for (int c = 0; c < 3; c++) {
                         colorArray[c] += currentRootNode->children[i]->color[c];
                     }
-
+                    
                     colorArray[3]++;
                 }
-
-                if (grandChildrenFromNode > 0) {
-                    currentRootNode->childMask += (1 << (7 - i));
-                }
-
+                
                 createdChildren = true;
             }
         }
-
+        
         if (!createdChildren) {
             // we didn't create any children for this node, making it a leaf
             // give it a random color
@@ -89,14 +113,86 @@ int randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
             // set the color value for this node
             currentRootNode->setColorFromAverageOfChildren(colorArray);
         }
-
-        return createdChildren;
     } else {
         // this is a leaf node, just give it a color
         currentRootNode->setRandomColor(MIN_BRIGHTNESS);
-
-        return 0;
     }
+}
+
+void *distributeVoxelsToListeners(void *args) {
+    
+    timeval lastSendTime;
+    
+    unsigned char *stopOctal;
+    int packetCount;
+    
+    int totalBytesSent;
+    
+    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    unsigned char *voxelPacketEnd;
+    
+    float treeRoot[3] = {0, 0, 0};
+    
+    while (true) {
+        gettimeofday(&lastSendTime, NULL);
+        
+        // enumerate the agents to send 3 packets to each
+        for (int i = 0; i < agentList.getAgents().size(); i++) {
+            
+            Agent *thisAgent = (Agent *)&agentList.getAgents()[i];
+            VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+            
+            // lock this agent's delete mutex so that the delete thread doesn't
+            // kill the agent while we are working with it
+            pthread_mutex_lock(&thisAgent->deleteMutex);
+            
+            stopOctal = NULL;
+            packetCount = 0;
+            totalBytesSent = 0;
+            randomTree.leavesWrittenToBitstream = 0;
+            
+            for (int j = 0; j < PACKETS_PER_CLIENT_PER_INTERVAL; j++) {
+                voxelPacketEnd = voxelPacket;
+                stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
+                                                           randomTree.rootNode,
+                                                           agentData->rootMarkerNode,
+                                                           agentData->position,
+                                                           treeRoot,
+                                                           stopOctal);
+                
+                agentList.getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
+                
+                packetCount++;
+                totalBytesSent += voxelPacketEnd - voxelPacket;
+                
+                if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                    break;
+                }
+            }
+            
+            // for any agent that has a root marker node with 8 visited children
+            // recursively delete its marker nodes so we can revisit
+            if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                delete agentData->rootMarkerNode;
+                agentData->rootMarkerNode = new MarkerNode();
+            }
+            
+            // unlock the delete mutex so the other thread can
+            // kill the agent if it has dissapeared
+            pthread_mutex_unlock(&thisAgent->deleteMutex);
+        }
+        
+        // dynamically sleep until we need to fire off the next set of voxels
+        double usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        } else {
+            std::cout << "Last send took too much time, not sleeping!\n";
+        }
+    }
+    
+    pthread_exit(0);
 }
 
 void attachVoxelAgentDataToAgent(Agent *newAgent) {
@@ -110,26 +206,58 @@ int main(int argc, const char * argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    // Handle Local Domain testing with the --local command line
+    const char* local = "--local";
+    bool wantLocalDomain = cmdOptionExists(argc, argv,local);
+    if (wantLocalDomain) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
+
     agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
+    
+    // Check to see if the user passed in a command line option for loading a local
+	// Voxel File. If so, load it now.
+	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
+	const char* INPUT_FILE="-i";
+    bool wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 
-    // use our method to create a random voxel tree
-    VoxelTree randomTree;
+	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
+    const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
+    
+    if (voxelsFilename) {
+	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
+    
+	const char* ADD_RANDOM_VOXELS="--AddRandomVoxels";
+	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
+		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
+		// octal codes to the tree nodes that it is creating
+	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	}
 
-    // create an octal code buffer and load it with 0 so that the recursive tree fill can give
-    // octal codes to the tree nodes that it is creating
-    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+	
+	const char* ADD_SPHERE="--AddSphere";
+	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";
+	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
+		addSphere(&randomTree,false,wantColorRandomizer);
+    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
+		addSphere(&randomTree,true,wantColorRandomizer);
+    }
 
-    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    unsigned char *voxelPacketEnd;
-
-    unsigned char *stopOctal;
-    int packetCount;
-    int totalBytesSent;
-
+	const char* NO_ADD_SCENE="--NoAddScene";
+	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
+		addSphereScene(&randomTree,wantColorRandomizer);
+    }
+    
+    pthread_t sendVoxelThread;
+    pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
+    
     sockaddr agentPublicAddress;
     
     char *packetData = new char[MAX_PACKET_SIZE];
@@ -138,17 +266,36 @@ int main(int argc, const char * argv[])
     // loop to send to agents requesting data
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        	// XXXBHG: Hacked in support for 'I' insert command
+            if (packetData[0] == 'I') {
+            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+            	printf("got I command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	int atByte = 3;
+            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
+            	while (atByte < receivedBytes) {
+            		unsigned char octets = (unsigned char)*pVoxelData;
+            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+		            randomTree.readCodeColorBufferToTree(pVoxelData);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+            		// skip to next
+            		pVoxelData+=voxelDataSize;
+            		atByte+=voxelDataSize;
+            	}
+            }
             if (packetData[0] == 'H') {
-                
-                if (agentList.addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, packetData[0], agentList.getLastAgentId())) {
+                if (agentList.addOrUpdateAgent(&agentPublicAddress,
+                                               &agentPublicAddress,
+                                               packetData[0],
+                                               agentList.getLastAgentId())) {
                     agentList.increaseAgentId();
                 }
                 
-                // parse this agent's position
                 agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
             }
         }
     }
+    
+    pthread_join(sendVoxelThread, NULL);
 
     return 0;
 }

@@ -16,7 +16,6 @@
 class VoxelAgentData : public AgentData {
 public:
     float position[3];
-    int lastSentLevel;
     MarkerNode *rootMarkerNode;
 
     VoxelAgentData();

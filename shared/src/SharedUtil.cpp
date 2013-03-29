@@ -29,6 +29,10 @@ float randFloat () {
     return (rand() % 10000)/10000.f;
 }
 
+int randIntInRange (int min, int max) {
+    return min + (rand() % (max - min));
+}
+
 float randFloatInRange (float min,float max) {
     return min + ((rand() % 10000)/10000.f * (max-min));
 }
@@ -89,14 +93,11 @@ void switchToResourcesIfRequired() {
 //              then you're using the "-i" flag to set the input file name.
 // Usage:       char * inputFilename = getCmdOption(argc, argv, "-i");
 // Complaints:  Brad :)
-char* getCmdOption(int argc, char** argv,char* option)
-{
+const char* getCmdOption(int argc, const char * argv[],const char* option) {
     // check each arg
-    for (int i=0; i < argc; i++)
-    {
+    for (int i=0; i < argc; i++) {
         // if the arg matches the desired option
-        if (strcmp(option,argv[i])==0 && i+1 < argc)
-        {
+        if (strcmp(option,argv[i])==0 && i+1 < argc) {
             // then return the next option
             return argv[i+1];
         }
@@ -110,14 +111,12 @@ char* getCmdOption(int argc, char** argv,char* option)
 //              included while launching the application. Returns bool true/false
 // Usage:       bool wantDump   = cmdOptionExists(argc, argv, "-d");
 // Complaints:  Brad :)
-bool cmdOptionExists(int argc, char** argv,char* option)
-{
+
+bool cmdOptionExists(int argc, const char * argv[],const char* option) {
     // check each arg
-    for (int i=0; i < argc; i++)
-    {
+    for (int i=0; i < argc; i++) {
         // if the arg matches the desired option
-        if (strcmp(option,argv[i])==0)
-        {
+        if (strcmp(option,argv[i])==0) {
             // then return the next option
             return true;
         }
@@ -172,13 +171,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
     // Now we actually fill out the voxel code
     while (octetsDone < voxelSizeInOctets) {
-
         if (x > xTest) { 
             //<write 1 bit>
             byte = (byte << 1) | true;
             xTest += sTest/2.0; 
-        }
-        else { 
+        } else { 
             //<write 0 bit;>
             byte = (byte << 1) | false;
             xTest -= sTest/2.0; 
@@ -186,8 +183,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7)
-        {
+        if (bitInByteNDX > 7) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
@@ -198,8 +194,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
             //<write 1 bit>
             byte = (byte << 1) | true;
             yTest += sTest/2.0; 
-        }
-        else { 
+        } else { 
             //<write 0 bit;>
             byte = (byte << 1) | false;
             yTest -= sTest/2.0; 
@@ -207,8 +202,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7)
-        {
+        if (bitInByteNDX > 7) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
@@ -219,8 +213,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
             //<write 1 bit>
             byte = (byte << 1) | true;
             zTest += sTest/2.0; 
-        }
-        else { 
+        } else { 
             //<write 0 bit;>
             byte = (byte << 1) | false;
             zTest -= sTest/2.0; 
@@ -228,8 +221,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7)
-        {
+        if (bitInByteNDX > 7) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
@@ -242,11 +234,9 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
     // If we've got here, and we didn't fill the last byte, we need to zero pad this
     // byte before we copy it into our buffer.
-    if (bitInByteNDX > 0 && bitInByteNDX < 7)
-    {
+    if (bitInByteNDX > 0 && bitInByteNDX < 7) {
         // Pad the last byte
-        while (bitInByteNDX <= 7)
-        {
+        while (bitInByteNDX <= 7) {
             byte = (byte << 1) | false;
             bitInByteNDX++;
         }
@@ -263,8 +253,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     return voxelOut;
 }
 
-void printVoxelCode(unsigned char* voxelCode)
-{
+void printVoxelCode(unsigned char* voxelCode) {
     unsigned char octets = voxelCode[0];
 	unsigned int voxelSizeInBits = octets*3;
 	unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
@@ -277,8 +266,7 @@ void printVoxelCode(unsigned char* voxelCode)
     printf("voxelSizeInOctets=%d\n",voxelSizeInOctets);
     printf("voxelBufferSize=%d\n",voxelBufferSize);
     
-    for(int i=0;i<voxelBufferSize;i++)
-    {
+    for(int i=0;i<voxelBufferSize;i++) {
         printf("i=%d ",i);
         outputBits(voxelCode[i]);
     }
