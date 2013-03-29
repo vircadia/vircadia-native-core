@@ -19,8 +19,8 @@
 #endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.commm";
-char DOMAIN_IP[100] = "192.168.0.6";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
