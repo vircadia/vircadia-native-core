@@ -102,6 +102,8 @@ Head myHead;                        //  The rendered head of oneself
 FieldOfView fov;
 
 Stars stars;
+int stars_tiles = 20;
+double stars_lod = 1.0;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0, 
@@ -768,8 +770,15 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 'a') render_yaw_rate -= KEYBOARD_YAW_RATE;
     if (k == 'd') render_yaw_rate += KEYBOARD_YAW_RATE;
+// >> tosh (for testing starfield)
     if (k == 't') render_pitch_rate += KEYBOARD_PITCH_RATE;
     if (k == 'g') render_pitch_rate -= KEYBOARD_PITCH_RATE;
+    if (k == 'u') stars.setResolution(stars_tiles += 1);
+    if (k == 'j') stars.setResolution(stars_tiles = max(stars_tiles-1,1));
+    if (k == 'i') if (stars_lod < 1.0) stars_lod = stars.changeLOD(1.01);
+    if (k == 'k') if (stars_lod > 0.01) stars_lod = stars.changeLOD(0.99);
+    if (k == 'r') stars.readInput("file://stars.txt", 0);
+// << tosh
     if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {

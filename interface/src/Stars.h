@@ -43,14 +43,14 @@ class Stars
          * The parameter determines the number of tiles in azimuthal 
          * and altitudinal directions. 
          *
-         * GPU resources are updated upon change.
+         * GPU resources are updated upon change in which case 'true'
+         * is returned.
          */
-        void setResolution(unsigned k);
+        bool setResolution(unsigned k);
 
         /**
-         * Allows to reduce the number of stars to be rendered given a
-         * fractional LOD value. The least brightest ones are omitted
-         * first.
+         * Allows to alter the number of stars to be rendered given a
+         * factor. The least brightest ones are omitted first.
          *
          * The further parameters determine when GPU resources should
          * be reallocated. Its value is fractional in respect to the
@@ -61,8 +61,10 @@ class Stars
          * are updated. Note that all parameters must be fractions,
          * that is within the range [0;1] and that 'overalloc' must be
          * greater than or equal to 'realloc'.
+         *
+         * The current level of detail is returned as a float in [0;1].
          */
-        void setLOD(float fraction,
+        float changeLOD(float factor,
                 float overalloc = 0.25, float realloc = 0.15);
 
     private:

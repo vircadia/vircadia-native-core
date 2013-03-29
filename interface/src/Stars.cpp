@@ -36,8 +36,6 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/swizzle.hpp>
 
-#define DEG2RAD 0.017453292519f
-
 /* Data pipeline
  * =============
  *
@@ -114,6 +112,8 @@
 namespace
 {
     using std::swap;
+    using std::min;
+    using std::max;
 
     using glm::vec3;
     using glm::vec4;
@@ -136,53 +136,71 @@ namespace
     typedef uint64_t wuint;
 #endif
 
-    class InputVertex
-    {
-            unsigned    val_color;
-            float       val_azimuth;
-            float       val_altitude;
-        public:
+    class InputVertex {
 
-            InputVertex(float azimuth, float altitude, unsigned color)
-            {
-                val_color = color >> 16 & 0xffu | color & 0xff00u |
-                        color << 16 & 0xff0000u | 0xff000000u;
+        unsigned    val_color;
+        float       val_azimuth;
+        float       val_altitude;
+    public:
 
-                angleHorizontalPolar<Degrees>(azimuth, altitude);
+        InputVertex(float azimuth, float altitude, unsigned color) {
 
-                val_azimuth = azimuth;
-                val_altitude = altitude;
-            }
+            val_color = color >> 16 & 0xffu | color & 0xff00u |
+                    color << 16 & 0xff0000u | 0xff000000u;
 
-            float getAzimuth() const { return val_azimuth; }
-            float getAltitude() const { return val_altitude; }
-            unsigned getColor() const { return val_color; } 
+            azimuth = angleConvert<Degrees,Radians>(azimuth);
+            altitude = angleConvert<Degrees,Radians>(altitude);
+
+            angleHorizontalPolar<Radians>(azimuth, altitude);
+
+            val_azimuth = azimuth;
+            val_altitude = altitude;
+        }
+
+        float getAzimuth() const { return val_azimuth; }
+        float getAltitude() const { return val_altitude; }
+        unsigned getColor() const { return val_color; } 
     }; 
 
     typedef std::vector<InputVertex> InputVertices;
 
-    typedef uint16_t BrightnessLevel;
-    typedef std::vector<BrightnessLevel> BrightnessLevels;
+    typedef nuint BrightnessLevel;
+#ifdef SAVE_MEMORY
+    const unsigned BrightnessBits = 16u;
+#else
     const unsigned BrightnessBits = 18u;
+#endif
+    const BrightnessLevel BrightnessMask = (1u << (BrightnessBits)) - 1u;
+    
+    typedef std::vector<BrightnessLevel> BrightnessLevels;
 
-    BrightnessLevel getBrightness(unsigned c)
-    {
+    BrightnessLevel getBrightness(unsigned c) {
+
         unsigned r = (c >> 16) & 0xff;
         unsigned g = (c >> 8) & 0xff;
         unsigned b = c & 0xff;
+#ifdef SAVE_MEMORY
+        return BrightnessLevel((r*r+g*g+b*b) >> 2);
+#else
         return BrightnessLevel(r*r+g*g+b*b);
+#endif
     }
 
-    struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel>
-    {
-        typedef Radix2IntegerScanner<BrightnessLevel> Base;
-        BrightnessSortScanner() : Base(BrightnessBits) { }
-        bool bit(BrightnessLevel const& k, state_type& s)
-        { return ! Base::bit(k,s); }
+    struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel> {
+
+        typedef Radix2IntegerScanner<BrightnessLevel> base;
+
+        BrightnessSortScanner() : base(BrightnessBits) { }
+
+        bool bit(BrightnessLevel const& k, state_type& s) { 
+
+            // bit is inverted to achieve descending order
+            return ! base::bit(k,s);
+        }
     };
 
-    void extractBrightnessLevels(BrightnessLevels& dst, InputVertices const& src)
-    {
+    void extractBrightnessLevels(BrightnessLevels& dst, 
+                                 InputVertices const& src) {
         dst.clear();
         dst.reserve(src.size());
         for (InputVertices::const_iterator i = 
@@ -192,82 +210,82 @@ namespace
         radix2InplaceSort(dst.begin(), dst.end(), BrightnessSortScanner());
     }
 
-    template< class Unit >
-    class HorizontalTiling
-    {
-            unsigned    val_k;
-            float       val_rcp_slice;
-            unsigned    val_bits;
-        public:
+    class Tiling {
 
-            HorizontalTiling(unsigned k)
-                : val_k(k), val_rcp_slice(k / Unit::twice_pi())
-            {
-                val_bits = ceil(log2(getTileCount()));
-            }
+        unsigned    val_k;
+        float       val_rcp_slice;
+        unsigned    val_bits;
 
-            unsigned getAzimuthalTiles() const { return val_k; }
-            unsigned getAltitudinalTiles() const { return val_k / 2 + 1; }
-            unsigned getTileIndexBits() const { return val_bits; }
+    public:
 
-            unsigned getTileCount() const
-            {
-                return getAzimuthalTiles() * getAltitudinalTiles();
-            }
+        Tiling(unsigned k) : 
+            val_k(k),
+            val_rcp_slice(k / Radians::twice_pi()) {
+            val_bits = ceil(log2(getTileCount()) + 2);
+        }
 
-            unsigned getTileIndex(float azimuth, float altitude) const
-            {
-                return discreteAngle(azimuth) % val_k +
-                    discreteAngle(altitude + Unit::half_pi()) * val_k;
-            }
+        unsigned getAzimuthalTiles() const { return val_k; }
+        unsigned getAltitudinalTiles() const { return val_k / 2 + 1; }
+        unsigned getTileIndexBits() const { return val_bits; }
 
-            unsigned getTileIndex(InputVertex const& v) const
-            {
-                return getTileIndex(v.getAzimuth(), v.getAltitude());
-            }
+        unsigned getTileCount() const {
+            return getAzimuthalTiles() * getAltitudinalTiles();
+        }
 
-            float getSliceAngle() const
-            {
-                return 1.0f / val_rcp_slice;
-            }
+        unsigned getTileIndex(float azimuth, float altitude) const {
+            return discreteAzimuth(azimuth) +
+                    val_k * discreteAltitude(altitude);
+        }
 
-            float getReciprocalSliceAngle() const
-            {
-                return val_rcp_slice;
-            }
+        unsigned getTileIndex(InputVertex const& v) const {
+            return getTileIndex(v.getAzimuth(), v.getAltitude());
+        }
 
-        private:
+        float getSliceAngle() const {
+            return 1.0f / val_rcp_slice;
+        }
 
-            unsigned discreteAngle(float unsigned_angle) const
-            {
-                return unsigned(round(unsigned_angle * val_rcp_slice));
-            }
+    private:
+
+        unsigned discreteAngle(float unsigned_angle) const {
+            return unsigned(round(unsigned_angle * val_rcp_slice));
+        }
+
+        unsigned discreteAzimuth(float a) const {
+            return discreteAngle(a) % val_k;
+        }
+
+        unsigned discreteAltitude(float a) const {
+            return min(getAltitudinalTiles() - 1, 
+                    discreteAngle(a + Radians::half_pi()) );
+        }
 
     };
 
     class TileSortScanner : public Radix2IntegerScanner<unsigned>
     {
-            HorizontalTiling<Degrees> obj_tiling;
+            Tiling obj_tiling;
 
             typedef Radix2IntegerScanner<unsigned> Base;
         public:
 
-            explicit TileSortScanner(HorizontalTiling<Degrees> const& tiling)
-                : Base(tiling.getTileIndexBits() + BrightnessBits),
-                obj_tiling(tiling)
-            { }
+            explicit TileSortScanner(Tiling const& tiling) :
 
-            bool bit(InputVertex const& v, state_type const& s) const
-            {
+                Base(tiling.getTileIndexBits() + BrightnessBits),
+                obj_tiling(tiling) {
+            }
+
+            bool bit(InputVertex const& v, state_type const& s) const {
+
                 // inspect (tile_index, brightness) tuples
-                unsigned key = getBrightness(v.getColor());
+                unsigned key = getBrightness(v.getColor()) ^ BrightnessMask;
                 key |= obj_tiling.getTileIndex(v) << BrightnessBits;
                 return Base::bit(key, s); 
             }
     };
 
-    struct Tile
-    {
+    struct Tile {
+
         nuint           offset;
         nuint           count; 
         BrightnessLevel lod;
@@ -279,183 +297,210 @@ namespace
     };
 
 
-    class GpuVertex
-    {
-            unsigned    val_color;
-            float       val_x;
-            float       val_y;
-            float       val_z;
-        public:
+    class GpuVertex {
 
-            GpuVertex() { }
+        unsigned    val_color;
+        float       val_x;
+        float       val_y;
+        float       val_z;
+    public:
 
-            GpuVertex(InputVertex const& in)
-            {
-                val_color = in.getColor();
-                float azimuth = in.getAzimuth() * DEG2RAD;
-                float altitude = in.getAltitude() * DEG2RAD;
+        GpuVertex() { }
 
-                // ground vector in x/z plane...
-                float gx =  sin(azimuth);
-                float gz = -cos(azimuth);
+        GpuVertex(InputVertex const& in) {
 
-                // ...elevated in y direction by altitude
-                float exz = cos(altitude);
-                val_x = gx * exz;
-                val_y = sin(altitude);
-                val_z = gz * exz;
-            }
+            val_color = in.getColor();
+            float azi = in.getAzimuth();
+            float alt = in.getAltitude();
 
-            unsigned getColor() const { return val_color; } 
+            // ground vector in x/z plane...
+            float gx =  sin(azi);
+            float gz = -cos(azi);
+
+            // ...elevated in y direction by altitude
+            float exz = cos(alt);
+            val_x = gx * exz;
+            val_y = sin(alt);
+            val_z = gz * exz;
+        }
+
+        unsigned getColor() const { return val_color; } 
     };
 
-    struct GreaterBrightness
-    {
-        bool operator()(InputVertex const& lhs, InputVertex const& rhs) const
-        {
+    struct GreaterBrightness {
+
+        bool operator()(InputVertex const& lhs, InputVertex const& rhs) const {
             return getBrightness(lhs.getColor())
                     > getBrightness(rhs.getColor());
         }
-        bool operator()(BrightnessLevel lhs, GpuVertex const& rhs) const
-        {
+        bool operator()(BrightnessLevel lhs, GpuVertex const& rhs) const {
             return lhs > getBrightness(rhs.getColor());;
+        }
+        bool operator()(BrightnessLevel lhs, BrightnessLevel rhs) const {
+            return lhs > rhs;
         }
     };
 
     class Loader : UrlReader
     {
-            InputVertices*  ptr_vertices;
-            unsigned        val_limit;
+        InputVertices*  ptr_vertices;
+        unsigned        val_limit;
 
-            unsigned        val_lineno;
-            char const*     str_actual_url;
+        unsigned        val_lineno;
+        char const*     str_actual_url;
 
-            unsigned        val_records_read;
-            BrightnessLevel val_min_brightness;
-        public:
+        unsigned        val_records_read;
+        BrightnessLevel val_min_brightness;
+    public:
 
-            bool loadVertices(
-                    InputVertices& destination, char const* url, unsigned limit)
+        bool loadVertices(
+                InputVertices& destination, char const* url, unsigned limit)
+        {
+            ptr_vertices = & destination;
+            val_limit = limit;
+#ifdef SAVE_MEMORY
+            if (val_limit == 0 || val_limit > 60000u)
+                val_limit = 60000u;
+#endif
+            str_actual_url = url; // in case we fail early
+
+            if (! UrlReader::readUrl(url, *this))
             {
-                ptr_vertices = & destination;
-                val_limit = limit;
-                str_actual_url = url; // in case we fail early
+                fprintf(stderr, "%s:%d: %s\n",
+                        str_actual_url, val_lineno, getError());
 
-                if (! UrlReader::readUrl(url, *this))
-                {
-                    fprintf(stderr, "%s:%d: %s\n",
-                            str_actual_url, val_lineno, getError());
+                return false;
+            }
+ fprintf(stderr, "Stars.cpp: read %d vertices, using %d\n", 
+      val_records_read, ptr_vertices->size());
 
-                    return false;
+            return true;
+        }
+
+    protected:
+
+        friend class UrlReader;
+
+        void begin(char const* url,
+                   char const* type,
+                   int64_t size,
+                   int64_t stardate) {
+
+            val_lineno = 0u;
+            str_actual_url = url; // new value in http redirect
+
+            val_records_read = 0u;
+
+            ptr_vertices->clear();
+            ptr_vertices->reserve(val_limit);
+// fprintf(stderr, "Stars.cpp: loader begin %s\n", url);
+        }
+        
+        size_t transfer(char* input, size_t bytes) {
+
+            size_t consumed = 0u;
+            char const* end = input + bytes;
+            char* line, * next = input;
+
+            for (;;) {
+
+                // advance to next line
+                for (; next != end && isspace(*next); ++next);
+                consumed = next - input;
+                line = next;
+                ++val_lineno;
+                for (; next != end && *next != '\n' && *next != '\r'; ++next);
+                if (next == end)
+                    return consumed;
+                *next++ = '\0';
+
+                // skip comments
+                if (*line == '\\' || *line == '/' || *line == ';')
+                    continue;
+
+                // parse
+                float azi, alt;
+                unsigned c;
+                if (sscanf(line, " %f %f #%x", & azi, & alt, & c) == 3) {
+
+                    if (spaceFor( getBrightness(c) )) {
+
+                        storeVertex(azi, alt, c);
+                    }
+
+                    ++val_records_read;
+
+                } else {
+
+                    fprintf(stderr, "Stars.cpp:%d: Bad input from %s\n", 
+                            val_lineno, str_actual_url);
                 }
-// fprintf(stderr, "Stars.cpp: read %d vertices, using %d\n", 
-//      val_records_read, ptr_vertices->size());
 
+            }
+            return consumed;
+        }
+
+        void end(bool ok)
+        { }
+
+    private:
+
+        bool atLimit() { return val_limit > 0u && val_records_read >= val_limit; }
+
+        bool spaceFor(BrightnessLevel b) {
+
+            if (! atLimit()) {
                 return true;
             }
 
-        protected:
+            // just reached the limit? -> establish a minimum heap and 
+            // remember the brightness at its top
+            if (val_records_read == val_limit) {
 
-            friend class UrlReader;
+// fprintf(stderr, "Stars.cpp: vertex limit reached -> heap mode\n");
 
-            void begin(char const* url,
-                    char const* type, int64_t size, int64_t stardate)
-            {
-                val_lineno = 0u;
-                str_actual_url = url; // new value in http redirect
+                std::make_heap(
+                    ptr_vertices->begin(), ptr_vertices->end(),
+                    GreaterBrightness() );
 
-                val_records_read = 0u;
-
-                ptr_vertices->clear();
-                ptr_vertices->reserve(val_limit);
-// fprintf(stderr, "Stars.cpp: loader begin %s\n", url);
-            }
-            
-            size_t transfer(char* input, size_t bytes)
-            {
-                size_t consumed = 0u;
-                char const* end = input + bytes;
-                char* line, * next = input;
-
-                for (;;)
-                {
-                    // advance to next line
-                    for (; next != end && isspace(*next); ++next);
-                    consumed = next - input;
-                    line = next;
-                    ++val_lineno;
-                    for (; next != end && *next != '\n' && *next != '\r'; ++next);
-                    if (next == end)
-                        return consumed;
-                    *next++ = '\0';
-
-                    // skip comments
-                    if (*line == '\\' || *line == '/' || *line == ';')
-                        continue;
-
-                    // parse
-                    float azi, alt;
-                    unsigned c;
-                    if (sscanf(line, " %f %f #%x", & azi, & alt, & c) == 3)
-                    {
-                        if (val_limit > 0)
-                        {
-                            if (val_records_read++ == val_limit)
-                            {
-// fprintf(stderr, "Stars.cpp: vertex limit reached -> heap mode\n", val_limit);
-
-                                std::make_heap(
-                                    ptr_vertices->begin(), ptr_vertices->end(),
-                                    GreaterBrightness() );
-
-                                val_min_brightness = getBrightness(
-                                        ptr_vertices->begin()->getColor() );
-                            }
-                            if (ptr_vertices->size() > val_limit)
-                            {
-                                if (val_min_brightness >= getBrightness(c))
-                                    continue;
-
-                                std::pop_heap(
-                                    ptr_vertices->begin(), ptr_vertices->end(),
-                                    GreaterBrightness() );
-                                ptr_vertices->pop_back();
-                            }
-                        }
-                        else ++val_records_read;
-
-                        ptr_vertices->push_back( InputVertex(azi, alt, c) );
-
-                        if (val_limit > 0 && val_records_read > val_limit)
-                        {
-                            std::push_heap(
-                                ptr_vertices->begin(), ptr_vertices->end(),
-                                GreaterBrightness() );
-                            ptr_vertices->pop_back();
-
-                            val_min_brightness = getBrightness(
-                                    ptr_vertices->begin()->getColor() );
-                        }
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Stars.cpp:%d: Bad input from %s\n", 
-                                val_lineno, str_actual_url);
-                    }
-
-                }
-                return consumed;
+                val_min_brightness = getBrightness(
+                        ptr_vertices->begin()->getColor() );
             }
 
-            void end(bool ok)
-            { }
+            // not interested? say so
+            if (val_min_brightness >= b)
+                return false;
+
+            // otherwise free up space for the new vertex
+            std::pop_heap(
+                ptr_vertices->begin(), ptr_vertices->end(),
+                GreaterBrightness() );
+            ptr_vertices->pop_back();
+            return true;
+        }
+
+        void storeVertex(float azi, float alt, unsigned color) {
+  
+            ptr_vertices->push_back(InputVertex(azi, alt, color));
+
+            if (atLimit()) {
+
+                std::push_heap(
+                    ptr_vertices->begin(), ptr_vertices->end(),
+                    GreaterBrightness() );
+
+                val_min_brightness = getBrightness(
+                        ptr_vertices->begin()->getColor() );
+            }
+        }
     };
 
     class Renderer;
 
-    class TileCulling
-    {
+    class TileCulling {
+
             Renderer&           ref_renderer;
+            Tile** const        arr_stack;
             Tile**              itr_stack;
             Tile const* const   arr_tile;
             Tile const* const   itr_tiles_end;
@@ -485,9 +530,7 @@ namespace
             inline unsigned yStride() const;
     };
 
-    class Renderer
-    {
-            typedef HorizontalTiling<Radians> Tiling;
+    class Renderer {
 
             GpuVertex*      arr_data;
             Tile*           arr_tile;
@@ -503,21 +546,27 @@ namespace
 
         public:
 
-            Renderer(InputVertices const& src, size_t n,
-                    unsigned k, BrightnessLevel b, BrightnessLevel b_max)
-                : arr_data(0l), arr_tile(0l), obj_tiling(k)
-            {
+            Renderer(InputVertices const& src,
+                     size_t n,
+                     unsigned k,
+                     BrightnessLevel b,
+                     BrightnessLevel bMin) :
+
+                arr_data(0l), 
+                arr_tile(0l), 
+                obj_tiling(k) {
+
                 this->glAlloc();
 
-                HorizontalTiling<Degrees> tiling(k);
-                size_t n_tiles = tiling.getTileCount();
+                Tiling tiling(k);
+                size_t nTiles = tiling.getTileCount();
 
                 arr_data = new GpuVertex[n];
-                arr_tile = new Tile[n_tiles + 1];
-                arr_batch_offs = new GLint[n_tiles]; 
-                arr_batch_count = new GLsizei[n_tiles];
+                arr_tile = new Tile[nTiles + 1];
+                arr_batch_offs = new GLint[nTiles]; 
+                arr_batch_count = new GLsizei[nTiles];
 
-                prepareVertexData(src, n, tiling, b, b_max);
+                prepareVertexData(src, n, tiling, b, bMin);
 
                 this->glUpload(n);
             }
@@ -534,6 +583,10 @@ namespace
 
             void render(FieldOfView const& fov, BrightnessLevel min_bright)
             {
+
+// fprintf(stderr, "
+//      Stars.cpp: rendering at minimal brightness %d\n", min_bright);
+
                 float half_persp = fov.getPerspective() * 0.5f;
                 float aspect = fov.getAspectRatio();
 
@@ -571,9 +624,9 @@ namespace
 
 
 #ifdef SEE_LOD 
- mat4 matrix_debug = glm::translate( 
-        glm::frustum(-hw,hw, -hh,hh, near,10.0f), 
-        vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
+                mat4 matrix_debug = glm::translate( 
+                        glm::frustum(-hw,hw, -hh,hh, near,10.0f), 
+                        vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
 #endif
 
                 matrix = glm::frustum(-hw,hw, -hh,hh, near,10.0f)
@@ -601,11 +654,13 @@ namespace
 
         private: // renderer construction
 
-            void prepareVertexData(InputVertices const& src, size_t n, 
-                    HorizontalTiling<Degrees> const& tiling, BrightnessLevel b, 
-                    BrightnessLevel b_max)
-            {
-                size_t n_tiles = tiling.getTileCount();
+            void prepareVertexData(InputVertices const& src,
+                                   size_t n, // <-- at bMin and brighter
+                                   Tiling const& tiling, 
+                                   BrightnessLevel b, 
+                                   BrightnessLevel bMin) {
+
+                size_t nTiles = tiling.getTileCount();
                 size_t vertex_index = 0u, curr_tile_index = 0u, count_active = 0u;
 
                 arr_tile[0].offset = 0u;
@@ -613,27 +668,28 @@ namespace
                 arr_tile[0].flags = 0u;
 
                 for (InputVertices::const_iterator i = 
-                        src.begin(), e = src.end(); i != e; ++i)
-                {
+                        src.begin(), e = src.end(); i != e; ++i) {
+
                     BrightnessLevel bv = getBrightness(i->getColor());
                     // filter by alloc brightness
-                    if (bv >= b_max)
-                    {
+                    if (bv >= bMin) {
+
                         size_t tile_index = tiling.getTileIndex(*i);
                         assert(tile_index >= curr_tile_index);
 
                         // moved on to another tile? -> flush
-                        if (tile_index != curr_tile_index)
-                        {
+                        if (tile_index != curr_tile_index) {
+
                             Tile* t = arr_tile + curr_tile_index;
                             Tile* t_last = arr_tile + tile_index;
 
                             // set count of active vertices (upcoming lod)
                             t->count = count_active;
                             // generate skipped, empty tiles
-                            for(size_t offs = t_last->offset; ++t != t_last ;)
+                            for(size_t offs = vertex_index; ++t != t_last ;) {
                                 t->offset = offs, t->count = 0u, 
                                 t->lod = b, t->flags = 0u;
+                            }
 
                             // initialize next (as far as possible here)
                             t_last->offset = vertex_index;
@@ -657,17 +713,18 @@ namespace
                 // flush last tile (see above)
                 Tile* t = arr_tile + curr_tile_index; 
                 t->count = count_active;
-                for (Tile* e = arr_tile + n_tiles + 1; ++t != e ;)
+                for (Tile* e = arr_tile + nTiles + 1; ++t != e;) {
                     t->offset = vertex_index, t->count = 0u,
                     t->lod = b, t->flags = 0;
+                }
             }
 
         private: // FOV culling / LOD
 
             friend class TileCulling;
 
-            bool visitTile(Tile* t)
-            {
+            bool visitTile(Tile* t) {
+
                 unsigned index =  t - arr_tile;
                 *itr_out_index++ = index;
 
@@ -680,8 +737,8 @@ namespace
                 return true;
             }
 
-            bool tileVisible(Tile* t, unsigned i)
-            {
+            bool tileVisible(Tile* t, unsigned i) {
+
                 float slice = obj_tiling.getSliceAngle();
                 unsigned stride = obj_tiling.getAzimuthalTiles();
                 float azimuth = (i % stride) * slice;
@@ -700,11 +757,10 @@ namespace
 // fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, near);
 
                 return w > near;
-
             }
 
-            void updateVertexCount(Tile* t, BrightnessLevel min_bright)
-            {
+            void updateVertexCount(Tile* t, BrightnessLevel minBright) {
+
                 // a growing number of stars needs to be rendereed when the 
                 // minimum brightness decreases
                 // perform a binary search in the so found partition for the
@@ -713,39 +769,45 @@ namespace
                 GpuVertex const* start = arr_data + t[0].offset;
                 GpuVertex const* end = arr_data + t[1].offset;
 
+                assert(end >= start);
+
                 if (start == end)
                     return;
 
-                if (t->lod < min_bright)
+                if (t->lod < minBright)
                     end = start + t->count;
                 else
                     start += (t->count > 0 ? t->count - 1 : 0);
 
                 end = std::upper_bound(
-                        start, end, min_bright, GreaterBrightness());
+                        start, end, minBright, GreaterBrightness());
 
-                t->count = end - arr_data + t[0].offset;
-                t->lod = min_bright;
+                assert(end >= arr_data + t[0].offset);
+
+                t->count = end - arr_data - t[0].offset; 
+                t->lod = minBright;
             }
 
-            unsigned prepareBatch(unsigned* indices, unsigned* indices_end) 
-            {
-                unsigned n_ranges = 0u;
+            unsigned prepareBatch(unsigned const* indices, 
+                                  unsigned const* indicesEnd) {
+
+                unsigned nRanges = 0u;
                 GLint* offs = arr_batch_offs;
                 GLsizei* count = arr_batch_count;
+
                 for (unsigned* i = (unsigned*) arr_batch_offs; 
-                        i != indices_end; ++i)
-                {
+                        i != indicesEnd; ++i) {
+
                     Tile* t = arr_tile + *i;
-                    if ((t->flags & Tile::render) > 0u && t->count > 0u)
-                    {
+                    if ((t->flags & Tile::render) > 0u && t->count > 0u) {
+
                         *offs++ = t->offset;
                         *count++ = t->count;
-                        ++n_ranges;
+                        ++nRanges;
                     }
                     t->flags = 0;
                 }
-                return n_ranges;
+                return nRanges;
             }
 
         private: // gl API handling 
@@ -755,18 +817,18 @@ namespace
 #define glGenVertexArrays glGenVertexArraysAPPLE 
 #define glDeleteVertexArrays glDeleteVertexArraysAPPLE 
 #endif
-            void glAlloc()
-            {
+            void glAlloc() {
+
                 glGenVertexArrays(1, & hnd_vao);
             }
 
-            void glFree()
-            {
+            void glFree() {
+
                 glDeleteVertexArrays(1, & hnd_vao);
             }
 
-            void glUpload(GLsizei n)
-            {
+            void glUpload(GLsizei n) {
+
                 GLuint vbo;
                 glGenBuffers(1, & vbo);
 
@@ -779,8 +841,7 @@ namespace
                 glBindVertexArray(0); 
             }
 
-            void glBatch(GLfloat const* matrix, GLsizei n_ranges)
-            {
+            void glBatch(GLfloat const* matrix, GLsizei n_ranges) {
 // fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_ranges);
 
 // for (int i = 0; i < n_ranges; ++i)
@@ -799,7 +860,11 @@ namespace
 
                 // render
                 glBindVertexArray(hnd_vao);
-                glPointSize(1.0);
+
+                glEnable(GL_POINT_SMOOTH);
+                glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+                glPointSize(1.42f);
+
                 glMultiDrawArrays(GL_POINTS,
                         arr_batch_offs, arr_batch_count, n_ranges);
 
@@ -816,206 +881,367 @@ namespace
 #endif
     };
 
-    TileCulling::TileCulling(
-            Renderer& renderer,
-            Tile const* tiles, Tile const* tiles_end, Tile** stack)
+    TileCulling::TileCulling(Renderer& renderer,
+                             Tile const* tiles,
+                             Tile const* tiles_end,
+                             Tile** stack)
+    :
+        ref_renderer(renderer),
+        arr_stack(stack),
+        itr_stack(stack), 
+        arr_tile(tiles), 
+        itr_tiles_end(tiles_end) {
+    }
 
-        :   ref_renderer(renderer),
-            itr_stack(stack), arr_tile(tiles), itr_tiles_end(tiles_end)
-    { }
+    bool TileCulling::select(Tile* t) {
 
-    bool TileCulling::select(Tile* t)
-    {
         if (t < arr_tile || t >= itr_tiles_end ||
-                !! (t->flags & Tile::visited))
-            return false;
+                !! (t->flags & Tile::visited)) {
 
-        if (! (t->flags & Tile::checked))
-        {
+            return false;
+        }
+        if (! (t->flags & Tile::checked)) {
+
             if (ref_renderer.visitTile(t))
                 t->flags |= Tile::render;
         }
         return !! (t->flags & Tile::render);
     }
 
-    void TileCulling::process(Tile* t) { t->flags |= Tile::visited; }
+    void TileCulling::process(Tile* t) { 
 
-    bool TileCulling::deferred(Tile*& cursor)
-    {
-        if (itr_stack != (Tile**) ref_renderer.arr_batch_count)
-        {
+        t->flags |= Tile::visited;
+    }
+
+    bool TileCulling::deferred(Tile*& cursor) {
+
+        if (itr_stack != arr_stack) {
             cursor = *--itr_stack;
             return true;
         }
         return false;
     }
 
-    unsigned TileCulling::yStride() const
-    {
+    unsigned TileCulling::yStride() const {
+
         return ref_renderer.obj_tiling.getAzimuthalTiles();
     }
 }
-    
-struct Stars::body
-{
-    InputVertices   seq_input;
-    unsigned        val_tile_resolution;
 
-    BrightnessLevels    vec_lod_brightness;
+
+ 
+class Stars::body
+{
+    InputVertices       seq_input;
+    unsigned            val_tile_resolution;
+
+    double              val_lod_fraction;
+    double              val_lod_low_water_mark;
+    double              val_lod_high_water_mark;
+    double              val_lod_overalloc;
+    size_t              val_lod_n_alloc;
+    size_t              val_lod_n_render;
+    BrightnessLevels    seq_lod_brightness;
     BrightnessLevel     val_lod_brightness;
-    BrightnessLevel     val_lod_max_brightness;
-    float               val_lod_current_alloc;
-    float               val_lod_low_water_mark;
-    float               val_lod_high_water_mark;
+    BrightnessLevel     val_lod_alloc_brightness;
 
     Renderer*           ptr_renderer;
 
+public:
 
-    body()
-        : val_tile_resolution(20), val_lod_brightness(0),
-            val_lod_max_brightness(0), val_lod_current_alloc(1.0f),
-            val_lod_low_water_mark(0.99f), val_lod_high_water_mark(1.0f),
-            ptr_renderer(0l)
-    { }
+    body() :
+        val_tile_resolution(20), 
+        val_lod_fraction(1.0),
+        val_lod_low_water_mark(0.8),
+        val_lod_high_water_mark(1.0),
+        val_lod_overalloc(1.2),
+        val_lod_n_alloc(0),
+        val_lod_n_render(0),
+        val_lod_brightness(0),
+        val_lod_alloc_brightness(0),
+        ptr_renderer(0l) {
+    }
 
     bool readInput(const char* url, unsigned limit)
     {
-        InputVertices new_vertices;
+        InputVertices vertices;
 
-        if (! Loader().loadVertices(new_vertices, url, limit))
+        if (! Loader().loadVertices(vertices, url, limit))
             return false;
 
-        BrightnessLevels new_brightness;
-        extractBrightnessLevels(new_brightness, new_vertices);
+        BrightnessLevels brightness;
+        extractBrightnessLevels(brightness, vertices);
+
+        assert(brightness.size() == vertices.size());
+
+        for (BrightnessLevels::iterator i = brightness.begin(); i != brightness.end() - 1; ++i)
+        {
+            BrightnessLevels::iterator next = i + 1;
+            if (next != brightness.end())
+                assert( *i >= *next );
+        }
+
+        // input is read, now run the entire data pipeline on the new input
 
         {
             // TODO input mutex
 
-            seq_input.swap(new_vertices);
+            seq_input.swap(vertices);
 
-            try
-            {
-                retile(val_tile_resolution);
+            unsigned k = val_tile_resolution;
+
+            size_t n, nRender;
+            BrightnessLevel bMin, b;
+            double rcpChange;
+
+            // we'll have to build a new LOD state for a new total N,
+            // ideally keeping allocation size and number of vertices
+
+            {   // TODO lod mutex
+
+                size_t newLast = seq_input.size() - 1;
+
+                // reciprocal change N_old/N_new tells us how to scale
+                // the fractions
+                rcpChange = min(1.0, double(vertices.size()) / seq_input.size());
+
+                // initialization? use defaults / previously set values
+                if (rcpChange == 0.0) {
+
+                    rcpChange = 1.0;
+
+                    nRender = size_t(round(val_lod_fraction * newLast));
+                    n = min(newLast, size_t(round(val_lod_overalloc * nRender)));
+
+                } else {
+
+                    // cannot allocate or render more than we have
+                    n = min(newLast, val_lod_n_alloc);
+                    nRender = min(newLast, val_lod_n_render);
+                }
+
+                // determine new minimum brightness levels
+                bMin = brightness[n];
+                b = brightness[nRender];
+
+                // adjust n
+                n = std::upper_bound(
+                        brightness.begin() + n - 1,
+                        brightness.end(), 
+                        bMin, GreaterBrightness() ) - brightness.begin();
             }
-            catch (...)
-            {
-                // rollback transaction
-                new_vertices.swap(seq_input);
+
+            // invoke next stage
+            try {
+
+                this->retile(n, k, b, bMin);
+
+            } catch (...) {
+
+                // rollback transaction and rethrow
+                vertices.swap(seq_input);
                 throw;
             }
 
-            {
-                // TODO lod mutex
-                vec_lod_brightness.swap(new_brightness);
+            // finally publish the new LOD state
+
+            {   // TODO lod mutex
+
+                seq_lod_brightness.swap(brightness);
+                val_lod_fraction *= rcpChange;
+                val_lod_low_water_mark *= rcpChange;
+                val_lod_high_water_mark *= rcpChange;
+                val_lod_overalloc *= rcpChange;
+                val_lod_n_alloc = n;
+                val_lod_n_render = nRender;
+                val_lod_alloc_brightness = bMin;
+                // keep last, it's accessed asynchronously
+                val_lod_brightness = b;
             }
         }
-        new_vertices.clear();
-        new_brightness.clear();
 
         return true;
     }
 
-    void setResolution(unsigned k)
-    {
-        if (k != val_tile_resolution)
-        {
+    bool setResolution(unsigned k) {
+
+        if (k <= 3) {
+            return false;
+        }
+
+// fprintf(stderr, "Stars.cpp: setResolution(%d)\n", k);
+
+        if (k != val_tile_resolution) { // TODO make atomic
+
             // TODO input mutex
-            retile(k);
+
+            unsigned n;
+            BrightnessLevel b, bMin;
+
+            {   // TODO lod mutex
+
+                n = val_lod_n_alloc;
+                b = val_lod_brightness;
+                bMin = val_lod_alloc_brightness;
+            }
+
+            this->retile(n, k, b, bMin);
+
+            return true;
+        } else {
+            return false;
         }
     } 
 
-    void retile(unsigned k)
-    {
-        HorizontalTiling<Degrees> tiling(k);
+
+
+    void retile(size_t n, unsigned k, 
+                BrightnessLevel b, BrightnessLevel bMin) {
+
+        Tiling tiling(k);
         TileSortScanner scanner(tiling);
         radix2InplaceSort(seq_input.begin(), seq_input.end(), scanner);
 
-        recreateRenderer(seq_input.size(), k, 
-                val_lod_brightness, val_lod_max_brightness);
+// fprintf(stderr, 
+//        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
+ 
+        recreateRenderer(n, k, b, bMin);
 
         val_tile_resolution = k;
     }
 
-    void setLOD(float fraction, float overalloc, float realloc)
-    {
-        assert(fraction >= 0.0f && fraction <= 0.0f);
-        assert(overalloc >= realloc && realloc >= 0.0f);
-        assert(overalloc <= 1.0f && realloc <= 1.0f);
+    double changeLOD(double factor, double overalloc, double realloc) {
 
-        float lwm, hwm;
-        float oa_fraction = std::min(fraction * (1.0f + oa_fraction), 1.0f);
-        size_t oa_new_size;
-        BrightnessLevel b, b_max;
-        {
-            // TODO lod mutex
-            // Or... There is just one write access, here - so LOD state
-            // could be CMPed as well...
+        assert(overalloc >= realloc && realloc >= 0.0);
+        assert(overalloc <= 1.0 && realloc <= 1.0);
+
+//  fprintf(stderr, 
+//        "Stars.cpp: changeLOD(%lf, %lf, %lf)\n", factor, overalloc, realloc);
+
+        size_t n, nRender;
+        BrightnessLevel bMin, b;
+        double fraction, lwm, hwm;
+
+        {   // TODO lod mutex
+    
+            // acuire a consistent copy of the current LOD state
+            fraction = val_lod_fraction;
             lwm = val_lod_low_water_mark;
             hwm = val_lod_high_water_mark;
-            size_t last = vec_lod_brightness.size() - 1;
-            val_lod_brightness = b = 
-                    vec_lod_brightness[ size_t(fraction * last) ];
-            oa_new_size = size_t(oa_fraction * last);
-            b_max = vec_lod_brightness[oa_new_size++];
-        }
+            size_t last = seq_lod_brightness.size() - 1;
 
-        // have to reallocate?
-        if (fraction < lwm || fraction > hwm)
-        {
-            // TODO input mutex
-            recreateRenderer(oa_new_size, val_tile_resolution, b, b_max); 
+            // apply factor
+            fraction = max(0.0, min(1.0, fraction * factor));
 
-            {
-                // TODO lod mutex
-                val_lod_current_alloc = fraction;
-                val_lod_low_water_mark = fraction * (1.0f - realloc);
-                val_lod_high_water_mark = fraction * (1.0f + realloc);
-                val_lod_max_brightness = b_max;
+            // calculate allocation size and corresponding brightness
+            // threshold
+            double oaFract = std::min(fraction * (1.0 + overalloc), 1.0);
+            n = size_t(round(oaFract * last));
+            bMin = seq_lod_brightness[n];
+            n = std::upper_bound(
+                    seq_lod_brightness.begin() + n - 1,
+                    seq_lod_brightness.end(), 
+                    bMin, GreaterBrightness() ) - seq_lod_brightness.begin();
+
+            // also determine number of vertices to render and brightness
+            nRender = size_t(round(fraction * last));
+            // Note: nRender does not have to be accurate
+            b = seq_lod_brightness[nRender];
+            // this setting controls the renderer, also keep b as the 
+            // brightness becomes volatile as soon as the mutex is
+            // released
+            val_lod_brightness = b; // TODO make atomic
+
+// fprintf(stderr, "Stars.cpp: "
+//        "fraction = %lf, oaFract = %lf, n = %d, n' = %d, bMin = %d, b = %d\n", 
+//        fraction, oaFract, size_t(round(oaFract * last)), n, bMin, b);
+
+            // will not have to reallocate? set new fraction right away
+            // (it is consistent with the rest of the state in this case)
+            if (fraction >= val_lod_low_water_mark 
+                    && fraction <= val_lod_high_water_mark) {
+
+                val_lod_fraction = fraction;
+                return fraction;
             }
         }
+
+        // reallocate
+        {   // TODO input mutex
+            recreateRenderer(n, val_tile_resolution, b, bMin); 
+
+ fprintf(stderr, "Stars.cpp: LOD reallocation\n"); 
+ 
+            // publish new lod state
+            {   // TODO lod mutex
+                val_lod_n_alloc = n;
+                val_lod_n_render = nRender;
+
+                val_lod_fraction = fraction;
+                val_lod_low_water_mark = fraction * (1.0 - realloc);
+                val_lod_high_water_mark = fraction * (1.0 + realloc);
+                val_lod_overalloc = fraction * (1.0 + overalloc);
+                val_lod_alloc_brightness = bMin;
+            }
+        }
+        return fraction;
     }
 
-    void recreateRenderer(
-            size_t n, unsigned k, BrightnessLevel b, BrightnessLevel b_max)
-    {
-        Renderer* renderer = new Renderer(seq_input, n, k, b, b_max);
+    void recreateRenderer(size_t n, unsigned k, 
+                          BrightnessLevel b, BrightnessLevel bMin) {
+
+        Renderer* renderer = new Renderer(seq_input, n, k, b, bMin);
         swap(ptr_renderer, renderer); // TODO make atomic
         delete renderer; // will be NULL when was in use
     }
 
-    void render(FieldOfView const& fov)
-    {
+    void render(FieldOfView const& fov) {
+
         // check out renderer
         Renderer* renderer = 0l;
         swap(ptr_renderer, renderer); // TODO make atomic
-        float new_brightness = val_lod_brightness; // make atomic
 
         // have it render
-        if (renderer)
-            renderer->render(fov, new_brightness);
+        if (renderer != 0l) {
+
+            BrightnessLevel b = val_lod_brightness; // make atomic
+
+            renderer->render(fov, b);
+        }
 
         // check in - or dispose if there is a new one
         // TODO make atomic (CAS)
-        if (! ptr_renderer)
+        if (! ptr_renderer) {
             ptr_renderer = renderer; 
-        else delete renderer;
+        } else {
+            delete renderer;
+        }
     }
 };
 
-Stars::Stars() : ptr_body(0l) { ptr_body = new body; }
-Stars::~Stars() { delete ptr_body; }
+Stars::Stars() : 
+    ptr_body(0l) { 
+    ptr_body = new body; 
+}
+Stars::~Stars() { 
+    delete ptr_body; 
+}
 
-bool Stars::readInput(const char* url, unsigned limit) 
-{ return ptr_body->readInput(url, limit); }
+bool Stars::readInput(const char* url, unsigned limit) {
+    return ptr_body->readInput(url, limit); 
+}
 
-void Stars::setResolution(unsigned k)
-{ ptr_body->setResolution(k); }
+bool Stars::setResolution(unsigned k) { 
+    return ptr_body->setResolution(k); 
+}
 
-void Stars::setLOD(float fraction, float overalloc, float realloc)
-{ ptr_body->setLOD(fraction, overalloc, realloc); } 
+float Stars::changeLOD(float fraction, float overalloc, float realloc) { 
+    return float(ptr_body->changeLOD(fraction, overalloc, realloc));
+} 
 
-void Stars::render(FieldOfView const& fov) 
-{ ptr_body->render(fov); }
+void Stars::render(FieldOfView const& fov) {
+    ptr_body->render(fov); 
+}
 
 
 
