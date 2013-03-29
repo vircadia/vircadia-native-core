@@ -101,16 +101,6 @@ namespace starfield {
             BrightnessLevels brightness;
             extractBrightnessLevels(brightness, vertices);
 
-            assert(brightness.size() == vertices.size());
-
-            for (BrightnessLevels::iterator i = 
-                    brightness.begin(); i != brightness.end() - 1; ++i)
-            {
-                BrightnessLevels::iterator next = i + 1;
-                if (next != brightness.end())
-                    assert( *i >= *next );
-            }
-
             // input is read, now run the entire data pipeline on the new input
 
             {   lock _(_mtxInput);
