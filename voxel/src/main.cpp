@@ -52,7 +52,7 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float xc = random ? randFloatInRange(r,(1-r)) : 0.5;
 	float yc = random ? randFloatInRange(r,(1-r)) : 0.5;
 	float zc = random ? randFloatInRange(r,(1-r)) : 0.5;
-	float s = (1.0/16); // size of voxels to make up surface of sphere
+	float s = (1.0/256); // size of voxels to make up surface of sphere
 	bool solid = true;
 
 	printf("adding sphere:");
@@ -69,7 +69,7 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
-	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/2048),true,true);
+	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
 }
 
 
@@ -223,9 +223,9 @@ int main(int argc, const char * argv[])
     
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-	const char* NO_COLOR_RANDOMIZER="--NoColorRandomizer";
+	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
 	const char* INPUT_FILE="-i";
-    bool wantColorRandomizer = !cmdOptionExists(argc, argv, NO_COLOR_RANDOMIZER);
+    bool wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 
 	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
@@ -234,8 +234,8 @@ int main(int argc, const char * argv[])
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
     
-	const char* NO_RANDOM_VOXELS="--NoRandomVoxels";
-	if (!cmdOptionExists(argc, argv, NO_RANDOM_VOXELS)) {
+	const char* ADD_RANDOM_VOXELS="--AddRandomVoxels";
+	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
 		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
@@ -250,8 +250,8 @@ int main(int argc, const char * argv[])
 		addSphere(&randomTree,true,wantColorRandomizer);
     }
 
-	const char* ADD_SCENE="--AddScene";
-	if (cmdOptionExists(argc, argv, ADD_SCENE)) {
+	const char* NO_ADD_SCENE="--NoAddScene";
+	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
 		addSphereScene(&randomTree,wantColorRandomizer);
     }
     
