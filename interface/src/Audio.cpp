@@ -174,35 +174,35 @@ int audioCallback (const void *inputBuffer,
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
             currentPacketPtr += sizeof(float);
             
-            if (samplesLeftForWalk == 0) {
-                sampleWalkPointer = walkingSoundArray;
-            }
-            
-            if (data->playWalkSound) {
-                // if this boolean is true and we aren't currently playing the walk sound
-                // set the number of samples left for walk
-                samplesLeftForWalk = walkingSoundSamples;
-                data->playWalkSound = false;
-            }
-            
-            if (samplesLeftForWalk > 0) {
-                // we need to play part of the walking sound
-                // so add it in
-                int affectedSamples = std::min(samplesLeftForWalk, BUFFER_LENGTH_SAMPLES);
-                for (int i = 0; i < affectedSamples; i++) {
-                    inputLeft[i] += *sampleWalkPointer;
-                    inputLeft[i] = std::max(inputLeft[i], std::numeric_limits<int16_t>::min());
-                    inputLeft[i] = std::min(inputLeft[i], std::numeric_limits<int16_t>::max());
-                    
-                    sampleWalkPointer++;
-                    samplesLeftForWalk--;
-                    
-                    if (sampleWalkPointer - walkingSoundArray > walkingSoundSamples) {
-                        sampleWalkPointer = walkingSoundArray;
-                    };
-                }
-            }
-            
+//            if (samplesLeftForWalk == 0) {
+//                sampleWalkPointer = walkingSoundArray;
+//            }
+//            
+//            if (data->playWalkSound) {
+//                // if this boolean is true and we aren't currently playing the walk sound
+//                // set the number of samples left for walk
+//                samplesLeftForWalk = walkingSoundSamples;
+//                data->playWalkSound = false;
+//            }
+//            
+//            if (samplesLeftForWalk > 0) {
+//                // we need to play part of the walking sound
+//                // so add it in
+//                int affectedSamples = std::min(samplesLeftForWalk, BUFFER_LENGTH_SAMPLES);
+//                for (int i = 0; i < affectedSamples; i++) {
+//                    inputLeft[i] += *sampleWalkPointer;
+//                    inputLeft[i] = std::max(inputLeft[i], std::numeric_limits<int16_t>::min());
+//                    inputLeft[i] = std::min(inputLeft[i], std::numeric_limits<int16_t>::max());
+//                    
+//                    sampleWalkPointer++;
+//                    samplesLeftForWalk--;
+//                    
+//                    if (sampleWalkPointer - walkingSoundArray > walkingSoundSamples) {
+//                        sampleWalkPointer = walkingSoundArray;
+//                    };
+//                }
+//            }
+//            
             
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
