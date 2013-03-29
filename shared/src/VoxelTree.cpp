@@ -394,7 +394,7 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     }
     
     if (hasChildren) {
-    	bool childrenCollapsed = startNode->collapseIdenticalLeaves();
+    	bool childrenCollapsed = false;//startNode->collapseIdenticalLeaves();
     	if (!childrenCollapsed) {
 	        startNode->setColorFromAverageOfChildren();
 	    }
@@ -541,4 +541,5 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 		}
 	}
 	this->reaverageVoxelColors(this->rootNode);
+	this->printTreeForDebugging(this->rootNode);
 }
