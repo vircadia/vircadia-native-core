@@ -39,12 +39,16 @@ GLubyte identityIndices[] = { 0,1,2, 0,2,3,
 VoxelSystem::VoxelSystem() {
     voxelsRendered = 0;
     tree = new VoxelTree();
+    pthread_mutex_init(&bufferWriteLock, NULL);
 }
 
 VoxelSystem::~VoxelSystem() {    
-    delete[] verticesArray;
-    delete[] colorsArray;
+    delete[] readVerticesArray;
+    delete[] writeVerticesArray;
+    delete[] readColorsArray;
+    delete[] writeColorsArray;
     delete tree;
+    pthread_mutex_destroy(&bufferWriteLock);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -57,14 +61,8 @@ VoxelSystem::~VoxelSystem() {
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     
     tree->loadVoxelsFile(fileName,wantColorRandomizer);
-
-    // reset the verticesEndPointer so we're writing to the beginning of the array
-    verticesEndPointer = verticesArray;
-    // call recursive function to populate in memory arrays
-    // it will return the number of voxels added
-    voxelsRendered = treeToArrays(tree->rootNode);
-    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
-    voxelsToRender = (voxelsRendered > 0);
+    
+    copyWrittenDataToReadArrays();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -77,14 +75,7 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
 void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
 
     tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
-
-    // reset the verticesEndPointer so we're writing to the beginning of the array
-    verticesEndPointer = verticesArray;
-    // call recursive function to populate in memory arrays
-    // it will return the number of voxels added
-    voxelsRendered = treeToArrays(tree->rootNode);
-    // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
-    voxelsToRender = (voxelsRendered > 0);
+    setupNewVoxelsForDrawing();
 }
 
 
@@ -95,20 +86,32 @@ void VoxelSystem::parseData(void *data, int size) {
     // ask the VoxelTree to read the bitstream into the tree
     tree->readBitstreamToTree(voxelData, size - 1);
     
+    setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::setupNewVoxelsForDrawing() {
     // reset the verticesEndPointer so we're writing to the beginning of the array
-    verticesEndPointer = verticesArray;
-    
+    writeVerticesEndPointer = writeVerticesArray;
     // call recursive function to populate in memory arrays
     // it will return the number of voxels added
-    int newVoxels = treeToArrays(tree->rootNode);
+    voxelsRendered = treeToArrays(tree->rootNode);
     
-    if (newVoxels > voxelsRendered) {
-        
-        voxelsRendered = newVoxels;
-        
-        // set the boolean if there are any voxels to be rendered so we re-fill the VBOs
-        voxelsToRender = true;
-    }
+    // copy the newly written data to the arrays designated for reading
+    copyWrittenDataToReadArrays();
+}
+
+void VoxelSystem::copyWrittenDataToReadArrays() {
+    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
+    pthread_mutex_lock(&bufferWriteLock);
+    // store a pointer to the current end so it doesn't change during copy
+    GLfloat *endOfCurrentVerticesData = writeVerticesEndPointer;
+    // copy the vertices and colors
+    memcpy(readVerticesArray, writeVerticesArray, (endOfCurrentVerticesData - writeVerticesArray) * sizeof(GLfloat));
+    memcpy(readColorsArray, writeColorsArray, (endOfCurrentVerticesData - writeVerticesArray) * sizeof(GLubyte));
+    
+    // set the read vertices end pointer to the correct spot so the GPU knows how much to pull
+    readVerticesEndPointer = readVerticesArray + (endOfCurrentVerticesData - writeVerticesArray);
+    pthread_mutex_unlock(&bufferWriteLock);
 }
 
 int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
@@ -130,10 +133,10 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
         for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-            *verticesEndPointer = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-            *(colorsArray + (verticesEndPointer - verticesArray)) = currentNode->color[j % 3];
+            *writeVerticesEndPointer = startVertex[j % 3] + (identityVertices[j] * voxelScale);
+            *(writeColorsArray + (writeVerticesEndPointer - writeVerticesArray)) = currentNode->color[j % 3];
             
-            verticesEndPointer++;
+            writeVerticesEndPointer++;
         }
         
         voxelsAdded++;
@@ -151,8 +154,10 @@ VoxelSystem* VoxelSystem::clone() const {
 
 void VoxelSystem::init() {
     // prep the data structures for incoming voxel data
-    verticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
-    colorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
     
     GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
     
@@ -195,16 +200,24 @@ void VoxelSystem::render() {
 
     glPushMatrix();
     
-    if (voxelsToRender) {
-        glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, (verticesEndPointer - verticesArray) * sizeof(GLfloat), verticesArray);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, (verticesEndPointer - verticesArray) * sizeof(GLubyte), colorsArray);
-        
-        voxelsToRender = false;
+    
+    if (readVerticesEndPointer != readVerticesArray) {
+        // try to lock on the buffer write
+        // just avoid pulling new data if it is currently being written
+        if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
+            
+            glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLfloat), readVerticesArray);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLubyte), readColorsArray);
+            
+            readVerticesEndPointer = readVerticesArray;
+            
+            pthread_mutex_unlock(&bufferWriteLock);
+        }
     }
 
     // tell OpenGL where to find vertex and color information

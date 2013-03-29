@@ -38,15 +38,20 @@ public:
 private:
     int voxelsRendered;
     VoxelTree *tree;
-    bool voxelsToRender;
-    GLfloat *verticesArray;
-    GLubyte *colorsArray;
-    GLfloat *verticesEndPointer;
+    GLfloat *readVerticesArray;
+    GLubyte *readColorsArray;
+    GLfloat *readVerticesEndPointer;
+    GLfloat *writeVerticesArray;
+    GLubyte *writeColorsArray;
+    GLfloat *writeVerticesEndPointer;
     GLuint vboVerticesID;
     GLuint vboColorsID;
     GLuint vboIndicesID;
+    pthread_mutex_t bufferWriteLock;
     
     int treeToArrays(VoxelNode *currentNode);
+    void setupNewVoxelsForDrawing();
+    void copyWrittenDataToReadArrays();
 };
 
 #endif
