@@ -8,6 +8,12 @@ set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 project(interface)
 
+# ++ C++ version
+if (NOT MSVC)
+    # msvc defaults to latest version
+    add_definitions("-std=c++0x")
+endif (NOT MSVC)
+
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   set(CMAKE_EXE_LINKER_FLAGS "-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices -framework Carbon -framework GLUT")
