@@ -395,7 +395,10 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     }
     
     if (hasChildren) {
-        startNode->setColorFromAverageOfChildren();
+    	bool childrenCollapsed = startNode->collapseIdenticalLeaves();
+    	if (!childrenCollapsed) {
+	        startNode->setColorFromAverageOfChildren();
+	    }
     }
     
 }
@@ -466,21 +469,27 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
 void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
-    unsigned char r1 = randomColorValue(165);
-    unsigned char g1 = randomColorValue(165);
-    unsigned char b1 = randomColorValue(165);
-    unsigned char r2 = randomColorValue(65);
-    unsigned char g2 = randomColorValue(65);
-    unsigned char b2 = randomColorValue(65);
+    unsigned char dominantColor1 = randIntInRange(1,3); //1=r, 2=g, 3=b dominant
+    unsigned char dominantColor2 = randIntInRange(1,3);
     
-    // we don't want them to match!!
-    if (r1==r2 && g1==g2 && b1==b2) {
-        r2=r1/2;
-        g2=g1/2;
-        b2=b1/2;
+    if (dominantColor1==dominantColor2) {
+    	dominantColor2 = dominantColor1+1%3;
     }
+    
+    unsigned char r1 = (dominantColor1==1)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char g1 = (dominantColor1==2)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char b1 = (dominantColor1==3)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char r2 = (dominantColor2==1)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char g2 = (dominantColor2==2)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char b2 = (dominantColor2==3)?randIntInRange(200,255):randIntInRange(40,100);
 
-    // Psuedocode for creating a sphere: 
+	// We initialize our rgb to be either "grey" in case of randomized surface, or
+	// the average of the gradient, in the case of the gradient sphere.
+    unsigned char red   = wantColorRandomizer ? 128 : (r1+r2)/2; // average of the colors
+    unsigned char green = wantColorRandomizer ? 128 : (g1+g2)/2;
+    unsigned char blue  = wantColorRandomizer ? 128 : (b1+b2)/2;
+    
+    // Psuedocode for creating a sphere:
     //
     // for (theta from 0 to 2pi):
     //     for (phi from 0 to pi):
@@ -498,9 +507,11 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 
 	// assume solid for now
 	float ri = 0.0;
+    
 	if (!solid) {
 		ri=r; // just the outer surface
 	}
+	
 	// If you also iterate form the interior of the sphere to the radius, makeing
 	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
 	for (; ri <= r; ri+=s) {
@@ -514,9 +525,14 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
                 
                 // gradient color data
                 float gradient = (phi/M_PI);
-                unsigned char red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
-                unsigned char green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
-                unsigned char blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
+                
+                // only use our actual desired color on the outer edge, otherwise
+                // use our "average" color
+                if (ri==r) {
+					red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
+					green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
+					blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
+				}				
 				
 				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
                 this->readCodeColorBufferToTree(voxelData);

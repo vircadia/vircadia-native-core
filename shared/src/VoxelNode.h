@@ -19,6 +19,7 @@ public:
     void addChildAtIndex(int childIndex);
     void setColorFromAverageOfChildren(int * colorArray = NULL);
     void setRandomColor(int minimumBrightness);
+    bool collapseIdenticalLeaves();
     
     unsigned char *octalCode;
     unsigned char color[4];
