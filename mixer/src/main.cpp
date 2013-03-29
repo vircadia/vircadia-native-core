@@ -185,15 +185,13 @@ void *sendBuffer(void *args)
                             // pull the earlier sample for the delayed channel
                             
                             int earlierSample = delaySamplePointer[s] *
-                                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
-                                                otherAgentBuffer->getAttenuationRatio();
+                                                distanceCoeffs[lowAgentIndex][highAgentIndex];
                             
                             plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                         }
                         
                         int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
-                                                 distanceCoeffs[lowAgentIndex][highAgentIndex]) *
-                                                 otherAgentBuffer->getAttenuationRatio();
+                                                 distanceCoeffs[lowAgentIndex][highAgentIndex]);
                         plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
