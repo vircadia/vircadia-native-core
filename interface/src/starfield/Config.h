@@ -44,6 +44,9 @@
 
 #include <stdint.h>
 
+#include <mutex>
+#include <atomic>
+
 #include <new>
 #include <vector>
 #include <memory>

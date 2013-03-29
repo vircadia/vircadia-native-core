@@ -56,20 +56,25 @@ namespace starfield {
 
     class Controller {
 
-        InputVertices       _seqInput;
-        unsigned            _valTileResolution;
+        mutex                   _mtxInput;
+        InputVertices           _seqInput;
+        atomic<unsigned>        _valTileResolution;
 
-        double              _valLodFraction;
-        double              _valLodLowWaterMark;
-        double              _valLodHighWaterMark;
-        double              _valLodOveralloc;
-        size_t              _valLodNalloc;
-        size_t              _valLodNrender;
-        BrightnessLevels    _seqLodBrightness;
-        BrightnessLevel     _valLodBrightness;
-        BrightnessLevel     _valLodAllocBrightness;
+        mutex                   _mtxLodState;
+        double                  _valLodFraction;
+        double                  _valLodLowWaterMark;
+        double                  _valLodHighWaterMark;
+        double                  _valLodOveralloc;
+        size_t                  _valLodNalloc;
+        size_t                  _valLodNrender;
+        BrightnessLevels        _seqLodBrightness;
+        BrightnessLevel         _valLodAllocBrightness;
 
-        Renderer*           _ptrRenderer;
+        atomic<BrightnessLevel> _valLodBrightness;
+
+        atomic<Renderer*>   _ptrRenderer;
+
+        typedef lock_guard<mutex> lock;
 
     public:
 
@@ -108,12 +113,11 @@ namespace starfield {
 
             // input is read, now run the entire data pipeline on the new input
 
-            {
-                // TODO input mutex
+            {   lock _(_mtxInput);
 
                 _seqInput.swap(vertices);
 
-                unsigned k = _valTileResolution;
+                unsigned k = _valTileResolution.load(memory_order_relaxed);
 
                 size_t n, nRender;
                 BrightnessLevel bMin, b;
@@ -122,7 +126,7 @@ namespace starfield {
                 // we'll have to build a new LOD state for a new total N,
                 // ideally keeping allocation size and number of vertices
 
-                {   // TODO lod mutex
+                {   lock _(_mtxLodState); 
 
                     size_t newLast = _seqInput.size() - 1;
 
@@ -170,7 +174,7 @@ namespace starfield {
 
                 // finally publish the new LOD state
 
-                {   // TODO lod mutex
+                {   lock _(_mtxLodState);
 
                     _seqLodBrightness.swap(brightness);
                     _valLodFraction *= rcpChange;
@@ -180,8 +184,8 @@ namespace starfield {
                     _valLodNalloc = n;
                     _valLodNrender = nRender;
                     _valLodAllocBrightness = bMin;
-                    // keep last, it's accessed asynchronously
-                    _valLodBrightness = b;
+
+                    _valLodBrightness.store(b, memory_order_relaxed);
                 }
             }
 
@@ -196,17 +200,17 @@ namespace starfield {
 
 // fprintf(stderr, "Stars.cpp: setResolution(%d)\n", k);
 
-            if (k != _valTileResolution) { // TODO make atomic
+            if (k != _valTileResolution.load(memory_order_relaxed)) {
 
-                // TODO input mutex
+                lock _(_mtxInput);
 
                 unsigned n;
                 BrightnessLevel b, bMin;
 
-                {   // TODO lod mutex
+                {   lock _(_mtxLodState);
 
                     n = _valLodNalloc;
-                    b = _valLodBrightness;
+                    b = _valLodBrightness.load(memory_order_relaxed);
                     bMin = _valLodAllocBrightness;
                 }
 
@@ -249,7 +253,7 @@ namespace starfield {
             BrightnessLevel bMin, b;
             double fraction, lwm, hwm;
 
-            {   // TODO lod mutex
+            {   lock _(_mtxLodState);
         
                 // acuire a consistent copy of the current LOD state
                 fraction = _valLodFraction;
@@ -276,8 +280,8 @@ namespace starfield {
                 b = _seqLodBrightness[nRender];
                 // this setting controls the renderer, also keep b as the 
                 // brightness becomes volatile as soon as the mutex is
-                // released
-                _valLodBrightness = b; // TODO make atomic
+                // released, so keep b
+                _valLodBrightness.store(b, memory_order_relaxed);
 
 // fprintf(stderr, "Stars.cpp: "
 //        "fraction = %lf, oaFract = %lf, n = %d, n' = %d, bMin = %d, b = %d\n", 
@@ -294,13 +298,17 @@ namespace starfield {
             }
 
             // reallocate
-            {   // TODO input mutex
+
+            {   lock _(_mtxInput);
+
                 recreateRenderer(n, _valTileResolution, b, bMin); 
 
 // fprintf(stderr, "Stars.cpp: LOD reallocation\n"); 
      
                 // publish new lod state
-                {   // TODO lod mutex
+
+                {   lock _(_mtxLodState);
+
                     _valLodNalloc = n;
                     _valLodNrender = nRender;
 
@@ -319,9 +327,7 @@ namespace starfield {
         void recreateRenderer(size_t n, unsigned k, 
                               BrightnessLevel b, BrightnessLevel bMin) {
 
-            Renderer* renderer = new Renderer(_seqInput, n, k, b, bMin);
-            swap(_ptrRenderer, renderer); // TODO make atomic
-            delete renderer; // will be NULL when was in use
+            delete _ptrRenderer.exchange(new Renderer(_seqInput, n, k, b, bMin) ); 
         }
 
     public:
@@ -329,22 +335,21 @@ namespace starfield {
         void render(float perspective, float angle, mat4 const& orientation) {
 
             // check out renderer
-            Renderer* renderer = 0l;
-            swap(_ptrRenderer, renderer); // TODO make atomic
+            Renderer* renderer = _ptrRenderer.exchange(0l);
 
             // have it render
             if (renderer != 0l) {
 
-                BrightnessLevel b = _valLodBrightness; // make atomic
+                BrightnessLevel b = _valLodBrightness.load(memory_order_relaxed); 
 
                 renderer->render(perspective, angle, orientation, b);
             }
 
             // check in - or dispose if there is a new one
-            // TODO make atomic (CAS)
-            if (! _ptrRenderer) {
-                _ptrRenderer = renderer; 
-            } else {
+            Renderer* newOne = 0l;
+            if (! _ptrRenderer.compare_exchange_strong(newOne, renderer)) {
+
+                assert(!! newOne);
                 delete renderer;
             }
         }
