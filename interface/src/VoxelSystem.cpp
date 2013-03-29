@@ -107,7 +107,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    
+    pthread_mutex_lock(&bufferWriteLock);
     // store a pointer to the current end so it doesn't change during copy
     GLfloat *endOfCurrentVerticesData = writeVerticesEndPointer;
     // copy the vertices and colors
@@ -116,6 +116,7 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
     
     // set the read vertices end pointer to the correct spot so the GPU knows how much to pull
     readVerticesEndPointer = readVerticesArray + (endOfCurrentVerticesData - writeVerticesArray);
+    pthread_mutex_unlock(&bufferWriteLock);
 }
 
 int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
@@ -232,16 +233,22 @@ void VoxelSystem::render() {
     
     
     if (readVerticesEndPointer != readVerticesArray) {
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLfloat), readVerticesArray);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLubyte), readColorsArray);
-        
-        readVerticesEndPointer = readVerticesArray;
+        // try to lock on the buffer write
+        // just avoid pulling new data if it is currently being written
+        if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
+            
+            glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
+            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLfloat), readVerticesArray);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
+            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLubyte), readColorsArray);
+            
+            readVerticesEndPointer = readVerticesArray;
+            
+            pthread_mutex_unlock(&bufferWriteLock);
+        }
     }
 
     // tell OpenGL where to find vertex and color information
