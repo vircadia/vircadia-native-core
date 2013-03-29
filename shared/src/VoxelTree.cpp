@@ -528,7 +528,7 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
                 // only use our actual desired color on the outer edge, otherwise
                 // use our "average" color
                 if (ri+(s*2.0)>=r) {
-					//printf("painting candy shell radius: ri=%f r=%f\n",ri,r);
+					printf("painting candy shell radius: ri=%f r=%f\n",ri,r);
 					red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
 					green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
 					blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
