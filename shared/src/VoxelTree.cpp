@@ -19,22 +19,23 @@ const int TREE_SCALE = 10;
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {
         case 1:
-            return 100;
-            break;
         case 2:
-            return 50;
-            break;
         case 3:
-            return 25;
-            break;
+            return 100;
         case 4:
-            return 12;
+            return 75;
             break;
         case 5:
-            return 6;
+            return 50;
+            break;
+        case 6:
+            return 25;
+            break;
+        case 7:
+            return 12;
             break;
         default:
-            return 3;
+            return 6;
             break;
     }
 }
