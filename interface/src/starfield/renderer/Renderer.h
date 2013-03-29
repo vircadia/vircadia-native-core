@@ -428,8 +428,6 @@ namespace starfield {
 #endif
         void glAlloc() {
 
-//            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
             GLchar const* const VERTEX_SHADER =
                     "#version 120\n"
                     "void main(void) {\n"
@@ -451,9 +449,7 @@ namespace starfield {
             _objProgram.addShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
             _objProgram.link();
 
-//            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glGenVertexArrays(1, & _hndVertexArray);
-
         }
 
         void glFree() {
