@@ -219,6 +219,8 @@ int main(int argc, const char * argv[])
 	const char* NO_COLOR_RANDOMIZER="--NoColorRandomizer";
 	const char* INPUT_FILE="-i";
     bool wantColorRandomizer = !cmdOptionExists(argc, argv, NO_COLOR_RANDOMIZER);
+
+	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     
     if (voxelsFilename) {
@@ -235,13 +237,10 @@ int main(int argc, const char * argv[])
 	const char* ADD_SPHERE="--AddSphere";
 	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";
 	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
-printf("adding sphere\n");
 		addSphere(&randomTree,false,wantColorRandomizer);
     } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
-printf("adding random sphere\n");
 		addSphere(&randomTree,true,wantColorRandomizer);
     }
-printf("past adding spheres...\n");
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
