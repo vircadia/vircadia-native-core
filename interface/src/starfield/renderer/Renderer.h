@@ -149,7 +149,7 @@ namespace starfield {
             vec3 ahead = swizzle<X,Y,Z>( column(matrix, 2) );
 
             float azimuth = atan2(ahead.x,-ahead.z) + Radians::pi();
-            float altitude = atan2(-ahead.y, hypot(ahead.x, ahead.z));
+            float altitude = atan2(-ahead.y, hypotf(ahead.x, ahead.z));
             angleHorizontalPolar<Radians>(azimuth, altitude);
 #if STARFIELD_HEMISPHERE_ONLY
             altitude = std::max(0.0f, altitude);
