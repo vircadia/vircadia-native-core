@@ -513,8 +513,8 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	
 	// If you also iterate form the interior of the sphere to the radius, makeing
 	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
-	for (; ri <= r; ri+=s) {
-		//printf("radius: %f\n",ri);
+	for (; ri <= (r+(s/2.0)); ri+=s) {
+		printf("radius: ri=%f ri+s=%f (r+(s/2.0))=%f\n",ri,ri+s,(r+(s/2.0)));
 		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta) {
 			for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
 				t++; // total voxels
@@ -527,7 +527,8 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
                 
                 // only use our actual desired color on the outer edge, otherwise
                 // use our "average" color
-                if (ri==r) {
+                if (ri+(s*2.0)>=r) {
+					printf("painting candy shell radius: ri=%f r=%f\n",ri,r);
 					red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
 					green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
 					blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
