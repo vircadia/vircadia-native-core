@@ -394,7 +394,9 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     }
     
     if (hasChildren) {
-    	bool childrenCollapsed = false;//startNode->collapseIdenticalLeaves();
+    	bool childrenCollapsed = false;
+        startNode->collapseIdenticalLeaves();
+        
     	if (!childrenCollapsed) {
 	        startNode->setColorFromAverageOfChildren();
 	    }
