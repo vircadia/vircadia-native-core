@@ -91,5 +91,5 @@ void floodFill(Cursor const& p, Strategy const& s)
 }
 
 
-#endif
+#endif /* defined(__hifi__FloodFill__) */
 
