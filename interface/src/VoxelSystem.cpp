@@ -51,6 +51,10 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&bufferWriteLock);
 }
 
+void VoxelSystem::setViewerHead(Head *newViewerHead) {
+    viewerHead = newViewerHead;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Method:      VoxelSystem::loadVoxelsFile()
 // Description: Loads HiFidelity encoded Voxels from a binary file. The current file
@@ -94,7 +98,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     writeVerticesEndPointer = writeVerticesArray;
     // call recursive function to populate in memory arrays
     // it will return the number of voxels added
-    voxelsRendered = treeToArrays(tree->rootNode);
+    float treeRoot[3] = {0,0,0};
+    voxelsRendered = treeToArrays(tree->rootNode, treeRoot);
     
     // copy the newly written data to the arrays designated for reading
     copyWrittenDataToReadArrays();
@@ -114,15 +119,41 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
     pthread_mutex_unlock(&bufferWriteLock);
 }
 
-int VoxelSystem::treeToArrays(VoxelNode *currentNode) {
+int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
     int voxelsAdded = 0;
 
-    for (int i = 0; i < 8; i++) {
-        // check if there is a child here
-        if (currentNode->children[i] != NULL) {
-            voxelsAdded += treeToArrays(currentNode->children[i]);
+    float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
+    glm::vec3 viewerPosition = viewerHead->getPos();
+    
+    float distanceToVoxelCenter = sqrtf(powf(viewerPosition[0] - nodePosition[0] - halfUnitForVoxel, 2) +
+                                        powf(viewerPosition[1] - nodePosition[1] - halfUnitForVoxel, 2) +
+                                        powf(viewerPosition[2] - nodePosition[2] - halfUnitForVoxel, 2));
+    
+    if (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentNode->octalCode + 1)) {
+        for (int i = 0; i < 8; i++) {
+            // check if there is a child here
+            if (currentNode->children[i] != NULL) {
+                
+                // calculate the child's position based on the parent position
+                float childNodePosition[3];
+                
+                for (int j = 0; j < 3; j++) {
+                    childNodePosition[j] = nodePosition[j];
+                    
+                    if (oneAtBit(branchIndexWithDescendant(currentNode->octalCode,
+                                                           currentNode->children[i]->octalCode),
+                                 (7 - j))) {
+                        childNodePosition[j] -= (powf(0.5, *currentNode->children[i]->octalCode) * TREE_SCALE);
+                    }
+                }
+                
+                
+                voxelsAdded += treeToArrays(currentNode->children[i], childNodePosition);
+            }
         }
     }
+    
+   
     
     // if we didn't get any voxels added then we're a leaf
     // add our vertex and color information to the interleaved array

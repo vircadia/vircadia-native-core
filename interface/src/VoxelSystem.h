@@ -15,6 +15,7 @@
 #include <UDPSocket.h>
 #include <AgentData.h>
 #include <VoxelTree.h>
+#include "Head.h"
 #include "Util.h"
 #include "world.h"
 
@@ -33,10 +34,12 @@ public:
     void render();
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
+    void setViewerHead(Head *newViewerHead);
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 private:
     int voxelsRendered;
+    Head *viewerHead;
     VoxelTree *tree;
     GLfloat *readVerticesArray;
     GLubyte *readColorsArray;
@@ -49,7 +52,7 @@ private:
     GLuint vboIndicesID;
     pthread_mutex_t bufferWriteLock;
     
-    int treeToArrays(VoxelNode *currentNode);
+    int treeToArrays(VoxelNode *currentNode, float nodePosition[3]);
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
 };

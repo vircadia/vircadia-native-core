@@ -14,8 +14,6 @@
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
-const int TREE_SCALE = 10;
-
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {
         case 1:

@@ -294,6 +294,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
+    voxels.setViewerHead(&myHead);
     myHead.setRenderYaw(start_yaw);
 
     head_mouse_x = WIDTH/2;

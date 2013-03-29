@@ -15,6 +15,7 @@
 
 const int MAX_VOXEL_PACKET_SIZE = 1492;
 const int MAX_TREE_SLICE_BYTES = 26;
+const int TREE_SCALE = 10;
 
 class VoxelTree {
     VoxelNode * nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode);
@@ -41,5 +42,7 @@ public:
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 };
+
+int boundaryDistanceForRenderLevel(unsigned int renderLevel);
 
 #endif /* defined(__hifi__VoxelTree__) */
