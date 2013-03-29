@@ -264,19 +264,19 @@ int audioCallback (const void *inputBuffer,
             }
             
             // check if we have more than we need to play out
-            int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
-            int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
-            
-            if (ringBuffer->diffLastWriteNextOutput() > thresholdSamples) {
-                // we need to push the next output forwards
-                int samplesToPush = ringBuffer->diffLastWriteNextOutput() - thresholdSamples;
-                
-                if (ringBuffer->getNextOutput() + samplesToPush > ringBuffer->getBuffer()) {
-                    ringBuffer->setNextOutput(ringBuffer->getBuffer() + (samplesToPush - (ringBuffer->getBuffer() + RING_BUFFER_SAMPLES - ringBuffer->getNextOutput())));
-                } else {
-                    ringBuffer->setNextOutput(ringBuffer->getNextOutput() + samplesToPush);
-                }
-            }
+//            int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
+//            int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
+//            
+//            if (ringBuffer->diffLastWriteNextOutput() > thresholdSamples) {
+//                // we need to push the next output forwards
+//                int samplesToPush = ringBuffer->diffLastWriteNextOutput() - thresholdSamples;
+//                
+//                if (ringBuffer->getNextOutput() + samplesToPush > ringBuffer->getBuffer()) {
+//                    ringBuffer->setNextOutput(ringBuffer->getBuffer() + (samplesToPush - (ringBuffer->getBuffer() + RING_BUFFER_SAMPLES - ringBuffer->getNextOutput())));
+//                } else {
+//                    ringBuffer->setNextOutput(ringBuffer->getNextOutput() + samplesToPush);
+//                }
+//            }
             
             for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                 
