@@ -52,7 +52,7 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float xc = random ? randFloatInRange(r,(1-r)) : 0.5;
 	float yc = random ? randFloatInRange(r,(1-r)) : 0.5;
 	float zc = random ? randFloatInRange(r,(1-r)) : 0.5;
-	float s = (1.0/256); // size of voxels to make up surface of sphere
+	float s = (1.0/32); // size of voxels to make up surface of sphere
 	bool solid = true;
 
 	printf("adding sphere:");
