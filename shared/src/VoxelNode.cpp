@@ -97,7 +97,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	
 	
 	if (allChildrenMatch) {
-printf("allChildrenMatch: pruning tree\n");
+		//printf("allChildrenMatch: pruning tree\n");
 		for (int i = 0; i < 8; i++) {
 			delete children[i]; // delete all the child nodes
 			children[i]=NULL; // set it to NULL
