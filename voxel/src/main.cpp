@@ -39,7 +39,7 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-const int VOXEL_SEND_INTERVAL_USECS = 100g * 1000;
+const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
 const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
