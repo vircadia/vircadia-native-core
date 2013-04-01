@@ -144,9 +144,10 @@ int audioCallback (const void *inputBuffer,
             audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
             audioMixerSocket.sin_port = data->mixerPort;
             
-            int leadingBytes = 1 + (sizeof(float) * 4);
+            int leadingBytes = 2 + (sizeof(float) * 4);
             
-            // we need the amount of bytes in the buffer + 1 for type + 12 for 3 floats for position
+            // we need the amount of bytes in the buffer + 1 for type
+            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
             
             dataPacket[0] = 'I';
