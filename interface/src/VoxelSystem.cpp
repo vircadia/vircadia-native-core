@@ -40,8 +40,6 @@ VoxelSystem::VoxelSystem() {
     voxelsRendered = 0;
     tree = new VoxelTree();
     pthread_mutex_init(&bufferWriteLock, NULL);
-    lastBufferCopy.tv_sec = 0;
-    lastBufferCopy.tv_usec = 0;
 }
 
 VoxelSystem::~VoxelSystem() {    
@@ -233,9 +231,7 @@ void VoxelSystem::render() {
 
     glPushMatrix();
     
-    double timeSinceLastDraw = usecTimestampNow() - usecTimestamp(&lastBufferCopy);
-    if (readVerticesEndPointer != readVerticesArray && timeSinceLastDraw >= 500 * 1000) {
-        printf("The time since the last draw was %f\n", timeSinceLastDraw);
+    if (readVerticesEndPointer != readVerticesArray) {
         // try to lock on the buffer write
         // just avoid pulling new data if it is currently being written
         if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
@@ -252,8 +248,6 @@ void VoxelSystem::render() {
             
             pthread_mutex_unlock(&bufferWriteLock);
         }
-        
-        gettimeofday(&lastBufferCopy, NULL);
     }
 
     // tell OpenGL where to find vertex and color information

@@ -51,8 +51,7 @@ private:
     GLuint vboColorsID;
     GLuint vboIndicesID;
     pthread_mutex_t bufferWriteLock;
-    timeval lastBufferCopy;
-    
+
     int treeToArrays(VoxelNode *currentNode, float nodePosition[3]);
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
