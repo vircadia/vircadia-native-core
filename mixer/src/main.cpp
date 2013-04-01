@@ -30,7 +30,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif _WIN32
+#endif //_WIN32
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 

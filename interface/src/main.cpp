@@ -53,6 +53,7 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
+#include <PerfStat.h>
 #include <SharedUtil.h>
 
 using namespace std;
@@ -257,7 +258,18 @@ void display_stats(void)
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-    
+	// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+    char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+	int lines = PerfStat::DumpStats(perfStatLinesArray);
+    int atZ = 150; // arbitrary place on screen that looks good
+    for (int line=0; line < lines; line++) {
+        drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+        delete perfStatLinesArray[line]; // we're responsible for cleanup
+        perfStatLinesArray[line]=NULL;
+        atZ+=20; // height of a line
+    }
+    delete []perfStatLinesArray; // we're responsible for cleanup
+        
     /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
@@ -272,7 +284,6 @@ void display_stats(void)
             myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
      */
-    
 }
 
 void initDisplay(void)
@@ -464,6 +475,8 @@ int render_test_direction = 1;
 
 void display(void)
 {
+	PerfStat("display");
+
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
@@ -777,6 +790,7 @@ void *networkReceive(void *args)
 
     while (!stopNetworkReceiveThread) {
         if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
+			PerfStat("networkReceive receive()");
             packetcount++;
             bytescount += bytesReceived;
             

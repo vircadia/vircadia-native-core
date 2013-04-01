@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     srand(time(0));
     int AUDIO_UDP_SEND_PORT = 1500 + (rand() % (int)(1500 - 2000 + 1));
     
-    UDPSocket *streamSocket = new UDPSocket(AUDIO_UDP_SEND_PORT);
+    streamSocket = new UDPSocket(AUDIO_UDP_SEND_PORT);
     
     if (processParameters(argc, argv)) {
         if (sourceAudioFile) {
