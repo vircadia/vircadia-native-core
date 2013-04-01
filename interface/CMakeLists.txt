@@ -9,15 +9,15 @@ set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 project(interface)
 
 # ++ C++ version
-if (NOT MSVC AND NOT CMAKE_COMPILER_IS_GNUCXX)
-    # ...assume clang
-    add_definitions("-std=c++0x")
-    add_definitions("-stdlib=libc++")
-elseif (NOT MSVC)
-    # this one works for GCC...
-    add_definitions("-std=c++0x")
-    # ...and msvc defaults to latest version
-endif ()
+# if (NOT MSVC AND NOT CMAKE_COMPILER_IS_GNUCXX)
+#     # ...assume clang
+#     add_definitions("-std=c++0x")
+#     add_definitions("-stdlib=libc++")
+# elseif (NOT MSVC)
+#     # this one works for GCC...
+#     add_definitions("-std=c++0x")
+#     # ...and msvc defaults to latest version
+# endif ()
 
 
 if (APPLE)
