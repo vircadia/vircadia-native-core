@@ -40,6 +40,8 @@ VoxelSystem::VoxelSystem() {
     voxelsRendered = 0;
     tree = new VoxelTree();
     pthread_mutex_init(&bufferWriteLock, NULL);
+    lastBufferCopy.tv_sec = 0;
+    lastBufferCopy.tv_usec = 0;
 }
 
 VoxelSystem::~VoxelSystem() {    
@@ -185,11 +187,11 @@ VoxelSystem* VoxelSystem::clone() const {
 
 void VoxelSystem::init() {
     // prep the data structures for incoming voxel data
-    writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
-    readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    writeVerticesEndPointer = writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    readVerticesEndPointer = readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
     writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
     readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
-    
+
     GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
     
     // populate the indicesArray
@@ -231,8 +233,9 @@ void VoxelSystem::render() {
 
     glPushMatrix();
     
-    
-    if (readVerticesEndPointer != readVerticesArray) {
+    double timeSinceLastDraw = usecTimestampNow() - usecTimestamp(&lastBufferCopy);
+    if (readVerticesEndPointer != readVerticesArray && timeSinceLastDraw >= 5000 * 1000) {
+        printf("The time since the last draw was %f\n", timeSinceLastDraw);
         // try to lock on the buffer write
         // just avoid pulling new data if it is currently being written
         if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
@@ -249,6 +252,8 @@ void VoxelSystem::render() {
             
             pthread_mutex_unlock(&bufferWriteLock);
         }
+        
+        gettimeofday(&lastBufferCopy, NULL);
     }
 
     // tell OpenGL where to find vertex and color information
