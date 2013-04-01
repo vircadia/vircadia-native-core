@@ -117,6 +117,9 @@ void AudioRingBuffer::parseData(void *data, int size) {
             dataPtr += sizeof(float);
         }
         
+        unsigned int attenuationByte = *(dataPtr++);
+        attenuationRatio = attenuationByte / 255.0f;
+        
         memcpy(&bearing, dataPtr, sizeof(float));
         dataPtr += sizeof(float);
         
