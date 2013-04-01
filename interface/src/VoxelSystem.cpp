@@ -234,7 +234,7 @@ void VoxelSystem::render() {
     glPushMatrix();
     
     double timeSinceLastDraw = usecTimestampNow() - usecTimestamp(&lastBufferCopy);
-    if (readVerticesEndPointer != readVerticesArray && timeSinceLastDraw >= 5000 * 1000) {
+    if (readVerticesEndPointer != readVerticesArray && timeSinceLastDraw >= 500 * 1000) {
         printf("The time since the last draw was %f\n", timeSinceLastDraw);
         // try to lock on the buffer write
         // just avoid pulling new data if it is currently being written
