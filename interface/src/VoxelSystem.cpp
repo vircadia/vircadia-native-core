@@ -237,11 +237,9 @@ void VoxelSystem::render() {
         if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
             
             glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
-            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLfloat), readVerticesArray);
             
             glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
-            glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLubyte), readColorsArray);
             
             readVerticesEndPointer = readVerticesArray;
