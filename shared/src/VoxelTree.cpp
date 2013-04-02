@@ -52,7 +52,7 @@ VoxelTree::~VoxelTree() {
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode) {
+VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
@@ -60,13 +60,18 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
         
         if (childNode != NULL) {
             if (*childNode->octalCode == *needleCode) {
+            
+            	// If the caller asked for the parent, then give them that too...
+            	if (parentOfFoundNode) {
+					*parentOfFoundNode=ancestorNode;
+				}
                 // the fact that the number of sections is equivalent does not always guarantee
                 // that this is the same node, however due to the recursive traversal
                 // we know that this is our node
                 return childNode;
             } else {
                 // we need to go deeper
-                return nodeForOctalCode(childNode, needleCode);
+                return nodeForOctalCode(childNode, needleCode,parentOfFoundNode);
             }
         }
     }
@@ -148,7 +153,7 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
 }
 
 void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
-    VoxelNode *bitstreamRootNode = nodeForOctalCode(rootNode, (unsigned char *)bitstream);
+    VoxelNode *bitstreamRootNode = nodeForOctalCode(rootNode, (unsigned char *)bitstream, NULL);
     
     if (*bitstream != *bitstreamRootNode->octalCode) {
         // if the octal code returned is not on the same level as
@@ -160,8 +165,39 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
 }
 
+// Note: uses the codeColorBuffer format, but the color's are ignored, because
+// this only finds and deletes the node from the tree.
+void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
+	VoxelNode* parentNode = NULL;
+    VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
+    
+    // If the node exists...
+    if (*nodeToDelete->octalCode == *codeBuffer) {
+    	printf("found node to delete...\n");
+
+		float* vertices = firstVertexForCode(nodeToDelete->octalCode);
+		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+		delete []vertices;
+
+		if (parentNode) {
+			float* vertices = firstVertexForCode(parentNode->octalCode);
+			printf("parent of deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+			delete []vertices;
+			
+			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
+			printf("child INDEX=%d\n",childNDX);
+
+			printf("deleting Node at parentNode->children[%d]\n",childNDX);
+			delete parentNode->children[childNDX]; // delete the child nodes
+			printf("setting parentNode->children[%d] to NULL\n",childNDX);
+			parentNode->children[childNDX]=NULL; // set it to NULL
+
+		}
+    }
+}
+
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
-    VoxelNode *lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer);
+    VoxelNode *lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
     
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {

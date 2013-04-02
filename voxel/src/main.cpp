@@ -70,6 +70,10 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
 	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),0.06125,(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/512),true,true);
 }
 
 
@@ -269,13 +273,40 @@ int main(int argc, const char * argv[])
         	// XXXBHG: Hacked in support for 'I' insert command
             if (packetData[0] == 'I') {
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got I command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
             	while (atByte < receivedBytes) {
             		unsigned char octets = (unsigned char)*pVoxelData;
             		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+
+            		float* vertices = firstVertexForCode(pVoxelData);
+            		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+            		delete []vertices;
+            		
 		            randomTree.readCodeColorBufferToTree(pVoxelData);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+            		// skip to next
+            		pVoxelData+=voxelDataSize;
+            		atByte+=voxelDataSize;
+            	}
+            }
+            if (packetData[0] == 'R') {
+            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+            	printf("got R - remove voxels - command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	int atByte = 3;
+            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
+            	while (atByte < receivedBytes) {
+            		unsigned char octets = (unsigned char)*pVoxelData;
+            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+
+            		float* vertices = firstVertexForCode(pVoxelData);
+            		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+            		delete []vertices;
+
+		            randomTree.deleteVoxelCodeFromTree(pVoxelData);
+		            
+		            
 	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
             		// skip to next
             		pVoxelData+=voxelDataSize;
