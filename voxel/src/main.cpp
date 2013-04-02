@@ -70,6 +70,10 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
 	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),0.06125,(1.0/512),true,true);
+	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/512),true,true);
+	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/512),true,true);
 }
 
 
