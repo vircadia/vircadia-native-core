@@ -64,22 +64,6 @@ if (NOT APPLE)
     find_package(GLUT REQUIRED)
     include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
     target_link_libraries(interface ${OPENGL_LIBRARY})
-    
-    # link required libraries on UNIX
-    if (UNIX) 
-        find_package(Threads REQUIRED)
-        find_package(Librt REQUIRED)
-        find_package(ALSA)
-        find_package(Jack)
-
-        target_link_libraries(interface
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${LIBRT_LIBRARIES}
-            ${JACK_LIBRARIES}
-            ${ALSA_LIBRARIES}
-            ${GLUT_LIBRARY}
-        )
-    endif (UNIX)
 else (NOT APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AudioToolbox AudioToolbox)
@@ -127,6 +111,22 @@ else (WIN32)
   # link the PortAudio library
   ExternalProject_Get_Property(portaudio binary_dir)
   target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+  
+  # link required libraries on UNIX
+  if (UNIX AND NOT APPLE) 
+      find_package(Threads REQUIRED)
+      find_package(Librt REQUIRED)
+      find_package(ALSA)
+      find_package(Jack)
+
+      target_link_libraries(interface
+          ${CMAKE_THREAD_LIBS_INIT}
+          ${LIBRT_LIBRARIES}
+          ${JACK_LIBRARIES}
+          ${ALSA_LIBRARIES}
+          ${GLUT_LIBRARY}
+      )
+  endif (UNIX AND NOT APPLE)
 endif (WIN32)
 
 # install command for OS X bundle
