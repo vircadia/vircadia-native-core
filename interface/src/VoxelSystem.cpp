@@ -14,7 +14,7 @@
 #include <OctalCode.h>
 #include "VoxelSystem.h"
 
-const int MAX_VOXELS_PER_SYSTEM = 1500000; //250000;
+const int MAX_VOXELS_PER_SYSTEM = 250000;
 
 const int VERTICES_PER_VOXEL = 8;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
