@@ -18,7 +18,7 @@ const int MAX_TREE_SLICE_BYTES = 26;
 const int TREE_SCALE = 10;
 
 class VoxelTree {
-    VoxelNode * nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode);
+    VoxelNode * nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode * createMissingNode(VoxelNode *lastParentNode, unsigned char *deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char * nodeData, int bufferSizeBytes);
 public:
@@ -30,6 +30,7 @@ public:
     
     void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
+	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
     unsigned char * loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
