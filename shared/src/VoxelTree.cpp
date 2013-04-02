@@ -170,12 +170,28 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 	VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
+    
     // If the node exists...
     if (*nodeToDelete->octalCode == *codeBuffer) {
+    	printf("found node to delete...\n");
+
+		float* vertices = firstVertexForCode(nodeToDelete->octalCode);
+		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+		delete []vertices;
+
 		if (parentNode) {
+			float* vertices = firstVertexForCode(parentNode->octalCode);
+			printf("parent of deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+			delete []vertices;
+			
 			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
+			printf("child INDEX=%d\n",childNDX);
+
+			printf("deleting Node at parentNode->children[%d]\n",childNDX);
 			delete parentNode->children[childNDX]; // delete the child nodes
+			printf("setting parentNode->children[%d] to NULL\n",childNDX);
 			parentNode->children[childNDX]=NULL; // set it to NULL
+
 		}
     }
 }
