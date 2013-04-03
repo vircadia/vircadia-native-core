@@ -27,7 +27,8 @@ public:
     
     VoxelNode *rootNode;
     int leavesWrittenToBitstream;
-    
+
+	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
     void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
 	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);

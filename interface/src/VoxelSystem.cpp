@@ -84,11 +84,20 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
 
 
 void VoxelSystem::parseData(void *data, int size) {
-    // output the bits received from the voxel server
+
+    unsigned char command = *(unsigned char*)data;
     unsigned char *voxelData = (unsigned char *) data + 1;
     
-    // ask the VoxelTree to read the bitstream into the tree
-    tree->readBitstreamToTree(voxelData, size - 1);
+    switch(command) {
+        case 'V':
+            // ask the VoxelTree to read the bitstream into the tree
+            tree->readBitstreamToTree(voxelData, size - 1);
+        break;
+        case 'R':
+            // ask the tree to read the "remove" bitstream
+            tree->processRemoveVoxelBitstream((unsigned char*)data,size);
+        break;
+    }
     
     setupNewVoxelsForDrawing();
 }

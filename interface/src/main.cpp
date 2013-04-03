@@ -467,7 +467,7 @@ void simulateHead(float frametime)
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    agentList.broadcastToAgents(broadcast_string, broadcast_bytes);
+    agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
 }
 
 int render_test_spot = WIDTH/2;
@@ -790,14 +790,13 @@ void *networkReceive(void *args)
 
     while (!stopNetworkReceiveThread) {
         if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
-			PerfStat("networkReceive receive()");
             packetcount++;
             bytescount += bytesReceived;
             
             if (incomingPacket[0] == 't') {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V') {
+            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R') {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);

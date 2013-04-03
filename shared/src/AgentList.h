@@ -28,6 +28,7 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
+
 class AgentList {
 
     UDPSocket agentSocket;
@@ -56,7 +57,7 @@ public:
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
-    void broadcastToAgents(char *broadcastData, size_t dataBytes);
+    void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes);
     void pingAgents();
     char getOwnerType();
     unsigned int getSocketListenPort();
@@ -65,6 +66,10 @@ public:
     void stopSilentAgentRemovalThread();
     void startDomainServerCheckInThread();
     void stopDomainServerCheckInThread();
+    
+	static const char* AGENTS_OF_TYPE_HEAD;
+	static const char* AGENTS_OF_TYPE_VOXEL_AND_INTERFACE;
+    
 };
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId);

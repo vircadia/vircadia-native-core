@@ -292,26 +292,15 @@ int main(int argc, const char * argv[])
             	}
             }
             if (packetData[0] == 'R') {
-            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got R - remove voxels - command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
-            	int atByte = 3;
-            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
-            	while (atByte < receivedBytes) {
-            		unsigned char octets = (unsigned char)*pVoxelData;
-            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
 
-            		float* vertices = firstVertexForCode(pVoxelData);
-            		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
-            		delete []vertices;
+            	// Send these bits off to the VoxelTree class to process them
+				printf("got Remove Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+            	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
 
-		            randomTree.deleteVoxelCodeFromTree(pVoxelData);
-		            
-		            
-	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
-            		// skip to next
-            		pVoxelData+=voxelDataSize;
-            		atByte+=voxelDataSize;
-            	}
+            	// Now send this to the connected agents so they know to delete
+				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
+				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+            	
             }
             if (packetData[0] == 'H') {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,

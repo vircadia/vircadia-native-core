@@ -388,6 +388,27 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
     return childStopOctalCode;
 }
 
+void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
+	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
+	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
+	printf("processRemoveVoxelBitstream() receivedBytes=%d itemNumber=%d\n",bufferSizeBytes,itemNumber);
+	int atByte = 3;
+	unsigned char* pVoxelData = (unsigned char*)&bitstream[3];
+	while (atByte < bufferSizeBytes) {
+		unsigned char octets = (unsigned char)*pVoxelData;
+		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+
+		float* vertices = firstVertexForCode(pVoxelData);
+		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+		delete []vertices;
+
+		deleteVoxelCodeFromTree(pVoxelData);
+
+		pVoxelData+=voxelDataSize;
+		atByte+=voxelDataSize;
+	}
+}
+
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     int colorMask = 0;
     

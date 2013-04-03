@@ -209,11 +209,13 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
+const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
+const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
+
+void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        // for now assume we only want to send to other interface clients
-        // until the Audio class uses the AgentList
-        if (agent->getActiveSocket() != NULL && (agent->getType() == 'I' || agent->getType() == 'V')) {
+        // only send to the AgentTypes we are asked to send to.
+        if (agent->getActiveSocket() != NULL && strchr(agentTypes,agent->getType())) {
             // we know which socket is good for this agent, send there
             agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
