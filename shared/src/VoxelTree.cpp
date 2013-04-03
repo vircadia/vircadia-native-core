@@ -198,6 +198,8 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 			printf("setting parentNode->children[%d] to NULL\n",childNDX);
 			parentNode->children[childNDX]=NULL; // set it to NULL
 
+			printf("reaverageVoxelColors()\n");
+			reaverageVoxelColors(parentNode); // Fix our colors!!
 		}
     }
 }
