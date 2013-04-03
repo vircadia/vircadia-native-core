@@ -55,7 +55,6 @@ link_hifi_shared_library(interface)
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
-find_package(CURL REQUIRED)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
@@ -63,12 +62,6 @@ include_directories(
     ${PROJECT_BINARY_DIR}/includes
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
-    ${CURL_INCLUDE_DIRS}
-)
-
-# link target to common, external libraries
-target_link_libraries(interface 
-    ${CURL_LIBRARY}
 )
 
 if (NOT APPLE)
