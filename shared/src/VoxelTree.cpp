@@ -7,12 +7,14 @@
 //
 
 #include <cstring>
+#include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
+
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {

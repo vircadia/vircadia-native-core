@@ -8,7 +8,8 @@
 
 #include <pthread.h>
 #include <cstring>
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstdio>
 #include "AgentList.h"
 #include "SharedUtil.h"
 
