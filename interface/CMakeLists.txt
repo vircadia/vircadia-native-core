@@ -40,6 +40,9 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 # grab the implementation and header files from src dir
 file(GLOB INTERFACE_SRCS src/*.mm src/*.cpp src/*.h)
 
+# project subdirectories
+add_subdirectory(src/starfield)
+
 if (APPLE)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
