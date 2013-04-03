@@ -638,7 +638,7 @@ function convertObjFile($inputFileName,$outputFileName)
 					// Note: fill from 
 					case 'fill_from':
 						// a vertice
-						$ = new Vertice();
+						$v = new Vertice();
 						$v->x = (float)$parts[1];
 						$v->y = (float)$parts[2];
 						$v->z = (float)$parts[3];
