@@ -6,35 +6,48 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "AgentList.h"
 #include <pthread.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include "AgentList.h"
 #include "SharedUtil.h"
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
+char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
+char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+const int DOMAINSERVER_PORT = 40102;
 
-bool stopAgentRemovalThread = false;
+bool silentAgentThreadStopFlag = false;
+bool domainServerCheckinStopFlag = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
-AgentList::AgentList() : agentSocket(AGENT_SOCKET_LISTEN_PORT) {
-    linkedDataCreateCallback = NULL;
-    audioMixerSocketUpdate = NULL;
-    voxelServerAddCallback = NULL;
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+    memcpy(packedData, agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
 }
 
-AgentList::AgentList(int socketListenPort) : agentSocket(socketListenPort) {
-    linkedDataCreateCallback = NULL;
-    audioMixerSocketUpdate = NULL;
-    voxelServerAddCallback = NULL;
+int packAgentId(unsigned char *packStore, uint16_t agentId) {
+    memcpy(&agentId, packStore, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) : agentSocket(newSocketListenPort) {
+    ownerType = newOwnerType;
+    socketListenPort = newSocketListenPort;
+    lastAgentId = 0;
 }
 
 AgentList::~AgentList() {
+    // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
+    stopDomainServerCheckInThread();
 }
 
 std::vector<Agent>& AgentList::getAgents() {
@@ -45,30 +58,34 @@ UDPSocket& AgentList::getAgentSocket() {
     return agentSocket;
 }
 
+char AgentList::getOwnerType() {
+    return ownerType;
+}
+
+unsigned int AgentList::getSocketListenPort() {
+    return socketListenPort;
+}
+
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
-        case 'D':
-        {
+        case 'D': {
             // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
-        case 'H':
-        {
+        case 'H': {
             // head data from another agent
             updateAgentWithData(senderAddress, packetData, dataBytes);
             break;
         }
-        case 'P':
-        {
+        case 'P': {
             // ping from another agent
             //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             char reply[] = "R";
             agentSocket.send(senderAddress, reply, 1);  
             break;
         }
-        case 'R':
-        {
+        case 'R': {
             // ping reply from another agent
             //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
@@ -107,10 +124,19 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
     return -1;
 }
 
+uint16_t AgentList::getLastAgentId() {
+    return lastAgentId;
+}
+
+void AgentList::increaseAgentId() {
+    ++lastAgentId;
+}
+
 int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 
     char agentType;
+    uint16_t agentId;
     
     // assumes only IPv4 addresses
     sockaddr_in agentPublicSocket;
@@ -123,19 +149,20 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     
     while((readPtr - startPtr) < dataBytes) {
         agentType = *readPtr++;
+        readPtr += unpackAgentId(readPtr, (uint16_t *)&agentId);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
-        addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType);
+        addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType, agentId);
     }  
 
     return readAgents;
 }
 
-bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType) {
+bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
     std::vector<Agent>::iterator agent;
     
-    for(agent = agents.begin(); agent != agents.end(); agent++) {
+    for (agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->matches(publicSocket, localSocket, agentType)) {
             // we already have this agent, stop checking
             break;
@@ -144,7 +171,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (agent == agents.end()) {
         // we didn't have this agent, so add them
-        Agent newAgent = Agent(publicSocket, localSocket, agentType);
+        
+        Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with DS + agent on local network
@@ -156,10 +184,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
-            sockaddr_in *localSocketIn = (sockaddr_in *)localSocket;
-            audioMixerSocketUpdate(localSocketIn->sin_addr.s_addr, localSocketIn->sin_port);
-        } else if (newAgent.getType() == 'V' && voxelServerAddCallback != NULL) {
-            voxelServerAddCallback(localSocket);
+            sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
+            audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
+        } else if (newAgent.getType() == 'V') {
+            newAgent.activatePublicSocket();
         }
         
         std::cout << "Added agent - " << &newAgent << "\n";
@@ -182,11 +210,13 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes) {
+const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
+const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
+
+void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        // for now assume we only want to send to other interface clients
-        // until the Audio class uses the AgentList
-        if (agent->getActiveSocket() != NULL && agent->getType() == 'I') {
+        // only send to the AgentTypes we are asked to send to.
+        if (agent->getActiveSocket() != NULL && strchr(agentTypes,agent->getType())) {
             // we know which socket is good for this agent, send there
             agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
@@ -229,15 +259,26 @@ void *removeSilentAgents(void *args) {
     std::vector<Agent> *agents = (std::vector<Agent> *)args;
     double checkTimeUSecs, sleepTime;
     
-    while (!stopAgentRemovalThread) {
+    while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS) {
+            
+            pthread_mutex_t * agentDeleteMutex = &agent->deleteMutex;
+            
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V'
+                && pthread_mutex_trylock(agentDeleteMutex) == 0) {
+                
                 std::cout << "Killing agent " << &(*agent)  << "\n";
+                
+                // make sure the vector isn't currently adding an agent
                 pthread_mutex_lock(&vectorChangeMutex);
                 agent = agents->erase(agent);
                 pthread_mutex_unlock(&vectorChangeMutex);
+                
+                // release the delete mutex and destroy it
+                pthread_mutex_unlock(agentDeleteMutex);
+                pthread_mutex_destroy(agentDeleteMutex);
             } else {
                 agent++;
             }
@@ -245,10 +286,15 @@ void *removeSilentAgents(void *args) {
         
         
         sleepTime = AGENT_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
+        #ifdef _WIN32
+        Sleep( static_cast<int>(1000.0f*sleepTime) );
+        #else
         usleep(sleepTime);
+        #endif
     }
     
     pthread_exit(0);
+    return NULL;
 }
 
 void AgentList::startSilentAgentRemovalThread() {
@@ -256,6 +302,58 @@ void AgentList::startSilentAgentRemovalThread() {
 }
 
 void AgentList::stopSilentAgentRemovalThread() {
-    stopAgentRemovalThread = true;
+    silentAgentThreadStopFlag = true;
     pthread_join(removeSilentAgentsThread, NULL);
+}
+
+void *checkInWithDomainServer(void *args) {
+    
+    AgentList *parentAgentList = (AgentList *)args;
+    
+    timeval lastSend;
+    unsigned char output[7];
+    
+    in_addr_t localAddress = getLocalAddress();
+    
+    //  Lookup the IP address of the domain server if we need to
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            
+        } else {
+            printf("Failed lookup domainserver\n");
+        }
+    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    
+    
+    while (!domainServerCheckinStopFlag) {
+        gettimeofday(&lastSend, NULL);
+        
+        output[0] = parentAgentList->getOwnerType();
+        packSocket(output + 1, localAddress, htons(parentAgentList->getSocketListenPort()));
+        
+        parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
+        
+        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
+    }
+    
+    pthread_exit(0);
+    return NULL;
+}
+
+void AgentList::startDomainServerCheckInThread() {
+    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void *)this);
+}
+
+void AgentList::stopDomainServerCheckInThread() {
+    domainServerCheckinStopFlag = true;
+    pthread_join(checkInWithDomainServerThread, NULL);
 }

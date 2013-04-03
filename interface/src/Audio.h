@@ -10,6 +10,7 @@
 #define __interface__Audio__
 
 #include <iostream>
+
 #include <portaudio.h>
 #include "AudioData.h"
 #include "Oscilloscope.h"
@@ -28,6 +29,8 @@ public:
     
     void getInputLoudness(float * lastLoudness, float * averageLoudness);
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
+    
+    void setWalkingState(bool newWalkState);
     
     // terminates audio I/O
     bool terminate();

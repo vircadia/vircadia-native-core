@@ -24,8 +24,8 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
 #else
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -41,36 +41,34 @@
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
+#ifndef _WIN32
 #include "Audio.h"
+#endif
+
 #include "FieldOfView.h"
 #include "Stars.h"
+
 #include "Head.h"
 #include "Hand.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
-#include "AgentList.h"
+#include <AgentList.h>
 #include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
+#include <PerfStat.h>
+#include <SharedUtil.h>
 
 using namespace std;
 
 int audio_on = 0;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
-//
-//  Network Socket and network constants
-//
-
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be used first if not empty string
-const int DOMAINSERVER_PORT = 40102;
-
-AgentList agentList;
+AgentList agentList('I');
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -91,30 +89,30 @@ int WIDTH = 1200;
 int HEIGHT = 800; 
 int fullscreen = 0;
 
-in_addr_t localAddress;
+bool wantColorRandomizer = true; // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
 
-#define USE_FOV
 FieldOfView fov;
-
 Stars stars;
+#ifdef STARFIELD_KEYS
 int starsTiles = 20;
 double starsLod = 1.0;
+#endif
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-ParticleSystem balls(0, 
+ParticleSystem balls(0,
                      box, 
                      false,                     //  Wrap?
-                     0.02,                      //  Noise
-                     0.3,                       //  Size scale 
+                     0.02f,                      //  Noise
+                     0.3f,                       //  Size scale 
                      0.0                        //  Gravity
                      );
 
-Cloud cloud(0,                         //  Particles
+Cloud cloud(20000,                         //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -125,28 +123,22 @@ Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
+#ifndef _WIN32
 Audio audio(&audioScope, &myHead);
+#endif
 
 #define RENDER_FRAME_MSECS 8
 int steps_per_frame = 0;
 
-float yaw =0.f;                         //  The yaw, pitch for the avatar head
-float pitch = 0.f;                      //      
+float yaw = 0.f;                         //  The yaw, pitch for the avatar head
+float pitch = 0.f;                            
 float start_yaw = 122;
-float render_pitch = 0.f;
-float render_yaw_rate = 0.f;
-float render_pitch_rate = 0.f; 
-float lateral_vel = 0.f;
+float renderPitch = 0.f;
+float renderYawRate = 0.f;
+float renderPitchRate = 0.f; 
 
-// Manage speed and direction of motion
-GLfloat fwd_vec[] = {0.0, 0.0, 1.0};
-//GLfloat start_location[] = { WORLD_SIZE*1.5, -WORLD_SIZE/2.0, -WORLD_SIZE/3.0};
-//GLfloat start_location[] = { 0.1, -0.15, 0.1};
-
-GLfloat start_location[] = {6.1, 0, 1.4};
-
-GLfloat location[] = {start_location[0], start_location[1], start_location[2]};
-float fwd_vel = 0.0f;
+//  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
+glm::vec3 start_location(6.1f, 0, 1.4f);
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
 
@@ -175,12 +167,7 @@ int speed;
 // 
 
 SerialInterface serialPort;
-
 int latency_display = 1;
-//int adc_channels[NUM_CHANNELS];
-//float avg_adc_channels[NUM_CHANNELS];
-//int sensor_samples = 0;
-//int sensor_LED = 0;
 
 glm::vec3 gravity;
 int first_measurement = 1;
@@ -203,8 +190,6 @@ unsigned int texture_height = 256;
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
-
-
 
 #ifdef MARKER_CAPTURE
 
@@ -235,15 +220,6 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timer_start, NULL);
     
-    //
-    //  Send a message to the domainserver telling it we are ALIVE
-    // 
-    unsigned char output[7];
-    output[0] = 'I';    
-    packSocket(output + 1, localAddress, htons(AGENT_SOCKET_LISTEN_PORT));
-    
-    agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
-    
     //  Ping the agents we can see
     agentList.pingAgents();
 
@@ -258,7 +234,7 @@ void Timer(int extra)
 //            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
         }
         gettimeofday(&endtest, NULL);
-        float sendTime = diffclock(&starttest, &endtest);
+        float sendTime = static_cast<float>( diffclock(&starttest, &endtest) );
         printf("packet test = %4.1f\n", sendTime);
     }
     
@@ -272,16 +248,16 @@ void display_stats(void)
 {
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, 15, 0.10, 0, 1.0, 0, legend);
+    drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
             FPS, packets_per_second,  bytes_per_second);
-    drawtext(10, 30, 0.10, 0, 1.0, 0, stats); 
+    drawtext(10, 30, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(300, 30, 0.10, 0, 1.0, 0, stats);
+        drawtext(300, 30, 0.10f, 0, 1.0, 0, stats);
     }
     
     //  Output the ping times to the various agents 
@@ -294,9 +270,20 @@ void display_stats(void)
 
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
-    drawtext(10,70,0.10, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-    
+	// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+    char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+	int lines = PerfStat::DumpStats(perfStatLinesArray);
+    int atZ = 150; // arbitrary place on screen that looks good
+    for (int line=0; line < lines; line++) {
+        drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+        delete perfStatLinesArray[line]; // we're responsible for cleanup
+        perfStatLinesArray[line]=NULL;
+        atZ+=20; // height of a line
+    }
+    delete []perfStatLinesArray; // we're responsible for cleanup
+        
     /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
@@ -311,7 +298,6 @@ void display_stats(void)
             myHead.getYaw(), myHead.getRenderYaw());
     drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
      */
-    
 }
 
 void initDisplay(void)
@@ -333,7 +319,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    
+    voxels.setViewerHead(&myHead);
     myHead.setRenderYaw(start_yaw);
 
     head_mouse_x = WIDTH/2;
@@ -350,11 +336,7 @@ void init(void)
     if (noise_on) {   
         myHead.setNoise(noise);
     }
-    
-    char output[] = "I";
-    char address[] = "10.0.0.10";
-    agentList.getAgentSocket().send(address, 40106, output, 1);
-    
+    myHead.setPos(start_location);
     
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -377,7 +359,9 @@ void terminate () {
     // Close serial port
     //close(serial_fd);
 
+    #ifndef _WIN32
     audio.terminate();
+    #endif
     stopNetworkReceiveThread = true;
     pthread_join(networkReceiveThread, NULL);
     
@@ -391,15 +375,11 @@ void reset_sensors()
     // 
     myHead.setRenderYaw(start_yaw);
     
-    yaw = render_yaw_rate = 0; 
-    pitch = render_pitch = render_pitch_rate = 0;
-    lateral_vel = 0;
-    location[0] = start_location[0];
-    location[1] = start_location[1];
-    location[2] = start_location[2];
-    fwd_vel = 0.0;
+    yaw = renderYawRate = 0; 
+    pitch = renderPitch = renderPitchRate = 0;
+    myHead.setPos(start_location);
     head_mouse_x = WIDTH/2;
-    head_mouse_y = HEIGHT/2; 
+    head_mouse_y = HEIGHT/2;
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2; 
     
@@ -439,7 +419,7 @@ void simulateHead(float frametime)
     
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
-    const float MOUSE_SENSITIVITY = 0.1;
+    const float MOUSE_SENSITIVITY = 0.1f;
     if (powf(measured_yaw_rate*measured_yaw_rate + 
              measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
     {
@@ -458,92 +438,52 @@ void simulateHead(float frametime)
     const float YAW_SENSITIVITY = 0.02;
     const float PITCH_SENSITIVITY = 0.05;
     
+    //  Update render pitch and yaw rates based on keyPositions
+    const float KEY_YAW_SENSITIVITY = 2.0;
+    if (myHead.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
+    if (myHead.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
+    
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
         if (measured_yaw_rate > 0)
-            render_yaw_rate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            renderYawRate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
         else 
-            render_yaw_rate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            renderYawRate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
     }
     if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
     {
         if (measured_pitch_rate > 0)
-            render_pitch_rate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+            renderPitchRate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
         else 
-            render_pitch_rate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+            renderPitchRate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
     }
          
-    render_pitch += render_pitch_rate;
+    renderPitch += renderPitchRate;
     
-    // Decay render_pitch toward zero because we never look constantly up/down 
-    render_pitch *= (1.f - 2.0*frametime);
+    // Decay renderPitch toward zero because we never look constantly up/down 
+    renderPitch *= (1.f - 2.0*frametime);
 
     //  Decay angular rates toward zero 
-    render_pitch_rate *= (1.f - 5.0*frametime);
-    render_yaw_rate *= (1.f - 7.0*frametime);
-    
-    //  Update slide left/right based on accelerometer reading
-    /*
-    const int MIN_LATERAL_ACCEL = 20;
-    const float LATERAL_SENSITIVITY = 0.001;
-    if (fabs(measured_lateral_accel) > MIN_LATERAL_ACCEL) 
-    {
-        if (measured_lateral_accel > 0)
-            lateral_vel += (measured_lateral_accel - MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
-        else 
-            lateral_vel += (measured_lateral_accel + MIN_LATERAL_ACCEL) * LATERAL_SENSITIVITY * frametime;
-    }*/
- 
-    //slide += lateral_vel;
-    lateral_vel *= (1.f - 4.0*frametime);
-    
-    //  Update fwd/back based on accelerometer reading
-    /*
-    const int MIN_FWD_ACCEL = 20;
-    const float FWD_SENSITIVITY = 0.001;
-    
-    if (fabs(measured_fwd_accel) > MIN_FWD_ACCEL) 
-    {
-        if (measured_fwd_accel > 0)
-            fwd_vel += (measured_fwd_accel - MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
-        else 
-            fwd_vel += (measured_fwd_accel + MIN_FWD_ACCEL) * FWD_SENSITIVITY * frametime;
-
-    }*/
-    //  Decrease forward velocity
-    fwd_vel *= (1.f - 4.0*frametime);
-    
-
-    //  Update forward vector based on pitch and yaw 
-    fwd_vec[0] = -sinf(myHead.getRenderYaw()*PI/180);
-    fwd_vec[1] = sinf(render_pitch*PI/180);
-    fwd_vec[2] = cosf(myHead.getRenderYaw()*PI/180);
-    
-    //  Advance location forward
-    location[0] += fwd_vec[0]*fwd_vel;
-    location[1] += fwd_vec[1]*fwd_vel;
-    location[2] += fwd_vec[2]*fwd_vel;
-    
-    //  Slide location sideways
-    location[0] += fwd_vec[2]*-lateral_vel;
-    location[2] += fwd_vec[0]*lateral_vel;
+    renderPitchRate *= (1.f - 5.0*frametime);
+    renderYawRate *= (1.f - 7.0*frametime);
     
     //  Update own head data
-    myHead.setRenderYaw(myHead.getRenderYaw() + render_yaw_rate);
-    myHead.setRenderPitch(render_pitch);
-    myHead.setPos(glm::vec3(location[0], location[1], location[2]));
+    myHead.setRenderYaw(myHead.getRenderYaw() + renderYawRate);
+    myHead.setRenderPitch(renderPitch);
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
+    #ifndef _WIN32
     audio.getInputLoudness(&loudness, &averageLoudness);
     myHead.setLoudness(loudness);
     myHead.setAverageLoudness(averageLoudness);
+    #endif
 
     //  Send my streaming head data to agents that are nearby and need to see it!
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    agentList.broadcastToAgents(broadcast_string, broadcast_bytes);
+    agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
 }
 
 int render_test_spot = WIDTH/2;
@@ -551,13 +491,15 @@ int render_test_direction = 1;
 
 void display(void)
 {
+	PerfStat("display");
+
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     
-    glPushMatrix();
+    glPushMatrix();  {
         glLoadIdentity();
     
         //  Setup 3D lights
@@ -566,9 +508,9 @@ void display(void)
         
         GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.125, 0.305, 0.5 };  
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };  //{ 0.125, 0.305, 0.5 };  
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.5, 0.42, 0.33 };
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  //{ 0.5, 0.42, 0.33 }; 
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
@@ -577,19 +519,14 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
            
         //  Rotate, translate to camera location
-#ifdef USE_FOV
         fov.setOrientation(
-            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), 
-                glm::vec3(-location[0], -location[1], -location[2])), 
+            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
                 -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
                 -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
 
         glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
-#else
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
-        glTranslatef(location[0], location[1], location[2]);
-#endif
 
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -603,7 +540,7 @@ void display(void)
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
-        if (!display_head) cloud.render();
+//        if (!display_head) cloud.render();
     
         //  Draw voxels
         voxels.render();
@@ -618,7 +555,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, 0, &location[0]);
+                agentHead->render(0, 0);
                 glPopMatrix();
             }
         }
@@ -632,13 +569,10 @@ void display(void)
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(display_head, 1, &location[0]);
+        myHead.render(display_head, 1);
         glPopMatrix();
-            
-        //glm::vec3 test(0.5, 0.5, 0.5); 
-        //render_vector(&test);
-         
-        
+    }
+    
     glPopMatrix();
 
     //  Render 2D overlay:  I/O level bar graphs and text  
@@ -649,10 +583,12 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        // lattice.render(WIDTH, HEIGHT);
-        // myFinger.render();
+        //lattice.render(WIDTH, HEIGHT);
+        //myFinger.render();
+        #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
+        #endif
 
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
@@ -712,25 +648,105 @@ void display(void)
     framecount++;
 }
 
-const float KEYBOARD_PITCH_RATE = 0.8;
+void testPointToVoxel()
+{
+	float y=0;
+	float z=0;
+	float s=0.1;
+	for (float x=0; x<=1; x+= 0.05)
+	{
+		std::cout << " x=" << x << " ";
+
+		unsigned char red   = 200; //randomColorValue(65);
+		unsigned char green = 200; //randomColorValue(65);
+		unsigned char blue  = 200; //randomColorValue(65);
+	
+		unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
+		printVoxelCode(voxelCode);
+		delete voxelCode;
+		std::cout << std::endl;
+	}
+}
+
+void addRandomSphere(bool wantColorRandomizer)
+{
+	float r = randFloatInRange(0.05,0.1);
+	float xc = randFloatInRange(r,(1-r));
+	float yc = randFloatInRange(r,(1-r));
+	float zc = randFloatInRange(r,(1-r));
+	float s = 0.001; // size of voxels to make up surface of sphere
+	bool solid = false;
+
+	printf("random sphere\n");
+	printf("radius=%f\n",r);
+	printf("xc=%f\n",xc);
+	printf("yc=%f\n",yc);
+	printf("zc=%f\n",zc);
+
+	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
+}
+
+
 const float KEYBOARD_YAW_RATE = 0.8;
+const float KEYBOARD_PITCH_RATE = 0.6;
 const float KEYBOARD_STRAFE_RATE = 0.03;
 const float KEYBOARD_FLY_RATE = 0.08;
 
-void specialkey(int k, int x, int y)
-{
-    if (k == GLUT_KEY_UP) fwd_vel += KEYBOARD_FLY_RATE;
-    if (k == GLUT_KEY_DOWN) fwd_vel -= KEYBOARD_FLY_RATE;
+void specialkeyUp(int k, int x, int y) {
+    if (k == GLUT_KEY_UP) {
+        myHead.setDriveKeys(FWD, 0);
+        myHead.setDriveKeys(UP, 0);
+    }
+    if (k == GLUT_KEY_DOWN) {
+        myHead.setDriveKeys(BACK, 0);
+        myHead.setDriveKeys(DOWN, 0);
+    }
     if (k == GLUT_KEY_LEFT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel -= KEYBOARD_STRAFE_RATE;
-            else render_yaw_rate -= KEYBOARD_YAW_RATE;
+        myHead.setDriveKeys(LEFT, 0);
+        myHead.setDriveKeys(ROT_LEFT, 0);
     }
     if (k == GLUT_KEY_RIGHT) {
-        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) lateral_vel += KEYBOARD_STRAFE_RATE;
-        else render_yaw_rate += KEYBOARD_YAW_RATE;        
+        myHead.setDriveKeys(RIGHT, 0);
+        myHead.setDriveKeys(ROT_RIGHT, 0);
     }
     
 }
+
+void specialkey(int k, int x, int y)
+{
+    if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
+        if (k == GLUT_KEY_UP) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(UP, 1);
+            else myHead.setDriveKeys(FWD, 1);
+        }
+        if (k == GLUT_KEY_DOWN) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(DOWN, 1);
+            else myHead.setDriveKeys(BACK, 1);
+        }
+        if (k == GLUT_KEY_LEFT) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(LEFT, 1);
+            else myHead.setDriveKeys(ROT_LEFT, 1);  
+        }
+        if (k == GLUT_KEY_RIGHT) {
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
+            else myHead.setDriveKeys(ROT_RIGHT, 1);   
+        }
+        
+        audio.setWalkingState(true);
+    }    
+}
+
+
+void keyUp(unsigned char k, int x, int y) {
+    if (k == 'e') myHead.setDriveKeys(UP, 0);
+    if (k == 'c') myHead.setDriveKeys(DOWN, 0);
+    if (k == 'w') myHead.setDriveKeys(FWD, 0);
+    if (k == 's') myHead.setDriveKeys(BACK, 0);
+    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 0);
+    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 0);
+
+}
+
 void key(unsigned char k, int x, int y)
 {
     
@@ -754,31 +770,31 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'h') {
         display_head = !display_head;
+        #ifndef _WIN32
         audio.setMixerLoopbackFlag(display_head);
+        #endif
     }
     
     if (k == 'm') head_mirror = !head_mirror;
     
     if (k == 'f') display_field = !display_field;
     if (k == 'l') display_levels = !display_levels;
-    
-    
-    if (k == 'e') location[1] -= WORLD_SIZE/100.0;
-    if (k == 'c') location[1] += WORLD_SIZE/100.0;
-    if (k == 'w') fwd_vel += KEYBOARD_FLY_RATE;
-    if (k == 's') fwd_vel -= KEYBOARD_FLY_RATE;
+    if (k == 'e') myHead.setDriveKeys(UP, 1);
+    if (k == 'c') myHead.setDriveKeys(DOWN, 1);
+    if (k == 'w') myHead.setDriveKeys(FWD, 1);
+    if (k == 's') myHead.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
-    if (k == 'a') render_yaw_rate -= KEYBOARD_YAW_RATE;
-    if (k == 'd') render_yaw_rate += KEYBOARD_YAW_RATE;
-// >> tosh (for testing starfield)
-    if (k == 't') render_pitch_rate += KEYBOARD_PITCH_RATE;
-    if (k == 'g') render_pitch_rate -= KEYBOARD_PITCH_RATE;
+    if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
+    if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
+#ifdef STARFIELD_KEYS
     if (k == 'u') stars.setResolution(starsTiles += 1);
     if (k == 'j') stars.setResolution(starsTiles = max(starsTiles-1,1));
     if (k == 'i') if (starsLod < 1.0) starsLod = stars.changeLOD(1.01);
     if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
     if (k == 'r') stars.readInput("file://stars.txt", 0);
-// << tosh
+#endif
+    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
     if (k == 'o') simulate_on = !simulate_on;
     if (k == 'p') 
     {
@@ -790,6 +806,13 @@ void key(unsigned char k, int x, int y)
     if (k == '1')
     {
         myHead.SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*20.0);
+    }
+
+	// press the . key to get a new random sphere of voxels added 
+    if (k == '.')
+    {
+        addRandomSphere(wantColorRandomizer);
+        //testPointToVoxel();
     }
 }
 
@@ -810,7 +833,7 @@ void *networkReceive(void *args)
             if (incomingPacket[0] == 't') {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V') {
+            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R') {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -819,6 +842,7 @@ void *networkReceive(void *args)
     }
     
     pthread_exit(0); 
+    return NULL;
 }
 
 void idle(void)
@@ -860,20 +884,11 @@ void reshape(int width, int height)
     HEIGHT = height; 
 
     glMatrixMode(GL_PROJECTION); //hello
-#ifdef USE_FOV 
     fov.setResolution(width, height)
-            .setBounds(glm::vec3(-0.5f,-0.5f,-50.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-            .setPerspective(0.78f);
-
+            .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
+            .setPerspective(0.7854f);
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
-#else
 
-    glLoadIdentity();
-    gluPerspective(45, //view angle
-                 1.0, //aspect ratio
-                 0.1, //near clip
-                 50.0);//far clip
-#endif   
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -925,57 +940,51 @@ void attachNewHeadToAgent(Agent *newAgent) {
     }
 }
 
+#ifndef _WIN32
 void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
+#endif
 
-void voxelServerAddCallback(sockaddr *voxelServerAddress) {
-    char voxelAsk[] = "I";
-    printf("Asking VS for data!\n");
-    agentList.getAgentSocket().send(voxelServerAddress, voxelAsk, 1);
-}
-
-int main(int argc, char** argv)
+int main(int argc, const char * argv[])
 {
-    struct ifaddrs * ifAddrStruct=NULL;
-    struct ifaddrs * ifa=NULL;
-    
-    getifaddrs(&ifAddrStruct);
-    
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
-            // is a valid IP4 Address
-            localAddress = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
-        }
-    }
-    
-    //  Lookup the IP address of things we have hostnames
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {        
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+    const char* domainIP = getCmdOption(argc, argv, "--domain");
+    if (domainIP) {
+		strcpy(DOMAIN_IP,domainIP);
+	}
 
-        } else {
-            printf("Failed lookup domainserver\n");
-        }
-    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    // Handle Local Domain testing with the --local command line
+    if (cmdOptionExists(argc, argv, "--local")) {
+    	printf("Local Domain MODE!\n");
+		int ip = getLocalAddress();
+		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
     agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
-    agentList.audioMixerSocketUpdate = &audioMixerUpdate;
-    agentList.voxelServerAddCallback = &voxelServerAddCallback;
     
+    #ifndef _WIN32
+    agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    #endif
+
     // start the thread which checks for silent agents
     agentList.startSilentAgentRemovalThread();
+    agentList.startDomainServerCheckInThread();
+    
+#ifdef _WIN32
+    WSADATA WsaData;
+    int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
+#endif
 
-    glutInit(&argc, argv);
+    glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
     
+    #ifdef _WIN32
+    glewInit();
+    #endif
+
     printf( "Created Display Window.\n" );
     
     initDisplay();
@@ -983,7 +992,9 @@ int main(int argc, char** argv)
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(key);
+    glutKeyboardUpFunc(keyUp);
     glutSpecialFunc(specialkey);
+    glutSpecialUpFunc(specialkeyUp);
 	glutMotionFunc(motionFunc);
     glutPassiveMotionFunc(mouseoverFunc);
 	glutMouseFunc(mouseFunc);
@@ -992,6 +1003,18 @@ int main(int argc, char** argv)
     printf( "Initialized Display.\n" );
 
     init();
+
+	// Check to see if the user passed in a command line option for randomizing colors
+	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
+		wantColorRandomizer = false;
+	}
+	
+	// Check to see if the user passed in a command line option for loading a local
+	// Voxel File. If so, load it now.
+    const char* voxelsFilename = getCmdOption(argc, argv, "-i");
+    if (voxelsFilename) {
+	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);

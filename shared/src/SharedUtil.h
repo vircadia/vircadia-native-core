@@ -21,11 +21,20 @@ double usecTimestamp(timeval *time);
 double usecTimestampNow();
 
 float randFloat();
-unsigned char randomColorValue(uint8_t minimum);
+int randIntInRange (int min, int max);
+float randFloatInRange (float min,float max);
+unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
 void outputBits(unsigned char byte);
-int8_t numberOfOnes(unsigned char byte);
-bool oneAtBit(unsigned char byte, int8_t bitIndex);
+void printVoxelCode(unsigned char* voxelCode);
+int numberOfOnes(unsigned char byte);
+bool oneAtBit(unsigned char byte, int bitIndex);
+
+void switchToResourcesIfRequired();
+
+const char* getCmdOption(int argc, const char * argv[],const char* option);
+bool cmdOptionExists(int argc, const char * argv[],const char* option);
+unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
 
 #endif /* defined(__hifi__SharedUtil__) */

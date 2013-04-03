@@ -12,14 +12,14 @@
 #include "SharedUtil.h"
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
 
 Agent::Agent() {}
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType) {
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
     memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
     
@@ -27,12 +27,15 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
     
     type = agentType;
+    agentId = thisAgentId;
     
     firstRecvTimeUsecs = usecTimestampNow();
     lastRecvTimeUsecs = usecTimestampNow();
     
     activeSocket = NULL;
     linkedData = NULL;
+    
+    pthread_mutex_init(&deleteMutex, NULL);
 }
 
 Agent::Agent(const Agent &otherAgent) {
@@ -41,6 +44,8 @@ Agent::Agent(const Agent &otherAgent) {
     
     localSocket = new sockaddr;
     memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    
+    agentId = otherAgent.agentId;
     
     if (otherAgent.activeSocket == otherAgent.publicSocket) {
         activeSocket = publicSocket;
@@ -59,11 +64,24 @@ Agent::Agent(const Agent &otherAgent) {
     } else {
         linkedData = NULL;
     }
+    
+    deleteMutex = otherAgent.deleteMutex;
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
     swap(*this, otherAgent);
     return *this;
+}
+
+void Agent::swap(Agent &first, Agent &second) {
+    using std::swap;
+    swap(first.publicSocket, second.publicSocket);
+    swap(first.localSocket, second.localSocket);
+    swap(first.activeSocket, second.activeSocket);
+    swap(first.type, second.type);
+    swap(first.linkedData, second.linkedData);
+    swap(first.agentId, second.agentId);
+    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {
@@ -78,6 +96,14 @@ char Agent::getType() {
 
 void Agent::setType(char newType) {
     type = newType;
+}
+
+uint16_t Agent::getAgentId() {
+    return agentId;
+}
+
+void Agent::setAgentId(uint16_t thisAgentId) {
+    agentId = thisAgentId;
 }
 
 double Agent::getFirstRecvTimeUsecs() {
@@ -135,15 +161,6 @@ void Agent::setLinkedData(AgentData *newData) {
 
 bool Agent::operator==(const Agent& otherAgent) {
     return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
-}
-
-void Agent::swap(Agent &first, Agent &second) {
-    using std::swap;
-    swap(first.publicSocket, second.publicSocket);
-    swap(first.localSocket, second.localSocket);
-    swap(first.activeSocket, second.activeSocket);
-    swap(first.type, second.type);
-    swap(first.linkedData, second.linkedData);
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {

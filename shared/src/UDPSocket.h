@@ -12,7 +12,7 @@
 #include <iostream>
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <netinet/in.h>
 #include <netdb.h>
@@ -36,5 +36,6 @@ bool socketMatch(sockaddr *first, sockaddr *second);
 int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkOrderPort);
 int packSocket(unsigned char *packStore, sockaddr *socketToPack);
 int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket);
+int getLocalAddress();
 
 #endif /* defined(__interface__UDPSocket__) */

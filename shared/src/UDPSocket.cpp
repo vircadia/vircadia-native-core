@@ -13,10 +13,11 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Syssocket.h"
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #endif
 
 sockaddr_in destSockaddr, senderAddress;
@@ -64,6 +65,28 @@ int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket) {
     return 6; // this could be more if we ever need IPv6
 }
 
+int getLocalAddress() {
+    // get this agent's local address so we can pass that to DS
+    struct ifaddrs * ifAddrStruct = NULL;
+    struct ifaddrs * ifa = NULL;
+    
+    int family;
+    int localAddress = 0;
+    
+    getifaddrs(&ifAddrStruct);
+        
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET) {
+            localAddress = ((sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
+        }
+    }
+    
+    freeifaddrs(ifAddrStruct);
+    
+    return localAddress;
+}
+
 UDPSocket::UDPSocket(int listeningPort) {
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -96,7 +119,11 @@ UDPSocket::UDPSocket(int listeningPort) {
 }
 
 UDPSocket::~UDPSocket() {
+#ifdef _WIN32
+    closesocket(handle);
+#else
     close(handle);
+#endif
 }
 
 //  Receive data on this socket with retrieving address of sender
@@ -110,7 +137,7 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
     
     socklen_t addressSize = sizeof(&recvAddress);
     
-    *receivedBytes = recvfrom(handle, receivedData, MAX_BUFFER_LENGTH_BYTES,
+    *receivedBytes = recvfrom(handle, static_cast<char*>(receivedData), MAX_BUFFER_LENGTH_BYTES,
                               0, recvAddress, &addressSize);
     
     return (*receivedBytes > 0);

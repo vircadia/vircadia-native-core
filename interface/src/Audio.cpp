@@ -5,22 +5,17 @@
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
+#ifndef _WIN32
 
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <sys/stat.h>
 #include <cstring>
-#include <SharedUtil.h>
 #include <StdDev.h>
 #include <UDPSocket.h>
+#include <SharedUtil.h>
 #include "Audio.h"
 #include "Util.h"
 
@@ -49,7 +44,7 @@ const float MAX_FLANGE_SAMPLE_WEIGHT = 0.50;
 const float MIN_FLANGE_INTENSITY = 0.25;
 
 const int SAMPLE_RATE = 22050;
-const float JITTER_BUFFER_LENGTH_MSECS = 4;
+const float JITTER_BUFFER_LENGTH_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
                                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
@@ -67,11 +62,17 @@ const int AUDIO_UDP_LISTEN_PORT = 55444;
 int starve_counter = 0;
 StDev stdev;
 bool stopAudioReceiveThread = false;
+
 int samplesLeftForFlange = 0;
 int lastYawMeasuredMaximum = 0;
 float flangeIntensity = 0;
 float flangeRate = 0;
 float flangeWeight = 0;
+
+int16_t *walkingSoundArray;
+int walkingSoundSamples;
+int samplesLeftForWalk = 0;
+int16_t *sampleWalkPointer;
 
 timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
@@ -117,48 +118,6 @@ int audioCallback (const void *inputBuffer,
     
     if (inputLeft != NULL) {
         
-        if (data->mixerAddress != 0) {
-            sockaddr_in audioMixerSocket;
-            audioMixerSocket.sin_family = AF_INET;
-            audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
-            audioMixerSocket.sin_port = data->mixerPort;
-            
-            int leadingBytes = 1 + (sizeof(float) * 4);
-            
-            // we need the amount of bytes in the buffer + 1 for type + 12 for 3 floats for position
-            unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
-            
-            dataPacket[0] = 'I';
-            unsigned char *currentPacketPtr = dataPacket + 1;
-            
-            // memcpy the three float positions
-            for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedHead->getPos()[p], sizeof(float));
-                currentPacketPtr += sizeof(float);
-            }
-            
-            // memcpy the corrected render yaw
-            float correctedYaw = fmodf(data->linkedHead->getRenderYaw(), 360);
-            
-            if (correctedYaw > 180) {
-                correctedYaw -= 360;
-            } else if (correctedYaw < -180) {
-                correctedYaw += 360;
-            }
-            
-            if (data->mixerLoopbackFlag) {
-                correctedYaw = correctedYaw > 0 ? correctedYaw + AGENT_LOOPBACK_MODIFIER : correctedYaw - AGENT_LOOPBACK_MODIFIER;
-            }
-            
-            memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
-            currentPacketPtr += sizeof(float);
-                        
-            // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
-            
-            data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
-        }
-       
         //
         //  Measure the loudness of the signal from the microphone and store in audio object
         //
@@ -177,6 +136,83 @@ int audioCallback (const void *inputBuffer,
             for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
                 scope->addData((float)inputLeft[i]/32767.0, 1, i);
             }
+        }
+        
+        if (data->mixerAddress != 0) {
+            sockaddr_in audioMixerSocket;
+            audioMixerSocket.sin_family = AF_INET;
+            audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
+            audioMixerSocket.sin_port = data->mixerPort;
+            
+            int leadingBytes = 2 + (sizeof(float) * 4);
+            
+            // we need the amount of bytes in the buffer + 1 for type
+            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+            unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+            
+            dataPacket[0] = 'I';
+            unsigned char *currentPacketPtr = dataPacket + 1;
+            
+            // memcpy the three float positions
+            for (int p = 0; p < 3; p++) {
+                memcpy(currentPacketPtr, &data->linkedHead->getPos()[p], sizeof(float));
+                currentPacketPtr += sizeof(float);
+            }
+            
+            // tell the mixer not to add additional attenuation to our source
+            *(currentPacketPtr++) = 255;
+            
+            // memcpy the corrected render yaw
+            float correctedYaw = fmodf(data->linkedHead->getRenderYaw(), 360);
+            
+            if (correctedYaw > 180) {
+                correctedYaw -= 360;
+            } else if (correctedYaw < -180) {
+                correctedYaw += 360;
+            }
+            
+            if (data->mixerLoopbackFlag) {
+                correctedYaw = correctedYaw > 0 ? correctedYaw + AGENT_LOOPBACK_MODIFIER : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+            }
+            
+            memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
+            currentPacketPtr += sizeof(float);
+            
+//            if (samplesLeftForWalk == 0) {
+//                sampleWalkPointer = walkingSoundArray;
+//            }
+//            
+//            if (data->playWalkSound) {
+//                // if this boolean is true and we aren't currently playing the walk sound
+//                // set the number of samples left for walk
+//                samplesLeftForWalk = walkingSoundSamples;
+//                data->playWalkSound = false;
+//            }
+//            
+//            if (samplesLeftForWalk > 0) {
+//                // we need to play part of the walking sound
+//                // so add it in
+//                int affectedSamples = std::min(samplesLeftForWalk, BUFFER_LENGTH_SAMPLES);
+//                for (int i = 0; i < affectedSamples; i++) {
+//                    inputLeft[i] += *sampleWalkPointer;
+//                    inputLeft[i] = std::max(inputLeft[i], std::numeric_limits<int16_t>::min());
+//                    inputLeft[i] = std::min(inputLeft[i], std::numeric_limits<int16_t>::max());
+//                    
+//                    sampleWalkPointer++;
+//                    samplesLeftForWalk--;
+//                    
+//                    if (sampleWalkPointer - walkingSoundArray > walkingSoundSamples) {
+//                        sampleWalkPointer = walkingSoundArray;
+//                    };
+//                }
+//            }
+//            
+            
+            
+            // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
+            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
+            
+            data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
     }
     
@@ -232,19 +268,19 @@ int audioCallback (const void *inputBuffer,
             }
             
             // check if we have more than we need to play out
-            int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
-            int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
-            
-            if (ringBuffer->diffLastWriteNextOutput() > thresholdSamples) {
-                // we need to push the next output forwards
-                int samplesToPush = ringBuffer->diffLastWriteNextOutput() - thresholdSamples;
-                
-                if (ringBuffer->getNextOutput() + samplesToPush > ringBuffer->getBuffer()) {
-                    ringBuffer->setNextOutput(ringBuffer->getBuffer() + (samplesToPush - (ringBuffer->getBuffer() + RING_BUFFER_SAMPLES - ringBuffer->getNextOutput())));
-                } else {
-                    ringBuffer->setNextOutput(ringBuffer->getNextOutput() + samplesToPush);
-                }
-            }
+//            int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
+//            int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
+//            
+//            if (ringBuffer->diffLastWriteNextOutput() > thresholdSamples) {
+//                // we need to push the next output forwards
+//                int samplesToPush = ringBuffer->diffLastWriteNextOutput() - thresholdSamples;
+//                
+//                if (ringBuffer->getNextOutput() + samplesToPush > ringBuffer->getBuffer()) {
+//                    ringBuffer->setNextOutput(ringBuffer->getBuffer() + (samplesToPush - (ringBuffer->getBuffer() + RING_BUFFER_SAMPLES - ringBuffer->getNextOutput())));
+//                } else {
+//                    ringBuffer->setNextOutput(ringBuffer->getNextOutput() + samplesToPush);
+//                }
+//            }
             
             for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                 
@@ -391,6 +427,10 @@ bool Audio::getMixerLoopbackFlag() {
     return audioData->mixerLoopbackFlag;
 }
 
+void Audio::setWalkingState(bool newWalkState) {
+    audioData->playWalkSound = newWalkState;
+}
+
 /**
  * Initialize portaudio and start an audio stream.
  * Should be called at the beginning of program exection.
@@ -400,6 +440,21 @@ Use Audio::getError() to retrieve the error code.
  */
 Audio::Audio(Oscilloscope *s, Head *linkedHead)
 {
+    // read the walking sound from the raw file and store it
+    // in the in memory array
+    
+    switchToResourcesIfRequired();
+    FILE *soundFile = fopen("audio/walking.raw", "r");
+    
+    // get length of file:
+    std::fseek(soundFile, 0, SEEK_END);
+    walkingSoundSamples = std::ftell(soundFile) / sizeof(int16_t);
+    walkingSoundArray = new int16_t[walkingSoundSamples];
+    std::rewind(soundFile);
+    
+    std::fread(walkingSoundArray, sizeof(int16_t), walkingSoundSamples, soundFile);
+    std::fclose(soundFile);
+    
     paError = Pa_Initialize();
     if (paError != paNoError) goto error;
     
@@ -578,3 +633,4 @@ error:
     return false;
 }
 
+#endif

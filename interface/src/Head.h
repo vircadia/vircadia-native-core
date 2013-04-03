@@ -20,6 +20,16 @@
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
+#define FWD 0
+#define BACK 1 
+#define LEFT 2 
+#define RIGHT 3 
+#define UP 4 
+#define DOWN 5
+#define ROT_LEFT 6 
+#define ROT_RIGHT 7 
+#define MAX_DRIVE_KEYS 8
+
 class Head : public AgentData {
     public:
         Head();
@@ -49,7 +59,7 @@ class Head : public AgentData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
         
-        void render(int faceToFace, int isMine, float * myLocation);
+        void render(int faceToFace, int isMine);
         void simulate(float);
         
         //  Send and receive network data
@@ -64,6 +74,15 @@ class Head : public AgentData {
         void SetNewHeadTarget(float, float);
         glm::vec3 getPos() { return position; };
         void setPos(glm::vec3 newpos) { position = newpos; };
+    
+        //  Set what driving keys are being pressed to control thrust levels
+        void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
+        bool getDriveKeys(int key) { return driveKeys[key]; };
+    
+        //  Set/Get update the thrust that will move the avatar around
+        void setThrust(glm::vec3 newThrust) { thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { thrust += newThrust; };
+        glm::vec3 getThrust() { return thrust; };
     
         Hand * hand;
     
@@ -103,8 +122,16 @@ class Head : public AgentData {
         float browAudioLift;
     
         glm::vec3 position;
+        glm::vec3 velocity;
+        glm::vec3 thrust;
+    
+        int driveKeys[MAX_DRIVE_KEYS];
+        
         int eyeContact;
         eyeContactTargets eyeContactTarget;
+    
+        GLUquadric *sphere;
+    
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     

@@ -1,3 +1,11 @@
+//
+//  main.cpp
+//  mixer
+//
+//  Created by Stephen Birarda on 2/1/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
 #include <iostream>
 #include <math.h>
 #include <string.h>
@@ -14,20 +22,21 @@
 #include "AudioRingBuffer.h"
 
 #ifdef _WIN32
+#include "Syssocket.h"
 #include "Systime.h"
-#include <winsock2.h>
+#include <math.h>
 #else
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif _WIN32
+#endif //_WIN32
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
 const float SAMPLE_RATE = 22050.0;
 
-const short JITTER_BUFFER_MSECS = 5;
+const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
 const int BUFFER_LENGTH_BYTES = 1024;
@@ -50,11 +59,7 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102; 
-
-AgentList agentList(MIXER_LISTEN_PORT);
+AgentList agentList('M', MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -144,9 +149,6 @@ void *sendBuffer(void *args)
                     float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                     float angleToSource;
                     
-                    if (agentWantsLoopback) {
-                        
-                    }
                     
                     // find the angle we need for calculation based on the orientation of the triangle
                     if (otherAgentPosition[0] > agentPosition[0]) {
@@ -175,8 +177,6 @@ void *sendBuffer(void *args)
                     int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                     float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                     
-                    printf("The weak channel AR is %f\n", weakChannelAmplitudeRatio);
-                    
                     int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
                     int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                     
@@ -190,15 +190,23 @@ void *sendBuffer(void *args)
                         if (s < numSamplesDelay) {
                             // pull the earlier sample for the delayed channel
                             
-                            int earlierSample = delaySamplePointer[s] * distanceCoeffs[lowAgentIndex][highAgentIndex];
+                            int earlierSample = delaySamplePointer[s] *
+                                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                                otherAgentBuffer->getAttenuationRatio();
+                            
                             plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                         }
                         
-                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * distanceCoeffs[lowAgentIndex][highAgentIndex]);
+                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
+                                                 distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                                 otherAgentBuffer->getAttenuationRatio());
                         plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample * weakChannelAmplitudeRatio);
+                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
+                                                     currentSample *
+                                                     weakChannelAmplitudeRatio *
+                                                     otherAgentBuffer->getAttenuationRatio());
                         }
                     }
                 }
@@ -232,29 +240,6 @@ void *sendBuffer(void *args)
     pthread_exit(0);  
 }
 
-void *reportAliveToDS(void *args) {
-    
-    timeval lastSend;
-    unsigned char output[7];
-   
-    while (true) {
-        gettimeofday(&lastSend, NULL);
-        
-        *output = 'M';
-//        packSocket(output + 1, 895283510, htons(MIXER_LISTEN_PORT));
-        packSocket(output + 1, 788637888, htons(MIXER_LISTEN_PORT));
-        agentList.getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
-        
-        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        } else {
-            std::cout << "No sleep required!";
-        }
-    }    
-}
-
 void attachNewBufferToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
         newAgent->setLinkedData(new AudioRingBuffer(RING_BUFFER_SAMPLES, BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
@@ -270,26 +255,7 @@ int main(int argc, const char * argv[])
     agentList.linkedDataCreateCallback = attachNewBufferToAgent;
     
     agentList.startSilentAgentRemovalThread();
-    
-    //  Lookup the IP address of things we have hostnames
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
-            
-        } else {
-            printf("Failed lookup domainserver\n");
-        }
-    } else {
-        printf("Using static domainserver IP: %s\n", DOMAIN_IP);
-    }
-    
-    // setup the agentSocket to report to domain server
-    pthread_t reportAliveThread;
-    pthread_create(&reportAliveThread, NULL, reportAliveToDS, NULL);
+    agentList.startDomainServerCheckInThread();
 
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 
@@ -329,7 +295,11 @@ int main(int argc, const char * argv[])
                 
                 // add or update the existing interface agent
                 if (!LOOPBACK_SANITY_CHECK) {
-                    agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0]);
+                    
+                    if (agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList.getLastAgentId())) {
+                        agentList.increaseAgentId();
+                    }
+                    
                     agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
                 } else {
                     memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
@@ -339,10 +309,7 @@ int main(int argc, const char * argv[])
         }
     }
     
-    agentList.stopSilentAgentRemovalThread();
-    pthread_join(reportAliveThread, NULL);
     pthread_join(sendBufferThread, NULL);
     
     return 0;
 }
-
