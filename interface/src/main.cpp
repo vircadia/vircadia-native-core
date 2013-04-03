@@ -96,6 +96,7 @@ Oscilloscope audioScope(256,200,true);
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
 
+char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
 Stars stars;
 #ifdef STARFIELD_KEYS
@@ -327,7 +328,7 @@ void init(void)
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2;
 
-    stars.readInput("file://stars.txt", 0);
+    stars.readInput(starFile, 0);
  
     //  Initialize Field values
     field = Field();
@@ -791,7 +792,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'j') stars.setResolution(starsTiles = max(starsTiles-1,1));
     if (k == 'i') if (starsLod < 1.0) starsLod = stars.changeLOD(1.01);
     if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
-    if (k == 'r') stars.readInput("file://stars.txt", 0);
+    if (k == 'r') stars.readInput(starFile, 0);
 #endif
     if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
