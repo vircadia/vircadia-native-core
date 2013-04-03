@@ -35,12 +35,19 @@
 #include <pthread.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
 #ifndef _WIN32
 #include "Audio.h"
 #endif
+
+#include "FieldOfView.h"
+#include "Stars.h"
+
 #include "Head.h"
 #include "Hand.h"
 #include "Particle.h"
@@ -58,7 +65,7 @@
 
 using namespace std;
 
-int audio_on = 1;                   //  Whether to turn on the audio support
+int audio_on = 0;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 AgentList agentList('I');
@@ -88,6 +95,13 @@ Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
+
+FieldOfView fov;
+Stars stars;
+#ifdef STARFIELD_KEYS
+int starsTiles = 20;
+double starsLod = 1.0;
+#endif
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0,
@@ -312,7 +326,9 @@ void init(void)
     head_mouse_y = HEIGHT/2; 
     head_lean_x = WIDTH/2;
     head_lean_y = HEIGHT/2;
-    
+
+    stars.readInput("file://stars.txt", 0);
+ 
     //  Initialize Field values
     field = Field();
     printf( "Field Initialized.\n" );
@@ -503,10 +519,21 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
            
         //  Rotate, translate to camera location
+        fov.setOrientation(
+            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
+                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
+                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
+
+        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
         glRotatef(myHead.getRenderPitch(), 1, 0, 0);
         glRotatef(myHead.getRenderYaw(), 0, 1, 0);
-        glTranslatef(myHead.getPos().x, myHead.getPos().y, myHead.getPos().z);
-    
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        stars.render(fov);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_DEPTH_TEST);
+        
         glColor3f(1,0,0);
         glutSolidSphere(0.25, 15, 15);
     
@@ -661,6 +688,7 @@ void addRandomSphere(bool wantColorRandomizer)
 
 
 const float KEYBOARD_YAW_RATE = 0.8;
+const float KEYBOARD_PITCH_RATE = 0.6;
 const float KEYBOARD_STRAFE_RATE = 0.03;
 const float KEYBOARD_FLY_RATE = 0.08;
 
@@ -756,6 +784,15 @@ void key(unsigned char k, int x, int y)
     if (k == 'w') myHead.setDriveKeys(FWD, 1);
     if (k == 's') myHead.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
+    if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
+    if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
+#ifdef STARFIELD_KEYS
+    if (k == 'u') stars.setResolution(starsTiles += 1);
+    if (k == 'j') stars.setResolution(starsTiles = max(starsTiles-1,1));
+    if (k == 'i') if (starsLod < 1.0) starsLod = stars.changeLOD(1.01);
+    if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
+    if (k == 'r') stars.readInput("file://stars.txt", 0);
+#endif
     if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
     if (k == 'o') simulate_on = !simulate_on;
@@ -845,19 +882,17 @@ void reshape(int width, int height)
 {
     WIDTH = width;
     HEIGHT = height; 
-    
-    glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION); //hello
-    glLoadIdentity();
-    gluPerspective(45, //view angle
-                   1.0, //aspect ratio
-                   0.1, //near clip
-                   500.0);//far clip
+    fov.setResolution(width, height)
+            .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
+            .setPerspective(0.7854f);
+    glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-     
+    glViewport(0, 0, width, height);
 }
 
 void mouseFunc( int button, int state, int x, int y ) 

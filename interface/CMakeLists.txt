@@ -8,6 +8,7 @@ set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 project(interface)
 
+
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 else (APPLE)
@@ -26,6 +27,9 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dir
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
+
+# project subdirectories
+add_subdirectory(src/starfield)
 
 if (APPLE)
   # set how the icon shows up in the Info.plist file
@@ -51,12 +55,20 @@ link_hifi_shared_library(interface)
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
+find_package(CURL REQUIRED)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
+    ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_BINARY_DIR}/includes
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
+)
+
+# link target to common, external libraries
+target_link_libraries(interface 
+    ${CURL_LIBRARY}
 )
 
 if (NOT APPLE)
@@ -88,7 +100,7 @@ if (WIN32)
     )
 else (WIN32)
   target_link_libraries(interface ${LODEPNG_LIBRARY})
-  
+
   # include PortAudio as external project
   include(ExternalProject)
   set(PORTAUDIO_PROJ_DIR external/portaudio)

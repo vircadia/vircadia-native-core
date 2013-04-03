@@ -9,7 +9,6 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include <iostream>
 #include "VoxelNode.h"
 #include "MarkerNode.h"
 
