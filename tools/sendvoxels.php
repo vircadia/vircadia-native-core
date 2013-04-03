@@ -11,7 +11,7 @@ function send_voxels($inputFileName,$server,$port,$command) {
 		$netData = pack("cv",ord($command),$voxNum);
 
 		$packetSize = 3; // to start
-		while ($packetSize < 800) {
+		while ($packetSize < 1450) {
 			$octets = fread($inputFile,1);
 			$octets = (int)ord($octets);
 			echo "read octets=$octets\n";

@@ -178,7 +178,10 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
     printOctalCode(nodeToDelete->octalCode);
     
     // If the node exists...
-    if (*nodeToDelete->octalCode == *codeBuffer) {
+	int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
+	printf("compare octal codes of length %d\n",lengthInBytes);
+
+    if (0==memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
     	printf("found node to delete...\n");
 
 		float* vertices = firstVertexForCode(nodeToDelete->octalCode);
