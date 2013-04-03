@@ -171,6 +171,12 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 	VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
     
+    printf("deleteVoxelCodeFromTree() looking [codeBuffer] for:\n");
+    printOctalCode(codeBuffer);
+
+    printf("deleteVoxelCodeFromTree() found [nodeToDelete->octalCode] for:\n");
+    printOctalCode(nodeToDelete->octalCode);
+    
     // If the node exists...
     if (*nodeToDelete->octalCode == *codeBuffer) {
     	printf("found node to delete...\n");
