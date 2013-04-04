@@ -142,6 +142,8 @@ float renderPitchRate = 0.f;
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
+bool starsOn = true;				//  Whether to display the stars
+bool paintOn = false;				//  Whether to paint voxels as you fly around
 
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -250,11 +252,14 @@ void display_stats(void)
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
     drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
+
+    char legend2[] = "* - toggle stars, & - toggle paint mode";
+    drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
             FPS, packets_per_second,  bytes_per_second);
-    drawtext(10, 30, 0.10f, 0, 1.0, 0, stats); 
+    drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
@@ -485,6 +490,34 @@ void simulateHead(float frametime)
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
+    
+    // If I'm in paint mode, send a voxel out to VOXEL server agents.
+    if (::paintOn) {
+    
+    	glm::vec3 headPos = myHead.getPos();
+
+    	VoxelDetail paintingVoxel;
+    	paintingVoxel.x = headPos.z/10.0;	// voxel space x is positive z head space
+    	paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
+    	paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+    	paintingVoxel.s = 1.0/256;
+    	paintingVoxel.red = 0;
+    	paintingVoxel.green = 255;
+    	paintingVoxel.blue = 0;
+    	
+    	unsigned char* bufferOut;
+    	int sizeOut;
+    	
+		if (paintingVoxel.x >= 0.0 && paintingVoxel.x <= 1.0 &&
+			paintingVoxel.y >= 0.0 && paintingVoxel.y <= 1.0 &&
+			paintingVoxel.z >= 0.0 && paintingVoxel.z <= 1.0) {
+
+			if (createVoxelEditMessage('I',0,1,&paintingVoxel,bufferOut,sizeOut)){
+				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
+				delete bufferOut;
+			}
+		}
+    }
 }
 
 int render_test_spot = WIDTH/2;
@@ -531,7 +564,9 @@ void display(void)
 
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
-        stars.render(fov);
+        if (::starsOn) {
+        	stars.render(fov);
+        }
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
@@ -641,6 +676,10 @@ void display(void)
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+    
+    if (::paintOn) {
+		drawtext(WIDTH-200,40, 0.10, 0, 1.0, 0, "Paint ON", 1, 1, 0);
+    }
     
     glPopMatrix();
     
@@ -753,8 +792,9 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-    
     if (k == '/')  stats_on = !stats_on;		// toggle stats
+    if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
+    if (k == '&')  ::paintOn = !::paintOn;		// toggle paint
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
@@ -810,11 +850,7 @@ void key(unsigned char k, int x, int y)
     }
 
 	// press the . key to get a new random sphere of voxels added 
-    if (k == '.')
-    {
-        addRandomSphere(wantColorRandomizer);
-        //testPointToVoxel();
-    }
+    if (k == '.') addRandomSphere(wantColorRandomizer);
 }
 
 //

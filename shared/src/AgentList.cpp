@@ -212,6 +212,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
 
 const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
 const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
+const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
 
 void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
