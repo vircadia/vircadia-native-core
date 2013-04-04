@@ -527,8 +527,6 @@ void display(void)
 {
 	PerfStat("display");
 
-    glEnable (GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -559,14 +557,12 @@ void display(void)
                 -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
 
         glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
-        glRotatef(myHead.getRenderPitch(), 1, 0, 0);
-        glRotatef(myHead.getRenderYaw(), 0, 1, 0);
 
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
         if (::starsOn) {
+            // should be the first rendering pass - w/o depth buffer / lighting
         	stars.render(fov);
         }
+
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
@@ -670,8 +666,12 @@ void display(void)
     if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);
     
     //  Display miscellaneous text stats onscreen
-    if (stats_on) display_stats();
-    
+    if (stats_on) {
+        glLineWidth(1.0f);
+        glPointSize(1.0f);
+        display_stats();
+    }
+
     //  Draw number of nearby people always
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());

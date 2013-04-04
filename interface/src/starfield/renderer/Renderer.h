@@ -106,8 +106,8 @@ namespace starfield {
             this->glUpload(n);
         }
 
-        ~Renderer()
-        {
+        ~Renderer() {
+
             delete[] _arrData;
             delete[] _arrTile;
             delete[] _arrBatchCount;
@@ -119,8 +119,7 @@ namespace starfield {
         void render(float perspective,
                     float aspect,
                     mat4 const& orientation,
-                    BrightnessLevel minBright)
-        {
+                    BrightnessLevel minBright) {
 
 // fprintf(stderr, "
 //      Stars.cpp: rendering at minimal brightness %d\n", minBright);
@@ -479,6 +478,9 @@ namespace starfield {
 //     fprintf(stderr, "Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
 //             _arrBatchOffs[i], _arrBatchCount[i]);
 
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_LIGHTING);
+
             // setup modelview matrix (identity)
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
@@ -507,6 +509,7 @@ namespace starfield {
             glBindVertexArray(0); 
             glUseProgram(0);
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+            glDisable(GL_POINT_SMOOTH);
             glPopMatrix();
             glMatrixMode(GL_MODELVIEW);
             glPopMatrix();
