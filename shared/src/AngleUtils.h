@@ -11,22 +11,22 @@
 
 #include <math.h>
 
-struct Degrees
-{
+struct Degrees {
+
     static float pi() { return 180.0f; }
     static float twicePi() { return 360.0f; }
     static float halfPi()  { return 90.0f; }
 };
 
-struct Radians
-{
+struct Radians {
+
     static float pi() { return 3.141592653589793f; }
     static float twicePi() { return 6.283185307179586f; }
     static float halfPi()  { return 1.5707963267948966; }
 };
 
-struct Rotations
-{
+struct Rotations {
+
     static float pi() { return 0.5f; }
     static float twicePi() { return 1.0f; }
     static float halfPi()  { return 0.25f; }
@@ -36,8 +36,8 @@ struct Rotations
  * Converts an angle from one unit to another.
  */
 template< class UnitFrom, class UnitTo >
-float angleConvert(float a)
-{
+float angleConvert(float a) {
+
     return a * (UnitTo::halfPi() / UnitFrom::halfPi());
 }
 
@@ -46,8 +46,8 @@ float angleConvert(float a)
  * Clamps an angle to the range of [-180; 180) degrees.
  */
 template< class Unit >
-float angleSignedNormal(float a)
-{
+float angleSignedNormal(float a) {
+
     float result = remainder(a, Unit::twicePi());
     if (result == Unit::pi())
         result = -Unit::pi();
@@ -58,8 +58,8 @@ float angleSignedNormal(float a)
  * Clamps an angle to the range of [0; 360) degrees.
  */
 template< class Unit >
-float angleUnsignedNormal(float a)
-{
+float angleUnsignedNormal(float a) {
+
     return angleSignedNormal<Unit>(a - Unit::pi()) + Unit::pi();
 }
 
@@ -72,16 +72,16 @@ float angleUnsignedNormal(float a)
  * Both poles can be reached from any azimuthal direction.
  */
 template< class Unit >
-void angleHorizontalPolar(float& azimuth, float& altitude)
-{
+void angleHorizontalPolar(float& azimuth, float& altitude) {
+
     altitude = angleSignedNormal<Unit>(altitude);
-    if (altitude > Unit::halfPi())
-    {
+    if (altitude > Unit::halfPi()) {
+
         altitude = Unit::pi() - altitude;
         azimuth += Unit::pi();
-    }
-    else if (altitude < -Unit::halfPi())
-    {
+
+    } else if (altitude < -Unit::halfPi()) {
+
         altitude = -Unit::pi() - altitude;
         azimuth += Unit::pi();
     }
