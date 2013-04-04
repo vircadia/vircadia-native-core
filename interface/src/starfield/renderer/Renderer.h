@@ -96,10 +96,14 @@ namespace starfield {
             Tiling tiling(k);
             size_t nTiles = tiling.getTileCount();
 
+            // REVISIT: could coalesce allocation for faster rebuild
+            // REVISIT: batch arrays are probably oversized, but - hey - they
+            // are not very large (unless for insane tiling) and we're better
+            // off safe than sorry
             _arrData = new GpuVertex[n];
             _arrTile = new Tile[nTiles + 1];
-            _arrBatchOffs = new GLint[nTiles]; 
-            _arrBatchCount = new GLsizei[nTiles];
+            _arrBatchOffs = new GLint[nTiles * 2]; 
+            _arrBatchCount = new GLsizei[nTiles * 2];
 
             prepareVertexData(src, n, tiling, b, bMin);
 
@@ -290,21 +294,31 @@ namespace starfield {
             bool select(Tile* t) {
 
                 if (t < _arrTile || t >= _itrTilesEnd ||
-                        !! (t->flags & Tile::visited)) {
+                        !! (t->flags & Tile::checked)) {
 
-                    return false;
+                    // out of bounds or been here already
+                    return false; 
                 }
-                if (! (t->flags & Tile::checked)) {
 
-                    if (_refRenderer.visitTile(t))
-                        t->flags |= Tile::render;
+                // will check now and never again
+                t->flags |= Tile::checked;
+                if (_refRenderer.visitTile(t)) {
+
+                    // good one -> remember (for batching) and propagate
+                    t->flags |= Tile::render;
+                    return true;
                 }
-                return !! (t->flags & Tile::render);
+                return false;
             }
 
-            void process(Tile* t) { 
+            bool process(Tile* t) { 
 
-                t->flags |= Tile::visited;
+                if (! (t->flags & Tile::visited)) {
+
+                    t->flags |= Tile::visited;
+                    return true;
+                }
+                return false;
             }
 
             void right(Tile*& cursor) const   { cursor += 1; }
