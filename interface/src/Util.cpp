@@ -90,8 +90,8 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono, char *string, 
-              float r, float g, float b)
+void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
+              char const* string, float r, float g, float b)
 {
     //
     //  Draws text on screen as stroked so it can be resized
