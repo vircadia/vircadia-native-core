@@ -98,6 +98,7 @@ Head myHead;                        //  The rendered head of oneself
 
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
+
 Stars stars;
 #ifdef STARFIELD_KEYS
 int starsTiles = 20;
@@ -255,10 +256,12 @@ void display_stats(void)
 
     char legend2[] = "* - toggle stars, & - toggle paint mode";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
+
+	glm::vec3 headPos = myHead.getPos();
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
-            FPS, packets_per_second,  bytes_per_second);
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
+            FPS, packets_per_second,  bytes_per_second, headPos.x,headPos.y,headPos.z);
     drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
@@ -490,7 +493,7 @@ void simulateHead(float frametime)
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
-    
+
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     

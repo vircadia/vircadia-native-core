@@ -255,10 +255,17 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         unsigned char * childMaskPointer = NULL;
         
         float halfUnitForVoxel = powf(0.5, *currentVoxelNode->octalCode) * (0.5 * TREE_SCALE);
+
+		// XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
+		// coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 
+		// to fix this behavior. To disable this swap, set swapXandZ to false.
+        bool swapXandZ=true;
+        float agentX = swapXandZ ? agentPosition[2] : agentPosition[0];
+        float agentZ = swapXandZ ? agentPosition[0] : agentPosition[2];
         
-        float distanceToVoxelCenter = sqrtf(powf(agentPosition[0] - thisNodePosition[0] - halfUnitForVoxel, 2) +
+        float distanceToVoxelCenter = sqrtf(powf(agentX - thisNodePosition[0] - halfUnitForVoxel, 2) +
                                             powf(agentPosition[1] - thisNodePosition[1] - halfUnitForVoxel, 2) +
-                                            powf(agentPosition[2] - thisNodePosition[2] - halfUnitForVoxel, 2));
+                                            powf(agentZ - thisNodePosition[2] - halfUnitForVoxel, 2));
         
         // if the distance to this voxel's center is less than the threshold
         // distance for its children, we should send the children

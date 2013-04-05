@@ -133,12 +133,35 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
     glm::vec3 viewerPosition = viewerHead->getPos();
+
+    // XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
+    // coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 
+    // to fix this behavior. To disable this swap, set swapXandZ to false.
+    bool swapXandZ=true;
+    float viewerX = swapXandZ ? viewerPosition[2] : viewerPosition[0];
+    float viewerZ = swapXandZ ? viewerPosition[0] : viewerPosition[2];
+
+    // debugging code.
+    //printf("treeToArrays() halfUnitForVoxel=%f\n",halfUnitForVoxel);
+    //printf("treeToArrays() viewerPosition {x,y,z or [0],[1],[2]} ={%f,%f,%f}\n",
+    //      viewerPosition[0],viewerPosition[1],viewerPosition[2]);
+    //printf("treeToArrays() nodePosition   {x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
+    //      nodePosition[0],nodePosition[1],nodePosition[2]);
+    //float* vertices = firstVertexForCode(currentNode->octalCode);
+    //printf("treeToArrays() firstVerticesForCode(currentNode->octalCode)={x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
+    //      vertices[0],vertices[1],vertices[2]);
+    //delete []vertices;
     
-    float distanceToVoxelCenter = sqrtf(powf(viewerPosition[0] - nodePosition[0] - halfUnitForVoxel, 2) +
+    float distanceToVoxelCenter = sqrtf(powf(viewerX - nodePosition[0] - halfUnitForVoxel, 2) +
                                         powf(viewerPosition[1] - nodePosition[1] - halfUnitForVoxel, 2) +
-                                        powf(viewerPosition[2] - nodePosition[2] - halfUnitForVoxel, 2));
-    
-    if (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentNode->octalCode + 1)) {
+                                        powf(viewerZ - nodePosition[2] - halfUnitForVoxel, 2));
+
+    int boundaryPosition = boundaryDistanceForRenderLevel(*currentNode->octalCode + 1);
+    //printf("treeToArrays() distanceToVoxelCenter=%f boundaryPosition=%d\n",distanceToVoxelCenter,boundaryPosition);
+
+    bool alwaysDraw = false; // XXXBHG - temporary debug code. Flip this to true to disable LOD blurring
+
+    if (alwaysDraw || distanceToVoxelCenter < boundaryPosition) {
         for (int i = 0; i < 8; i++) {
             // check if there is a child here
             if (currentNode->children[i] != NULL) {
@@ -155,8 +178,6 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
                         childNodePosition[j] -= (powf(0.5, *currentNode->children[i]->octalCode) * TREE_SCALE);
                     }
                 }
-                
-                
                 voxelsAdded += treeToArrays(currentNode->children[i], childNodePosition);
             }
         }
