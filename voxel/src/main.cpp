@@ -171,7 +171,12 @@ void *distributeVoxelsToListeners(void *args) {
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;
                 
-                if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                // XXXBHG Hack Attack: This is temporary code to help debug an issue.
+                // Normally we use this break to prevent resending voxels that an agent has
+                // already visited. But since we might be modifying the voxel tree we might
+                // want to always send. This is a hack to test the behavior
+                bool alwaysSend = true;
+                if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
                     break;
                 }
             }

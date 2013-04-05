@@ -145,7 +145,8 @@ glm::vec3 start_location(6.1f, 0, 1.4f);
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
 bool starsOn = true;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
-
+VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
+unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -499,23 +500,18 @@ void simulateHead(float frametime)
     
     	glm::vec3 headPos = myHead.getPos();
 
-    	VoxelDetail paintingVoxel;
-    	paintingVoxel.x = headPos.z/10.0;	// voxel space x is positive z head space
-    	paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
-    	paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
-    	paintingVoxel.s = 1.0/256;
-    	paintingVoxel.red = 0;
-    	paintingVoxel.green = 255;
-    	paintingVoxel.blue = 0;
+		::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
+		::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
+		::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
     	
     	unsigned char* bufferOut;
     	int sizeOut;
     	
-		if (paintingVoxel.x >= 0.0 && paintingVoxel.x <= 1.0 &&
-			paintingVoxel.y >= 0.0 && paintingVoxel.y <= 1.0 &&
-			paintingVoxel.z >= 0.0 && paintingVoxel.z <= 1.0) {
+		if (::paintingVoxel.x >= 0.0 && ::paintingVoxel.x <= 1.0 &&
+			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
+			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-			if (createVoxelEditMessage('I',0,1,&paintingVoxel,bufferOut,sizeOut)){
+			if (createVoxelEditMessage('I',0,1,&::paintingVoxel,bufferOut,sizeOut)){
 				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
 				delete bufferOut;
 			}
@@ -681,7 +677,12 @@ void display(void)
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
     
     if (::paintOn) {
-		drawtext(WIDTH-200,40, 0.10, 0, 1.0, 0, "Paint ON", 1, 1, 0);
+    
+		char paintMessage[100];
+		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
+			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
+			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
+		drawtext(WIDTH-350,40, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
     glPopMatrix();
@@ -709,6 +710,27 @@ void testPointToVoxel()
 		delete voxelCode;
 		std::cout << std::endl;
 	}
+}
+
+void shiftPaintingColor()
+{
+    // About the color of the paintbrush... first determine the dominant color
+    ::dominantColor = (::dominantColor+1)%3; // 0=red,1=green,2=blue
+	::paintingVoxel.red   = (::dominantColor==0)?randIntInRange(200,255):randIntInRange(40,100);
+	::paintingVoxel.green = (::dominantColor==1)?randIntInRange(200,255):randIntInRange(40,100);
+	::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
+}
+
+void setupPaintingVoxel()
+{
+	glm::vec3 headPos = myHead.getPos();
+
+	::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
+	::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
+	::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+	::paintingVoxel.s = 1.0/256;
+	
+	shiftPaintingColor();
 }
 
 void addRandomSphere(bool wantColorRandomizer)
@@ -797,7 +819,13 @@ void key(unsigned char k, int x, int y)
  	if (k == 'q')  ::terminate();
     if (k == '/')  stats_on = !stats_on;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
-    if (k == '&')  ::paintOn = !::paintOn;		// toggle paint
+    if (k == '&') {
+    	::paintOn = !::paintOn;		// toggle paint
+    	setupPaintingVoxel(); 		// also randomizes colors
+    }
+    if (k == '^') {
+    	shiftPaintingColor(); 			// shifts randomize color between R,G,B dominant
+    }
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
