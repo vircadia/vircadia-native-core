@@ -66,9 +66,6 @@
 
 using namespace std;
 
-
-double testThingy = 90.0;
-
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
@@ -196,7 +193,6 @@ char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
-
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
@@ -252,6 +248,9 @@ void Timer(int extra)
         serialPort.pair();
     }
 }
+
+
+
 
 void display_stats(void)
 {
@@ -330,6 +329,9 @@ void initDisplay(void)
     if (fullscreen) glutFullScreen();
 }
 
+
+
+
 void init(void)
 {
     voxels.init();
@@ -365,7 +367,6 @@ void init(void)
         }
     }
 #endif
-    
     
     gettimeofday(&timer_start, NULL);
     gettimeofday(&last_frame, NULL);
@@ -416,12 +417,6 @@ void simulateHand(float deltaTime) {
         float dy = mouse_y - mouse_start_y;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
         myHead.hand->addVelocity(vel*deltaTime);
-		
-		double leftRight	= dx * 0.001;
-		double downUp		= dy * 0.001;
-		double backFront	= 0.0;
-		glm::dvec3 handMovement( leftRight, downUp, backFront );
-		myHead.setHandMovement( handMovement );		
     }
 }
 
@@ -544,6 +539,9 @@ void simulateHead(float frametime)
 int render_test_spot = WIDTH/2;
 int render_test_direction = 1; 
 
+
+
+
 void display(void)
 {
 	PerfStat("display");
@@ -571,30 +569,16 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-
 		//-------------------------------------------------------------------------------------
 		// set the caemra to third-person view
-		//-------------------------------------------------------------------------------------
-
-		testThingy += 1.0;
-				
-		//myCamera.setYaw		( myHead.getRenderYaw() );
-		myCamera.setYaw		( testThingy );
-		myCamera.setPitch	( 0.0 );
-		myCamera.setRoll	( 0.0 );
-		
-		double radian = ( testThingy / 180.0 ) * PI;
-		double x = 0.7 * sin( radian );
-		double z = 0.7 * cos( radian );
-		double y = -0.2;
-		
-		glm::dvec3 offset( x, y, z );
-
-		glm::dvec3 positionWithOffset( myHead.getPos() );
-		
-		positionWithOffset += offset;
-		
-		myCamera.setPosition( positionWithOffset );		
+		//-------------------------------------------------------------------------------------		
+		myCamera.setTargetPosition	( (glm::dvec3)myHead.getPos() );		
+		myCamera.setYaw				( 0.0  );
+		myCamera.setPitch			( 0.0  );
+		myCamera.setRoll			( 0.0  );
+		myCamera.setUp				( 0.15 );
+		myCamera.setDistance		( 0.08 );	
+		myCamera.update();
 		
 		//-------------------------------------------------------------------------------------
 		// transform to camera view
@@ -603,16 +587,6 @@ void display(void)
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
         glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
-
-		/*
-        //  Rotate, translate to camera location
-        fov.setOrientation(
-            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
-                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
-                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
-
-        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
-		*/
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -631,7 +605,7 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-        voxels.render();
+//voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -654,7 +628,8 @@ void display(void)
         if (!display_head && stats_on) render_world_box();
     
 	
-myHead.render( true, 1 );	
+		myHead.render( true, 1 );	
+		//myHead.renderAvatar();	
 	
 		/*
         //  Render my own head
@@ -749,6 +724,10 @@ myHead.render( true, 1 );
     glutSwapBuffers();
     framecount++;
 }
+
+
+
+
 
 void testPointToVoxel()
 {
@@ -953,6 +932,23 @@ void idle(void)
     if (diffclock(&last_frame, &check) > RENDER_FRAME_MSECS)
     {
         steps_per_frame++;
+		
+		//----------------------------------------------------------------
+		// If mouse is being dragged, update hand movement in the avatar
+		//----------------------------------------------------------------
+		if ( mouse_pressed == 1 )
+		{
+			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
+			double yOffset = ( mouse_y - mouse_start_y ) / (double)WIDTH;
+			
+			double leftRight	= xOffset;
+			double downUp		= yOffset;
+			double backFront	= 0.0;
+			
+			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			myHead.setHandMovement( handMovement );		
+		}		
+		
         //  Simulation
         simulateHead(1.f/FPS);
         simulateHand(1.f/FPS);

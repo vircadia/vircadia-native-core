@@ -595,7 +595,7 @@ glScalef( 0.03, 0.03, 0.03 );
 //---------------------------------------------------------
 void Head::setHandMovement( glm::dvec3 movement )
 {
-	handOffset.setXYZ( movement.x, movement.y, movement.z );
+	handOffset.setXYZ( movement.x, -movement.y, movement.z );
 }
 
 
@@ -744,6 +744,9 @@ void Head::simulateAvatar( float deltaTime )
 //-----------------------------------------
 void Head::updateAvatarSkeleton()
 {
+	//------------------------------------------------------------------------
+	// calculate positions of all bones by traversing the skeleton tree:
+	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
 		if ( avatar.bone[b].parent == AVATAR_BONE_NULL )
@@ -757,9 +760,59 @@ void Head::updateAvatarSkeleton()
 		
 		avatar.bone[b].position.add( avatar.bone[b].defaultPosePosition );
 	}	
-		
+	
+	
+	//----------------------------------------------------------------
+	// adjust right hand and elbow according to hand offset
+	//----------------------------------------------------------------
 	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.add( handOffset );	
+
+	glm::dvec3 armVector = glm::dvec3( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z );
+
+	armVector -= glm::dvec3( avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.x, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.y, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.z );
+
+	//-------------------------------------------------------------------------------
+	// test to see if right hand is being dragged beyond maximum arm length
+	//-------------------------------------------------------------------------------
+	double distance = glm::length( armVector );
+	double maxArmLength = 0.27;
+	
+	//-------------------------------------------------------------------------------
+	// right hand is being dragged beyond maximum arm length...
+	//-------------------------------------------------------------------------------
+	if ( distance > maxArmLength )
+	{
+		//-------------------------------------------------------------------------------
+		// reset right hand to be constrained to maximum arm length
+		//-------------------------------------------------------------------------------
+		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.set( avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
+				
+		glm::dvec3 armNormal = armVector / distance;
+		armVector = armNormal * maxArmLength;
+		distance = maxArmLength;
+		
+		glm::dvec3 constrainedPosition = glm::dvec3( avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.x, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.y, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.z );
+		
+		constrainedPosition += armVector;
+		
+		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.setXYZ( constrainedPosition.x, constrainedPosition.y, constrainedPosition.z );
+	}
+	
+	
+	//-----------------------------------------------------------------------------
+	// set elbow position
+	//-----------------------------------------------------------------------------
+	glm::dvec3 newElbowPosition = glm::dvec3( avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.x, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.y, avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position.z );
+	
+	newElbowPosition += armVector * ONE_HALF;
+	
+	glm::dvec3 perpendicular = glm::dvec3( -armVector.y, armVector.x, armVector.z );
+
+	newElbowPosition += perpendicular * ( 1.0 - ( maxArmLength / distance ) ) * ONE_HALF;
+	
+	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].position.setXYZ( newElbowPosition.x, newElbowPosition.y, newElbowPosition.z );
 }
+
 
 
 //-----------------------------------------
@@ -772,7 +825,7 @@ void Head::renderAvatar()
 		glPushMatrix();
 			glTranslatef( avatar.bone[b].position.x, avatar.bone[b].position.y, avatar.bone[b].position.z );
 			glScalef( 0.02, 0.02, 0.02 );
-			glutSolidSphere( 1, 6, 3 );
+			glutSolidSphere( 1, 8, 4 );
 		glPopMatrix();
 	}
 }

@@ -180,50 +180,50 @@ void Orientation::setRightUpFront( const Vector3D &r, const Vector3D &u, const V
 //-----------------------------------------------------------------------------
 void Orientation::verifyValidOrientation()
 {
-	assert( right.getMagnitude	() < 1.0 + BIG_EPSILON );
-	assert( right.getMagnitude	() > 1.0 - BIG_EPSILON );
-	assert( up.getMagnitude		() < 1.0 + BIG_EPSILON );
-	assert( up.getMagnitude		() > 1.0 - BIG_EPSILON );
-	assert( front.getMagnitude	() < 1.0 + BIG_EPSILON );
-	assert( front.getMagnitude	() > 1.0 - BIG_EPSILON );
+	assert( right.getMagnitude	() < 1.0 + CENTIMETER );
+	assert( right.getMagnitude	() > 1.0 - CENTIMETER );
+	assert( up.getMagnitude		() < 1.0 + CENTIMETER );
+	assert( up.getMagnitude		() > 1.0 - CENTIMETER );
+	assert( front.getMagnitude	() < 1.0 + CENTIMETER );
+	assert( front.getMagnitude	() > 1.0 - CENTIMETER );
 	
-	if ( right.getMagnitude() > 1.0 + BIG_EPSILON ) 
+	if ( right.getMagnitude() > 1.0 + CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'right' part of the orientation is %f!\n", right.getMagnitude() ); 
 	}
-	else if ( right.getMagnitude() < 1.0 - BIG_EPSILON ) 
+	else if ( right.getMagnitude() < 1.0 - CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'right' part of the orientation is %f!\n", right.getMagnitude() ); 
 	}
 
 
-	if ( up.getMagnitude() > 1.0 + BIG_EPSILON ) 
+	if ( up.getMagnitude() > 1.0 + CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'up' part of the orientation is %f!\n", up.getMagnitude() ); 
 	}
-	else if ( up.getMagnitude() < 1.0 - BIG_EPSILON ) 
+	else if ( up.getMagnitude() < 1.0 - CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'up' part of the orientation is %f!\n", up.getMagnitude() ); 
 	}
 
 
-	if ( front.getMagnitude() > 1.0 + BIG_EPSILON ) 
+	if ( front.getMagnitude() > 1.0 + CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'front' part of the orientation is %f!\n", front.getMagnitude() ); 
 	}
-	else if ( front.getMagnitude() < 1.0 - BIG_EPSILON ) 
+	else if ( front.getMagnitude() < 1.0 - CENTIMETER ) 
 	{ 
 		printf( "oops: the magnitude of the 'front' part of the orientation is %f!\n", front.getMagnitude() ); 
 	}
 	
-	if (( right.dotWith	( up	) >  BIG_EPSILON )
-	||  ( right.dotWith	( up	) < -BIG_EPSILON )) { printf( "oops: the 'right' and 'up' parts of the orientation are not perpendicular! The dot is: %f\n", right.dotWith	( up	)	); }
+	if (( right.dotWith	( up	) >  CENTIMETER )
+	||  ( right.dotWith	( up	) < -CENTIMETER )) { printf( "oops: the 'right' and 'up' parts of the orientation are not perpendicular! The dot is: %f\n", right.dotWith	( up	)	); }
 	
-	if (( right.dotWith	( front	) >  BIG_EPSILON )
-	||  ( right.dotWith	( front	) < -BIG_EPSILON )) { printf( "oops: the 'right' and 'front' parts of the orientation are not perpendicular! The dot is: %f\n",	right.dotWith	( front	) ); }
+	if (( right.dotWith	( front	) >  CENTIMETER )
+	||  ( right.dotWith	( front	) < -CENTIMETER )) { printf( "oops: the 'right' and 'front' parts of the orientation are not perpendicular! The dot is: %f\n",	right.dotWith	( front	) ); }
 	
-	if (( up.dotWith	( front	) >  BIG_EPSILON )
-	||  ( up.dotWith	( front	) < -BIG_EPSILON )) { printf( "oops: the 'up' and 'front' parts of the orientation are not perpendicular! The dot is: %f\n", up.dotWith	( front	)	); }
+	if (( up.dotWith	( front	) >  CENTIMETER )
+	||  ( up.dotWith	( front	) < -CENTIMETER )) { printf( "oops: the 'up' and 'front' parts of the orientation are not perpendicular! The dot is: %f\n", up.dotWith	( front	)	); }
 	
 }
 

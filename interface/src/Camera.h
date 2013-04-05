@@ -17,11 +17,16 @@ class Camera
 public:
 	Camera();
 	
-	void setYaw			( double		y ) { yaw		= y; }
-	void setPitch		( double		p ) { pitch		= p; }
-	void setRoll		( double		r ) { roll		= r; }
-	void setPosition	( glm::dvec3	p ) { position	= p; };
-	void setOrientation	( Orientation	o ) { orientation.set(o); }
+	void update();
+	
+	void setYaw				( double		y ) { yaw				= y; }
+	void setPitch			( double		p ) { pitch				= p; }
+	void setRoll			( double		r ) { roll				= r; }
+	void setUp				( double		u ) { up				= u; }
+	void setDistance		( double		d ) { distance			= d; }
+	void setTargetPosition	( glm::dvec3	t ) { targetPosition	= t; };
+	void setPosition		( glm::dvec3	p ) { position			= p; };
+	void setOrientation		( Orientation	o ) { orientation.set(o); }
 
 	double		getYaw			() { return yaw;			}
 	double		getPitch		() { return pitch;			}
@@ -32,9 +37,12 @@ public:
 private:
 
 	glm::dvec3	position;
+	glm::dvec3	targetPosition;
 	double		yaw;
 	double		pitch;
 	double		roll;
+	double		up;
+	double		distance;
 	Orientation	orientation;
 };
 

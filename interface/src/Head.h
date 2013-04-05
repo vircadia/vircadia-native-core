@@ -158,6 +158,7 @@ class Head : public AgentData {
         void render(int faceToFace, int isMine);
 		
 		void setAvatarPosition( double, double, double );
+		void renderAvatar();
 
         void simulate(float);
 				
@@ -239,7 +240,6 @@ class Head : public AgentData {
 		void initializeAvatar();
 		void simulateAvatar( float deltaTime );
 		void updateAvatarSkeleton();
-		void renderAvatar();
     
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
