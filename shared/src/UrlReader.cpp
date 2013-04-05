@@ -23,8 +23,8 @@ char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete pro
 #define hnd_curl static_cast<CURL*>(_ptrImpl)
 
 UrlReader::UrlReader()
-    : _ptrImpl(0l), _arrXtra(0l), _strError(0l)
-{
+    : _ptrImpl(0l), _arrXtra(0l), _strError(0l) {
+
     _arrXtra = new(std::nothrow) char[max_read_ahead];
     if (! _arrXtra) { _strError = error_init_failed; return; }
     _ptrImpl =  curl_easy_init();
@@ -34,15 +34,15 @@ UrlReader::UrlReader()
     curl_easy_setopt(hnd_curl, CURLOPT_FILETIME, 1l);
 }
 
-UrlReader::~UrlReader()
-{
+UrlReader::~UrlReader() {
+
     delete _arrXtra;
     if (! hnd_curl) return;
     curl_easy_cleanup(hnd_curl);
 }
 
-bool UrlReader::perform(char const* url, transfer_callback* cb)
-{
+bool UrlReader::perform(char const* url, transfer_callback* cb) {
+
     curl_easy_setopt(hnd_curl, CURLOPT_URL, url);
     curl_easy_setopt(hnd_curl, CURLOPT_WRITEFUNCTION, cb);
     curl_easy_setopt(hnd_curl, CURLOPT_WRITEDATA, this);
@@ -61,8 +61,8 @@ bool UrlReader::perform(char const* url, transfer_callback* cb)
 }
 
 void UrlReader::getinfo(char const*& url,
-        char const*& type, int64_t& length, int64_t& stardate)
-{
+        char const*& type, int64_t& length, int64_t& stardate) {
+
     curl_easy_getinfo(hnd_curl, CURLINFO_EFFECTIVE_URL, & url);
     curl_easy_getinfo(hnd_curl, CURLINFO_CONTENT_TYPE, & type);
 
