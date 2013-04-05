@@ -50,6 +50,7 @@
 
 #include "Head.h"
 #include "Hand.h"
+#include "Camera.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -65,7 +66,10 @@
 
 using namespace std;
 
-int audio_on = 0;                   //  Whether to turn on the audio support
+
+double testThingy = 0.0;
+
+int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 AgentList agentList('I');
@@ -95,6 +99,7 @@ Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
+Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
@@ -342,8 +347,10 @@ void init(void)
     if (noise_on) {   
         myHead.setNoise(noise);
     }
-    myHead.setPos(start_location);
-    
+    myHead.setPos(start_location );
+	
+	myCamera.setPosition( glm::dvec3( start_location ) );
+	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
         marker_capturer.position_updated(&position_updated);
@@ -406,6 +413,12 @@ void simulateHand(float deltaTime) {
         float dy = mouse_y - mouse_start_y;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
         myHead.hand->addVelocity(vel*deltaTime);
+		
+		double leftRight	= dx * 0.001;
+		double downUp		= dy * 0.001;
+		double backFront	= 0.0;
+		glm::dvec3 handMovement( leftRight, downUp, backFront );
+		myHead.setHandMovement( handMovement );		
     }
 }
 
@@ -422,7 +435,12 @@ void simulateHead(float frametime)
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
-    
+	
+	//-------------------------------------------------------------------------------------
+	// set the position of the avatar
+	//-------------------------------------------------------------------------------------
+	myHead.setAvatarPosition( -myHead.getPos().x, -myHead.getPos().y, -myHead.getPos().z );
+	
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -551,16 +569,29 @@ void display(void)
         
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-           
-        //  Rotate, translate to camera location
-        fov.setOrientation(
-            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
-                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
-                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
+			
+		//-------------------------------------------------------------------------------------
+		// set the caemra to third-person view
+		//-------------------------------------------------------------------------------------
+		myCamera.setYaw		( myHead.getRenderYaw() );
+		myCamera.setPitch	( 0.0 );
+		myCamera.setRoll	( 0.0 );
+		
+		glm::dvec3 offset( 0.7, -0.2, 0.7 );
 
-        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
-        glRotatef(myHead.getRenderPitch(), 1, 0, 0);
-        glRotatef(myHead.getRenderYaw(), 0, 1, 0);
+		glm::dvec3 positionWithOffset( myHead.getPos() );
+		
+		positionWithOffset += offset;
+		
+		myCamera.setPosition( positionWithOffset );		
+		
+		//-------------------------------------------------------------------------------------
+		// transform to camera view
+		//-------------------------------------------------------------------------------------
+        glRotatef	( myCamera.getPitch(),	1, 0, 0 );
+        glRotatef	( myCamera.getYaw(),	0, 1, 0 );
+        glRotatef	( myCamera.getRoll(),	0, 0, 1 );
+        glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
 
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -601,12 +632,18 @@ void display(void)
         //  Render the world box
         if (!display_head && stats_on) render_world_box();
     
+	
+myHead.render( true, 1 );	
+	
+		/*
         //  Render my own head
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
         myHead.render(display_head, 1);
         glPopMatrix();
+		*/
+		
     }
     
     glPopMatrix();

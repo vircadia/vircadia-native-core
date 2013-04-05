@@ -13,8 +13,9 @@
 #include "AgentData.h"
 #include "Field.h"
 #include "world.h"
-#include "Head.h"
 #include "Hand.h"
+#include "Vector3D.h"		// added by Ventrella as a utility
+#include "Orientation.h"	// added by Ventrella as a utility
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
@@ -29,6 +30,101 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_LEFT 6 
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
+
+/*
+enum AvatarJoints
+{
+	AVATAR_JOINT_NULL = -1,
+	AVATAR_JOINT_PELVIS,
+	AVATAR_JOINT_TORSO,
+	AVATAR_JOINT_CHEST,
+	AVATAR_JOINT_NECK_BASE,
+	AVATAR_JOINT_HEAD_BASE,
+	AVATAR_JOINT_HEAD_TOP,
+	
+	AVATAR_JOINT_LEFT_CLAVICLE,
+	AVATAR_JOINT_LEFT_SHOULDER,
+	AVATAR_JOINT_LEFT_ELBOW,
+	AVATAR_JOINT_LEFT_WRIST,
+	AVATAR_JOINT_LEFT_FINGERTIPS,
+	
+	AVATAR_JOINT_RIGHT_CLAVICLE,
+	AVATAR_JOINT_RIGHT_SHOULDER,
+	AVATAR_JOINT_RIGHT_ELBOW,
+	AVATAR_JOINT_RIGHT_WRIST,
+	AVATAR_JOINT_RIGHT_FINGERTIPS,
+	
+	AVATAR_JOINT_LEFT_HIP,
+	AVATAR_JOINT_LEFT_KNEE,
+	AVATAR_JOINT_LEFT_HEEL,
+	AVATAR_JOINT_LEFT_TOES,
+	
+	AVATAR_JOINT_RIGHT_HIP,
+	AVATAR_JOINT_RIGHT_KNEE,
+	AVATAR_JOINT_RIGHT_HEEL,
+	AVATAR_JOINT_RIGHT_TOES,
+	
+	NUM_AVATAR_JOINTS
+};
+*/
+
+
+
+
+enum AvatarBones
+{
+	AVATAR_BONE_NULL = -1,
+	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (cannot be rotated)
+	AVATAR_BONE_MID_SPINE,			// connects torso			joint with chest			joint
+	AVATAR_BONE_CHEST_SPINE,		// connects chest			joint with neckBase			joint (cannot be rotated)
+	AVATAR_BONE_NECK,				// connects neckBase		joint with headBase			joint
+	AVATAR_BONE_HEAD,				// connects headBase		joint with headTop			joint
+	
+	AVATAR_BONE_LEFT_CHEST,			// connects chest			joint with left clavicle	joint (cannot be rotated)
+	AVATAR_BONE_LEFT_SHOULDER,		// connects left clavicle	joint with left shoulder	joint
+	AVATAR_BONE_LEFT_UPPER_ARM,		// connects left shoulder	joint with left elbow		joint
+	AVATAR_BONE_LEFT_FOREARM,		// connects left elbow		joint with left wrist		joint
+	AVATAR_BONE_LEFT_HAND,			// connects left wrist		joint with left fingertips	joint
+	
+	AVATAR_BONE_RIGHT_CHEST,		// connects chest			joint with right clavicle	joint (cannot be rotated)
+	AVATAR_BONE_RIGHT_SHOULDER,		// connects right clavicle	joint with right shoulder	joint
+	AVATAR_BONE_RIGHT_UPPER_ARM,	// connects right shoulder	joint with right elbow		joint
+	AVATAR_BONE_RIGHT_FOREARM,		// connects right elbow		joint with right wrist		joint
+	AVATAR_BONE_RIGHT_HAND,			// connects right wrist		joint with right fingertips	joint
+	
+	AVATAR_BONE_LEFT_PELVIS,		// connects pelvis			joint with left hip			joint (cannot be rotated)
+	AVATAR_BONE_LEFT_THIGH,			// connects left hip		joint with left knee		joint
+	AVATAR_BONE_LEFT_SHIN,			// connects left knee		joint with left heel		joint
+	AVATAR_BONE_LEFT_FOOT,			// connects left heel		joint with left toes		joint
+	
+	AVATAR_BONE_RIGHT_PELVIS,		// connects pelvis			joint with right hip		joint (cannot be rotated)
+	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
+	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
+	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
+
+	NUM_AVATAR_BONES
+};
+
+struct AvatarBone
+{
+	AvatarBones	parent;
+	Vector3D	position;
+	Vector3D	defaultPosePosition;
+	Vector3D	velocity;
+	double		yaw;
+	double		pitch;
+	double		roll;
+	Orientation	orientation;
+	double		length;
+};
+
+struct Avatar
+{
+	Vector3D	position;
+	Vector3D	velocity;
+	Orientation	orientation;
+	AvatarBone	bone[ NUM_AVATAR_BONES ];
+};
 
 class Head : public AgentData {
     public:
@@ -60,7 +156,12 @@ class Head : public AgentData {
         float getLastMeasuredYaw() {return YawRate;}
         
         void render(int faceToFace, int isMine);
+		
+		void setAvatarPosition( double, double, double );
+
         void simulate(float);
+				
+		void setHandMovement( glm::dvec3 movement );
         
         //  Send and receive network data
         int getBroadcastData(char * data);
@@ -124,6 +225,8 @@ class Head : public AgentData {
         glm::vec3 position;
         glm::vec3 velocity;
         glm::vec3 thrust;
+		
+		Vector3D handOffset;
     
         int driveKeys[MAX_DRIVE_KEYS];
         
@@ -131,6 +234,12 @@ class Head : public AgentData {
         eyeContactTargets eyeContactTarget;
     
         GLUquadric *sphere;
+		Avatar avatar;
+		
+		void initializeAvatar();
+		void simulateAvatar( float deltaTime );
+		void updateAvatarSkeleton();
+		void renderAvatar();
     
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.

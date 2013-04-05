@@ -17,6 +17,20 @@
 
 #include <glm/glm.hpp>
 
+
+// added by Ventrella for utility purposes
+static const double	ZERO				= 0.0;
+static const double	ONE					= 1.0;
+static const double	ONE_HALF			= 0.5;
+static const double	ONE_THIRD			= 0.3333333;
+//static const double	PI					= 3.14159265359;
+static const double	PI_TIMES_TWO		= 3.14159265359 * 2.0;
+static const double PI_OVER_180			= 3.14159265359 / 180.0;
+static const double EPSILON				= 0.00001;	// a smallish number meant to be used as a margin of error for some normalized values 
+static const double BIG_EPSILON			= 0.01;		// not as smallish as EPSILON
+static const double SQUARE_ROOT_OF_3	= sqrt(3);	
+
+
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 
