@@ -67,7 +67,7 @@
 using namespace std;
 
 
-double testThingy = 0.0;
+double testThingy = 90.0;
 
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
@@ -573,11 +573,20 @@ void display(void)
 		//-------------------------------------------------------------------------------------
 		// set the caemra to third-person view
 		//-------------------------------------------------------------------------------------
-		myCamera.setYaw		( myHead.getRenderYaw() );
+
+		testThingy += 1.0;
+				
+		//myCamera.setYaw		( myHead.getRenderYaw() );
+		myCamera.setYaw		( testThingy );
 		myCamera.setPitch	( 0.0 );
 		myCamera.setRoll	( 0.0 );
 		
-		glm::dvec3 offset( 0.7, -0.2, 0.7 );
+		double radian = ( testThingy / 180.0 ) * PI;
+		double x = 0.7 * sin( radian );
+		double z = 0.7 * cos( radian );
+		double y = -0.2;
+		
+		glm::dvec3 offset( x, y, z );
 
 		glm::dvec3 positionWithOffset( myHead.getPos() );
 		
