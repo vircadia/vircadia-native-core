@@ -85,8 +85,6 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     if (levelsToGo > 0) {
 
         bool createdChildren = false;
-        int colorArray[4] = {};
-        
         createdChildren = false;
         
         for (int i = 0; i < 8; i++) {
@@ -96,17 +94,8 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
                 
                 // give this child it's octal code
                 currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-                
-                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
 
-                if (currentRootNode->children[i]->color[3] == 1) {
-                    for (int c = 0; c < 3; c++) {
-                        colorArray[c] += currentRootNode->children[i]->color[c];
-                    }
-                    
-                    colorArray[3]++;
-                }
-                
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
                 createdChildren = true;
             }
         }
@@ -117,7 +106,7 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
             currentRootNode->setRandomColor(MIN_BRIGHTNESS);
         } else {
             // set the color value for this node
-            currentRootNode->setColorFromAverageOfChildren(colorArray);
+            currentRootNode->setColorFromAverageOfChildren();
         }
     } else {
         // this is a leaf node, just give it a color
@@ -171,7 +160,12 @@ void *distributeVoxelsToListeners(void *args) {
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;
                 
-                if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                // XXXBHG Hack Attack: This is temporary code to help debug an issue.
+                // Normally we use this break to prevent resending voxels that an agent has
+                // already visited. But since we might be modifying the voxel tree we might
+                // want to always send. This is a hack to test the behavior
+                bool alwaysSend = true;
+                if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
                     break;
                 }
             }
@@ -311,6 +305,8 @@ int main(int argc, const char * argv[])
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
             	}
+            	// after done inserting all these voxels, then reaverage colors
+				randomTree.reaverageVoxelColors(randomTree.rootNode);
             }
             if (packetData[0] == 'R') {
 

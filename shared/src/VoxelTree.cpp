@@ -100,8 +100,6 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
     
     // instantiate variable for bytes already read
     int bytesRead = 1;
-    int colorArray[4] = {};
-    
     for (int i = 0; i < 8; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(*nodeData, i)) {
@@ -115,17 +113,12 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             memcpy(destinationNode->children[i]->color, nodeData + bytesRead, 3);
             destinationNode->children[i]->color[3] = 1;
            
-            for (int j = 0; j < 3; j++) {
-                colorArray[j] += destinationNode->children[i]->color[j];
-            }
-            
             bytesRead += 3;
-            colorArray[3]++;
         }
     }
     
     // average node's color based on color of children
-    destinationNode->setColorFromAverageOfChildren(colorArray);
+    destinationNode->setColorFromAverageOfChildren();
     
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
