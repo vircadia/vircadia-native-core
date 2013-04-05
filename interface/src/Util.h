@@ -37,8 +37,8 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 float randFloat();
 void render_world_box();
 void render_vector(glm::vec3 * vec);
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono, char *string, 
-              float r=1.0, float g=1.0, float b=1.0);
+void drawtext(int x, int y, float scale, float rotate, float thick, int mono, 
+              char const* string, float r=1.0, float g=1.0, float b=1.0);
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
 double diffclock(timeval *clock1,timeval *clock2);

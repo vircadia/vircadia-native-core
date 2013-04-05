@@ -17,8 +17,8 @@
  * UrlReader class that encapsulates a context for sequential data retrieval
  * via URLs. Use one per thread.
  */
-class UrlReader
-{
+class UrlReader {
+
         void*       _ptrImpl;
         char*       _arrXtra;
         char const* _strError;
@@ -149,8 +149,7 @@ class UrlReader
 };
 
 template< class ContentStream >
-bool UrlReader::readUrl(char const* url, ContentStream& s)
-{
+bool UrlReader::readUrl(char const* url, ContentStream& s) {
     if (! _ptrImpl) return false;
     _strError = success;
     _ptrStream = & s;
@@ -162,24 +161,24 @@ bool UrlReader::readUrl(char const* url, ContentStream& s)
 
 inline char const* UrlReader::getError() const { return this->_strError; }
 
-inline void UrlReader::setError(char const* static_c_string)
-{
+inline void UrlReader::setError(char const* static_c_string) {
+
     if (this->_strError == success)
         this->_strError = static_c_string;
 }
 
 template< class Stream >
 size_t UrlReader::callback_template(
-        char *input, size_t size, size_t nmemb, void* thiz)
-{
+        char *input, size_t size, size_t nmemb, void* thiz) {
+
     size *= nmemb;
 
     UrlReader* me = static_cast<UrlReader*>(thiz);
     Stream* stream = static_cast<Stream*>(me->_ptrStream);
 
     // first call?
-    if (me->_valXtraSize == ~size_t(0))
-    {
+    if (me->_valXtraSize == ~size_t(0)) {
+
         me->_valXtraSize = 0u;
         // extract meta information and call 'begin'
         char const* url, * type;
@@ -190,14 +189,14 @@ size_t UrlReader::callback_template(
 
     size_t input_offset = 0u;
 
-    for (;;)
-    {
+    while (true) {
+
         char* buffer = input + input_offset;
         size_t bytes = size - input_offset;
 
         // data in extra buffer?
-        if (me->_valXtraSize > 0)
-        {
+        if (me->_valXtraSize > 0) {
+
             // fill extra buffer with beginning of input
             size_t fill = max_read_ahead - me->_valXtraSize;
             if (bytes < fill) fill = bytes;
@@ -210,36 +209,36 @@ size_t UrlReader::callback_template(
 
         // call 'transfer'
         size_t processed = stream->transfer(buffer, bytes);
-        if (processed == abort)
-        {
+        if (processed == abort) {
+
             me->setError(error_aborted);
             return 0u;
-        }
-        else if (! processed && ! input)
-        {
+
+        } else if (! processed && ! input) {
+
             me->setError(error_leftover_input);
             return 0u;
         }
         size_t unprocessed = bytes - processed;
 
         // can switch to input buffer, now?
-        if (buffer == me->_arrXtra && unprocessed <= input_offset)
-        {
+        if (buffer == me->_arrXtra && unprocessed <= input_offset) {
+
             me->_valXtraSize = 0u;
             input_offset -= unprocessed;
-        }
-        else // no? unprocessed data -> extra buffer
-        {
-            if (unprocessed > max_read_ahead)
-            {
+
+        } else { // no? unprocessed data -> extra buffer
+
+            if (unprocessed > max_read_ahead) {
+
                 me->setError(error_buffer_overflow);
                 return 0;
             }
             me->_valXtraSize = unprocessed;
             memmove(me->_arrXtra, buffer + processed, unprocessed);
 
-            if (input_offset == size || buffer != me->_arrXtra)
-            {
+            if (input_offset == size || buffer != me->_arrXtra) {
+
                 return size;
             }
         }

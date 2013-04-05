@@ -47,6 +47,8 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 AgentList agentList('V', VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
 
+bool wantColorRandomizer = false;
+
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
 	float xc = random ? randFloatInRange(r,(1-r)) : 0.5;
@@ -229,7 +231,7 @@ int main(int argc, const char * argv[])
 	// Voxel File. If so, load it now.
 	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
 	const char* INPUT_FILE="-i";
-    bool wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
+    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 
 	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
@@ -273,19 +275,38 @@ int main(int argc, const char * argv[])
         	// XXXBHG: Hacked in support for 'I' insert command
             if (packetData[0] == 'I') {
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",
+            		receivedBytes,itemNumber);
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
             	while (atByte < receivedBytes) {
             		unsigned char octets = (unsigned char)*pVoxelData;
             		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+            		int voxelCodeSize = bytesRequiredForCodeLength(octets);
+
+					// color randomization on insert
+					int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
+					int red   = pVoxelData[voxelCodeSize+0];
+					int green = pVoxelData[voxelCodeSize+1];
+					int blue  = pVoxelData[voxelCodeSize+2];
+            		printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
+            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+					red   = std::max(0,std::min(255,red   + colorRandomizer));
+					green = std::max(0,std::min(255,green + colorRandomizer));
+					blue  = std::max(0,std::min(255,blue  + colorRandomizer));
+            		printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
+            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+					pVoxelData[voxelCodeSize+0]=red;
+					pVoxelData[voxelCodeSize+1]=green;
+					pVoxelData[voxelCodeSize+2]=blue;
 
             		float* vertices = firstVertexForCode(pVoxelData);
             		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
             		delete []vertices;
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData);
-	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",
+	            	//		voxelDataSize,atByte,receivedBytes);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;

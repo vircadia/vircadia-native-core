@@ -12,8 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace type_traits // those are needed for the declaration, see below
-{
+namespace type_traits { // those are needed for the declaration, see below
+
     // Note: There are better / more generally appicable implementations 
     // in C++11, make_signed is missing in TR1 too - so I just use C++98
     // hacks that get the job done...
@@ -39,8 +39,8 @@ class Radix2IntegerScanner;
 
 
 template< typename UInt >
-class Radix2IntegerScanner< UInt, false >
-{
+class Radix2IntegerScanner< UInt, false > {
+
         UInt valMsb;
     public:
 
@@ -48,9 +48,8 @@ class Radix2IntegerScanner< UInt, false >
             : valMsb(~UInt(0) &~ (~UInt(0) >> 1)) { }
 
         explicit Radix2IntegerScanner(int bits)
-            : valMsb(UInt(1u) << (bits - 1))
-        { }
-
+            : valMsb(UInt(1u) << (bits - 1)) {
+        }
 
         typedef UInt state_type;
 
@@ -67,12 +66,12 @@ class Radix2IntegerScanner< Int, true >
     public:
 
         Radix2IntegerScanner()
-            : valMsb(~state_type(0u) &~ (~state_type(0u) >> 1))
-        { }
+            : valMsb(~state_type(0u) &~ (~state_type(0u) >> 1)) {
+        }
 
         explicit Radix2IntegerScanner(int bits)
-            : valMsb(state_type(1u) << (bits - 1))
-        { }
+            : valMsb(state_type(1u) << (bits - 1)) {
+        }
 
 
         typedef typename type_traits::make_unsigned<Int>::type state_type;

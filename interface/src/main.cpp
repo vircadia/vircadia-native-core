@@ -103,6 +103,7 @@ Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
+
 Stars stars;
 #ifdef STARFIELD_KEYS
 int starsTiles = 20;
@@ -260,10 +261,12 @@ void display_stats(void)
 
     char legend2[] = "* - toggle stars, & - toggle paint mode";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
+
+	glm::vec3 headPos = myHead.getPos();
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
-            FPS, packets_per_second,  bytes_per_second);
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
+            FPS, packets_per_second,  bytes_per_second, headPos.x,headPos.y,headPos.z);
     drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
@@ -508,7 +511,7 @@ void simulateHead(float frametime)
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
-    
+
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
@@ -545,8 +548,6 @@ void display(void)
 {
 	PerfStat("display");
 
-    glEnable (GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -569,7 +570,8 @@ void display(void)
         
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-			
+
+
 		//-------------------------------------------------------------------------------------
 		// set the caemra to third-person view
 		//-------------------------------------------------------------------------------------
@@ -602,11 +604,21 @@ void display(void)
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
         glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
 
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
+		/*
+        //  Rotate, translate to camera location
+        fov.setOrientation(
+            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
+                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
+                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
+
+        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
+		*/
+
         if (::starsOn) {
+            // should be the first rendering pass - w/o depth buffer / lighting
         	stars.render(fov);
         }
+
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
@@ -716,8 +728,12 @@ myHead.render( true, 1 );
     if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);
     
     //  Display miscellaneous text stats onscreen
-    if (stats_on) display_stats();
-    
+    if (stats_on) {
+        glLineWidth(1.0f);
+        glPointSize(1.0f);
+        display_stats();
+    }
+
     //  Draw number of nearby people always
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
