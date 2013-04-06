@@ -901,7 +901,7 @@ void *networkReceive(void *args)
             if (incomingPacket[0] == 't') {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R') {
+            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R' || incomingPacket[0] == 'Z') {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);

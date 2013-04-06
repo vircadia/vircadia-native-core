@@ -202,6 +202,16 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
     }
 }
 
+void VoxelTree::eraseAllVoxels() {
+
+	// XXXBHG Hack attack - is there a better way to erase the voxel tree?
+
+	delete rootNode; // this will recurse and delete all children
+	rootNode = new VoxelNode();
+	rootNode->octalCode = new unsigned char[1];
+	*rootNode->octalCode = 0;
+}
+
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     VoxelNode *lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
     
