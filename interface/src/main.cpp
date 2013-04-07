@@ -712,6 +712,20 @@ void testPointToVoxel()
 	}
 }
 
+void sendVoxelServerEraseAll() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"erase all");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
+void sendVoxelServerAddScene() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"add scene");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
 void shiftPaintingColor()
 {
     // About the color of the paintbrush... first determine the dominant color
@@ -821,11 +835,11 @@ void key(unsigned char k, int x, int y)
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
-    	setupPaintingVoxel(); 		// also randomizes colors
+    	::setupPaintingVoxel();		// also randomizes colors
     }
-    if (k == '^') {
-    	shiftPaintingColor(); 			// shifts randomize color between R,G,B dominant
-    }
+    if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
+    if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
+    if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
