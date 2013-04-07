@@ -255,7 +255,7 @@ void display_stats(void)
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
     drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
 
-    char legend2[] = "* - toggle stars, & - toggle paint mode";
+    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
 
 	glm::vec3 headPos = myHead.getPos();
