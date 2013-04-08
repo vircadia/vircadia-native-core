@@ -143,7 +143,7 @@ float renderPitchRate = 0.f;
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
-bool starsOn = true;				//  Whether to display the stars
+bool starsOn = false;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
