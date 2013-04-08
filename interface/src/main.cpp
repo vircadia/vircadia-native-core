@@ -500,9 +500,10 @@ void simulateHead(float frametime)
     
     	glm::vec3 headPos = myHead.getPos();
 
-		::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
-		::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
-		::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+		// For some reason, we don't want to flip X and Z here.
+		::paintingVoxel.x = headPos.x/-10.0;  
+		::paintingVoxel.y = headPos.y/-10.0;  
+		::paintingVoxel.z = headPos.z/-10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
