@@ -68,15 +68,15 @@ if (empty($options['i']) && empty($options['zcommand'])) {
 	$filename = $options['i'];
 	$server = $options['s'];
 	$port = empty($options['p']) ? 40106 : $options['p'];
-	$command = empty($options['c']) ? 'I' : $options['c'];
+	$command = empty($options['c']) ? 'S' : $options['c'];
 	switch($command) {
-		case 'I':
-		case 'R':
+		case 'S':
+		case 'E':
 		case 'Z':
 			//$command is good
 		break;
 		default:
-			$command='I';// insert by default!
+			$command='S';// insert by default!
 	}
 
 	if ($options['testmode']) {

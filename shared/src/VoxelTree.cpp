@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
+#include "PacketHeaders.h"
 #include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
@@ -309,7 +310,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                 if (strcmp((char *)stopOctalCode, (char *)currentVoxelNode->octalCode) == 0) {
                     // this is is the root node for this packet
                     // add the leading V
-                    *(bitstreamBuffer++) = 'V';
+                    *(bitstreamBuffer++) = PACKET_HEADER_VOXEL_DATA;
                     
                     // add its octal code to the packet
                     int octalCodeBytes = bytesRequiredForCodeLength(*currentVoxelNode->octalCode);

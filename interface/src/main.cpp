@@ -63,6 +63,7 @@
 #include "SerialInterface.h"
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 
 using namespace std;
 
@@ -553,7 +554,7 @@ void simulateHead(float frametime)
 			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-			if (createVoxelEditMessage('I',0,1,&::paintingVoxel,bufferOut,sizeOut)){
+			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL,0,1,&::paintingVoxel,bufferOut,sizeOut)){
 				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
 				delete bufferOut;
 			}
@@ -1003,10 +1004,12 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            if (incomingPacket[0] == 't') {
+            if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'Z') {
+            } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
+					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
+					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);

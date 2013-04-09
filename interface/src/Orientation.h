@@ -8,7 +8,7 @@
 #ifndef __interface__orientation__
 #define __interface__orientation__
 
-#include "Math.h"
+#include <cmath> // with this work? "Math.h"
 #include "Vector3D.h"
 
 enum Axis

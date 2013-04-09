@@ -20,6 +20,7 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
+#include "PacketHeaders.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -275,7 +276,7 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'I') {
+            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                                 
                 //  Compute and report standard deviation for jitter calculation
                 if (firstSample) {
