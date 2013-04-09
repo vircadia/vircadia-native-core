@@ -11,6 +11,7 @@
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 #include <OctalCode.h>
 #include "VoxelSystem.h"
 

@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
+#include "PacketHeaders.h"
 #include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
