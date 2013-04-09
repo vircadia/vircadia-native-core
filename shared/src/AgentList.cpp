@@ -24,7 +24,9 @@
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char AVATAR_SERVER_IP[100] = "";
 const int DOMAINSERVER_PORT = 40102;
+const int AVATAR_SERVER_PORT = 55444;
 
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
@@ -77,7 +79,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
         }
         case PACKET_HEADER_HEAD_DATA: {
             // head data from another agent
-            updateAgentWithData(senderAddress, packetData, dataBytes);
+            updateDataForAllAgents(senderAddress, (unsigned char *)packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_PING: {
@@ -92,6 +94,25 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
             handlePingReply(senderAddress);
             break;
         }
+    }
+}
+
+void AgentList::updateDataForAllAgents(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
+    unsigned char *currentPosition = packetData + 1;
+    unsigned char *startPosition = packetData;
+    unsigned char *packetHolder = new unsigned char[(sizeof(float) * 11) + 1];
+    packetHolder[0] = *(unsigned char *)PACKET_HEADER_HEAD_DATA;
+    packetHolder++;
+    uint16_t agentId;
+    sockaddr_in *agentActiveSocket = new sockaddr_in;
+    agentActiveSocket->sin_family = AF_INET;
+
+    while ((currentPosition - startPosition) < dataBytes) {
+        currentPosition += unpackAgentId(currentPosition, &agentId);
+        currentPosition += unpackSocket(currentPosition, (sockaddr *)&agentActiveSocket);
+        memcpy(packetHolder, currentPosition, sizeof(float) * 11);
+        currentPosition += sizeof(float) * 11;
+        updateAgentWithData((sockaddr *)agentActiveSocket, packetHolder, (sizeof(float) * 11) + 1);
     }
 }
 
@@ -327,6 +348,7 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            strcpy(AVATAR_SERVER_IP, inet_ntoa(tempAddress.sin_addr));
             printf("Domain server %s: \n", DOMAIN_HOSTNAME);
             
         } else {

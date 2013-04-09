@@ -56,6 +56,7 @@ public:
     void increaseAgentId();
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+    void updateDataForAllAgents(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
     void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes);
     void pingAgents();

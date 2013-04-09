@@ -532,11 +532,12 @@ void simulateHead(float frametime)
     myHead.setAverageLoudness(averageLoudness);
     #endif
 
-    //  Send my streaming head data to agents that are nearby and need to see it!
+    //  Send my stream of head/hand data to the avatar mixer
     const int MAX_BROADCAST_STRING = 200;
+    const int AVATAR_SERVER_PORT = 55444;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
-    agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
+    agentList.getAgentSocket().send(AVATAR_SERVER_IP, AVATAR_SERVER_PORT, broadcast_string, broadcast_bytes);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
