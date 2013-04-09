@@ -100,7 +100,7 @@ const char* AGENT_TYPE_NAME_DOMAIN = "Domain";
 const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
 const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
 const char* AGENT_TYPE_NAME_HEAD = "Avatar Head"; // Is this needed???
-const char* AGENT_TYPE_NAME_MIXER = "Audio Mixer";
+const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
@@ -118,8 +118,8 @@ const char* Agent::getTypeName() const {
 		case AGENT_TYPE_HEAD:
 			name = AGENT_TYPE_NAME_HEAD;
 			break;
-		case AGENT_TYPE_MIXER:
-			name = AGENT_TYPE_NAME_MIXER;
+		case AGENT_TYPE_AUDIO_MIXER:
+			name = AGENT_TYPE_NAME_AUDIO_MIXER;
 			break;
 	}
 	return name;

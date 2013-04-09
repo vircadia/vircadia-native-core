@@ -61,7 +61,7 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-AgentList agentList(AGENT_TYPE_MIXER, MIXER_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {

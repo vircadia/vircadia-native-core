@@ -202,7 +202,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activatePublicSocket();
         }
         
-        if (newAgent.getType() == AGENT_TYPE_MIXER && audioMixerSocketUpdate != NULL) {
+        if (newAgent.getType() == AGENT_TYPE_AUDIO_MIXER && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
@@ -221,7 +221,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->getType() == AGENT_TYPE_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
+        if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastRecvTimeUsecs(usecTimestampNow());
