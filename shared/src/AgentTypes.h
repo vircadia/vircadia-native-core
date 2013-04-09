@@ -21,7 +21,6 @@
 const char AGENT_TYPE_DOMAIN = 'D';
 const char AGENT_TYPE_VOXEL = 'V';
 const char AGENT_TYPE_INTERFACE = 'I'; // could also be injector???
-const char AGENT_TYPE_HEAD = 'H'; // Is this needed???
 const char AGENT_TYPE_MIXER = 'M';
 
 #endif
