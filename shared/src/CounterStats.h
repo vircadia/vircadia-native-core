@@ -33,9 +33,9 @@ private:
 	
 	double		totalTime;
 	
-	long int	countSamples[COUNTETSTATS_SAMPLES_TO_KEEP] = {};
-	long int	deltaSamples[COUNTETSTATS_SAMPLES_TO_KEEP] = {};
-	double		timeSamples[COUNTETSTATS_SAMPLES_TO_KEEP] = {};
+	long int	countSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
+	long int	deltaSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
+	double		timeSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
 	int			sampleAt;
 	int			sampleCount;
 	
