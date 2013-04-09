@@ -397,6 +397,7 @@ void Head::simulate(float deltaTime)
 	
 	avatar.yaw += avatar.yawDelta * deltaTime;
 	
+	Yaw = avatar.yaw;
 	
     const float TEST_YAW_DECAY = 5.0;
     avatar.yawDelta *= ( 1.0 - TEST_YAW_DECAY * deltaTime );
