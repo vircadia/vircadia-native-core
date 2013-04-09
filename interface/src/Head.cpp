@@ -927,7 +927,6 @@ void Head::updateHandMovement()
 	//-------------------------------------------------------------------------------
 	float distance = glm::length( armVector );
 	
-	
 	//-------------------------------------------------------------------------------
 	// if right hand is being dragged beyond maximum arm length...
 	//-------------------------------------------------------------------------------
@@ -952,7 +951,16 @@ void Head::updateHandMovement()
 	newElbowPosition += armVector * (float)ONE_HALF;
 	glm::dvec3 perpendicular = glm::dvec3( -armVector.y, armVector.x, armVector.z );
 	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
-	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].worldPosition = newElbowPosition;
+	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition = newElbowPosition;
+
+	//-----------------------------------------------------------------------------
+	// set wrist position 
+	//-----------------------------------------------------------------------------
+	glm::vec3 vv( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition );
+	vv -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition;
+	glm::vec3 newWristPosition = avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition;
+	newWristPosition += vv * 0.7f;
+	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].worldPosition = newWristPosition;
 }
 
 
