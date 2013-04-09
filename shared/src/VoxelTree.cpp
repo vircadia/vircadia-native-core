@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
+#include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
 #include <iostream> // to load voxels from file
@@ -44,6 +45,15 @@ VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
+
+	// Some stats tracking    
+	this->voxelsCreated = 0; // when a voxel is created in the tree (object new'd)
+	this->voxelsColored = 0; // when a voxel is colored/set in the tree (object may have already existed)
+	this->voxelsBytesRead = 0;
+	voxelsCreatedStats.name = "voxelsCreated";
+	voxelsColoredStats.name = "voxelsColored";
+	voxelsBytesReadStats.name = "voxelsBytesRead";
+
 }
 
 VoxelTree::~VoxelTree() {
@@ -94,6 +104,9 @@ VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned cha
     }
 }
 
+// BHG Notes: We appear to call this function for every Voxel Node getting created.
+// This is recursive in nature. So, for example, if we are given an octal code for
+// a 1/256th size voxel, we appear to call this function 8 times. Maybe??
 int VoxelTree::readNodeData(VoxelNode *destinationNode,
                             unsigned char * nodeData,
                             int bytesLeftToRead) {
@@ -107,11 +120,15 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             // create the child if it doesn't exist
             if (destinationNode->children[i] == NULL) {
                 destinationNode->addChildAtIndex(i);
+                this->voxelsCreated++;
+                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
             }
             
             // pull the color for this child
             memcpy(destinationNode->children[i]->color, nodeData + bytesRead, 3);
             destinationNode->children[i]->color[3] = 1;
+			this->voxelsColored++;
+			this->voxelsColoredStats.recordSample(this->voxelsColored);
            
             bytesRead += 3;
         }
@@ -133,6 +150,8 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             if (destinationNode->children[childIndex] == NULL) {
                 // add a child at that index, if it doesn't exist
                 destinationNode->addChildAtIndex(childIndex);
+                this->voxelsCreated++;
+                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
             }
             
             // tell the child to read the subsequent data
@@ -158,6 +177,9 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     
     int octalCodeBytes = bytesRequiredForCodeLength(*bitstream);
     readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
+    
+    this->voxelsBytesRead += bufferSizeBytes;
+	this->voxelsBytesReadStats.recordSample(this->voxelsBytesRead);
 }
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because

@@ -9,6 +9,8 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
+#include "CounterStats.h"
+
 #include "VoxelNode.h"
 #include "MarkerNode.h"
 
@@ -20,7 +22,17 @@ class VoxelTree {
     VoxelNode * nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode * createMissingNode(VoxelNode *lastParentNode, unsigned char *deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char * nodeData, int bufferSizeBytes);
+
+
 public:
+	long int voxelsCreated;
+	long int voxelsColored;
+	long int voxelsBytesRead;
+	
+	CounterStatHistory voxelsCreatedStats;
+	CounterStatHistory voxelsColoredStats;
+	CounterStatHistory voxelsBytesReadStats;
+
     VoxelTree();
     ~VoxelTree();
     

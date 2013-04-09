@@ -82,6 +82,30 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     setupNewVoxelsForDrawing();
 }
 
+long int VoxelSystem::getVoxelsCreated() {
+    return tree->voxelsCreated;
+}
+
+long int VoxelSystem::getVoxelsCreatedRunningAverage() {
+    return tree->voxelsCreatedStats.getRunningAverage();
+}
+
+long int VoxelSystem::getVoxelsColored() {
+    return tree->voxelsColored;
+}
+
+long int VoxelSystem::getVoxelsColoredRunningAverage() {
+    return tree->voxelsColoredStats.getRunningAverage();
+}
+
+long int VoxelSystem::getVoxelsBytesRead() {
+    return tree->voxelsBytesRead;
+}
+
+long int VoxelSystem::getVoxelsBytesReadRunningAverage() {
+    return tree->voxelsBytesReadStats.getRunningAverage();
+}
+
 
 void VoxelSystem::parseData(void *data, int size) {
 

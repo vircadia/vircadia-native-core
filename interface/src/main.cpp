@@ -147,6 +147,7 @@ bool starsOn = false;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
+bool perfStatsOn = false;			//  Do we want to display perfStats?
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -282,18 +283,45 @@ void display_stats(void)
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-	// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
-    char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
-	int lines = PerfStat::DumpStats(perfStatLinesArray);
-    int atZ = 150; // arbitrary place on screen that looks good
-    for (int line=0; line < lines; line++) {
-        drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
-        delete perfStatLinesArray[line]; // we're responsible for cleanup
-        perfStatLinesArray[line]=NULL;
-        atZ+=20; // height of a line
-    }
-    delete []perfStatLinesArray; // we're responsible for cleanup
-        
+	voxelStats.str("");
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,250,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,270,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+	voxelStats.str("");
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
+		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
+	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
+		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
+
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
+		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,310,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+
+	if (::perfStatsOn) {
+		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+		int lines = PerfStat::DumpStats(perfStatLinesArray);
+		int atZ = 150; // arbitrary place on screen that looks good
+		for (int line=0; line < lines; line++) {
+			drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+			delete perfStatLinesArray[line]; // we're responsible for cleanup
+			perfStatLinesArray[line]=NULL;
+			atZ+=20; // height of a line
+		}
+		delete []perfStatLinesArray; // we're responsible for cleanup
+	}
+	        
     /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
