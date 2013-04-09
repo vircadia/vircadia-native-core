@@ -50,6 +50,7 @@
 
 #include "Head.h"
 #include "Hand.h"
+#include "Camera.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -65,7 +66,7 @@
 
 using namespace std;
 
-int audio_on = 0;                   //  Whether to turn on the audio support
+int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 AgentList agentList('I');
@@ -95,6 +96,7 @@ Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
+Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
@@ -193,7 +195,6 @@ char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
 
-
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
@@ -249,6 +250,9 @@ void Timer(int extra)
         serialPort.pair();
     }
 }
+
+
+
 
 void display_stats(void)
 {
@@ -354,6 +358,9 @@ void initDisplay(void)
     if (fullscreen) glutFullScreen();
 }
 
+
+
+
 void init(void)
 {
     voxels.init();
@@ -374,8 +381,10 @@ void init(void)
     if (noise_on) {   
         myHead.setNoise(noise);
     }
-    myHead.setPos(start_location);
-    
+    myHead.setPos(start_location );
+	
+	myCamera.setPosition( glm::dvec3( start_location ) );
+	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
         marker_capturer.position_updated(&position_updated);
@@ -387,7 +396,6 @@ void init(void)
         }
     }
 #endif
-    
     
     gettimeofday(&timer_start, NULL);
     gettimeofday(&last_frame, NULL);
@@ -454,7 +462,12 @@ void simulateHead(float frametime)
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
-    
+	
+	//-------------------------------------------------------------------------------------
+	// set the position of the avatar
+	//-------------------------------------------------------------------------------------
+	myHead.setAvatarPosition( -myHead.getPos().x, -myHead.getPos().y, -myHead.getPos().z );
+	
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -551,6 +564,9 @@ void simulateHead(float frametime)
 int render_test_spot = WIDTH/2;
 int render_test_direction = 1; 
 
+
+
+
 void display(void)
 {
 	PerfStat("display");
@@ -577,14 +593,48 @@ void display(void)
         
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-           
-        //  Rotate, translate to camera location
-        fov.setOrientation(
-            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
-                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
-                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
 
-        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
+		//-------------------------------------------------------------------------------------
+		// set the camera to third-person view
+		//-------------------------------------------------------------------------------------		
+		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
+		myCamera.setPitch	( 0.0 );
+		myCamera.setRoll	( 0.0 );
+
+		if ( display_head )
+		//-------------------------------------------------------------------------------------
+		// set the camera to looking at my face
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.4  );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
+		else
+		//-------------------------------------------------------------------------------------
+		// set the camera to third-person view
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.15 );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
+		
+		//-------------------------------------------------------------------------------------
+		// transform to camera view
+		//-------------------------------------------------------------------------------------
+        glRotatef	( myCamera.getPitch(),	1, 0, 0 );
+        glRotatef	( myCamera.getYaw(),	0, 1, 0 );
+        glRotatef	( myCamera.getRoll(),	0, 0, 1 );
+		
+		//printf( "myCamera position = %f, %f, %f\n", myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );		
+		
+        glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
+        
+		// fixed view
+		//glTranslatef( 6.18, -0.15, 1.4 );
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -603,7 +653,7 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-        voxels.render();
+		voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -625,12 +675,20 @@ void display(void)
         //  Render the world box
         if (!display_head && stats_on) render_world_box();
     
+	
+		//---------------------------------
         //  Render my own head
+		//---------------------------------
+		myHead.render( true, 1 );	
+	
+		/*
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
         myHead.render(display_head, 1);
         glPopMatrix();
+		*/
+		
     }
     
     glPopMatrix();
@@ -720,6 +778,10 @@ void display(void)
     glutSwapBuffers();
     framecount++;
 }
+
+
+
+
 
 void testPointToVoxel()
 {
@@ -965,6 +1027,23 @@ void idle(void)
     if (diffclock(&last_frame, &check) > RENDER_FRAME_MSECS)
     {
         steps_per_frame++;
+		
+		//----------------------------------------------------------------
+		// If mouse is being dragged, update hand movement in the avatar
+		//----------------------------------------------------------------
+		if ( mouse_pressed == 1 )
+		{
+			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
+			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
+			
+			double leftRight	= xOffset;
+			double downUp		= yOffset;
+			double backFront	= 0.0;
+			
+			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			myHead.setHandMovement( handMovement );		
+		}		
+		
         //  Simulation
         simulateHead(1.f/FPS);
         simulateHand(1.f/FPS);
@@ -989,6 +1068,8 @@ void idle(void)
     }
 }
 
+
+
 void reshape(int width, int height)
 {
     WIDTH = width;
@@ -1005,6 +1086,8 @@ void reshape(int width, int height)
 
     glViewport(0, 0, width, height);
 }
+
+
 
 void mouseFunc( int button, int state, int x, int y ) 
 {
