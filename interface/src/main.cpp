@@ -609,7 +609,7 @@ void display(void)
 		{
 			myCamera.setYaw		( - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.4  );
-			myCamera.setDistance( 0.08 );	
+			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		else
@@ -619,7 +619,7 @@ void display(void)
 		{
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.15 );
-			myCamera.setDistance( 0.08 );	
+			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		

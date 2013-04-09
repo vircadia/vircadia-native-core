@@ -550,6 +550,8 @@ void Head::renderHead( int faceToFace, int isMine )
         
     //  Always render own hand, but don't render head unless showing face2face
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_RESCALE_NORMAL);
+    
     glPushMatrix();
     
 	//glScalef(scale, scale, scale);
@@ -580,17 +582,14 @@ void Head::renderHead( int faceToFace, int isMine )
         glRotatef(Roll, 0, 0, 1);
         
         // Overall scale of head
-        if (faceToFace) glScalef(1.5, 2.0, 2.0);
+        if (faceToFace) glScalef(2.0, 2.0, 2.0);
         else glScalef(0.75, 1.0, 1.0);
 		
         glColor3fv(skinColor);
 
-
         //  Head
         glutSolidSphere(1, 30, 30);
-        
-        //std::cout << distanceToCamera << "\n";
-        
+                
         //  Ears
         glPushMatrix();
             glTranslatef(1.0, 0, 0);

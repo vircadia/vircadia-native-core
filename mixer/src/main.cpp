@@ -287,7 +287,7 @@ int main(int argc, const char * argv[])
                     stdev.addValue(tDiff);
                     
                     if (stdev.getSamples() > 500) {
-                        printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                        //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
                         stdev.reset();
                     }
                 }
