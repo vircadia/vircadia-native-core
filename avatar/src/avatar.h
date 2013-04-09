@@ -44,6 +44,7 @@ private:
     float _handPositionX;
     float _handPositionY;
     float _handPositionZ;
+    double _lastHeartbeat;
 public:
     AvatarAgent(sockaddr activeSocket,
                 float pitch,
@@ -56,7 +57,8 @@ public:
                 float averageLoudness,
                 float handPositionX,
                 float handPositionY,
-                float handPositionZ);
+                float handPositionZ,
+                double lastHeartbeat);
     ~AvatarAgent();
     sockaddr *getActiveSocket();
     void setActiveSocket(sockaddr activeSocket);
@@ -78,4 +80,6 @@ public:
     float getHandPositionY();
     float getHandPositionZ();
     void setHandPosition(float x, float y, float z);
+    double getLastHeartbeat();
+    void setLastHeartbeat(double lastHeartbeat);
 };

@@ -69,7 +69,8 @@ AvatarAgent::AvatarAgent(sockaddr activeSocket,
                          float averageLoudness,
                          float handPositionX,
                          float handPositionY,
-                         float handPositionZ) {
+                         float handPositionZ,
+                         double lastHeartbeat) {
     
     this->setActiveSocket(activeSocket);
     this->setPitch(pitch);
@@ -79,6 +80,7 @@ AvatarAgent::AvatarAgent(sockaddr activeSocket,
     this->setLoudness(loudness);
     this->setAverageLoudness(averageLoudness);
     this->setHandPosition(handPositionX, handPositionY, handPositionZ);
+    this->setLastHeartbeat(lastHeartbeat);
     
 }
 
@@ -135,6 +137,10 @@ float AvatarAgent::getHandPositionZ() {
     return _handPositionZ;
 }
 
+double AvatarAgent::getLastHeartbeat() {
+    return _lastHeartbeat;
+}
+
 // Property setters
 void AvatarAgent::setPitch(float pitch) {
     _pitch = pitch;
@@ -168,6 +174,9 @@ void AvatarAgent::setHandPosition(float x, float y, float z) {
     _handPositionZ = z;
 }
 
+void AvatarAgent::setLastHeartbeat(double lastHeartbeat) {
+    _lastHeartbeat = lastHeartbeat;
+}
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, AvatarAgent *agentToAdd) {
     unsigned char *packetData = new unsigned char();
@@ -209,21 +218,36 @@ void *sendAvatarData(void *args) {
         for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
              avatarAgent != avatarAgentList->end();
              avatarAgent++) {
-         
             addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
-            
         }
         
         for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
              avatarAgent != avatarAgentList->end();
              avatarAgent++) {
-            
             avatarMixerSocket->send(avatarAgent->getActiveSocket(), broadcastPacket, strlen((const char *)broadcastPacket));
-            
         }
         
         double usecToSleep = usecTimestamp(&startTime) + (BROADCAST_INTERVAL * 10000000) - usecTimestampNow();
+        delete[] broadcastPacket;
         usleep(usecToSleep);
+    }
+}
+
+void *popInactiveAvatarAgents(void *args) {
+    
+    double checkTime, sleepTime;
+    
+    while (true) {
+        checkTime = usecTimestampNow();
+        
+        for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
+             avatarAgent != avatarAgentList->end();
+             avatarAgent++) {
+            if ((checkTime - avatarAgent->getLastHeartbeat()) > AGENT_SILENCE_THRESHOLD_USECS) {
+                avatarAgent = avatarAgentList->erase(avatarAgent);
+            }
+        }
+        
     }
 }
 
@@ -233,6 +257,9 @@ int main(int argc, char* argv[])
     
     pthread_t sendAvatarDataThread;
     pthread_create(&sendAvatarDataThread, NULL, sendAvatarData, NULL);
+    
+    pthread_t popInactiveAvatarAgentsThread;
+    pthread_create(&popInactiveAvatarAgentsThread, NULL, popInactiveAvatarAgents, NULL);
     
     sockaddr *agentAddress = new sockaddr;
     char *packetData = new char[MAX_PACKET_SIZE];
@@ -273,7 +300,6 @@ int main(int argc, char* argv[])
                 matchingAgent = findAvatarAgentBySocket(agentAddress);
                 
                 if (matchingAgent) {
-                    
                     // We already have this agent on our list, just modify positional data
                     matchingAgent->setPitch(*pitch);
                     matchingAgent->setYaw(*yaw);
@@ -282,6 +308,7 @@ int main(int argc, char* argv[])
                     matchingAgent->setLoudness(*loudness);
                     matchingAgent->setAverageLoudness(*averageLoudness);
                     matchingAgent->setHandPosition(*handPositionX, *handPositionY, *handPositionZ);
+                    matchingAgent->setLastHeartbeat(usecTimestampNow());
                     
                 } else {
                     // This is a new agent, we need to add to the list
@@ -296,7 +323,8 @@ int main(int argc, char* argv[])
                                                                    *averageLoudness,
                                                                    *handPositionX,
                                                                    *handPositionY,
-                                                                   *handPositionZ);
+                                                                   *handPositionZ,
+                                                                   usecTimestampNow());
                     avatarAgentList->push_back(thisAgentHolder);
                 }
             }
