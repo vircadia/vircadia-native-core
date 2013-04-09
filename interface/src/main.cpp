@@ -385,7 +385,7 @@ void init(void)
     }
     myHead.setPos(start_location );
 	
-	myCamera.setPosition( glm::dvec3( start_location ) );
+	myCamera.setPosition( start_location );
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -599,7 +599,7 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
+		myCamera.setTargetPosition( myHead.getPos() );	
 
 		if ( display_head )
 		{
@@ -1037,14 +1037,14 @@ void idle(void)
 		//----------------------------------------------------------------
 		if ( mouse_pressed == 1 )
 		{
-			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
-			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
+			float xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
+			float yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
 			
-			double leftRight	= xOffset;
-			double downUp		= yOffset;
-			double backFront	= 0.0;
+			float leftRight	= xOffset;
+			float downUp	= yOffset;
+			float backFront	= 0.0;
 			
-			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			glm::vec3 handMovement( leftRight, downUp, backFront );
 			myHead.setHandMovement( handMovement );		
 		}		
 		

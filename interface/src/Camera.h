@@ -30,33 +30,33 @@ public:
 	void update();
 	
 	void setMode			( CameraMode	m ) { mode				= m; }
-	void setYaw				( double		y ) { yaw				= y; }
-	void setPitch			( double		p ) { pitch				= p; }
-	void setRoll			( double		r ) { roll				= r; }
-	void setUp				( double		u ) { up				= u; }
-	void setDistance		( double		d ) { distance			= d; }
-	void setTargetPosition	( glm::dvec3	t ) { targetPosition	= t; };
-	void setPosition		( glm::dvec3	p ) { position			= p; };
+	void setYaw				( float			y ) { yaw				= y; }
+	void setPitch			( float			p ) { pitch				= p; }
+	void setRoll			( float			r ) { roll				= r; }
+	void setUp				( float			u ) { up				= u; }
+	void setDistance		( float			d ) { distance			= d; }
+	void setTargetPosition	( glm::vec3		t ) { targetPosition	= t; };
+	void setPosition		( glm::vec3		p ) { position			= p; };
 	void setOrientation		( Orientation	o ) { orientation.set(o); }
 
-	double		getYaw			() { return yaw;			}
-	double		getPitch		() { return pitch;			}
-	double		getRoll			() { return roll;			}
-	glm::dvec3	getPosition		() { return position;		}
+	float		getYaw			() { return yaw;			}
+	float		getPitch		() { return pitch;			}
+	float		getRoll			() { return roll;			}
+	glm::vec3	getPosition		() { return position;		}
 	Orientation	getOrientation	() { return orientation;	}
 	CameraMode	getMode			() { return mode;			}
 
 private:
 
 	CameraMode	mode;
-	glm::dvec3	position;
-	glm::dvec3	targetPosition;
-	double		fieldOfView;
-	double		yaw;
-	double		pitch;
-	double		roll;
-	double		up;
-	double		distance;
+	glm::vec3	position;
+	glm::vec3	targetPosition;
+	float		fieldOfView;
+	float		yaw;
+	float		pitch;
+	float		roll;
+	float		up;
+	float		distance;
 	Orientation	orientation;
 };
 

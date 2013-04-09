@@ -239,9 +239,9 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
 
 
 //---------------------------------------------------
-void Head::setAvatarPosition( double x, double y, double z )
+void Head::setAvatarPosition( float x, float y, float z )
 {
-	avatar.position = glm::dvec3( x, y, z );
+	avatar.position = glm::vec3( x, y, z );
 }
 
 
@@ -297,7 +297,7 @@ void Head::simulate(float deltaTime)
 	const float THRUST_LATERAL_MAG	= 10.0;
     const float THRUST_VERTICAL_MAG	= 10.0;
 	
-	avatar.thrust = glm::dvec3( 0.0, 0.0, 0.0 );
+	avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
 	    
     if (driveKeys[FWD]) 
 	{
@@ -362,9 +362,9 @@ void Head::simulate(float deltaTime)
 
 	//avatar.yawDelta *= 0.99;
 	
-	avatar.velocity += avatar.thrust * (double)deltaTime;
+	avatar.velocity += glm::dvec3( avatar.thrust * deltaTime );
 		
-	position += avatar.velocity * (double)deltaTime;
+	position += (glm::vec3)avatar.velocity * deltaTime;
 	
 	//avatar.velocity *= 0.9;
 
@@ -673,9 +673,9 @@ void Head::renderHead( int faceToFace, int isMine )
  
 
 //---------------------------------------------------------
-void Head::setHandMovement( glm::dvec3 movement )
+void Head::setHandMovement( glm::vec3 movement )
 {
-	handOffset = glm::dvec3( movement.x, -movement.y, movement.z );
+	handOffset = glm::vec3( movement.x, -movement.y, movement.z );
 }
 
 
@@ -683,9 +683,9 @@ void Head::setHandMovement( glm::dvec3 movement )
 //-----------------------------------------
 void Head::initializeAvatar()
 {
-	avatar.position = glm::dvec3( 0.0, 0.0, 0.0 );
-	avatar.velocity = glm::dvec3( 0.0, 0.0, 0.0 );
-	avatar.thrust	= glm::dvec3( 0.0, 0.0, 0.0 );
+	avatar.position = glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.velocity = glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.thrust	= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
 	avatar.yaw		= 90.0;
@@ -696,9 +696,8 @@ void Head::initializeAvatar()
 	
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
-		avatar.bone[b].worldPosition = glm::dvec3( 0.0, 0.0, 0.0 );
-		//avatar.bone[b].offsetPosition = glm::dvec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].velocity = glm::dvec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].worldPosition	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].velocity			= glm::vec3( 0.0, 0.0, 0.0 );
 		avatar.bone[b].worldOrientation.setToIdentity();
 	}
 
@@ -753,29 +752,29 @@ void Head::initializeAvatar()
 	//----------------------------------------------------------
 	// specify the default pose position
 	//----------------------------------------------------------
-	avatar.bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::dvec3(  0.0,   0.1,  0.0  );
-	avatar.bone[ AVATAR_BONE_MID_SPINE			].defaultPosePosition = glm::dvec3(  0.0,   0.1,  0.0  );
-	avatar.bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::dvec3(  0.0,   0.1,  0.0  );
-	avatar.bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::dvec3(  0.0,   0.06, 0.0  );
-	avatar.bone[ AVATAR_BONE_HEAD				].defaultPosePosition = glm::dvec3(  0.0,   0.06, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_CHEST			].defaultPosePosition = glm::dvec3( -0.06,  0.06, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_SHOULDER		].defaultPosePosition = glm::dvec3( -0.03,  0.0,  0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_UPPER_ARM		].defaultPosePosition = glm::dvec3(  0.0,  -0.12, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_FOREARM		].defaultPosePosition = glm::dvec3(  0.0,  -0.1,  0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_HAND			].defaultPosePosition = glm::dvec3(  0.0,  -0.05, 0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::dvec3(  0.06,  0.06, 0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER		].defaultPosePosition = glm::dvec3(  0.03,  0.0,  0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].defaultPosePosition = glm::dvec3(  0.0,  -0.12, 0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM		].defaultPosePosition = glm::dvec3(  0.0,  -0.1,  0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_HAND			].defaultPosePosition = glm::dvec3(  0.0,  -0.05, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_PELVIS		].defaultPosePosition = glm::dvec3( -0.05,  0.0,  0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_THIGH			].defaultPosePosition = glm::dvec3(  0.0,  -0.15, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_SHIN			].defaultPosePosition = glm::dvec3(  0.0,  -0.15, 0.0  );
-	avatar.bone[ AVATAR_BONE_LEFT_FOOT			].defaultPosePosition = glm::dvec3(  0.0,   0.0,  0.04 );
-	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS		].defaultPosePosition = glm::dvec3(  0.05,  0.0,  0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_THIGH		].defaultPosePosition = glm::dvec3(  0.0,  -0.15, 0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_SHIN			].defaultPosePosition = glm::dvec3(  0.0,  -0.15, 0.0  );
-	avatar.bone[ AVATAR_BONE_RIGHT_FOOT			].defaultPosePosition = glm::dvec3(  0.0,   0.0,  0.04 );
+	avatar.bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
+	avatar.bone[ AVATAR_BONE_MID_SPINE			].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
+	avatar.bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
+	avatar.bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06, 0.0  );
+	avatar.bone[ AVATAR_BONE_HEAD				].defaultPosePosition = glm::vec3(  0.0,   0.06, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_CHEST			].defaultPosePosition = glm::vec3( -0.06,  0.06, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_SHOULDER		].defaultPosePosition = glm::vec3( -0.03,  0.0,  0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_UPPER_ARM		].defaultPosePosition = glm::vec3(  0.0,  -0.12, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_FOREARM		].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_HAND			].defaultPosePosition = glm::vec3(  0.0,  -0.05, 0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::vec3(  0.06,  0.06, 0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER		].defaultPosePosition = glm::vec3(  0.03,  0.0,  0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.12, 0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM		].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_HAND			].defaultPosePosition = glm::vec3(  0.0,  -0.05, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_PELVIS		].defaultPosePosition = glm::vec3( -0.05,  0.0,  0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_THIGH			].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_SHIN			].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
+	avatar.bone[ AVATAR_BONE_LEFT_FOOT			].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
+	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS		].defaultPosePosition = glm::vec3(  0.05,  0.0,  0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_SHIN			].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
+	avatar.bone[ AVATAR_BONE_RIGHT_FOOT			].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
 
 	//----------------------------------------------------------------------------
 	// calculate bone length
@@ -838,19 +837,19 @@ void Head::updateAvatarSkeleton()
 			avatar.bone[b].worldPosition = avatar.bone[ avatar.bone[b].parent ].worldPosition;
 		}
 				
-		double xx	= glm::dot( avatar.bone[b].defaultPosePosition.x, avatar.bone[b].worldOrientation.getRight	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, avatar.bone[b].worldOrientation.getRight	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, avatar.bone[b].worldOrientation.getRight	().z );
+		float xx	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getRight	().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getRight	().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getRight	().z );
 
-		double yy	= glm::dot( avatar.bone[b].defaultPosePosition.x, avatar.bone[b].worldOrientation.getUp		().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, avatar.bone[b].worldOrientation.getUp		().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, avatar.bone[b].worldOrientation.getUp		().z );
+		float yy	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getUp		().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getUp		().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getUp		().z );
 
-		double zz	= glm::dot( avatar.bone[b].defaultPosePosition.x, avatar.bone[b].worldOrientation.getFront	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, avatar.bone[b].worldOrientation.getFront	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, avatar.bone[b].worldOrientation.getFront	().z );
+		float zz	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getFront	().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getFront	().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getFront	().z );
 				
-		glm::dvec3 rotatedBoneVector( xx, yy, zz );
+		glm::vec3 rotatedBoneVector( xx, yy, zz );
 
 		//rotatedBonePosition.x = avatar.bone[b].defaultPosePosition.x;// * avatar.bone[b].worldOrientation.getFront().x;
 		//rotatedBonePosition.y = avatar.bone[b].defaultPosePosition.y;// * avatar.bone[b].worldOrientation.getFront().y;
@@ -905,7 +904,7 @@ void Head::updateAvatarSkeleton()
 
 
 //-------------------------------
-double Head::getAvatarYaw()
+float Head::getAvatarYaw()
 {
 	return avatar.yaw;
 }
@@ -949,8 +948,8 @@ void Head::updateHandMovement()
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
 	newElbowPosition += armVector * (float)ONE_HALF;
-	glm::dvec3 perpendicular = glm::dvec3( -armVector.y, armVector.x, armVector.z );
-	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
+	glm::vec3 perpendicular = glm::vec3( -armVector.y, armVector.x, armVector.z );
+	newElbowPosition += perpendicular * (float)( ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF );
 	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition = newElbowPosition;
 
 	//-----------------------------------------------------------------------------
