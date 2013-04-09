@@ -657,7 +657,7 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-//voxels.render();
+		voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
