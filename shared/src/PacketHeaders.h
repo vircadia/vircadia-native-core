@@ -11,5 +11,6 @@
 
 const char PACKET_HEADER_DOMAIN = 'D';
 const char PACKET_HEADER_PING = 'P';
+const char PACKET_HEADER_PING_REPLY = 'R';
 
 #endif

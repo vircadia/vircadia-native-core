@@ -86,7 +86,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
             agentSocket.send(senderAddress, reply, 1);  
             break;
         }
-        case 'R': {
+        case PACKET_HEADER_PING_REPLY: {
             // ping reply from another agent
             //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
