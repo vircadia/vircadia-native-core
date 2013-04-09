@@ -12,6 +12,15 @@
 #ifndef __hifi__PerfStat__
 #define __hifi__PerfStat__
 
+#include <stdint.h>
+
+#ifdef _WIN32
+#define snprintf _snprintf
+#include "Systime.h"
+#else
+#include <sys/time.h>
+#endif
+
 #include <cstring>
 #include <string>
 #include <map>

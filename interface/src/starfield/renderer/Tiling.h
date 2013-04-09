@@ -13,8 +13,19 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
-#include "starfield/Config.h"
-
+#ifdef _WIN32
+#include "../Config.h"
+#define lrint(x) (floor(x+(x>0) ? 0.5 : -0.5)) 
+inline float remainder(float x,float y) { return std::fmod(x,y); }
+inline int round(float x) { return (floor(x + 0.5)); }
+double log2( double n )  
+{  
+    // log(n)/log(2) is log2.  
+    return log( n ) / log( 2 );  
+}
+#else
+#include "../starfield/Config.h"
+#endif
 namespace starfield {
 
     class Tiling {

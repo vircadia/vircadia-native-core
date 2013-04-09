@@ -11,7 +11,7 @@
 
 #include "PerfStat.h"
 #include <cstdio>
-#include <sys/time.h>
+
 #include <string>
 #include <map>
 
