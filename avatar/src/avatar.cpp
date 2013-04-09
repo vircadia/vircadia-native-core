@@ -22,43 +22,140 @@
 #include <limits>
 #include <AgentList.h>
 #include <SharedUtil.h>
-#include <PacketCodes.h>
+#include <PacketHeaders.h>
 #include <StdDev.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <UDPSocket.h>
 #include "avatar.h"
 
-AgentList agentList(PKT_AVATAR_MIXER, AVATAR_LISTEN_PORT);
-const char *packetFormat = "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f";
+const int LISTEN_PORT = 55444;
+
+std::vector<AvatarAgent> *avatarAgentList = new std::vector<AvatarAgent>;
+
+AvatarAgent *findAvatarAgentBySocket(sockaddr *activeSocket) {
+    
+    sockaddr *agentSocketHolder = new sockaddr();
+    
+    for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
+         avatarAgent != avatarAgentList->end();
+         avatarAgent++) {
+        agentSocketHolder = avatarAgent->getActiveSocket();
+        if (agentSocketHolder->sa_family != activeSocket->sa_family) {
+            return NULL;
+        }
+        sockaddr_in *firstSocket = (sockaddr_in *) activeSocket;
+        sockaddr_in *secondSocket = (sockaddr_in *) agentSocketHolder;
+        
+        if (firstSocket->sin_addr.s_addr == secondSocket->sin_addr.s_addr &&
+            firstSocket->sin_port == secondSocket->sin_port) {
+            return &*avatarAgent;
+        } else {
+            return NULL;
+        }
+    }
+}
+
+// Constructor and Destructor
+AvatarAgent::AvatarAgent() {
+    
+}
+
+AvatarAgent::~AvatarAgent() {
+    
+}
+
+// Property getters
+sockaddr *AvatarAgent::getActiveSocket() {
+    return &_activeSocket;
+}
+
+float AvatarAgent::getPitch() {
+    return _pitch;
+}
+
+float AvatarAgent::getYaw() {
+    return _yaw;
+}
+
+float AvatarAgent::getRoll() {
+    return _roll;
+}
+
+std::map<char, float> AvatarAgent::getHeadPosition() {
+    return _headPosition;
+}
+
+float AvatarAgent::getLoudness() {
+    return _loudness;
+}
+
+float AvatarAgent::getAverageLoudness() {
+    return _averageLoudness;
+}
+
+std::map<char, float> AvatarAgent::getHandPosition() {
+    return _handPosition;
+}
+
+// Property setters
+void AvatarAgent::setPitch(float pitch) {
+    _pitch = pitch;
+}
+
+void AvatarAgent::setYaw(float yaw) {
+    _yaw = yaw;
+}
+
+void AvatarAgent::setRoll(float roll) {
+    _roll = roll;
+}
+
+void AvatarAgent::setHeadPosition(float x, float y, float z) {
+    _headPosition['x'] = x;
+    _headPosition['y'] = y;
+    _headPosition['z'] = z;
+}
+
+void AvatarAgent::setLoudness(float loudness) {
+    _loudness = loudness;
+}
+
+void AvatarAgent::setAverageLoudness(float averageLoudness) {
+    _averageLoudness = averageLoudness;
+}
+
+void AvatarAgent::setHandPosition(float x, float y, float z) {
+    _handPosition['x'] = x;
+    _handPosition['y'] = y;
+    _handPosition['z'] = z;
+}
+
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
-    Head *agentHead = (Head *)agentToAdd->getLinkedData();
-    Hand *agentHand = (Hand *)agentToAdd->getLinkedData();
-    unsigned char *packetData;
-    glm::vec3 headPosition = agentHead->getPos();
-    glm::vec3 handPosition = agentHand->getPos();
+    unsigned char *packetData = new unsigned char();
+    AvatarAgent *thisAgent = new AvatarAgent();
     
     *currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
     currentPosition += packSocket(currentPosition, agentToAdd->getActiveSocket());
-    
-    sprintf(packetData, packetFormat, agentHead->getPitch(),
-                                      agentHead->getYaw(),
-                                      agentHead->getRoll(),
-                                      headPosition.x,
-                                      headPosition.y,
-                                      headPosition.z,
-                                      agentHead->getLoudness(),
-                                      agentHead->getAverageLoudness(),
-                                      handPosition.x,
-                                      handPosition.y,
-                                      handPosition.z)
-    
-    memcpy(currentPosition, packetData, strlen(packetData));
-    currentPosition += strlen(packetData);
-    
-    // return the new unsigned char * for broadcast packet
+
+    sprintf((char *)packetData, packetFormat, thisAgent->getPitch(),
+                                              thisAgent->getYaw(),
+                                              thisAgent->getRoll(),
+                                              thisAgent->getHeadPosition()[0],
+                                              thisAgent->getHeadPosition()[1],
+                                              thisAgent->getHeadPosition()[2],
+                                              thisAgent->getLoudness(),
+                                              thisAgent->getAverageLoudness(),
+                                              thisAgent->getHandPosition()[0],
+                                              thisAgent->getHandPosition()[1],
+                                              thisAgent->getHandPosition()[2]);
+
+    memcpy(currentPosition, packetData, strlen((const char*)packetData));
+    currentPosition += strlen((const char*)packetData);
+
     return currentPosition;
 }
 
@@ -72,21 +169,11 @@ void *sendAvatarData(void *args)
         unsigned char *startPointer;
         unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
         
-        *broadcastPacket = PKT_AGENT_DATA;
+        *broadcastPacket = *(unsigned char *)PACKET_HEADER_HEAD_DATA;
         currentBufferPosition = broadcastPacket + 1;
         startPointer = currentBufferPosition;
         
-        // Construct packet with data for all agents
-        for (std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
-                addAgentToBroadcastPacket(currentBufferPosition, agent);
-            }
-        }
         
-        // Stream the constructed packet to all agents
-        for (std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            agentList.getAgentSocket().send(agent->getActiveSocket(), broadcastPacket, strlen(broadcastPacket));
-        }
         
         double usecToSleep = usecTimestamp(&startTime) + (BROADCAST_INTERVAL * 10000000) - usecTimestampNow();
         usleep(usecToSleep);
@@ -97,9 +184,6 @@ int main(int argc, char* argv[])
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
     
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
-    
     pthread_t sendAvatarDataThread;
     pthread_create(&sendAvatarDataThread, NULL, sendAvatarData, NULL);
     
@@ -108,13 +192,6 @@ int main(int argc, char* argv[])
     ssize_t receivedBytes = 0;
     
     while (true) {
-        if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'H') {
-                if (agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList.getLastAgentId())) {
-                    agentList.increaseAgentId();
-                }
-                agentList.updateAgentWithData(agentAddress, packetData, receivedBytes);
-            }
-        }
+        
     }
 }
