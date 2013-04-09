@@ -142,6 +142,10 @@ double AvatarAgent::getLastHeartbeat() {
 }
 
 // Property setters
+void AvatarAgent::setActiveSocket(sockaddr activeSocket) {
+    _activeSocket = activeSocket;
+}
+
 void AvatarAgent::setPitch(float pitch) {
     _pitch = pitch;
 }

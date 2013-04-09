@@ -19,7 +19,6 @@
 #include <limits>
 #include <AgentList.h>
 #include <SharedUtil.h>
-#include <PacketCodes.h>
 #include <StdDev.h>
 #include <sys/time.h>
 #include <sys/socket.h>

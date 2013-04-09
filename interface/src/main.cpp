@@ -534,7 +534,6 @@ void simulateHead(float frametime)
 
     //  Send my stream of head/hand data to the avatar mixer
     const int MAX_BROADCAST_STRING = 200;
-    const int AVATAR_SERVER_PORT = 55444;
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     agentList.getAgentSocket().send(AVATAR_SERVER_IP, AVATAR_SERVER_PORT, broadcast_string, broadcast_bytes);
