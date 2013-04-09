@@ -566,15 +566,32 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
 		//-------------------------------------------------------------------------------------
-		// set the caemra to third-person view
+		// set the camera to third-person view
 		//-------------------------------------------------------------------------------------		
-		myCamera.setTargetPosition	( (glm::dvec3)myHead.getPos() );		
-		myCamera.setYaw				( 0.0  );
-		myCamera.setPitch			( 0.0  );
-		myCamera.setRoll			( 0.0  );
-		myCamera.setUp				( 0.15 );
-		myCamera.setDistance		( 0.08 );	
-		myCamera.update();
+		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
+		myCamera.setPitch	( 0.0 );
+		myCamera.setRoll	( 0.0 );
+
+		if ( display_head )
+		//-------------------------------------------------------------------------------------
+		// set the camera to looking at my face
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.4  );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
+		else
+		//-------------------------------------------------------------------------------------
+		// set the camera to third-person view
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.15 );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
 		
 		//-------------------------------------------------------------------------------------
 		// transform to camera view
@@ -582,7 +599,13 @@ void display(void)
         glRotatef	( myCamera.getPitch(),	1, 0, 0 );
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
+		
+		//printf( "myCamera position = %f, %f, %f\n", myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );		
+		
         glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
+        
+		// fixed view
+		//glTranslatef( 6.18, -0.15, 1.4 );
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -601,7 +624,7 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-//voxels.render();
+		voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -624,11 +647,12 @@ void display(void)
         if (!display_head && stats_on) render_world_box();
     
 	
+		//---------------------------------
+        //  Render my own head
+		//---------------------------------
 		myHead.render( true, 1 );	
-		//myHead.renderAvatar();	
 	
 		/*
-        //  Render my own head
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
@@ -967,7 +991,7 @@ void idle(void)
 		if ( mouse_pressed == 1 )
 		{
 			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
-			double yOffset = ( mouse_y - mouse_start_y ) / (double)WIDTH;
+			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
 			
 			double leftRight	= xOffset;
 			double downUp		= yOffset;
@@ -1001,6 +1025,8 @@ void idle(void)
     }
 }
 
+
+
 void reshape(int width, int height)
 {
     WIDTH = width;
@@ -1017,6 +1043,8 @@ void reshape(int width, int height)
 
     glViewport(0, 0, width, height);
 }
+
+
 
 void mouseFunc( int button, int state, int x, int y ) 
 {

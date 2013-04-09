@@ -74,30 +74,26 @@ enum AvatarJoints
 enum AvatarBones
 {
 	AVATAR_BONE_NULL = -1,
-	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (cannot be rotated)
+	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (not supposed to be rotated)
 	AVATAR_BONE_MID_SPINE,			// connects torso			joint with chest			joint
-	AVATAR_BONE_CHEST_SPINE,		// connects chest			joint with neckBase			joint (cannot be rotated)
+	AVATAR_BONE_CHEST_SPINE,		// connects chest			joint with neckBase			joint (not supposed to be rotated)
 	AVATAR_BONE_NECK,				// connects neckBase		joint with headBase			joint
 	AVATAR_BONE_HEAD,				// connects headBase		joint with headTop			joint
-	
-	AVATAR_BONE_LEFT_CHEST,			// connects chest			joint with left clavicle	joint (cannot be rotated)
+	AVATAR_BONE_LEFT_CHEST,			// connects chest			joint with left clavicle	joint (not supposed to be rotated)
 	AVATAR_BONE_LEFT_SHOULDER,		// connects left clavicle	joint with left shoulder	joint
 	AVATAR_BONE_LEFT_UPPER_ARM,		// connects left shoulder	joint with left elbow		joint
 	AVATAR_BONE_LEFT_FOREARM,		// connects left elbow		joint with left wrist		joint
 	AVATAR_BONE_LEFT_HAND,			// connects left wrist		joint with left fingertips	joint
-	
-	AVATAR_BONE_RIGHT_CHEST,		// connects chest			joint with right clavicle	joint (cannot be rotated)
+	AVATAR_BONE_RIGHT_CHEST,		// connects chest			joint with right clavicle	joint (not supposed to be rotated)
 	AVATAR_BONE_RIGHT_SHOULDER,		// connects right clavicle	joint with right shoulder	joint
 	AVATAR_BONE_RIGHT_UPPER_ARM,	// connects right shoulder	joint with right elbow		joint
 	AVATAR_BONE_RIGHT_FOREARM,		// connects right elbow		joint with right wrist		joint
 	AVATAR_BONE_RIGHT_HAND,			// connects right wrist		joint with right fingertips	joint
-	
-	AVATAR_BONE_LEFT_PELVIS,		// connects pelvis			joint with left hip			joint (cannot be rotated)
+	AVATAR_BONE_LEFT_PELVIS,		// connects pelvis			joint with left hip			joint (not supposed to be rotated)
 	AVATAR_BONE_LEFT_THIGH,			// connects left hip		joint with left knee		joint
 	AVATAR_BONE_LEFT_SHIN,			// connects left knee		joint with left heel		joint
 	AVATAR_BONE_LEFT_FOOT,			// connects left heel		joint with left toes		joint
-	
-	AVATAR_BONE_RIGHT_PELVIS,		// connects pelvis			joint with right hip		joint (cannot be rotated)
+	AVATAR_BONE_RIGHT_PELVIS,		// connects pelvis			joint with right hip		joint (not supposed to be rotated)
 	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
 	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
 	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
@@ -108,20 +104,26 @@ enum AvatarBones
 struct AvatarBone
 {
 	AvatarBones	parent;
-	Vector3D	position;
-	Vector3D	defaultPosePosition;
-	Vector3D	velocity;
+	glm::dvec3	worldPosition;
+	glm::dvec3	defaultPosePosition;
+	glm::dvec3	velocity;
 	double		yaw;
 	double		pitch;
 	double		roll;
-	Orientation	orientation;
+	Orientation	worldOrientation;
 	double		length;
 };
 
 struct Avatar
 {
-	Vector3D	position;
-	Vector3D	velocity;
+	glm::dvec3	position;
+	glm::dvec3	velocity;
+	glm::dvec3	thrust;
+	double		yaw;
+	double		pitch;
+	double		roll;
+	double		yawDelta;
+	double		maxArmLength;
 	Orientation	orientation;
 	AvatarBone	bone[ NUM_AVATAR_BONES ];
 };
@@ -154,15 +156,19 @@ class Head : public AgentData {
         float getRoll() {return Roll;}
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
+		
+		double getAvatarYaw();
         
         void render(int faceToFace, int isMine);
 		
 		void setAvatarPosition( double, double, double );
-		void renderAvatar();
+		void renderBody();
+		void renderHead( int faceToFace, int isMine );
 
         void simulate(float);
 				
 		void setHandMovement( glm::dvec3 movement );
+		void updateHandMovement();
         
         //  Send and receive network data
         int getBroadcastData(char * data);
@@ -227,7 +233,7 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
 		
-		Vector3D handOffset;
+		glm::dvec3 handOffset;
     
         int driveKeys[MAX_DRIVE_KEYS];
         
@@ -238,8 +244,8 @@ class Head : public AgentData {
 		Avatar avatar;
 		
 		void initializeAvatar();
-		void simulateAvatar( float deltaTime );
 		void updateAvatarSkeleton();
+		void calculateBoneLengths();
     
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
