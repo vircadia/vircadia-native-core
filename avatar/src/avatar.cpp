@@ -32,6 +32,7 @@
 #include "avatar.h"
 
 std::vector<AvatarAgent> *avatarAgentList = new std::vector<AvatarAgent>;
+UDPSocket *avatarMixerSocket = new UDPSocket(AVATAR_LISTEN_PORT);
 
 AvatarAgent *findAvatarAgentBySocket(sockaddr *activeSocket) {
     
@@ -173,17 +174,17 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, AvatarA
     
     currentPosition += packSocket(currentPosition, agentToAdd->getActiveSocket());
 
-    sprintf((char *)packetData, packetFormat, agentToAdd->getPitch(),
-                                              agentToAdd->getYaw(),
-                                              agentToAdd->getRoll(),
-                                              agentToAdd->getHeadPosition()['x'],
-                                              agentToAdd->getHeadPosition()['y'],
-                                              agentToAdd->getHeadPosition()['z'],
-                                              agentToAdd->getLoudness(),
-                                              agentToAdd->getAverageLoudness(),
-                                              agentToAdd->getHandPosition()['x'],
-                                              agentToAdd->getHandPosition()['y'],
-                                              agentToAdd->getHandPosition()['z']);
+    sprintf((char *)packetData, PACKET_FORMAT, agentToAdd->getPitch(),
+                                               agentToAdd->getYaw(),
+                                               agentToAdd->getRoll(),
+                                               agentToAdd->getHeadPositionX(),
+                                               agentToAdd->getHeadPositionY(),
+                                               agentToAdd->getHeadPositionZ(),
+                                               agentToAdd->getLoudness(),
+                                               agentToAdd->getAverageLoudness(),
+                                               agentToAdd->getHandPositionX(),
+                                               agentToAdd->getHandPositionY(),
+                                               agentToAdd->getHandPositionZ());
 
     memcpy(currentPosition, packetData, strlen((const char*)packetData));
     currentPosition += strlen((const char*)packetData);
@@ -205,6 +206,21 @@ void *sendAvatarData(void *args) {
         startPointer = currentBufferPosition;
         
         
+        for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
+             avatarAgent != avatarAgentList->end();
+             avatarAgent++) {
+         
+            addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+            
+        }
+        
+        for (std::vector<AvatarAgent>::iterator avatarAgent = avatarAgentList->begin();
+             avatarAgent != avatarAgentList->end();
+             avatarAgent++) {
+            
+            avatarMixerSocket->send(avatarAgent->getActiveSocket(), broadcastPacket, strlen((const char *)broadcastPacket));
+            
+        }
         
         double usecToSleep = usecTimestamp(&startTime) + (BROADCAST_INTERVAL * 10000000) - usecTimestampNow();
         usleep(usecToSleep);
@@ -222,7 +238,6 @@ int main(int argc, char* argv[])
     char *packetData = new char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
-    UDPSocket *avatarMixerSocket = new UDPSocket(AVATAR_LISTEN_PORT);
     AvatarAgent *matchingAgent = NULL;
     
     float *pitch;
@@ -258,7 +273,15 @@ int main(int argc, char* argv[])
                 matchingAgent = findAvatarAgentBySocket(agentAddress);
                 
                 if (matchingAgent) {
+                    
                     // We already have this agent on our list, just modify positional data
+                    matchingAgent->setPitch(*pitch);
+                    matchingAgent->setYaw(*yaw);
+                    matchingAgent->setRoll(*roll);
+                    matchingAgent->setHeadPosition(*headPositionX, *headPositionY, *headPositionZ);
+                    matchingAgent->setLoudness(*loudness);
+                    matchingAgent->setAverageLoudness(*averageLoudness);
+                    matchingAgent->setHandPosition(*handPositionX, *handPositionY, *handPositionZ);
                     
                 } else {
                     // This is a new agent, we need to add to the list
