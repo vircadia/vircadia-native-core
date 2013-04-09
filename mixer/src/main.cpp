@@ -17,6 +17,7 @@
 #include <fstream>
 #include <limits>
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
@@ -60,7 +61,7 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-AgentList agentList('M', MIXER_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_MIXER, MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {

@@ -7,6 +7,7 @@
 //
 
 #include "Agent.h"
+#include "AgentTypes.h"
 #include <cstring>
 #include "UDPSocket.h"
 #include "SharedUtil.h"
@@ -90,8 +91,38 @@ Agent::~Agent() {
     delete linkedData;
 }
 
-char Agent::getType() {
+char Agent::getType() const {
     return type;
+}
+
+// Names of Agent Types
+const char* AGENT_TYPE_NAME_DOMAIN = "Domain";
+const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
+const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
+const char* AGENT_TYPE_NAME_HEAD = "Avatar Head"; // Is this needed???
+const char* AGENT_TYPE_NAME_MIXER = "Audio Mixer";
+const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
+
+const char* Agent::getTypeName() const {
+	const char* name = AGENT_TYPE_NAME_UNKNOWN;
+	switch (this->type) {
+		case AGENT_TYPE_DOMAIN:
+			name = AGENT_TYPE_NAME_DOMAIN;
+			break;
+		case AGENT_TYPE_VOXEL:
+			name = AGENT_TYPE_NAME_VOXEL;
+			break;
+		case AGENT_TYPE_INTERFACE:
+			name = AGENT_TYPE_NAME_INTERFACE;
+			break;
+		case AGENT_TYPE_HEAD:
+			name = AGENT_TYPE_NAME_HEAD;
+			break;
+		case AGENT_TYPE_MIXER:
+			name = AGENT_TYPE_NAME_MIXER;
+			break;
+	}
+	return name;
 }
 
 void Agent::setType(char newType) {
@@ -174,7 +205,7 @@ std::ostream& operator<<(std::ostream& os, const Agent* agent) {
     sockaddr_in *agentPublicSocket = (sockaddr_in *)agent->publicSocket;
     sockaddr_in *agentLocalSocket = (sockaddr_in *)agent->localSocket;
     
-    os << "T: " << agent->type << " PA: " << inet_ntoa(agentPublicSocket->sin_addr) <<
+    os << "T: " << agent->getTypeName() << " (" << agent->type << ") PA: " << inet_ntoa(agentPublicSocket->sin_addr) <<
         ":" << ntohs(agentPublicSocket->sin_port) << " LA: " << inet_ntoa(agentLocalSocket->sin_addr) <<
         ":" << ntohs(agentLocalSocket->sin_port);
     return os;

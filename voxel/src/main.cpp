@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <OctalCode.h>
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include <VoxelTree.h>
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
@@ -45,7 +46,7 @@ const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
-AgentList agentList('V', VOXEL_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
