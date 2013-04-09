@@ -82,8 +82,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
         case PACKET_HEADER_PING: {
             // ping from another agent
             //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
-            char reply[] = "R";
-            agentSocket.send(senderAddress, reply, 1);  
+            agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
@@ -325,7 +324,7 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            printf("Domain server %s: \n", DOMAIN_HOSTNAME);
             
         } else {
             printf("Failed lookup domainserver\n");

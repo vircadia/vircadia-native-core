@@ -104,7 +104,7 @@ enum AvatarBones
 struct AvatarBone
 {
 	AvatarBones	parent;
-	glm::dvec3	worldPosition;
+	glm::vec3	worldPosition;
 	glm::dvec3	defaultPosePosition;
 	glm::dvec3	velocity;
 	double		yaw;
