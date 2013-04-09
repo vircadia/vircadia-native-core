@@ -26,9 +26,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-const unsigned short AVATAR_LISTEN_PORT = 55444;
+const int AVATAR_LISTEN_PORT = 55444;
 const unsigned short BROADCAST_INTERVAL = 20;
-const char *packetFormat = "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f";
+const char *PACKET_FORMAT = "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f";
 
 class AvatarAgent {
 private:
@@ -36,12 +36,27 @@ private:
     float _pitch;
     float _yaw;
     float _roll;
-    std::map<char, float> _headPosition;
+    float _headPositionX;
+    float _headPositionY;
+    float _headPositionZ;
     float _loudness;
     float _averageLoudness;
-    std::map<char, float> _handPosition;
+    float _handPositionX;
+    float _handPositionY;
+    float _handPositionZ;
 public:
-    AvatarAgent();
+    AvatarAgent(sockaddr activeSocket,
+                float pitch,
+                float yaw,
+                float roll,
+                float headPositionX,
+                float headPositionY,
+                float headPositionZ,
+                float loudness,
+                float averageLoudness,
+                float handPositionX,
+                float handPositionY,
+                float handPositionZ);
     ~AvatarAgent();
     sockaddr *getActiveSocket();
     void setActiveSocket(sockaddr activeSocket);
@@ -51,12 +66,16 @@ public:
     void setYaw(float yaw);
     float getRoll();
     void setRoll(float roll);
-    std::map<char, float> getHeadPosition();
+    float getHeadPositionX();
+    float getHeadPositionY();
+    float getHeadPositionZ();
     void setHeadPosition(float x, float y, float z);
     float getLoudness();
     void setLoudness(float loudness);
     float getAverageLoudness();
     void setAverageLoudness(float averageLoudness);
-    std::map<char, float> getHandPosition();
+    float getHandPositionX();
+    float getHandPositionY();
+    float getHandPositionZ();
     void setHandPosition(float x, float y, float z);
 };
