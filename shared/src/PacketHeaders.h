@@ -12,5 +12,12 @@
 const char PACKET_HEADER_DOMAIN = 'D';
 const char PACKET_HEADER_PING = 'P';
 const char PACKET_HEADER_PING_REPLY = 'R';
+const char PACKET_HEADER_HEAD_DATA = 'H';
+const char PACKET_HEADER_Z_COMMAND = 'Z';
+const char PACKET_HEADER_INJECT_AUDIO = 'I';
+const char PACKET_HEADER_SET_VOXEL = 'S';
+const char PACKET_HEADER_ERASE_VOXEL = 'E';
+const char PACKET_HEADER_VOXEL_DATA = 'V';
+const char PACKET_HEADER_TRANSMITTER_DATA = 't';
 
 #endif

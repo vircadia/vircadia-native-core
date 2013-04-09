@@ -113,15 +113,15 @@ void VoxelSystem::parseData(void *data, int size) {
     unsigned char *voxelData = (unsigned char *) data + 1;
     
     switch(command) {
-        case 'V':
+        case PACKET_HEADER_VOXEL_DATA:
             // ask the VoxelTree to read the bitstream into the tree
             tree->readBitstreamToTree(voxelData, size - 1);
         break;
-        case 'R':
+        case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
             tree->processRemoveVoxelBitstream((unsigned char*)data,size);
         break;
-        case 'Z':
+        case PACKET_HEADER_Z_COMMAND:
 
             // the Z command is a special command that allows the sender to send high level semantic
             // requests, like erase all, or add sphere scene, different receivers may handle these 

@@ -69,12 +69,12 @@ unsigned int AgentList::getSocketListenPort() {
 
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
-        case 'D': {
+        case PACKET_HEADER_DOMAIN: {
             // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
-        case 'H': {
+        case PACKET_HEADER_HEAD_DATA: {
             // head data from another agent
             updateAgentWithData(senderAddress, packetData, dataBytes);
             break;

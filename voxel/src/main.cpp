@@ -16,6 +16,7 @@
 #include <VoxelTree.h>
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -293,8 +294,8 @@ int main(int argc, const char * argv[])
     // loop to send to agents requesting data
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
-        	// XXXBHG: Hacked in support for 'I' insert command
-            if (packetData[0] == 'I') {
+        	// XXXBHG: Hacked in support for 'S' SET command
+            if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
             	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",
             		receivedBytes,itemNumber);
@@ -335,10 +336,10 @@ int main(int argc, const char * argv[])
             	// after done inserting all these voxels, then reaverage colors
 				randomTree.reaverageVoxelColors(randomTree.rootNode);
             }
-            if (packetData[0] == 'R') {
+            if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
             	// Send these bits off to the VoxelTree class to process them
-				printf("got Remove Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+				printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
 
             	// Now send this to the connected agents so they know to delete
@@ -346,7 +347,7 @@ int main(int argc, const char * argv[])
 				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
             	
             }
-            if (packetData[0] == 'Z') {
+            if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
 
             	// the Z command is a special command that allows the sender to send the voxel server high level semantic
             	// requests, like erase all, or add sphere scene
@@ -373,7 +374,7 @@ int main(int argc, const char * argv[])
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
 				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
             }
-            if (packetData[0] == 'H') {
+            if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
                                                packetData[0],
