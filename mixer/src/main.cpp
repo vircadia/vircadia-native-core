@@ -20,6 +20,7 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
+#include "PacketHeaders.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -30,7 +31,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif _WIN32
+#endif //_WIN32
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
@@ -191,17 +192,22 @@ void *sendBuffer(void *args)
                             // pull the earlier sample for the delayed channel
                             
                             int earlierSample = delaySamplePointer[s] *
-                                                distanceCoeffs[lowAgentIndex][highAgentIndex];
+                                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                                otherAgentBuffer->getAttenuationRatio();
                             
                             plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                         }
                         
                         int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
-                                                 distanceCoeffs[lowAgentIndex][highAgentIndex]);
+                                                 distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                                 otherAgentBuffer->getAttenuationRatio());
                         plateauAdditionOfSamples(goodChannel[s], currentSample);
                         
                         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay], currentSample * weakChannelAmplitudeRatio);
+                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
+                                                     currentSample *
+                                                     weakChannelAmplitudeRatio *
+                                                     otherAgentBuffer->getAttenuationRatio());
                         }
                     }
                 }
@@ -270,7 +276,7 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'I') {
+            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                                 
                 //  Compute and report standard deviation for jitter calculation
                 if (firstSample) {
@@ -281,7 +287,7 @@ int main(int argc, const char * argv[])
                     stdev.addValue(tDiff);
                     
                     if (stdev.getSamples() > 500) {
-                        printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                        //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
                         stdev.reset();
                     }
                 }

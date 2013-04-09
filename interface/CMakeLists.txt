@@ -8,9 +8,8 @@ set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 project(interface)
 
+
 if (APPLE)
-  # link in required OS X frameworks and include the right GL headers
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices -framework Carbon -framework GLUT")
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 else (APPLE)
   # include the right GL headers for UNIX
@@ -19,7 +18,8 @@ endif (APPLE)
 
 if (WIN32)
   set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
-  set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+  set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0
+                  #include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
 endif (WIN32)
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
@@ -27,6 +27,9 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dir
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
+
+# project subdirectories
+add_subdirectory(src/starfield)
 
 if (APPLE)
   # set how the icon shows up in the Info.plist file
@@ -50,24 +53,38 @@ include(../LinkHifiShared.cmake)
 link_hifi_shared_library(interface)
 
 # find required libraries
-find_package(OpenGL REQUIRED)
-find_package(GLUT REQUIRED)
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
+    ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_BINARY_DIR}/includes
-    ${OPENGL_INCLUDE_DIR}
-    ${GLUT_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
 )
 
+if (NOT APPLE)
+    find_package(OpenGL REQUIRED)
+    find_package(GLUT REQUIRED)
+    include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
+    target_link_libraries(interface ${OPENGL_LIBRARY})
+else (NOT APPLE)
+    # link in required OS X frameworks and include the right GL headers
+    find_library(AudioToolbox AudioToolbox)
+    find_library(AudioUnit AudioUnit)
+    find_library(CoreAudio CoreAudio)
+    find_library(CoreServices CoreServices)
+    find_library(Carbon Carbon)
+    find_library(GLUT GLUT)
+    find_library(OpenGL OpenGL)
+    target_link_libraries(interface ${AudioToolbox} ${AudioUnit} ${CoreAudio} 
+                          ${CoreServices} ${Carbon} ${GLUT} ${OpenGL})
+endif (NOT APPLE)
+
 # link target to external libraries
 if (WIN32)
   target_link_libraries(interface 
-    ${OPENGL_LIBRARY}
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
@@ -75,14 +92,8 @@ if (WIN32)
     wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(interface 
-    ${OPENGL_LIBRARY}
-    ${GLUT_LIBRARY}
-    ${LODEPNG_LIBRARY}
-    )
-endif (WIN32)
+  target_link_libraries(interface ${LODEPNG_LIBRARY})
 
-if (NOT WIN32)
   # include PortAudio as external project
   include(ExternalProject)
   set(PORTAUDIO_PROJ_DIR external/portaudio)
@@ -105,23 +116,23 @@ if (NOT WIN32)
   # link the PortAudio library
   ExternalProject_Get_Property(portaudio binary_dir)
   target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+  
+  # link required libraries on UNIX
+  if (UNIX AND NOT APPLE) 
+      find_package(Threads REQUIRED)
+      find_package(Librt REQUIRED)
+      find_package(ALSA)
+      find_package(Jack)
 
-endif (NOT WIN32)
-
-# link required libraries on UNIX
-if (UNIX AND NOT APPLE)
-    find_package(Threads REQUIRED)
-    find_package(Librt REQUIRED)
-    find_package(ALSA)
-    find_package(Jack)
-    
-    target_link_libraries(interface
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${LIBRT_LIBRARIES}
-        ${JACK_LIBRARIES}
-        ${ALSA_LIBRARIES}
-    )
-endif (UNIX AND NOT APPLE)
+      target_link_libraries(interface
+          ${CMAKE_THREAD_LIBS_INIT}
+          ${LIBRT_LIBRARIES}
+          ${JACK_LIBRARIES}
+          ${ALSA_LIBRARIES}
+          ${GLUT_LIBRARY}
+      )
+  endif (UNIX AND NOT APPLE)
+endif (WIN32)
 
 # install command for OS X bundle
 INSTALL(TARGETS interface 

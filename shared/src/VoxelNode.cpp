@@ -37,25 +37,20 @@ void VoxelNode::addChildAtIndex(int childIndex) {
 }
 
 // will average the child colors...
-void VoxelNode::setColorFromAverageOfChildren(int * colorArray) {
-    if (colorArray == NULL) {
-        colorArray = new int[4];
-        memset(colorArray, 0, 4*sizeof(int));
-        
-        for (int i = 0; i < 8; i++) {
-            if (children[i] != NULL && children[i]->color[3] == 1) {
-                for (int j = 0; j < 3; j++) {
-                    colorArray[j] += children[i]->color[j];
-                }
-                colorArray[3]++;
-            }
-        }
-    }
+void VoxelNode::setColorFromAverageOfChildren() {
+	int colorArray[4] = {0,0,0,0};
+	for (int i = 0; i < 8; i++) {
+		if (children[i] != NULL && children[i]->color[3] == 1) {
+			for (int j = 0; j < 3; j++) {
+				colorArray[j] += children[i]->color[j];
+			}
+			colorArray[3]++;
+		}
+	}
     
     if (colorArray[3] > 4) {
         // we need at least 4 colored children to have an average color value
         // or if we have none we generate random values
-        
         for (int c = 0; c < 3; c++) {
             // set the average color value
             color[c] = colorArray[c] / colorArray[3];

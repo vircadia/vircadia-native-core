@@ -18,6 +18,12 @@ include_directories(
 )
 endif (WIN32)
 
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+# link target to common, external libraries
+target_link_libraries(HifiShared ${CURL_LIBRARY})
+
+
 # link required libraries on UNIX
 if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
