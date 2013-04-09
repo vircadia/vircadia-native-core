@@ -12,6 +12,16 @@
 #include "Orientation.h"
 #include <glm/glm.hpp>
 
+enum CameraMode
+{
+	CAMERA_MODE_NULL = -1,
+	CAMERA_MODE_FIRST_PERSON,
+	CAMERA_MODE_THIRD_PERSON,
+	CAMERA_MODE_MY_OWN_FACE,
+	NUM_CAMERA_MODES
+};
+
+
 class Camera
 {
 public:
@@ -19,6 +29,7 @@ public:
 	
 	void update();
 	
+	void setMode			( CameraMode	m ) { mode				= m; }
 	void setYaw				( double		y ) { yaw				= y; }
 	void setPitch			( double		p ) { pitch				= p; }
 	void setRoll			( double		r ) { roll				= r; }
@@ -33,11 +44,14 @@ public:
 	double		getRoll			() { return roll;			}
 	glm::dvec3	getPosition		() { return position;		}
 	Orientation	getOrientation	() { return orientation;	}
+	CameraMode	getMode			() { return mode;			}
 
 private:
 
+	CameraMode	mode;
 	glm::dvec3	position;
 	glm::dvec3	targetPosition;
+	double		fieldOfView;
 	double		yaw;
 	double		pitch;
 	double		roll;

@@ -688,9 +688,9 @@ void Head::initializeAvatar()
 	avatar.thrust	= glm::dvec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
-	avatar.yaw = 0.0;
-	avatar.pitch = 0.0;
-	avatar.roll = 0.0;
+	avatar.yaw		= 90.0;
+	avatar.pitch	= 0.0;
+	avatar.roll		= 0.0;
 	
 	avatar.yawDelta = 0.0;
 	
