@@ -17,7 +17,7 @@ public:
     ~VoxelNode();
     
     void addChildAtIndex(int childIndex);
-    void setColorFromAverageOfChildren(int * colorArray = NULL);
+    void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
     bool collapseIdenticalLeaves();
     

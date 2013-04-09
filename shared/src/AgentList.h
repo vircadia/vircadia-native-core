@@ -69,6 +69,7 @@ public:
     
 	static const char* AGENTS_OF_TYPE_HEAD;
 	static const char* AGENTS_OF_TYPE_VOXEL_AND_INTERFACE;
+	static const char* AGENTS_OF_TYPE_VOXEL;
     
 };
 

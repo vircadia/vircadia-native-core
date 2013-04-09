@@ -50,6 +50,7 @@
 
 #include "Head.h"
 #include "Hand.h"
+#include "Camera.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -62,10 +63,11 @@
 #include "SerialInterface.h"
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 
 using namespace std;
 
-int audio_on = 0;                   //  Whether to turn on the audio support
+int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
 AgentList agentList('I');
@@ -95,9 +97,11 @@ Oscilloscope audioScope(256,200,true);
 
 #define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
+Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
+
 Stars stars;
 #ifdef STARFIELD_KEYS
 int starsTiles = 20;
@@ -142,7 +146,11 @@ float renderPitchRate = 0.f;
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
-
+bool starsOn = false;				//  Whether to display the stars
+bool paintOn = false;				//  Whether to paint voxels as you fly around
+VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
+unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
+bool perfStatsOn = false;			//  Do we want to display perfStats?
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -187,7 +195,6 @@ double elapsedTime;
 char texture_filename[] = "images/int-texture256-v4.png";
 unsigned int texture_width = 256;
 unsigned int texture_height = 256;
-
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
@@ -245,16 +252,24 @@ void Timer(int extra)
     }
 }
 
+
+
+
 void display_stats(void)
 {
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
     drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
+
+    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
+    drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
+
+	glm::vec3 headPos = myHead.getPos();
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d ", 
-            FPS, packets_per_second,  bytes_per_second);
-    drawtext(10, 30, 0.10f, 0, 1.0, 0, stats); 
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
+            FPS, packets_per_second,  bytes_per_second, headPos.x,headPos.y,headPos.z);
+    drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
@@ -273,18 +288,45 @@ void display_stats(void)
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-	// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
-    char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
-	int lines = PerfStat::DumpStats(perfStatLinesArray);
-    int atZ = 150; // arbitrary place on screen that looks good
-    for (int line=0; line < lines; line++) {
-        drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
-        delete perfStatLinesArray[line]; // we're responsible for cleanup
-        perfStatLinesArray[line]=NULL;
-        atZ+=20; // height of a line
-    }
-    delete []perfStatLinesArray; // we're responsible for cleanup
-        
+	voxelStats.str("");
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,250,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,270,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+	voxelStats.str("");
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
+		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
+	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
+		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
+
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
+		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,310,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+
+	if (::perfStatsOn) {
+		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+		int lines = PerfStat::DumpStats(perfStatLinesArray);
+		int atZ = 150; // arbitrary place on screen that looks good
+		for (int line=0; line < lines; line++) {
+			drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+			delete perfStatLinesArray[line]; // we're responsible for cleanup
+			perfStatLinesArray[line]=NULL;
+			atZ+=20; // height of a line
+		}
+		delete []perfStatLinesArray; // we're responsible for cleanup
+	}
+	        
     /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
@@ -317,6 +359,9 @@ void initDisplay(void)
     if (fullscreen) glutFullScreen();
 }
 
+
+
+
 void init(void)
 {
     voxels.init();
@@ -337,8 +382,10 @@ void init(void)
     if (noise_on) {   
         myHead.setNoise(noise);
     }
-    myHead.setPos(start_location);
-    
+    myHead.setPos(start_location );
+	
+	myCamera.setPosition( glm::dvec3( start_location ) );
+	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
         marker_capturer.position_updated(&position_updated);
@@ -350,7 +397,6 @@ void init(void)
         }
     }
 #endif
-    
     
     gettimeofday(&timer_start, NULL);
     gettimeofday(&last_frame, NULL);
@@ -417,7 +463,12 @@ void simulateHead(float frametime)
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
-    
+	
+	//-------------------------------------------------------------------------------------
+	// set the position of the avatar
+	//-------------------------------------------------------------------------------------
+	myHead.setAvatarPosition( -myHead.getPos().x, -myHead.getPos().y, -myHead.getPos().z );
+	
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -485,17 +536,42 @@ void simulateHead(float frametime)
     char broadcast_string[MAX_BROADCAST_STRING];
     int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
+
+    // If I'm in paint mode, send a voxel out to VOXEL server agents.
+    if (::paintOn) {
+    
+    	glm::vec3 headPos = myHead.getPos();
+
+		// For some reason, we don't want to flip X and Z here.
+		::paintingVoxel.x = headPos.x/-10.0;  
+		::paintingVoxel.y = headPos.y/-10.0;  
+		::paintingVoxel.z = headPos.z/-10.0;
+    	
+    	unsigned char* bufferOut;
+    	int sizeOut;
+    	
+		if (::paintingVoxel.x >= 0.0 && ::paintingVoxel.x <= 1.0 &&
+			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
+			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
+
+			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL,0,1,&::paintingVoxel,bufferOut,sizeOut)){
+				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
+				delete bufferOut;
+			}
+		}
+    }
 }
 
 int render_test_spot = WIDTH/2;
 int render_test_direction = 1; 
 
+
+
+
 void display(void)
 {
 	PerfStat("display");
 
-    glEnable (GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -518,20 +594,54 @@ void display(void)
         
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
-           
-        //  Rotate, translate to camera location
-        fov.setOrientation(
-            glm::rotate(glm::rotate(glm::translate(glm::mat4(1.0f), -myHead.getPos()), 
-                -myHead.getRenderYaw(), glm::vec3(0.0f,1.0f,0.0f)),
-                -myHead.getRenderPitch(), glm::vec3(1.0f,0.0f,0.0f)) );
 
-        glLoadMatrixf( glm::value_ptr(fov.getWorldViewerXform()) );
-        glRotatef(myHead.getRenderPitch(), 1, 0, 0);
-        glRotatef(myHead.getRenderYaw(), 0, 1, 0);
+		//-------------------------------------------------------------------------------------
+		// set the camera to third-person view
+		//-------------------------------------------------------------------------------------		
+		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
+		myCamera.setPitch	( 0.0 );
+		myCamera.setRoll	( 0.0 );
 
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-        stars.render(fov);
+		if ( display_head )
+		//-------------------------------------------------------------------------------------
+		// set the camera to looking at my face
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.4  );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
+		else
+		//-------------------------------------------------------------------------------------
+		// set the camera to third-person view
+		//-------------------------------------------------------------------------------------		
+		{
+			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
+			myCamera.setUp		( 0.15 );
+			myCamera.setDistance( 0.08 );	
+			myCamera.update();
+		}
+		
+		//-------------------------------------------------------------------------------------
+		// transform to camera view
+		//-------------------------------------------------------------------------------------
+        glRotatef	( myCamera.getPitch(),	1, 0, 0 );
+        glRotatef	( myCamera.getYaw(),	0, 1, 0 );
+        glRotatef	( myCamera.getRoll(),	0, 0, 1 );
+		
+		//printf( "myCamera position = %f, %f, %f\n", myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );		
+		
+        glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
+        
+		// fixed view
+		//glTranslatef( 6.18, -0.15, 1.4 );
+
+        if (::starsOn) {
+            // should be the first rendering pass - w/o depth buffer / lighting
+        	stars.render(fov);
+        }
+
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
@@ -544,7 +654,7 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-        voxels.render();
+		voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
@@ -566,12 +676,20 @@ void display(void)
         //  Render the world box
         if (!display_head && stats_on) render_world_box();
     
+	
+		//---------------------------------
         //  Render my own head
+		//---------------------------------
+		myHead.render( true, 1 );	
+	
+		/*
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
         myHead.render(display_head, 1);
         glPopMatrix();
+		*/
+		
     }
     
     glPopMatrix();
@@ -635,12 +753,25 @@ void display(void)
     if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);
     
     //  Display miscellaneous text stats onscreen
-    if (stats_on) display_stats();
-    
+    if (stats_on) {
+        glLineWidth(1.0f);
+        glPointSize(1.0f);
+        display_stats();
+    }
+
     //  Draw number of nearby people always
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+    
+    if (::paintOn) {
+    
+		char paintMessage[100];
+		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
+			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
+			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
+		drawtext(WIDTH-350,40, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+    }
     
     glPopMatrix();
     
@@ -648,6 +779,10 @@ void display(void)
     glutSwapBuffers();
     framecount++;
 }
+
+
+
+
 
 void testPointToVoxel()
 {
@@ -667,6 +802,41 @@ void testPointToVoxel()
 		delete voxelCode;
 		std::cout << std::endl;
 	}
+}
+
+void sendVoxelServerEraseAll() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"erase all");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
+void sendVoxelServerAddScene() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"add scene");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
+void shiftPaintingColor()
+{
+    // About the color of the paintbrush... first determine the dominant color
+    ::dominantColor = (::dominantColor+1)%3; // 0=red,1=green,2=blue
+	::paintingVoxel.red   = (::dominantColor==0)?randIntInRange(200,255):randIntInRange(40,100);
+	::paintingVoxel.green = (::dominantColor==1)?randIntInRange(200,255):randIntInRange(40,100);
+	::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
+}
+
+void setupPaintingVoxel()
+{
+	glm::vec3 headPos = myHead.getPos();
+
+	::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
+	::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
+	::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+	::paintingVoxel.s = 1.0/256;
+	
+	shiftPaintingColor();
 }
 
 void addRandomSphere(bool wantColorRandomizer)
@@ -753,8 +923,15 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-    
     if (k == '/')  stats_on = !stats_on;		// toggle stats
+    if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
+    if (k == '&') {
+    	::paintOn = !::paintOn;		// toggle paint
+    	::setupPaintingVoxel();		// also randomizes colors
+    }
+    if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
+    if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
+    if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
@@ -810,11 +987,7 @@ void key(unsigned char k, int x, int y)
     }
 
 	// press the . key to get a new random sphere of voxels added 
-    if (k == '.')
-    {
-        addRandomSphere(wantColorRandomizer);
-        //testPointToVoxel();
-    }
+    if (k == '.') addRandomSphere(wantColorRandomizer);
 }
 
 //
@@ -831,10 +1004,12 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            if (incomingPacket[0] == 't') {
+            if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R') {
+            } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
+					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
+					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -855,6 +1030,23 @@ void idle(void)
     if (diffclock(&last_frame, &check) > RENDER_FRAME_MSECS)
     {
         steps_per_frame++;
+		
+		//----------------------------------------------------------------
+		// If mouse is being dragged, update hand movement in the avatar
+		//----------------------------------------------------------------
+		if ( mouse_pressed == 1 )
+		{
+			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
+			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
+			
+			double leftRight	= xOffset;
+			double downUp		= yOffset;
+			double backFront	= 0.0;
+			
+			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			myHead.setHandMovement( handMovement );		
+		}		
+		
         //  Simulation
         simulateHead(1.f/FPS);
         simulateHand(1.f/FPS);
@@ -879,6 +1071,8 @@ void idle(void)
     }
 }
 
+
+
 void reshape(int width, int height)
 {
     WIDTH = width;
@@ -895,6 +1089,8 @@ void reshape(int width, int height)
 
     glViewport(0, 0, width, height);
 }
+
+
 
 void mouseFunc( int button, int state, int x, int y ) 
 {

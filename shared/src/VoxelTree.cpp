@@ -10,6 +10,8 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
+#include "PacketHeaders.h"
+#include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
 #include <iostream> // to load voxels from file
@@ -44,6 +46,15 @@ VoxelTree::VoxelTree() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
+
+	// Some stats tracking    
+	this->voxelsCreated = 0; // when a voxel is created in the tree (object new'd)
+	this->voxelsColored = 0; // when a voxel is colored/set in the tree (object may have already existed)
+	this->voxelsBytesRead = 0;
+	voxelsCreatedStats.name = "voxelsCreated";
+	voxelsColoredStats.name = "voxelsColored";
+	voxelsBytesReadStats.name = "voxelsBytesRead";
+
 }
 
 VoxelTree::~VoxelTree() {
@@ -94,14 +105,15 @@ VoxelNode * VoxelTree::createMissingNode(VoxelNode *lastParentNode, unsigned cha
     }
 }
 
+// BHG Notes: We appear to call this function for every Voxel Node getting created.
+// This is recursive in nature. So, for example, if we are given an octal code for
+// a 1/256th size voxel, we appear to call this function 8 times. Maybe??
 int VoxelTree::readNodeData(VoxelNode *destinationNode,
                             unsigned char * nodeData,
                             int bytesLeftToRead) {
     
     // instantiate variable for bytes already read
     int bytesRead = 1;
-    int colorArray[4] = {};
-    
     for (int i = 0; i < 8; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(*nodeData, i)) {
@@ -109,23 +121,22 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             // create the child if it doesn't exist
             if (destinationNode->children[i] == NULL) {
                 destinationNode->addChildAtIndex(i);
+                this->voxelsCreated++;
+                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
             }
             
             // pull the color for this child
             memcpy(destinationNode->children[i]->color, nodeData + bytesRead, 3);
             destinationNode->children[i]->color[3] = 1;
+			this->voxelsColored++;
+			this->voxelsColoredStats.recordSample(this->voxelsColored);
            
-            for (int j = 0; j < 3; j++) {
-                colorArray[j] += destinationNode->children[i]->color[j];
-            }
-            
             bytesRead += 3;
-            colorArray[3]++;
         }
     }
     
     // average node's color based on color of children
-    destinationNode->setColorFromAverageOfChildren(colorArray);
+    destinationNode->setColorFromAverageOfChildren();
     
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
@@ -140,6 +151,8 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             if (destinationNode->children[childIndex] == NULL) {
                 // add a child at that index, if it doesn't exist
                 destinationNode->addChildAtIndex(childIndex);
+                this->voxelsCreated++;
+                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
             }
             
             // tell the child to read the subsequent data
@@ -165,6 +178,9 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     
     int octalCodeBytes = bytesRequiredForCodeLength(*bitstream);
     readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
+    
+    this->voxelsBytesRead += bufferSizeBytes;
+	this->voxelsBytesReadStats.recordSample(this->voxelsBytesRead);
 }
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
@@ -207,6 +223,16 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 			reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 		}
     }
+}
+
+void VoxelTree::eraseAllVoxels() {
+
+	// XXXBHG Hack attack - is there a better way to erase the voxel tree?
+
+	delete rootNode; // this will recurse and delete all children
+	rootNode = new VoxelNode();
+	rootNode->octalCode = new unsigned char[1];
+	*rootNode->octalCode = 0;
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
@@ -255,10 +281,17 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         unsigned char * childMaskPointer = NULL;
         
         float halfUnitForVoxel = powf(0.5, *currentVoxelNode->octalCode) * (0.5 * TREE_SCALE);
+
+		// XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
+		// coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 
+		// to fix this behavior. To disable this swap, set swapXandZ to false.
+        bool swapXandZ=true;
+        float agentX = swapXandZ ? agentPosition[2] : agentPosition[0];
+        float agentZ = swapXandZ ? agentPosition[0] : agentPosition[2];
         
-        float distanceToVoxelCenter = sqrtf(powf(agentPosition[0] - thisNodePosition[0] - halfUnitForVoxel, 2) +
+        float distanceToVoxelCenter = sqrtf(powf(agentX - thisNodePosition[0] - halfUnitForVoxel, 2) +
                                             powf(agentPosition[1] - thisNodePosition[1] - halfUnitForVoxel, 2) +
-                                            powf(agentPosition[2] - thisNodePosition[2] - halfUnitForVoxel, 2));
+                                            powf(agentZ - thisNodePosition[2] - halfUnitForVoxel, 2));
         
         // if the distance to this voxel's center is less than the threshold
         // distance for its children, we should send the children
@@ -277,7 +310,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                 if (strcmp((char *)stopOctalCode, (char *)currentVoxelNode->octalCode) == 0) {
                     // this is is the root node for this packet
                     // add the leading V
-                    *(bitstreamBuffer++) = 'V';
+                    *(bitstreamBuffer++) = PACKET_HEADER_VOXEL_DATA;
                     
                     // add its octal code to the packet
                     int octalCodeBytes = bytesRequiredForCodeLength(*currentVoxelNode->octalCode);

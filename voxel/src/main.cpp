@@ -16,6 +16,7 @@
 #include <VoxelTree.h>
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -46,6 +47,8 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 AgentList agentList('V', VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
+
+bool wantColorRandomizer = false;
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -83,8 +86,6 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     if (levelsToGo > 0) {
 
         bool createdChildren = false;
-        int colorArray[4] = {};
-        
         createdChildren = false;
         
         for (int i = 0; i < 8; i++) {
@@ -94,17 +95,8 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
                 
                 // give this child it's octal code
                 currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-                
-                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
 
-                if (currentRootNode->children[i]->color[3] == 1) {
-                    for (int c = 0; c < 3; c++) {
-                        colorArray[c] += currentRootNode->children[i]->color[c];
-                    }
-                    
-                    colorArray[3]++;
-                }
-                
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
                 createdChildren = true;
             }
         }
@@ -115,12 +107,39 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
             currentRootNode->setRandomColor(MIN_BRIGHTNESS);
         } else {
             // set the color value for this node
-            currentRootNode->setColorFromAverageOfChildren(colorArray);
+            currentRootNode->setColorFromAverageOfChildren();
         }
     } else {
         // this is a leaf node, just give it a color
         currentRootNode->setRandomColor(MIN_BRIGHTNESS);
     }
+}
+
+void eraseVoxelTreeAndCleanupAgentVisitData() {
+
+	// As our tree to erase all it's voxels
+	::randomTree.eraseAllVoxels();
+
+	// enumerate the agents clean up their marker nodes
+	for (int i = 0; i < agentList.getAgents().size(); i++) {
+
+		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
+            
+		Agent *thisAgent = (Agent *)&::agentList.getAgents()[i];
+		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+
+		// lock this agent's delete mutex so that the delete thread doesn't
+		// kill the agent while we are working with it
+		pthread_mutex_lock(&thisAgent->deleteMutex);
+
+		// clean up the agent visit data
+		delete agentData->rootMarkerNode;
+		agentData->rootMarkerNode = new MarkerNode();
+		
+		// unlock the delete mutex so the other thread can
+		// kill the agent if it has dissapeared
+		pthread_mutex_unlock(&thisAgent->deleteMutex);
+	}
 }
 
 void *distributeVoxelsToListeners(void *args) {
@@ -142,7 +161,7 @@ void *distributeVoxelsToListeners(void *args) {
         
         // enumerate the agents to send 3 packets to each
         for (int i = 0; i < agentList.getAgents().size(); i++) {
-            
+
             Agent *thisAgent = (Agent *)&agentList.getAgents()[i];
             VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
             
@@ -169,7 +188,12 @@ void *distributeVoxelsToListeners(void *args) {
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;
                 
-                if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                // XXXBHG Hack Attack: This is temporary code to help debug an issue.
+                // Normally we use this break to prevent resending voxels that an agent has
+                // already visited. But since we might be modifying the voxel tree we might
+                // want to always send. This is a hack to test the behavior
+                bool alwaysSend = true;
+                if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
                     break;
                 }
             }
@@ -229,7 +253,7 @@ int main(int argc, const char * argv[])
 	// Voxel File. If so, load it now.
 	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
 	const char* INPUT_FILE="-i";
-    bool wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
+    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 
 	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
@@ -270,31 +294,52 @@ int main(int argc, const char * argv[])
     // loop to send to agents requesting data
     while (true) {
         if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
-        	// XXXBHG: Hacked in support for 'I' insert command
-            if (packetData[0] == 'I') {
+        	// XXXBHG: Hacked in support for 'S' SET command
+            if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",receivedBytes,itemNumber);
+            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",
+            		receivedBytes,itemNumber);
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
             	while (atByte < receivedBytes) {
             		unsigned char octets = (unsigned char)*pVoxelData;
             		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+            		int voxelCodeSize = bytesRequiredForCodeLength(octets);
+
+					// color randomization on insert
+					int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
+					int red   = pVoxelData[voxelCodeSize+0];
+					int green = pVoxelData[voxelCodeSize+1];
+					int blue  = pVoxelData[voxelCodeSize+2];
+            		printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
+            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+					red   = std::max(0,std::min(255,red   + colorRandomizer));
+					green = std::max(0,std::min(255,green + colorRandomizer));
+					blue  = std::max(0,std::min(255,blue  + colorRandomizer));
+            		printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
+            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+					pVoxelData[voxelCodeSize+0]=red;
+					pVoxelData[voxelCodeSize+1]=green;
+					pVoxelData[voxelCodeSize+2]=blue;
 
             		float* vertices = firstVertexForCode(pVoxelData);
             		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
             		delete []vertices;
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData);
-	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",voxelDataSize,atByte,receivedBytes);
+	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",
+	            	//		voxelDataSize,atByte,receivedBytes);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
             	}
+            	// after done inserting all these voxels, then reaverage colors
+				randomTree.reaverageVoxelColors(randomTree.rootNode);
             }
-            if (packetData[0] == 'R') {
+            if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
             	// Send these bits off to the VoxelTree class to process them
-				printf("got Remove Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+				printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
 
             	// Now send this to the connected agents so they know to delete
@@ -302,7 +347,34 @@ int main(int argc, const char * argv[])
 				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
             	
             }
-            if (packetData[0] == 'H') {
+            if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
+
+            	// the Z command is a special command that allows the sender to send the voxel server high level semantic
+            	// requests, like erase all, or add sphere scene
+				char* command = &packetData[1]; // start of the command
+				int commandLength = strlen(command); // commands are null terminated strings
+                int totalLength = 1+commandLength+1;
+
+				printf("got Z message len(%ld)= %s\n",receivedBytes,command);
+
+				while (totalLength <= receivedBytes) {
+					if (0==strcmp(command,(char*)"erase all")) {
+						printf("got Z message == erase all\n");
+						
+						eraseVoxelTreeAndCleanupAgentVisitData();
+					}
+					if (0==strcmp(command,(char*)"add scene")) {
+						printf("got Z message == add scene\n");
+						addSphereScene(&randomTree,false);
+					}
+                    totalLength += commandLength+1;
+				}
+
+				// Now send this to the connected agents so they can also process these messages
+				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
+				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+            }
+            if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
                                                packetData[0],

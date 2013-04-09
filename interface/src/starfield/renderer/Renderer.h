@@ -96,18 +96,22 @@ namespace starfield {
             Tiling tiling(k);
             size_t nTiles = tiling.getTileCount();
 
+            // REVISIT: could coalesce allocation for faster rebuild
+            // REVISIT: batch arrays are probably oversized, but - hey - they
+            // are not very large (unless for insane tiling) and we're better
+            // off safe than sorry
             _arrData = new GpuVertex[n];
             _arrTile = new Tile[nTiles + 1];
-            _arrBatchOffs = new GLint[nTiles]; 
-            _arrBatchCount = new GLsizei[nTiles];
+            _arrBatchOffs = new GLint[nTiles * 2]; 
+            _arrBatchCount = new GLsizei[nTiles * 2];
 
             prepareVertexData(src, n, tiling, b, bMin);
 
             this->glUpload(n);
         }
 
-        ~Renderer()
-        {
+        ~Renderer() {
+
             delete[] _arrData;
             delete[] _arrTile;
             delete[] _arrBatchCount;
@@ -119,8 +123,7 @@ namespace starfield {
         void render(float perspective,
                     float aspect,
                     mat4 const& orientation,
-                    BrightnessLevel minBright)
-        {
+                    BrightnessLevel minBright) {
 
 // fprintf(stderr, "
 //      Stars.cpp: rendering at minimal brightness %d\n", minBright);
@@ -291,21 +294,31 @@ namespace starfield {
             bool select(Tile* t) {
 
                 if (t < _arrTile || t >= _itrTilesEnd ||
-                        !! (t->flags & Tile::visited)) {
+                        !! (t->flags & Tile::checked)) {
 
-                    return false;
+                    // out of bounds or been here already
+                    return false; 
                 }
-                if (! (t->flags & Tile::checked)) {
 
-                    if (_refRenderer.visitTile(t))
-                        t->flags |= Tile::render;
+                // will check now and never again
+                t->flags |= Tile::checked;
+                if (_refRenderer.visitTile(t)) {
+
+                    // good one -> remember (for batching) and propagate
+                    t->flags |= Tile::render;
+                    return true;
                 }
-                return !! (t->flags & Tile::render);
+                return false;
             }
 
-            void process(Tile* t) { 
+            bool process(Tile* t) { 
 
-                t->flags |= Tile::visited;
+                if (! (t->flags & Tile::visited)) {
+
+                    t->flags |= Tile::visited;
+                    return true;
+                }
+                return false;
             }
 
             void right(Tile*& cursor) const   { cursor += 1; }
@@ -479,6 +492,9 @@ namespace starfield {
 //     fprintf(stderr, "Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
 //             _arrBatchOffs[i], _arrBatchCount[i]);
 
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_LIGHTING);
+
             // setup modelview matrix (identity)
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
@@ -507,6 +523,7 @@ namespace starfield {
             glBindVertexArray(0); 
             glUseProgram(0);
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+            glDisable(GL_POINT_SMOOTH);
             glPopMatrix();
             glMatrixMode(GL_MODELVIEW);
             glPopMatrix();

@@ -35,6 +35,19 @@ void switchToResourcesIfRequired();
 
 const char* getCmdOption(int argc, const char * argv[],const char* option);
 bool cmdOptionExists(int argc, const char * argv[],const char* option);
+
+struct VoxelDetail {
+	float x;
+	float y;
+	float z;
+	float s;
+	unsigned char red;
+	unsigned char green;
+	unsigned char blue;
+};
+
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
+bool createVoxelEditMessage(unsigned char command, short int sequence, 
+        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
 
 #endif /* defined(__hifi__SharedUtil__) */

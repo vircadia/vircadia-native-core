@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include "SharedUtil.h"
+#include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
@@ -122,6 +123,70 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
         }
     }
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Function:    createVoxelEditMessage()
+// Description: creates an "insert" or "remove" voxel message for a voxel code 
+//              corresponding to the closest voxel which encloses a cube with
+//              lower corners at x,y,z, having side of length S.  
+//              The input values x,y,z range 0.0 <= v < 1.0
+//              message should be either 'S' for SET or 'E' for ERASE
+//
+// IMPORTANT:   The buffer is returned to you a buffer which you MUST delete when you are
+//              done with it.
+//
+// HACK ATTACK: Well, what if this is larger than the MTU? That's the caller's problem, we
+//              just truncate the message
+// Usage:       
+//                  unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+//                  tree->readCodeColorBufferToTree(voxelData);
+//                  delete voxelData;
+//
+// Complaints:  Brad :)
+#define GUESS_OF_VOXELCODE_SIZE 10
+#define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
+#define SIZE_OF_COLOR_DATA 3
+bool createVoxelEditMessage(unsigned char command, short int sequence, 
+        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
+        
+    bool success = true; // assume the best
+    int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
+    int actualMessageSize = 3;
+    unsigned char* messageBuffer = new unsigned char[messageSize];
+    unsigned short int* sequenceAt = (unsigned short int*)&messageBuffer[1];
+    
+    messageBuffer[0]=command;
+    *sequenceAt=sequence;
+    unsigned char* copyAt = &messageBuffer[3];
+
+    for (int i=0;i<voxelCount && success;i++) {
+        // get the coded voxel
+        unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
+            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
+            
+        int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
+        
+        // make sure we have room to copy this voxel
+        if (actualMessageSize+lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+            success=false;
+        } else {
+            // add it to our message
+            memcpy(copyAt,voxelData,lengthOfVoxelData);
+            copyAt+=lengthOfVoxelData+SIZE_OF_COLOR_DATA;
+            actualMessageSize+=lengthOfVoxelData+SIZE_OF_COLOR_DATA;
+        }
+        // cleanup
+        delete voxelData;
+    }
+
+    if (success) {    
+        // finally, copy the result to the output
+        bufferOut = new unsigned char[actualMessageSize];
+        sizeOut=actualMessageSize;
+        memcpy(bufferOut,messageBuffer,actualMessageSize);
+    }
+    return success;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

@@ -20,6 +20,8 @@
 #include "UDPSocket.h"
 #include "UDPSocket.cpp"
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
+
 
 char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55443;
@@ -121,7 +123,7 @@ void stream(void)
     int leadingBytes = 1 + (sizeof(float) * 4);
     unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
     
-    dataPacket[0] = 'I';
+    dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
     unsigned char *currentPacketPtr = dataPacket + 1;
     
     for (int p = 0; p < 4; p++) {
