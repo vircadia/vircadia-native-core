@@ -40,7 +40,8 @@ public:
     
     pthread_mutex_t deleteMutex;
     
-    char getType();
+    char getType() const;
+    const char* getTypeName() const;
     void setType(char newType);
     uint16_t getAgentId();
     void setAgentId(uint16_t thisAgentId);

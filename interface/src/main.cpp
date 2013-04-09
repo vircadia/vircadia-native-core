@@ -55,6 +55,7 @@
 #include "Texture.h"
 #include "Cloud.h"
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
@@ -63,13 +64,14 @@
 #include "SerialInterface.h"
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 
 using namespace std;
 
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
-AgentList agentList('I');
+AgentList agentList(AGENT_TYPE_INTERFACE);
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -553,7 +555,7 @@ void simulateHead(float frametime)
 			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-			if (createVoxelEditMessage('I',0,1,&::paintingVoxel,bufferOut,sizeOut)){
+			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL,0,1,&::paintingVoxel,bufferOut,sizeOut)){
 				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
 				delete bufferOut;
 			}
@@ -609,6 +611,7 @@ void display(void)
 			myCamera.setYaw		( - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.4  );
 			myCamera.setDistance( 0.5 );	
+			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		else
@@ -619,6 +622,7 @@ void display(void)
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.15 );
 			myCamera.setDistance( 1.0 );	
+			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		
@@ -1005,10 +1009,12 @@ void *networkReceive(void *args)
             packetcount++;
             bytescount += bytesReceived;
             
-            if (incomingPacket[0] == 't') {
+            if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'Z') {
+            } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
+					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
+					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1092,10 +1098,11 @@ void reshape(int width, int height)
     WIDTH = width;
     HEIGHT = height; 
 
+
     glMatrixMode(GL_PROJECTION); //hello
     fov.setResolution(width, height)
             .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-			.setPerspective(0.7854f);
+            .setPerspective(0.7854f);
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glMatrixMode(GL_MODELVIEW);

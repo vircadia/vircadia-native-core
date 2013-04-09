@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "AgentList.h"
+#include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -69,12 +70,12 @@ unsigned int AgentList::getSocketListenPort() {
 
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
-        case 'D': {
+        case PACKET_HEADER_DOMAIN: {
             // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
-        case 'H': {
+        case PACKET_HEADER_HEAD_DATA: {
             // head data from another agent
             updateAgentWithData(senderAddress, packetData, dataBytes);
             break;
@@ -82,8 +83,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
         case PACKET_HEADER_PING: {
             // ping from another agent
             //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
-            char reply[] = "R";
-            agentSocket.send(senderAddress, reply, 1);  
+            agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
@@ -181,13 +181,13 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activatePublicSocket();
         }
         
-        if (newAgent.getType() == 'M' && audioMixerSocketUpdate != NULL) {
+        if (newAgent.getType() == AGENT_TYPE_MIXER && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
-        } else if (newAgent.getType() == 'V') {
+        } else if (newAgent.getType() == AGENT_TYPE_VOXEL) {
             newAgent.activatePublicSocket();
         }
         
@@ -200,7 +200,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->getType() == 'M' || agent->getType() == 'V') {
+        if (agent->getType() == AGENT_TYPE_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastRecvTimeUsecs(usecTimestampNow());
@@ -211,6 +211,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
+// XXXBHG - do we want to move these?
 const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
 const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
 const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
@@ -230,7 +231,7 @@ void AgentList::pingAgents() {
     *payload = PACKET_HEADER_PING;
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == 'I') {
+        if (agent->getType() == AGENT_TYPE_INTERFACE) {
             if (agent->getActiveSocket() != NULL) {
                 // we know which socket is good for this agent, send there
                 agentSocket.send(agent->getActiveSocket(), payload, 1);
@@ -269,7 +270,8 @@ void *removeSilentAgents(void *args) {
             
             pthread_mutex_t * agentDeleteMutex = &agent->deleteMutex;
             
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V'
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS 
+            	&& agent->getType() != AGENT_TYPE_VOXEL
                 && pthread_mutex_trylock(agentDeleteMutex) == 0) {
                 
                 std::cout << "Killing agent " << &(*agent)  << "\n";
@@ -325,7 +327,7 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            printf("Domain server %s: \n", DOMAIN_HOSTNAME);
             
         } else {
             printf("Failed lookup domainserver\n");

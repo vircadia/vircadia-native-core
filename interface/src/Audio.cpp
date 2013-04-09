@@ -16,6 +16,7 @@
 #include <StdDev.h>
 #include <UDPSocket.h>
 #include <SharedUtil.h>
+#include <PacketHeaders.h>
 #include "Audio.h"
 #include "Util.h"
 
@@ -150,7 +151,7 @@ int audioCallback (const void *inputBuffer,
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
             
-            dataPacket[0] = 'I';
+            dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
@@ -230,19 +231,19 @@ int audioCallback (const void *inputBuffer,
     if (ringBuffer->getEndOfLastWrite() != NULL) {
         
         if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            printf("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
+            //printf("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
             starve_counter++;
             packetsReceivedThisPlayback = 0;
 
-            printf("Starved #%d\n", starve_counter);
+            //printf("Starved #%d\n", starve_counter);
             data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                printf("starting playback %3.1f msecs delayed, \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
+                printf("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
             } else {
                 //printf("pushing buffer\n");
             }
@@ -395,7 +396,7 @@ void *receiveAudioViaUDP(void *args) {
             if (totalPacketsReceived > 3) stdev.addValue(tDiff);
             if (stdev.getSamples() > 500) {
                 sharedAudioData->measuredJitter = stdev.getStDev();
-                printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
+                //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
                 stdev.reset();
             }
             
@@ -403,7 +404,7 @@ void *receiveAudioViaUDP(void *args) {
             
             
             if (!ringBuffer->isStarted()) {
-                printf("Audio packet %d received at %6.0f\n", ++packetsReceivedThisPlayback, usecTimestampNow()/1000);
+                packetsReceivedThisPlayback++;
              }
             else {
                 //printf("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
