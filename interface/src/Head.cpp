@@ -190,7 +190,7 @@ void Head::reset()
 
 
 
-
+//this pertains to moving the head with the glasses 
 //---------------------------------------------------
 void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
@@ -285,10 +285,7 @@ void Head::simulate(float deltaTime)
 		 sin( avatar.pitch	* PI_OVER_180 ),
 		 cos( avatar.roll	* PI_OVER_180 )
 	);
-	*/
-	
-	
-	/*
+
     glm::vec3 forward(-sinf(getRenderYaw()*PI/180),
                       sinf(getRenderPitch()*PI/180),
                       cosf(getRenderYaw()*PI/180));
@@ -296,93 +293,54 @@ void Head::simulate(float deltaTime)
     thrust = glm::vec3(0);
 	*/
 	
-    const float THRUST_MAG = 10.0;
-    
-	/*
-	const float THRUST_LATERAL_MAG = 10.0;
-    const float THRUST_VERTICAL_MAG = 10.0;
-	*/
-	
+    const float THRUST_MAG			= 10.0;
+	const float THRUST_LATERAL_MAG	= 10.0;
+    const float THRUST_VERTICAL_MAG	= 10.0;
 	
 	avatar.thrust = glm::dvec3( 0.0, 0.0, 0.0 );
 	    
     if (driveKeys[FWD]) 
 	{
-		//position.x += avatar.orientation.getFront().getX() * 0.01;
-		//position.y += avatar.orientation.getFront().getY() * 0.01;
-		//position.z -= avatar.orientation.getFront().getZ() * 0.01;
-
 		avatar.thrust.x += avatar.orientation.getFront().getX() * THRUST_MAG;
 		avatar.thrust.y += avatar.orientation.getFront().getY() * THRUST_MAG;
 		avatar.thrust.z -= avatar.orientation.getFront().getZ() * THRUST_MAG;
-
         //thrust += THRUST_MAG*forward;
     }
-	
     if (driveKeys[BACK]) 
 	{
-		//position.x -= avatar.orientation.getFront().getX() * 0.01;
-		//position.y -= avatar.orientation.getFront().getY() * 0.01;
-		//position.z += avatar.orientation.getFront().getZ() * 0.01;
-
 		avatar.thrust.x -= avatar.orientation.getFront().getX() * THRUST_MAG;
 		avatar.thrust.y -= avatar.orientation.getFront().getY() * THRUST_MAG;
 		avatar.thrust.z += avatar.orientation.getFront().getZ() * THRUST_MAG;
-
         //thrust += -THRUST_MAG*forward;
     }
-
-	
     if (driveKeys[RIGHT]) 
 	{
-		//position.x += avatar.orientation.getRight().getX() * 0.01;
-		//position.y += avatar.orientation.getRight().getY() * 0.01;
-		//position.z -= avatar.orientation.getRight().getZ() * 0.01;
-		
-		avatar.thrust.x += avatar.orientation.getRight().getX() * THRUST_MAG;
-		avatar.thrust.y += avatar.orientation.getRight().getY() * THRUST_MAG;
-		avatar.thrust.z -= avatar.orientation.getRight().getZ() * THRUST_MAG;
-		
+		avatar.thrust.x += avatar.orientation.getRight().getX() * THRUST_LATERAL_MAG;
+		avatar.thrust.y += avatar.orientation.getRight().getY() * THRUST_LATERAL_MAG;
+		avatar.thrust.z -= avatar.orientation.getRight().getZ() * THRUST_LATERAL_MAG;
         //thrust.x += forward.z*-THRUST_LATERAL_MAG;
         //thrust.z += forward.x*THRUST_LATERAL_MAG;
     }
     if (driveKeys[LEFT]) 
 	{
-		//position.x -= avatar.orientation.getRight().getX() * 0.01;
-		//position.y -= avatar.orientation.getRight().getY() * 0.01;
-		//position.z += avatar.orientation.getRight().getZ() * 0.01;
-
-		avatar.thrust.x -= avatar.orientation.getRight().getX() * THRUST_MAG;
-		avatar.thrust.y -= avatar.orientation.getRight().getY() * THRUST_MAG;
-		avatar.thrust.z += avatar.orientation.getRight().getZ() * THRUST_MAG;
-
+		avatar.thrust.x -= avatar.orientation.getRight().getX() * THRUST_LATERAL_MAG;
+		avatar.thrust.y -= avatar.orientation.getRight().getY() * THRUST_LATERAL_MAG;
+		avatar.thrust.z += avatar.orientation.getRight().getZ() * THRUST_LATERAL_MAG;
         //thrust.x += forward.z*THRUST_LATERAL_MAG;
         //thrust.z += forward.x*-THRUST_LATERAL_MAG;
     }
-	
-
     if (driveKeys[UP])
 	{
-		//position.x -= avatar.orientation.getUp().getX() * 0.01;
-		//position.y -= avatar.orientation.getUp().getY() * 0.01;
-		//position.z += avatar.orientation.getUp().getZ() * 0.01;
-
-		avatar.thrust.x -= avatar.orientation.getUp().getX() * THRUST_MAG;
-		avatar.thrust.y -= avatar.orientation.getUp().getY() * THRUST_MAG;
-		avatar.thrust.z += avatar.orientation.getUp().getZ() * THRUST_MAG;
-
+		avatar.thrust.x -= avatar.orientation.getUp().getX() * THRUST_VERTICAL_MAG;
+		avatar.thrust.y -= avatar.orientation.getUp().getY() * THRUST_VERTICAL_MAG;
+		avatar.thrust.z += avatar.orientation.getUp().getZ() * THRUST_VERTICAL_MAG;
         //thrust.y += -THRUST_VERTICAL_MAG;
     }
     if (driveKeys[DOWN]) 
 	{
-		//position.x += avatar.orientation.getUp().getX() * 0.01;
-		//position.y += avatar.orientation.getUp().getY() * 0.01;
-		//position.z -= avatar.orientation.getUp().getZ() * 0.01;
-
-		avatar.thrust.x += avatar.orientation.getUp().getX() * THRUST_MAG;
-		avatar.thrust.y += avatar.orientation.getUp().getY() * THRUST_MAG;
-		avatar.thrust.z -= avatar.orientation.getUp().getZ() * THRUST_MAG;
-
+		avatar.thrust.x += avatar.orientation.getUp().getX() * THRUST_VERTICAL_MAG;
+		avatar.thrust.y += avatar.orientation.getUp().getY() * THRUST_VERTICAL_MAG;
+		avatar.thrust.z -= avatar.orientation.getUp().getZ() * THRUST_VERTICAL_MAG;
         //thrust.y += THRUST_VERTICAL_MAG;
     }
 	
@@ -1055,7 +1013,9 @@ void Head::parseData(void *data, int size)
 		&Pitch, &Yaw, &Roll,
 		&position.x, &position.y, &position.z,
 		&loudness, &averageLoudness,
-		&handPos.x, &handPos.y, &handPos.z
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.x, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.y, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.z
 	);
 		   
     if (glm::length(handPos) > 0.0) hand->setPos(handPos);

@@ -33,5 +33,11 @@ void Camera::update()
 	
 	position = glm::dvec3( targetPosition );	
 	position += glm::dvec3( x, y, z );
+	
+	//geterate the ortho-normals for the orientation based on the Euler angles
+	orientation.setToIdentity();
+	orientation.yaw		( yaw	);
+	orientation.pitch	( pitch	);
+	orientation.roll	( roll	);
 }
 

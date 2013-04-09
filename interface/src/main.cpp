@@ -608,7 +608,7 @@ void display(void)
 		{
 			myCamera.setYaw		( - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.4  );
-			myCamera.setDistance( 0.08 );	
+			myCamera.setDistance( 0.5 );	
 			myCamera.update();
 		}
 		else
@@ -618,7 +618,7 @@ void display(void)
 		{
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
 			myCamera.setUp		( 0.15 );
-			myCamera.setDistance( 0.08 );	
+			myCamera.setDistance( 1.0 );	
 			myCamera.update();
 		}
 		
@@ -653,14 +653,16 @@ void display(void)
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-		voxels.render();
+//voxels.render();
     
         //  Draw field vectors
         if (display_field) field.render();
             
         //  Render heads of other agents
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
@@ -670,7 +672,7 @@ void display(void)
             }
         }
     
-        if (!display_head) balls.render();
+        if ( !display_head ) balls.render();
     
         //  Render the world box
         if (!display_head && stats_on) render_world_box();
@@ -1046,6 +1048,21 @@ void idle(void)
 		
         //  Simulation
         simulateHead(1.f/FPS);
+		
+		
+		//test
+		/*
+		//  simulate the other agents
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
+                Head *agentHead = (Head *)agent->getLinkedData();
+                agentHead->simulate(1.f/FPS);
+            }
+        }
+		*/
+		
         simulateHand(1.f/FPS);
         
         if (simulate_on) {
@@ -1078,7 +1095,7 @@ void reshape(int width, int height)
     glMatrixMode(GL_PROJECTION); //hello
     fov.setResolution(width, height)
             .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-            .setPerspective(0.7854f);
+			.setPerspective(0.7854f);
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glMatrixMode(GL_MODELVIEW);
