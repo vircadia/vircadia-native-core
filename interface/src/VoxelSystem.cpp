@@ -82,6 +82,30 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     setupNewVoxelsForDrawing();
 }
 
+long int VoxelSystem::getVoxelsCreated() {
+    return tree->voxelsCreated;
+}
+
+long int VoxelSystem::getVoxelsCreatedRunningAverage() {
+    return tree->voxelsCreatedStats.getRunningAverage();
+}
+
+long int VoxelSystem::getVoxelsColored() {
+    return tree->voxelsColored;
+}
+
+long int VoxelSystem::getVoxelsColoredRunningAverage() {
+    return tree->voxelsColoredStats.getRunningAverage();
+}
+
+long int VoxelSystem::getVoxelsBytesRead() {
+    return tree->voxelsBytesRead;
+}
+
+long int VoxelSystem::getVoxelsBytesReadRunningAverage() {
+    return tree->voxelsBytesReadStats.getRunningAverage();
+}
+
 
 void VoxelSystem::parseData(void *data, int size) {
 
@@ -96,6 +120,29 @@ void VoxelSystem::parseData(void *data, int size) {
         case 'R':
             // ask the tree to read the "remove" bitstream
             tree->processRemoveVoxelBitstream((unsigned char*)data,size);
+        break;
+        case 'Z':
+
+            // the Z command is a special command that allows the sender to send high level semantic
+            // requests, like erase all, or add sphere scene, different receivers may handle these 
+            // messages differently
+            char* packetData =(char*)data;
+            char* command = &packetData[1]; // start of the command
+            int commandLength = strlen(command); // commands are null terminated strings
+            int totalLength = 1+commandLength+1;
+
+            printf("got Z message len(%d)= %s\n",size,command);
+
+            while (totalLength <= size) {
+                if (0==strcmp(command,(char*)"erase all")) {
+                    printf("got Z message == erase all\n");
+                    tree->eraseAllVoxels();
+                }
+                if (0==strcmp(command,(char*)"add scene")) {
+                    printf("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
+                }
+                totalLength += commandLength+1;
+            }
         break;
     }
     

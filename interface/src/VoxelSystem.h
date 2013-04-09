@@ -37,6 +37,14 @@ public:
     void setViewerHead(Head *newViewerHead);
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
+
+    long int getVoxelsCreated();
+    long int getVoxelsColored();
+    long int getVoxelsBytesRead();
+    long int getVoxelsCreatedRunningAverage();
+    long int getVoxelsColoredRunningAverage();
+    long int getVoxelsBytesReadRunningAverage();
+
 private:
     int voxelsRendered;
     Head *viewerHead;

@@ -38,13 +38,31 @@ function send_voxels($inputFileName,$server,$port,$command) {
 	socket_close($socketHandle);
 }
 
+function send_zcommand($server,$port,$command) {
+	$socketHandle = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+	$serverIP = $server; 
+	$serverSendPort = $port;
+
+	// [1:'Z'][2:command][0]...
+	$netData = pack("c",ord('Z'));
+	$netData .= $command;
+	$netData .= pack("c",0);
+
+	$packetSize = 2+strlen($command);
+	echo "sending packet server=$serverIP port=$serverSendPort size=$packetSize \n";
+	$result = socket_sendto($socketHandle, $netData, $packetSize, 0, $serverIP, $serverSendPort);
+	socket_close($socketHandle);
+}
+
 function testmode_send_voxels($server,$port) {
 	echo "psych! test mode not implemented!\n";
 }
 
-$options = getopt("i:s:p:c:",array('testmode'));
+$options = getopt("i:s:p:c:",array('testmode','zcommand:'));
+//print_r($options);
+//break;
 
-if (empty($options['i']) || empty($options['i'])) {
+if (empty($options['i']) && empty($options['zcommand'])) {
 	echo "USAGE: sendvoxels.php -i 'inputFileName' -s [serverip] -p [port] -c [I|R] \n";
 } else {
 	$filename = $options['i'];
@@ -54,6 +72,7 @@ if (empty($options['i']) || empty($options['i'])) {
 	switch($command) {
 		case 'I':
 		case 'R':
+		case 'Z':
 			//$command is good
 		break;
 		default:
@@ -63,6 +82,9 @@ if (empty($options['i']) || empty($options['i'])) {
 	if ($options['testmode']) {
 		echo "TEST MODE Sending Voxels server:$server port:$port \n";
 		testmode_send_voxels($server,$port);
+	} else if ($options['zcommand'] && $command=='Z') {
+		echo "Sending Z command to server:$server port:$port \n";
+		send_zcommand($server,$port,$options['zcommand']);
 	} else {
 		echo "Sending Voxels file:$filename server:$server port:$port command:$command \n";
 		send_voxels($filename,$server,$port,$command);

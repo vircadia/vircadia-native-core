@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "AgentList.h"
+#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 #ifdef _WIN32
@@ -78,14 +79,14 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
             updateAgentWithData(senderAddress, packetData, dataBytes);
             break;
         }
-        case 'P': {
+        case PACKET_HEADER_PING: {
             // ping from another agent
             //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             char reply[] = "R";
             agentSocket.send(senderAddress, reply, 1);  
             break;
         }
-        case 'R': {
+        case PACKET_HEADER_PING_REPLY: {
             // ping reply from another agent
             //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
@@ -225,7 +226,8 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const ch
 }
 
 void AgentList::pingAgents() {
-    char payload[] = "P";
+    char payload[1];
+    *payload = PACKET_HEADER_PING;
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         if (agent->getType() == 'I') {

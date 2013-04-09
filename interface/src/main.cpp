@@ -145,10 +145,11 @@ float renderPitchRate = 0.f;
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
 int stats_on = 0;					//  Whether to show onscreen text overlay with stats
-bool starsOn = true;				//  Whether to display the stars
+bool starsOn = false;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
+bool perfStatsOn = false;			//  Do we want to display perfStats?
 int noise_on = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -259,7 +260,7 @@ void display_stats(void)
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
     drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
 
-    char legend2[] = "* - toggle stars, & - toggle paint mode";
+    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
 
 	glm::vec3 headPos = myHead.getPos();
@@ -286,18 +287,45 @@ void display_stats(void)
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-	// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
-    char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
-	int lines = PerfStat::DumpStats(perfStatLinesArray);
-    int atZ = 150; // arbitrary place on screen that looks good
-    for (int line=0; line < lines; line++) {
-        drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
-        delete perfStatLinesArray[line]; // we're responsible for cleanup
-        perfStatLinesArray[line]=NULL;
-        atZ+=20; // height of a line
-    }
-    delete []perfStatLinesArray; // we're responsible for cleanup
-        
+	voxelStats.str("");
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,250,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
+		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,270,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+	voxelStats.str("");
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
+		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+	voxelStats.str("");
+	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
+	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
+		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
+
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
+		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+    drawtext(10,310,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+	
+
+	if (::perfStatsOn) {
+		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+		int lines = PerfStat::DumpStats(perfStatLinesArray);
+		int atZ = 150; // arbitrary place on screen that looks good
+		for (int line=0; line < lines; line++) {
+			drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+			delete perfStatLinesArray[line]; // we're responsible for cleanup
+			perfStatLinesArray[line]=NULL;
+			atZ+=20; // height of a line
+		}
+		delete []perfStatLinesArray; // we're responsible for cleanup
+	}
+	        
     /*
     std::stringstream angles;
     angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
@@ -513,9 +541,10 @@ void simulateHead(float frametime)
     
     	glm::vec3 headPos = myHead.getPos();
 
-		::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
-		::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
-		::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+		// For some reason, we don't want to flip X and Z here.
+		::paintingVoxel.x = headPos.x/-10.0;  
+		::paintingVoxel.y = headPos.y/-10.0;  
+		::paintingVoxel.z = headPos.z/-10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -774,6 +803,20 @@ void testPointToVoxel()
 	}
 }
 
+void sendVoxelServerEraseAll() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"erase all");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
+void sendVoxelServerAddScene() {
+	char message[100];
+    sprintf(message,"%c%s",'Z',"add scene");
+	int messageSize = strlen(message)+1;
+	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+}
+
 void shiftPaintingColor()
 {
     // About the color of the paintbrush... first determine the dominant color
@@ -883,11 +926,11 @@ void key(unsigned char k, int x, int y)
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
-    	setupPaintingVoxel(); 		// also randomizes colors
+    	::setupPaintingVoxel();		// also randomizes colors
     }
-    if (k == '^') {
-    	shiftPaintingColor(); 			// shifts randomize color between R,G,B dominant
-    }
+    if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
+    if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
+    if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
 	if (k == 'n') 
     {
         noise_on = !noise_on;                   // Toggle noise 
@@ -963,7 +1006,7 @@ void *networkReceive(void *args)
             if (incomingPacket[0] == 't') {
                 //  Pass everything but transmitter data to the agent list
                  myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'R') {
+            } else if (incomingPacket[0] == 'V' || incomingPacket[0] == 'Z') {
                 voxels.parseData(incomingPacket, bytesReceived);
             } else {
                agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);

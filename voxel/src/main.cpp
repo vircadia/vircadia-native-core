@@ -114,6 +114,33 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     }
 }
 
+void eraseVoxelTreeAndCleanupAgentVisitData() {
+
+	// As our tree to erase all it's voxels
+	::randomTree.eraseAllVoxels();
+
+	// enumerate the agents clean up their marker nodes
+	for (int i = 0; i < agentList.getAgents().size(); i++) {
+
+		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
+            
+		Agent *thisAgent = (Agent *)&::agentList.getAgents()[i];
+		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+
+		// lock this agent's delete mutex so that the delete thread doesn't
+		// kill the agent while we are working with it
+		pthread_mutex_lock(&thisAgent->deleteMutex);
+
+		// clean up the agent visit data
+		delete agentData->rootMarkerNode;
+		agentData->rootMarkerNode = new MarkerNode();
+		
+		// unlock the delete mutex so the other thread can
+		// kill the agent if it has dissapeared
+		pthread_mutex_unlock(&thisAgent->deleteMutex);
+	}
+}
+
 void *distributeVoxelsToListeners(void *args) {
     
     timeval lastSendTime;
@@ -133,7 +160,7 @@ void *distributeVoxelsToListeners(void *args) {
         
         // enumerate the agents to send 3 packets to each
         for (int i = 0; i < agentList.getAgents().size(); i++) {
-            
+
             Agent *thisAgent = (Agent *)&agentList.getAgents()[i];
             VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
             
@@ -318,6 +345,33 @@ int main(int argc, const char * argv[])
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
 				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
             	
+            }
+            if (packetData[0] == 'Z') {
+
+            	// the Z command is a special command that allows the sender to send the voxel server high level semantic
+            	// requests, like erase all, or add sphere scene
+				char* command = &packetData[1]; // start of the command
+				int commandLength = strlen(command); // commands are null terminated strings
+                int totalLength = 1+commandLength+1;
+
+				printf("got Z message len(%ld)= %s\n",receivedBytes,command);
+
+				while (totalLength <= receivedBytes) {
+					if (0==strcmp(command,(char*)"erase all")) {
+						printf("got Z message == erase all\n");
+						
+						eraseVoxelTreeAndCleanupAgentVisitData();
+					}
+					if (0==strcmp(command,(char*)"add scene")) {
+						printf("got Z message == add scene\n");
+						addSphereScene(&randomTree,false);
+					}
+                    totalLength += commandLength+1;
+				}
+
+				// Now send this to the connected agents so they can also process these messages
+				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
+				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
             }
             if (packetData[0] == 'H') {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
