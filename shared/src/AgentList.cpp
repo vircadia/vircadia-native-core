@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "AgentList.h"
+#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 #ifdef _WIN32
@@ -225,10 +226,11 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const ch
 }
 
 void AgentList::pingAgents() {
-    char payload[] = "P";
+    char payload[1];
+    *payload = PACKET_HEADER_PING;
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == 'I') {
+        if (agent->getType() == PACKET_HEADER_INTERFACE) {
             if (agent->getActiveSocket() != NULL) {
                 // we know which socket is good for this agent, send there
                 agentSocket.send(agent->getActiveSocket(), payload, 1);
