@@ -230,7 +230,7 @@ void AgentList::pingAgents() {
     *payload = PACKET_HEADER_PING;
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == PACKET_HEADER_INTERFACE) {
+        if (agent->getType() == 'I') {
             if (agent->getActiveSocket() != NULL) {
                 // we know which socket is good for this agent, send there
                 agentSocket.send(agent->getActiveSocket(), payload, 1);
