@@ -55,6 +55,7 @@
 #include "Texture.h"
 #include "Cloud.h"
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
@@ -70,7 +71,7 @@ using namespace std;
 int audio_on = 1;                   //  Whether to turn on the audio support
 int simulate_on = 1; 
 
-AgentList agentList('I');
+AgentList agentList(AGENT_TYPE_INTERFACE);
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
