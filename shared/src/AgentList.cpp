@@ -212,9 +212,9 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
 }
 
 // XXXBHG - do we want to move these?
-const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
-const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
 const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
+const char* AgentList::AGENTS_OF_TYPE_INTERFACE = "I";
+const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
 
 void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
