@@ -345,7 +345,7 @@ int main(int argc, const char * argv[])
 
             	// Now send this to the connected agents so they know to delete
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+				agentList.broadcastToAgents(packetData,receivedBytes, AGENT_TYPE_INTERFACE);
             	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -373,12 +373,12 @@ int main(int argc, const char * argv[])
 
 				// Now send this to the connected agents so they can also process these messages
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+				agentList.broadcastToAgents(packetData,receivedBytes, AGENT_TYPE_INTERFACE);
             }
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
-                                               packetData[0],
+                                               AGENT_TYPE_INTERFACE,
                                                agentList.getLastAgentId())) {
                     agentList.increaseAgentId();
                 }

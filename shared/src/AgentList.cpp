@@ -24,9 +24,7 @@
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-char AVATAR_SERVER_IP[100] = "";
 const int DOMAINSERVER_PORT = 40102;
-const int AVATAR_SERVER_PORT = 55444;
 
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
@@ -232,11 +230,6 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-// XXXBHG - do we want to move these?
-const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
-const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
-const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
-
 void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
@@ -348,7 +341,6 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            strcpy(AVATAR_SERVER_IP, inet_ntoa(tempAddress.sin_addr));
             printf("Domain server %s: \n", DOMAIN_HOSTNAME);
             
         } else {

@@ -67,11 +67,7 @@ public:
     void stopSilentAgentRemovalThread();
     void startDomainServerCheckInThread();
     void stopDomainServerCheckInThread();
-    
-	static const char* AGENTS_OF_TYPE_HEAD;
-	static const char* AGENTS_OF_TYPE_VOXEL_AND_INTERFACE;
-	static const char* AGENTS_OF_TYPE_VOXEL;
-    
+
 };
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
