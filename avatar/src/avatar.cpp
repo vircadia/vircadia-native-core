@@ -214,7 +214,7 @@ void *sendAvatarData(void *args) {
         unsigned char *startPointer;
         unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
         
-        *broadcastPacket = *(unsigned char *)PACKET_HEADER_HEAD_DATA;
+        broadcastPacket = (unsigned char *)PACKET_HEADER_HEAD_DATA;
         currentBufferPosition = broadcastPacket + 1;
         startPointer = currentBufferPosition;
         
@@ -232,7 +232,6 @@ void *sendAvatarData(void *args) {
         }
         
         double usecToSleep = usecTimestamp(&startTime) + (BROADCAST_INTERVAL * 10000000) - usecTimestampNow();
-        delete[] broadcastPacket;
         usleep(usecToSleep);
     }
 }
