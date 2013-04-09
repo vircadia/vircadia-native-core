@@ -1078,10 +1078,12 @@ void reshape(int width, int height)
     WIDTH = width;
     HEIGHT = height; 
 
+
     glMatrixMode(GL_PROJECTION); //hello
     fov.setResolution(width, height)
             .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
             .setPerspective(0.7854f);
+
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glMatrixMode(GL_MODELVIEW);

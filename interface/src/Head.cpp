@@ -961,13 +961,13 @@ void Head::updateHandMovement()
 	// adjust right hand and elbow according to hand offset
 	//----------------------------------------------------------------
 	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition += handOffset;	
-	glm::dvec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition;
+	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition;
 	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
 
 	//-------------------------------------------------------------------------------
 	// test to see if right hand is being dragged beyond maximum arm length
 	//-------------------------------------------------------------------------------
-	double distance = glm::length( armVector );
+	float distance = glm::length( armVector );
 	
 	
 	//-------------------------------------------------------------------------------
@@ -979,10 +979,10 @@ void Head::updateHandMovement()
 		// reset right hand to be constrained to maximum arm length
 		//-------------------------------------------------------------------------------
 		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
-		glm::dvec3 armNormal = armVector / distance;
-		armVector = armNormal * avatar.maxArmLength;
+		glm::vec3 armNormal = armVector / distance;
+		armVector = armNormal * (float)avatar.maxArmLength;
 		distance = avatar.maxArmLength;
-		glm::dvec3 constrainedPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+		glm::vec3 constrainedPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
 		constrainedPosition += armVector;
 		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition = constrainedPosition;
 	}
@@ -990,8 +990,8 @@ void Head::updateHandMovement()
 	//-----------------------------------------------------------------------------
 	// set elbow position 
 	//-----------------------------------------------------------------------------
-	glm::dvec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
-	newElbowPosition += armVector * ONE_HALF;
+	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+	newElbowPosition += armVector * (float)ONE_HALF;
 	glm::dvec3 perpendicular = glm::dvec3( -armVector.y, armVector.x, armVector.z );
 	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
 	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].worldPosition = newElbowPosition;
@@ -1005,21 +1005,57 @@ void Head::renderBody()
 {
 	glColor3fv(skinColor);
 
+    //  Render bones as spheres
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
 		glPushMatrix();
 			glTranslatef( avatar.bone[b].worldPosition.x, avatar.bone[b].worldPosition.y, avatar.bone[b].worldPosition.z );
-			glScalef( 0.02, 0.02, 0.02 );
-			glutSolidSphere( 1, 10, 5 );
+			glutSolidSphere( .02, 10, 5 );
 		glPopMatrix();
 	}
+
+    // Render lines connecting the bones
+    glColor3f(1,1,1);
+    glLineWidth(3.0);
+    glBegin(GL_LINE_STRIP);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_NECK].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHOULDER].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_UPPER_ARM].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOREARM].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_HAND].worldPosition.x);
+    glEnd();
+    glBegin(GL_LINE_STRIP);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHOULDER].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_UPPER_ARM].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOREARM].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_HAND].worldPosition.x);
+    glEnd();
+    glBegin(GL_LINE_STRIP);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_MID_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);    
+    glEnd();
+    glBegin(GL_LINE_STRIP);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_PELVIS].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_THIGH].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHIN].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOOT].worldPosition.x);
+    glEnd();
+    glBegin(GL_LINE_STRIP);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_PELVIS].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_THIGH].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHIN].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOOT].worldPosition.x);
+    glEnd();
+
 }
 
-
-
-
-
-//  Transmit data to agents requesting it 
+//  Transmit data to agents requesting it
 
 //called on me just prior to sending data to others (continuasly called)
 
