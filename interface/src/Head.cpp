@@ -736,7 +736,7 @@ void Head::initializeAvatar()
 	//----------------------------------------------------------------------------
 	// left pelvis and leg
 	//----------------------------------------------------------------------------
-	avatar.bone[ AVATAR_BONE_LEFT_PELVIS		].parent = AVATAR_BONE_NULL;
+	avatar.bone[ AVATAR_BONE_LEFT_PELVIS		].parent = AVATAR_BONE_PELVIS_SPINE;
 	avatar.bone[ AVATAR_BONE_LEFT_THIGH			].parent = AVATAR_BONE_LEFT_PELVIS;
 	avatar.bone[ AVATAR_BONE_LEFT_SHIN			].parent = AVATAR_BONE_LEFT_THIGH;
 	avatar.bone[ AVATAR_BONE_LEFT_FOOT			].parent = AVATAR_BONE_LEFT_SHIN;
@@ -744,7 +744,7 @@ void Head::initializeAvatar()
 	//----------------------------------------------------------------------------
 	// right pelvis and leg
 	//----------------------------------------------------------------------------
-	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS		].parent = AVATAR_BONE_NULL;
+	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS		].parent = AVATAR_BONE_PELVIS_SPINE;
 	avatar.bone[ AVATAR_BONE_RIGHT_THIGH		].parent = AVATAR_BONE_RIGHT_PELVIS;
 	avatar.bone[ AVATAR_BONE_RIGHT_SHIN			].parent = AVATAR_BONE_RIGHT_THIGH;
 	avatar.bone[ AVATAR_BONE_RIGHT_FOOT			].parent = AVATAR_BONE_RIGHT_SHIN;
@@ -971,7 +971,9 @@ void Head::renderBody()
 {
 	glColor3fv(skinColor);
 
+	//-----------------------------------------
     //  Render bones as spheres
+	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
 		glPushMatrix();
@@ -980,9 +982,21 @@ void Head::renderBody()
 		glPopMatrix();
 	}
 
+	//-----------------------------------------
     // Render lines connecting the bones
+	//-----------------------------------------
     glColor3f(1,1,1);
     glLineWidth(3.0);
+
+	for (int b=1; b<NUM_AVATAR_BONES; b++)
+	{
+		glBegin( GL_LINE_STRIP );
+		glVertex3fv( &avatar.bone[ avatar.bone[ b ].parent ].worldPosition.x);
+		glVertex3fv( &avatar.bone[ b ].worldPosition.x);
+		glEnd();
+	}
+	
+	/*
     glBegin(GL_LINE_STRIP);
     glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
     glVertex3fv(&avatar.bone[AVATAR_BONE_NECK].worldPosition.x);
@@ -1018,6 +1032,8 @@ void Head::renderBody()
     glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHIN].worldPosition.x);
     glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOOT].worldPosition.x);
     glEnd();
+	*/
+	
 
 }
 
