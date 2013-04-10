@@ -8,7 +8,6 @@
 #ifndef __interface__camera__
 #define __interface__camera__
 
-#include "Vector3D.h"
 #include "Orientation.h"
 #include <glm/glm.hpp>
 

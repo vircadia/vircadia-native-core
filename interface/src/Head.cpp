@@ -85,8 +85,7 @@ Head::Head()
     browAudioLift = 0.0;
     noise = 0;
 	
-	mouseMovedHand = false;
-	//movedHandPosition = glm::vec3( 0.0, 0.0, 0.0 );
+	handBeingMoved = false;
 	movedHandOffset = glm::vec3( 0.0, 0.0, 0.0 );
     
     sphere = NULL;
@@ -664,28 +663,7 @@ void Head::renderHead( int faceToFace, int isMine )
 //---------------------------------------------------------
 void Head::setHandMovement( glm::vec3 movement )
 {
-	//float x = movement.x;
-	//float y = movement.y;
-	//float z = movement.z;
-	
-	//movedHandPosition = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position + movement * 0.1f;
-	
-	
-	/*
-	float x	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getRight	().x )
-			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getRight	().y )
-			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getRight	().z );
-
-	float y	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getUp		().x )
-			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getUp		().y )
-			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getUp		().z );
-
-	float z	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getFront	().x )
-			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getFront	().y )
-			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getFront	().z );
-	*/
-	
-	mouseMovedHand = true;
+	handBeingMoved = true;
 	movedHandOffset = movement;
 }
 
@@ -882,10 +860,10 @@ void Head::updateAvatarSkeleton()
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
 	//------------------------------------------------------------------------
-	if ( mouseMovedHand ) 
+	if ( handBeingMoved ) 
 	{
 		updateHandMovement();
-		mouseMovedHand = false;
+		handBeingMoved = false;
 	}
 	
 	glm::dvec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
@@ -896,20 +874,6 @@ void Head::updateAvatarSkeleton()
 	{
 		avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position += v * 0.2;
 	}
-	
-	
-	/*
-	//------------------------------------------------------------------------
-	// update offset position
-	//------------------------------------------------------------------------
-	for (int b=0; b<NUM_AVATAR_BONES; b++)
-	{
-		glm::dvec3 diff( avatar.bone[b].position );
-		diff -= avatar.bone[b].offsetPosition;
-		
-		avatar.bone[b].offsetPosition += diff * 0.1;
-	}	
-	*/
 }
 
 
@@ -1032,7 +996,24 @@ glm::vec3 Head::getBodyPosition()
 //-----------------------------
 void Head::updateHandMovement()
 {
-	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += movedHandOffset;	
+	glm::vec3 transformedHandMovement;
+
+	transformedHandMovement.x
+	= glm::dot( movedHandOffset.x, -(float)avatar.orientation.getRight().x )
+	+ glm::dot( movedHandOffset.y, -(float)avatar.orientation.getRight().y )
+	+ glm::dot( movedHandOffset.z,  (float)avatar.orientation.getRight().z );
+
+	transformedHandMovement.y
+	= glm::dot( movedHandOffset.x, -(float)avatar.orientation.getUp().x )
+	+ glm::dot( movedHandOffset.y, -(float)avatar.orientation.getUp().y )
+	+ glm::dot( movedHandOffset.z,  (float)avatar.orientation.getUp().z );
+
+	transformedHandMovement.z
+	= glm::dot( movedHandOffset.x, -(float)avatar.orientation.getFront().x )
+	+ glm::dot( movedHandOffset.y, -(float)avatar.orientation.getFront().y )
+	+ glm::dot( movedHandOffset.z,  (float)avatar.orientation.getFront().z );
+
+	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
 	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
 	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 
@@ -1194,9 +1175,6 @@ int Head::getBroadcastData(char* data)
 //---------------------------------------------------
 void Head::parseData(void *data, int size) 
 {
-    // parse head data for this agent
-    //glm::vec3 handPos( 0,0,0 );
-    
 	sscanf
 	(
 		(char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
@@ -1208,18 +1186,7 @@ void Head::parseData(void *data, int size)
 		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z
 	);
 	
-	mouseMovedHand = true;
-
-	/*
-	movedHandPosition = glm::vec3
-	(	
-		handPos.x - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-		handPos.y - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-		handPos.z - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z
-	);
-	*/
-	
-    //if (glm::length(handPos) > 0.0) hand->setPos(handPos);
+	handBeingMoved = true;
 }
 
 

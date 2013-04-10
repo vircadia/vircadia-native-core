@@ -14,7 +14,6 @@
 #include "Field.h"
 #include "world.h"
 #include "Hand.h"
-#include "Vector3D.h"		// added by Ventrella as a utility
 #include "Orientation.h"	// added by Ventrella as a utility
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
@@ -239,7 +238,7 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
 		
-		bool mouseMovedHand;
+		bool handBeingMoved;
 		glm::vec3 movedHandOffset;
 		//glm::vec3 movedHandPosition;
     
