@@ -844,10 +844,6 @@ void display(void)
         if (audioScope.getState()) audioScope.render();
         #endif
 
-
-        //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
-        //glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
-
         if (displayHeadMouse && !displayHead && statsOn)
         {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
