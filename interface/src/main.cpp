@@ -511,6 +511,151 @@ void simulateHead(float frametime)
     }
 }
 
+// These handy operators should probably go somewhere else, I'm surprised they don't
+// already exist somewhere in OpenGL. Maybe someone can point me to them if they do exist!
+glm::vec3 operator* (float lhs, const glm::vec3& rhs)
+{
+    glm::vec3 result = rhs;
+    result.x *= lhs;
+    result.y *= lhs;
+    result.z *= lhs;
+    return result;
+}
+
+glm::vec3 operator* (const glm::vec3& lhs, float rhs)
+{
+    glm::vec3 result = lhs;
+    result.x *= rhs;
+    result.y *= rhs;
+    result.z *= rhs;
+    return result;
+}
+
+// XXXBHG - this code is not yet working. This is here to help Jeffery debug getAvatarHeadLookatDirection()
+// The code will draw a yellow line from the avatar's position to the origin,
+// It also attempts to draw a cyan line from the avatar to 2 meters in front of the avatar in the direction
+// it's looking. But that's not working right now.
+void render_view_frustum() {
+
+	//printf("frustum low.x=%f, low.y=%f, low.z=%f, high.x=%f, high.y=%f, high.z=%f\n",low.x,low.y,low.z,high.x,high.y,high.z);
+
+
+	// p – the camera position
+	// d – a vector with the direction of the camera's view ray. In here it is assumed that this vector has been normalized
+	// nearDist – the distance from the camera to the near plane
+	// nearHeight – the height of the near plane
+	// nearWidth – the width of the near plane
+	// farDist – the distance from the camera to the far plane
+	// farHeight – the height of the far plane
+	// farWidth – the width of the far plane
+
+	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
+	glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
+	
+	// this is a temporary test, create a vertice that's 2 meters in front of avatar in direction their looking
+	glm::vec3 lookingAt = cameraPosition+(cameraDirection*2.0);
+
+    //  Some debug lines.
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
+
+	// line from avatar to the origin -- this one is working.
+    glColor3f(1,1,0);
+    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
+    glVertex3f(0,0,0);
+
+	// line from avatar to 2 meters in front of avatar -- this is NOT working
+    glColor3f(0,1,1);
+    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
+    glVertex3f(lookingAt.x,lookingAt.y,lookingAt.z);
+
+	/*
+	// Not yet ready for this...
+	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
+	glm::vec3 right = glm::vec3(1.0,0.0,0.0);
+	float nearDist = 0.1;
+	float farDist  = 500.0;
+	float fov = (0.7854f*2.0); // 45 deg * 2 = 90 deg
+	
+	float screenWidth = 800.0; // hack! We need to make this eventually be the correct height/width
+	float screenHeight = 600.0;
+	float ratio      = screenWidth/screenHeight;
+	float nearHeight = 2 * tan(fov / 2) * nearDist;
+	float nearWidth  = nearHeight * ratio;
+	float farHeight  = 2 * tan(fov / 2) * farDist;
+	float farWidth   = farHeight * ratio;
+	
+	glm::vec3 farCenter       = cameraPosition+cameraDirection*farDist;
+	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5); 
+	glm::vec3 farTopRight     = farCenter  + (up*farHeight*0.5)  + (right*farWidth*0.5); 
+	glm::vec3 farBottomLeft   = farCenter  - (up*farHeight*0.5)  - (right*farWidth*0.5); 
+	glm::vec3 farBottomRight  = farCenter  - (up*farHeight*0.5)  + (right*farWidth*0.5); 
+
+	glm::vec3 nearCenter      = cameraPosition+cameraDirection*nearDist;
+	glm::vec3 nearTopLeft     = nearCenter + (up*nearHeight*0.5) - (right*nearWidth*0.5); 
+	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
+	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
+	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
+	*/
+    
+
+/*
+    glColor3f(1,1,1);
+
+	// near plane - bottom edge 
+    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(high.x,low.y,low.z);
+
+	// near plane - top edge
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(high.x,high.y,low.z);
+
+	// near plane - right edge
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(low.x,low.y,low.z);
+
+	// near plane - left edge
+    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(high.x,low.y,low.z);
+
+	// far plane - bottom edge 
+    glVertex3f(low.x,low.y,high.z);
+    glVertex3f(high.x,low.y,high.z);
+  
+	// far plane - top edge
+    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(high.x,high.y,high.z);
+
+	// far plane - right edge
+    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(low.x,low.y,high.z);
+
+	// far plane - left edge
+    glVertex3f(high.x,high.y,high.z);
+    glVertex3f(high.x,low.y,high.z);
+
+	// right plane - bottom edge - near to distant
+    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(low.x,low.y,high.z);
+
+	// right plane - top edge - near to distant
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(low.x,high.y,high.z);
+
+	// left plane - bottom edge - near to distant
+    glVertex3f(high.x,low.y,low.z);
+    glVertex3f(high.x,low.y,high.z);
+
+	// left plane - top edge - near to distant
+    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(high.x,high.y,high.z);
+*/
+    glEnd();
+}
+
+
 void display(void)
 {
 	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
@@ -637,6 +782,9 @@ void display(void)
     
         //  Render the world box
         if (!displayHead && statsOn) render_world_box();
+        
+        // brad's frustum for debugging
+        render_view_frustum();
     
 	
 		//---------------------------------
