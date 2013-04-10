@@ -99,7 +99,7 @@ void AgentList::updateDataForAllAgents(sockaddr *senderAddress, unsigned char *p
     unsigned char *currentPosition = packetData + 1;
     unsigned char *startPosition = packetData;
     unsigned char *packetHolder = new unsigned char[(sizeof(float) * 11) + 1];
-    packetHolder[0] = *(unsigned char *)PACKET_HEADER_HEAD_DATA;
+    packetHolder[0] = PACKET_HEADER_HEAD_DATA;
     packetHolder++;
     uint16_t agentId;
     sockaddr_in *agentActiveSocket = new sockaddr_in;

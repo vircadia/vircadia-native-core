@@ -28,7 +28,6 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
-
 class AgentList {
 
     UDPSocket agentSocket;
