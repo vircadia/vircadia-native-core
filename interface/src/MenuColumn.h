@@ -5,7 +5,7 @@
 class MenuColumn  {
 public:
     MenuColumn();
-    MenuColumn(char * columnName);
+    MenuColumn(const char* columnName);
     ~MenuColumn();
     void mouseClickRow(int iColumnIndex);
     bool mouseClick(int x, int y, int xLeft, int menuHeight, int lineHeight);

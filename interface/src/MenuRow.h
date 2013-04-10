@@ -10,7 +10,7 @@ typedef int(*MenuRowCallback)(int);
 class MenuRow  {
 public:
     MenuRow();
-    MenuRow(const char * rowName, MenuRowCallback callback);
+    MenuRow(const char* rowName, MenuRowCallback callback);
     ~MenuRow();
     void call();
     char * getName();

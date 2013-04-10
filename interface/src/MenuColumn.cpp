@@ -13,7 +13,7 @@
 MenuColumn::MenuColumn() {
 }
 
-MenuColumn::MenuColumn(char * columnName) {
+MenuColumn::MenuColumn(const char* columnName) {
     int length = std::min(MAX_COLUMN_NAME - 1,(int) strlen(columnName));
     strncpy(this->columnName, columnName, length);
     this->columnName[length] = '\0';
