@@ -229,7 +229,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
+void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
         if (agent->getActiveSocket() != NULL && strchr(agentTypes,agent->getType())) {
