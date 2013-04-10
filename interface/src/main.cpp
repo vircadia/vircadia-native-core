@@ -192,21 +192,6 @@ timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
 
-#ifdef MARKER_CAPTURE
-
-    /***  Marker Capture ***/
-    #define MARKER_CAPTURE_INTERVAL 1
-    MarkerCapture marker_capturer(CV_CAP_ANY); // Create a new marker capturer, attached to any valid camera.
-    MarkerAcquisitionView marker_acq_view(&marker_capturer);
-    bool marker_capture_enabled = true;
-    bool marker_capture_display = true;
-    IplImage* marker_capture_frame;
-    IplImage* marker_capture_blob_frame;
-    pthread_mutex_t frame_lock;
-
-#endif
-
-
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
