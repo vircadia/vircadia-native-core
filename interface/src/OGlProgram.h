@@ -69,7 +69,7 @@ public:
      */
     bool addShader(GLenum type, GLchar const* cString) { 
 
-        addShader(type, 1, & cString);        
+        return addShader(type, 1, & cString);        
     }
 
     /**
