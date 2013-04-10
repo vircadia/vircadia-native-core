@@ -727,12 +727,19 @@ void display(void)
         }
         if (display_head_mouse && !display_head && stats_on)
         {
-            glPointSize(10.0f);
-            glColor4f(1.0, 1.0, 0.0, 0.8);
-            glEnable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(head_mouse_x, head_mouse_y);
+            //  Display small target box at center or head mouse target that can also be used to measure LOD
+            glColor3f(1.0, 1.0, 1.0);
+            glDisable(GL_LINE_SMOOTH);
+            const int PIXEL_BOX = 20;
+            glBegin(GL_LINE_STRIP);
+            glVertex2f(head_mouse_x - PIXEL_BOX/2, head_mouse_y - PIXEL_BOX/2);
+            glVertex2f(head_mouse_x + PIXEL_BOX/2, head_mouse_y - PIXEL_BOX/2);
+            glVertex2f(head_mouse_x + PIXEL_BOX/2, head_mouse_y + PIXEL_BOX/2);
+            glVertex2f(head_mouse_x - PIXEL_BOX/2, head_mouse_y + PIXEL_BOX/2);
+            glVertex2f(head_mouse_x - PIXEL_BOX/2, head_mouse_y - PIXEL_BOX/2);
             glEnd();
+            
+            glEnable(GL_LINE_SMOOTH);
         }
         //  Spot bouncing back and forth on bottom of screen
         if (0)
