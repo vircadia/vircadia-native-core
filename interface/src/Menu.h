@@ -1,4 +1,12 @@
-#ifndef __hifi__Menu__ 
+//
+//  Menu.h
+//  hifi
+//
+//  Created by Dominque Vincent on 4/10/13.
+//
+//
+
+#ifndef __hifi__Menu__
 #define __hifi__Menu__
 
 #include <vector>

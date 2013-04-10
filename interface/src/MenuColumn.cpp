@@ -1,3 +1,10 @@
+//
+//  MenuColumn.cpp
+//  hifi
+//
+//  Created by Dominque Vincent on 4/10/13.
+//
+//
 
 #include <algorithm>
 #include <cstring>

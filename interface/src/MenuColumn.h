@@ -1,3 +1,11 @@
+//
+//  MenuColumn.h
+//  hifi
+//
+//  Created by Dominque Vincent on 4/10/13.
+//
+//
+
 #ifndef __hifi__MenuColumn__
 #define __hifi__MenuColumn__
 #include <vector>

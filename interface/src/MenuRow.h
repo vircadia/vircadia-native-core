@@ -1,4 +1,12 @@
-#ifndef __hifi__MenuRow__ 
+//
+//  MenuRow.h
+//  hifi
+//
+//  Created by Dominque Vincent on 4/10/13.
+//
+//
+
+#ifndef __hifi__MenuRow__
 #define __hifi__MenuRow__
 
 const int MAX_COLUMN_NAME = 50;
