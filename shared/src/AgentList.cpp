@@ -90,6 +90,11 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
 }
 
 void AgentList::updateDataForAllAgents(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
+    // find the avatar mixer in our agent list and update the lastRecvTime from it
+    int avatarMixerIndex = indexOfMatchingAgent(senderAddress);
+    Agent *avatarMixerAgent = &agents[avatarMixerIndex];
+    avatarMixerAgent->setLastRecvTimeUsecs(usecTimestampNow());
+
     int bytesForEachAgent = sizeof(float) * 11;
     
     unsigned char *currentPosition = packetData + 1;
@@ -206,6 +211,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
         } else if (newAgent.getType() == AGENT_TYPE_VOXEL) {
+            newAgent.activatePublicSocket();
+        } else if (newAgent.getType() == AGENT_TYPE_AVATAR_MIXER) {
             newAgent.activatePublicSocket();
         }
         

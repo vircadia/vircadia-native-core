@@ -35,62 +35,61 @@
 #include "AvatarAgentData.h"
 
 const int AVATAR_LISTEN_PORT = 55444;
-const unsigned short BROADCAST_INTERVAL = 20;
+const unsigned short BROADCAST_INTERVAL_USECS = 20 * 1000 * 1000;
 
 AgentList agentList(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
-    unsigned char *packetData = new unsigned char();
-    
-    currentPosition += packSocket(currentPosition, agentToAdd->getActiveSocket());
+    currentPosition += packSocket(currentPosition, agentToAdd->getPublicSocket());
 
     AvatarAgentData *agentData = (AvatarAgentData *)agentToAdd->getLinkedData();
     
-    sprintf((char *)packetData, PACKET_FORMAT, agentData->getPitch(),
-                                               agentData->getYaw(),
-                                               agentData->getRoll(),
-                                               agentData->getHeadPositionX(),
-                                               agentData->getHeadPositionY(),
-                                               agentData->getHeadPositionZ(),
-                                               agentData->getLoudness(),
-                                               agentData->getAverageLoudness(),
-                                               agentData->getHandPositionX(),
-                                               agentData->getHandPositionY(),
-                                               agentData->getHandPositionZ());
+    int bytesWritten = sprintf((char *)currentPosition,
+                               PACKET_FORMAT,
+                               agentData->getPitch(),
+                               agentData->getYaw(),
+                               agentData->getRoll(),
+                               agentData->getHeadPositionX(),
+                               agentData->getHeadPositionY(),
+                               agentData->getHeadPositionZ(),
+                               agentData->getLoudness(),
+                               agentData->getAverageLoudness(),
+                               agentData->getHandPositionX(),
+                               agentData->getHandPositionY(),
+                               agentData->getHandPositionZ());
 
-    memcpy(currentPosition, packetData, strlen((const char*)packetData));
-    currentPosition += strlen((const char*)packetData);
-
+    currentPosition += bytesWritten;
     return currentPosition;
 }
 
 void *sendAvatarData(void *args) {
     timeval startTime;
+    
+    unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
+    *broadcastPacket = PACKET_HEADER_HEAD_DATA;
+    
+    unsigned char* currentBufferPosition = NULL;
+    
     while (true) {
         gettimeofday(&startTime, NULL);
         
-        unsigned char *currentBufferPosition;
-        unsigned char *startPointer;
-        unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-        
-        broadcastPacket = (unsigned char *)PACKET_HEADER_HEAD_DATA;
-        currentBufferPosition = broadcastPacket + 1;
-        startPointer = currentBufferPosition;
-        
+        currentBufferPosition = broadcastPacket + 1;        
         
         for (std::vector<Agent>::iterator avatarAgent = agentList.getAgents().begin();
              avatarAgent != agentList.getAgents().end();
              avatarAgent++) {
-            addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
         }
         
         for (std::vector<Agent>::iterator avatarAgent = agentList.getAgents().begin();
              avatarAgent != agentList.getAgents().end();
              avatarAgent++) {
-            agentList.getAgentSocket().send(avatarAgent->getActiveSocket(), broadcastPacket, strlen((const char *)broadcastPacket));
+            agentList.getAgentSocket().send(avatarAgent->getPublicSocket(),
+                                            broadcastPacket,
+                                            currentBufferPosition - broadcastPacket);
         }
         
-        double usecToSleep = usecTimestamp(&startTime) + (BROADCAST_INTERVAL * 10000000) - usecTimestampNow();
+        double usecToSleep = BROADCAST_INTERVAL_USECS -  (usecTimestampNow() - usecTimestamp(&startTime));
         usleep(usecToSleep);
     }
 }
@@ -132,4 +131,7 @@ int main(int argc, char* argv[])
     
     agentList.stopDomainServerCheckInThread();
     agentList.stopSilentAgentRemovalThread();
+    
+    pthread_join(sendAvatarDataThread, NULL);
+    return 0;
 }
