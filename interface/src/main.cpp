@@ -108,7 +108,7 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
-bool showingVoxels = false;
+bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
@@ -120,7 +120,7 @@ ParticleSystem balls(0,
                      0.0                   //  Gravity
                      );
 
-Cloud cloud(0,                         //  Particles
+Cloud cloud(0,                             //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -177,22 +177,14 @@ SerialInterface serialPort;
 int latency_display = 1;
 
 glm::vec3 gravity;
-int first_measurement = 1;
-//int samplecount = 0;
 
-//  Frame rate Measurement
+//  Frame Rate Measurement
 
 int frameCount = 0;                  
 float FPS = 120.f;
 timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
-
-// Particles
-
-
-float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
-float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
 #ifdef MARKER_CAPTURE
 
@@ -253,14 +245,6 @@ void displayStats(void)
         drawtext(300, 30, 0.10f, 0, 1.0, 0, stats);
     }
     
-    //  Output the ping times to the various agents 
-//    std::stringstream pingTimes;
-//    pingTimes << "Agent Pings, msecs:";
-//    for (int i = 0; i < getAgentCount(); i++) {
-//        pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
-//    }
-//    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
-
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
@@ -826,7 +810,7 @@ void display(void)
 
 
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
+        //glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
         if (displayHeadMouse && !displayHead && statsOn)
         {

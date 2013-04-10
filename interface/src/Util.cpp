@@ -46,9 +46,9 @@ void render_vector(glm::vec3 * vec)
     glVertex3f(vec->x, vec->y, vec->z);
     // Draw marker dots for magnitude    
     glEnd();
-    float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+    float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
     
     glEnable(GL_POINT_SMOOTH);
     glPointSize(10.0);
