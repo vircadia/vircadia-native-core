@@ -71,24 +71,18 @@ unsigned int AgentList::getSocketListenPort() {
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
-            // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_HEAD_DATA: {
-            // head data from another agent
             updateDataForAllAgents(senderAddress, (unsigned char *)packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_PING: {
-            // ping from another agent
-            //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
-            // ping reply from another agent
-            //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
             break;
         }
