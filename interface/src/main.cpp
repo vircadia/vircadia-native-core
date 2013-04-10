@@ -222,9 +222,6 @@ void Timer(int extra)
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timerStart, NULL);
     
-    //  Ping the agents we can see
-    agentList.pingAgents();
-    
     // if we haven't detected gyros, check for them now
     if (!serialPort.active) {
         serialPort.pair();
@@ -1250,9 +1247,10 @@ int main(int argc, const char * argv[])
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
 #endif
 
-    // start the thread which checks for silent agents
+    // start the agentList threads
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
+    agentList.startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

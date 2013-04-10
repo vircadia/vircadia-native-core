@@ -28,6 +28,7 @@ const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
+bool pingUnknownAgentThreadStopFlag = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
@@ -50,6 +51,7 @@ AgentList::~AgentList() {
     // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
     stopDomainServerCheckInThread();
+    stopPingUnknownAgentsThread();
 }
 
 std::vector<Agent>& AgentList::getAgents() {
@@ -209,7 +211,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
-            // likely debugging scenario with DS + agent on local network
+            // likely debugging scenario with two agents on local network
             // set the agent active right away
             newAgent.activatePublicSocket();
         }
@@ -221,8 +223,6 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
         } else if (newAgent.getType() == AGENT_TYPE_VOXEL) {
-            newAgent.activatePublicSocket();
-        } else if (newAgent.getType() == AGENT_TYPE_AVATAR_MIXER) {
             newAgent.activatePublicSocket();
         }
         
@@ -256,37 +256,62 @@ void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes, const c
     }
 }
 
-void AgentList::pingAgents() {
-    char payload[1];
-    *payload = PACKET_HEADER_PING;
-    
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == AGENT_TYPE_INTERFACE) {
-            if (agent->getActiveSocket() != NULL) {
-                // we know which socket is good for this agent, send there
-                agentSocket.send(agent->getActiveSocket(), payload, 1);
-            } else {
-                // ping both of the sockets for the agent so we can figure out
-                // which socket we can use
-                agentSocket.send(agent->getPublicSocket(), payload, 1);
-                agentSocket.send(agent->getLocalSocket(), payload, 1);
-            }
-        }
-    }
-}
-
 void AgentList::handlePingReply(sockaddr *agentAddress) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // check both the public and local addresses for each agent to see if we find a match
         // prioritize the private address so that we prune erroneous local matches        
         if (socketMatch(agent->getPublicSocket(), agentAddress)) {
             agent->activatePublicSocket();
+            std::cout << "Activated public socket for agent " << &*agent << "\n";
             break;
         } else if (socketMatch(agent->getLocalSocket(), agentAddress)) {
             agent->activateLocalSocket();
+            std::cout << "Activated local socket for agent " << &*agent << "\n";
             break;
         }
     }
+}
+
+void *pingUnknownAgents(void *args) {
+    
+    AgentList *agentList = (AgentList *)args;
+    const int PING_INTERVAL_USECS = 1 * 1000000;
+    
+    timeval lastSend;
+    
+    while (!pingUnknownAgentThreadStopFlag) {
+        gettimeofday(&lastSend, NULL);
+        
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+            agent != agentList->getAgents().end();
+            agent++) {
+            if (agent->getType() == AGENT_TYPE_INTERFACE) {
+                if (agent->getActiveSocket() == NULL) {
+                    // ping both of the sockets for the agent so we can figure out
+                    // which socket we can use
+                    agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
+                    agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
+                }
+            }
+        }
+        
+        double usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
+    }
+    
+    return NULL;
+}
+
+void AgentList::startPingUnknownAgentsThread() {
+    pthread_create(&pingUnknownAgentsThread, NULL, pingUnknownAgents, (void *)this);
+}
+
+void AgentList::stopPingUnknownAgentsThread() {
+    pingUnknownAgentThreadStopFlag = true;
+    pthread_join(pingUnknownAgentsThread, NULL);
 }
 
 void *removeSilentAgents(void *args) {

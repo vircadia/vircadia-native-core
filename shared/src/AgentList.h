@@ -37,6 +37,7 @@ class AgentList {
     uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
+    pthread_t pingUnknownAgentsThread;
     
     void handlePingReply(sockaddr *agentAddress);
 public:
@@ -66,7 +67,6 @@ public:
     void updateAgentWithData(Agent *agent, void *packetData, int dataBytes);
     
     void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes);
-    void pingAgents();
     char getOwnerType();
     unsigned int getSocketListenPort();
     
@@ -74,10 +74,11 @@ public:
     void stopSilentAgentRemovalThread();
     void startDomainServerCheckInThread();
     void stopDomainServerCheckInThread();
-
+    void startPingUnknownAgentsThread();
+    void stopPingUnknownAgentsThread();
 };
 
-int unpackAgentId(char *packedData, uint16_t *agentId);
-int packAgentId(char *packStore, uint16_t agentId);
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
+int packAgentId(unsigned char *packStore, uint16_t agentId);
 
 #endif /* defined(__hifi__AgentList__) */

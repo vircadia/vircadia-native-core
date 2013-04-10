@@ -66,7 +66,7 @@ void *sendAvatarData(void *args) {
     timeval startTime;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    *broadcastPacket = PACKET_HEADER_HEAD_DATA;
+    *broadcastPacket = PACKET_HEADER_AVATAR_SERVER;
     
     unsigned char* currentBufferPosition = NULL;
     
@@ -78,15 +78,19 @@ void *sendAvatarData(void *args) {
         for (std::vector<Agent>::iterator avatarAgent = agentList.getAgents().begin();
              avatarAgent != agentList.getAgents().end();
              avatarAgent++) {
-            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+            if (avatarAgent->getLinkedData() != NULL) {
+                currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+            }
         }
         
         for (std::vector<Agent>::iterator avatarAgent = agentList.getAgents().begin();
              avatarAgent != agentList.getAgents().end();
              avatarAgent++) {
-            agentList.getAgentSocket().send(avatarAgent->getPublicSocket(),
-                                            broadcastPacket,
-                                            currentBufferPosition - broadcastPacket);
+            if (avatarAgent->getActiveSocket()) {
+                agentList.getAgentSocket().send(avatarAgent->getPublicSocket(),
+                                                broadcastPacket,
+                                                currentBufferPosition - broadcastPacket);
+            }
         }
         
         double usecToSleep = BROADCAST_INTERVAL_USECS -  (usecTimestampNow() - usecTimestamp(&startTime));
@@ -111,6 +115,7 @@ int main(int argc, char* argv[])
     
     agentList.startDomainServerCheckInThread();
     agentList.startSilentAgentRemovalThread();
+    agentList.startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
     char *packetData = new char[MAX_PACKET_SIZE];
@@ -133,6 +138,7 @@ int main(int argc, char* argv[])
     
     agentList.stopDomainServerCheckInThread();
     agentList.stopSilentAgentRemovalThread();
+    agentList.stopPingUnknownAgentsThread();
     
     pthread_join(sendAvatarDataThread, NULL);
     return 0;
