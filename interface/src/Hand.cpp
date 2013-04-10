@@ -21,8 +21,7 @@ const float DEFAULT_Y = -1.5;
 const float DEFAULT_Z = 2.0;
 const float DEFAULT_TRANSMITTER_HZ = 60.0;
 
-Hand::Hand(glm::vec3 initcolor)
-{
+Hand::Hand(glm::vec3 initcolor) {
     color = initcolor;
     reset();
     noise = 0.0;  //0.2;
@@ -51,8 +50,7 @@ Hand::Hand(const Hand &otherHand) {
     renderPointer = otherHand.renderPointer;
 }
 
-void Hand::reset()
-{
+void Hand::reset() {
     position.x = DEFAULT_X;
     position.y = DEFAULT_Y;
     position.z = DEFAULT_Z;
@@ -64,8 +62,7 @@ void Hand::reset()
     transmitterHz = DEFAULT_TRANSMITTER_HZ;
 }
 
-void Hand::render(int isMine)
-{
+void Hand::render(int isMine) {
     const float POINTER_LENGTH = 20.0;
     glPushMatrix();
     glTranslatef(position.x, position.y, position.z);
@@ -89,22 +86,7 @@ void Hand::render(int isMine)
         glutSolidCube(1.0);
         glPopMatrix();
     }
-    glPopMatrix();
-    
-    if (1) {
-        //  Render debug info from the transmitter
-        /*
-        glPushMatrix();
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        //gluOrtho2D(0, WIDTH, HEIGHT, 0);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
-        glPopMatrix();
-         */
-
-    }
-    
+    glPopMatrix();    
 }
 
 void Hand::addAngularVelocity (float pRate, float yRate, float rRate) {
@@ -159,8 +141,7 @@ void Hand::processTransmitterData(char *packetData, int numBytes) {
     
 }
 
-void Hand::simulate(float deltaTime)
-{
+void Hand::simulate(float deltaTime) {
     const float ANGULAR_SPRING_CONSTANT = 0.25;
     const float ANGULAR_DAMPING_COEFFICIENT = 5*2.0f*powf(ANGULAR_SPRING_CONSTANT,0.5f);
     const float LINEAR_SPRING_CONSTANT = 100;
