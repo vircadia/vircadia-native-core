@@ -11,6 +11,8 @@
 //------------------------
 Camera::Camera()
 {
+	mode			= CAMERA_MODE_THIRD_PERSON;
+	fieldOfView		= 60.0; // default
 	yaw				= 0.0;
 	pitch			= 0.0;
 	roll			= 0.0;
@@ -20,6 +22,7 @@ Camera::Camera()
 	position		= glm::dvec3( 0.0, 0.0, 0.0 );
 	orientation.setToIdentity();
 }
+
 
 
 //------------------------
@@ -33,5 +36,13 @@ void Camera::update()
 	
 	position = glm::dvec3( targetPosition );	
 	position += glm::dvec3( x, y, z );
+	
+	//------------------------------------------------------------------------
+	//geterate the ortho-normals for the orientation based on the Euler angles
+	//------------------------------------------------------------------------
+	orientation.setToIdentity();
+	orientation.yaw		( yaw	);
+	orientation.pitch	( pitch	);
+	orientation.roll	( roll	);
 }
 

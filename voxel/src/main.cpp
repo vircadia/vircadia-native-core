@@ -375,6 +375,8 @@ int main(int argc, const char * argv[])
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
 				agentList.broadcastToAgents(packetData,receivedBytes, AGENT_TYPE_INTERFACE);
             }
+            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_INTERFACE, and we
+            // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,

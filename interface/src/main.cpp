@@ -385,7 +385,7 @@ void init(void)
     }
     myHead.setPos(start_location );
 	
-	myCamera.setPosition( glm::dvec3( start_location ) );
+	myCamera.setPosition( start_location );
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -600,47 +600,45 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		//-------------------------------------------------------------------------------------
-		// set the camera to third-person view
-		//-------------------------------------------------------------------------------------		
-		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
-		myCamera.setPitch	( 0.0 );
-		myCamera.setRoll	( 0.0 );
+		//--------------------------------------------------------
+		// camera settings
+		//--------------------------------------------------------		
+		myCamera.setTargetPosition( myHead.getPos() );	
 
 		if ( display_head )
-		//-------------------------------------------------------------------------------------
-		// set the camera to looking at my face
-		//-------------------------------------------------------------------------------------		
 		{
+			//-----------------------------------------------
+			// set the camera to looking at my own face
+			//-----------------------------------------------		
 			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setPitch	( 0.0  );
+			myCamera.setRoll	( 0.0  );
 			myCamera.setUp		( 0.4  );
+			myCamera.setDistance( 0.5  );	
 			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		else
-		//-------------------------------------------------------------------------------------
-		// set the camera to third-person view
-		//-------------------------------------------------------------------------------------		
 		{
+			//----------------------------------------------------
+			// set the camera to third-person view behind my av
+			//----------------------------------------------------		
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
-			myCamera.setUp		( 0.15 );
-			myCamera.setDistance( 0.08 );
+			myCamera.setPitch	(  10.0 );
+			myCamera.setRoll	(   0.0 );
+			myCamera.setUp		(   0.2 );
+			myCamera.setDistance(   1.6 );	
+			myCamera.setDistance(   0.5 );
 			myCamera.update();
 		}
 		
-		//-------------------------------------------------------------------------------------
-		// transform to camera view
-		//-------------------------------------------------------------------------------------
+		//---------------------------------------------
+		// transform view according to myCamera
+		//---------------------------------------------
         glRotatef	( myCamera.getPitch(),	1, 0, 0 );
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
-		
-		//printf( "myCamera position = %f, %f, %f\n", myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );		
-		
         glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
-        
-		// fixed view
-		//glTranslatef( 6.18, -0.15, 1.4 );
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -665,8 +663,10 @@ void display(void)
         if (display_field) field.render();
             
         //  Render heads of other agents
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
@@ -676,7 +676,7 @@ void display(void)
             }
         }
     
-        if (!display_head) balls.render();
+        if ( !display_head ) balls.render();
     
         //  Render the world box
         if (!display_head && stats_on) render_world_box();
@@ -1041,19 +1041,34 @@ void idle(void)
 		//----------------------------------------------------------------
 		if ( mouse_pressed == 1 )
 		{
-			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
-			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
+			float xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
+			float yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
 			
-			double leftRight	= xOffset;
-			double downUp		= yOffset;
-			double backFront	= 0.0;
+			float leftRight	= xOffset;
+			float downUp	= yOffset;
+			float backFront	= 0.0;
 			
-			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			glm::vec3 handMovement( leftRight, downUp, backFront );
 			myHead.setHandMovement( handMovement );		
 		}		
 		
         //  Simulation
         simulateHead(1.f/FPS);
+		
+		
+		//test
+		/*
+		//  simulate the other agents
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
+                Head *agentHead = (Head *)agent->getLinkedData();
+                agentHead->simulate(1.f/FPS);
+            }
+        }
+		*/
+		
         simulateHand(1.f/FPS);
         
         if (simulate_on) {
@@ -1088,7 +1103,6 @@ void reshape(int width, int height)
     fov.setResolution(width, height)
             .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
             .setPerspective(0.7854f);
-
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glMatrixMode(GL_MODELVIEW);
