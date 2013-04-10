@@ -18,7 +18,6 @@
 size_t const UrlReader::max_read_ahead = CURL_MAX_WRITE_SIZE;
 #else
 size_t const UrlReader::max_read_ahead = 0;
-
 #endif
 
 char const* const UrlReader::success = "UrlReader: Success!";
