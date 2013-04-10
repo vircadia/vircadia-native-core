@@ -67,7 +67,7 @@ Agent::Agent(const Agent &otherAgent) {
         linkedData = NULL;
     }
     
-    deleteMutex = otherAgent.deleteMutex;
+    pthread_mutex_init(&deleteMutex, NULL);
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
@@ -83,7 +83,6 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
     swap(first.agentId, second.agentId);
-    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {

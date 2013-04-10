@@ -285,13 +285,11 @@ void *pingUnknownAgents(void *args) {
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
-            if (agent->getType() == AGENT_TYPE_INTERFACE) {
-                if (agent->getActiveSocket() == NULL) {
-                    // ping both of the sockets for the agent so we can figure out
-                    // which socket we can use
-                    agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
-                    agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
-                }
+            if (agent->getActiveSocket() == NULL) {
+                // ping both of the sockets for the agent so we can figure out
+                // which socket we can use
+                agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
             }
         }
         
@@ -344,7 +342,6 @@ void *removeSilentAgents(void *args) {
             }
         }
         
-        
         sleepTime = AGENT_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
         #ifdef _WIN32
         Sleep( static_cast<int>(1000.0f*sleepTime) );
@@ -380,6 +377,8 @@ void AgentList::stopSilentAgentRemovalThread() {
 
 void *checkInWithDomainServer(void *args) {
     
+    const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+    
     AgentList *parentAgentList = (AgentList *)args;
     
     timeval lastSend;
@@ -410,7 +409,7 @@ void *checkInWithDomainServer(void *args) {
         
         parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
-        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
+        double usecToSleep = DOMAIN_SERVER_CHECK_IN_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
