@@ -57,6 +57,8 @@
 #include "FieldOfView.h"
 #include "Stars.h"
 
+#include "MenuRow.h"
+#include "MenuColumn.h"
 #include "Menu.h"
 #include "Head.h"
 #include "Hand.h"
