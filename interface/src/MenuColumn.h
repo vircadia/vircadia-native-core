@@ -26,7 +26,7 @@ public:
     int getLeftPosition();
     void render(int yOffset, int menuHeight, int lineHeight);
     void renderMouseOver(int yOffset);
-    int addRow(const char * rowName, MenuRowCallback callback);
+    int addRow(const char* rowName, MenuRowCallback callback);
 private:
     char columnName[MAX_COLUMN_NAME];
     int columnWidth;

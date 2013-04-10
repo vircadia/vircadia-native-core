@@ -897,13 +897,12 @@ int setMirror(int state) {
 }
 
 void initMenu() {
-    MenuColumn *menuColumnOptions, *menuColumnTools;
-    menuColumnOptions = menu.addColumn("Options");
+    MenuColumn *menuColumnOptions = menu.addColumn("Options");
     menuColumnOptions->addRow("Head", setHead); 
     menuColumnOptions->addRow("Field", setField); 
     menuColumnOptions->addRow("Noise", setNoise); 
     menuColumnOptions->addRow("Mirror", setMirror); 
-    menuColumnTools = menu.addColumn("Tools");
+    MenuColumn *menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats", setStats); 
     menuColumnTools->addRow("Menu", setMenu); 
 }
