@@ -1050,9 +1050,7 @@ void key(unsigned char k, int x, int y)
     if (k == '.') addRandomSphere(wantColorRandomizer);
 }
 
-//
 //  Receive packets from other agents/servers and decide what to do with them!
-//
 void *networkReceive(void *args)
 {    
     sockaddr senderAddress;
@@ -1064,19 +1062,26 @@ void *networkReceive(void *args)
             packetCount++;
             bytesCount += bytesReceived;
             
-            if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
-                //  Pass everything but transmitter data to the agent list
-                 myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
-					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
-					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
-                voxels.parseData(incomingPacket, bytesReceived);
-            } else {
-               agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            switch (incomingPacket[0]) {
+                case PACKET_HEADER_TRANSMITTER_DATA:
+                    myHead.hand->processTransmitterData(incomingPacket, bytesReceived);  
+                    break;
+                case PACKET_HEADER_VOXEL_DATA:
+                case PACKET_HEADER_Z_COMMAND:
+                case PACKET_HEADER_ERASE_VOXEL:
+                    voxels.parseData(incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_HEAD_DATA:
+                    agentList.processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    break;
+                default:
+                    agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    break;
             }
         }
     }
     
+    delete[] incomingPacket;
     pthread_exit(0); 
     return NULL;
 }

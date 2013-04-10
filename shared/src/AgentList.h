@@ -49,14 +49,22 @@ public:
     std::vector<Agent>& getAgents();
     UDPSocket& getAgentSocket();
     
-    int updateList(unsigned char *packetData, size_t dataBytes);
-    int indexOfMatchingAgent(sockaddr *senderAddress);
     uint16_t getLastAgentId();
     void increaseAgentId();
+    
+    int updateList(unsigned char *packetData, size_t dataBytes);
+    
+    int indexOfMatchingAgent(sockaddr *senderAddress);
+    int indexOfMatchingAgent(uint16_t agentID);
+    
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
+    
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
-    void updateDataForAllAgents(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
+    void processBulkAgentData(sockaddr *senderAddress, void *packetData, int numTotalBytes, int numBytesPerAgent);
+   
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+    void updateAgentWithData(Agent *agent, void *packetData, int dataBytes);
+    
     void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes);
     void pingAgents();
     char getOwnerType();
@@ -69,7 +77,7 @@ public:
 
 };
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
-int packAgentId(unsigned char *packStore, uint16_t agentId);
+int unpackAgentId(char *packedData, uint16_t *agentId);
+int packAgentId(char *packStore, uint16_t agentId);
 
 #endif /* defined(__hifi__AgentList__) */
