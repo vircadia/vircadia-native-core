@@ -17,9 +17,11 @@
 #include <fstream>
 #include <limits>
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include "AudioRingBuffer.h"
+#include "PacketHeaders.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -59,7 +61,7 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-AgentList agentList('M', MIXER_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_MIXER, MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -275,7 +277,7 @@ int main(int argc, const char * argv[])
 
     while (true) {
         if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == 'I') {
+            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                                 
                 //  Compute and report standard deviation for jitter calculation
                 if (firstSample) {
@@ -286,7 +288,7 @@ int main(int argc, const char * argv[])
                     stdev.addValue(tDiff);
                     
                     if (stdev.getSamples() > 500) {
-                        printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
+                        //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
                         stdev.reset();
                     }
                 }

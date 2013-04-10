@@ -40,6 +40,7 @@ private:
     float transmitterHz;
     int transmitterPackets;
     bool renderPointer;
+	
 };
 
 

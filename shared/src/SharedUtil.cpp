@@ -131,7 +131,7 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
 //              corresponding to the closest voxel which encloses a cube with
 //              lower corners at x,y,z, having side of length S.  
 //              The input values x,y,z range 0.0 <= v < 1.0
-//              message should be either 'I' for insert or 'R' for remove
+//              message should be either 'S' for SET or 'E' for ERASE
 //
 // IMPORTANT:   The buffer is returned to you a buffer which you MUST delete when you are
 //              done with it.
