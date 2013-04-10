@@ -90,6 +90,16 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
+int widthText(float scale, int mono, char *string) {
+    int width = 0;
+    if (!mono) {
+        width = scale * glutStrokeLength(GLUT_STROKE_ROMAN, (const unsigned char *) string);
+    } else {
+        width = scale * glutStrokeLength(GLUT_STROKE_MONO_ROMAN, (const unsigned char *) string);
+    }
+    return width;
+}
+
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
               char const* string, float r, float g, float b)
 {

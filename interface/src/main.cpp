@@ -57,6 +57,9 @@
 #include "FieldOfView.h"
 #include "Stars.h"
 
+#include "MenuRow.h"
+#include "MenuColumn.h"
+#include "Menu.h"
 #include "Head.h"
 #include "Hand.h"
 #include "Camera.h"
@@ -175,6 +178,9 @@ int mouseX, mouseY;				//  Where is the mouse
 int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
 int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
 
+Menu menu;                          // main menu
+int menuOn = 0;					//  Whether to show onscreen menu
+
 //
 //  Serial USB Variables
 // 
@@ -232,43 +238,47 @@ void Timer(int extra)
 
 void displayStats(void)
 {
+    int statsVerticalOffset = 50;
+    if (::menuOn == 0) {
+        statsVerticalOffset = 8;
+    }
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, 15, 0.10f, 0, 1.0, 0, legend);
+    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, legend);
 
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
-    drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
+    drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
 
 	glm::vec3 avatarPos = myAvatar.getPos();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
             FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
-    drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
+    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
                 serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(300, 30, 0.10f, 0, 1.0, 0, stats);
+        drawtext(300, statsVerticalOffset + 30, 0.10f, 0, 1.0, 0, stats);
     }
     
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
-    drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
 	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
 		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10,250,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
 	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
 		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10,270,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 	
 	voxelStats.str("");
 	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
 		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10,290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
 	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
@@ -277,7 +287,7 @@ void displayStats(void)
 
 	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
 		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10,310,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 	
 
 	if (::perfStatsOn) {
@@ -286,7 +296,7 @@ void displayStats(void)
 		int lines = PerfStat::DumpStats(perfStatLinesArray);
 		int atZ = 150; // arbitrary place on screen that looks good
 		for (int line=0; line < lines; line++) {
-			drawtext(10,atZ,0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+			drawtext(10, statsVerticalOffset + atZ, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
 			delete perfStatLinesArray[line]; // we're responsible for cleanup
 			perfStatLinesArray[line]=NULL;
 			atZ+=20; // height of a line
@@ -815,6 +825,13 @@ void display(void)
         glPointSize(1.0f);
         displayStats();
     }
+        
+    //  Show menu
+    if (::menuOn) {
+        glLineWidth(1.0f);
+        glPointSize(1.0f);
+        menu.render(WIDTH,HEIGHT);
+    }
 
     //  Draw number of nearby people always
     glPointSize(1.0f);
@@ -836,6 +853,59 @@ void display(void)
 
     glutSwapBuffers();
     frameCount++;
+}
+
+int MenuCallBack setValue(int state, int *value) {
+    if (state == -2) {
+        *value = !(*value);
+    } else if (state == -1) {
+        return *value;
+    } else {
+        *value = state;
+    }
+    return *value;
+}
+
+int MenuCallBack setHead(int state) {
+    return setValue(state, &displayHead);
+}
+
+int MenuCallBack setField(int state) {
+    return setValue(state, &displayField);
+}
+
+int MenuCallBack setNoise(int state) {
+    int iRet = setValue(state, &noiseOn);
+    if (noiseOn) {
+        myAvatar.setNoise(noise);
+    } else {
+        myAvatar.setNoise(0);
+    }
+    return iRet;
+}
+
+int MenuCallBack setStats(int state) {
+    return setValue(state, &statsOn);
+}
+
+int MenuCallBack setMenu(int state) {
+    return setValue(state, &::menuOn);
+}
+
+int MenuCallBack setMirror(int state) {
+    return setValue(state, &headMirror);
+}
+
+void initMenu() {
+    MenuColumn *menuColumnOptions, *menuColumnTools;
+    menuColumnOptions = menu.addColumn("Options");
+    menuColumnOptions->addRow("Head", setHead); 
+    menuColumnOptions->addRow("Field", setField); 
+    menuColumnOptions->addRow("Noise", setNoise); 
+    menuColumnOptions->addRow("Mirror", setMirror); 
+    menuColumnTools = menu.addColumn("Tools");
+    menuColumnTools->addRow("Stats", setStats); 
+    menuColumnTools->addRow("Menu", setMenu); 
 }
 
 void testPointToVoxel()
@@ -1019,7 +1089,8 @@ void key(unsigned char k, int x, int y)
         #endif
     }
     
-    if (k == 'm') headMirror = !headMirror;
+//    if (k == 'm') headMirror = !headMirror;   // move in the menu
+    if (k == 'm') setMenu(-2);
     
     if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
@@ -1163,18 +1234,19 @@ void mouseFunc( int button, int state, int x, int y )
 {
     if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN )
     {
-		mouseX = x;
-		mouseY = y;
-		mousePressed = 1;
-        lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-        mouseStartX = x;
-        mouseStartY = y;
+        if (!menu.mouseClick(x, y)) {
+            mouseX = x;
+            mouseY = y;
+            mousePressed = 1;
+            lattice.mouseClick((float)x/(float)WIDTH, (float)y/(float)HEIGHT);
+            mouseStartX = x;
+            mouseStartY = y;
+        }
     }
-	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
-    {
-		mouseX = x;
-		mouseY = y;
-		mousePressed = 0;
+	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
+        mouseX = x;
+        mouseY = y;
+        mousePressed = 0;
     }
 	
 }
@@ -1189,6 +1261,7 @@ void motionFunc( int x, int y)
 
 void mouseoverFunc( int x, int y)
 {
+    menu.mouseOver(x, y);
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
@@ -1252,7 +1325,8 @@ int main(int argc, const char * argv[])
     #endif
 
     printf( "Created Display Window.\n" );
-    
+        
+    initMenu();
     initDisplay();
     printf( "Initialized Display.\n" );
 
