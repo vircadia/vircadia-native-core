@@ -26,8 +26,8 @@ namespace starfield {
 
         InputVertex(float azimuth, float altitude, unsigned color) {
 
-            _valColor = color >> 16 & 0xffu | color & 0xff00u |
-                    color << 16 & 0xff0000u | 0xff000000u;
+            _valColor = (color >> 16 & 0xffu) | (color & 0xff00u) |
+                    (color << 16 & 0xff0000u) | 0xff000000u;
 
             azimuth = angleConvert<Degrees,Radians>(azimuth);
             altitude = angleConvert<Degrees,Radians>(altitude);
