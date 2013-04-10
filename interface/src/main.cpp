@@ -154,6 +154,7 @@ bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
+bool frustumOn = false;				//  Whether or not to display the debug view frustum
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -530,7 +531,29 @@ void render_view_frustum() {
 	// farWidth – the width of the far plane
 
 	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
-	glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
+	//glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
+
+	float yaw   = myHead.getYaw();
+	float rightOfYaw = yaw-90.0;
+	//float pitch = myHead.getPitch();
+	//float roll  = myHead.getRoll();
+	
+	//printf("yaw=%f, right of yaw=%f, pitch=%f, roll=%f\n",yaw,rightOfYaw,pitch,roll);
+
+	// Currently we don't utilize pitch and yaw. Mainly because UI doesn't handle it.
+	float directionX = sin(yaw*PI_OVER_180);
+	float directionY = 0.0;
+	float directionZ = cos(yaw*PI_OVER_180);
+
+	//printf("directionX=%f, directionY=%f, directionZ=%f\n",directionX,directionY,directionZ);
+
+	float directionRightX = sin(rightOfYaw*PI_OVER_180);
+	float directionRightY = 0.0;
+	float directionRightZ = cos(rightOfYaw*PI_OVER_180);
+
+	//printf("directionRightX=%f, directionRightY=%f, directionRightZ=%f\n",directionRightX,directionRightY,directionRightZ);
+	
+	glm::vec3 cameraDirection = glm::vec3(directionX,directionY,directionZ);
 	
 	// this is a temporary test, create a vertice that's 2 meters in front of avatar in direction their looking
 	glm::vec3 lookingAt = cameraPosition+(cameraDirection*2.0);
@@ -546,17 +569,16 @@ void render_view_frustum() {
     glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
     glVertex3f(0,0,0);
 
-	// line from avatar to 2 meters in front of avatar -- this is NOT working
+	// line from avatar to 2 meters in front of avatar -- this is working??
     glColor3f(0,1,1);
     glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
     glVertex3f(lookingAt.x,lookingAt.y,lookingAt.z);
 
-	/*
 	// Not yet ready for this...
 	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
-	glm::vec3 right = glm::vec3(1.0,0.0,0.0);
+	glm::vec3 right = glm::vec3(directionRightX,directionRightY,directionRightZ);
 	float nearDist = 0.1;
-	float farDist  = 500.0;
+	float farDist  = 1.0;
 	float fov = (0.7854f*2.0); // 45 deg * 2 = 90 deg
 	
 	float screenWidth = 800.0; // hack! We need to make this eventually be the correct height/width
@@ -578,60 +600,63 @@ void render_view_frustum() {
 	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
 	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
 	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
-	*/
-    
 
-/*
-    glColor3f(1,1,1);
-
+	
+    //glColor3f(1,1,1);
 	// near plane - bottom edge 
-    glVertex3f(low.x,low.y,low.z);
-    glVertex3f(high.x,low.y,low.z);
+    glColor3f(1,0,0);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
 
 	// near plane - top edge
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
 
 	// near plane - right edge
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
 
 	// near plane - left edge
-    glVertex3f(high.x,high.y,low.z);
-    glVertex3f(high.x,low.y,low.z);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
 
 	// far plane - bottom edge 
-    glVertex3f(low.x,low.y,high.z);
-    glVertex3f(high.x,low.y,high.z);
-  
+    glColor3f(0,1,0); // GREEN!!!
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+
 	// far plane - top edge
-    glVertex3f(low.x,high.y,high.z);
-    glVertex3f(high.x,high.y,high.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// far plane - right edge
-    glVertex3f(low.x,high.y,high.z);
-    glVertex3f(low.x,low.y,high.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// far plane - left edge
-    glVertex3f(high.x,high.y,high.z);
-    glVertex3f(high.x,low.y,high.z);
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+
+
 
 	// right plane - bottom edge - near to distant
-    glVertex3f(low.x,low.y,low.z);
-    glVertex3f(low.x,low.y,high.z);
+    glColor3f(0,0,1);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
 
 	// right plane - top edge - near to distant
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// left plane - bottom edge - near to distant
-    glVertex3f(high.x,low.y,low.z);
-    glVertex3f(high.x,low.y,high.z);
+    glColor3f(0,1,1);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
 
 	// left plane - top edge - near to distant
-    glVertex3f(high.x,high.y,low.z);
-    glVertex3f(high.x,high.y,high.z);
-*/
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+
     glEnd();
 }
 
@@ -764,7 +789,7 @@ void display(void)
         if (!displayHead && statsOn) render_world_box();
         
         // brad's frustum for debugging
-        render_view_frustum();
+        if (::frustumOn) render_view_frustum();
     
 	
 		//---------------------------------
@@ -993,6 +1018,7 @@ void key(unsigned char k, int x, int y)
     if (k == '/')  statsOn = !statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
+    if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
