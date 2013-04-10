@@ -85,7 +85,9 @@ Head::Head()
     browAudioLift = 0.0;
     noise = 0;
 	
-	handOffset = glm::vec3( 0.0, 0.0, 0.0 );
+	mouseMovedHand = false;
+	//movedHandPosition = glm::vec3( 0.0, 0.0, 0.0 );
+	movedHandOffset = glm::vec3( 0.0, 0.0, 0.0 );
     
     sphere = NULL;
     
@@ -662,7 +664,29 @@ void Head::renderHead( int faceToFace, int isMine )
 //---------------------------------------------------------
 void Head::setHandMovement( glm::vec3 movement )
 {
-	handOffset = glm::vec3( movement.x, -movement.y, movement.z );
+	//float x = movement.x;
+	//float y = movement.y;
+	//float z = movement.z;
+	
+	//movedHandPosition = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position + movement * 0.1f;
+	
+	
+	/*
+	float x	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getRight	().x )
+			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getRight	().y )
+			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getRight	().z );
+
+	float y	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getUp		().x )
+			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getUp		().y )
+			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getUp		().z );
+
+	float z	= glm::dot( movement.x, (float)avatar.bone[b].orientation.getFront	().x )
+			+ glm::dot( movement.y, (float)avatar.bone[b].orientation.getFront	().y )
+			+ glm::dot( movement.z, (float)avatar.bone[b].orientation.getFront	().z );
+	*/
+	
+	mouseMovedHand = true;
+	movedHandOffset = movement;
 }
 
 
@@ -858,7 +882,11 @@ void Head::updateAvatarSkeleton()
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
 	//------------------------------------------------------------------------
-	updateHandMovement();
+	if ( mouseMovedHand ) 
+	{
+		updateHandMovement();
+		mouseMovedHand = false;
+	}
 	
 	glm::dvec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
 	v -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
@@ -1004,10 +1032,7 @@ glm::vec3 Head::getBodyPosition()
 //-----------------------------
 void Head::updateHandMovement()
 {
-	//----------------------------------------------------------------
-	// adjust right hand and elbow according to hand offset
-	//----------------------------------------------------------------
-	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += handOffset;	
+	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += movedHandOffset;	
 	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
 	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 
@@ -1170,7 +1195,7 @@ int Head::getBroadcastData(char* data)
 void Head::parseData(void *data, int size) 
 {
     // parse head data for this agent
-    glm::vec3 handPos( 0,0,0 );
+    //glm::vec3 handPos( 0,0,0 );
     
 	sscanf
 	(
@@ -1178,15 +1203,27 @@ void Head::parseData(void *data, int size)
 		&Pitch, &Yaw, &Roll,
 		&position.x, &position.y, &position.z,
 		&loudness, &averageLoudness,
-		&handPos.x, 
-		&handPos.y, 
-		&handPos.z
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z
 	);
-
-	handOffset = glm::vec3( handPos.x, handPos.y, handPos.z );
 	
-    if (glm::length(handPos) > 0.0) hand->setPos(handPos);
+	mouseMovedHand = true;
+
+	/*
+	movedHandPosition = glm::vec3
+	(	
+		handPos.x - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+		handPos.y - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+		handPos.z - avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z
+	);
+	*/
+	
+    //if (glm::length(handPos) > 0.0) hand->setPos(handPos);
 }
+
+
+
 
 //---------------------------------------------------
 void Head::SetNewHeadTarget(float pitch, float yaw)

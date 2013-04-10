@@ -1065,8 +1065,8 @@ void idle(void)
 			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
 			float yOffset = ( mouseY - mouseStartY ) / (double)HEIGHT;
 			
-			float leftRight	= xOffset;
-			float downUp	= yOffset;
+			float leftRight	=  xOffset;
+			float downUp	= -yOffset;
 			float backFront	= 0.0;
 			
 			glm::vec3 handMovement( leftRight, downUp, backFront );

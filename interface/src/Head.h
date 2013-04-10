@@ -239,7 +239,9 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
 		
-		glm::vec3 handOffset;
+		bool mouseMovedHand;
+		glm::vec3 movedHandOffset;
+		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
         
