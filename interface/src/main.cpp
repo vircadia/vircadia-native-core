@@ -602,7 +602,7 @@ void display(void)
 		//---------------------------------------------
 		// draw a grid gound plane....
 		//---------------------------------------------
-		drawGroundPlaneGrid( 5.0f, 9 );
+		//drawGroundPlaneGrid( 5.0f, 9 );
 		
 		
         //  Draw cloud of dots
