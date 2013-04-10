@@ -96,21 +96,26 @@ void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size
 }
 
 void AgentList::updateDataForAllAgents(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
+    int bytesForEachAgent = sizeof(float) * 11;
+    
     unsigned char *currentPosition = packetData + 1;
     unsigned char *startPosition = packetData;
-    unsigned char *packetHolder = new unsigned char[(sizeof(float) * 11) + 1];
+    unsigned char *packetHolder = new unsigned char[bytesForEachAgent + 1];
+    
     packetHolder[0] = PACKET_HEADER_HEAD_DATA;
-    packetHolder++;
+    
     uint16_t agentId;
+    
     sockaddr_in *agentActiveSocket = new sockaddr_in;
     agentActiveSocket->sin_family = AF_INET;
 
     while ((currentPosition - startPosition) < dataBytes) {
         currentPosition += unpackAgentId(currentPosition, &agentId);
         currentPosition += unpackSocket(currentPosition, (sockaddr *)&agentActiveSocket);
-        memcpy(packetHolder, currentPosition, sizeof(float) * 11);
-        currentPosition += sizeof(float) * 11;
-        updateAgentWithData((sockaddr *)agentActiveSocket, packetHolder, (sizeof(float) * 11) + 1);
+        memcpy(packetHolder + 1, currentPosition, bytesForEachAgent);
+        
+        updateAgentWithData((sockaddr *)agentActiveSocket, packetHolder, bytesForEachAgent + 1);
+        currentPosition += bytesForEachAgent;
     }
 }
 
