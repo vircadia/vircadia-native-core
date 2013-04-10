@@ -38,18 +38,18 @@ bool MenuColumn::mouseClick(int x, int y, int leftPosition, int menuHeight, int 
     int topPosition = menuHeight;
     int bottomPosition = menuHeight;
     int columnWidth = 0;
-    bool bRet = false;
+    bool menuFound = false;
     for (unsigned int i = 0; i < rows.size(); ++i) {
         columnWidth = rows[i].getWidth();
         topPosition = bottomPosition + lineHeight;
         if (x > leftPosition && x < rightPosition && y > bottomPosition && y < topPosition) {
             mouseClickRow(i);
-            bRet = true;
+            menuFound = true;
             break;
         }
         bottomPosition = topPosition;
     }
-    return bRet;
+    return menuFound;
 }
 
 void MenuColumn::setMouseOver(int leftPosition, int rightPosition, int topPosition, int bottomPosition) {
@@ -64,21 +64,21 @@ bool MenuColumn::mouseOver(int x, int y, int leftPosition, int menuHeight, int l
     int topPosition = menuHeight;
     int bottomPosition = menuHeight;
     int columnWidth = 0;
-    bool bRet = false;
+    bool overMenu = false;
     for (unsigned int i = 0; i < rows.size(); ++i) {
         columnWidth = rows[i].getWidth();
         topPosition = bottomPosition + lineHeight ;
         if (x > leftPosition && x < rightPosition && y > bottomPosition && y < topPosition) {
             setMouseOver(leftPosition, rightPosition, bottomPosition, topPosition);
-            bRet = true;
+            overMenu = true;
             break;
         }
         bottomPosition = topPosition;
     }
-    if (!bRet) {
+    if (!overMenu) {
         setMouseOver(0, 0, 0, 0);
     }
-    return bRet;
+    return overMenu;
 }
 
 char* MenuColumn::getName() {
@@ -102,10 +102,10 @@ int MenuColumn::getLeftPosition() {
 }
 
 int MenuColumn::addRow(char * rowName, PFNRowCallback callback) {
-    MenuRow* pRow;
-    pRow = new MenuRow(rowName, callback);
-    rows.push_back(*pRow);
-    delete pRow;
+    MenuRow* row;
+    row = new MenuRow(rowName, callback);
+    rows.push_back(*row);
+    delete row;
     return 0;
 }
 

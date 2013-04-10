@@ -11,7 +11,7 @@ public:
     bool mouseClick(int x, int y, int xLeft, int menuHeight, int lineHeight);
     void setMouseOver(int xLeft, int xRight, int yTop, int yBottom);
     bool mouseOver(int x, int y, int xLeft, int menuHeight, int lineHeight);
-    char * getName();
+    char* getName();
     int getWidth(float scale, int mono, int leftPosition);
     int getWidth();
     int getLeftPosition();

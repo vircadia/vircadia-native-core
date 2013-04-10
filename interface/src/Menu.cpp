@@ -9,9 +9,9 @@
 #include "Menu.h"
 
 
-const int lineHeight = 30;
-const int menuHeight = 30;
-const int yOffset = 8;      // under windows we have 8 vertical pixels offset. In 2D an object with y=8, the object is displayed at y=0
+const int LINE_HEIGHT = 30;
+const int MENU_HEIGHT = 30;
+const int MENU_Y_OFFSET = 8;      // under windows we have 8 vertical pixels offset. In 2D an object with y=8, the object is displayed at y=0
                             // change the value in the other platforms (if required).
 
 
@@ -28,29 +28,29 @@ Menu::~Menu() {
     columns.clear();
 }
 
-void Menu::mouseClickColumn(int iColumnIndex) {
-    if (currentColumn == iColumnIndex) {
+void Menu::mouseClickColumn(int columnIndex) {
+    if (currentColumn == columnIndex) {
         currentColumn = -1;
     } else {
-        currentColumn = iColumnIndex;
+        currentColumn = columnIndex;
     }
 }
 
-void Menu::setMouseOver(int leftPosition, int rightPosition, int yTop, int yBottom) {
+void Menu::setMouseOver(int leftPosition, int rightPosition, int top, int bottom) {
    leftMouseOver = leftPosition;
    rightMouseOver = rightPosition;
-   topMouseOver = yTop;
-   bottomMouseOver = yBottom;
+   topMouseOver = top;
+   bottomMouseOver = bottom;
 }
 
 void Menu::renderMouseOver() {
     if (leftMouseOver != 0 || topMouseOver != 0 || rightMouseOver != 0 ||& bottomMouseOver != 0) {
         glColor4f(0, 0, 0, 0.1);
         glBegin(GL_QUADS); {
-            glVertex2f(leftMouseOver,  yOffset + topMouseOver);
-            glVertex2f(rightMouseOver, yOffset + topMouseOver);
-            glVertex2f(rightMouseOver,  yOffset + bottomMouseOver);
-            glVertex2f(leftMouseOver,  yOffset + bottomMouseOver);
+            glVertex2f(leftMouseOver,  MENU_Y_OFFSET + topMouseOver);
+            glVertex2f(rightMouseOver, MENU_Y_OFFSET + topMouseOver);
+            glVertex2f(rightMouseOver,  MENU_Y_OFFSET + bottomMouseOver);
+            glVertex2f(leftMouseOver,  MENU_Y_OFFSET + bottomMouseOver);
         }
         glEnd();
     }
@@ -64,12 +64,12 @@ bool Menu::mouseClick(int x, int y) {
     for (unsigned int i = 0; i < columns.size(); ++i) {
         columnWidth = columns[i].getWidth();
         rightPosition = leftPosition + columnWidth + 1.5 * SPACE_BETWEEN_COLUMNS;
-        if (x > leftPosition && x < rightPosition && y > 0 && y < menuHeight) {
+        if (x > leftPosition && x < rightPosition && y > 0 && y < MENU_HEIGHT) {
             mouseClickColumn(i);
             menuFound = true;
             break;
         } else if (currentColumn == i) {
-             menuFound = columns[i].mouseClick(x, y, leftPosition, menuHeight, lineHeight);
+             menuFound = columns[i].mouseClick(x, y, leftPosition, MENU_HEIGHT, LINE_HEIGHT);
              if (menuFound) {
                  currentColumn = -1;
             }
@@ -87,8 +87,8 @@ bool Menu::mouseOver(int x, int y) {
     for (unsigned int i = 0; i < columns.size(); ++i) {
         columnWidth = columns[i].getWidth();
         rightPosition = leftPosition + columnWidth +  SPACE_BETWEEN_COLUMNS;
-        if (x > leftPosition && x < rightPosition && y > 0 && y < menuHeight) {
-            setMouseOver(leftPosition, rightPosition, 0, menuHeight);
+        if (x > leftPosition && x < rightPosition && y > 0 && y < MENU_HEIGHT) {
+            setMouseOver(leftPosition, rightPosition, 0, MENU_HEIGHT);
             overMenu = true;
             if (currentColumn >= 0) {
                 columns[currentColumn].setMouseOver(0, 0, 0, 0);
@@ -96,7 +96,7 @@ bool Menu::mouseOver(int x, int y) {
             }
             break;
         } else if (currentColumn == i) {
-             columns[i].mouseOver(x, y, leftPosition, menuHeight, lineHeight);
+             columns[i].mouseOver(x, y, leftPosition, MENU_HEIGHT, LINE_HEIGHT);
         }
         leftPosition = rightPosition;
     }
@@ -113,10 +113,10 @@ void Menu::render(int screenWidth, int screenHeight) {
     int width = screenWidth;
     int height = screenHeight;
     glBegin(GL_QUADS); {
-        glVertex2f(0, yOffset);
-        glVertex2f(width, yOffset);
-        glVertex2f(width, menuHeight + yOffset);
-        glVertex2f(0 , menuHeight + yOffset);
+        glVertex2f(0, MENU_Y_OFFSET);
+        glVertex2f(width, MENU_Y_OFFSET);
+        glVertex2f(width, MENU_HEIGHT + MENU_Y_OFFSET);
+        glVertex2f(0 , MENU_HEIGHT + MENU_Y_OFFSET);
     }
     glEnd();
     int xPosition = SPACE_BETWEEN_COLUMNS;
@@ -125,10 +125,10 @@ void Menu::render(int screenWidth, int screenHeight) {
     for (unsigned int i = 0; i < columns.size(); ++i) {
         columnName = columns[i].getName();
         columnWidth = columns[i].getWidth(scale, mono, xPosition - 0.5 * SPACE_BETWEEN_COLUMNS);
-        drawtext(xPosition, 18 + yOffset, scale, 0, 1.0, mono, columnName, 0, 0, 0);
+        drawtext(xPosition, 18 + MENU_Y_OFFSET, scale, 0, 1.0, mono, columnName, 0, 0, 0);
         xPosition += columnWidth + SPACE_BETWEEN_COLUMNS;
         if (currentColumn == i) {
-            columns[i].render(yOffset, menuHeight, lineHeight);
+            columns[i].render(MENU_Y_OFFSET, MENU_HEIGHT, LINE_HEIGHT);
         }
     }
     renderMouseOver();
