@@ -517,75 +517,22 @@ void render_view_frustum() {
 	// farHeight – the height of the far plane
 	// farWidth – the width of the far plane
 	
+	glm::vec3 viewFrustumPosition  = myAvatar.getHeadPosition();
+	glm::vec3 viewFrustumDirection = myAvatar.getHeadLookatDirection();
 	
-	//Jeffrey's variation: 	
-	glm::vec3 avatarBodyPosition	= myAvatar.getBodyPosition();
-	glm::vec3 avatarHeadPosition	= myAvatar.getHeadPosition();
-	glm::vec3 avatarHeadDirection	= myAvatar.getHeadLookatDirection();
-
-	glm::vec3 avatarHeadDirectionEndPoint( avatarHeadPosition );
-	avatarHeadDirectionEndPoint += avatarHeadDirection;
-
-	glDisable(GL_LIGHTING);
-	glLineWidth( 3.0 );
-
-	// line from avatar head to origin
-	glBegin( GL_LINE_STRIP );			
-	glColor4f( 1.0, 0.0, 0.0, 1.0 );
-	glVertex3f( avatarBodyPosition.x, avatarBodyPosition.y, avatarBodyPosition.z );
-	glVertex3f( 0.0f, 0.0f, 0.0f );
-	glEnd();
-
-	//line from avatar head to 1 meter in front of avatar head
-	glBegin( GL_LINE_STRIP );			
-	glColor3f( 0.0f, 1.0f, 1.0f );
-	glVertex3f( avatarHeadPosition.x, avatarHeadPosition.y, avatarHeadPosition.z );
-	glVertex3f( avatarHeadDirectionEndPoint.x, avatarHeadDirectionEndPoint.y, avatarHeadDirectionEndPoint.z );
-	glEnd();
-
-
-	glm::vec3 viewFrustumPosition  = avatarHeadPosition;
-	glm::vec3 viewFrustumDirection = avatarHeadDirection;
-
-	float yaw   = myAvatar.getYaw();
-	float rightOfYaw = yaw-90.0;
-	
-	//printf("yaw=%f, right of yaw=%f, pitch=%f, roll=%f\n",yaw,rightOfYaw,pitch,roll);
-
-	// Currently we don't utilize pitch and yaw. Mainly because UI doesn't handle it.
-	//float directionX = sin(yaw*PI_OVER_180);
-	//float directionY = 0.0;
-	//float directionZ = cos(yaw*PI_OVER_180);
-
-	//printf("directionX=%f, directionY=%f, directionZ=%f\n",directionX,directionY,directionZ);
-
-	float directionRightX = sin(rightOfYaw*PI_OVER_180);
-	float directionRightY = 0.0;
-	float directionRightZ = cos(rightOfYaw*PI_OVER_180);
-
-	//printf("directionRightX=%f, directionRightY=%f, directionRightZ=%f\n",directionRightX,directionRightY,directionRightZ);
-	
-    //  Some debug lines.
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-
-	
-	
-	// Not yet ready for this...
-	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
-	glm::vec3 right = glm::vec3(directionRightX,directionRightY,directionRightZ);
+	glm::vec3 up    = myAvatar.getHeadLookatDirectionUp();
+	glm::vec3 right = myAvatar.getHeadLookatDirectionRight();
 	float nearDist = 0.1;
 	float farDist  = 1.0;
-	float fov = (0.7854f*2.0); // 45 deg * 2 = 90 deg
+	float fovHalfAngle = 0.7854f; // 45 deg for half, so fov = 90 deg
 	
-	float screenWidth = 800.0; // hack! We need to make this eventually be the correct height/width
-	float screenHeight = 600.0;
+	float screenWidth = ::WIDTH; // These values come from reshape() 
+	float screenHeight = ::HEIGHT;
 	float ratio      = screenWidth/screenHeight;
-	float nearHeight = 2 * tan(fov / 2) * nearDist;
+	
+	float nearHeight = 2 * tan(fovHalfAngle) * nearDist;
 	float nearWidth  = nearHeight * ratio;
-	float farHeight  = 2 * tan(fov / 2) * farDist;
+	float farHeight  = 2 * tan(fovHalfAngle) * farDist;
 	float farWidth   = farHeight * ratio;
 	
 	glm::vec3 farCenter       = viewFrustumPosition+viewFrustumDirection*farDist;
@@ -600,8 +547,12 @@ void render_view_frustum() {
 	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
 	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
 
-	
-    //glColor3f(1,1,1);
+    //  Get ready to draw some lines
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
+
 	// near plane - bottom edge 
     glColor3f(1,0,0);
     glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
@@ -635,8 +586,6 @@ void render_view_frustum() {
 	// far plane - left edge
     glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
     glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
-
-
 
 	// right plane - bottom edge - near to distant
     glColor3f(0,0,1);
