@@ -131,7 +131,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 		// lock this agent's delete mutex so that the delete thread doesn't
 		// kill the agent while we are working with it
-		pthread_mutex_lock(thisAgent->deleteMutex);
+		pthread_mutex_lock(&thisAgent->deleteMutex);
 
 		// clean up the agent visit data
 		delete agentData->rootMarkerNode;
@@ -139,7 +139,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 		
 		// unlock the delete mutex so the other thread can
 		// kill the agent if it has dissapeared
-		pthread_mutex_unlock(thisAgent->deleteMutex);
+		pthread_mutex_unlock(&thisAgent->deleteMutex);
 	}
 }
 
@@ -168,7 +168,7 @@ void *distributeVoxelsToListeners(void *args) {
             
             // lock this agent's delete mutex so that the delete thread doesn't
             // kill the agent while we are working with it
-            pthread_mutex_lock(thisAgent->deleteMutex);
+            pthread_mutex_lock(&thisAgent->deleteMutex);
             
             stopOctal = NULL;
             packetCount = 0;
@@ -208,7 +208,7 @@ void *distributeVoxelsToListeners(void *args) {
             
             // unlock the delete mutex so the other thread can
             // kill the agent if it has dissapeared
-            pthread_mutex_unlock(thisAgent->deleteMutex);
+            pthread_mutex_unlock(&thisAgent->deleteMutex);
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
@@ -345,7 +345,7 @@ int main(int argc, const char * argv[])
 
             	// Now send this to the connected agents so they know to delete
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes, AGENT_TYPE_INTERFACE);
+				agentList.broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
             	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -373,7 +373,7 @@ int main(int argc, const char * argv[])
 
 				// Now send this to the connected agents so they can also process these messages
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes, AGENT_TYPE_INTERFACE);
+				agentList.broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_INTERFACE, and we
             // need to make sure we have it in our agentList.
