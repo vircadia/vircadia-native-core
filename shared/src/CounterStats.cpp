@@ -11,7 +11,12 @@
 
 #include "CounterStats.h"
 #include <cstdio>
+
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif
 #include <string>
 #include <map>
 
