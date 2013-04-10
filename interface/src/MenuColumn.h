@@ -8,6 +8,7 @@
 
 #ifndef __hifi__MenuColumn__
 #define __hifi__MenuColumn__
+
 #include <vector>
 
 class MenuColumn  {
