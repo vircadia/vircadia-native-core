@@ -535,9 +535,9 @@ void render_view_frustum() {
 	
 	
 //Jeffrey's variation: 	
-glm::vec3 avatarBodyPosition	= myAvatar.getAvatarPosition();
-glm::vec3 avatarHeadPosition	= myAvatar.getAvatarHeadPosition();
-glm::vec3 avatarHeadDirection	= myAvatar.getAvatarHeadLookatDirection();
+glm::vec3 avatarBodyPosition	= myAvatar.getBodyPosition();
+glm::vec3 avatarHeadPosition	= myAvatar.getHeadPosition();
+glm::vec3 avatarHeadDirection	= myAvatar.getHeadLookatDirection();
 
 glm::vec3 avatarHeadDirectionEndPoint( avatarHeadPosition );
 avatarHeadDirectionEndPoint += avatarHeadDirection;
@@ -736,7 +736,7 @@ void display(void)
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------		
-			myCamera.setYaw		( - myAvatar.getAvatarYaw() );
+			myCamera.setYaw		( - myAvatar.getBodyYaw() );
 			myCamera.setPitch	( 0.0  );
 			myCamera.setRoll	( 0.0  );
 			myCamera.setUp		( 0.4  );
@@ -749,7 +749,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myAvatar.getAvatarYaw() );
+			myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch	(   0.0 );
 			myCamera.setRoll	(   0.0 );
 			myCamera.setUp		(   0.2 );

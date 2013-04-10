@@ -935,6 +935,7 @@ printf( "listing bone parent springyPosition:\n" );
 				avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
 			}
 			
+			
 			avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * 0.01f;
 			avatar.bone[b].springyVelocity *= 0.8;
 			avatar.bone[b].springyPosition += avatar.bone[b].springyVelocity;
@@ -944,14 +945,14 @@ printf( "listing bone parent springyPosition:\n" );
 
 
 //-------------------------------
-float Head::getAvatarYaw()
+float Head::getBodyYaw()
 {
 	return avatar.yaw;
 }
 
 
 //-------------------------------------------
-glm::vec3 Head::getAvatarHeadLookatDirection()
+glm::vec3 Head::getHeadLookatDirection()
 {
 	return glm::vec3
 	(
@@ -963,7 +964,7 @@ glm::vec3 Head::getAvatarHeadLookatDirection()
 
 
 //-------------------------------------------
-glm::vec3 Head::getAvatarHeadPosition()
+glm::vec3 Head::getHeadPosition()
 {
 	return glm::vec3
 	(
@@ -976,7 +977,7 @@ glm::vec3 Head::getAvatarHeadPosition()
 
 
 //-------------------------------------------
-glm::vec3 Head::getAvatarPosition()
+glm::vec3 Head::getBodyPosition()
 {
 	return glm::vec3
 	(

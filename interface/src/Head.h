@@ -158,10 +158,10 @@ class Head : public AgentData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		float getAvatarYaw();
-		glm::vec3 getAvatarHeadLookatDirection();
-		glm::vec3 getAvatarHeadPosition();
-		glm::vec3 getAvatarPosition();
+		float getBodyYaw();
+		glm::vec3 getHeadLookatDirection();
+		glm::vec3 getHeadPosition();
+		glm::vec3 getBodyPosition();
         
         void render(int faceToFace, int isMine);
 		
