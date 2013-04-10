@@ -9,12 +9,20 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#ifdef _WIN32
+#include "Syssocket.h"
+#endif
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+
+#ifdef _WIN32
+#endif
+
 
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);
@@ -336,3 +344,15 @@ void printVoxelCode(unsigned char* voxelCode) {
         outputBits(voxelCode[i]);
     }
 }
+
+#ifdef _WIN32
+    void usleep(int waitTime) {
+        __int64 time1 = 0, time2 = 0, sysFreq = 0;
+
+        QueryPerformanceCounter((LARGE_INTEGER *)&time1);
+        QueryPerformanceFrequency((LARGE_INTEGER *)&sysFreq);
+        do {
+            QueryPerformanceCounter((LARGE_INTEGER *)&time2);
+        } while( (time2 - time1) < waitTime);
+    }
+#endif

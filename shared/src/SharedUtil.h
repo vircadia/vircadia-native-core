@@ -50,4 +50,8 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
 
+#ifdef _WIN32
+void usleep(int waitTime);
+#endif
+
 #endif /* defined(__hifi__SharedUtil__) */

@@ -311,18 +311,6 @@ void AgentList::stopSilentAgentRemovalThread() {
     pthread_join(removeSilentAgentsThread, NULL);
 }
 
-#ifdef _WIN32
-    void usleep(int waitTime) {
-        __int64 time1 = 0, time2 = 0, sysFreq = 0;
-
-        QueryPerformanceCounter((LARGE_INTEGER *)&time1);
-        QueryPerformanceFrequency((LARGE_INTEGER *)&sysFreq);
-        do {
-            QueryPerformanceCounter((LARGE_INTEGER *)&time2);
-        } while( (time2 - time1) < waitTime);
-    }
-#endif
-
 void *checkInWithDomainServer(void *args) {
     
     AgentList *parentAgentList = (AgentList *)args;
