@@ -17,8 +17,6 @@
 
 #include <glm/glm.hpp>
 
-
-// added by Ventrella for utility purposes
 static const double	ZERO				= 0.0;
 static const double	ONE					= 1.0;
 static const double	ONE_HALF			= 0.5;
@@ -29,11 +27,10 @@ static const double PI_OVER_180			= 3.14159265359 / 180.0;
 static const double EPSILON				= 0.00001;	//smallish number - used as margin of error for some values 
 static const double SQUARE_ROOT_OF_2	= sqrt(2);	
 static const double SQUARE_ROOT_OF_3	= sqrt(3);	
-
-static const double METER		= 1.0; 
-static const double DECIMETER	= 0.1; 
-static const double CENTIMETER	= 0.01; 
-static const double MILLIIMETER	= 0.001; 
+static const double METER				= 1.0; 
+static const double DECIMETER			= 0.1; 
+static const double CENTIMETER			= 0.01; 
+static const double MILLIIMETER			= 0.001; 
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
@@ -52,5 +49,6 @@ double diffclock(timeval *clock1,timeval *clock2);
 glm::vec3 operator* (float lhs, const glm::vec3& rhs);
 glm::vec3 operator* (const glm::vec3& lhs, float rhs);
 
+void drawGroundPlaneGrid( float size, int resolution );
 
 #endif

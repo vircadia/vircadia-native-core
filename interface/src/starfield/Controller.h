@@ -99,8 +99,8 @@ namespace starfield {
             _valLodOveralloc(1.2),
             _valLodNalloc(0),
             _valLodNrender(0),
-            _valLodBrightness(0),
             _valLodAllocBrightness(0),
+            _valLodBrightness(0),
             _ptrRenderer(0l) {
         }
 
