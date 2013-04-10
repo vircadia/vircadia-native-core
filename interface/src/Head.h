@@ -158,8 +158,12 @@ class Head : public AgentData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		float getAvatarYaw();
-		glm::vec3 getAvatarHeadLookatDirection();
+		float getBodyYaw();
+		glm::vec3 getHeadLookatDirection();
+		glm::vec3 getHeadLookatDirectionUp();
+		glm::vec3 getHeadLookatDirectionRight();
+		glm::vec3 getHeadPosition();
+		glm::vec3 getBodyPosition();
         
         void render(int faceToFace, int isMine);
 		
@@ -235,7 +239,9 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
 		
-		glm::vec3 handOffset;
+		bool mouseMovedHand;
+		glm::vec3 movedHandOffset;
+		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
         

@@ -96,7 +96,7 @@ bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-Head myHead;                        //  The rendered head of oneself
+Head myAvatar;                       //  The rendered avatar of oneself
 Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
                                     //  Starfield information
@@ -120,7 +120,7 @@ ParticleSystem balls(0,
                      0.0                   //  Gravity
                      );
 
-Cloud cloud(0,                         //  Particles
+Cloud cloud(0,                             //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -132,7 +132,7 @@ Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
 #ifndef _WIN32
-Audio audio(&audioScope, &myHead);
+Audio audio(&audioScope, &myAvatar);
 #endif
 
 #define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
@@ -154,6 +154,13 @@ bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
+bool frustumOn = false;				//  Whether or not to display the debug view frustum
+
+bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
+float viewFrustumOffsetYaw = -90.0;
+float viewFrustumOffsetPitch = 7.5;
+float viewFrustumOffsetRoll = 0.0;
+
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -176,22 +183,14 @@ SerialInterface serialPort;
 int latency_display = 1;
 
 glm::vec3 gravity;
-int first_measurement = 1;
-//int samplecount = 0;
 
-//  Frame rate Measurement
+//  Frame Rate Measurement
 
 int frameCount = 0;                  
 float FPS = 120.f;
 timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
-
-// Particles
-
-
-float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
-float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 
 #ifdef MARKER_CAPTURE
 
@@ -237,11 +236,11 @@ void displayStats(void)
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
 
-	glm::vec3 headPos = myHead.getPos();
+	glm::vec3 avatarPos = myAvatar.getPos();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
-            FPS, packetsPerSecond,  bytesPerSecond, headPos.x,headPos.y,headPos.z);
+            FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
     drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
@@ -249,14 +248,6 @@ void displayStats(void)
         drawtext(300, 30, 0.10f, 0, 1.0, 0, stats);
     }
     
-    //  Output the ping times to the various agents 
-//    std::stringstream pingTimes;
-//    pingTimes << "Agent Pings, msecs:";
-//    for (int i = 0; i < getAgentCount(); i++) {
-//        pingTimes << " " << getAgentAddress(i) << ": " << getAgentPing(i);
-//    }
-//    drawtext(10,50,0.10, 0, 1.0, 0, (char *)pingTimes.str().c_str());
-
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10,70,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
@@ -317,8 +308,8 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    voxels.setViewerHead(&myHead);
-    myHead.setRenderYaw(startYaw);
+    voxels.setViewerHead(&myAvatar);
+    myAvatar.setRenderYaw(startYaw);
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -329,9 +320,9 @@ void init(void)
     field = Field();
  
     if (noiseOn) {   
-        myHead.setNoise(noise);
+        myAvatar.setNoise(noise);
     }
-    myHead.setPos(start_location );
+    myAvatar.setPos(start_location );
 	myCamera.setPosition( start_location );
 	
 #ifdef MARKER_CAPTURE
@@ -368,15 +359,15 @@ void reset_sensors()
     //  
     //   Reset serial I/O sensors 
     // 
-    myHead.setRenderYaw(startYaw);
+    myAvatar.setRenderYaw(startYaw);
     
     yaw = renderYawRate = 0; 
     pitch = renderPitch = renderPitchRate = 0;
-    myHead.setPos(start_location);
+    myAvatar.setPos(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
     
-    myHead.reset();
+    myAvatar.reset();
     
     if (serialPort.active) {
         serialPort.resetTrailingAverages();
@@ -392,7 +383,7 @@ void simulateHand(float deltaTime) {
         float dx = mouseX - mouseStartX;
         float dy = mouseY - mouseStartY;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        myHead.hand->addVelocity(vel*deltaTime);
+        myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
 
@@ -408,12 +399,12 @@ void simulateHead(float frametime)
     //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
-    myHead.UpdatePos(frametime, &serialPort, headMirror, &gravity);
+    myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
 	
 	//-------------------------------------------------------------------------------------
 	// set the position of the avatar
 	//-------------------------------------------------------------------------------------
-	myHead.setAvatarPosition( -myHead.getPos().x, -myHead.getPos().y, -myHead.getPos().z );
+	myAvatar.setAvatarPosition( -myAvatar.getPos().x, -myAvatar.getPos().y, -myAvatar.getPos().z );
 	
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
@@ -438,8 +429,8 @@ void simulateHead(float frametime)
     
     //  Update render pitch and yaw rates based on keyPositions
     const float KEY_YAW_SENSITIVITY = 2.0;
-    if (myHead.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
-    if (myHead.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
+    if (myAvatar.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
+    if (myAvatar.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
     
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
@@ -466,15 +457,15 @@ void simulateHead(float frametime)
     renderYawRate *= (1.f - 7.0*frametime);
     
     //  Update own head data
-    myHead.setRenderYaw(myHead.getRenderYaw() + renderYawRate);
-    myHead.setRenderPitch(renderPitch);
+    myAvatar.setRenderYaw(myAvatar.getRenderYaw() + renderYawRate);
+    myAvatar.setRenderPitch(renderPitch);
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
     #ifndef _WIN32
     audio.getInputLoudness(&loudness, &averageLoudness);
-    myHead.setLoudness(loudness);
-    myHead.setAverageLoudness(averageLoudness);
+    myAvatar.setLoudness(loudness);
+    myAvatar.setAverageLoudness(averageLoudness);
     #endif
 
     //  Send my stream of head/hand data to the avatar mixer and voxel server
@@ -490,12 +481,12 @@ void simulateHead(float frametime)
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 headPos = myHead.getPos();
+    	glm::vec3 avatarPos = myAvatar.getPos();
 
 		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = headPos.x/-10.0;  
-		::paintingVoxel.y = headPos.y/-10.0;  
-		::paintingVoxel.z = headPos.z/-10.0;
+		::paintingVoxel.x = avatarPos.x/-10.0;  
+		::paintingVoxel.y = avatarPos.y/-10.0;  
+		::paintingVoxel.z = avatarPos.z/-10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -511,6 +502,9 @@ void simulateHead(float frametime)
 		}
     }
 }
+
+
+
 
 // XXXBHG - this code is not yet working. This is here to help Jeffery debug getAvatarHeadLookatDirection()
 // The code will draw a yellow line from the avatar's position to the origin,
@@ -529,117 +523,105 @@ void render_view_frustum() {
 	// farDist – the distance from the camera to the far plane
 	// farHeight – the height of the far plane
 	// farWidth – the width of the far plane
-
-	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
-	glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
 	
-	// this is a temporary test, create a vertice that's 2 meters in front of avatar in direction their looking
-	glm::vec3 lookingAt = cameraPosition+(cameraDirection*2.0);
-
-    //  Some debug lines.
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-
-	// line from avatar to the origin -- this one is working.
-    glColor3f(1,1,0);
-    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
-    glVertex3f(0,0,0);
-
-	// line from avatar to 2 meters in front of avatar -- this is NOT working
-    glColor3f(0,1,1);
-    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
-    glVertex3f(lookingAt.x,lookingAt.y,lookingAt.z);
-
-	/*
-	// Not yet ready for this...
-	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
-	glm::vec3 right = glm::vec3(1.0,0.0,0.0);
-	float nearDist = 0.1;
-	float farDist  = 500.0;
-	float fov = (0.7854f*2.0); // 45 deg * 2 = 90 deg
+	glm::vec3 viewFrustumPosition  = myAvatar.getHeadPosition();
+	glm::vec3 viewFrustumDirection = myAvatar.getHeadLookatDirection();
 	
-	float screenWidth = 800.0; // hack! We need to make this eventually be the correct height/width
-	float screenHeight = 600.0;
+	glm::vec3 up    = myAvatar.getHeadLookatDirectionUp();
+	glm::vec3 right = myAvatar.getHeadLookatDirectionRight();
+	
+	// what? this are negative?? GRRRR!!!
+	float nearDist = -0.1; 
+	float farDist  = -1.0;
+	
+	float fovHalfAngle = 0.7854f; // 45 deg for half, so fov = 90 deg
+	
+	float screenWidth = ::WIDTH; // These values come from reshape() 
+	float screenHeight = ::HEIGHT;
 	float ratio      = screenWidth/screenHeight;
-	float nearHeight = 2 * tan(fov / 2) * nearDist;
+	
+	float nearHeight = 2 * tan(fovHalfAngle) * nearDist;
 	float nearWidth  = nearHeight * ratio;
-	float farHeight  = 2 * tan(fov / 2) * farDist;
+	float farHeight  = 2 * tan(fovHalfAngle) * farDist;
 	float farWidth   = farHeight * ratio;
 	
-	glm::vec3 farCenter       = cameraPosition+cameraDirection*farDist;
+	glm::vec3 farCenter       = viewFrustumPosition+viewFrustumDirection*farDist;
 	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5); 
 	glm::vec3 farTopRight     = farCenter  + (up*farHeight*0.5)  + (right*farWidth*0.5); 
 	glm::vec3 farBottomLeft   = farCenter  - (up*farHeight*0.5)  - (right*farWidth*0.5); 
 	glm::vec3 farBottomRight  = farCenter  - (up*farHeight*0.5)  + (right*farWidth*0.5); 
 
-	glm::vec3 nearCenter      = cameraPosition+cameraDirection*nearDist;
+	glm::vec3 nearCenter      = viewFrustumPosition+viewFrustumDirection*nearDist;
 	glm::vec3 nearTopLeft     = nearCenter + (up*nearHeight*0.5) - (right*nearWidth*0.5); 
 	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
 	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
 	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
-	*/
-    
 
-/*
-    glColor3f(1,1,1);
+    //  Get ready to draw some lines
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
 
 	// near plane - bottom edge 
-    glVertex3f(low.x,low.y,low.z);
-    glVertex3f(high.x,low.y,low.z);
+    glColor3f(1,0,0);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
 
 	// near plane - top edge
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
 
 	// near plane - right edge
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
 
 	// near plane - left edge
-    glVertex3f(high.x,high.y,low.z);
-    glVertex3f(high.x,low.y,low.z);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
 
 	// far plane - bottom edge 
-    glVertex3f(low.x,low.y,high.z);
-    glVertex3f(high.x,low.y,high.z);
-  
+    glColor3f(0,1,0); // GREEN!!!
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+
 	// far plane - top edge
-    glVertex3f(low.x,high.y,high.z);
-    glVertex3f(high.x,high.y,high.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// far plane - right edge
-    glVertex3f(low.x,high.y,high.z);
-    glVertex3f(low.x,low.y,high.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// far plane - left edge
-    glVertex3f(high.x,high.y,high.z);
-    glVertex3f(high.x,low.y,high.z);
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
 
 	// right plane - bottom edge - near to distant
-    glVertex3f(low.x,low.y,low.z);
-    glVertex3f(low.x,low.y,high.z);
+    glColor3f(0,0,1);
+    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
+    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
 
 	// right plane - top edge - near to distant
-    glVertex3f(low.x,high.y,low.z);
-    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
+    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
 
 	// left plane - bottom edge - near to distant
-    glVertex3f(high.x,low.y,low.z);
-    glVertex3f(high.x,low.y,high.z);
+    glColor3f(0,1,1);
+    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
+    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
 
 	// left plane - top edge - near to distant
-    glVertex3f(high.x,high.y,low.z);
-    glVertex3f(high.x,high.y,high.z);
-*/
+    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
+    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+	
     glEnd();
 }
 
 
 void display(void)
 {
-	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
+	//printf( "avatar head lookat = %f, %f, %f\n", myAvatar.getAvatarHeadLookatDirection().x, myAvatar.getAvatarHeadLookatDirection().y, myAvatar.getAvatarHeadLookatDirection().z );
 
 	PerfStat("display");
 
@@ -669,33 +651,42 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myHead.getPos() );	
+		myCamera.setTargetPosition( myAvatar.getPos() );	
 
-		if ( displayHead )
-		{
+		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------		
-			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setYaw		( - myAvatar.getBodyYaw() );
 			myCamera.setPitch	( 0.0  );
 			myCamera.setRoll	( 0.0  );
 			myCamera.setUp		( 0.4  );
 			myCamera.setDistance( 0.5  );	
 			myCamera.setDistance( 0.08 );
 			myCamera.update();
-		}
-		else
-		{
-			//----------------------------------------------------
-			// set the camera to third-person view behind my av
-			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
-			myCamera.setPitch	(   0.0 );
-			myCamera.setRoll	(   0.0 );
-			myCamera.setUp		(   0.2 );
-			myCamera.setDistance(   1.6 );	
-			myCamera.setDistance(   0.5 );
-			myCamera.update();
+		} else {
+			if (::viewFrustumFromOffset && ::frustumOn) {
+				//----------------------------------------------------
+				// set the camera to third-person view but offset so we can see the frustum
+				//----------------------------------------------------		
+				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+				myCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
+				myCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
+				myCamera.setUp		(   0.2 + 0.2 );
+				myCamera.setDistance(   0.5 + 0.2 );
+				myCamera.update();
+			} else {
+				//----------------------------------------------------
+				// set the camera to third-person view behind my av
+				//----------------------------------------------------		
+				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
+				myCamera.setPitch	(   0.0 );
+				myCamera.setRoll	(   0.0 );
+				myCamera.setUp		(   0.2 );
+				myCamera.setDistance(   1.6 );	
+				myCamera.setDistance(   0.5 );
+				myCamera.update();
+			}
 		}
 		
 		//---------------------------------------------
@@ -728,7 +719,7 @@ void display(void)
 		//---------------------------------------------
 		// draw a grid gound plane....
 		//---------------------------------------------
-		//drawGroundPlaneGrid( 5.0f, 9 );
+		drawGroundPlaneGrid( 5.0f, 9 );
 		
 		
         //  Draw cloud of dots
@@ -745,7 +736,7 @@ void display(void)
         //  Draw field vectors
         if (displayField) field.render();
             
-        //  Render heads of other agents
+        //  Render avatars of other agents
         for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
@@ -765,19 +756,19 @@ void display(void)
         if (!displayHead && statsOn) render_world_box();
         
         // brad's frustum for debugging
-        render_view_frustum();
+        if (::frustumOn) render_view_frustum();
     
 	
 		//---------------------------------
-        //  Render my own head
+        //  Render my own avatar
 		//---------------------------------
-		myHead.render( true, 1 );	
+		myAvatar.render( true, 1 );	
 	
 		/*
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(displayHead, 1);
+        myAvatar.render(displayHead, 1);
         glPopMatrix();
 		*/
 		
@@ -799,10 +790,6 @@ void display(void)
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
         #endif
-
-
-        //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
-        glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
         if (displayHeadMouse && !displayHead && statsOn)
         {
@@ -897,11 +884,11 @@ void shiftPaintingColor()
 
 void setupPaintingVoxel()
 {
-	glm::vec3 headPos = myHead.getPos();
+	glm::vec3 avatarPos = myAvatar.getPos();
 
-	::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
-	::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
-	::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
+	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
+	::paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
 	::paintingVoxel.s = 1.0/256;
 	
 	shiftPaintingColor();
@@ -933,20 +920,20 @@ const float KEYBOARD_FLY_RATE = 0.08;
 
 void specialkeyUp(int k, int x, int y) {
     if (k == GLUT_KEY_UP) {
-        myHead.setDriveKeys(FWD, 0);
-        myHead.setDriveKeys(UP, 0);
+        myAvatar.setDriveKeys(FWD, 0);
+        myAvatar.setDriveKeys(UP, 0);
     }
     if (k == GLUT_KEY_DOWN) {
-        myHead.setDriveKeys(BACK, 0);
-        myHead.setDriveKeys(DOWN, 0);
+        myAvatar.setDriveKeys(BACK, 0);
+        myAvatar.setDriveKeys(DOWN, 0);
     }
     if (k == GLUT_KEY_LEFT) {
-        myHead.setDriveKeys(LEFT, 0);
-        myHead.setDriveKeys(ROT_LEFT, 0);
+        myAvatar.setDriveKeys(LEFT, 0);
+        myAvatar.setDriveKeys(ROT_LEFT, 0);
     }
     if (k == GLUT_KEY_RIGHT) {
-        myHead.setDriveKeys(RIGHT, 0);
-        myHead.setDriveKeys(ROT_RIGHT, 0);
+        myAvatar.setDriveKeys(RIGHT, 0);
+        myAvatar.setDriveKeys(ROT_RIGHT, 0);
     }
     
 }
@@ -955,20 +942,20 @@ void specialkey(int k, int x, int y)
 {
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(UP, 1);
-            else myHead.setDriveKeys(FWD, 1);
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
+            else myAvatar.setDriveKeys(FWD, 1);
         }
         if (k == GLUT_KEY_DOWN) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(DOWN, 1);
-            else myHead.setDriveKeys(BACK, 1);
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(DOWN, 1);
+            else myAvatar.setDriveKeys(BACK, 1);
         }
         if (k == GLUT_KEY_LEFT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(LEFT, 1);
-            else myHead.setDriveKeys(ROT_LEFT, 1);  
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(LEFT, 1);
+            else myAvatar.setDriveKeys(ROT_LEFT, 1);  
         }
         if (k == GLUT_KEY_RIGHT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
-            else myHead.setDriveKeys(ROT_RIGHT, 1);   
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(RIGHT, 1);
+            else myAvatar.setDriveKeys(ROT_RIGHT, 1);   
         }
 #ifndef _WIN32
         audio.setWalkingState(true);
@@ -978,12 +965,12 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
-    if (k == 'e') myHead.setDriveKeys(UP, 0);
-    if (k == 'c') myHead.setDriveKeys(DOWN, 0);
-    if (k == 'w') myHead.setDriveKeys(FWD, 0);
-    if (k == 's') myHead.setDriveKeys(BACK, 0);
-    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 0);
-    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 0);
+    if (k == 'e') myAvatar.setDriveKeys(UP, 0);
+    if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
+    if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
+    if (k == 's') myAvatar.setDriveKeys(BACK, 0);
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 0);
+    if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
 
 }
 
@@ -995,6 +982,16 @@ void key(unsigned char k, int x, int y)
     if (k == '/')  statsOn = !statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
+    if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
+    if (k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset;	// toggle view frustum from offset debugging
+    
+	if (k == '[') ::viewFrustumOffsetYaw   -= 0.5;
+	if (k == ']') ::viewFrustumOffsetYaw   += 0.5;
+	if (k == '{') ::viewFrustumOffsetPitch -= 0.5;
+	if (k == '}') ::viewFrustumOffsetPitch += 0.5;
+	if (k == '(') ::viewFrustumOffsetRoll  -= 0.5;
+	if (k == ')') ::viewFrustumOffsetRoll  += 0.5;
+
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
@@ -1007,11 +1004,11 @@ void key(unsigned char k, int x, int y)
         noiseOn = !noiseOn;                   // Toggle noise 
         if (noiseOn)
         {
-            myHead.setNoise(noise);
+            myAvatar.setNoise(noise);
         }
         else 
         {
-            myHead.setNoise(0);
+            myAvatar.setNoise(0);
         }
 
     }
@@ -1027,10 +1024,10 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
-    if (k == 'e') myHead.setDriveKeys(UP, 1);
-    if (k == 'c') myHead.setDriveKeys(DOWN, 1);
-    if (k == 'w') myHead.setDriveKeys(FWD, 1);
-    if (k == 's') myHead.setDriveKeys(BACK, 1);
+    if (k == 'e') myAvatar.setDriveKeys(UP, 1);
+    if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
+    if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
+    if (k == 's') myAvatar.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
     if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
@@ -1041,8 +1038,8 @@ void key(unsigned char k, int x, int y)
     if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
     if (k == 'r') stars.readInput(starFile, 0);
 #endif
-    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
-    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
 
 	// press the . key to get a new random sphere of voxels added 
     if (k == '.') addRandomSphere(wantColorRandomizer);
@@ -1101,12 +1098,12 @@ void idle(void)
 			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
 			float yOffset = ( mouseY - mouseStartY ) / (double)HEIGHT;
 			
-			float leftRight	= xOffset;
-			float downUp	= yOffset;
+			float leftRight	=  xOffset;
+			float downUp	= -yOffset;
 			float backFront	= 0.0;
 			
 			glm::vec3 handMovement( leftRight, downUp, backFront );
-			myHead.setHandMovement( handMovement );		
+			myAvatar.setHandMovement( handMovement );		
 		}		
 		
         //  Simulation
@@ -1129,7 +1126,7 @@ void idle(void)
         simulateHand(1.f/FPS);
         
         field.simulate(1.f/FPS);
-        myHead.simulate(1.f/FPS);
+        myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
         cloud.simulate(1.f/FPS);
         lattice.simulate(1.f/FPS);

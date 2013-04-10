@@ -46,9 +46,9 @@ void render_vector(glm::vec3 * vec)
     glVertex3f(vec->x, vec->y, vec->z);
     // Draw marker dots for magnitude    
     glEnd();
-    float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+    float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
     
     glEnable(GL_POINT_SMOOTH);
     glPointSize(10.0);
@@ -162,4 +162,37 @@ glm::vec3 operator* (const glm::vec3& lhs, float rhs)
     result.z *= rhs;
     return result;
 }
+
+
+
+void drawGroundPlaneGrid( float size, int resolution )
+{
+
+	glColor3f( 0.4f, 0.5f, 0.3f );
+	glLineWidth(2.0);
+		
+	float gridSize = 10.0;
+	int gridResolution = 10;
+
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );			
+		glVertex3f( inc, 0.0f, -gridSize * ONE_HALF );
+		glVertex3f( inc, 0.0f,  gridSize * ONE_HALF );
+		glEnd();
+	}
+		
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );			
+		glVertex3f( -gridSize * ONE_HALF, 0.0f, inc );
+		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
+		glEnd();
+	}
+}
+
 
