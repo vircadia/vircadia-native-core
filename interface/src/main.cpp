@@ -240,7 +240,7 @@ void Timer(int extra)
 void displayStats(void)
 {
     int statsVerticalOffset = 50;
-    if (menuOn == 0) {
+    if (::menuOn == 0) {
         statsVerticalOffset = 8;
     }
 	//  bitmap chars are about 10 pels high 
@@ -840,7 +840,7 @@ void display(void)
     }
         
     //  Show menu
-    if (menuOn) {
+    if (::menuOn) {
         glLineWidth(1.0f);
         glPointSize(1.0f);
         menu.render(WIDTH,HEIGHT);
@@ -868,7 +868,7 @@ void display(void)
     frameCount++;
 }
 
-int CALLBACK setValue(int state, int *value) {
+int MenuCallBack setValue(int state, int *value) {
     if (state == -2) {
         *value = !(*value);
     } else if (state == -1) {
@@ -879,36 +879,33 @@ int CALLBACK setValue(int state, int *value) {
     return *value;
 }
 
-int CALLBACK setHead(int state) {
+int MenuCallBack setHead(int state) {
     return setValue(state, &displayHead);
 }
 
-int CALLBACK setField(int state) {
+int MenuCallBack setField(int state) {
     return setValue(state, &displayField);
 }
 
-int CALLBACK setNoise(int state) {
+int MenuCallBack setNoise(int state) {
     int iRet = setValue(state, &noiseOn);
-    if (noiseOn)
-    {
+    if (noiseOn) {
         myHead.setNoise(noise);
-    }
-    else 
-    {
+    } else {
         myHead.setNoise(0);
     }
     return iRet;
 }
 
-int CALLBACK setStats(int state) {
+int MenuCallBack setStats(int state) {
     return setValue(state, &statsOn);
 }
 
-int CALLBACK setMenu(int state) {
-    return setValue(state, &menuOn);
+int MenuCallBack setMenu(int state) {
+    return setValue(state, &::menuOn);
 }
 
-int CALLBACK setMirror(int state) {
+int MenuCallBack setMirror(int state) {
     return setValue(state, &headMirror);
 }
 
@@ -1240,20 +1237,19 @@ void mouseFunc( int button, int state, int x, int y )
 {
     if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN )
     {
-        if (menu.mouseClick(x, y) == false) {
-		    mouseX = x;
-		    mouseY = y;
-		    mousePressed = 1;
-            lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
+        if (!menu.mouseClick(x, y)) {
+            mouseX = x;
+            mouseY = y;
+            mousePressed = 1;
+            lattice.mouseClick((float)x/(float)WIDTH, (float)y/(float)HEIGHT);
             mouseStartX = x;
             mouseStartY = y;
         }
     }
-	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
-    {
-		mouseX = x;
-		mouseY = y;
-		mousePressed = 0;
+	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
+        mouseX = x;
+        mouseY = y;
+        mousePressed = 0;
     }
 	
 }

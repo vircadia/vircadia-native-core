@@ -1,17 +1,17 @@
 
 #include <algorithm>
+
 #include "InterfaceConfig.h"
+#include "Util.h"
+
 #include "MenuRow.h"
 #include "MenuColumn.h"
 #include "Menu.h"
-#include "Util.h"
 
 
-MenuRow::MenuRow()
-{
+MenuRow::MenuRow() {
 }
-MenuRow::MenuRow(char * columnName, PFNRowCallback callback)
-{
+MenuRow::MenuRow(char * columnName, PFNRowCallback callback) {
     int length = std::min(MAX_COLUMN_NAME - 5,(int) strlen(columnName));
     strncpy(this->rowName, columnName, length);
     memcpy(this->rowName + length, "    \0", 5);
@@ -19,15 +19,14 @@ MenuRow::MenuRow(char * columnName, PFNRowCallback callback)
     rowWidth = 0;
 }
 
-MenuRow::~MenuRow()
-{
+MenuRow::~MenuRow() {
 }
 
 void MenuRow::call() {
     callback(-2);
 }
 
-char * MenuRow::getName() {
+char* MenuRow::getName() {
     int length = (int) strlen(this->rowName) - 4;
     int currentValue = callback(-1);
     if (currentValue == 0) {
@@ -40,14 +39,14 @@ char * MenuRow::getName() {
     return this->rowName;
 }
 
-int MenuRow::getWidth(float scale, int mono, int leftPosition){
+int MenuRow::getWidth(float scale, int mono, int leftPosition) {
     if (rowWidth == 0) {
         rowWidth = widthText( scale, mono, this->rowName);
     }  
     return rowWidth;
 }
 
-int MenuRow::getWidth(){
+int MenuRow::getWidth() {
     return rowWidth;
 }
 
