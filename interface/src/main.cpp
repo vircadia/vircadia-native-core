@@ -109,6 +109,8 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
+bool showingVoxels = false;
+
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 ParticleSystem balls(0,
                      box, 
@@ -569,8 +571,42 @@ int render_test_direction = 1;
 
 
 
+void drawGroundPlaneGrid( float size, int resolution )
+{
+
+	glColor3f( 0.4f, 0.5f, 0.3f );
+	glLineWidth(2.0);
+	
+	float gridSize = 10.0;
+	int gridResolution = 10;
+
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );		
+		glVertex3f( inc, 0.0f, -gridSize * ONE_HALF );
+		glVertex3f( inc, 0.0f,  gridSize * ONE_HALF );
+		glEnd();
+	}
+	
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );		
+		glVertex3f( -gridSize * ONE_HALF, 0.0f, inc );
+		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
+		glEnd();
+	}
+}
+
+
+
 void display(void)
 {
+	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
+
 	PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -620,7 +656,7 @@ void display(void)
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
-			myCamera.setPitch	(  10.0 );
+			myCamera.setPitch	(   0.0 );
 			myCamera.setRoll	(   0.0 );
 			myCamera.setUp		(   0.2 );
 			myCamera.setDistance(   1.6 );	
@@ -644,17 +680,34 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
+		
+		//---------------------------------------------
+		// draw a red sphere  
+		//---------------------------------------------
+		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
-        glutSolidSphere(0.25, 15, 15);
-    
+		glPushMatrix();
+			glTranslatef( 0.0f, sphereRadius, 0.0f );
+			glutSolidSphere( sphereRadius, 15, 15 );
+		glPopMatrix();
+
+		//---------------------------------------------
+		// draw a grid gound plane....
+		//---------------------------------------------
+		drawGroundPlaneGrid( 5.0f, 9 );
+		
+		
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
 //        if (!display_head) cloud.render();
     
         //  Draw voxels
-		voxels.render();
-    
+		if ( showingVoxels )
+		{
+			voxels.render();
+		}
+		
         //  Draw field vectors
         if (display_field) field.render();
             
@@ -1159,6 +1212,8 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
 #endif
+
+
 
 int main(int argc, const char * argv[])
 {
