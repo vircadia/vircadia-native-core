@@ -848,8 +848,7 @@ void display(void)
             glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
             glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
             glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
-            glEnd();
-            
+            glEnd();            
             glEnable(GL_LINE_SMOOTH);
         }
         
@@ -864,6 +863,7 @@ void display(void)
     }
 
     //  Draw number of nearby people always
+    glPointSize(1.0f);
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
@@ -1002,8 +1002,9 @@ void specialkey(int k, int x, int y)
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
             else myHead.setDriveKeys(ROT_RIGHT, 1);   
         }
-        
+#ifndef _WIN32
         audio.setWalkingState(true);
+#endif
     }    
 }
 
@@ -1267,15 +1268,15 @@ int main(int argc, const char * argv[])
     #ifndef _WIN32
     agentList.audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
-
-    // start the thread which checks for silent agents
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
     
 #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
 #endif
+
+    // start the thread which checks for silent agents
+    agentList.startSilentAgentRemovalThread();
+    agentList.startDomainServerCheckInThread();
 
     glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

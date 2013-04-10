@@ -1,5 +1,5 @@
 //
-// starfield/renderer/Tiling.h
+// starfield/renderer/ 
 // interface
 //
 // Created by Tobias Schwinger on 3/22/13.
@@ -13,8 +13,15 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
+#ifdef _WIN32
+#include "../Config.h"
+#define lrint(x) (floor(x + (x > 0) ? 0.5 : -0.5)) 
+    inline float remainder(float x, float y) { return std::fmod(x, y); }
+    inline int round(float x) { return (floor(x + 0.5)); }
+    double log2( double n ) { return log( n ) / log( 2 ); }
+#else
 #include "starfield/Config.h"
-
+#endif
 namespace starfield {
 
     class Tiling {

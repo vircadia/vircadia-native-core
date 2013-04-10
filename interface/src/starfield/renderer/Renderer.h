@@ -137,7 +137,7 @@ namespace starfield {
             //  ww + ww aa = dd
             //  ww = dd / (1 + aa)
             float diag = 2.0f * std::sin(halfPersp);
-            float near = std::cos(halfPersp);
+            float nearClip = std::cos(halfPersp);
             
             float hw = 0.5f * sqrt(diag * diag / (1.0f + aspect * aspect));
             float hh = hw * aspect;
@@ -165,11 +165,11 @@ namespace starfield {
 
 #if STARFIELD_DEBUG_LOD 
             mat4 matrix_debug = glm::translate( 
-                    glm::frustum(-hw,hw, -hh,hh, near,10.0f), 
+                    glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
                     vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
 #endif
 
-            matrix = glm::frustum(-hw,hw, -hh,hh, near,10.0f)
+            matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f)
                     * glm::affineInverse(matrix);
 
             this->_itrOutIndex = (unsigned*) _arrBatchOffs;
@@ -374,11 +374,11 @@ namespace starfield {
             float halfSlice = 0.5f * slice;
             float daz = halfSlice * cos(abs(altitude) - halfSlice);
             float dal = halfSlice;
-            float near = cos(_valHalfPersp + sqrt(daz*daz+dal*dal));
+            float adjustedNear = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
 
-// fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, near);
+// fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
-            return w > near;
+            return w > adjustedNear;
         }
 
         void updateVertexCount(Tile* t, BrightnessLevel minBright) {
