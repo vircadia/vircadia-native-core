@@ -1,16 +1,25 @@
-//
 //  
 //  Interface
-//   
-//  Show a field of objects rendered in 3D, with yaw and pitch of scene driven 
-//  by accelerometer data
-//  serial port connected to Maple board/arduino. 
+//
+//  Allows you to connect to and see/hear the shared 3D space.
+//  Optionally uses serialUSB connection to get gyro data for head movement.
+//  Optionally gets UDP stream from transmitter to animate controller/hand.
+//  
+//  Usage:  The interface client first attempts to contact a domain server to
+//          discover the appropriate audio, voxel, and avatar servers to contact.
+//          Right now, the default domain server is "highfidelity.below92.com"
+//          You can change the domain server to use your own by editing the
+//          DOMAIN_HOSTNAME or DOMAIN_IP strings in the file AgentList.cpp
+//
+//
+//  Welcome Aboard!
+//
 //
 //  Keyboard Commands: 
 //
 //  / = toggle stats display
-//  spacebar = reset gyros/head
-//  h = render Head
+//  spacebar = reset gyros/head position
+//  h = render Head facing yourself (mirror)
 //  l = show incoming gyro levels
 //
 
@@ -55,6 +64,7 @@
 #include "Texture.h"
 #include "Cloud.h"
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include "VoxelSystem.h"
 #include "Lattice.h"
 #include "Finger.h"
@@ -67,57 +77,50 @@
 
 using namespace std;
 
-int audio_on = 1;                   //  Whether to turn on the audio support
-int simulate_on = 1; 
-
-AgentList agentList('I');
+AgentList agentList(AGENT_TYPE_INTERFACE);
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
-//  For testing, add milliseconds of delay for received UDP packets
-int packetcount = 0;
-int packets_per_second = 0; 
-int bytes_per_second = 0;
-int bytescount = 0;
+int packetCount = 0;
+int packetsPerSecond = 0; 
+int bytesPerSecond = 0;
+int bytesCount = 0;
 
-//  Getting a target location from other machine (or loopback) to display
-int target_x, target_y; 
-int target_display = 0;
+int headMirror = 1;                 //  Whether to mirror own head when viewing it
 
-int head_mirror = 1;                  //  Whether to mirror own head when viewing it
-int sendToSelf = 1;
-
-int WIDTH = 1200; 
-int HEIGHT = 800; 
+int WIDTH = 1200;                   //  Window size
+int HEIGHT = 800;
 int fullscreen = 0;
 
-bool wantColorRandomizer = true; // for addSphere and load file
+bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-#define HAND_RADIUS 0.25            //  Radius of in-world 'hand' of you
 Head myHead;                        //  The rendered head of oneself
 Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
+                                    //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
-
 Stars stars;
 #ifdef STARFIELD_KEYS
 int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
+bool showingVoxels = false;
+
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
+
 ParticleSystem balls(0,
                      box, 
-                     false,                     //  Wrap?
-                     0.02f,                      //  Noise
-                     0.3f,                       //  Size scale 
-                     0.0                        //  Gravity
+                     false,                //  Wrap?
+                     0.02f,                //  Noise
+                     0.3f,                 //  Size scale 
+                     0.0                   //  Gravity
                      );
 
-Cloud cloud(20000,                         //  Particles
+Cloud cloud(0,                         //  Particles
             box,                           //  Bounding Box
             false                          //  Wrap
             );
@@ -132,12 +135,12 @@ Field field;
 Audio audio(&audioScope, &myHead);
 #endif
 
-#define RENDER_FRAME_MSECS 8
-int steps_per_frame = 0;
+#define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
+                                         //  in the idle loop?
 
 float yaw = 0.f;                         //  The yaw, pitch for the avatar head
 float pitch = 0.f;                            
-float start_yaw = 122;
+float startYaw = 122.f;
 float renderPitch = 0.f;
 float renderYawRate = 0.f;
 float renderPitchRate = 0.f; 
@@ -145,31 +148,25 @@ float renderPitchRate = 0.f;
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
-int stats_on = 0;					//  Whether to show onscreen text overlay with stats
+int statsOn = 0;					//  Whether to show onscreen text overlay with stats
 bool starsOn = false;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
-int noise_on = 0;					//  Whether to add random noise 
+int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
-int step_on = 0;                    
-int display_levels = 0;
-int display_head = 0;
-int display_field = 0;
+int displayLevels = 0;
+int displayHead = 0;
+int displayField = 0;
 
-int display_head_mouse = 1;         //  Display sample mouse pointer controlled by head movement
-int head_mouse_x, head_mouse_y; 
-int head_lean_x, head_lean_y;
+int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
+int headMouseX, headMouseY; 
 
-int mouse_x, mouse_y;				//  Where is the mouse
-int mouse_start_x, mouse_start_y;   //  Mouse location at start of last down click
-int mouse_pressed = 0;				//  true if mouse has been pressed (clear when finished)
-
-int nearbyAgents = 0;               //  How many other people near you is the domain server reporting?
-
-int speed;
+int mouseX, mouseY;				//  Where is the mouse
+int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
+int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
 
 //
 //  Serial USB Variables
@@ -184,17 +181,14 @@ int first_measurement = 1;
 
 //  Frame rate Measurement
 
-int framecount = 0;                  
+int frameCount = 0;                  
 float FPS = 120.f;
-timeval timer_start, timer_end;
-timeval last_frame;
+timeval timerStart, timerEnd;
+timeval lastTimeIdle;
 double elapsedTime;
 
 // Particles
 
-char texture_filename[] = "images/int-texture256-v4.png";
-unsigned int texture_width = 256;
-unsigned int texture_height = 256;
 
 float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
 float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
@@ -217,34 +211,19 @@ float pointer_attenuation_quadratic[] =  { 1.0f, 0.0f, 0.0f }; // for 2D view
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
-    gettimeofday(&timer_end, NULL);
-    FPS = (float)framecount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
-    packets_per_second = (float)packetcount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
-    bytes_per_second = (float)bytescount / ((float)diffclock(&timer_start, &timer_end) / 1000.f);
-   	framecount = 0;
-    packetcount = 0;
-    bytescount = 0;
+    gettimeofday(&timerEnd, NULL);
+    FPS = (float)frameCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
+    packetsPerSecond = (float)packetCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
+    bytesPerSecond = (float)bytesCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
+   	frameCount = 0;
+    packetCount = 0;
+    bytesCount = 0;
     
 	glutTimerFunc(1000,Timer,0);
-    gettimeofday(&timer_start, NULL);
+    gettimeofday(&timerStart, NULL);
     
     //  Ping the agents we can see
     agentList.pingAgents();
-
-    if (0) {
-        //  Massive send packet speed test
-        timeval starttest, endtest;
-        gettimeofday(&starttest, NULL);
-        char junk[1000];
-        junk[0] = 'J';
-        for (int i = 0; i < 10000; i++)
-        {
-//            agentSocket.send((char *)"192.168.1.38", AGENT_UDP_PORT, junk, 1000);
-        }
-        gettimeofday(&endtest, NULL);
-        float sendTime = static_cast<float>( diffclock(&starttest, &endtest) );
-        printf("packet test = %4.1f\n", sendTime);
-    }
     
     // if we haven't detected gyros, check for them now
     if (!serialPort.active) {
@@ -252,10 +231,7 @@ void Timer(int extra)
     }
 }
 
-
-
-
-void display_stats(void)
+void displayStats(void)
 {
 	//  bitmap chars are about 10 pels high 
     char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
@@ -268,7 +244,7 @@ void display_stats(void)
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
-            FPS, packets_per_second,  bytes_per_second, headPos.x,headPos.y,headPos.z);
+            FPS, packetsPerSecond,  bytesPerSecond, headPos.x,headPos.y,headPos.z);
     drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
@@ -326,26 +302,10 @@ void display_stats(void)
 		}
 		delete []perfStatLinesArray; // we're responsible for cleanup
 	}
-	        
-    /*
-    std::stringstream angles;
-    angles << "render_yaw: " << myHead.getRenderYaw() << ", Yaw: " << myHead.getYaw();
-    drawtext(10,50,0.10, 0, 1.0, 0, (char *)angles.str().c_str());
-    */
-    
-    /*
-    char adc[200];
-	sprintf(adc, "location = %3.1f,%3.1f,%3.1f, angle_to(origin) = %3.1f, head yaw = %3.1f, render_yaw = %3.1f",
-            -location[0], -location[1], -location[2],
-            angle_to(myHead.getPos()*-1.f, glm::vec3(0,0,0), myHead.getRenderYaw(), myHead.getYaw()),
-            myHead.getYaw(), myHead.getRenderYaw());
-    drawtext(10, 50, 0.10, 0, 1.0, 0, adc);
-     */
 }
 
 void initDisplay(void)
 {
-    //  Set up blending function so that we can NOT clear the display
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -354,37 +314,28 @@ void initDisplay(void)
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-//    load_png_as_texture(texture_filename);
-
     if (fullscreen) glutFullScreen();
 }
-
-
-
 
 void init(void)
 {
     voxels.init();
     voxels.setViewerHead(&myHead);
-    myHead.setRenderYaw(start_yaw);
+    myHead.setRenderYaw(startYaw);
 
-    head_mouse_x = WIDTH/2;
-    head_mouse_y = HEIGHT/2; 
-    head_lean_x = WIDTH/2;
-    head_lean_y = HEIGHT/2;
+    headMouseX = WIDTH/2;
+    headMouseY = HEIGHT/2; 
 
     stars.readInput(starFile, 0);
  
     //  Initialize Field values
     field = Field();
-    printf( "Field Initialized.\n" );
-
-    if (noise_on) {   
+ 
+    if (noiseOn) {   
         myHead.setNoise(noise);
     }
     myHead.setPos(start_location );
-	
-	myCamera.setPosition( glm::dvec3( start_location ) );
+	myCamera.setPosition( start_location );
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -398,8 +349,8 @@ void init(void)
     }
 #endif
     
-    gettimeofday(&timer_start, NULL);
-    gettimeofday(&last_frame, NULL);
+    gettimeofday(&timerStart, NULL);
+    gettimeofday(&lastTimeIdle, NULL);
 }
 
 void terminate () {
@@ -420,15 +371,13 @@ void reset_sensors()
     //  
     //   Reset serial I/O sensors 
     // 
-    myHead.setRenderYaw(start_yaw);
+    myHead.setRenderYaw(startYaw);
     
     yaw = renderYawRate = 0; 
     pitch = renderPitch = renderPitchRate = 0;
     myHead.setPos(start_location);
-    head_mouse_x = WIDTH/2;
-    head_mouse_y = HEIGHT/2;
-    head_lean_x = WIDTH/2;
-    head_lean_y = HEIGHT/2; 
+    headMouseX = WIDTH/2;
+    headMouseY = HEIGHT/2;
     
     myHead.reset();
     
@@ -439,12 +388,12 @@ void reset_sensors()
 
 void simulateHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
-    if (mouse_pressed == 1)
+    if (mousePressed == 1)
     {
         //  Add a velocity to the hand corresponding to the detected size of the drag vector
         const float MOUSE_HAND_FORCE = 1.5;
-        float dx = mouse_x - mouse_start_x;
-        float dy = mouse_y - mouse_start_y;
+        float dx = mouseX - mouseStartX;
+        float dy = mouseY - mouseStartY;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
         myHead.hand->addVelocity(vel*deltaTime);
     }
@@ -462,7 +411,7 @@ void simulateHead(float frametime)
     //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
-    myHead.UpdatePos(frametime, &serialPort, head_mirror, &gravity);
+    myHead.UpdatePos(frametime, &serialPort, headMirror, &gravity);
 	
 	//-------------------------------------------------------------------------------------
 	// set the position of the avatar
@@ -475,13 +424,13 @@ void simulateHead(float frametime)
     if (powf(measured_yaw_rate*measured_yaw_rate + 
              measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
     {
-        head_mouse_x += measured_yaw_rate*MOUSE_SENSITIVITY;
-        head_mouse_y += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
+        headMouseX += measured_yaw_rate*MOUSE_SENSITIVITY;
+        headMouseY += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
     }
-    head_mouse_x = max(head_mouse_x, 0);
-    head_mouse_x = min(head_mouse_x, WIDTH);
-    head_mouse_y = max(head_mouse_y, 0);
-    head_mouse_y = min(head_mouse_y, HEIGHT);
+    headMouseX = max(headMouseX, 0);
+    headMouseX = min(headMouseX, WIDTH);
+    headMouseY = max(headMouseY, 0);
+    headMouseY = min(headMouseY, HEIGHT);
     
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 100;
@@ -562,14 +511,155 @@ void simulateHead(float frametime)
     }
 }
 
-int render_test_spot = WIDTH/2;
-int render_test_direction = 1; 
+// These handy operators should probably go somewhere else, I'm surprised they don't
+// already exist somewhere in OpenGL. Maybe someone can point me to them if they do exist!
+glm::vec3 operator* (float lhs, const glm::vec3& rhs)
+{
+    glm::vec3 result = rhs;
+    result.x *= lhs;
+    result.y *= lhs;
+    result.z *= lhs;
+    return result;
+}
+
+glm::vec3 operator* (const glm::vec3& lhs, float rhs)
+{
+    glm::vec3 result = lhs;
+    result.x *= rhs;
+    result.y *= rhs;
+    result.z *= rhs;
+    return result;
+}
+
+// XXXBHG - this code is not yet working. This is here to help Jeffery debug getAvatarHeadLookatDirection()
+// The code will draw a yellow line from the avatar's position to the origin,
+// It also attempts to draw a cyan line from the avatar to 2 meters in front of the avatar in the direction
+// it's looking. But that's not working right now.
+void render_view_frustum() {
+
+	//printf("frustum low.x=%f, low.y=%f, low.z=%f, high.x=%f, high.y=%f, high.z=%f\n",low.x,low.y,low.z,high.x,high.y,high.z);
 
 
+	// p – the camera position
+	// d – a vector with the direction of the camera's view ray. In here it is assumed that this vector has been normalized
+	// nearDist – the distance from the camera to the near plane
+	// nearHeight – the height of the near plane
+	// nearWidth – the width of the near plane
+	// farDist – the distance from the camera to the far plane
+	// farHeight – the height of the far plane
+	// farWidth – the width of the far plane
+
+	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
+	glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
+	
+	// this is a temporary test, create a vertice that's 2 meters in front of avatar in direction their looking
+	glm::vec3 lookingAt = cameraPosition+(cameraDirection*2.0);
+
+    //  Some debug lines.
+    glDisable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glLineWidth(1.0);
+    glBegin(GL_LINES);
+
+	// line from avatar to the origin -- this one is working.
+    glColor3f(1,1,0);
+    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
+    glVertex3f(0,0,0);
+
+	// line from avatar to 2 meters in front of avatar -- this is NOT working
+    glColor3f(0,1,1);
+    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
+    glVertex3f(lookingAt.x,lookingAt.y,lookingAt.z);
+
+	/*
+	// Not yet ready for this...
+	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
+	glm::vec3 right = glm::vec3(1.0,0.0,0.0);
+	float nearDist = 0.1;
+	float farDist  = 500.0;
+	float fov = (0.7854f*2.0); // 45 deg * 2 = 90 deg
+	
+	float screenWidth = 800.0; // hack! We need to make this eventually be the correct height/width
+	float screenHeight = 600.0;
+	float ratio      = screenWidth/screenHeight;
+	float nearHeight = 2 * tan(fov / 2) * nearDist;
+	float nearWidth  = nearHeight * ratio;
+	float farHeight  = 2 * tan(fov / 2) * farDist;
+	float farWidth   = farHeight * ratio;
+	
+	glm::vec3 farCenter       = cameraPosition+cameraDirection*farDist;
+	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5); 
+	glm::vec3 farTopRight     = farCenter  + (up*farHeight*0.5)  + (right*farWidth*0.5); 
+	glm::vec3 farBottomLeft   = farCenter  - (up*farHeight*0.5)  - (right*farWidth*0.5); 
+	glm::vec3 farBottomRight  = farCenter  - (up*farHeight*0.5)  + (right*farWidth*0.5); 
+
+	glm::vec3 nearCenter      = cameraPosition+cameraDirection*nearDist;
+	glm::vec3 nearTopLeft     = nearCenter + (up*nearHeight*0.5) - (right*nearWidth*0.5); 
+	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
+	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
+	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
+	*/
+    
+
+/*
+    glColor3f(1,1,1);
+
+	// near plane - bottom edge 
+    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(high.x,low.y,low.z);
+
+	// near plane - top edge
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(high.x,high.y,low.z);
+
+	// near plane - right edge
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(low.x,low.y,low.z);
+
+	// near plane - left edge
+    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(high.x,low.y,low.z);
+
+	// far plane - bottom edge 
+    glVertex3f(low.x,low.y,high.z);
+    glVertex3f(high.x,low.y,high.z);
+  
+	// far plane - top edge
+    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(high.x,high.y,high.z);
+
+	// far plane - right edge
+    glVertex3f(low.x,high.y,high.z);
+    glVertex3f(low.x,low.y,high.z);
+
+	// far plane - left edge
+    glVertex3f(high.x,high.y,high.z);
+    glVertex3f(high.x,low.y,high.z);
+
+	// right plane - bottom edge - near to distant
+    glVertex3f(low.x,low.y,low.z);
+    glVertex3f(low.x,low.y,high.z);
+
+	// right plane - top edge - near to distant
+    glVertex3f(low.x,high.y,low.z);
+    glVertex3f(low.x,high.y,high.z);
+
+	// left plane - bottom edge - near to distant
+    glVertex3f(high.x,low.y,low.z);
+    glVertex3f(high.x,low.y,high.z);
+
+	// left plane - top edge - near to distant
+    glVertex3f(high.x,high.y,low.z);
+    glVertex3f(high.x,high.y,high.z);
+*/
+    glEnd();
+}
 
 
 void display(void)
 {
+	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
+
 	PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -595,47 +685,45 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		//-------------------------------------------------------------------------------------
-		// set the camera to third-person view
-		//-------------------------------------------------------------------------------------		
-		myCamera.setTargetPosition( (glm::dvec3)myHead.getPos() );	
-		myCamera.setPitch	( 0.0 );
-		myCamera.setRoll	( 0.0 );
+		//--------------------------------------------------------
+		// camera settings
+		//--------------------------------------------------------		
+		myCamera.setTargetPosition( myHead.getPos() );	
 
-		if ( display_head )
-		//-------------------------------------------------------------------------------------
-		// set the camera to looking at my face
-		//-------------------------------------------------------------------------------------		
+		if ( displayHead )
 		{
+			//-----------------------------------------------
+			// set the camera to looking at my own face
+			//-----------------------------------------------		
 			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setPitch	( 0.0  );
+			myCamera.setRoll	( 0.0  );
 			myCamera.setUp		( 0.4  );
+			myCamera.setDistance( 0.5  );	
 			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		}
 		else
-		//-------------------------------------------------------------------------------------
-		// set the camera to third-person view
-		//-------------------------------------------------------------------------------------		
 		{
+			//----------------------------------------------------
+			// set the camera to third-person view behind my av
+			//----------------------------------------------------		
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
-			myCamera.setUp		( 0.15 );
-			myCamera.setDistance( 0.08 );
+			myCamera.setPitch	(   0.0 );
+			myCamera.setRoll	(   0.0 );
+			myCamera.setUp		(   0.2 );
+			myCamera.setDistance(   1.6 );	
+			myCamera.setDistance(   0.5 );
 			myCamera.update();
 		}
 		
-		//-------------------------------------------------------------------------------------
-		// transform to camera view
-		//-------------------------------------------------------------------------------------
+		//---------------------------------------------
+		// transform view according to myCamera
+		//---------------------------------------------
         glRotatef	( myCamera.getPitch(),	1, 0, 0 );
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
-		
-		//printf( "myCamera position = %f, %f, %f\n", myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );		
-		
         glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
-        
-		// fixed view
-		//glTranslatef( 6.18, -0.15, 1.4 );
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -645,23 +733,42 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
+		
+		//---------------------------------------------
+		// draw a red sphere  
+		//---------------------------------------------
+		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
-        glutSolidSphere(0.25, 15, 15);
-    
+		glPushMatrix();
+			glTranslatef( 0.0f, sphereRadius, 0.0f );
+			glutSolidSphere( sphereRadius, 15, 15 );
+		glPopMatrix();
+
+		//---------------------------------------------
+		// draw a grid gound plane....
+		//---------------------------------------------
+		//drawGroundPlaneGrid( 5.0f, 9 );
+		
+		
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
-//        if (!display_head) cloud.render();
+        if (!displayHead) cloud.render();
     
         //  Draw voxels
-		voxels.render();
-    
+		if ( showingVoxels )
+		{
+			voxels.render();
+		}
+		
         //  Draw field vectors
-        if (display_field) field.render();
+        if (displayField) field.render();
             
         //  Render heads of other agents
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
@@ -671,10 +778,13 @@ void display(void)
             }
         }
     
-        if (!display_head) balls.render();
+        if ( !displayHead ) balls.render();
     
         //  Render the world box
-        if (!display_head && stats_on) render_world_box();
+        if (!displayHead && statsOn) render_world_box();
+        
+        // brad's frustum for debugging
+        render_view_frustum();
     
 	
 		//---------------------------------
@@ -686,7 +796,7 @@ void display(void)
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(display_head, 1);
+        myHead.render(displayHead, 1);
         glPopMatrix();
 		*/
 		
@@ -713,55 +823,34 @@ void display(void)
         //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
-        if (mouse_pressed == 1)
+        if (displayHeadMouse && !displayHead && statsOn)
         {
-            glPointSize( 10.0f );
-            glColor3f(1,1,1);
-            //glEnable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(target_x, target_y);
-            glEnd();
-            char val[20];
-            sprintf(val, "%d,%d", target_x, target_y); 
-            drawtext(target_x, target_y-20, 0.08, 0, 1.0, 0, val, 0, 1, 0);
-            glPointSize(1.0f);
+            //  Display small target box at center or head mouse target that can also be used to measure LOD
+            glColor3f(1.0, 1.0, 1.0);
+            glDisable(GL_LINE_SMOOTH);
+            const int PIXEL_BOX = 20;
+            glBegin(GL_LINE_STRIP);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glEnd();            
+            glEnable(GL_LINE_SMOOTH);
         }
-        if (display_head_mouse && !display_head && stats_on)
-        {
-            glPointSize(10.0f);
-            glColor4f(1.0, 1.0, 0.0, 0.8);
-            glEnable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(head_mouse_x, head_mouse_y);
-            glEnd();
-            glPointSize(1.0f);
-        }
-        //  Spot bouncing back and forth on bottom of screen
-        if (0)
-        {
-            glPointSize(50.0f);
-            glColor4f(1.0, 1.0, 1.0, 1.0);
-            glEnable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(render_test_spot, HEIGHT-100);
-            glEnd(); 
-            render_test_spot += render_test_direction*50; 
-            if ((render_test_spot > WIDTH-100) || (render_test_spot < 100)) render_test_direction *= -1.0;
-            glPointSize(1.0f);
-        }
-    
         
     //  Show detected levels from the serial I/O ADC channel sensors
-    if (display_levels) serialPort.renderLevels(WIDTH,HEIGHT);
+    if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
     
     //  Display miscellaneous text stats onscreen
-    if (stats_on) {
+    if (statsOn) {
         glLineWidth(1.0f);
         glPointSize(1.0f);
-        display_stats();
+        displayStats();
     }
 
     //  Draw number of nearby people always
+    glPointSize(1.0f);
     char agents[100];
     sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
     drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
@@ -779,12 +868,8 @@ void display(void)
     
 
     glutSwapBuffers();
-    framecount++;
+    frameCount++;
 }
-
-
-
-
 
 void testPointToVoxel()
 {
@@ -926,8 +1011,9 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q')  ::terminate();
-    if (k == '/')  stats_on = !stats_on;		// toggle stats
+    if (k == '/')  statsOn = !statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
+    if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
@@ -937,8 +1023,8 @@ void key(unsigned char k, int x, int y)
     if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
 	if (k == 'n') 
     {
-        noise_on = !noise_on;                   // Toggle noise 
-        if (noise_on)
+        noiseOn = !noiseOn;                   // Toggle noise 
+        if (noiseOn)
         {
             myHead.setNoise(noise);
         }
@@ -950,16 +1036,16 @@ void key(unsigned char k, int x, int y)
     }
     
     if (k == 'h') {
-        display_head = !display_head;
+        displayHead = !displayHead;
         #ifndef _WIN32
-        audio.setMixerLoopbackFlag(display_head);
+        audio.setMixerLoopbackFlag(displayHead);
         #endif
     }
     
-    if (k == 'm') head_mirror = !head_mirror;
+    if (k == 'm') headMirror = !headMirror;
     
-    if (k == 'f') display_field = !display_field;
-    if (k == 'l') display_levels = !display_levels;
+    if (k == 'f') displayField = !displayField;
+    if (k == 'l') displayLevels = !displayLevels;
     if (k == 'e') myHead.setDriveKeys(UP, 1);
     if (k == 'c') myHead.setDriveKeys(DOWN, 1);
     if (k == 'w') myHead.setDriveKeys(FWD, 1);
@@ -976,18 +1062,6 @@ void key(unsigned char k, int x, int y)
 #endif
     if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
-    if (k == 'o') simulate_on = !simulate_on;
-    if (k == 'p') 
-    {
-        // Add to field vector 
-        float pos[] = {5,5,5};
-        float add[] = {0.001, 0.001, 0.001};
-        field.add(add, pos);
-    }
-    if (k == '1')
-    {
-        myHead.SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*20.0);
-    }
 
 	// press the . key to get a new random sphere of voxels added 
     if (k == '.') addRandomSphere(wantColorRandomizer);
@@ -1004,8 +1078,8 @@ void *networkReceive(void *args)
 
     while (!stopNetworkReceiveThread) {
         if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
-            packetcount++;
-            bytescount += bytesReceived;
+            packetCount++;
+            bytesCount += bytesReceived;
             
             if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
                 //  Pass everything but transmitter data to the agent list
@@ -1029,42 +1103,54 @@ void idle(void)
     timeval check;
     gettimeofday(&check, NULL);
     
-    //  Check and render display frame 
-    if (diffclock(&last_frame, &check) > RENDER_FRAME_MSECS)
+    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
+    
+    if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS)
     {
-        steps_per_frame++;
-		
 		//----------------------------------------------------------------
 		// If mouse is being dragged, update hand movement in the avatar
 		//----------------------------------------------------------------
-		if ( mouse_pressed == 1 )
+		if ( mousePressed == 1 )
 		{
-			double xOffset = ( mouse_x - mouse_start_x ) / (double)WIDTH;
-			double yOffset = ( mouse_y - mouse_start_y ) / (double)HEIGHT;
+			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
+			float yOffset = ( mouseY - mouseStartY ) / (double)HEIGHT;
 			
-			double leftRight	= xOffset;
-			double downUp		= yOffset;
-			double backFront	= 0.0;
+			float leftRight	= xOffset;
+			float downUp	= yOffset;
+			float backFront	= 0.0;
 			
-			glm::dvec3 handMovement( leftRight, downUp, backFront );
+			glm::vec3 handMovement( leftRight, downUp, backFront );
 			myHead.setHandMovement( handMovement );		
 		}		
 		
         //  Simulation
         simulateHead(1.f/FPS);
+		
+		
+		//test
+		/*
+		//  simulate the other agents
+        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+		{
+            if (agent->getLinkedData() != NULL) 
+			{
+                Head *agentHead = (Head *)agent->getLinkedData();
+                agentHead->simulate(1.f/FPS);
+            }
+        }
+		*/
+		
         simulateHand(1.f/FPS);
         
-        if (simulate_on) {
-            field.simulate(1.f/FPS);
-            myHead.simulate(1.f/FPS);
-            balls.simulate(1.f/FPS);
-            cloud.simulate(1.f/FPS);
-            lattice.simulate(1.f/FPS);
-            myFinger.simulate(1.f/FPS);
-        }
+        field.simulate(1.f/FPS);
+        myHead.simulate(1.f/FPS);
+        balls.simulate(1.f/FPS);
+        cloud.simulate(1.f/FPS);
+        lattice.simulate(1.f/FPS);
+        myFinger.simulate(1.f/FPS);
 
-        if (!step_on) glutPostRedisplay();
-        last_frame = check;
+        glutPostRedisplay();
+        lastTimeIdle = check;
         
     }
     
@@ -1086,7 +1172,6 @@ void reshape(int width, int height)
     fov.setResolution(width, height)
             .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
             .setPerspective(0.7854f);
-
     glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glMatrixMode(GL_MODELVIEW);
@@ -1101,38 +1186,38 @@ void mouseFunc( int button, int state, int x, int y )
 {
     if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN )
     {
-		mouse_x = x;
-		mouse_y = y;
-		mouse_pressed = 1;
+		mouseX = x;
+		mouseY = y;
+		mousePressed = 1;
         lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-        mouse_start_x = x;
-        mouse_start_y = y;
+        mouseStartX = x;
+        mouseStartY = y;
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP )
     {
-		mouse_x = x;
-		mouse_y = y;
-		mouse_pressed = 0;
+		mouseX = x;
+		mouseY = y;
+		mousePressed = 0;
     }
 	
 }
 
 void motionFunc( int x, int y)
 {
-	mouse_x = x;
-	mouse_y = y;
+	mouseX = x;
+	mouseY = y;
     
     lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
 }
 
 void mouseoverFunc( int x, int y)
 {
-	mouse_x = x;
-	mouse_y = y;
-    if (mouse_pressed == 0)
+	mouseX = x;
+	mouseY = y;
+    if (mousePressed == 0)
     {
 //        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-//        myFinger.setTarget(mouse_x, mouse_y);
+//        myFinger.setTarget(mouseX, mouseY);
     }
 }
 
@@ -1147,6 +1232,8 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
 #endif
+
+
 
 int main(int argc, const char * argv[])
 {
@@ -1190,6 +1277,8 @@ int main(int argc, const char * argv[])
     printf( "Created Display Window.\n" );
     
     initDisplay();
+    printf( "Initialized Display.\n" );
+
     
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -1202,9 +1291,10 @@ int main(int argc, const char * argv[])
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
 	
-    printf( "Initialized Display.\n" );
 
     init();
+    printf( "Init() complete.\n" );
+
 
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
@@ -1216,16 +1306,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+        printf("Local Voxel File loaded.\n");
 	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    
-    printf( "Init() complete.\n" );
+    printf("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
 
+    printf("Normal exit.\n");
     ::terminate();
     return EXIT_SUCCESS;
 }   

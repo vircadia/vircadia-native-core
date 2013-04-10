@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <OctalCode.h>
 #include <AgentList.h>
+#include <AgentTypes.h>
 #include <VoxelTree.h>
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
@@ -45,7 +46,7 @@ const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
-AgentList agentList('V', VOXEL_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
@@ -344,7 +345,7 @@ int main(int argc, const char * argv[])
 
             	// Now send this to the connected agents so they know to delete
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_INTERFACE);
             	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -372,12 +373,14 @@ int main(int argc, const char * argv[])
 
 				// Now send this to the connected agents so they can also process these messages
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_HEAD);
+				agentList.broadcastToAgents(packetData,receivedBytes,AgentList::AGENTS_OF_TYPE_INTERFACE);
             }
+            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_INTERFACE, and we
+            // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList.addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
-                                               packetData[0],
+                                               AGENT_TYPE_INTERFACE,
                                                agentList.getLastAgentId())) {
                     agentList.increaseAgentId();
                 }

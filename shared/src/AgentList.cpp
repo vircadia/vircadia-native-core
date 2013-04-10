@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "AgentList.h"
+#include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -180,13 +181,13 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activatePublicSocket();
         }
         
-        if (newAgent.getType() == 'M' && audioMixerSocketUpdate != NULL) {
+        if (newAgent.getType() == AGENT_TYPE_MIXER && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
-        } else if (newAgent.getType() == 'V') {
+        } else if (newAgent.getType() == AGENT_TYPE_VOXEL) {
             newAgent.activatePublicSocket();
         }
         
@@ -199,7 +200,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->getType() == 'M' || agent->getType() == 'V') {
+        if (agent->getType() == AGENT_TYPE_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastRecvTimeUsecs(usecTimestampNow());
@@ -210,9 +211,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-const char* AgentList::AGENTS_OF_TYPE_HEAD = "H";
-const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
+// XXXBHG - do we want to move these?
 const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
+const char* AgentList::AGENTS_OF_TYPE_INTERFACE = "I";
+const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
 
 void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
@@ -229,7 +231,7 @@ void AgentList::pingAgents() {
     *payload = PACKET_HEADER_PING;
     
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == 'I') {
+        if (agent->getType() == AGENT_TYPE_INTERFACE) {
             if (agent->getActiveSocket() != NULL) {
                 // we know which socket is good for this agent, send there
                 agentSocket.send(agent->getActiveSocket(), payload, 1);
@@ -268,7 +270,8 @@ void *removeSilentAgents(void *args) {
             
             pthread_mutex_t * agentDeleteMutex = &agent->deleteMutex;
             
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS && agent->getType() != 'V'
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS 
+            	&& agent->getType() != AGENT_TYPE_VOXEL
                 && pthread_mutex_trylock(agentDeleteMutex) == 0) {
                 
                 std::cout << "Killing agent " << &(*agent)  << "\n";

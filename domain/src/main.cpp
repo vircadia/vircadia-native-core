@@ -25,6 +25,8 @@
 #include <fcntl.h>
 #include <map>
 #include "AgentList.h"
+#include "AgentTypes.h"
+#include <PacketHeaders.h>
 #include "SharedUtil.h"
 
 #ifdef _WIN32
@@ -46,7 +48,7 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 #define DEBUG_TO_SELF 0
 
 int lastActiveCount = 0;
-AgentList agentList('D', DOMAIN_LISTEN_PORT);
+AgentList agentList(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 
 unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
@@ -82,7 +84,7 @@ int main(int argc, const char * argv[])
     char agentType;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    *broadcastPacket = 'D';
+    *broadcastPacket = PACKET_HEADER_DOMAIN;
     
     unsigned char *currentBufferPos;
     unsigned char *startPointer;

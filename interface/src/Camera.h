@@ -12,6 +12,16 @@
 #include "Orientation.h"
 #include <glm/glm.hpp>
 
+enum CameraMode
+{
+	CAMERA_MODE_NULL = -1,
+	CAMERA_MODE_FIRST_PERSON,
+	CAMERA_MODE_THIRD_PERSON,
+	CAMERA_MODE_MY_OWN_FACE,
+	NUM_CAMERA_MODES
+};
+
+
 class Camera
 {
 public:
@@ -19,30 +29,34 @@ public:
 	
 	void update();
 	
-	void setYaw				( double		y ) { yaw				= y; }
-	void setPitch			( double		p ) { pitch				= p; }
-	void setRoll			( double		r ) { roll				= r; }
-	void setUp				( double		u ) { up				= u; }
-	void setDistance		( double		d ) { distance			= d; }
-	void setTargetPosition	( glm::dvec3	t ) { targetPosition	= t; };
-	void setPosition		( glm::dvec3	p ) { position			= p; };
+	void setMode			( CameraMode	m ) { mode				= m; }
+	void setYaw				( float			y ) { yaw				= y; }
+	void setPitch			( float			p ) { pitch				= p; }
+	void setRoll			( float			r ) { roll				= r; }
+	void setUp				( float			u ) { up				= u; }
+	void setDistance		( float			d ) { distance			= d; }
+	void setTargetPosition	( glm::vec3		t ) { targetPosition	= t; };
+	void setPosition		( glm::vec3		p ) { position			= p; };
 	void setOrientation		( Orientation	o ) { orientation.set(o); }
 
-	double		getYaw			() { return yaw;			}
-	double		getPitch		() { return pitch;			}
-	double		getRoll			() { return roll;			}
-	glm::dvec3	getPosition		() { return position;		}
+	float		getYaw			() { return yaw;			}
+	float		getPitch		() { return pitch;			}
+	float		getRoll			() { return roll;			}
+	glm::vec3	getPosition		() { return position;		}
 	Orientation	getOrientation	() { return orientation;	}
+	CameraMode	getMode			() { return mode;			}
 
 private:
 
-	glm::dvec3	position;
-	glm::dvec3	targetPosition;
-	double		yaw;
-	double		pitch;
-	double		roll;
-	double		up;
-	double		distance;
+	CameraMode	mode;
+	glm::vec3	position;
+	glm::vec3	targetPosition;
+	float		fieldOfView;
+	float		yaw;
+	float		pitch;
+	float		roll;
+	float		up;
+	float		distance;
 	Orientation	orientation;
 };
 

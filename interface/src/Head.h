@@ -103,27 +103,28 @@ enum AvatarBones
 
 struct AvatarBone
 {
-	AvatarBones	parent;
-	glm::vec3	worldPosition;
-	glm::dvec3	defaultPosePosition;
-	glm::dvec3	velocity;
-	double		yaw;
-	double		pitch;
-	double		roll;
-	Orientation	worldOrientation;
-	double		length;
+	AvatarBones	parent;					// which bone is this bone connected to?
+	glm::vec3	position;				// the position at the "end" of the bone
+	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
+	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
+	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
+	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
+	float		roll;					// the roll Euler angle of the bone rotation off the parent
+	Orientation	orientation;			// three orthogonal normals determined by yaw, pitch, roll
+	float		length;					// the length of the bone
 };
 
 struct Avatar
 {
-	glm::dvec3	position;
+	glm::vec3	position;
 	glm::dvec3	velocity;
-	glm::dvec3	thrust;
-	double		yaw;
-	double		pitch;
-	double		roll;
-	double		yawDelta;
-	double		maxArmLength;
+	glm::vec3	thrust;
+	float		yaw;
+	float		pitch;
+	float		roll;
+	float		yawDelta;
+	float		maxArmLength;
 	Orientation	orientation;
 	AvatarBone	bone[ NUM_AVATAR_BONES ];
 };
@@ -157,17 +158,18 @@ class Head : public AgentData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		double getAvatarYaw();
+		float getAvatarYaw();
+		glm::vec3 getAvatarHeadLookatDirection();
         
         void render(int faceToFace, int isMine);
 		
-		void setAvatarPosition( double, double, double );
+		void setAvatarPosition( float, float, float );
 		void renderBody();
 		void renderHead( int faceToFace, int isMine );
 
         void simulate(float);
 				
-		void setHandMovement( glm::dvec3 movement );
+		void setHandMovement( glm::vec3 movement );
 		void updateHandMovement();
         
         //  Send and receive network data
@@ -233,7 +235,7 @@ class Head : public AgentData {
         glm::vec3 velocity;
         glm::vec3 thrust;
 		
-		glm::dvec3 handOffset;
+		glm::vec3 handOffset;
     
         int driveKeys[MAX_DRIVE_KEYS];
         
@@ -245,6 +247,7 @@ class Head : public AgentData {
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();
+		void updateAvatarSprings();
 		void calculateBoneLengths();
     
         void readSensors();

@@ -50,7 +50,7 @@ namespace starfield {
 
                 return false;
             }
- fprintf(stderr, "Stars.cpp: read %d vertices, using %d\n", 
+ fprintf(stderr, "Stars.cpp: read %d stars, rendering %d\n", 
       _valRecordsRead, _ptrVertices->size());
 
             return true;
