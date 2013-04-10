@@ -511,26 +511,6 @@ void simulateHead(float frametime)
     }
 }
 
-// These handy operators should probably go somewhere else, I'm surprised they don't
-// already exist somewhere in OpenGL. Maybe someone can point me to them if they do exist!
-glm::vec3 operator* (float lhs, const glm::vec3& rhs)
-{
-    glm::vec3 result = rhs;
-    result.x *= lhs;
-    result.y *= lhs;
-    result.z *= lhs;
-    return result;
-}
-
-glm::vec3 operator* (const glm::vec3& lhs, float rhs)
-{
-    glm::vec3 result = lhs;
-    result.x *= rhs;
-    result.y *= rhs;
-    result.z *= rhs;
-    return result;
-}
-
 // XXXBHG - this code is not yet working. This is here to help Jeffery debug getAvatarHeadLookatDirection()
 // The code will draw a yellow line from the avatar's position to the origin,
 // It also attempts to draw a cyan line from the avatar to 2 meters in front of the avatar in the direction

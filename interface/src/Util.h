@@ -48,4 +48,8 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
 double diffclock(timeval *clock1,timeval *clock2);
 
 
+glm::vec3 operator* (float lhs, const glm::vec3& rhs);
+glm::vec3 operator* (const glm::vec3& lhs, float rhs);
+
+
 #endif
