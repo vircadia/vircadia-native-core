@@ -96,7 +96,7 @@ bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-Head myHead;                        //  The rendered head of oneself
+Head myAvatar;                       //  The rendered avatar of oneself
 Camera myCamera;					//  My view onto the world (sometimes on myself :)
 
                                     //  Starfield information
@@ -108,7 +108,7 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
-bool showingVoxels = true;
+bool showingVoxels = false;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
@@ -132,7 +132,7 @@ Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
 #ifndef _WIN32
-Audio audio(&audioScope, &myHead);
+Audio audio(&audioScope, &myAvatar);
 #endif
 
 #define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
@@ -241,11 +241,11 @@ void displayStats(void)
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, 32, 0.10f, 0, 1.0, 0, legend2);
 
-	glm::vec3 headPos = myHead.getPos();
+	glm::vec3 avatarPos = myAvatar.getPos();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
-            FPS, packetsPerSecond,  bytesPerSecond, headPos.x,headPos.y,headPos.z);
+            FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
     drawtext(10, 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
         sprintf(stats, "ADC samples = %d, LED = %d", 
@@ -321,8 +321,8 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    voxels.setViewerHead(&myHead);
-    myHead.setRenderYaw(startYaw);
+    voxels.setViewerHead(&myAvatar);
+    myAvatar.setRenderYaw(startYaw);
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -333,9 +333,9 @@ void init(void)
     field = Field();
  
     if (noiseOn) {   
-        myHead.setNoise(noise);
+        myAvatar.setNoise(noise);
     }
-    myHead.setPos(start_location );
+    myAvatar.setPos(start_location );
 	myCamera.setPosition( start_location );
 	
 #ifdef MARKER_CAPTURE
@@ -372,15 +372,15 @@ void reset_sensors()
     //  
     //   Reset serial I/O sensors 
     // 
-    myHead.setRenderYaw(startYaw);
+    myAvatar.setRenderYaw(startYaw);
     
     yaw = renderYawRate = 0; 
     pitch = renderPitch = renderPitchRate = 0;
-    myHead.setPos(start_location);
+    myAvatar.setPos(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
     
-    myHead.reset();
+    myAvatar.reset();
     
     if (serialPort.active) {
         serialPort.resetTrailingAverages();
@@ -396,7 +396,7 @@ void simulateHand(float deltaTime) {
         float dx = mouseX - mouseStartX;
         float dy = mouseY - mouseStartY;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        myHead.hand->addVelocity(vel*deltaTime);
+        myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
 
@@ -412,12 +412,12 @@ void simulateHead(float frametime)
     //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
-    myHead.UpdatePos(frametime, &serialPort, headMirror, &gravity);
+    myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
 	
 	//-------------------------------------------------------------------------------------
 	// set the position of the avatar
 	//-------------------------------------------------------------------------------------
-	myHead.setAvatarPosition( -myHead.getPos().x, -myHead.getPos().y, -myHead.getPos().z );
+	myAvatar.setAvatarPosition( -myAvatar.getPos().x, -myAvatar.getPos().y, -myAvatar.getPos().z );
 	
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
@@ -442,8 +442,8 @@ void simulateHead(float frametime)
     
     //  Update render pitch and yaw rates based on keyPositions
     const float KEY_YAW_SENSITIVITY = 2.0;
-    if (myHead.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
-    if (myHead.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
+    if (myAvatar.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
+    if (myAvatar.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
     
     if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
     {   
@@ -470,32 +470,32 @@ void simulateHead(float frametime)
     renderYawRate *= (1.f - 7.0*frametime);
     
     //  Update own head data
-    myHead.setRenderYaw(myHead.getRenderYaw() + renderYawRate);
-    myHead.setRenderPitch(renderPitch);
+    myAvatar.setRenderYaw(myAvatar.getRenderYaw() + renderYawRate);
+    myAvatar.setRenderPitch(renderPitch);
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
     #ifndef _WIN32
     audio.getInputLoudness(&loudness, &averageLoudness);
-    myHead.setLoudness(loudness);
-    myHead.setAverageLoudness(averageLoudness);
+    myAvatar.setLoudness(loudness);
+    myAvatar.setAverageLoudness(averageLoudness);
     #endif
 
     //  Send my streaming head data to agents that are nearby and need to see it!
     const int MAX_BROADCAST_STRING = 200;
     char broadcast_string[MAX_BROADCAST_STRING];
-    int broadcast_bytes = myHead.getBroadcastData(broadcast_string);
+    int broadcast_bytes = myAvatar.getBroadcastData(broadcast_string);
     agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 headPos = myHead.getPos();
+    	glm::vec3 avatarPos = myAvatar.getPos();
 
 		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = headPos.x/-10.0;  
-		::paintingVoxel.y = headPos.y/-10.0;  
-		::paintingVoxel.z = headPos.z/-10.0;
+		::paintingVoxel.x = avatarPos.x/-10.0;  
+		::paintingVoxel.y = avatarPos.y/-10.0;  
+		::paintingVoxel.z = avatarPos.z/-10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -535,9 +535,9 @@ void render_view_frustum() {
 	
 	
 //Jeffrey's variation: 	
-glm::vec3 avatarBodyPosition	= myHead.getAvatarPosition();
-glm::vec3 avatarHeadPosition	= myHead.getAvatarHeadPosition();
-glm::vec3 avatarHeadDirection	= myHead.getAvatarHeadLookatDirection();
+glm::vec3 avatarBodyPosition	= myAvatar.getAvatarPosition();
+glm::vec3 avatarHeadPosition	= myAvatar.getAvatarHeadPosition();
+glm::vec3 avatarHeadDirection	= myAvatar.getAvatarHeadLookatDirection();
 
 glm::vec3 avatarHeadDirectionEndPoint( avatarHeadPosition );
 avatarHeadDirectionEndPoint += avatarHeadDirection;
@@ -561,13 +561,13 @@ glEnd();
 
 
 	/*
-	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
-	//glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
+	glm::vec3 cameraPosition  = ::myAvatar.getPos()*-1.0; // We need to flip the sign to make this work.
+	//glm::vec3 cameraDirection = ::myAvatar.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
 
-	float yaw   = myHead.getYaw();
+	float yaw   = myAvatar.getYaw();
 	float rightOfYaw = yaw-90.0;
-	//float pitch = myHead.getPitch();
-	//float roll  = myHead.getRoll();
+	//float pitch = myAvatar.getPitch();
+	//float roll  = myAvatar.getRoll();
 	
 	//printf("yaw=%f, right of yaw=%f, pitch=%f, roll=%f\n",yaw,rightOfYaw,pitch,roll);
 
@@ -699,7 +699,7 @@ glEnd();
 
 void display(void)
 {
-	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
+	//printf( "avatar head lookat = %f, %f, %f\n", myAvatar.getAvatarHeadLookatDirection().x, myAvatar.getAvatarHeadLookatDirection().y, myAvatar.getAvatarHeadLookatDirection().z );
 
 	PerfStat("display");
 
@@ -729,14 +729,14 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myHead.getPos() );	
+		myCamera.setTargetPosition( myAvatar.getPos() );	
 
 		if ( displayHead )
 		{
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------		
-			myCamera.setYaw		( - myHead.getAvatarYaw() );
+			myCamera.setYaw		( - myAvatar.getAvatarYaw() );
 			myCamera.setPitch	( 0.0  );
 			myCamera.setRoll	( 0.0  );
 			myCamera.setUp		( 0.4  );
@@ -749,7 +749,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
+			myCamera.setYaw		( 180.0 - myAvatar.getAvatarYaw() );
 			myCamera.setPitch	(   0.0 );
 			myCamera.setRoll	(   0.0 );
 			myCamera.setUp		(   0.2 );
@@ -805,7 +805,7 @@ void display(void)
         //  Draw field vectors
         if (displayField) field.render();
             
-        //  Render heads of other agents
+        //  Render avatars of other agents
         for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
@@ -829,15 +829,15 @@ void display(void)
     
 	
 		//---------------------------------
-        //  Render my own head
+        //  Render my own avatar
 		//---------------------------------
-		myHead.render( true, 1 );	
+		myAvatar.render( true, 1 );	
 	
 		/*
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0.f, 0.f, -7.f);
-        myHead.render(displayHead, 1);
+        myAvatar.render(displayHead, 1);
         glPopMatrix();
 		*/
 		
@@ -861,7 +861,7 @@ void display(void)
         #endif
 
 
-        //drawvec3(100, 100, 0.15, 0, 1.0, 0, myHead.getPos(), 0, 1, 0);
+        //drawvec3(100, 100, 0.15, 0, 1.0, 0, myAvatar.getPos(), 0, 1, 0);
         glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, pointer_attenuation_quadratic );
 
         if (displayHeadMouse && !displayHead && statsOn)
@@ -957,11 +957,11 @@ void shiftPaintingColor()
 
 void setupPaintingVoxel()
 {
-	glm::vec3 headPos = myHead.getPos();
+	glm::vec3 avatarPos = myAvatar.getPos();
 
-	::paintingVoxel.x = headPos.z/-10.0;	// voxel space x is negative z head space
-	::paintingVoxel.y = headPos.y/-10.0;  // voxel space y is negative y head space
-	::paintingVoxel.z = headPos.x/-10.0;  // voxel space z is negative x head space
+	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
+	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
+	::paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
 	::paintingVoxel.s = 1.0/256;
 	
 	shiftPaintingColor();
@@ -993,20 +993,20 @@ const float KEYBOARD_FLY_RATE = 0.08;
 
 void specialkeyUp(int k, int x, int y) {
     if (k == GLUT_KEY_UP) {
-        myHead.setDriveKeys(FWD, 0);
-        myHead.setDriveKeys(UP, 0);
+        myAvatar.setDriveKeys(FWD, 0);
+        myAvatar.setDriveKeys(UP, 0);
     }
     if (k == GLUT_KEY_DOWN) {
-        myHead.setDriveKeys(BACK, 0);
-        myHead.setDriveKeys(DOWN, 0);
+        myAvatar.setDriveKeys(BACK, 0);
+        myAvatar.setDriveKeys(DOWN, 0);
     }
     if (k == GLUT_KEY_LEFT) {
-        myHead.setDriveKeys(LEFT, 0);
-        myHead.setDriveKeys(ROT_LEFT, 0);
+        myAvatar.setDriveKeys(LEFT, 0);
+        myAvatar.setDriveKeys(ROT_LEFT, 0);
     }
     if (k == GLUT_KEY_RIGHT) {
-        myHead.setDriveKeys(RIGHT, 0);
-        myHead.setDriveKeys(ROT_RIGHT, 0);
+        myAvatar.setDriveKeys(RIGHT, 0);
+        myAvatar.setDriveKeys(ROT_RIGHT, 0);
     }
     
 }
@@ -1015,20 +1015,20 @@ void specialkey(int k, int x, int y)
 {
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(UP, 1);
-            else myHead.setDriveKeys(FWD, 1);
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
+            else myAvatar.setDriveKeys(FWD, 1);
         }
         if (k == GLUT_KEY_DOWN) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(DOWN, 1);
-            else myHead.setDriveKeys(BACK, 1);
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(DOWN, 1);
+            else myAvatar.setDriveKeys(BACK, 1);
         }
         if (k == GLUT_KEY_LEFT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(LEFT, 1);
-            else myHead.setDriveKeys(ROT_LEFT, 1);  
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(LEFT, 1);
+            else myAvatar.setDriveKeys(ROT_LEFT, 1);  
         }
         if (k == GLUT_KEY_RIGHT) {
-            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myHead.setDriveKeys(RIGHT, 1);
-            else myHead.setDriveKeys(ROT_RIGHT, 1);   
+            if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(RIGHT, 1);
+            else myAvatar.setDriveKeys(ROT_RIGHT, 1);   
         }
 #ifndef _WIN32
         audio.setWalkingState(true);
@@ -1038,12 +1038,12 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
-    if (k == 'e') myHead.setDriveKeys(UP, 0);
-    if (k == 'c') myHead.setDriveKeys(DOWN, 0);
-    if (k == 'w') myHead.setDriveKeys(FWD, 0);
-    if (k == 's') myHead.setDriveKeys(BACK, 0);
-    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 0);
-    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 0);
+    if (k == 'e') myAvatar.setDriveKeys(UP, 0);
+    if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
+    if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
+    if (k == 's') myAvatar.setDriveKeys(BACK, 0);
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 0);
+    if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
 
 }
 
@@ -1068,11 +1068,11 @@ void key(unsigned char k, int x, int y)
         noiseOn = !noiseOn;                   // Toggle noise 
         if (noiseOn)
         {
-            myHead.setNoise(noise);
+            myAvatar.setNoise(noise);
         }
         else 
         {
-            myHead.setNoise(0);
+            myAvatar.setNoise(0);
         }
 
     }
@@ -1088,10 +1088,10 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
-    if (k == 'e') myHead.setDriveKeys(UP, 1);
-    if (k == 'c') myHead.setDriveKeys(DOWN, 1);
-    if (k == 'w') myHead.setDriveKeys(FWD, 1);
-    if (k == 's') myHead.setDriveKeys(BACK, 1);
+    if (k == 'e') myAvatar.setDriveKeys(UP, 1);
+    if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
+    if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
+    if (k == 's') myAvatar.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
     if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
@@ -1102,8 +1102,8 @@ void key(unsigned char k, int x, int y)
     if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
     if (k == 'r') stars.readInput(starFile, 0);
 #endif
-    if (k == 'a') myHead.setDriveKeys(ROT_LEFT, 1); 
-    if (k == 'd') myHead.setDriveKeys(ROT_RIGHT, 1);
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
 
 	// press the . key to get a new random sphere of voxels added 
     if (k == '.') addRandomSphere(wantColorRandomizer);
@@ -1125,7 +1125,7 @@ void *networkReceive(void *args)
             
             if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
                 //  Pass everything but transmitter data to the agent list
-                 myHead.hand->processTransmitterData(incomingPacket, bytesReceived);            
+                 myAvatar.hand->processTransmitterData(incomingPacket, bytesReceived);            
             } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
 					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
 					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
@@ -1162,7 +1162,7 @@ void idle(void)
 			float backFront	= 0.0;
 			
 			glm::vec3 handMovement( leftRight, downUp, backFront );
-			myHead.setHandMovement( handMovement );		
+			myAvatar.setHandMovement( handMovement );		
 		}		
 		
         //  Simulation
@@ -1185,7 +1185,7 @@ void idle(void)
         simulateHand(1.f/FPS);
         
         field.simulate(1.f/FPS);
-        myHead.simulate(1.f/FPS);
+        myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
         cloud.simulate(1.f/FPS);
         lattice.simulate(1.f/FPS);
