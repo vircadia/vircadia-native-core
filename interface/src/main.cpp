@@ -108,7 +108,7 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
-bool showingVoxels = true;
+bool showingVoxels = false;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
