@@ -20,6 +20,7 @@ AudioData::AudioData() {
     jitterBuffer = 0;
     
     mixerLoopbackFlag = false;
+    audioSocket = NULL;
 }
 
 

@@ -103,15 +103,16 @@ enum AvatarBones
 
 struct AvatarBone
 {
-	AvatarBones	parent;
-	glm::vec3	worldPosition;
-	glm::vec3	defaultPosePosition;
-	glm::dvec3	velocity;
-	float		yaw;
-	float		pitch;
-	float		roll;
-	Orientation	worldOrientation;
-	float		length;
+	AvatarBones	parent;					// which bone is this bone connected to?
+	glm::vec3	position;				// the position at the "end" of the bone
+	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
+	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
+	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
+	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
+	float		roll;					// the roll Euler angle of the bone rotation off the parent
+	Orientation	orientation;			// three orthogonal normals determined by yaw, pitch, roll
+	float		length;					// the length of the bone
 };
 
 struct Avatar
@@ -158,6 +159,7 @@ class Head : public AgentData {
         float getLastMeasuredYaw() {return YawRate;}
 		
 		float getAvatarYaw();
+		glm::vec3 getAvatarHeadLookatDirection();
         
         void render(int faceToFace, int isMine);
 		
@@ -245,6 +247,7 @@ class Head : public AgentData {
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();
+		void updateAvatarSprings();
 		void calculateBoneLengths();
     
         void readSensors();
