@@ -472,9 +472,10 @@ void simulateHead(float frametime)
     char broadcastString[200];
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
     
-    char broadcastReceivers[2];
+    char broadcastReceivers[3];
     *broadcastReceivers = AGENT_TYPE_VOXEL;
     *(broadcastReceivers + 1) = AGENT_TYPE_AVATAR_MIXER;
+    *(broadcastReceivers + 2) = '\0';
     
     agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers);
 
