@@ -3,10 +3,6 @@
 
 #include <vector>
 
-#define MAX_COLUMN_NAME 50
-#define SPACE_BETWEEN_COLUMNS 20
-#define SPACE_BEFORE_ROW_NAME 10
-
 
 class Menu  {
 public:
