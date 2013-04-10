@@ -108,6 +108,8 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
+bool showingVoxels = false;
+
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 ParticleSystem balls(0,
@@ -511,6 +513,8 @@ void simulateHead(float frametime)
 
 void display(void)
 {
+	//printf( "avatar head lookat = %f, %f, %f\n", myHead.getAvatarHeadLookatDirection().x, myHead.getAvatarHeadLookatDirection().y, myHead.getAvatarHeadLookatDirection().z );
+
 	PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -560,7 +564,7 @@ void display(void)
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
 			myCamera.setYaw		( 180.0 - myHead.getAvatarYaw() );
-			myCamera.setPitch	(  10.0 );
+			myCamera.setPitch	(   0.0 );
 			myCamera.setRoll	(   0.0 );
 			myCamera.setUp		(   0.2 );
 			myCamera.setDistance(   1.6 );	
@@ -584,17 +588,34 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
+		
+		//---------------------------------------------
+		// draw a red sphere  
+		//---------------------------------------------
+		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
-        glutSolidSphere(0.25, 15, 15);
-    
+		glPushMatrix();
+			glTranslatef( 0.0f, sphereRadius, 0.0f );
+			glutSolidSphere( sphereRadius, 15, 15 );
+		glPopMatrix();
+
+		//---------------------------------------------
+		// draw a grid gound plane....
+		//---------------------------------------------
+		drawGroundPlaneGrid( 5.0f, 9 );
+		
+		
         //  Draw cloud of dots
         glDisable( GL_POINT_SPRITE_ARB );
         glDisable( GL_TEXTURE_2D );
         if (!displayHead) cloud.render();
     
         //  Draw voxels
-		voxels.render();
-    
+		if ( showingVoxels )
+		{
+			voxels.render();
+		}
+		
         //  Draw field vectors
         if (displayField) field.render();
             
@@ -1061,6 +1082,8 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
     audio.updateMixerParams(newMixerAddress, newMixerPort);
 }
 #endif
+
+
 
 int main(int argc, const char * argv[])
 {
