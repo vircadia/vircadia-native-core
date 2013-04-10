@@ -6,6 +6,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#endif
 #include <cstring>
 #include <cstdio>
 #include <cmath>

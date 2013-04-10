@@ -34,7 +34,7 @@ float browThickness = 0.16;
 
 const float DECAY = 0.1;
 
-char iris_texture_file[] = "images/green_eye.png";
+char iris_texture_file[] = "resources/images/green_eye.png";
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
