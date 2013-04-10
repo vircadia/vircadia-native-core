@@ -374,11 +374,11 @@ namespace starfield {
             float halfSlice = 0.5f * slice;
             float daz = halfSlice * cos(abs(altitude) - halfSlice);
             float dal = halfSlice;
-            float nearClip = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
+            float adjustedNear = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
 
 // fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
-            return w > nearClip;
+            return w > adjustedNear;
         }
 
         void updateVertexCount(Tile* t, BrightnessLevel minBright) {
