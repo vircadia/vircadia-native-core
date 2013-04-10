@@ -155,6 +155,12 @@ VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 bool frustumOn = false;				//  Whether or not to display the debug view frustum
+
+bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
+float viewFrustumOffsetYaw = -90.0;
+float viewFrustumOffsetPitch = 7.5;
+float viewFrustumOffsetRoll = 0.0;
+
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -522,8 +528,11 @@ void render_view_frustum() {
 	
 	glm::vec3 up    = myAvatar.getHeadLookatDirectionUp();
 	glm::vec3 right = myAvatar.getHeadLookatDirectionRight();
-	float nearDist = 0.1;
-	float farDist  = 1.0;
+	
+	// what? this are negative?? GRRRR!!!
+	float nearDist = -0.1; 
+	float farDist  = -1.0;
+	
 	float fovHalfAngle = 0.7854f; // 45 deg for half, so fov = 90 deg
 	
 	float screenWidth = ::WIDTH; // These values come from reshape() 
@@ -643,8 +652,7 @@ void display(void)
 		//--------------------------------------------------------		
 		myCamera.setTargetPosition( myAvatar.getPos() );	
 
-		if ( displayHead )
-		{
+		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------		
@@ -655,19 +663,29 @@ void display(void)
 			myCamera.setDistance( 0.5  );	
 			myCamera.setDistance( 0.08 );
 			myCamera.update();
-		}
-		else
-		{
-			//----------------------------------------------------
-			// set the camera to third-person view behind my av
-			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch	(   0.0 );
-			myCamera.setRoll	(   0.0 );
-			myCamera.setUp		(   0.2 );
-			myCamera.setDistance(   1.6 );	
-			myCamera.setDistance(   0.5 );
-			myCamera.update();
+		} else {
+			if (::viewFrustumFromOffset && ::frustumOn) {
+				//----------------------------------------------------
+				// set the camera to third-person view but offset so we can see the frustum
+				//----------------------------------------------------		
+				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+				myCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
+				myCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
+				myCamera.setUp		(   0.2 + 0.2 );
+				myCamera.setDistance(   0.5 + 0.2 );
+				myCamera.update();
+			} else {
+				//----------------------------------------------------
+				// set the camera to third-person view behind my av
+				//----------------------------------------------------		
+				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
+				myCamera.setPitch	(   0.0 );
+				myCamera.setRoll	(   0.0 );
+				myCamera.setUp		(   0.2 );
+				myCamera.setDistance(   1.6 );	
+				myCamera.setDistance(   0.5 );
+				myCamera.update();
+			}
 		}
 		
 		//---------------------------------------------
@@ -964,6 +982,15 @@ void key(unsigned char k, int x, int y)
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
+    if (k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset;	// toggle view frustum from offset debugging
+    
+	if (k == '[') ::viewFrustumOffsetYaw   -= 0.5;
+	if (k == ']') ::viewFrustumOffsetYaw   += 0.5;
+	if (k == '{') ::viewFrustumOffsetPitch -= 0.5;
+	if (k == '}') ::viewFrustumOffsetPitch += 0.5;
+	if (k == '(') ::viewFrustumOffsetRoll  -= 0.5;
+	if (k == ')') ::viewFrustumOffsetRoll  += 0.5;
+
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
