@@ -19,6 +19,7 @@
 using namespace std;
 
 float skinColor[] = {1.0, 0.84, 0.66};
+float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
@@ -502,9 +503,9 @@ void Head::renderHead( int faceToFace, int isMine )
 
 	glTranslatef
 	( 
-		avatar.bone[ AVATAR_BONE_HEAD ].worldPosition.x, 
-		avatar.bone[ AVATAR_BONE_HEAD ].worldPosition.y, 
-		avatar.bone[ AVATAR_BONE_HEAD ].worldPosition.z 
+		avatar.bone[ AVATAR_BONE_HEAD ].position.x, 
+		avatar.bone[ AVATAR_BONE_HEAD ].position.y, 
+		avatar.bone[ AVATAR_BONE_HEAD ].position.z 
 	);
 
 	glScalef( 0.03, 0.03, 0.03 );
@@ -669,9 +670,9 @@ void Head::setHandMovement( glm::vec3 movement )
 //-----------------------------------------
 void Head::initializeAvatar()
 {
-	avatar.position = glm::vec3( 0.0, 0.0, 0.0 );
-	avatar.velocity = glm::vec3( 0.0, 0.0, 0.0 );
-	avatar.thrust	= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.position		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
 	avatar.yaw		= 90.0;
@@ -682,9 +683,10 @@ void Head::initializeAvatar()
 	
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
-		avatar.bone[b].worldPosition	= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].velocity			= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].worldOrientation.setToIdentity();
+		avatar.bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyVelocity	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].orientation.setToIdentity();
 	}
 
 	//----------------------------------------------------------------------------
@@ -772,13 +774,11 @@ void Head::initializeAvatar()
 	//----------------------------------------------------------------------------
 	updateAvatarSkeleton();
 	
-	//----------------------------------------------------------------------------
-	// set offset positions = world positions
-	//----------------------------------------------------------------------------
-	for (int b=0; b<NUM_AVATAR_BONES; b++)
-	{
-		//avatar.bone[b].offsetPosition = avatar.bone[b].worldPosition;
-	}	
+
+	
+//avatar.bone[4].springyVelocity = glm::vec3( 1.0f, 0.0f, 0.0f );
+	
+	
 }
 
 
@@ -802,8 +802,9 @@ void Head::calculateBoneLengths()
 //-----------------------------------------
 void Head::updateAvatarSkeleton()
 {
-	//rotate the body...
-	
+	//------------------------------------------------------------------------
+	// rotate...
+	//------------------------------------------------------------------------	
 	avatar.orientation.setToIdentity();
 	avatar.orientation.yaw( -avatar.yaw );
 
@@ -814,32 +815,32 @@ void Head::updateAvatarSkeleton()
 	{
 		if ( avatar.bone[b].parent == AVATAR_BONE_NULL )
 		{
-			avatar.bone[b].worldOrientation.set( avatar.orientation );
-			avatar.bone[b].worldPosition = avatar.position;
+			avatar.bone[b].orientation.set( avatar.orientation );
+			avatar.bone[b].position = avatar.position;
 		}
 		else
 		{
-			avatar.bone[b].worldOrientation.set( avatar.bone[ avatar.bone[b].parent ].worldOrientation );
-			avatar.bone[b].worldPosition = avatar.bone[ avatar.bone[b].parent ].worldPosition;
+			avatar.bone[b].orientation.set( avatar.bone[ avatar.bone[b].parent ].orientation );
+			avatar.bone[b].position = avatar.bone[ avatar.bone[b].parent ].position;
 		}
-				
-		float xx	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getRight	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getRight	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getRight	().z );
+														
+		float xx	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getRight	().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getRight	().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getRight	().z );
 
-		float yy	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getUp		().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getUp		().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getUp		().z );
+		float yy	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getUp		().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getUp		().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getUp		().z );
 
-		float zz	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].worldOrientation.getFront	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].worldOrientation.getFront	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].worldOrientation.getFront	().z );
+		float zz	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getFront	().x )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getFront	().y )
+					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getFront	().z );
 				
 		glm::vec3 rotatedBoneVector( xx, yy, zz );
 
-		//rotatedBonePosition.x = avatar.bone[b].defaultPosePosition.x;// * avatar.bone[b].worldOrientation.getFront().x;
-		//rotatedBonePosition.y = avatar.bone[b].defaultPosePosition.y;// * avatar.bone[b].worldOrientation.getFront().y;
-		//rotatedBonePosition.z = avatar.bone[b].defaultPosePosition.z;// * avatar.bone[b].worldOrientation.getFront().z;
+		//rotatedBonePosition.x = avatar.bone[b].defaultPosePosition.x;// * avatar.bone[b].orientation.getFront().x;
+		//rotatedBonePosition.y = avatar.bone[b].defaultPosePosition.y;// * avatar.bone[b].orientation.getFront().y;
+		//rotatedBonePosition.z = avatar.bone[b].defaultPosePosition.z;// * avatar.bone[b].orientation.getFront().z;
 	
 
 		
@@ -851,8 +852,14 @@ void Head::updateAvatarSkeleton()
 		//glm::dmat3x3 rotationMatrix = glm::eulerAngleYXZ( 0.0, 0.0, 0.0 );
 		
 		
-		avatar.bone[b].worldPosition += rotatedBoneVector;
+		avatar.bone[b].position += rotatedBoneVector;
 	}	
+	
+
+	//------------------------------------------------------------------------
+	// update springy behavior:
+	//------------------------------------------------------------------------
+	updateAvatarSprings();
 	
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
@@ -860,13 +867,13 @@ void Head::updateAvatarSkeleton()
 	updateHandMovement();
 	
 	/*
-	glm::dvec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition );
-	v -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition;
+	glm::dvec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
+	v -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
 	
 	double distance = glm::length(v);
 	if ( distance > avatar.maxArmLength )
 	{
-		avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition += v * 0.2;
+		avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position += v * 0.2;
 	}
 	*/
 	
@@ -878,7 +885,7 @@ void Head::updateAvatarSkeleton()
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
-		glm::dvec3 diff( avatar.bone[b].worldPosition );
+		glm::dvec3 diff( avatar.bone[b].position );
 		diff -= avatar.bone[b].offsetPosition;
 		
 		avatar.bone[b].offsetPosition += diff * 0.1;
@@ -886,6 +893,53 @@ void Head::updateAvatarSkeleton()
 	*/
 	
 	
+}
+
+
+
+
+
+//-------------------------------
+void Head::updateAvatarSprings()
+{
+printf( "listing bone parent springyPosition:\n" );
+
+	for (int b=0; b<NUM_AVATAR_BONES; b++)
+	{
+		printf
+		( 
+			"bone %d: %f, %f, %f\n", b, 
+			avatar.bone[ avatar.bone[b].parent ].springyPosition.x, 
+			avatar.bone[ avatar.bone[b].parent ].springyPosition.y, 
+			avatar.bone[ avatar.bone[b].parent ].springyPosition.z 
+		);
+
+		glm::vec3 springVector( avatar.bone[b].springyPosition );
+
+		if ( avatar.bone[b].parent == AVATAR_BONE_NULL )
+		{
+			springVector -= avatar.position;
+		}
+		else
+		{
+			springVector -= avatar.bone[ avatar.bone[b].parent ].springyPosition;
+			float length = glm::length( springVector );
+			
+			if ( length > 0.0f )
+			{
+				glm::vec3 springDirection = springVector / length;
+				
+				float force = ( length - avatar.bone[b].length ) * 0.01;
+				
+				avatar.bone[ b						].springyVelocity -= springDirection * force;
+				avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
+			}
+			
+			avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * 0.01f;
+			avatar.bone[b].springyVelocity *= 0.8;
+			avatar.bone[b].springyPosition += avatar.bone[b].springyVelocity;
+		}
+	}
 }
 
 
@@ -901,9 +955,9 @@ glm::vec3 Head::getAvatarHeadLookatDirection()
 {
 	return glm::vec3
 	(
-		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().x,
-		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().y,
-		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().z
+		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().x,
+		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().y,
+		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().z
 	);
 }
 
@@ -915,9 +969,9 @@ void Head::updateHandMovement()
 	//----------------------------------------------------------------
 	// adjust right hand and elbow according to hand offset
 	//----------------------------------------------------------------
-	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition += handOffset;	
-	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition;
-	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += handOffset;	
+	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
+	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 
 	//-------------------------------------------------------------------------------
 	// test to see if right hand is being dragged beyond maximum arm length
@@ -932,32 +986,32 @@ void Head::updateHandMovement()
 		//-------------------------------------------------------------------------------
 		// reset right hand to be constrained to maximum arm length
 		//-------------------------------------------------------------------------------
-		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		glm::vec3 armNormal = armVector / distance;
 		armVector = armNormal * (float)avatar.maxArmLength;
 		distance = avatar.maxArmLength;
-		glm::vec3 constrainedPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+		glm::vec3 constrainedPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		constrainedPosition += armVector;
-		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition = constrainedPosition;
+		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position = constrainedPosition;
 	}
 	
 	//-----------------------------------------------------------------------------
 	// set elbow position 
 	//-----------------------------------------------------------------------------
-	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].worldPosition;
+	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * (float)ONE_HALF;
 	glm::vec3 perpendicular = glm::vec3( -armVector.y, armVector.x, armVector.z );
 	newElbowPosition += perpendicular * (float)( ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF );
-	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition = newElbowPosition;
+	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
 	//-----------------------------------------------------------------------------
 	// set wrist position 
 	//-----------------------------------------------------------------------------
-	glm::vec3 vv( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition );
-	vv -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition;
-	glm::vec3 newWristPosition = avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].worldPosition;
+	glm::vec3 vv( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
+	vv -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
+	glm::vec3 newWristPosition = avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
 	newWristPosition += vv * 0.7f;
-	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].worldPosition = newWristPosition;
+	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM ].position = newWristPosition;
 }
 
 
@@ -966,68 +1020,96 @@ void Head::updateHandMovement()
 //-----------------------------------------
 void Head::renderBody()
 {
-	glColor3fv(skinColor);
-
 	//-----------------------------------------
-    //  Render bones as spheres
+    //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
+		glColor3fv( skinColor );
 		glPushMatrix();
-			glTranslatef( avatar.bone[b].worldPosition.x, avatar.bone[b].worldPosition.y, avatar.bone[b].worldPosition.z );
-			glutSolidSphere( .02, 10, 5 );
+			glTranslatef( avatar.bone[b].position.x, avatar.bone[b].position.y, avatar.bone[b].position.z );
+			glutSolidSphere( 0.02f, 10.0f, 5.0f );
 		glPopMatrix();
-	}
 
-	//-----------------------------------------
-    // Render lines connecting the bones
-	//-----------------------------------------
+		/*
+		glColor3fv( lightBlue );
+		glPushMatrix();
+			glTranslatef( avatar.bone[b].springyPosition.x, avatar.bone[b].springyPosition.y, avatar.bone[b].springyPosition.z );
+			glutSolidSphere( 0.01f, 10.0f, 5.0f );
+		glPopMatrix();
+		*/
+	}
+	
+
+	
+
+	//-----------------------------------------------------
+    // Render lines connecting the bone positions
+	//-----------------------------------------------------
     glColor3f(1,1,1);
     glLineWidth(3.0);
 
 	for (int b=1; b<NUM_AVATAR_BONES; b++)
 	{
 		glBegin( GL_LINE_STRIP );
-		glVertex3fv( &avatar.bone[ avatar.bone[ b ].parent ].worldPosition.x);
-		glVertex3fv( &avatar.bone[ b ].worldPosition.x);
+		glVertex3fv( &avatar.bone[ avatar.bone[ b ].parent ].position.x);
+		glVertex3fv( &avatar.bone[ b ].position.x);
 		glEnd();
 	}
+
+	/*
+	//-----------------------------------------------------
+    // Render lines connecting the springy positions
+	//-----------------------------------------------------
+    glColor3f( 0.2f, 0.3f, 0.4f );
+    glLineWidth(3.0);
+
+	for (int b=1; b<NUM_AVATAR_BONES; b++)
+	{
+		glBegin( GL_LINE_STRIP );
+		glVertex3fv( &avatar.bone[ avatar.bone[ b ].parent ].springyPosition.x);
+		glVertex3fv( &avatar.bone[ b ].springyPosition.x);
+		glEnd();
+	}
+	*/
+	
+
 	
 	/*
     glBegin(GL_LINE_STRIP);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_NECK].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHOULDER].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_UPPER_ARM].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOREARM].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_HAND].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_NECK].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHOULDER].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_UPPER_ARM].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOREARM].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_HAND].position.x);
     glEnd();
     glBegin(GL_LINE_STRIP);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHOULDER].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_UPPER_ARM].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOREARM].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_HAND].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHOULDER].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_UPPER_ARM].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOREARM].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_HAND].position.x);
     glEnd();
     glBegin(GL_LINE_STRIP);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_MID_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);    
+    glVertex3fv(&avatar.bone[AVATAR_BONE_CHEST_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_MID_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].position.x);    
     glEnd();
     glBegin(GL_LINE_STRIP);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_PELVIS].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_THIGH].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHIN].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOOT].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_PELVIS].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_THIGH].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_SHIN].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_LEFT_FOOT].position.x);
     glEnd();
     glBegin(GL_LINE_STRIP);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_PELVIS].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_THIGH].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHIN].worldPosition.x);
-    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOOT].worldPosition.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_PELVIS_SPINE].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_PELVIS].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_THIGH].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_SHIN].position.x);
+    glVertex3fv(&avatar.bone[AVATAR_BONE_RIGHT_FOOT].position.x);
     glEnd();
 	*/
 	
@@ -1047,9 +1129,9 @@ int Head::getBroadcastData(char* data)
             position.x + leanSideways, position.y, position.z + leanForward,
             loudness, averageLoudness,
             //hand->getPos().x, hand->getPos().y, hand->getPos().z);  //previous to Ventrella change
-            avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.x, 
-			avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.y, 
-			avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.z );    // Ventrella change
+            avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+			avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+			avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z );    // Ventrella change
     return strlen(data);
 }
 
@@ -1058,7 +1140,7 @@ int Head::getBroadcastData(char* data)
 //---------------------------------------------------
 void Head::parseData(void *data, int size) 
 {
-	//glm::vec3 pos;//( (glm::vec3)avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition ); 
+	//glm::vec3 pos;//( (glm::vec3)avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position ); 
 	
     // parse head data for this agent
     glm::vec3 handPos( 0,0,0 );
@@ -1069,9 +1151,9 @@ void Head::parseData(void *data, int size)
 		&Pitch, &Yaw, &Roll,
 		&position.x, &position.y, &position.z,
 		&loudness, &averageLoudness,
-		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.x, 
-		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.y, 
-		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].worldPosition.z
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+		&avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position.z
 	);
 		   
     if (glm::length(handPos) > 0.0) hand->setPos(handPos);
