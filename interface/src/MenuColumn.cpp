@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include <cstring>
 
 #include "InterfaceConfig.h"
 #include "Util.h"
@@ -7,7 +8,6 @@
 #include "MenuRow.h"
 #include "MenuColumn.h"
 #include "Menu.h"
-
 
 
 MenuColumn::MenuColumn() {
