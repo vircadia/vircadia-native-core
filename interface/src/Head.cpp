@@ -272,7 +272,7 @@ void Head::setLeanSideways(float dist){
 
 
 
-//  Simulate the head over time 
+//  Simulate the avatar over time 
 //---------------------------------------------------
 void Head::simulate(float deltaTime)
 {
@@ -293,64 +293,50 @@ void Head::simulate(float deltaTime)
     thrust = glm::vec3(0);
 	*/
 	
-    const float THRUST_MAG			= 10.0;
-	const float THRUST_LATERAL_MAG	= 10.0;
-    const float THRUST_VERTICAL_MAG	= 10.0;
+    const float THRUST_MAG	= 10.0;
+    const float YAW_MAG		= 300.0;
 	
 	avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
-	    
+		
+	//notice that the z values from avatar.orientation are flipped to accommodate different coordinate system
     if (driveKeys[FWD]) 
 	{
-		avatar.thrust.x += avatar.orientation.getFront().getX() * THRUST_MAG;
-		avatar.thrust.y += avatar.orientation.getFront().getY() * THRUST_MAG;
-		avatar.thrust.z -= avatar.orientation.getFront().getZ() * THRUST_MAG;
-        //thrust += THRUST_MAG*forward;
+		glm::vec3 front( avatar.orientation.getFront().getX(), avatar.orientation.getFront().getY(), -avatar.orientation.getFront().getZ() );
+		avatar.thrust += front * THRUST_MAG;
     }
     if (driveKeys[BACK]) 
 	{
-		avatar.thrust.x -= avatar.orientation.getFront().getX() * THRUST_MAG;
-		avatar.thrust.y -= avatar.orientation.getFront().getY() * THRUST_MAG;
-		avatar.thrust.z += avatar.orientation.getFront().getZ() * THRUST_MAG;
-        //thrust += -THRUST_MAG*forward;
+		glm::vec3 front( avatar.orientation.getFront().getX(), avatar.orientation.getFront().getY(), -avatar.orientation.getFront().getZ() );
+		avatar.thrust -= front * THRUST_MAG;
     }
     if (driveKeys[RIGHT]) 
 	{
-		avatar.thrust.x += avatar.orientation.getRight().getX() * THRUST_LATERAL_MAG;
-		avatar.thrust.y += avatar.orientation.getRight().getY() * THRUST_LATERAL_MAG;
-		avatar.thrust.z -= avatar.orientation.getRight().getZ() * THRUST_LATERAL_MAG;
-        //thrust.x += forward.z*-THRUST_LATERAL_MAG;
-        //thrust.z += forward.x*THRUST_LATERAL_MAG;
+		glm::vec3 right( avatar.orientation.getRight().getX(), avatar.orientation.getRight().getY(), -avatar.orientation.getRight().getZ() );
+		avatar.thrust += right * THRUST_MAG;
     }
     if (driveKeys[LEFT]) 
 	{
-		avatar.thrust.x -= avatar.orientation.getRight().getX() * THRUST_LATERAL_MAG;
-		avatar.thrust.y -= avatar.orientation.getRight().getY() * THRUST_LATERAL_MAG;
-		avatar.thrust.z += avatar.orientation.getRight().getZ() * THRUST_LATERAL_MAG;
-        //thrust.x += forward.z*THRUST_LATERAL_MAG;
-        //thrust.z += forward.x*-THRUST_LATERAL_MAG;
+		glm::vec3 right( avatar.orientation.getRight().getX(), avatar.orientation.getRight().getY(), -avatar.orientation.getRight().getZ() );
+		avatar.thrust -= right * THRUST_MAG;
     }
     if (driveKeys[UP])
 	{
-		avatar.thrust.x -= avatar.orientation.getUp().getX() * THRUST_VERTICAL_MAG;
-		avatar.thrust.y -= avatar.orientation.getUp().getY() * THRUST_VERTICAL_MAG;
-		avatar.thrust.z += avatar.orientation.getUp().getZ() * THRUST_VERTICAL_MAG;
-        //thrust.y += -THRUST_VERTICAL_MAG;
+		glm::vec3 up( avatar.orientation.getUp().getX(), avatar.orientation.getUp().getY(), -avatar.orientation.getUp().getZ() );
+		avatar.thrust += up * THRUST_MAG;
     }
     if (driveKeys[DOWN]) 
 	{
-		avatar.thrust.x += avatar.orientation.getUp().getX() * THRUST_VERTICAL_MAG;
-		avatar.thrust.y += avatar.orientation.getUp().getY() * THRUST_VERTICAL_MAG;
-		avatar.thrust.z -= avatar.orientation.getUp().getZ() * THRUST_VERTICAL_MAG;
-        //thrust.y += THRUST_VERTICAL_MAG;
+		glm::vec3 up( avatar.orientation.getUp().getX(), avatar.orientation.getUp().getY(), -avatar.orientation.getUp().getZ() );
+		avatar.thrust -= up * THRUST_MAG;
     }
 	
     if (driveKeys[ROT_RIGHT]) 
 	{	
-		avatar.yawDelta -= 300.0 * deltaTime;
+		avatar.yawDelta -= YAW_MAG * deltaTime;
     }
     if (driveKeys[ROT_LEFT]) 
 	{	
-		avatar.yawDelta += 300.0 * deltaTime;
+		avatar.yawDelta += YAW_MAG * deltaTime;
     }
 	
 	avatar.yaw += avatar.yawDelta * deltaTime;
@@ -907,6 +893,18 @@ void Head::updateAvatarSkeleton()
 float Head::getAvatarYaw()
 {
 	return avatar.yaw;
+}
+
+
+//-------------------------------------------
+glm::vec3 Head::getAvatarHeadLookatDirection()
+{
+	return glm::vec3
+	(
+		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().x,
+		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().y,
+		avatar.bone[ AVATAR_BONE_HEAD ].worldOrientation.getFront().z
+	);
 }
 
 
