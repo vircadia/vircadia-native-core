@@ -897,15 +897,20 @@ int setMirror(int state) {
 }
 
 void initMenu() {
-    MenuColumn *menuColumnOptions, *menuColumnTools;
+    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug;
+    //  Options
     menuColumnOptions = menu.addColumn("Options");
     menuColumnOptions->addRow("Head", setHead); 
     menuColumnOptions->addRow("Field", setField); 
     menuColumnOptions->addRow("Noise", setNoise); 
-    menuColumnOptions->addRow("Mirror", setMirror); 
+    menuColumnOptions->addRow("Mirror", setMirror);
+    //  Tools
     menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats", setStats); 
-    menuColumnTools->addRow("Menu", setMenu); 
+    menuColumnTools->addRow("Menu", setMenu);
+    // Debug
+    menuColumnDebug = menu.addColumn("Debug");
+    
 }
 
 void testPointToVoxel()
