@@ -471,13 +471,9 @@ void simulateHead(float frametime)
     //  Send my stream of head/hand data to the avatar mixer and voxel server
     char broadcastString[200];
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
+    const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
-    char broadcastReceivers[3];
-    *broadcastReceivers = AGENT_TYPE_VOXEL;
-    *(broadcastReceivers + 1) = AGENT_TYPE_AVATAR_MIXER;
-    *(broadcastReceivers + 2) = '\0';
-    
-    agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers);
+    agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
@@ -497,7 +493,7 @@ void simulateHead(float frametime)
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
 			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
-				agentList.broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL);
+				agentList.broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
 				delete bufferOut;
 			}
 		}
@@ -864,14 +860,14 @@ void sendVoxelServerEraseAll() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL);
+	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void sendVoxelServerAddScene() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL);
+	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
