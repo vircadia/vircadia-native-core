@@ -160,6 +160,8 @@ class Head : public AgentData {
 		
 		float getAvatarYaw();
 		glm::vec3 getAvatarHeadLookatDirection();
+		glm::vec3 getAvatarHeadPosition();
+		glm::vec3 getAvatarPosition();
         
         void render(int faceToFace, int isMine);
 		

@@ -955,9 +955,34 @@ glm::vec3 Head::getAvatarHeadLookatDirection()
 {
 	return glm::vec3
 	(
-		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().x,
-		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().y,
-		avatar.bone[ AVATAR_BONE_HEAD ].orientation.getFront().z
+		avatar.orientation.getFront().x,
+		avatar.orientation.getFront().y,
+		-avatar.orientation.getFront().z
+	);
+}
+
+
+//-------------------------------------------
+glm::vec3 Head::getAvatarHeadPosition()
+{
+	return glm::vec3
+	(
+		avatar.bone[ AVATAR_BONE_HEAD ].position.x,
+		avatar.bone[ AVATAR_BONE_HEAD ].position.y,
+		avatar.bone[ AVATAR_BONE_HEAD ].position.z
+	);
+}
+
+
+
+//-------------------------------------------
+glm::vec3 Head::getAvatarPosition()
+{
+	return glm::vec3
+	(
+		avatar.bone[ AVATAR_BONE_PELVIS_SPINE ].position.x,
+		avatar.bone[ AVATAR_BONE_PELVIS_SPINE ].position.y,
+		avatar.bone[ AVATAR_BONE_PELVIS_SPINE ].position.z
 	);
 }
 
