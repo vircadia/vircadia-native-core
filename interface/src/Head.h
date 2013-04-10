@@ -160,6 +160,8 @@ class Head : public AgentData {
 		
 		float getBodyYaw();
 		glm::vec3 getHeadLookatDirection();
+		glm::vec3 getHeadLookatDirectionUp();
+		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBodyPosition();
         

@@ -952,6 +952,28 @@ glm::vec3 Head::getHeadLookatDirection()
 	);
 }
 
+//-------------------------------------------
+glm::vec3 Head::getHeadLookatDirectionUp()
+{
+	return glm::vec3
+	(
+		avatar.orientation.getUp().x,
+		avatar.orientation.getUp().y,
+		-avatar.orientation.getUp().z
+	);
+}
+
+//-------------------------------------------
+glm::vec3 Head::getHeadLookatDirectionRight()
+{
+	return glm::vec3
+	(
+		avatar.orientation.getRight().x,
+		avatar.orientation.getRight().y,
+		-avatar.orientation.getRight().z
+	);
+}
+
 
 //-------------------------------
 glm::vec3 Head::getHeadPosition()
