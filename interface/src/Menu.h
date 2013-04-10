@@ -15,7 +15,7 @@ public:
     bool mouseOver(int x, int y);
     void render(int screenwidth, int screenheight);
     void renderColumn(int i);
-    MenuColumn* addColumn(char *columnName);
+    MenuColumn* addColumn(const char *columnName);
 private:
     std::vector<MenuColumn> columns;
     int currentColumn;

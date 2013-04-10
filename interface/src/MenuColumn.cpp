@@ -101,7 +101,7 @@ int MenuColumn::getLeftPosition() {
     return leftPosition;
 }
 
-int MenuColumn::addRow(char * rowName, PFNRowCallback callback) {
+int MenuColumn::addRow(const char * rowName, MenuRowCallback callback) {
     MenuRow* row;
     row = new MenuRow(rowName, callback);
     rows.push_back(*row);

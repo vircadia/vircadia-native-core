@@ -5,14 +5,12 @@ const int MAX_COLUMN_NAME = 50;
 const int SPACE_BETWEEN_COLUMNS = 20;
 const int SPACE_BEFORE_ROW_NAME = 10;
 
-#define MenuCallBack CALLBACK
-
-typedef int(MenuCallBack * PFNRowCallback)(int);
+typedef int(*MenuRowCallback)(int);
 
 class MenuRow  {
 public:
     MenuRow();
-    MenuRow(char * rowName, PFNRowCallback);
+    MenuRow(const char * rowName, MenuRowCallback callback);
     ~MenuRow();
     void call();
     char * getName();
@@ -21,7 +19,7 @@ public:
 private:
     char rowName[MAX_COLUMN_NAME];
     int rowWidth;
-    PFNRowCallback callback;
+    MenuRowCallback callback;
 };
 
 #endif /* defined(__hifi__MenuRow__) */

@@ -12,7 +12,7 @@
 MenuRow::MenuRow() {
 }
 
-MenuRow::MenuRow(char * columnName, PFNRowCallback callback) {
+MenuRow::MenuRow(const char * columnName, MenuRowCallback callback) {
     int length = std::min(MAX_COLUMN_NAME - 5,(int) strlen(columnName));
     strncpy(this->rowName, columnName, length);
     memcpy(this->rowName + length, "    \0", 5);

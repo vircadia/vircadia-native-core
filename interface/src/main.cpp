@@ -855,7 +855,7 @@ void display(void)
     frameCount++;
 }
 
-int MenuCallBack setValue(int state, int *value) {
+int setValue(int state, int *value) {
     if (state == -2) {
         *value = !(*value);
     } else if (state == -1) {
@@ -866,15 +866,15 @@ int MenuCallBack setValue(int state, int *value) {
     return *value;
 }
 
-int MenuCallBack setHead(int state) {
+int setHead(int state) {
     return setValue(state, &displayHead);
 }
 
-int MenuCallBack setField(int state) {
+int setField(int state) {
     return setValue(state, &displayField);
 }
 
-int MenuCallBack setNoise(int state) {
+int setNoise(int state) {
     int iRet = setValue(state, &noiseOn);
     if (noiseOn) {
         myAvatar.setNoise(noise);
@@ -884,15 +884,15 @@ int MenuCallBack setNoise(int state) {
     return iRet;
 }
 
-int MenuCallBack setStats(int state) {
+int setStats(int state) {
     return setValue(state, &statsOn);
 }
 
-int MenuCallBack setMenu(int state) {
+int setMenu(int state) {
     return setValue(state, &::menuOn);
 }
 
-int MenuCallBack setMirror(int state) {
+int setMirror(int state) {
     return setValue(state, &headMirror);
 }
 

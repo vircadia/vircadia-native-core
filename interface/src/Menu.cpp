@@ -111,7 +111,6 @@ void Menu::render(int screenWidth, int screenHeight) {
     int mono = 0;
     glColor3f(0.9, 0.9, 0.9);
     int width = screenWidth;
-    int height = screenHeight;
     glBegin(GL_QUADS); {
         glVertex2f(0, MENU_Y_OFFSET);
         glVertex2f(width, MENU_Y_OFFSET);
@@ -135,7 +134,7 @@ void Menu::render(int screenWidth, int screenHeight) {
  }
 
 
-MenuColumn* Menu::addColumn(char *columnName) {
+MenuColumn* Menu::addColumn(const char *columnName) {
     MenuColumn* pColumn;
     pColumn = new MenuColumn(columnName);
     columns.push_back(*pColumn);
