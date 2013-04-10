@@ -470,7 +470,7 @@ void simulateHead(float frametime)
 
     //  Send my stream of head/hand data to the avatar mixer and voxel server
     char broadcastString[200];
-    int broadcastBytes = myHead.getBroadcastData(broadcastString);
+    int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
     
     char broadcastReceivers[2];
     *broadcastReceivers = AGENT_TYPE_VOXEL;
@@ -1059,7 +1059,7 @@ void *networkReceive(void *args)
             
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA:
-                    myHead.hand->processTransmitterData(incomingPacket, bytesReceived);  
+                    myAvatar.hand->processTransmitterData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_Z_COMMAND:
