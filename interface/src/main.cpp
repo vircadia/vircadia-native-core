@@ -511,6 +511,9 @@ void simulateHead(float frametime)
     }
 }
 
+
+
+
 // XXXBHG - this code is not yet working. This is here to help Jeffery debug getAvatarHeadLookatDirection()
 // The code will draw a yellow line from the avatar's position to the origin,
 // It also attempts to draw a cyan line from the avatar to 2 meters in front of the avatar in the direction
@@ -528,7 +531,35 @@ void render_view_frustum() {
 	// farDist – the distance from the camera to the far plane
 	// farHeight – the height of the far plane
 	// farWidth – the width of the far plane
+	
+	
+//Jeffrey's variation: 	
+glm::vec3 avatarBodyPosition	= myHead.getAvatarPosition();
+glm::vec3 avatarHeadPosition	= myHead.getAvatarHeadPosition();
+glm::vec3 avatarHeadDirection	= myHead.getAvatarHeadLookatDirection();
 
+glm::vec3 avatarHeadDirectionEndPoint( avatarHeadPosition );
+avatarHeadDirectionEndPoint += avatarHeadDirection;
+
+glDisable(GL_LIGHTING);
+glLineWidth( 3.0 );
+
+// line from avatar head to origin
+glBegin( GL_LINE_STRIP );			
+glColor4f( 1.0, 0.0, 0.0, 1.0 );
+glVertex3f( avatarBodyPosition.x, avatarBodyPosition.y, avatarBodyPosition.z );
+glVertex3f( 0.0f, 0.0f, 0.0f );
+glEnd();
+
+//line from avatar head to 1 meter in front of avatar head
+glBegin( GL_LINE_STRIP );			
+glColor3f( 0.0f, 1.0f, 1.0f );
+glVertex3f( avatarHeadPosition.x, avatarHeadPosition.y, avatarHeadPosition.z );
+glVertex3f( avatarHeadDirectionEndPoint.x, avatarHeadDirectionEndPoint.y, avatarHeadDirectionEndPoint.z );
+glEnd();
+
+
+	/*
 	glm::vec3 cameraPosition  = ::myHead.getPos()*-1.0; // We need to flip the sign to make this work.
 	glm::vec3 cameraDirection = ::myHead.getAvatarHeadLookatDirection()*-1.0; // gak! Not sure if this is correct!
 	
@@ -550,7 +581,9 @@ void render_view_frustum() {
     glColor3f(0,1,1);
     glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
     glVertex3f(lookingAt.x,lookingAt.y,lookingAt.z);
-
+	*/
+	
+	
 	/*
 	// Not yet ready for this...
 	glm::vec3 up    = glm::vec3(0.0,1.0,0.0);
@@ -727,7 +760,7 @@ void display(void)
 		//---------------------------------------------
 		// draw a grid gound plane....
 		//---------------------------------------------
-		//drawGroundPlaneGrid( 5.0f, 9 );
+		drawGroundPlaneGrid( 5.0f, 9 );
 		
 		
         //  Draw cloud of dots

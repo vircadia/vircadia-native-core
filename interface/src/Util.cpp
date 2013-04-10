@@ -163,3 +163,36 @@ glm::vec3 operator* (const glm::vec3& lhs, float rhs)
     return result;
 }
 
+
+
+void drawGroundPlaneGrid( float size, int resolution )
+{
+
+	glColor3f( 0.4f, 0.5f, 0.3f );
+	glLineWidth(2.0);
+		
+	float gridSize = 10.0;
+	int gridResolution = 10;
+
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );			
+		glVertex3f( inc, 0.0f, -gridSize * ONE_HALF );
+		glVertex3f( inc, 0.0f,  gridSize * ONE_HALF );
+		glEnd();
+	}
+		
+	for (int g=0; g<gridResolution; g++)
+	{
+		float fraction = (float)g / (float)( gridResolution - 1 );
+		float inc = -gridSize * ONE_HALF + fraction * gridSize;
+		glBegin( GL_LINE_STRIP );			
+		glVertex3f( -gridSize * ONE_HALF, 0.0f, inc );
+		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
+		glEnd();
+	}
+}
+
+
