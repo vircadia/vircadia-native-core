@@ -864,6 +864,7 @@ void key(unsigned char k, int x, int y)
  	if (k == 'q')  ::terminate();
     if (k == '/')  statsOn = !statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
+    if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
