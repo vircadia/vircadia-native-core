@@ -118,13 +118,15 @@ int main(int argc, char* argv[])
         
     while (true) {
         if (agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
-                
-                if (agentList.addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_INTERFACE, agentList.getLastAgentId())) {
-                    agentList.increaseAgentId();
-                }
-                
-                agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+            switch (packetData[0]) {
+                case PACKET_HEADER_HEAD_DATA:
+                    // this is positional data from an agent
+                    agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                    break;
+                default:
+                    // hand this off to the AgentList
+                    agentList.processAgentData(agentAddress, (void *)packetData, receivedBytes);
+                    break;
             }
         }
     }
