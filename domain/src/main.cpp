@@ -127,9 +127,12 @@ int main(int argc, const char * argv[])
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
-            for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) {
+            for(std::vector<Agent>::iterator agent = agentList.getAgents().begin();
+                agent != agentList.getAgents().end();
+                agent++) {
                 
-                if (DEBUG_TO_SELF || !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
+                if (DEBUG_TO_SELF ||
+                    !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
                     if (strchr(SOLO_AGENT_TYPES_STRING, (int) agent->getType()) == NULL) {
                         // this is an agent of which there can be multiple, just add them to the packet
                         currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
@@ -155,7 +158,9 @@ int main(int argc, const char * argv[])
             }
             
             if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
-                agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress, broadcastPacket, packetBytesWithoutLeadingChar + 1);
+                agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
+                                                broadcastPacket,
+                                                packetBytesWithoutLeadingChar + 1);
             }
         }
     }

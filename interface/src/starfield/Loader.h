@@ -51,7 +51,7 @@ namespace starfield {
                 return false;
             }
  fprintf(stderr, "Stars.cpp: read %d stars, rendering %ld\n", 
-      _valRecordsRead, _ptrVertices->size());
+         _valRecordsRead, _ptrVertices->size());
 
             return true;
         }

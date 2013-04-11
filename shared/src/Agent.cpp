@@ -67,7 +67,7 @@ Agent::Agent(const Agent &otherAgent) {
         linkedData = NULL;
     }
     
-    deleteMutex = otherAgent.deleteMutex;
+    pthread_mutex_init(&deleteMutex, NULL);
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
@@ -83,7 +83,6 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
     swap(first.agentId, second.agentId);
-    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {
@@ -100,7 +99,8 @@ char Agent::getType() const {
 const char* AGENT_TYPE_NAME_DOMAIN = "Domain";
 const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
 const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
-const char* AGENT_TYPE_NAME_MIXER = "Audio Mixer";
+const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
+const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
@@ -115,9 +115,12 @@ const char* Agent::getTypeName() const {
 		case AGENT_TYPE_INTERFACE:
 			name = AGENT_TYPE_NAME_INTERFACE;
 			break;
-		case AGENT_TYPE_MIXER:
-			name = AGENT_TYPE_NAME_MIXER;
+		case AGENT_TYPE_AUDIO_MIXER:
+			name = AGENT_TYPE_NAME_AUDIO_MIXER;
 			break;
+        case AGENT_TYPE_AVATAR_MIXER:
+            name = AGENT_TYPE_NAME_AVATAR_MIXER;
+            break;
 	}
 	return name;
 }

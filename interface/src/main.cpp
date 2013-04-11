@@ -200,21 +200,6 @@ timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
 
-#ifdef MARKER_CAPTURE
-
-    /***  Marker Capture ***/
-    #define MARKER_CAPTURE_INTERVAL 1
-    MarkerCapture marker_capturer(CV_CAP_ANY); // Create a new marker capturer, attached to any valid camera.
-    MarkerAcquisitionView marker_acq_view(&marker_capturer);
-    bool marker_capture_enabled = true;
-    bool marker_capture_display = true;
-    IplImage* marker_capture_frame;
-    IplImage* marker_capture_blob_frame;
-    pthread_mutex_t frame_lock;
-
-#endif
-
-
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
 {
@@ -228,9 +213,6 @@ void Timer(int extra)
     
 	glutTimerFunc(1000,Timer,0);
     gettimeofday(&timerStart, NULL);
-    
-    //  Ping the agents we can see
-    agentList.pingAgents();
     
     // if we haven't detected gyros, check for them now
     if (!serialPort.active) {
@@ -478,11 +460,12 @@ void simulateHead(float frametime)
     myAvatar.setAverageLoudness(averageLoudness);
     #endif
 
-    //  Send my streaming head data to agents that are nearby and need to see it!
-    const int MAX_BROADCAST_STRING = 200;
-    char broadcast_string[MAX_BROADCAST_STRING];
-    int broadcast_bytes = myAvatar.getBroadcastData(broadcast_string);
-    agentList.broadcastToAgents(broadcast_string, broadcast_bytes,AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE);
+    //  Send my stream of head/hand data to the avatar mixer and voxel server
+    char broadcastString[200];
+    int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
+    const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
+    
+    agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
@@ -501,8 +484,8 @@ void simulateHead(float frametime)
 			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL,0,1,&::paintingVoxel,bufferOut,sizeOut)){
-				agentList.broadcastToAgents((char*)bufferOut, sizeOut,AgentList::AGENTS_OF_TYPE_VOXEL);
+			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
+				agentList.broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
 				delete bufferOut;
 			}
 		}
@@ -1023,15 +1006,15 @@ void testPointToVoxel()
 void sendVoxelServerEraseAll() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
-	int messageSize = strlen(message)+1;
-	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+	int messageSize = strlen(message) + 1;
+	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void sendVoxelServerAddScene() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
-	int messageSize = strlen(message)+1;
-	::agentList.broadcastToAgents(message, messageSize,AgentList::AGENTS_OF_TYPE_VOXEL);
+	int messageSize = strlen(message) + 1;
+	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
@@ -1207,9 +1190,7 @@ void key(unsigned char k, int x, int y)
     if (k == '.') addRandomSphere(wantColorRandomizer);
 }
 
-//
 //  Receive packets from other agents/servers and decide what to do with them!
-//
 void *networkReceive(void *args)
 {    
     sockaddr senderAddress;
@@ -1221,19 +1202,26 @@ void *networkReceive(void *args)
             packetCount++;
             bytesCount += bytesReceived;
             
-            if (incomingPacket[0] == PACKET_HEADER_TRANSMITTER_DATA) {
-                //  Pass everything but transmitter data to the agent list
-                 myAvatar.hand->processTransmitterData(incomingPacket, bytesReceived);            
-            } else if (incomingPacket[0] == PACKET_HEADER_VOXEL_DATA || 
-					incomingPacket[0] == PACKET_HEADER_Z_COMMAND || 
-					incomingPacket[0] == PACKET_HEADER_ERASE_VOXEL) {
-                voxels.parseData(incomingPacket, bytesReceived);
-            } else {
-               agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+            switch (incomingPacket[0]) {
+                case PACKET_HEADER_TRANSMITTER_DATA:
+                    myAvatar.hand->processTransmitterData(incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_VOXEL_DATA:
+                case PACKET_HEADER_Z_COMMAND:
+                case PACKET_HEADER_ERASE_VOXEL:
+                    voxels.parseData(incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_HEAD_DATA:
+                    agentList.processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    break;
+                default:
+                    agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    break;
             }
         }
     }
     
+    delete[] incomingPacket;
     pthread_exit(0); 
     return NULL;
 }
@@ -1401,9 +1389,10 @@ int main(int argc, const char * argv[])
     int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
 #endif
 
-    // start the thread which checks for silent agents
+    // start the agentList threads
     agentList.startSilentAgentRemovalThread();
     agentList.startDomainServerCheckInThread();
+    agentList.startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

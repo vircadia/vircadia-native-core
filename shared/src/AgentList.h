@@ -28,7 +28,6 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
-
 class AgentList {
 
     UDPSocket agentSocket;
@@ -38,6 +37,7 @@ class AgentList {
     uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
+    pthread_t pingUnknownAgentsThread;
     
     void handlePingReply(sockaddr *agentAddress);
 public:
@@ -50,15 +50,23 @@ public:
     std::vector<Agent>& getAgents();
     UDPSocket& getAgentSocket();
     
-    int updateList(unsigned char *packetData, size_t dataBytes);
-    int indexOfMatchingAgent(sockaddr *senderAddress);
     uint16_t getLastAgentId();
     void increaseAgentId();
+    
+    int updateList(unsigned char *packetData, size_t dataBytes);
+    
+    int indexOfMatchingAgent(sockaddr *senderAddress);
+    int indexOfMatchingAgent(uint16_t agentID);
+    
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
+    
     void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
+    void processBulkAgentData(sockaddr *senderAddress, void *packetData, int numTotalBytes, int numBytesPerAgent);
+   
     void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
-    void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes);
-    void pingAgents();
+    void updateAgentWithData(Agent *agent, void *packetData, int dataBytes);
+    
+    void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     char getOwnerType();
     unsigned int getSocketListenPort();
     
@@ -66,10 +74,8 @@ public:
     void stopSilentAgentRemovalThread();
     void startDomainServerCheckInThread();
     void stopDomainServerCheckInThread();
-    
-	static const char* AGENTS_OF_TYPE_VOXEL;
-	static const char* AGENTS_OF_TYPE_INTERFACE;
-	static const char* AGENTS_OF_TYPE_VOXEL_AND_INTERFACE;
+    void startPingUnknownAgentsThread();
+    void stopPingUnknownAgentsThread();
 };
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId);

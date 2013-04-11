@@ -28,6 +28,7 @@ const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
+bool pingUnknownAgentThreadStopFlag = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
@@ -50,6 +51,7 @@ AgentList::~AgentList() {
     // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
     stopDomainServerCheckInThread();
+    stopPingUnknownAgentsThread();
 }
 
 std::vector<Agent>& AgentList::getAgents() {
@@ -71,28 +73,50 @@ unsigned int AgentList::getSocketListenPort() {
 void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
-            // list of agents from domain server
             updateList((unsigned char *)packetData, dataBytes);
             break;
         }
-        case PACKET_HEADER_HEAD_DATA: {
-            // head data from another agent
-            updateAgentWithData(senderAddress, packetData, dataBytes);
-            break;
-        }
         case PACKET_HEADER_PING: {
-            // ping from another agent
-            //std::cout << "Got ping from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
-            // ping reply from another agent
-            //std::cout << "Got ping reply from " << inet_ntoa(((sockaddr_in *)senderAddress)->sin_addr) << "\n";
             handlePingReply(senderAddress);
             break;
         }
     }
+}
+
+void AgentList::processBulkAgentData(sockaddr *senderAddress, void *packetData, int numTotalBytes, int numBytesPerAgent) {
+    // find the avatar mixer in our agent list and update the lastRecvTime from it
+    int bulkSendAgentIndex = indexOfMatchingAgent(senderAddress);
+
+    if (bulkSendAgentIndex >= 0) {
+        Agent *bulkSendAgent = &agents[bulkSendAgentIndex];
+        bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
+    }
+
+    unsigned char *startPosition = (unsigned char *)packetData;
+    unsigned char *currentPosition = startPosition + 1;
+    unsigned char *packetHolder = new unsigned char[numBytesPerAgent + 1];
+    
+    packetHolder[0] = PACKET_HEADER_HEAD_DATA;
+    
+    uint16_t agentID = -1;
+    
+    while ((currentPosition - startPosition) < numTotalBytes) {
+        currentPosition += unpackAgentId(currentPosition, &agentID);
+        memcpy(packetHolder + 1, currentPosition, numBytesPerAgent);
+        
+        int matchingAgentIndex = indexOfMatchingAgent(agentID);
+        if (matchingAgentIndex >= 0) {
+            updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
+        }
+        
+        currentPosition += numBytesPerAgent;
+    }
+    
+    delete[] packetHolder;
 }
 
 void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
@@ -100,19 +124,20 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, void *packetData, s
     int agentIndex = indexOfMatchingAgent(senderAddress);
     
     if (agentIndex != -1) {
-        Agent *matchingAgent = &agents[agentIndex];
-        
-        matchingAgent->setLastRecvTimeUsecs(usecTimestampNow());
-        
-        if (matchingAgent->getLinkedData() == NULL) {
-            if (linkedDataCreateCallback != NULL) {
-                linkedDataCreateCallback(matchingAgent);
-            }
-        }
-        
-        matchingAgent->getLinkedData()->parseData(packetData, dataBytes);
+        updateAgentWithData(&agents[agentIndex], packetData, dataBytes);
     }
+}
 
+void AgentList::updateAgentWithData(Agent *agent, void *packetData, int dataBytes) {
+    agent->setLastRecvTimeUsecs(usecTimestampNow());
+    
+    if (agent->getLinkedData() == NULL) {
+        if (linkedDataCreateCallback != NULL) {
+            linkedDataCreateCallback(agent);
+        }
+    }
+    
+    agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
 int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
@@ -122,6 +147,16 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
         }
     }
     
+    return -1;
+}
+
+int AgentList::indexOfMatchingAgent(uint16_t agentID) {
+    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+        if (agent->getActiveSocket() != NULL && agent->getAgentId() == agentID) {
+            return agent - agents.begin();
+        }
+    }
+
     return -1;
 }
 
@@ -176,12 +211,12 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
-            // likely debugging scenario with DS + agent on local network
+            // likely debugging scenario with two agents on local network
             // set the agent active right away
             newAgent.activatePublicSocket();
         }
         
-        if (newAgent.getType() == AGENT_TYPE_MIXER && audioMixerSocketUpdate != NULL) {
+        if (newAgent.getType() == AGENT_TYPE_AUDIO_MIXER && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
@@ -200,7 +235,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if (agent->getType() == AGENT_TYPE_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
+        if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastRecvTimeUsecs(usecTimestampNow());
@@ -211,36 +246,12 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
-// XXXBHG - do we want to move these?
-const char* AgentList::AGENTS_OF_TYPE_VOXEL = "V";
-const char* AgentList::AGENTS_OF_TYPE_INTERFACE = "I";
-const char* AgentList::AGENTS_OF_TYPE_VOXEL_AND_INTERFACE = "VI";
-
-void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes,const char* agentTypes) {
+void AgentList::broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
-        if (agent->getActiveSocket() != NULL && strchr(agentTypes,agent->getType())) {
+        if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
             agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
-        }
-    }
-}
-
-void AgentList::pingAgents() {
-    char payload[1];
-    *payload = PACKET_HEADER_PING;
-    
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getType() == AGENT_TYPE_INTERFACE) {
-            if (agent->getActiveSocket() != NULL) {
-                // we know which socket is good for this agent, send there
-                agentSocket.send(agent->getActiveSocket(), payload, 1);
-            } else {
-                // ping both of the sockets for the agent so we can figure out
-                // which socket we can use
-                agentSocket.send(agent->getPublicSocket(), payload, 1);
-                agentSocket.send(agent->getLocalSocket(), payload, 1);
-            }
         }
     }
 }
@@ -251,12 +262,54 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
         // prioritize the private address so that we prune erroneous local matches        
         if (socketMatch(agent->getPublicSocket(), agentAddress)) {
             agent->activatePublicSocket();
+            std::cout << "Activated public socket for agent " << &*agent << "\n";
             break;
         } else if (socketMatch(agent->getLocalSocket(), agentAddress)) {
             agent->activateLocalSocket();
+            std::cout << "Activated local socket for agent " << &*agent << "\n";
             break;
         }
     }
+}
+
+void *pingUnknownAgents(void *args) {
+    
+    AgentList *agentList = (AgentList *)args;
+    const int PING_INTERVAL_USECS = 1 * 1000000;
+    
+    timeval lastSend;
+    
+    while (!pingUnknownAgentThreadStopFlag) {
+        gettimeofday(&lastSend, NULL);
+        
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+            agent != agentList->getAgents().end();
+            agent++) {
+            if (agent->getActiveSocket() == NULL) {
+                // ping both of the sockets for the agent so we can figure out
+                // which socket we can use
+                agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
+            }
+        }
+        
+        double usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
+    }
+    
+    return NULL;
+}
+
+void AgentList::startPingUnknownAgentsThread() {
+    pthread_create(&pingUnknownAgentsThread, NULL, pingUnknownAgents, (void *)this);
+}
+
+void AgentList::stopPingUnknownAgentsThread() {
+    pingUnknownAgentThreadStopFlag = true;
+    pthread_join(pingUnknownAgentsThread, NULL);
 }
 
 void *removeSilentAgents(void *args) {
@@ -289,7 +342,6 @@ void *removeSilentAgents(void *args) {
             }
         }
         
-        
         sleepTime = AGENT_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
         #ifdef _WIN32
         Sleep( static_cast<int>(1000.0f*sleepTime) );
@@ -312,6 +364,8 @@ void AgentList::stopSilentAgentRemovalThread() {
 }
 
 void *checkInWithDomainServer(void *args) {
+    
+    const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
     
     AgentList *parentAgentList = (AgentList *)args;
     
@@ -343,7 +397,7 @@ void *checkInWithDomainServer(void *args) {
         
         parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
         
-        double usecToSleep = 1000000 - (usecTimestampNow() - usecTimestamp(&lastSend));
+        double usecToSleep = DOMAIN_SERVER_CHECK_IN_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
