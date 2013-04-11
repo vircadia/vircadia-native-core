@@ -179,7 +179,7 @@ int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
 int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
-int menuOn = 0;					//  Whether to show onscreen menu
+int menuOn = 1;					//  Whether to show onscreen menu
 
 //
 //  Serial USB Variables
@@ -830,8 +830,8 @@ void display(void)
     //  Draw number of nearby people always
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
-    drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+    sprintf(agents, "Agents: %ld\n", agentList.getAgents().size());
+    drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
@@ -891,14 +891,20 @@ int setMirror(int state) {
 }
 
 void initMenu() {
-    MenuColumn *menuColumnOptions = menu.addColumn("Options");
+    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug;
+    //  Options
+    menuColumnOptions = menu.addColumn("Options");
     menuColumnOptions->addRow("Head", setHead); 
     menuColumnOptions->addRow("Field", setField); 
     menuColumnOptions->addRow("Noise", setNoise); 
-    menuColumnOptions->addRow("Mirror", setMirror); 
-    MenuColumn *menuColumnTools = menu.addColumn("Tools");
+    menuColumnOptions->addRow("Mirror", setMirror);
+    //  Tools
+    menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats", setStats); 
-    menuColumnTools->addRow("Menu", setMenu); 
+    menuColumnTools->addRow("Menu", setMenu);
+    // Debug
+    menuColumnDebug = menu.addColumn("Debug");
+    
 }
 
 void testPointToVoxel()
@@ -1082,7 +1088,6 @@ void key(unsigned char k, int x, int y)
         #endif
     }
     
-//    if (k == 'm') headMirror = !headMirror;   // move in the menu
     if (k == 'm') setMenu(-2);
     
     if (k == 'f') displayField = !displayField;

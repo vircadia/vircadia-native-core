@@ -243,7 +243,7 @@ int audioCallback (const void *inputBuffer,
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                printf("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
+                //printf("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
             } else {
                 //printf("pushing buffer\n");
             }

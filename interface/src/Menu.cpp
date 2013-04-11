@@ -18,9 +18,14 @@
 
 const int LINE_HEIGHT = 30;
 const int MENU_HEIGHT = 30;
-const int MENU_Y_OFFSET = 8;      // under windows we have 8 vertical pixels offset. In 2D an object with y=8, the object is displayed at y=0
-                            // change the value in the other platforms (if required).
 
+#ifdef _WIN32
+const int MENU_Y_OFFSET = 8;      // under windows we have 8 vertical pixels offset.
+                                  // In 2D an object with y=8, the object is displayed at y=0
+                                  // change the value in the other platforms (if required).
+#else
+const int MENU_Y_OFFSET = 0;
+#endif
 
 Menu::Menu() {
     currentColumn = -1;
@@ -113,11 +118,14 @@ bool Menu::mouseOver(int x, int y) {
     return overMenu;
 }
 
+const float MENU_COLOR[3] = {0.75, 0.75, 0.75};
+
 void Menu::render(int screenWidth, int screenHeight) {
     float scale = 0.10;
     int mono = 0;
-    glColor3f(0.9, 0.9, 0.9);
+    glColor3fv(MENU_COLOR);
     int width = screenWidth;
+    glEnable(GL_LINE_SMOOTH);
     glBegin(GL_QUADS); {
         glVertex2f(0, MENU_Y_OFFSET);
         glVertex2f(width, MENU_Y_OFFSET);
