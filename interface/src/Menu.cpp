@@ -118,10 +118,12 @@ bool Menu::mouseOver(int x, int y) {
     return overMenu;
 }
 
+const float MENU_COLOR[3] = {0.75, 0.75, 0.75};
+
 void Menu::render(int screenWidth, int screenHeight) {
     float scale = 0.10;
     int mono = 0;
-    glColor3f(0.9, 0.9, 0.9);
+    glColor3fv(MENU_COLOR);
     int width = screenWidth;
     glEnable(GL_LINE_SMOOTH);
     glBegin(GL_QUADS); {

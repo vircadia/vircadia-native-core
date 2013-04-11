@@ -836,8 +836,8 @@ void display(void)
     //  Draw number of nearby people always
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents nearby: %ld\n", agentList.getAgents().size());
-    drawtext(WIDTH-200,20, 0.10, 0, 1.0, 0, agents, 1, 1, 0);
+    sprintf(agents, "Agents: %ld\n", agentList.getAgents().size());
+    drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
