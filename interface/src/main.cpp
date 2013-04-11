@@ -179,7 +179,7 @@ int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
 int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
-int menuOn = 0;					//  Whether to show onscreen menu
+int menuOn = 1;					//  Whether to show onscreen menu
 
 //
 //  Serial USB Variables
@@ -1094,7 +1094,6 @@ void key(unsigned char k, int x, int y)
         #endif
     }
     
-//    if (k == 'm') headMirror = !headMirror;   // move in the menu
     if (k == 'm') setMenu(-2);
     
     if (k == 'f') displayField = !displayField;

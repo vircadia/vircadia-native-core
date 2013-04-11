@@ -128,7 +128,7 @@ void MenuColumn::render(int yOffset, int menuHeight, int lineHeight) {
         }
         glEnd();
     }
-    float scale = 0.10;
+    float scale = 0.09;
     int mono = 0;
     int y = menuHeight + lineHeight / 2 ;
     char* rowName;
