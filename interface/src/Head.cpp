@@ -855,19 +855,9 @@ void Head::updateAvatarSkeleton()
 					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getFront	().z );
 */
 
-		float xx	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getRight	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getRight	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getRight	().z );
-
-		float yy	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getUp		().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getUp		().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getUp		().z );
-
-		float zz	= glm::dot( avatar.bone[b].defaultPosePosition.x, (float)avatar.bone[b].orientation.getFront	().x )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.y, (float)avatar.bone[b].orientation.getFront	().y )
-					+ glm::dot( avatar.bone[b].defaultPosePosition.z, (float)avatar.bone[b].orientation.getFront	().z );
-
-
+		float xx	= glm::dot( avatar.bone[b].defaultPosePosition, avatar.bone[b].orientation.getRight	() );
+		float yy	= glm::dot( avatar.bone[b].defaultPosePosition, avatar.bone[b].orientation.getUp	() );
+		float zz	= -glm::dot( avatar.bone[b].defaultPosePosition, avatar.bone[b].orientation.getFront	() );
 
 		//float xx = avatar.bone[b].defaultPosePosition.x;
 		//float yy = avatar.bone[b].defaultPosePosition.y;
