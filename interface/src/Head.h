@@ -116,7 +116,7 @@ struct AvatarBone
 
 struct Avatar
 {
-	glm::vec3	position;
+	//glm::vec3	position;
 	glm::dvec3	velocity;
 	glm::vec3	thrust;
 	float		yaw;
@@ -166,9 +166,10 @@ class Head : public AgentData {
         
         void render(int faceToFace, int isMine);
 		
-		void setAvatarPosition( float, float, float );
+		//void setAvatarPosition( float, float, float );
 		void renderBody();
 		void renderHead( int faceToFace, int isMine );
+		void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
 				
@@ -235,7 +236,7 @@ class Head : public AgentData {
         float browAudioLift;
     
         glm::vec3 position;
-        glm::vec3 velocity;
+        //glm::vec3 velocity;
         glm::vec3 thrust;
 		
 		bool handBeingMoved;

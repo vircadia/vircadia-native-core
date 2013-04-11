@@ -413,12 +413,7 @@ void simulateHead(float frametime)
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
-	
-	//-------------------------------------------------------------------------------------
-	// set the position of the avatar
-	//-------------------------------------------------------------------------------------
-	myAvatar.setAvatarPosition( -myAvatar.getPos().x, -myAvatar.getPos().y, -myAvatar.getPos().z );
-	
+		
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -660,7 +655,7 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myAvatar.getPos() );	
+		myCamera.setTargetPosition( myAvatar.getPos() ); 
 
 		if ( displayHead ) {
 			//-----------------------------------------------
@@ -669,8 +664,7 @@ void display(void)
 			myCamera.setYaw		( - myAvatar.getBodyYaw() );
 			myCamera.setPitch	( 0.0  );
 			myCamera.setRoll	( 0.0  );
-			myCamera.setUp		( 0.4  );
-			myCamera.setDistance( 0.5  );	
+			myCamera.setUp		( 0.4  );	
 			myCamera.setDistance( 0.08 );
 			myCamera.update();
 		} else {
@@ -704,7 +698,7 @@ void display(void)
         glRotatef	( myCamera.getPitch(),	1, 0, 0 );
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
-        glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
+        glTranslatef( -myCamera.getPosition().x, -myCamera.getPosition().y, -myCamera.getPosition().z );
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
