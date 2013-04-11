@@ -80,7 +80,6 @@
 
 using namespace std;
 
-AgentList agentList(AGENT_TYPE_INTERFACE);
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -465,7 +464,7 @@ void simulateHead(float frametime)
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
-    agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
+    AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
@@ -485,7 +484,7 @@ void simulateHead(float frametime)
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
 			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
-				agentList.broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                AgentList::getInstance()->broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
 				delete bufferOut;
 			}
 		}
@@ -827,7 +826,10 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+        AgentList *agentList = AgentList::getInstance();
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+            agent != agentList->getAgents().end();
+            agent++)
 		{
             if (agent->getLinkedData() != NULL) 
 			{
@@ -906,7 +908,7 @@ void display(void)
     //  Draw number of nearby people always
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents: %ld\n", agentList.getAgents().size());
+    sprintf(agents, "Agents: %ld\n", AgentList::getInstance()->getAgents().size());
     drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
@@ -1007,14 +1009,14 @@ void sendVoxelServerEraseAll() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
+	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void sendVoxelServerAddScene() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
+	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
@@ -1198,7 +1200,7 @@ void *networkReceive(void *args)
     char *incomingPacket = new char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
-        if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
+        if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
             bytesCount += bytesReceived;
             
@@ -1212,10 +1214,10 @@ void *networkReceive(void *args)
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    agentList.processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    AgentList::getInstance()->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
                     break;
                 default:
-                    agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
                     break;
             }
         }
@@ -1361,10 +1363,10 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-
-
 int main(int argc, const char * argv[])
 {
+    AgentList::createInstance(AGENT_TYPE_INTERFACE);
+    
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
 		strcpy(DOMAIN_IP,domainIP);
@@ -1376,12 +1378,12 @@ int main(int argc, const char * argv[])
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
-
+    
     // the callback for our instance of AgentList is attachNewHeadToAgent
-    agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
+    AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
     
     #ifndef _WIN32
-    agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    AgentList::getInstance()->audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
     
 #ifdef _WIN32
@@ -1390,9 +1392,9 @@ int main(int argc, const char * argv[])
 #endif
 
     // start the agentList threads
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
-    agentList.startPingUnknownAgentsThread();
+    AgentList::getInstance()->startSilentAgentRemovalThread();
+    AgentList::getInstance()->startDomainServerCheckInThread();
+    AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

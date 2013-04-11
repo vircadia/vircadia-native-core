@@ -61,7 +61,6 @@ const int AGENT_LOOPBACK_MODIFIER = 307;
 
 const int LOOPBACK_SANITY_CHECK = 0;
 
-AgentList agentList(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
 StDev stdev;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -79,13 +78,15 @@ void *sendBuffer(void *args)
     int nextFrame = 0;
     timeval startTime;
     
+    AgentList *agentList = AgentList::getInstance();
+    
     gettimeofday(&startTime, NULL);
 
     while (true) {
         sentBytes = 0;
         
-        for (int i = 0; i < agentList.getAgents().size(); i++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList.getAgents()[i].getLinkedData();
+        for (int i = 0; i < agentList->getAgents().size(); i++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList->getAgents()[i].getLinkedData();
             
             if (agentBuffer != NULL && agentBuffer->getEndOfLastWrite() != NULL) {
                 
@@ -103,12 +104,12 @@ void *sendBuffer(void *args)
             }
         }
         
-        int numAgents = agentList.getAgents().size();
+        int numAgents = agentList->getAgents().size();
         float distanceCoeffs[numAgents][numAgents];
         memset(distanceCoeffs, 0, sizeof(distanceCoeffs));
 
-        for (int i = 0; i < agentList.getAgents().size(); i++) {
-            Agent *agent = &agentList.getAgents()[i];
+        for (int i = 0; i < agentList->getAgents().size(); i++) {
+            Agent *agent = &agentList->getAgents()[i];
             
             AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
             float agentBearing = agentRingBuffer->getBearing();
@@ -119,15 +120,17 @@ void *sendBuffer(void *args)
                 agentWantsLoopback = true;
                 
                 // correct the bearing
-                agentBearing = agentBearing > 0 ? agentBearing - AGENT_LOOPBACK_MODIFIER : agentBearing + AGENT_LOOPBACK_MODIFIER;
+                agentBearing = agentBearing > 0
+                    ? agentBearing - AGENT_LOOPBACK_MODIFIER
+                    : agentBearing + AGENT_LOOPBACK_MODIFIER;
             }
             
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
             
-            for (int j = 0; j < agentList.getAgents().size(); j++) {
+            for (int j = 0; j < agentList->getAgents().size(); j++) {
                 if (i != j || ( i == j && agentWantsLoopback)) {
-                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList.getAgents()[j].getLinkedData();
+                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList->getAgents()[j].getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
                     float *otherAgentPosition = otherAgentBuffer->getPosition();
@@ -143,12 +146,15 @@ void *sendBuffer(void *args)
                                                       powf(agentPosition[1] - otherAgentPosition[1], 2) +
                                                       powf(agentPosition[2] - otherAgentPosition[2], 2));
                         
-                        distanceCoeffs[lowAgentIndex][highAgentIndex] = std::min(1.0f, powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                        float minCoefficient = std::min(1.0f,
+                                                        powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                        distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
                     }
                     
                     
                     // get the angle from the right-angle triangle
-                    float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]), fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
+                    float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
+                                                 fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                     float angleToSource;
                     
                     
@@ -214,11 +220,11 @@ void *sendBuffer(void *args)
                 }
             }
             
-            agentList.getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
+            agentList->getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
         }
         
-        for (int i = 0; i < agentList.getAgents().size(); i++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList.getAgents()[i].getLinkedData();
+        for (int i = 0; i < agentList->getAgents().size(); i++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList->getAgents()[i].getLinkedData();
             if (agentBuffer->wasAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
@@ -250,14 +256,15 @@ void attachNewBufferToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
+    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     ssize_t receivedBytes = 0;
     
-    agentList.linkedDataCreateCallback = attachNewBufferToAgent;
+    agentList->linkedDataCreateCallback = attachNewBufferToAgent;
     
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
+    agentList->startSilentAgentRemovalThread();
+    agentList->startDomainServerCheckInThread();
 
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
 
@@ -276,7 +283,7 @@ int main(int argc, const char * argv[])
     bool firstSample = true;
 
     while (true) {
-        if(agentList.getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
+        if(agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                                 
                 //  Compute and report standard deviation for jitter calculation
@@ -298,14 +305,14 @@ int main(int argc, const char * argv[])
                 // add or update the existing interface agent
                 if (!LOOPBACK_SANITY_CHECK) {
                     
-                    if (agentList.addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList.getLastAgentId())) {
-                        agentList.increaseAgentId();
+                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
+                        agentList->increaseAgentId();
                     }
                     
-                    agentList.updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
                 } else {
                     memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
-                    agentList.getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);
+                    agentList->getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);
                 }
             }
         }
