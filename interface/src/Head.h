@@ -116,7 +116,6 @@ struct AvatarBone
 
 struct Avatar
 {
-	//glm::vec3	position;
 	glm::dvec3	velocity;
 	glm::vec3	thrust;
 	float		yaw;
@@ -166,7 +165,6 @@ class Head : public AgentData {
         
         void render(int faceToFace, int isMine);
 		
-		//void setAvatarPosition( float, float, float );
 		void renderBody();
 		void renderHead( int faceToFace, int isMine );
 		void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
@@ -194,9 +192,9 @@ class Head : public AgentData {
         bool getDriveKeys(int key) { return driveKeys[key]; };
     
         //  Set/Get update the thrust that will move the avatar around
-        void setThrust(glm::vec3 newThrust) { thrust = newThrust; };
-        void addThrust(glm::vec3 newThrust) { thrust += newThrust; };
-        glm::vec3 getThrust() { return thrust; };
+        void setThrust(glm::vec3 newThrust) { avatar.thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { avatar.thrust += newThrust; };
+        glm::vec3 getThrust() { return avatar.thrust; };
     
         Hand * hand;
     
@@ -237,7 +235,7 @@ class Head : public AgentData {
     
         glm::vec3 position;
         //glm::vec3 velocity;
-        glm::vec3 thrust;
+        //glm::vec3 thrust;
 		
 		bool handBeingMoved;
 		glm::vec3 movedHandOffset;
