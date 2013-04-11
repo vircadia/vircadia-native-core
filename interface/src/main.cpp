@@ -540,7 +540,7 @@ void render_view_frustum() {
 	printf("cameraPosition=%f, cameraPosition=%f, cameraPosition=%f\n",cameraPosition.x,cameraPosition.y,cameraPosition.z);
 	printf("headPosition.x=%f, headPosition.y=%f, headPosition.z=%f\n",headPosition.x,headPosition.y,headPosition.z);
 
-	glm::vec3 cameraDirection = ::myCamera.getOrientation().getFront() * glm::vec3(-1,-1,-1);
+	glm::vec3 cameraDirection = ::myCamera.getOrientation().getFront() * glm::vec3(-1,-1,1);
 	glm::vec3 headDirection    = myAvatar.getHeadLookatDirection();
 	printf("\nDirection:\n");
 	printf("cameraDirection.x=%f, cameraDirection.y=%f, cameraDirection.z=%f\n",cameraDirection.x,cameraDirection.y,cameraDirection.z);
