@@ -250,7 +250,7 @@ void displayStats(void)
 	glm::vec3 avatarPos = myAvatar.getPos();
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
             FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
     drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
