@@ -46,7 +46,6 @@ const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
-AgentList agentList(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
@@ -122,11 +121,11 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 	::randomTree.eraseAllVoxels();
 
 	// enumerate the agents clean up their marker nodes
-	for (int i = 0; i < agentList.getAgents().size(); i++) {
+	for (int i = 0; i < AgentList::getInstance()->getAgents().size(); i++) {
 
 		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
-            
-		Agent *thisAgent = (Agent *)&::agentList.getAgents()[i];
+        
+		Agent *thisAgent = (Agent *)&AgentList::getInstance()->getAgents()[i];
 		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
 
 		// lock this agent's delete mutex so that the delete thread doesn't
@@ -145,6 +144,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 void *distributeVoxelsToListeners(void *args) {
     
+    AgentList *agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     unsigned char *stopOctal;
@@ -161,9 +161,9 @@ void *distributeVoxelsToListeners(void *args) {
         gettimeofday(&lastSendTime, NULL);
         
         // enumerate the agents to send 3 packets to each
-        for (int i = 0; i < agentList.getAgents().size(); i++) {
+        for (int i = 0; i < agentList->getAgents().size(); i++) {
 
-            Agent *thisAgent = (Agent *)&agentList.getAgents()[i];
+            Agent *thisAgent = (Agent *)&agentList->getAgents()[i];
             VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
             
             // lock this agent's delete mutex so that the delete thread doesn't
@@ -184,7 +184,7 @@ void *distributeVoxelsToListeners(void *args) {
                                                            treeRoot,
                                                            stopOctal);
                 
-                agentList.getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
+                agentList->getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
                 
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;
@@ -233,6 +233,7 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
+    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -244,9 +245,9 @@ int main(int argc, const char * argv[])
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
-    agentList.linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
+    agentList->linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
+    agentList->startSilentAgentRemovalThread();
+    agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
     
@@ -294,7 +295,7 @@ int main(int argc, const char * argv[])
 
     // loop to send to agents requesting data
     while (true) {
-        if (agentList.getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
@@ -345,7 +346,7 @@ int main(int argc, const char * argv[])
 
             	// Now send this to the connected agents so they know to delete
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
+				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
             	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -373,19 +374,19 @@ int main(int argc, const char * argv[])
 
 				// Now send this to the connected agents so they can also process these messages
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList.broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
+				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_INTERFACE, and we
             // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
-                if (agentList.addOrUpdateAgent(&agentPublicAddress,
+                if (agentList->addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
                                                AGENT_TYPE_INTERFACE,
-                                               agentList.getLastAgentId())) {
-                    agentList.increaseAgentId();
+                                               agentList->getLastAgentId())) {
+                    agentList->increaseAgentId();
                 }
                 
-                agentList.updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
+                agentList->updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
             }
         }
     }
