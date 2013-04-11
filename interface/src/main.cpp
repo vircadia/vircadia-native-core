@@ -490,9 +490,9 @@ void simulateHead(float frametime)
     	glm::vec3 avatarPos = myAvatar.getPos();
 
 		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = avatarPos.x/-10.0;  
-		::paintingVoxel.y = avatarPos.y/-10.0;  
-		::paintingVoxel.z = avatarPos.z/-10.0;
+		::paintingVoxel.x = avatarPos.x/10.0;  
+		::paintingVoxel.y = avatarPos.y/10.0;  
+		::paintingVoxel.z = avatarPos.z/10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -932,7 +932,7 @@ void display(void)
 		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
 			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
 			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
-		drawtext(WIDTH-350,40, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+		drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
     glPopMatrix();
