@@ -777,9 +777,7 @@ void display(void)
         glEnable(GL_DEPTH_TEST);
         
 		
-		//---------------------------------------------
 		// draw a red sphere  
-		//---------------------------------------------
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
 		glPushMatrix();
@@ -787,9 +785,7 @@ void display(void)
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
-		//---------------------------------------------
-		// draw a grid gound plane....
-		//---------------------------------------------
+		//draw a grid gound plane....
 		drawGroundPlaneGrid( 5.0f, 9 );
 		
 		
@@ -830,19 +826,8 @@ void display(void)
         if (::frustumOn) render_view_frustum();
     
 	
-		//---------------------------------
-        //  Render my own avatar
-		//---------------------------------
+        //Render my own avatar
 		myAvatar.render( true, 1 );	
-	
-		/*
-        glPushMatrix();
-        glLoadIdentity();
-        glTranslatef(0.f, 0.f, -7.f);
-        myAvatar.render(displayHead, 1);
-        glPopMatrix();
-		*/
-		
     }
     
     glPopMatrix();
@@ -1222,9 +1207,7 @@ void idle(void)
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS)
     {
-		//----------------------------------------------------------------
 		// If mouse is being dragged, update hand movement in the avatar
-		//----------------------------------------------------------------
 		if ( mousePressed == 1 )
 		{
 			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
