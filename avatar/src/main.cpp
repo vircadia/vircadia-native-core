@@ -110,11 +110,9 @@ int main(int argc, char* argv[])
                         agentIndex++;
                     }
                     
-                    if (currentBufferPosition - broadcastPacket > 1) {
-                        agentList.getAgentSocket().send(agentAddress,
-                                                        broadcastPacket,
-                                                        currentBufferPosition - broadcastPacket);
-                    }
+                    agentList.getAgentSocket().send(agentAddress,
+                                                    broadcastPacket,
+                                                    currentBufferPosition - broadcastPacket);
                     
                     break;
                 default:
