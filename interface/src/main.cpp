@@ -69,7 +69,6 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
-#include "Lattice.h"
 #include "Finger.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
@@ -130,7 +129,6 @@ Cloud cloud(0,                             //  Particles
 
 VoxelSystem voxels;
 
-Lattice lattice(160,100);
 Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
@@ -337,6 +335,8 @@ void init(void)
     }
     myAvatar.setPos(start_location );
 	myCamera.setPosition( start_location );
+    
+    myFinger.setTarget(WIDTH/2, HEIGHT/2);
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -793,8 +793,8 @@ void display(void)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
-        //lattice.render(WIDTH, HEIGHT);
-        //myFinger.render();
+        myFinger.render();
+    
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
@@ -1198,7 +1198,6 @@ void idle(void)
         myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
         cloud.simulate(1.f/FPS);
-        lattice.simulate(1.f/FPS);
         myFinger.simulate(1.f/FPS);
 
         glutPostRedisplay();
@@ -1242,7 +1241,6 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            lattice.mouseClick((float)x/(float)WIDTH, (float)y/(float)HEIGHT);
             mouseStartX = x;
             mouseStartY = y;
         }
@@ -1259,8 +1257,6 @@ void motionFunc( int x, int y)
 {
 	mouseX = x;
 	mouseY = y;
-    
-    lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
 }
 
 void mouseoverFunc( int x, int y)
@@ -1270,8 +1266,7 @@ void mouseoverFunc( int x, int y)
 	mouseY = y;
     if (mousePressed == 0)
     {
-//        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-//        myFinger.setTarget(mouseX, mouseY);
+        myFinger.setTarget(mouseX, mouseY);
     }
 }
 
