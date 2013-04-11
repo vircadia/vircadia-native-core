@@ -92,7 +92,7 @@ Head::Head()
 	
 	springForce				= 6.0f;
 	springToBodyTightness	= 4.0f;
-	springVelocityDecay		= 1.0f;
+	springVelocityDecay		= 2.0f;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
@@ -937,7 +937,7 @@ glm::vec3 Head::getHeadLookatDirection()
 	(
 		avatar.orientation.getFront().x,
 		avatar.orientation.getFront().y,
-		-avatar.orientation.getFront().z
+		avatar.orientation.getFront().z
 	);
 }
 
@@ -948,7 +948,7 @@ glm::vec3 Head::getHeadLookatDirectionUp()
 	(
 		avatar.orientation.getUp().x,
 		avatar.orientation.getUp().y,
-		-avatar.orientation.getUp().z
+		avatar.orientation.getUp().z
 	);
 }
 
