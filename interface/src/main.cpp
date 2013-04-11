@@ -829,10 +829,8 @@ void display(void)
         AgentList *agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
-            agent++)
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+            agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
@@ -872,8 +870,7 @@ void display(void)
         if (audioScope.getState()) audioScope.render();
         #endif
 
-        if (displayHeadMouse && !displayHead && statsOn)
-        {
+        if (displayHeadMouse && !displayHead && statsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -1028,8 +1025,7 @@ void shiftPaintingColor()
 	::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
 }
 
-void setupPaintingVoxel()
-{
+void setupPaintingVoxel() {
 	glm::vec3 avatarPos = myAvatar.getPos();
 
 	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space

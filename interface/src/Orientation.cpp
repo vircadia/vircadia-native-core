@@ -1,33 +1,28 @@
 #include "Orientation.h"
 #include "Util.h"
 
-//------------------------
-Orientation::Orientation()
-{
+Orientation::Orientation() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );
 	up		= glm::vec3(  0.0,  1.0,  0.0 );
 	front	= glm::vec3(  0.0,  0.0,  1.0 );	
 }
 
-//-------------------------------
-void Orientation::setToIdentity()
-{
+
+void Orientation::setToIdentity() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );
 	up		= glm::vec3(  0.0,  1.0,  0.0 );
 	front	= glm::vec3(  0.0,  0.0,  1.0 );	
 }
 
-//------------------------------------
-void Orientation::set( Orientation o )
-{ 
+
+void Orientation::set( Orientation o ) { 
 	right	= o.getRight();
 	up		= o.getUp();
 	front	= o.getFront();	
 }
 
-//---------------------------------------
-void Orientation::yaw( float angle )
-{
+
+void Orientation::yaw( float angle ) {
 	float r = angle * PI_OVER_180;
 	float s = sin( r );
 	float c = cos( r );
@@ -41,9 +36,8 @@ void Orientation::yaw( float angle )
 	right	= cosineRight - sineFront;	
 }
 
-//---------------------------------------
-void Orientation::pitch( float angle )
-{
+
+void Orientation::pitch( float angle ) {
 	float r = angle * PI_OVER_180;
 	float s = sin( r );
 	float c = cos( r );
@@ -57,9 +51,8 @@ void Orientation::pitch( float angle )
 	front	= cosineFront	- sineUp;
 }
 
-//---------------------------------------
-void Orientation::roll( float angle )
-{
+
+void Orientation::roll( float angle ) {
 	double r = angle * PI_OVER_180;
 	double s = sin( r );
 	double c = cos( r );
@@ -73,9 +66,8 @@ void Orientation::roll( float angle )
 	right	= cosineRight	- sineUp;	
 }
 
-//---------------------------------------------------------------------------------------------
-void Orientation::setRightUpFront( const glm::vec3 &r, const glm::vec3 &u, const glm::vec3 &f )
-{
+
+void Orientation::setRightUpFront( const glm::vec3 &r, const glm::vec3 &u, const glm::vec3 &f ) {
 	right	= r;
 	up		= u;
 	front	= f;
