@@ -89,6 +89,10 @@ Head::Head()
 	movedHandOffset = glm::vec3( 0.0, 0.0, 0.0 );
     
     sphere = NULL;
+	
+	springForce				= 6.0f;
+	springToBodyTightness	= 2.0f;
+	springVelocityDecay		= 5.0f;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
 
@@ -279,6 +283,12 @@ void Head::setLeanSideways(float dist){
 void Head::simulate(float deltaTime)
 {
 	updateAvatarSkeleton();
+	
+	//------------------------------------------------------------------------
+	// update springy behavior:
+	//------------------------------------------------------------------------
+	updateAvatarSprings( deltaTime );
+	
 
 	/*
     glm::vec3 forward
@@ -303,32 +313,32 @@ void Head::simulate(float deltaTime)
 	//notice that the z values from avatar.orientation are flipped to accommodate different coordinate system
     if (driveKeys[FWD]) 
 	{
-		glm::vec3 front( avatar.orientation.getFront().getX(), avatar.orientation.getFront().getY(), -avatar.orientation.getFront().getZ() );
+		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, -avatar.orientation.getFront().z );
 		avatar.thrust += front * THRUST_MAG;
     }
     if (driveKeys[BACK]) 
 	{
-		glm::vec3 front( avatar.orientation.getFront().getX(), avatar.orientation.getFront().getY(), -avatar.orientation.getFront().getZ() );
+		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, -avatar.orientation.getFront().z );
 		avatar.thrust -= front * THRUST_MAG;
     }
     if (driveKeys[RIGHT]) 
 	{
-		glm::vec3 right( avatar.orientation.getRight().getX(), avatar.orientation.getRight().getY(), -avatar.orientation.getRight().getZ() );
+		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, -avatar.orientation.getRight().z );
 		avatar.thrust += right * THRUST_MAG;
     }
     if (driveKeys[LEFT]) 
 	{
-		glm::vec3 right( avatar.orientation.getRight().getX(), avatar.orientation.getRight().getY(), -avatar.orientation.getRight().getZ() );
+		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, -avatar.orientation.getRight().z );
 		avatar.thrust -= right * THRUST_MAG;
     }
     if (driveKeys[UP])
 	{
-		glm::vec3 up( avatar.orientation.getUp().getX(), avatar.orientation.getUp().getY(), -avatar.orientation.getUp().getZ() );
+		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, -avatar.orientation.getUp().z );
 		avatar.thrust += up * THRUST_MAG;
     }
     if (driveKeys[DOWN]) 
 	{
-		glm::vec3 up( avatar.orientation.getUp().getX(), avatar.orientation.getUp().getY(), -avatar.orientation.getUp().getZ() );
+		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, -avatar.orientation.getUp().z );
 		avatar.thrust -= up * THRUST_MAG;
     }
 	
@@ -851,12 +861,6 @@ void Head::updateAvatarSkeleton()
 		avatar.bone[b].position += rotatedBoneVector;
 	}	
 	
-
-	//------------------------------------------------------------------------
-	// update springy behavior:
-	//------------------------------------------------------------------------
-	updateAvatarSprings();
-	
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
 	//------------------------------------------------------------------------
@@ -866,6 +870,7 @@ void Head::updateAvatarSkeleton()
 		handBeingMoved = false;
 	}
 	
+	/*
 	glm::dvec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
 	v -= avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
 	
@@ -874,53 +879,50 @@ void Head::updateAvatarSkeleton()
 	{
 		avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position += v * 0.2;
 	}
+	*/
 }
 
 
 
 
-//------------------------------
-void Head::updateAvatarSprings()
+//-----------------------------------------------
+void Head::updateAvatarSprings( float deltaTime )
 {
-	//printf( "listing bone parent springyPosition:\n" );
-
 	for (int b=0; b<NUM_AVATAR_BONES; b++)
 	{
-		/*
-		printf
-		( 
-			"bone %d: %f, %f, %f\n", b, 
-			avatar.bone[ avatar.bone[b].parent ].springyPosition.x, 
-			avatar.bone[ avatar.bone[b].parent ].springyPosition.y, 
-			avatar.bone[ avatar.bone[b].parent ].springyPosition.z 
-		);
-		*/
-
 		glm::vec3 springVector( avatar.bone[b].springyPosition );
 
 		if ( avatar.bone[b].parent == AVATAR_BONE_NULL )
 		{
 			springVector -= avatar.position;
 		}
+		else if ( avatar.bone[b].parent == AVATAR_BONE_PELVIS_SPINE )
+		{
+			springVector -= avatar.position;
+		}
 		else
 		{
 			springVector -= avatar.bone[ avatar.bone[b].parent ].springyPosition;
-			float length = glm::length( springVector );
-			
-			if ( length > 0.0f )
-			{
-				glm::vec3 springDirection = springVector / length;
-				
-				float force = ( length - avatar.bone[b].length ) * 0.01;
-				
-				avatar.bone[ b						].springyVelocity -= springDirection * force;
-				avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
-			}
-			
-			avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * 0.01f;
-			avatar.bone[b].springyVelocity *= 0.8;
-			avatar.bone[b].springyPosition += avatar.bone[b].springyVelocity;
 		}
+
+		float length = glm::length( springVector );
+		
+		if ( length > 0.0f )
+		{
+			glm::vec3 springDirection = springVector / length;
+			
+			float force = ( length - avatar.bone[b].length ) * springForce * deltaTime;
+			
+			avatar.bone[ b						].springyVelocity -= springDirection * force;
+			avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
+		}
+		
+		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * springToBodyTightness * deltaTime;
+		avatar.bone[b].springyVelocity *= 0.8;
+		
+		avatar.bone[b].springyVelocity *= ( 1.0 - springVelocityDecay * deltaTime );
+		
+		avatar.bone[b].springyPosition += avatar.bone[b].springyVelocity;
 	}
 }
 

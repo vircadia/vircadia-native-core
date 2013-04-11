@@ -9,7 +9,7 @@
 #define __interface__orientation__
 
 #include <cmath> // with this work? "Math.h"
-#include "Vector3D.h"
+#include <glm/glm.hpp>
 
 enum Axis
 {
@@ -22,30 +22,27 @@ class Orientation
 {
 private:
 	
-	Vector3D right;
-	Vector3D up;
-	Vector3D front;
+	glm::vec3 right;
+	glm::vec3 up;
+	glm::vec3 front;
 	
-	void verifyValidOrientation();
+	//void verifyValidOrientation();
 	
 public:
 	Orientation();
 	
-	void yaw	( double );
-	void pitch	( double );
-	void roll	( double );
+	void yaw	( float );
+	void pitch	( float );
+	void roll	( float );
 
 	void set( Orientation );
 	void setToIdentity();
 
-	void forceFrontInDirection( const Vector3D &, const Vector3D &, double );
-	void forceAxisInDirection( int, const Vector3D &, double );
-
-	Vector3D getRight();
-	Vector3D getUp();
-	Vector3D getFront();
+	glm::vec3 getRight()	{ return right;	}
+	glm::vec3 getUp()		{ return up;	}
+	glm::vec3 getFront()	{ return front;	}
 	
-	void setRightUpFront( const Vector3D &, const Vector3D &, const Vector3D & );
+	void setRightUpFront( const glm::vec3 &, const glm::vec3 &, const glm::vec3 & );
 };
 
 

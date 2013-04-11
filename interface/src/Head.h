@@ -243,6 +243,10 @@ class Head : public AgentData {
 		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
+		
+		float springVelocityDecay;
+		float springForce;
+		float springToBodyTightness;
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
@@ -252,7 +256,7 @@ class Head : public AgentData {
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();
-		void updateAvatarSprings();
+		void updateAvatarSprings( float deltaTime );
 		void calculateBoneLengths();
     
         void readSensors();
