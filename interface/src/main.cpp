@@ -110,7 +110,7 @@ int starsTiles = 20;
 double starsLod = 1.0;
 #endif
 
-bool showingVoxels = false;
+bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
@@ -156,6 +156,7 @@ VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 bool frustumOn = false;				//  Whether or not to display the debug view frustum
+bool cameraFrustum = false;			// which frustum to look at
 
 bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
 float viewFrustumOffsetYaw = -90.0;
@@ -413,12 +414,7 @@ void simulateHead(float frametime)
     //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
     
     myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
-	
-	//-------------------------------------------------------------------------------------
-	// set the position of the avatar
-	//-------------------------------------------------------------------------------------
-	myAvatar.setAvatarPosition( -myAvatar.getPos().x, -myAvatar.getPos().y, -myAvatar.getPos().z );
-	
+		
     //  Update head_mouse model 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -533,11 +529,48 @@ void render_view_frustum() {
 	// farHeight – the height of the far plane
 	// farWidth – the width of the far plane
 	
-	glm::vec3 viewFrustumPosition  = myAvatar.getHeadPosition();
-	glm::vec3 viewFrustumDirection = myAvatar.getHeadLookatDirection();
+	glm::vec3 cameraPosition   = ::myCamera.getPosition() * -1.0; 
+	glm::vec3 headPosition     = ::myAvatar.getHeadPosition();
+	printf("\nPosition:\n");
+	printf("cameraPosition=%f, cameraPosition=%f, cameraPosition=%f\n",cameraPosition.x,cameraPosition.y,cameraPosition.z);
+	printf("headPosition.x=%f, headPosition.y=%f, headPosition.z=%f\n",headPosition.x,headPosition.y,headPosition.z);
+
+	glm::vec3 cameraDirection = ::myCamera.getOrientation().getFront() * glm::vec3(-1,-1,1);
+	glm::vec3 headDirection    = myAvatar.getHeadLookatDirection();
+	printf("\nDirection:\n");
+	printf("cameraDirection.x=%f, cameraDirection.y=%f, cameraDirection.z=%f\n",cameraDirection.x,cameraDirection.y,cameraDirection.z);
+	printf("headDirection.x=%f, headDirection.y=%f, headDirection.z=%f\n",headDirection.x,headDirection.y,headDirection.z);
+
+	glm::vec3 cameraUp  = myCamera.getOrientation().getUp() * glm::vec3(1,1,-1);
+	glm::vec3 headUp    = myAvatar.getHeadLookatDirectionUp();
+	printf("\nUp:\n");
+	printf("cameraUp.x=%f, cameraUp.y=%f, cameraUp.z=%f\n",cameraUp.x,cameraUp.y,cameraUp.z);
+	printf("headUp.x=%f, headUp.y=%f, headUp.z=%f\n",headUp.x,headUp.y,headUp.z);
+
+	glm::vec3 cameraRight = myCamera.getOrientation().getRight() * glm::vec3(1,-1,1);
+	glm::vec3 headRight = myAvatar.getHeadLookatDirectionRight();
+	printf("\nRight:\n");
+	printf("cameraRight.x=%f, cameraRight.y=%f, cameraRight.z=%f\n",cameraRight.x,cameraRight.y,cameraRight.z);
+	printf("headRight.x=%f, headRight.y=%f, headRight.z=%f\n",headRight.x,headRight.y,headRight.z);
 	
-	glm::vec3 up    = myAvatar.getHeadLookatDirectionUp();
-	glm::vec3 right = myAvatar.getHeadLookatDirectionRight();
+	glm::vec3 viewFrustumPosition;
+	glm::vec3 viewFrustumDirection;
+	glm::vec3 up;
+	glm::vec3 right;
+	
+	// Camera or Head?
+	if (::cameraFrustum) {
+		viewFrustumPosition = cameraPosition;
+		viewFrustumDirection = cameraDirection;
+		up = cameraUp;
+		right = cameraRight;
+	} else {
+		viewFrustumPosition = headPosition;
+		viewFrustumDirection = headDirection;
+		up = headUp;
+		right = headRight;
+	}
+	
 	
 	// what? this are negative?? GRRRR!!!
 	float nearDist = -0.1; 
@@ -569,9 +602,21 @@ void render_view_frustum() {
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
     glBegin(GL_LINES);
 
+    glLineWidth(3.0);
+    glColor3f(1,1,1);
+    glm::vec3 headLookingAt = headPosition+(headDirection*-2.0);
+    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
+    glVertex3f(headLookingAt.x,headLookingAt.y,headLookingAt.z);
+
+    glColor3f(1,1,1);
+    glm::vec3 cameraLookingAt = cameraPosition+(cameraDirection*-2.0);
+    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
+    glVertex3f(cameraLookingAt.x,cameraLookingAt.y,cameraLookingAt.z);
+
+	// The remaining lines are skinny
+    glLineWidth(1.0);
 	// near plane - bottom edge 
     glColor3f(1,0,0);
     glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
@@ -660,7 +705,7 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myAvatar.getPos() );	
+		myCamera.setTargetPosition( myAvatar.getPos() ); 
 
 		if ( displayHead ) {
 			//-----------------------------------------------
@@ -669,42 +714,59 @@ void display(void)
 			myCamera.setYaw		( - myAvatar.getBodyYaw() );
 			myCamera.setPitch	( 0.0  );
 			myCamera.setRoll	( 0.0  );
-			myCamera.setUp		( 0.4  );
-			myCamera.setDistance( 0.5  );	
-			myCamera.setDistance( 0.08 );
+			myCamera.setUp		( 0.4  );	
+			myCamera.setDistance( 0.03 );
 			myCamera.update();
 		} else {
-			if (::viewFrustumFromOffset && ::frustumOn) {
-				//----------------------------------------------------
-				// set the camera to third-person view but offset so we can see the frustum
-				//----------------------------------------------------		
-				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-				myCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
-				myCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
-				myCamera.setUp		(   0.2 + 0.2 );
-				myCamera.setDistance(   0.5 + 0.2 );
-				myCamera.update();
-			} else {
-				//----------------------------------------------------
-				// set the camera to third-person view behind my av
-				//----------------------------------------------------		
-				myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
-				myCamera.setPitch	(   0.0 );
-				myCamera.setRoll	(   0.0 );
-				myCamera.setUp		(   0.2 );
-				myCamera.setDistance(   1.6 );	
-				myCamera.setDistance(   0.5 );
-				myCamera.update();
-			}
+			//----------------------------------------------------
+			// set the camera to third-person view behind my av
+			//----------------------------------------------------		
+			myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setPitch	(   0.0 );
+			myCamera.setRoll	(   0.0 );
+			myCamera.setUp		(   0.2 );
+			myCamera.setDistance(   1.6 );	
+			myCamera.setDistance(   0.5 );
+			myCamera.update();
 		}
+		// Note: whichCamera is used to pick between the normal camera myCamera for our 
+		// main camera, vs, an alternate camera. The alternate camera we support right now
+		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
+		// to add other cameras.
+		//
+		// Why have two cameras? Well, one reason is that because in the case of the render_view_frustum()
+		// code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
+		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
+		Camera whichCamera = myCamera;
+		Camera viewFrustumOffsetCamera = myCamera;
 		
+		if (::viewFrustumFromOffset && ::frustumOn) {
+			//----------------------------------------------------
+			// set the camera to third-person view but offset so we can see the frustum
+			//----------------------------------------------------		
+			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
+			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
+			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
+			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
+			viewFrustumOffsetCamera.update();
+			
+			whichCamera = viewFrustumOffsetCamera;
+		}		
+	
 		//---------------------------------------------
 		// transform view according to myCamera
 		//---------------------------------------------
         glRotatef	( myCamera.getPitch(),	1, 0, 0 );
         glRotatef	( myCamera.getYaw(),	0, 1, 0 );
         glRotatef	( myCamera.getRoll(),	0, 0, 1 );
-        glTranslatef( myCamera.getPosition().x, myCamera.getPosition().y, myCamera.getPosition().z );
+        glTranslatef( -myCamera.getPosition().x, -myCamera.getPosition().y, -myCamera.getPosition().z );
+/*
+        glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
+        glRotatef	( whichCamera.getYaw(),	0, 1, 0 );
+        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
+        glTranslatef( whichCamera.getPosition().x, whichCamera.getPosition().y, whichCamera.getPosition().z );
+*/
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -1057,6 +1119,7 @@ void key(unsigned char k, int x, int y)
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
+    if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset;	// toggle view frustum from offset debugging
     
 	if (k == '[') ::viewFrustumOffsetYaw   -= 0.5;
