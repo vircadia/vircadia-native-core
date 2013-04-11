@@ -6,6 +6,8 @@
 //
 //
 
+#include <cstdio>
+
 #include "AvatarAgentData.h"
 
 AvatarAgentData::AvatarAgentData() {
