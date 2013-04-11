@@ -18,9 +18,13 @@
 
 const int LINE_HEIGHT = 30;
 const int MENU_HEIGHT = 30;
+
+#ifdef _WIN32
 const int MENU_Y_OFFSET = 8;      // under windows we have 8 vertical pixels offset. In 2D an object with y=8, the object is displayed at y=0
                             // change the value in the other platforms (if required).
-
+#else
+const int MENU_Y_OFFSET = 0;
+#endif
 
 Menu::Menu() {
     currentColumn = -1;
