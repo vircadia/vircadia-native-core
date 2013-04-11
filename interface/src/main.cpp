@@ -196,6 +196,9 @@ float FPS = 120.f;
 timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
+timeval applicationStartupTime;
+bool justStarted = true;
+
 
 #ifdef MARKER_CAPTURE
 
@@ -783,7 +786,7 @@ void display(void)
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
 		glPushMatrix();
-			glTranslatef( 0.0f, sphereRadius, 0.0f );
+			//glTranslatef( 0.0f, sphereRadius, 0.0f );
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
@@ -915,6 +918,13 @@ void display(void)
 
     glutSwapBuffers();
     frameCount++;
+    
+    //  If application has just started, report time from startup to now (first frame display)
+    if (justStarted) {
+        printf("Startup Time: %4.2f\n",
+               (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0);
+        justStarted = false;
+    }
 }
 
 int setValue(int state, int *value) {
@@ -1349,6 +1359,7 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
 		strcpy(DOMAIN_IP,domainIP);
