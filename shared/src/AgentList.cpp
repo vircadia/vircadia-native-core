@@ -262,11 +262,9 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
         // prioritize the private address so that we prune erroneous local matches        
         if (socketMatch(agent->getPublicSocket(), agentAddress)) {
             agent->activatePublicSocket();
-            std::cout << "Activated public socket for agent " << &*agent << "\n";
             break;
         } else if (socketMatch(agent->getLocalSocket(), agentAddress)) {
             agent->activateLocalSocket();
-            std::cout << "Activated local socket for agent " << &*agent << "\n";
             break;
         }
     }

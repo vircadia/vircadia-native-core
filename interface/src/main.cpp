@@ -1211,7 +1211,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_ERASE_VOXEL:
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
-                case PACKET_HEADER_HEAD_DATA:
+                case PACKET_HEADER_BULK_AVATAR_DATA:
                     agentList.processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
                     break;
                 default:
