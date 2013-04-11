@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     ssize_t receivedBytes = 0;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    *broadcastPacket = PACKET_HEADER_AVATAR_SERVER;
+    *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
     
     unsigned char* currentBufferPosition = NULL;
     int agentIndex = 0;
