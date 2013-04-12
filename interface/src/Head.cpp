@@ -17,6 +17,7 @@
 #include "Head.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
+#include <glmUtils.h>
 
 using namespace std;
 
