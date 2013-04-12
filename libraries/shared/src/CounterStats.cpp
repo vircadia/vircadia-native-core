@@ -33,17 +33,17 @@
 //  int			sampleAt;
 
 
-void CounterStatHistory::recordSample(long int thisCount) {
+void CounterStatHistory::recordSample(long thisCount) {
 	timeval now;
 	gettimeofday(&now,NULL);
 	double nowSeconds = (now.tv_usec/1000000.0)+(now.tv_sec);
 	this->recordSample(nowSeconds,thisCount);
 }
 
-void CounterStatHistory::recordSample(double thisTime, long int thisCount) {
+void CounterStatHistory::recordSample(double thisTime, long thisCount) {
 
 	// how much did we change since last sample?
-	long int thisDelta = thisCount - this->lastCount;
+	long thisDelta = thisCount - this->lastCount;
 	double elapsed = thisTime - this->lastTime;
 
 	// record the latest values
@@ -74,12 +74,12 @@ void CounterStatHistory::recordSample(double thisTime, long int thisCount) {
 		
 }
 
-long int CounterStatHistory::getRunningAverage() {
+long CounterStatHistory::getRunningAverage() {
 	// before we calculate our running average, always "reset" the current count, with the current time
 	// this will flush out old data, if we haven't been adding any new data.
 	this->recordSample(this->currentCount);
 
-	long int runningTotal = 0;
+	long runningTotal = 0;
 	double minTime = this->timeSamples[0];
 	double maxTime = this->timeSamples[0];
 	
@@ -90,6 +90,6 @@ long int CounterStatHistory::getRunningAverage() {
 	}
 	
 	double elapsedTime = maxTime-minTime;
-	long int runningAverage = runningTotal/elapsedTime;
+	long runningAverage = runningTotal/elapsedTime;
 	return runningAverage;
 }

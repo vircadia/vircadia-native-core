@@ -22,58 +22,56 @@
 #define COUNTETSTATS_TIME_FRAME (COUNTETSTATS_SAMPLES_TO_KEEP*COUNTETSTATS_TIME_BETWEEN_SAMPLES)
 
 class CounterStatHistory {
-
+public:
+	std::string name;
+    
+	CounterStatHistory(std::string myName):
+    currentCount(0), currentDelta(0),currentTime(0.0),
+    lastCount(0),lastTime(0.0),
+    totalTime(0.0),
+    sampleAt(-1), sampleCount(0), name(myName) {};
+	
+	CounterStatHistory():
+    currentCount(0), currentDelta(0),currentTime(0.0),
+    lastCount(0),lastTime(0.0),
+    totalTime(0.0),
+    sampleAt(-1), sampleCount(0) {};
+    
+	CounterStatHistory(std::string myName, double initialTime, long int initialCount) :
+    currentCount(initialCount), currentDelta(0), currentTime(initialTime),
+    lastCount(initialCount),lastTime(initialTime),
+    totalTime(initialTime),
+    sampleAt(-1), sampleCount(0), name(myName) {};
+    
+	void recordSample(long thisCount);
+	void recordSample(double thisTime, long thisCount);
+	long getRunningAverage();
+    
+	long getAverage() {
+		return currentCount/totalTime;
+	};
+    
+	double getTotalTime() {
+		return totalTime;
+	};
+	long getCount() {
+		return currentCount;
+	};
 private:
-	long int	currentCount;
-	long int	currentDelta;
+	long        currentCount;
+	long        currentDelta;
 	double 		currentTime;
 
-	long int	lastCount;
+	long        lastCount;
 	double 		lastTime;
 	
 	double		totalTime;
 	
-	long int	countSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
-	long int	deltaSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
+	long        countSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
+	long        deltaSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
 	double		timeSamples[COUNTETSTATS_SAMPLES_TO_KEEP];
 	int			sampleAt;
 	int			sampleCount;
-	
-public:
-	std::string name;
-
-	CounterStatHistory(std::string myName): 
-		currentCount(0), currentDelta(0),currentTime(0.0), 
-		lastCount(0),lastTime(0.0), 
-		totalTime(0.0), 
-		sampleAt(-1),sampleCount(0), name(myName) {};
-	
-	CounterStatHistory(): 
-		currentCount(0), currentDelta(0),currentTime(0.0), 
-		lastCount(0),lastTime(0.0), 
-		totalTime(0.0), 
-		sampleAt(-1),sampleCount(0) {};
-		
-	CounterStatHistory(std::string myName, double initialTime, long int initialCount) :
-        currentCount(initialCount), currentDelta(0), currentTime(initialTime), 
-		lastCount(initialCount),lastTime(initialTime), 
-        totalTime(initialTime), 
-        sampleAt(-1), sampleCount(0), name(myName) {};
-    
-	void recordSample(long int thisCount);
-	void recordSample(double thisTime, long int thisCount);
-	long int getRunningAverage();
-
-	long int getAverage() {
-		return currentCount/totalTime; 
-	};
-
-	double getTotalTime() {
-		return totalTime; 
-	};
-	long int getCount() {
-		return currentCount; 
-	};
 };
 
 #endif /* defined(__hifi__CounterStat__) */
