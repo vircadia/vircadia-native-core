@@ -37,7 +37,7 @@ public:
     totalTime(0.0),
     sampleAt(-1), sampleCount(0) {};
     
-	CounterStatHistory(std::string myName, double initialTime, long int initialCount) :
+	CounterStatHistory(std::string myName, double initialTime, long initialCount) :
     currentCount(initialCount), currentDelta(0), currentTime(initialTime),
     lastCount(initialCount),lastTime(initialTime),
     totalTime(initialTime),
