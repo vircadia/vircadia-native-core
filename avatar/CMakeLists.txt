@@ -9,8 +9,8 @@ file(GLOB AVATAR_SRCS src/*.cpp src/*.h)
 add_executable(avatar ${AVATAR_SRCS})
 
 # link the shared hifi library
-include(../cmake/macros/LinkHifiShared.cmake)
-link_hifi_shared_library(avatar)
+include(../cmake/macros/LinkHifiLibrary.cmake)
+link_hifi_library(shared avatar)
 
 # link the threads library
 find_package(Threads REQUIRED)

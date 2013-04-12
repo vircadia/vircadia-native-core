@@ -10,9 +10,7 @@ set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 include(../cmake/macros/IncludeGLM.cmake)
 INCLUDE_GLM(interface)
 
-
 project(interface)
-
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -53,12 +51,11 @@ endif (APPLE)
 add_executable(interface MACOSX_BUNDLE ${INTERFACE_SRCS})
 
 # link in the hifi shared library
-include(../cmake/macros/LinkHifiShared.cmake)
-link_hifi_shared_library(interface)
+include(../cmake/macros/LinkHifiLibrary.cmake)
+link_hifi_library(shared interface)
 
-# link in the hifi voxellib library
-include(../cmake/macros/LinkHifiVoxelLib.cmake)
-link_hifi_voxellib_library(interface)
+# link in the hifi voxels library
+link_hifi_library(voxels interface)
 
 # find required libraries
 find_package(GLM REQUIRED)
