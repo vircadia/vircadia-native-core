@@ -69,7 +69,6 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
-#include "Finger.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
@@ -127,8 +126,6 @@ Cloud cloud(0,                             //  Particles
             );
 
 VoxelSystem voxels;
-
-Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
 #ifndef _WIN32
@@ -321,7 +318,6 @@ void init(void)
     myAvatar.setPos(start_location );
 	myCamera.setPosition( start_location );
     
-    myFinger.setTarget(WIDTH/2, HEIGHT/2);
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -864,8 +860,6 @@ void display(void)
         gluOrtho2D(0, WIDTH, HEIGHT, 0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
-
-        myFinger.render();
     
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
@@ -1279,7 +1273,6 @@ void idle(void)
         myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
         cloud.simulate(1.f/FPS);
-        myFinger.simulate(1.f/FPS);
 
         glutPostRedisplay();
         lastTimeIdle = check;
@@ -1346,9 +1339,7 @@ void mouseoverFunc( int x, int y)
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
-    {
-        myFinger.setTarget(mouseX, mouseY);
-    }
+    {}
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
