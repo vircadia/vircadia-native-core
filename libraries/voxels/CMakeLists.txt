@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(TARGET_NAME voxels)
-
-project(${TARGET_NAME})
+set(MACRO_DIRECTORY ../../cmake/macros)
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
 
+set(TARGET_NAME voxels)
+
+project(${TARGET_NAME})
+
 # set up the external glm library
-include(../../cmake/macros/IncludeGLM.cmake)
+include(${MACRO_DIRECTORY}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME})
 
 # grab the implemenation and header files
