@@ -109,6 +109,7 @@ struct AvatarBone
 	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
+	float		springBodyTightness;	// how tightly (0 to 1) the springy position tries to stay on the position
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -159,6 +160,7 @@ class Head : public AgentData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
+		glm::vec3 getBonePosition( AvatarBones b );
 		glm::vec3 getBodyPosition();
         
         void render(int faceToFace, int isMine);
@@ -254,7 +256,7 @@ class Head : public AgentData {
 		
 		float springVelocityDecay;
 		float springForce;
-		float springToBodyTightness;
+		//float springToBodyTightness;
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;

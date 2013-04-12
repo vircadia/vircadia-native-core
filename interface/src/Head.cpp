@@ -95,7 +95,6 @@ Head::Head() {
 	usingSprings = false;
 	
 	springForce				= 6.0f;
-	springToBodyTightness	= 4.0f;
 	springVelocityDecay		= 16.0f;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
@@ -782,23 +781,27 @@ void Head::setHandMovement( glm::vec3 movement ) {
 
 
 void Head::initializeAvatar() {
-	//avatar.position		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
 	closestOtherAvatar = 0;
 	
-	bodyYaw		= -90.0;
-	bodyPitch	= 0.0;
-	bodyRoll	= 0.0;
-	
-	bodyYawDelta = 0.0;
+	bodyYaw			= -90.0;
+	bodyPitch		= 0.0;
+	bodyRoll		= 0.0;
+	bodyYawDelta	= 0.0;
 	
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-		avatar.bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].springyVelocity	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].parent				= AVATAR_BONE_NULL;	
+		avatar.bone[b].position				= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].defaultPosePosition	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyPosition		= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyVelocity		= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].yaw					= 0.0f;
+		avatar.bone[b].pitch				= 0.0f;
+		avatar.bone[b].roll					= 0.0f;
+		avatar.bone[b].length				= 0.0f;
 		avatar.bone[b].orientation.setToIdentity();
 	}
 
@@ -877,6 +880,41 @@ void Head::initializeAvatar() {
 	avatar.bone[ AVATAR_BONE_RIGHT_SHIN			].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
 	avatar.bone[ AVATAR_BONE_RIGHT_FOOT			].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
 
+
+	//----------------------------------------------------------------------------------------------------------------
+	// set the spring body tightness (determines how tightly the springy positions stay on the bone positions
+	//----------------------------------------------------------------------------------------------------------------
+	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+		avatar.bone[b].springBodyTightness = 4.0f;
+	}
+
+	/*
+	avatar.bone[ AVATAR_BONE_NULL			].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_PELVIS_SPINE	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_MID_SPINE		].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_CHEST_SPINE	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_NECK			].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_HEAD			].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_CHEST		].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_SHOULDER	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_UPPER_ARM	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_FOREARM	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_HAND		].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_RIGHT_CHEST	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM	].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_RIGHT_HAND		].springBodyTightness = 0.0f;
+	avatar.bone[ AVATAR_BONE_LEFT_PELVIS	].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_LEFT_THIGH		].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_LEFT_SHIN		].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_LEFT_FOOT		].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS	].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_RIGHT_THIGH	].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_RIGHT_SHIN		].springBodyTightness = 0.8f;
+	avatar.bone[ AVATAR_BONE_RIGHT_FOOT		].springBodyTightness = 0.8f;
+	*/
+	
 	//----------------------------------------------------------------------------
 	// calculate bone length
 	//----------------------------------------------------------------------------
@@ -957,14 +995,15 @@ void Head::updateAvatarSprings( float deltaTime ) {
 		if ( length > 0.0f ) {
 			glm::vec3 springDirection = springVector / length;
 			
-			float force = ( length - avatar.bone[b].length ) * springForce * deltaTime;
+			float force = ( length - avatar.bone[b].length ) * springForce * deltaTime;			
 			
 			avatar.bone[ b						].springyVelocity -= springDirection * force;
 			avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
 		}
 		
-		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * springToBodyTightness * deltaTime;
-
+		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) *
+			avatar.bone[b].springBodyTightness * deltaTime;
+		
 		float decay = 1.0 - springVelocityDecay * deltaTime;
 		
 		if ( decay > 0.0 ) {
@@ -998,6 +1037,11 @@ glm::vec3 Head::getHeadLookatDirectionUp() {
 		avatar.orientation.getUp().y,
 		avatar.orientation.getUp().z
 	);
+}
+
+glm::vec3 Head::getBonePosition( AvatarBones b )
+{
+	return avatar.bone[b].position;
 }
 
 glm::vec3 Head::getHeadLookatDirectionRight() {
