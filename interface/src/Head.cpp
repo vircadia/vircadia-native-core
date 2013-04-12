@@ -15,6 +15,8 @@
 #include <sstream>
 #include <SharedUtil.h>
 #include "Head.h"
+#include <AgentList.h>
+#include <AgentTypes.h>
 
 using namespace std;
 
@@ -111,6 +113,15 @@ Head::Head() {
 		DEBUG_otherAvatarListTimer[o] = 0.0f;
 		DEBUG_otherAvatarListPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
 	}
+	
+	//--------------------------------------------------
+	// test... just slam them into random positions...
+	//--------------------------------------------------
+	DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0, 0.1,  2.0 );
+	DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0, 0.1,  2.0 );
+	DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0, 0.1,  2.0 );
+	DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0, 0.1, -4.0 );
+	DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.1, -2.0 );
 }
 
 
@@ -252,12 +263,30 @@ void Head::simulate(float deltaTime) {
 	//-------------------------------------
 	// DEBUG - other avatars...
 	//-------------------------------------
-	closeEnoughToInteract = 2.0f;
+	closeEnoughToInteract = 0.5f;
 	closestOtherAvatar = -1;
 	float closestDistance = 10000.0f;
+	
+	
+	/*
+	AgentList * agentList = AgentList::getInstance();
 
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+            agent != agentList->getAgents().end();
+            agent++) {
+            if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_INTERFACE ) )) {
+                Head *agentHead = (Head *)agent->getLinkedData();
+               
+				// when this is working, I will grab the position here...
+				//glm::vec3 pos = agentHead->getPos();
+
+            }
+        }
+	*/
+	
 	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
 	
+		/*
 		//-------------------------------------
 		// move the debug other avatars around...
 		//-------------------------------------
@@ -265,12 +294,12 @@ void Head::simulate(float deltaTime) {
 		float x = 6.0f * sin( DEBUG_otherAvatarListTimer[o] * 0.07 + o * 129.0 );
 		float z = 6.0f * sin( DEBUG_otherAvatarListTimer[o] * 0.10 + o * 12.0 );
 		float y = 0.0f;
-		DEBUG_otherAvatarListPosition[o] = glm::vec3( x, y, z );
-	
+		*/
+
 		//-------------------------------------
 		// test other avs for proximity...
 		//-------------------------------------
-		glm::vec3 v( position );
+		glm::vec3 v( avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position );
 		v -= DEBUG_otherAvatarListPosition[o];
 		
 		float distance = glm::length( v );
@@ -282,8 +311,8 @@ void Head::simulate(float deltaTime) {
 			}
 		}
 	}
-	
-	//printf( "closestOtherAvatar = %d \n", closestOtherAvatar );
+
+
 
 
 	//------------------------
@@ -1010,6 +1039,23 @@ void Head::updateHandMovement() {
 	transformedHandMovement.x = -glm::dot( movedHandOffset, avatar.orientation.getRight	() );	
 	transformedHandMovement.y = -glm::dot( movedHandOffset, avatar.orientation.getUp	() );
 	transformedHandMovement.z = -glm::dot( movedHandOffset, avatar.orientation.getFront	() );
+
+	
+	//transformedHandMovement = glm::vec3( 0.0f, 0.0f, 0.0f );
+	
+	
+	//if holding hands, add a pull to the hand...
+	if ( usingSprings ) {
+		if ( closestOtherAvatar != -1 ) {		
+			glm::vec3 handShakePull( DEBUG_otherAvatarListPosition[ closestOtherAvatar ]);
+			handShakePull -= avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
+			
+			handShakePull *= 0.3;
+			 
+			transformedHandMovement += handShakePull;
+		}
+	}
+	
 		
 	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
 	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
