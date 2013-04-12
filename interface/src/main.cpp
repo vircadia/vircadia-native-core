@@ -75,6 +75,9 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <glmUtils.h>
+
+#include "ViewFrustum.h"
 
 using namespace std;
 
@@ -159,6 +162,7 @@ bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the 
 float viewFrustumOffsetYaw = -90.0;
 float viewFrustumOffsetPitch = 7.5;
 float viewFrustumOffsetRoll = 0.0;
+float viewFrustumOffsetDistance = 0.0;
 
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -561,11 +565,14 @@ void render_view_frustum() {
 		up = headUp;
 		right = headRight;
 	}
+    
+    ViewFrustum vf(viewFrustumPosition,viewFrustumDirection);
+    vf.dump();
 	
 	float nearDist = 0.1; 
-	float farDist  = 1.0;
+	float farDist  = 10.0;
 	
-	float fovHalfAngle = 0.7854f*1.7; // 45 deg for half, so fov = 90 deg
+	float fovHalfAngle = 0.7854f*1.5; // 45 deg for half, so fov = 90 deg
 	
 	float screenWidth = ::WIDTH; // These values come from reshape() 
 	float screenHeight = ::HEIGHT;
@@ -577,7 +584,7 @@ void render_view_frustum() {
 	float farWidth   = farHeight * ratio;
 	
 	glm::vec3 farCenter       = viewFrustumPosition+viewFrustumDirection*farDist;
-	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5); 
+	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5);
 	glm::vec3 farTopRight     = farCenter  + (up*farHeight*0.5)  + (right*farWidth*0.5); 
 	glm::vec3 farBottomLeft   = farCenter  - (up*farHeight*0.5)  - (right*farWidth*0.5); 
 	glm::vec3 farBottomRight  = farCenter  - (up*farHeight*0.5)  + (right*farWidth*0.5); 
@@ -587,6 +594,9 @@ void render_view_frustum() {
 	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
 	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
 	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
+
+    //printf("farCenter.x=%f, farCenter.y=%f, farCenter.z=%f\n",farCenter.x,farCenter.y,farCenter.z);
+    //printf("farTopLeft.x=%f, farTopLeft.y=%f, farTopLeft.z=%f\n",farTopLeft.x,farTopLeft.y,farTopLeft.z);
 	
 	// At this point we have all the corners for our frustum... we could use these to
 	// calculate various things...
@@ -770,9 +780,9 @@ void display(void)
 			//----------------------------------------------------		
 			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
 			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
-			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
+			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll  ); 
 			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
-			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
+			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update();
 			
 			whichCamera = viewFrustumOffsetCamera;
@@ -1138,6 +1148,9 @@ void key(unsigned char k, int x, int y)
 	if (k == '(') ::viewFrustumOffsetRoll  -= 0.5;
 	if (k == ')') ::viewFrustumOffsetRoll  += 0.5;
 
+	if (k == '<') ::viewFrustumOffsetDistance  -= 0.5;
+	if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
+	
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
