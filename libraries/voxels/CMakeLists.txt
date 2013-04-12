@@ -18,6 +18,5 @@ file(GLOB HIFI_VOXELS_SRCS src/*.h src/*.cpp)
 
 # create a library and set the property so it can be referenced later
 add_library(${TARGET_NAME} ${HIFI_VOXELS_SRCS})
-add_dependencies(${TARGET_NAME} shared)
-
+include_directories(${TARGET_NAME} ../shared/src)
 set(HIFI_VOXELS_LIBRARY ${TARGET_NAME})
