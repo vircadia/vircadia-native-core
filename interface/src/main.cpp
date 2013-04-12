@@ -565,7 +565,7 @@ void render_view_frustum() {
 	float nearDist = 0.1; 
 	float farDist  = 1.0;
 	
-	float fovHalfAngle = 0.7854f*1.5; // 45 deg for half, so fov = 90 deg
+	float fovHalfAngle = 0.7854f*1.7; // 45 deg for half, so fov = 90 deg
 	
 	float screenWidth = ::WIDTH; // These values come from reshape() 
 	float screenHeight = ::HEIGHT;
