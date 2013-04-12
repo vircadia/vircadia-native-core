@@ -353,27 +353,27 @@ void Head::simulate(float deltaTime) {
 		
 	//notice that the z values from avatar.orientation are flipped to accommodate different coordinate system
     if (driveKeys[FWD]) {
-		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, avatar.orientation.getFront().z );
+		glm::vec3 front( avatar.orientation.front.x, avatar.orientation.front.y, avatar.orientation.front.z );
 		avatar.thrust += front * THRUST_MAG;
     }
     if (driveKeys[BACK]) {
-		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, avatar.orientation.getFront().z );
+		glm::vec3 front( avatar.orientation.front.x, avatar.orientation.front.y, avatar.orientation.front.z );
 		avatar.thrust -= front * THRUST_MAG;
     }
     if (driveKeys[RIGHT]) {
-		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, avatar.orientation.getRight().z );
+		glm::vec3 right( avatar.orientation.right.x, avatar.orientation.right.y, avatar.orientation.right.z );
 		avatar.thrust -= right * THRUST_MAG;
     }
     if (driveKeys[LEFT]) {
-		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, avatar.orientation.getRight().z );
+		glm::vec3 right( avatar.orientation.right.x, avatar.orientation.right.y, avatar.orientation.right.z );
 		avatar.thrust += right * THRUST_MAG;
     }
     if (driveKeys[UP]) {
-		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, avatar.orientation.getUp().z );
+		glm::vec3 up( avatar.orientation.up.x, avatar.orientation.up.y, avatar.orientation.up.z );
 		avatar.thrust += up * THRUST_MAG;
     }
     if (driveKeys[DOWN]) {
-		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, avatar.orientation.getUp().z );
+		glm::vec3 up( avatar.orientation.up.x, avatar.orientation.up.y, avatar.orientation.up.z );
 		avatar.thrust -= up * THRUST_MAG;
     }
     if (driveKeys[ROT_RIGHT]) {	
@@ -573,7 +573,7 @@ void Head::render(int faceToFace, int isMine) {
 
 	   
 void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
-	glm::vec3 pRight	= position + orientation.getRight	() * size;
+	glm::vec3 pRight	= position + orientation.right * size;
 	glm::vec3 pUp		= position + orientation.getUp		() * size;
 	glm::vec3 pFront	= position + orientation.getFront	() * size;
 		
@@ -1024,18 +1024,18 @@ float Head::getBodyYaw() {
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
-		avatar.orientation.getFront().x,
-		avatar.orientation.getFront().y,
-		avatar.orientation.getFront().z
+		avatar.orientation.front.x,
+		avatar.orientation.front.y,
+		avatar.orientation.front.z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionUp() {
 	return glm::vec3
 	(
-		avatar.orientation.getUp().x,
-		avatar.orientation.getUp().y,
-		avatar.orientation.getUp().z
+		avatar.orientation.up.x,
+		avatar.orientation.up.y,
+		avatar.orientation.up.z
 	);
 }
 
@@ -1047,9 +1047,9 @@ glm::vec3 Head::getBonePosition( AvatarBones b )
 glm::vec3 Head::getHeadLookatDirectionRight() {
 	return glm::vec3
 	(
-		avatar.orientation.getRight().x,
-		avatar.orientation.getRight().y,
-		avatar.orientation.getRight().z
+		avatar.orientation.right.x,
+		avatar.orientation.right.y,
+		avatar.orientation.right.z
 	);
 }
 
@@ -1077,9 +1077,9 @@ void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
 	
 	transformedHandMovement 
-	= avatar.orientation.getRight()	* -movedHandOffset.x
-	+ avatar.orientation.getUp()	* -movedHandOffset.y
-	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4;
+	= avatar.orientation.right	* -movedHandOffset.x
+	+ avatar.orientation.up	* -movedHandOffset.y
+	+ avatar.orientation.front	* -movedHandOffset.y * 0.4;
 	
 	//if holding hands, add a pull to the hand...
 	if ( usingSprings ) {
@@ -1123,7 +1123,7 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * (float)ONE_HALF;
-	glm::vec3 perpendicular = glm::cross( avatar.orientation.getFront(), armVector );
+	glm::vec3 perpendicular = glm::cross( avatar.orientation.front, armVector );
 	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
 	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
