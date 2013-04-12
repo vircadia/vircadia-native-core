@@ -796,6 +796,11 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
+        // Test - Draw a blue sphere around a body part of mine!
+        
+        glPushMatrix();
+        //glTranslate3f(myAvatar.GetRight
+        glPopMatrix();
 		
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
