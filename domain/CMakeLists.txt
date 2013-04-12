@@ -9,5 +9,5 @@ file(GLOB DOMAIN_SRCS src/*.cpp src/*.h)
 add_executable(domain ${DOMAIN_SRCS})
 
 # link the shared hifi library
-include(../LinkHifiShared.cmake)
+include(../cmake/macros/LinkHifiShared.cmake)
 link_hifi_shared_library(domain)

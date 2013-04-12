@@ -152,7 +152,7 @@ VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 bool frustumOn = false;				//  Whether or not to display the debug view frustum
-bool cameraFrustum = false;			// which frustum to look at
+bool cameraFrustum = true;			// which frustum to look at
 bool wantFrustumDebugging = false;  // enable for some stdout debugging output
 
 bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum

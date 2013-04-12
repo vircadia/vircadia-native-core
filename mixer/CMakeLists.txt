@@ -9,7 +9,7 @@ file(GLOB MIXER_SRCS src/*.cpp src/*.h)
 add_executable(mixer ${MIXER_SRCS})
 
 # link the shared hifi library
-include(../LinkHifiShared.cmake)
+include(../cmake/macros/LinkHifiShared.cmake)
 link_hifi_shared_library(mixer)
 
 # link the threads library
