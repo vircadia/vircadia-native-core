@@ -4,7 +4,7 @@ project(hifi)
 
 add_subdirectory(space)
 add_subdirectory(avatar-mixer)
-add_subdirectory(domain)
+add_subdirectory(domain-server)
 add_subdirectory(mixer)
 add_subdirectory(voxel)
 add_subdirectory(interface)
