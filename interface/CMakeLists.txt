@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(ROOT_DIR ../)
+set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
+
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
@@ -22,7 +25,6 @@ if (WIN32)
 endif (WIN32)
 
 # set up the external glm library
-set(MACRO_DIR ../cmake/macros)
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${MACRO_DIR})
 
@@ -54,10 +56,10 @@ add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
-link_hifi_library(shared ${TARGET_NAME})
+link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 # link in the hifi voxels library
-link_hifi_library(voxels ${TARGET_NAME})
+link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(GLM REQUIRED)
