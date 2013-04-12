@@ -7,8 +7,9 @@ set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 # set up the external glm library
-include(../cmake/macros/IncludeGLM.cmake)
-INCLUDE_GLM(interface)
+set(MACRO_DIR ../cmake/macros)
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(interface ${MACRO_DIR})
 
 project(interface)
 

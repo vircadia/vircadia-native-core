@@ -11,7 +11,7 @@ project(${TARGET_NAME})
 
 # set up the external glm library
 include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME})
+include_glm(${TARGET_NAME} ${MACRO_DIR})
 
 # grab the implemenation and header files
 file(GLOB HIFI_VOXELS_SRCS src/*.h src/*.cpp)
