@@ -9,8 +9,8 @@ file(GLOB INJECTOR_SRCS src/*.cpp src/*.h)
 add_executable(injector ${INJECTOR_SRCS})
 
 # link the shared hifi library
-include(../LinkHifiShared.cmake)
-link_hifi_shared_library(injector)
+include(../cmake/macros/LinkHifiLibrary.cmake)
+link_hifi_library(shared injector)
 
 # link the threads library
 find_package(Threads REQUIRED)

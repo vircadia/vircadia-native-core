@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(TARGET_NAME interface)
+project(${TARGET_NAME})
+
 # setup for find modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(GLM_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
-
-project(interface)
-
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -20,6 +20,11 @@ if (WIN32)
   set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
   set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
 endif (WIN32)
+
+# set up the external glm library
+set(MACRO_DIR ../cmake/macros)
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} ${MACRO_DIR})
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
@@ -45,11 +50,14 @@ if (APPLE)
 endif (APPLE)
 
 # create the executable, make it a bundle on OS X
-add_executable(interface MACOSX_BUNDLE ${INTERFACE_SRCS})
+add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
 # link in the hifi shared library
-include(../LinkHifiShared.cmake)
-link_hifi_shared_library(interface)
+include(${MACRO_DIR}/LinkHifiLibrary.cmake)
+link_hifi_library(shared ${TARGET_NAME})
+
+# link in the hifi voxels library
+link_hifi_library(voxels ${TARGET_NAME})
 
 # find required libraries
 find_package(GLM REQUIRED)
@@ -67,7 +75,7 @@ if (NOT APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
     include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
-    target_link_libraries(interface ${OPENGL_LIBRARY})
+    target_link_libraries(${TARGET_NAME} ${OPENGL_LIBRARY})
 else (NOT APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AudioToolbox AudioToolbox)
@@ -77,13 +85,13 @@ else (NOT APPLE)
     find_library(Carbon Carbon)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
-    target_link_libraries(interface ${AudioToolbox} ${AudioUnit} ${CoreAudio} 
+    target_link_libraries(${TARGET_NAME} ${AudioToolbox} ${AudioUnit} ${CoreAudio} 
                           ${CoreServices} ${Carbon} ${GLUT} ${OpenGL})
 endif (NOT APPLE)
 
 # link target to external libraries
 if (WIN32)
-  target_link_libraries(interface 
+  target_link_libraries(${TARGET_NAME} 
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
@@ -91,7 +99,7 @@ if (WIN32)
     wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(interface ${LODEPNG_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARY})
 
   # include PortAudio as external project
   include(ExternalProject)
@@ -106,7 +114,7 @@ else (WIN32)
   )
 
   # make PortAudio a dependency of the interface executable
-  add_dependencies(interface portaudio)
+  add_dependencies(${TARGET_NAME} portaudio)
 
   # include the PortAudio headers
   ExternalProject_Get_Property(portaudio source_dir)
@@ -114,7 +122,7 @@ else (WIN32)
 
   # link the PortAudio library
   ExternalProject_Get_Property(portaudio binary_dir)
-  target_link_libraries(interface ${binary_dir}/lib/.libs/libportaudio.a)
+  target_link_libraries(${TARGET_NAME} ${binary_dir}/lib/.libs/libportaudio.a)
   
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
@@ -123,7 +131,7 @@ else (WIN32)
       find_package(ALSA)
       find_package(Jack)
 
-      target_link_libraries(interface
+      target_link_libraries(${TARGET_NAME}
           ${CMAKE_THREAD_LIBS_INIT}
           ${LIBRT_LIBRARIES}
           ${JACK_LIBRARIES}
@@ -134,7 +142,7 @@ else (WIN32)
 endif (WIN32)
 
 # install command for OS X bundle
-INSTALL(TARGETS interface 
+INSTALL(TARGETS ${TARGET_NAME} 
     BUNDLE DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
     RUNTIME DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
 )
