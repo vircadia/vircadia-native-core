@@ -1234,14 +1234,13 @@ void idle(void)
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
-    if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS)
-    {
+    if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		// If mouse is being dragged, update hand movement in the avatar
-		if ( mousePressed == 1 )
-		{
-			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
-			float yOffset = ( mouseY - mouseStartY ) / (double)HEIGHT;
-			
+		if ( mousePressed == 1 ) {
+
+			float xOffset = ( mouseX - mouseStartX ) / ( WIDTH	* ONE_HALF );
+			float yOffset = ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
+
 			float leftRight	= xOffset;
 			float downUp	= yOffset;
 			float backFront	= 0.0;

@@ -378,18 +378,18 @@ void Head::simulate(float deltaTime) {
 		avatar.thrust -= up * THRUST_MAG;
     }
     if (driveKeys[ROT_RIGHT]) {	
-		avatar.yawDelta -= YAW_MAG * deltaTime;
+		bodyYawDelta -= YAW_MAG * deltaTime;
     }
     if (driveKeys[ROT_LEFT]) {	
-		avatar.yawDelta += YAW_MAG * deltaTime;
+		bodyYawDelta += YAW_MAG * deltaTime;
     }
 	
-	avatar.yaw += avatar.yawDelta * deltaTime;
+	bodyYaw += bodyYawDelta * deltaTime;
 	
-	Yaw = avatar.yaw;
+	Yaw = bodyYaw;
 	
     const float TEST_YAW_DECAY = 5.0;
-    avatar.yawDelta *= ( 1.0 - TEST_YAW_DECAY * deltaTime );
+    bodyYawDelta *= ( 1.0 - TEST_YAW_DECAY * deltaTime );
 
 	avatar.velocity += glm::dvec3( avatar.thrust * deltaTime );
 		
@@ -633,7 +633,7 @@ void Head::renderHead( int faceToFace, int isMine ) {
     
 	//glRotatef(Yaw, 0, 1, 0);
 
-    glRotatef( avatar.yaw, 0, 1, 0);
+    glRotatef( bodyYaw, 0, 1, 0);
     
 	//hand->render(1);
     
@@ -789,11 +789,11 @@ void Head::initializeAvatar() {
 	
 	closestOtherAvatar = 0;
 	
-	avatar.yaw		= -90.0;
-	avatar.pitch	= 0.0;
-	avatar.roll		= 0.0;
+	bodyYaw		= -90.0;
+	bodyPitch	= 0.0;
+	bodyRoll	= 0.0;
 	
-	avatar.yawDelta = 0.0;
+	bodyYawDelta = 0.0;
 	
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		avatar.bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
@@ -902,12 +902,13 @@ void Head::calculateBoneLengths() {
 }
 
 
+
 void Head::updateAvatarSkeleton() {
 	//----------------------------------
 	// rotate...
 	//----------------------------------	
 	avatar.orientation.setToIdentity();
-	avatar.orientation.yaw( avatar.yaw );
+	avatar.orientation.yaw( bodyYaw );
 
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
@@ -947,9 +948,6 @@ void Head::updateAvatarSprings( float deltaTime ) {
 		if ( avatar.bone[b].parent == AVATAR_BONE_NULL ) {
 			springVector -= position;
 		}
-		else if ( avatar.bone[b].parent == AVATAR_BONE_PELVIS_SPINE ) {
-			springVector -= position;
-		}
 		else {
 			springVector -= avatar.bone[ avatar.bone[b].parent ].springyPosition;
 		}
@@ -967,7 +965,6 @@ void Head::updateAvatarSprings( float deltaTime ) {
 		
 		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * springToBodyTightness * deltaTime;
 
-
 		float decay = 1.0 - springVelocityDecay * deltaTime;
 		
 		if ( decay > 0.0 ) {
@@ -982,7 +979,7 @@ void Head::updateAvatarSprings( float deltaTime ) {
 }
 
 float Head::getBodyYaw() {
-	return avatar.yaw;
+	return bodyYaw;
 }
 
 glm::vec3 Head::getHeadLookatDirection() {
@@ -1035,14 +1032,10 @@ glm::vec3 Head::getBodyPosition() {
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
 	
-	
-	transformedHandMovement.x = -glm::dot( movedHandOffset, avatar.orientation.getRight	() );	
-	transformedHandMovement.y = -glm::dot( movedHandOffset, avatar.orientation.getUp	() );
-	transformedHandMovement.z = -glm::dot( movedHandOffset, avatar.orientation.getFront	() );
-
-	
-	//transformedHandMovement = glm::vec3( 0.0f, 0.0f, 0.0f );
-	
+	transformedHandMovement 
+	= avatar.orientation.getRight()	* -movedHandOffset.x
+	+ avatar.orientation.getUp()	* -movedHandOffset.y
+	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4;
 	
 	//if holding hands, add a pull to the hand...
 	if ( usingSprings ) {
@@ -1056,7 +1049,6 @@ void Head::updateHandMovement() {
 		}
 	}
 	
-		
 	avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
 	glm::vec3 armVector = avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position;
 	armVector -= avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
@@ -1068,14 +1060,14 @@ void Head::updateHandMovement() {
 	
 	//-------------------------------------------------------------------------------
 	// if right hand is being dragged beyond maximum arm length...
-	//-------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------	
 	if ( distance > avatar.maxArmLength ) {
 		//-------------------------------------------------------------------------------
 		// reset right hand to be constrained to maximum arm length
 		//-------------------------------------------------------------------------------
 		avatar.bone[ AVATAR_BONE_RIGHT_HAND ].position = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		glm::vec3 armNormal = armVector / distance;
-		armVector = armNormal * (float)avatar.maxArmLength;
+		armVector = armNormal * avatar.maxArmLength;
 		distance = avatar.maxArmLength;
 		glm::vec3 constrainedPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		constrainedPosition += armVector;
@@ -1087,8 +1079,8 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * (float)ONE_HALF;
-	glm::vec3 perpendicular = glm::vec3( -armVector.y, armVector.x, armVector.z );
-	newElbowPosition += perpendicular * (float)( ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF );
+	glm::vec3 perpendicular = glm::cross( avatar.orientation.getFront(), armVector );
+	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
 	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
 	//-----------------------------------------------------------------------------

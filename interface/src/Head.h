@@ -120,10 +120,6 @@ struct Avatar
 {
 	glm::dvec3	velocity;
 	glm::vec3	thrust;
-	float		yaw;
-	float		pitch;
-	float		roll;
-	float		yawDelta;
 	float		maxArmLength;
 	Orientation	orientation;
 	AvatarBone	bone[ NUM_AVATAR_BONES ];
@@ -236,8 +232,11 @@ class Head : public AgentData {
         float browAudioLift;
     
         glm::vec3 position;
-        //glm::vec3 velocity;
-        //glm::vec3 thrust;
+		
+		float bodyYaw;
+		float bodyPitch;
+		float bodyRoll;
+		float bodyYawDelta;
 		
 		float		closeEnoughToInteract;
 		int			closestOtherAvatar;
