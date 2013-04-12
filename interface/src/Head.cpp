@@ -17,7 +17,6 @@
 #include "Head.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
-#include <glmUtils.h>
 
 using namespace std;
 
@@ -1036,7 +1035,7 @@ void Head::updateHandMovement() {
 	transformedHandMovement 
 	= avatar.orientation.getRight()	* -movedHandOffset.x
 	+ avatar.orientation.getUp()	* -movedHandOffset.y
-	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4;
+	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4f;
 	
 	//if holding hands, add a pull to the hand...
 	if ( usingSprings ) {
@@ -1081,7 +1080,7 @@ void Head::updateHandMovement() {
 	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * (float)ONE_HALF;
 	glm::vec3 perpendicular = glm::cross( avatar.orientation.getFront(), armVector );
-	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
+	newElbowPosition += perpendicular * (float)(( 1.0f - ( avatar.maxArmLength / distance ) ) * ONE_HALF); // XXXBHG - Jeffery, you should clean this up. You can't multiple glm::vec3's by doubles, only floats
 	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
 	//-----------------------------------------------------------------------------

@@ -75,7 +75,6 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <glmUtils.h>
 
 #include "ViewFrustum.h"
 
@@ -547,9 +546,9 @@ void render_view_frustum() {
 
 	////////////////////////////////////////
 	// Drawing the head direction vectors
-    glm::vec3 headLookingAt      = headPosition+(headDirection*0.2);
-    glm::vec3 headLookingAtUp    = headPosition+(headUp*0.2);
-    glm::vec3 headLookingAtRight = headPosition+(headRight*0.2);
+    glm::vec3 headLookingAt      = headPosition+(headDirection*0.2f);
+    glm::vec3 headLookingAtUp    = headPosition+(headUp*0.2f);
+    glm::vec3 headLookingAtRight = headPosition+(headRight*0.2f);
 
 	// Looking At from head = white
     glColor3f(1,1,1);
@@ -568,9 +567,9 @@ void render_view_frustum() {
 
 	////////////////////////////////////////
 	// Drawing the camera direction vectors
-    glm::vec3 cameraLookingAt      = cameraPosition+(cameraDirection*0.2);
-    glm::vec3 cameraLookingAtUp    = cameraPosition+(cameraUp*0.2);
-    glm::vec3 cameraLookingAtRight = cameraPosition+(cameraRight*0.2);
+    glm::vec3 cameraLookingAt      = cameraPosition+(cameraDirection*0.2f);
+    glm::vec3 cameraLookingAtUp    = cameraPosition+(cameraUp*0.2f);
+    glm::vec3 cameraLookingAtRight = cameraPosition+(cameraRight*0.2f);
 
 	// Looking At from camera = white
     glColor3f(1,1,1);

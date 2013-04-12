@@ -1,6 +1,5 @@
 #include "Orientation.h"
 #include "Util.h"
-#include "glmUtils.h"
 
 
 Orientation::Orientation() {
@@ -55,9 +54,9 @@ void Orientation::pitch( float angle ) {
 
 
 void Orientation::roll( float angle ) {
-	double r = angle * PI_OVER_180;
-	double s = sin( r );
-	double c = cos( r );
+	float r = angle * PI_OVER_180;
+	float s = sin( r );
+	float c = cos( r );
 	
 	glm::vec3 cosineUp		= up	* c;
 	glm::vec3 cosineRight	= right	* c;

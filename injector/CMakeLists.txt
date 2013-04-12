@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(injector)
+set(ROOT_DIR ../)
+set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
-# grab the implemenation and header files
-file(GLOB INJECTOR_SRCS src/*.cpp src/*.h)
+set(TARGET_NAME injector)
 
-# add the executable
-add_executable(injector ${INJECTOR_SRCS})
+include(${MACRO_DIR}/SetupHifiProject.cmake)
+setup_hifi_project(${TARGET_NAME})
 
 # link the shared hifi library
-include(../cmake/macros/LinkHifiLibrary.cmake)
-link_hifi_library(shared injector)
+include(${MACRO_DIR}/LinkHifiLibrary.cmake)
+link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 # link the threads library
 find_package(Threads REQUIRED)

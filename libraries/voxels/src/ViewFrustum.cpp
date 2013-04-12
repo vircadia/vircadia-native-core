@@ -9,7 +9,6 @@
 //
 
 #include "ViewFrustum.h"
-#include "glmUtils.h"
 
 ViewFrustum::ViewFrustum(glm::vec3 position, glm::vec3 direction, glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight) {
 	this->calculateViewFrustum(position, direction, up, right, screenWidth, screenHeight);
@@ -47,16 +46,16 @@ void ViewFrustum::calculateViewFrustum(glm::vec3 position, glm::vec3 direction, 
 	this->_farWidth   = this->_farHeight * ratio;
 
 	this->_farCenter       = this->_position+front*this->_farDist;
-	this->_farTopLeft      = this->_farCenter  + (this->_up*this->_farHeight*0.5)  - (this->_right*this->_farWidth*0.5); 
-	this->_farTopRight     = this->_farCenter  + (this->_up*this->_farHeight*0.5)  + (this->_right*this->_farWidth*0.5); 
-	this->_farBottomLeft   = this->_farCenter  - (this->_up*this->_farHeight*0.5)  - (this->_right*this->_farWidth*0.5); 
-	this->_farBottomRight  = this->_farCenter  - (this->_up*this->_farHeight*0.5)  + (this->_right*this->_farWidth*0.5); 
+	this->_farTopLeft      = this->_farCenter  + (this->_up*this->_farHeight*0.5f)  - (this->_right*this->_farWidth*0.5f); 
+	this->_farTopRight     = this->_farCenter  + (this->_up*this->_farHeight*0.5f)  + (this->_right*this->_farWidth*0.5f); 
+	this->_farBottomLeft   = this->_farCenter  - (this->_up*this->_farHeight*0.5f)  - (this->_right*this->_farWidth*0.5f); 
+	this->_farBottomRight  = this->_farCenter  - (this->_up*this->_farHeight*0.5f)  + (this->_right*this->_farWidth*0.5f); 
 
 	this->_nearCenter      = this->_position+front*this->_nearDist;
-	this->_nearTopLeft     = this->_nearCenter + (this->_up*this->_nearHeight*0.5) - (this->_right*this->_nearWidth*0.5); 
-	this->_nearTopRight    = this->_nearCenter + (this->_up*this->_nearHeight*0.5) + (this->_right*this->_nearWidth*0.5); 
-	this->_nearBottomLeft  = this->_nearCenter - (this->_up*this->_nearHeight*0.5) - (this->_right*this->_nearWidth*0.5); 
-	this->_nearBottomRight = this->_nearCenter - (this->_up*this->_nearHeight*0.5) + (this->_right*this->_nearWidth*0.5); 
+	this->_nearTopLeft     = this->_nearCenter + (this->_up*this->_nearHeight*0.5f) - (this->_right*this->_nearWidth*0.5f); 
+	this->_nearTopRight    = this->_nearCenter + (this->_up*this->_nearHeight*0.5f) + (this->_right*this->_nearWidth*0.5f); 
+	this->_nearBottomLeft  = this->_nearCenter - (this->_up*this->_nearHeight*0.5f) - (this->_right*this->_nearWidth*0.5f); 
+	this->_nearBottomRight = this->_nearCenter - (this->_up*this->_nearHeight*0.5f) + (this->_right*this->_nearWidth*0.5f); 
 }
 
 void ViewFrustum::dump() {
