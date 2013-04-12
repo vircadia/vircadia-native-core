@@ -534,7 +534,6 @@ void render_view_frustum() {
 		right = headRight;
 	}
     
-	////////////////////////////////////////
     // Ask the ViewFrustum class to calculate our corners
     ViewFrustum vf(position,direction,up,right,::WIDTH,::HEIGHT);
 	
@@ -544,32 +543,30 @@ void render_view_frustum() {
     glLineWidth(1.0);
     glBegin(GL_LINES);
 
-	////////////////////////////////////////
 	// Drawing the head direction vectors
-    glm::vec3 headLookingAt      = headPosition+(headDirection*0.2f);
-    glm::vec3 headLookingAtUp    = headPosition+(headUp*0.2f);
-    glm::vec3 headLookingAtRight = headPosition+(headRight*0.2f);
+    glm::vec3 headLookingAt      = headPosition + (headDirection * 0.2f);
+    glm::vec3 headLookingAtUp    = headPosition + (headUp * 0.2f);
+    glm::vec3 headLookingAtRight = headPosition + (headRight * 0.2f);
 
 	// Looking At from head = white
     glColor3f(1,1,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAt.x,headLookingAt.y,headLookingAt.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAt.x, headLookingAt.y, headLookingAt.z);
 
 	// up from head = purple
     glColor3f(1,0,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAtUp.x,headLookingAtUp.y,headLookingAtUp.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAtUp.x, headLookingAtUp.y, headLookingAtUp.z);
 
 	// right from head = cyan
     glColor3f(0,1,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAtRight.x,headLookingAtRight.y,headLookingAtRight.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAtRight.x, headLookingAtRight.y, headLookingAtRight.z);
 
-	////////////////////////////////////////
 	// Drawing the camera direction vectors
-    glm::vec3 cameraLookingAt      = cameraPosition+(cameraDirection*0.2f);
-    glm::vec3 cameraLookingAtUp    = cameraPosition+(cameraUp*0.2f);
-    glm::vec3 cameraLookingAtRight = cameraPosition+(cameraRight*0.2f);
+    glm::vec3 cameraLookingAt      = cameraPosition + (cameraDirection * 0.2f);
+    glm::vec3 cameraLookingAtUp    = cameraPosition + (cameraUp * 0.2f);
+    glm::vec3 cameraLookingAtRight = cameraPosition + (cameraRight * 0.2f);
 
 	// Looking At from camera = white
     glColor3f(1,1,1);
@@ -587,61 +584,60 @@ void render_view_frustum() {
     glVertex3f(cameraLookingAtRight.x,cameraLookingAtRight.y,cameraLookingAtRight.z);
 
 
-	////////////////////////////////////////
 	// Drawing the bounds of the frustum
 	// vf.getNear plane - bottom edge 
     glColor3f(1,0,0);
-    glVertex3f(vf.getNearBottomLeft().x,vf.getNearBottomLeft().y,vf.getNearBottomLeft().z);
-    glVertex3f(vf.getNearBottomRight().x,vf.getNearBottomRight().y,vf.getNearBottomRight().z);
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
 
 	// vf.getNear plane - top edge
-    glVertex3f(vf.getNearTopLeft().x,vf.getNearTopLeft().y,vf.getNearTopLeft().z);
-    glVertex3f(vf.getNearTopRight().x,vf.getNearTopRight().y,vf.getNearTopRight().z);
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
 	// vf.getNear plane - right edge
-    glVertex3f(vf.getNearBottomRight().x,vf.getNearBottomRight().y,vf.getNearBottomRight().z);
-    glVertex3f(vf.getNearTopRight().x,vf.getNearTopRight().y,vf.getNearTopRight().z);
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
 	// vf.getNear plane - left edge
-    glVertex3f(vf.getNearBottomLeft().x,vf.getNearBottomLeft().y,vf.getNearBottomLeft().z);
-    glVertex3f(vf.getNearTopLeft().x,vf.getNearTopLeft().y,vf.getNearTopLeft().z);
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
 
 	// vf.getFar plane - bottom edge 
     glColor3f(0,1,0); // GREEN!!!
-    glVertex3f(vf.getFarBottomLeft().x,vf.getFarBottomLeft().y,vf.getFarBottomLeft().z);
-    glVertex3f(vf.getFarBottomRight().x,vf.getFarBottomRight().y,vf.getFarBottomRight().z);
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
 	// vf.getFar plane - top edge
-    glVertex3f(vf.getFarTopLeft().x,vf.getFarTopLeft().y,vf.getFarTopLeft().z);
-    glVertex3f(vf.getFarTopRight().x,vf.getFarTopRight().y,vf.getFarTopRight().z);
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
 	// vf.getFar plane - right edge
-    glVertex3f(vf.getFarBottomRight().x,vf.getFarBottomRight().y,vf.getFarBottomRight().z);
-    glVertex3f(vf.getFarTopRight().x,vf.getFarTopRight().y,vf.getFarTopRight().z);
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
 	// vf.getFar plane - left edge
-    glVertex3f(vf.getFarBottomLeft().x,vf.getFarBottomLeft().y,vf.getFarBottomLeft().z);
-    glVertex3f(vf.getFarTopLeft().x,vf.getFarTopLeft().y,vf.getFarTopLeft().z);
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
 
 	// RIGHT PLANE IS CYAN
 	// right plane - bottom edge - vf.getNear to distant 
     glColor3f(0,1,1);
-    glVertex3f(vf.getNearBottomRight().x,vf.getNearBottomRight().y,vf.getNearBottomRight().z);
-    glVertex3f(vf.getFarBottomRight().x,vf.getFarBottomRight().y,vf.getFarBottomRight().z);
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
 	// right plane - top edge - vf.getNear to distant
-    glVertex3f(vf.getNearTopRight().x,vf.getNearTopRight().y,vf.getNearTopRight().z);
-    glVertex3f(vf.getFarTopRight().x,vf.getFarTopRight().y,vf.getFarTopRight().z);
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
 	// LEFT PLANE IS BLUE
 	// left plane - bottom edge - vf.getNear to distant
     glColor3f(0,0,1);
-    glVertex3f(vf.getNearBottomLeft().x,vf.getNearBottomLeft().y,vf.getNearBottomLeft().z);
-    glVertex3f(vf.getFarBottomLeft().x,vf.getFarBottomLeft().y,vf.getFarBottomLeft().z);
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
 
 	// left plane - top edge - vf.getNear to distant
-    glVertex3f(vf.getNearTopLeft().x,vf.getNearTopLeft().y,vf.getNearTopLeft().z);
-    glVertex3f(vf.getFarTopLeft().x,vf.getFarTopLeft().y,vf.getFarTopLeft().z);
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
 	
     glEnd();
 }
