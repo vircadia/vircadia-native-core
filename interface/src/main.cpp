@@ -187,7 +187,6 @@ int menuOn = 1;					//  Whether to show onscreen menu
 // 
 
 SerialInterface serialPort;
-int latency_display = 1;
 
 glm::vec3 gravity;
 
