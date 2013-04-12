@@ -1,9 +1,9 @@
-//-----------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Created by Jeffrey Ventrella and added as a utility 
-// class for High Fidelity Code base, April 2013
+// Created by Jeffrey Ventrella for High Fidelity.
+// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//-----------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include "Camera.h"
 #include "Util.h"
@@ -30,8 +30,9 @@ void Camera::update()
 {
 	double radian = ( yaw / 180.0 ) * PIE;
 
+	//these need to be checked to make sure they correspond to the cordinate system.
 	double x = distance * -sin( radian );
-	double z = distance * cos( radian );
+	double z = distance *  cos( radian );
 	double y = up;
 	
 	position = targetPosition + glm::vec3( x, y, z );

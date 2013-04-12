@@ -152,7 +152,7 @@ VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 bool frustumOn = false;				//  Whether or not to display the debug view frustum
-bool cameraFrustum = false;			// which frustum to look at
+bool cameraFrustum = true;			// which frustum to look at
 bool wantFrustumDebugging = false;  // enable for some stdout debugging output
 
 bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
@@ -1232,14 +1232,13 @@ void idle(void)
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
-    if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS)
-    {
+    if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		// If mouse is being dragged, update hand movement in the avatar
-		if ( mousePressed == 1 )
-		{
-			float xOffset = ( mouseX - mouseStartX ) / (double)WIDTH;
-			float yOffset = ( mouseY - mouseStartY ) / (double)HEIGHT;
-			
+		if ( mousePressed == 1 ) {
+
+			float xOffset = ( mouseX - mouseStartX ) / ( WIDTH	* ONE_HALF );
+			float yOffset = ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
+
 			float leftRight	= xOffset;
 			float downUp	= yOffset;
 			float backFront	= 0.0;
