@@ -6,7 +6,6 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
