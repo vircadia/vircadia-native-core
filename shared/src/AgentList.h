@@ -29,20 +29,9 @@ extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startu
 extern const int DOMAINSERVER_PORT;
 
 class AgentList {
-
-    UDPSocket agentSocket;
-    char ownerType;
-    unsigned int socketListenPort;
-    std::vector<Agent> agents;
-    uint16_t lastAgentId;
-    pthread_t removeSilentAgentsThread;
-    pthread_t checkInWithDomainServerThread;
-    pthread_t pingUnknownAgentsThread;
-    
-    void handlePingReply(sockaddr *agentAddress);
 public:
-    AgentList(char ownerType, unsigned int socketListenPort = AGENT_SOCKET_LISTEN_PORT);
-    ~AgentList();
+    static AgentList* createInstance(char ownerType, unsigned int socketListenPort = AGENT_SOCKET_LISTEN_PORT);
+    static AgentList* getInstance();
     
     void(*linkedDataCreateCallback)(Agent *);
     void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
@@ -76,6 +65,24 @@ public:
     void stopDomainServerCheckInThread();
     void startPingUnknownAgentsThread();
     void stopPingUnknownAgentsThread();
+private:
+    static AgentList* _sharedInstance;
+    
+    AgentList(char ownerType, unsigned int socketListenPort);
+    ~AgentList();
+    AgentList(AgentList const&); // Don't implement, needed to avoid copies of singleton
+    void operator=(AgentList const&); // Don't implement, needed to avoid copies of singleton
+    
+    UDPSocket agentSocket;
+    char ownerType;
+    unsigned int socketListenPort;
+    std::vector<Agent> agents;
+    uint16_t lastAgentId;
+    pthread_t removeSilentAgentsThread;
+    pthread_t checkInWithDomainServerThread;
+    pthread_t pingUnknownAgentsThread;
+    
+    void handlePingReply(sockaddr *agentAddress);
 };
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId);

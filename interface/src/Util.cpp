@@ -80,6 +80,23 @@ void render_world_box()
     glVertex3f(0,0,0);
     glVertex3f(0, 0, WORLD_SIZE);
     glEnd();
+    //  Draw little marker dots along the axis
+    glEnable(GL_LIGHTING);
+    glPushMatrix();
+    glTranslatef(WORLD_SIZE,0,0);
+    glColor3f(1,0,0);
+    glutSolidSphere(0.125,10,10);
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(0,WORLD_SIZE,0);
+    glColor3f(0,1,0);
+    glutSolidSphere(0.125,10,10);
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(0,0,WORLD_SIZE);
+    glColor3f(0,0,1);
+    glutSolidSphere(0.125,10,10);
+    glPopMatrix();
 }
 
 double diffclock(timeval *clock1,timeval *clock2)

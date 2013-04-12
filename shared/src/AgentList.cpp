@@ -31,15 +31,26 @@ bool domainServerCheckinStopFlag = false;
 bool pingUnknownAgentThreadStopFlag = false;
 pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
-    memcpy(packedData, agentId, sizeof(uint16_t));
-    return sizeof(uint16_t);
+AgentList* AgentList::_sharedInstance = NULL;
+
+AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPort) {
+    if (_sharedInstance == NULL) {
+        _sharedInstance = new AgentList(ownerType, socketListenPort);
+    } else {
+        printf("AgentList createInstance called with existing instance.\n");
+    }
+    
+    return _sharedInstance;
 }
 
-int packAgentId(unsigned char *packStore, uint16_t agentId) {
-    memcpy(&agentId, packStore, sizeof(uint16_t));
-    return sizeof(uint16_t);
+AgentList* AgentList::getInstance() {
+    if (_sharedInstance == NULL) {
+        printf("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
+    }
+    
+    return _sharedInstance;
 }
+
 
 AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) : agentSocket(newSocketListenPort) {
     ownerType = newOwnerType;
@@ -379,7 +390,7 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server %s: \n", DOMAIN_HOSTNAME);
+            printf("Domain server: %s \n", DOMAIN_HOSTNAME);
             
         } else {
             printf("Failed lookup domainserver\n");
@@ -413,4 +424,14 @@ void AgentList::startDomainServerCheckInThread() {
 void AgentList::stopDomainServerCheckInThread() {
     domainServerCheckinStopFlag = true;
     pthread_join(checkInWithDomainServerThread, NULL);
+}
+
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+    memcpy(packedData, agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int packAgentId(unsigned char *packStore, uint16_t agentId) {
+    memcpy(&agentId, packStore, sizeof(uint16_t));
+    return sizeof(uint16_t);
 }

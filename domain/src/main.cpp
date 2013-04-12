@@ -48,7 +48,6 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 #define DEBUG_TO_SELF 0
 
 int lastActiveCount = 0;
-AgentList agentList(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 
 unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
@@ -63,6 +62,7 @@ unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent 
 
 int main(int argc, const char * argv[])
 {
+    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the
@@ -95,10 +95,10 @@ int main(int argc, const char * argv[])
     
     in_addr_t serverLocalAddress = getLocalAddress();
     
-    agentList.startSilentAgentRemovalThread();
+    agentList->startSilentAgentRemovalThread();
     
     while (true) {
-        if (agentList.getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
+        if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[0];
@@ -115,20 +115,20 @@ int main(int argc, const char * argv[])
 	            }
             }
             
-            if (agentList.addOrUpdateAgent((sockaddr *)&agentPublicAddress,
+            if (agentList->addOrUpdateAgent((sockaddr *)&agentPublicAddress,
                                            (sockaddr *)&agentLocalAddress,
                                            agentType,
-                                           agentList.getLastAgentId())) {
+                                           agentList->getLastAgentId())) {
                 
-                agentList.increaseAgentId();
+                agentList->increaseAgentId();
             
             }
             
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
-            for(std::vector<Agent>::iterator agent = agentList.getAgents().begin();
-                agent != agentList.getAgents().end();
+            for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+                agent != agentList->getAgents().end();
                 agent++) {
                 
                 if (DEBUG_TO_SELF ||
@@ -158,7 +158,7 @@ int main(int argc, const char * argv[])
             }
             
             if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
-                agentList.getAgentSocket().send((sockaddr *)&agentPublicAddress,
+                agentList->getAgentSocket().send((sockaddr *)&agentPublicAddress,
                                                 broadcastPacket,
                                                 packetBytesWithoutLeadingChar + 1);
             }

@@ -69,8 +69,6 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
-#include "Lattice.h"
-#include "Finger.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
@@ -80,7 +78,6 @@
 
 using namespace std;
 
-AgentList agentList(AGENT_TYPE_INTERFACE);
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -129,9 +126,6 @@ Cloud cloud(0,                             //  Particles
             );
 
 VoxelSystem voxels;
-
-Lattice lattice(160,100);
-Finger myFinger(WIDTH, HEIGHT);
 Field field;
 
 #ifndef _WIN32
@@ -188,7 +182,6 @@ int menuOn = 1;					//  Whether to show onscreen menu
 // 
 
 SerialInterface serialPort;
-int latency_display = 1;
 
 glm::vec3 gravity;
 
@@ -199,6 +192,9 @@ float FPS = 120.f;
 timeval timerStart, timerEnd;
 timeval lastTimeIdle;
 double elapsedTime;
+timeval applicationStartupTime;
+bool justStarted = true;
+
 
 //  Every second, check the frame rates and other stuff
 void Timer(int extra)
@@ -236,7 +232,7 @@ void displayStats(void)
 	glm::vec3 avatarPos = myAvatar.getPos();
     
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)=( %f , %f , %f )", 
+    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
             FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
     drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats); 
     if (serialPort.active) {
@@ -321,6 +317,7 @@ void init(void)
     }
     myAvatar.setPos(start_location );
 	myCamera.setPosition( start_location );
+    
 	
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
@@ -465,7 +462,7 @@ void simulateHead(float frametime)
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
-    agentList.broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
+    AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
@@ -485,7 +482,7 @@ void simulateHead(float frametime)
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
 			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
-				agentList.broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                AgentList::getInstance()->broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
 				delete bufferOut;
 			}
 		}
@@ -804,7 +801,7 @@ void display(void)
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
 		glPushMatrix();
-			glTranslatef( 0.0f, sphereRadius, 0.0f );
+			//glTranslatef( 0.0f, sphereRadius, 0.0f );
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
@@ -827,10 +824,11 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+        AgentList *agentList = AgentList::getInstance();
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
+            agent != agentList->getAgents().end();
+            agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getPos();
@@ -862,16 +860,13 @@ void display(void)
         gluOrtho2D(0, WIDTH, HEIGHT, 0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
-
-        //lattice.render(WIDTH, HEIGHT);
-        //myFinger.render();
+    
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
         if (audioScope.getState()) audioScope.render();
         #endif
 
-        if (displayHeadMouse && !displayHead && statsOn)
-        {
+        if (displayHeadMouse && !displayHead && statsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -906,7 +901,7 @@ void display(void)
     //  Draw number of nearby people always
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents: %ld\n", agentList.getAgents().size());
+    sprintf(agents, "Agents: %ld\n", AgentList::getInstance()->getAgents().size());
     drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
@@ -923,6 +918,13 @@ void display(void)
 
     glutSwapBuffers();
     frameCount++;
+    
+    //  If application has just started, report time from startup to now (first frame display)
+    if (justStarted) {
+        printf("Startup Time: %4.2f\n",
+               (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0);
+        justStarted = false;
+    }
 }
 
 int setValue(int state, int *value) {
@@ -1007,14 +1009,14 @@ void sendVoxelServerEraseAll() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
+	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void sendVoxelServerAddScene() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
 	int messageSize = strlen(message) + 1;
-	::agentList.broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
+	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
@@ -1026,8 +1028,7 @@ void shiftPaintingColor()
 	::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
 }
 
-void setupPaintingVoxel()
-{
+void setupPaintingVoxel() {
 	glm::vec3 avatarPos = myAvatar.getPos();
 
 	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
@@ -1198,7 +1199,7 @@ void *networkReceive(void *args)
     char *incomingPacket = new char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
-        if (agentList.getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
+        if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
             bytesCount += bytesReceived;
             
@@ -1212,10 +1213,10 @@ void *networkReceive(void *args)
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    agentList.processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    AgentList::getInstance()->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
                     break;
                 default:
-                    agentList.processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
                     break;
             }
         }
@@ -1272,8 +1273,6 @@ void idle(void)
         myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);
         cloud.simulate(1.f/FPS);
-        lattice.simulate(1.f/FPS);
-        myFinger.simulate(1.f/FPS);
 
         glutPostRedisplay();
         lastTimeIdle = check;
@@ -1316,7 +1315,6 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            lattice.mouseClick((float)x/(float)WIDTH, (float)y/(float)HEIGHT);
             mouseStartX = x;
             mouseStartY = y;
         }
@@ -1333,8 +1331,6 @@ void motionFunc( int x, int y)
 {
 	mouseX = x;
 	mouseY = y;
-    
-    lattice.mouseClick((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
 }
 
 void mouseoverFunc( int x, int y)
@@ -1343,10 +1339,7 @@ void mouseoverFunc( int x, int y)
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
-    {
-//        lattice.mouseOver((float)x/(float)WIDTH,(float)y/(float)HEIGHT);
-//        myFinger.setTarget(mouseX, mouseY);
-    }
+    {}
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
@@ -1361,10 +1354,11 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-
-
 int main(int argc, const char * argv[])
 {
+    AgentList::createInstance(AGENT_TYPE_INTERFACE);
+    
+    gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
 		strcpy(DOMAIN_IP,domainIP);
@@ -1376,12 +1370,12 @@ int main(int argc, const char * argv[])
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
-
+    
     // the callback for our instance of AgentList is attachNewHeadToAgent
-    agentList.linkedDataCreateCallback = &attachNewHeadToAgent;
+    AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
     
     #ifndef _WIN32
-    agentList.audioMixerSocketUpdate = &audioMixerUpdate;
+    AgentList::getInstance()->audioMixerSocketUpdate = &audioMixerUpdate;
     #endif
     
 #ifdef _WIN32
@@ -1390,9 +1384,9 @@ int main(int argc, const char * argv[])
 #endif
 
     // start the agentList threads
-    agentList.startSilentAgentRemovalThread();
-    agentList.startDomainServerCheckInThread();
-    agentList.startPingUnknownAgentsThread();
+    AgentList::getInstance()->startSilentAgentRemovalThread();
+    AgentList::getInstance()->startDomainServerCheckInThread();
+    AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);

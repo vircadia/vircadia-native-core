@@ -30,6 +30,8 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
+#define NUM_OTHER_AVATARS 5
+
 /*
 enum AvatarJoints
 {
@@ -237,7 +239,15 @@ class Head : public AgentData {
         //glm::vec3 velocity;
         //glm::vec3 thrust;
 		
+		float		closeEnoughToInteract;
+		int			closestOtherAvatar;
+		glm::vec3	DEBUG_otherAvatarListPosition	[ NUM_OTHER_AVATARS ];
+		float		DEBUG_otherAvatarListTimer		[ NUM_OTHER_AVATARS ];
+		
+		bool usingSprings;
+		
 		bool handBeingMoved;
+		bool previousHandBeingMoved;
 		glm::vec3 movedHandOffset;
 		//glm::vec3 movedHandPosition;
     
@@ -255,6 +265,7 @@ class Head : public AgentData {
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();
+		void initializeAvatarSprings();
 		void updateAvatarSprings( float deltaTime );
 		void calculateBoneLengths();
     
