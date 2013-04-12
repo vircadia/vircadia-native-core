@@ -25,23 +25,9 @@ class CounterStatHistory {
 public:
 	std::string name;
     
-	CounterStatHistory(std::string myName):
-    currentCount(0), currentDelta(0),currentTime(0.0),
-    lastCount(0),lastTime(0.0),
-    totalTime(0.0),
-    sampleAt(-1), sampleCount(0), name(myName) {};
-	
-	CounterStatHistory():
-    currentCount(0), currentDelta(0),currentTime(0.0),
-    lastCount(0),lastTime(0.0),
-    totalTime(0.0),
-    sampleAt(-1), sampleCount(0) {};
-    
-	CounterStatHistory(std::string myName, double initialTime, long initialCount) :
-    currentCount(initialCount), currentDelta(0), currentTime(initialTime),
-    lastCount(initialCount),lastTime(initialTime),
-    totalTime(initialTime),
-    sampleAt(-1), sampleCount(0), name(myName) {};
+	CounterStatHistory();
+    CounterStatHistory(std::string myName);
+	CounterStatHistory(std::string myName, double initialTime, long initialCount);
     
 	void recordSample(long thisCount);
 	void recordSample(double thisTime, long thisCount);
@@ -58,6 +44,8 @@ public:
 		return currentCount;
 	};
 private:
+    void        init();
+    
 	long        currentCount;
 	long        currentDelta;
 	double 		currentTime;
