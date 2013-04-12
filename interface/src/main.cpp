@@ -1367,6 +1367,7 @@ int main(int argc, const char * argv[])
 {
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     
+    gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
 		strcpy(DOMAIN_IP,domainIP);
