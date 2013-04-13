@@ -1,3 +1,10 @@
+//-----------------------------------------------------------
+//
+// Created by Jeffrey Ventrella  
+// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+//-----------------------------------------------------------
+
 #include "Orientation.h"
 #include "Util.h"
 
@@ -17,9 +24,9 @@ void Orientation::setToIdentity() {
 
 
 void Orientation::set( Orientation o ) { 
-	right	= o.getRight();
-	up		= o.getUp();
-	front	= o.getFront();	
+	right	= o.right;
+	up		= o.up;
+	front	= o.front;	
 }
 
 
