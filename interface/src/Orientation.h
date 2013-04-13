@@ -1,7 +1,7 @@
 //-----------------------------------------------------------
 //
-// Created by Jeffrey Ventrella and added as a utility 
-// class for High Fidelity Code base, April 2013
+// Created by Jeffrey Ventrella  
+// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 //-----------------------------------------------------------
 
@@ -20,14 +20,6 @@ enum Axis
 
 class Orientation
 {
-private:
-	
-	glm::vec3 right;
-	glm::vec3 up;
-	glm::vec3 front;
-	
-	//void verifyValidOrientation();
-	
 public:
 	Orientation();
 	
@@ -37,6 +29,10 @@ public:
 
 	void set( Orientation );
 	void setToIdentity();
+
+	glm::vec3 right;
+	glm::vec3 up;
+	glm::vec3 front;
 
 	glm::vec3 getRight()	{ return right;	}
 	glm::vec3 getUp()		{ return up;	}

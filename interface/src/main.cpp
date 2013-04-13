@@ -76,6 +76,8 @@
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 
+#include "ViewFrustum.h"
+
 using namespace std;
 
 pthread_t networkReceiveThread;
@@ -153,12 +155,13 @@ unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painti
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 bool frustumOn = false;				//  Whether or not to display the debug view frustum
 bool cameraFrustum = true;			// which frustum to look at
-bool wantFrustumDebugging = false;  // enable for some stdout debugging output
 
 bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
 float viewFrustumOffsetYaw = -90.0;
 float viewFrustumOffsetPitch = 7.5;
 float viewFrustumOffsetRoll = 0.0;
+float viewFrustumOffsetDistance = 0.0;
+float viewFrustumOffsetUp = 0.0;
 
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -499,20 +502,6 @@ void simulateHead(float frametime)
 //				from these two sources is in different coordinate spaces (namely)
 // 				their axis orientations don't match.
 void render_view_frustum() {
-
-	//printf("frustum low.x=%f, low.y=%f, low.z=%f, high.x=%f, high.y=%f, high.z=%f\n",low.x,low.y,low.z,high.x,high.y,high.z);
-
-	// p – the camera position
-	// d – a vector with the direction of the camera's view ray. In here it is assumed that this vector has been normalized
-	// nearDist – the distance from the camera to the near plane
-	// nearHeight – the height of the near plane
-	// nearWidth – the width of the near plane
-	// farDist – the distance from the camera to the far plane
-	// farHeight – the height of the far plane
-	// farWidth – the width of the far plane
-	
-	
-	// Some explanation here.
 	
 	glm::vec3 cameraPosition   = ::myCamera.getPosition(); 
 	glm::vec3 headPosition     = ::myAvatar.getHeadPosition();
@@ -520,107 +509,64 @@ void render_view_frustum() {
 	glm::vec3 cameraDirection = ::myCamera.getOrientation().getFront() * glm::vec3(1,1,-1);
 	glm::vec3 headDirection    = myAvatar.getHeadLookatDirection(); // direction still backwards
 
-
 	glm::vec3 cameraUp  = myCamera.getOrientation().getUp() * glm::vec3(1,1,1);
 	glm::vec3 headUp    = myAvatar.getHeadLookatDirectionUp();
 
 	glm::vec3 cameraRight = myCamera.getOrientation().getRight() * glm::vec3(1,1,-1);
 	glm::vec3 headRight = myAvatar.getHeadLookatDirectionRight() * glm::vec3(-1,1,-1); // z is flipped!
 
-	// Debug these vectors!
-	if (::wantFrustumDebugging) { 
-		printf("\nPosition:\n");
-		printf("cameraPosition=%f, cameraPosition=%f, cameraPosition=%f\n",cameraPosition.x,cameraPosition.y,cameraPosition.z);
-		printf("headPosition.x=%f, headPosition.y=%f, headPosition.z=%f\n",headPosition.x,headPosition.y,headPosition.z);
-		printf("\nDirection:\n");
-		printf("cameraDirection.x=%f, cameraDirection.y=%f, cameraDirection.z=%f\n",cameraDirection.x,cameraDirection.y,cameraDirection.z);
-		printf("headDirection.x=%f, headDirection.y=%f, headDirection.z=%f\n",headDirection.x,headDirection.y,headDirection.z);
-		printf("\nUp:\n");
-		printf("cameraUp.x=%f, cameraUp.y=%f, cameraUp.z=%f\n",cameraUp.x,cameraUp.y,cameraUp.z);
-		printf("headUp.x=%f, headUp.y=%f, headUp.z=%f\n",headUp.x,headUp.y,headUp.z);
-		printf("\nRight:\n");
-		printf("cameraRight.x=%f, cameraRight.y=%f, cameraRight.z=%f\n",cameraRight.x,cameraRight.y,cameraRight.z);
-		printf("headRight.x=%f, headRight.y=%f, headRight.z=%f\n",headRight.x,headRight.y,headRight.z);
-	}
-	
 	// We will use these below, from either the camera or head vectors calculated above	
-	glm::vec3 viewFrustumPosition;
-	glm::vec3 viewFrustumDirection;
+	glm::vec3 position;
+	glm::vec3 direction;
 	glm::vec3 up;
 	glm::vec3 right;
 	
 	// Camera or Head?
 	if (::cameraFrustum) {
-		viewFrustumPosition = cameraPosition;
-		viewFrustumDirection = cameraDirection;
+		position = cameraPosition;
+		direction = cameraDirection;
 		up = cameraUp;
 		right = cameraRight;
 	} else {
-		viewFrustumPosition = headPosition;
-		viewFrustumDirection = headDirection;
+		position = headPosition;
+		direction = headDirection;
 		up = headUp;
 		right = headRight;
 	}
+    
+    // Ask the ViewFrustum class to calculate our corners
+    ViewFrustum vf(position,direction,up,right,::WIDTH,::HEIGHT);
 	
-	float nearDist = 0.1; 
-	float farDist  = 1.0;
-	
-	float fovHalfAngle = 0.7854f; // 45 deg for half, so fov = 90 deg
-	
-	float screenWidth = ::WIDTH; // These values come from reshape() 
-	float screenHeight = ::HEIGHT;
-	float ratio      = screenWidth/screenHeight;
-	
-	float nearHeight = 2 * tan(fovHalfAngle) * nearDist;
-	float nearWidth  = nearHeight * ratio;
-	float farHeight  = 2 * tan(fovHalfAngle) * farDist;
-	float farWidth   = farHeight * ratio;
-	
-	glm::vec3 farCenter       = viewFrustumPosition+viewFrustumDirection*farDist;
-	glm::vec3 farTopLeft      = farCenter  + (up*farHeight*0.5)  - (right*farWidth*0.5); 
-	glm::vec3 farTopRight     = farCenter  + (up*farHeight*0.5)  + (right*farWidth*0.5); 
-	glm::vec3 farBottomLeft   = farCenter  - (up*farHeight*0.5)  - (right*farWidth*0.5); 
-	glm::vec3 farBottomRight  = farCenter  - (up*farHeight*0.5)  + (right*farWidth*0.5); 
-
-	glm::vec3 nearCenter      = viewFrustumPosition+viewFrustumDirection*nearDist;
-	glm::vec3 nearTopLeft     = nearCenter + (up*nearHeight*0.5) - (right*nearWidth*0.5); 
-	glm::vec3 nearTopRight    = nearCenter + (up*nearHeight*0.5) + (right*nearWidth*0.5); 
-	glm::vec3 nearBottomLeft  = nearCenter - (up*nearHeight*0.5) - (right*nearWidth*0.5); 
-	glm::vec3 nearBottomRight = nearCenter - (up*nearHeight*0.5) + (right*nearWidth*0.5); 
-	
-	// At this point we have all the corners for our frustum... we could use these to
-	// calculate various things...
-	
-	// But, here we're just going to draw them for now
-
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
 
-    glm::vec3 headLookingAt      = headPosition+(headDirection*5.0);
-    glm::vec3 headLookingAtUp    = headPosition+(headUp*5.0);
-    glm::vec3 headLookingAtRight = headPosition+(headRight*5.0);
+	// Drawing the head direction vectors
+    glm::vec3 headLookingAt      = headPosition + (headDirection * 0.2f);
+    glm::vec3 headLookingAtUp    = headPosition + (headUp * 0.2f);
+    glm::vec3 headLookingAtRight = headPosition + (headRight * 0.2f);
 
 	// Looking At from head = white
     glColor3f(1,1,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAt.x,headLookingAt.y,headLookingAt.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAt.x, headLookingAt.y, headLookingAt.z);
 
 	// up from head = purple
     glColor3f(1,0,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAtUp.x,headLookingAtUp.y,headLookingAtUp.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAtUp.x, headLookingAtUp.y, headLookingAtUp.z);
 
 	// right from head = cyan
     glColor3f(0,1,1);
-    glVertex3f(headPosition.x,headPosition.y,headPosition.z);
-    glVertex3f(headLookingAtRight.x,headLookingAtRight.y,headLookingAtRight.z);
+    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
+    glVertex3f(headLookingAtRight.x, headLookingAtRight.y, headLookingAtRight.z);
 
-    glm::vec3 cameraLookingAt      = cameraPosition+(cameraDirection*5.0);
-    glm::vec3 cameraLookingAtUp    = cameraPosition+(cameraUp*5.0);
-    glm::vec3 cameraLookingAtRight = cameraPosition+(cameraRight*5.0);
+	// Drawing the camera direction vectors
+    glm::vec3 cameraLookingAt      = cameraPosition + (cameraDirection * 0.2f);
+    glm::vec3 cameraLookingAtUp    = cameraPosition + (cameraUp * 0.2f);
+    glm::vec3 cameraLookingAtRight = cameraPosition + (cameraRight * 0.2f);
 
 	// Looking At from camera = white
     glColor3f(1,1,1);
@@ -637,61 +583,61 @@ void render_view_frustum() {
     glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
     glVertex3f(cameraLookingAtRight.x,cameraLookingAtRight.y,cameraLookingAtRight.z);
 
-	// The remaining lines are skinny
-    //glLineWidth(1.0);
-	// near plane - bottom edge 
+
+	// Drawing the bounds of the frustum
+	// vf.getNear plane - bottom edge 
     glColor3f(1,0,0);
-    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
-    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
 
-	// near plane - top edge
-    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
-    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
+	// vf.getNear plane - top edge
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
-	// near plane - right edge
-    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
-    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
+	// vf.getNear plane - right edge
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
-	// near plane - left edge
-    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
-    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
+	// vf.getNear plane - left edge
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
 
-	// far plane - bottom edge 
+	// vf.getFar plane - bottom edge 
     glColor3f(0,1,0); // GREEN!!!
-    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
-    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
-	// far plane - top edge
-    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
-    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
+	// vf.getFar plane - top edge
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
-	// far plane - right edge
-    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
-    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
+	// vf.getFar plane - right edge
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
-	// far plane - left edge
-    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
-    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+	// vf.getFar plane - left edge
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
 
 	// RIGHT PLANE IS CYAN
-	// right plane - bottom edge - near to distant 
+	// right plane - bottom edge - vf.getNear to distant 
     glColor3f(0,1,1);
-    glVertex3f(nearBottomRight.x,nearBottomRight.y,nearBottomRight.z);
-    glVertex3f(farBottomRight.x,farBottomRight.y,farBottomRight.z);
+    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
-	// right plane - top edge - near to distant
-    glVertex3f(nearTopRight.x,nearTopRight.y,nearTopRight.z);
-    glVertex3f(farTopRight.x,farTopRight.y,farTopRight.z);
+	// right plane - top edge - vf.getNear to distant
+    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
 	// LEFT PLANE IS BLUE
-	// left plane - bottom edge - near to distant
+	// left plane - bottom edge - vf.getNear to distant
     glColor3f(0,0,1);
-    glVertex3f(nearBottomLeft.x,nearBottomLeft.y,nearBottomLeft.z);
-    glVertex3f(farBottomLeft.x,farBottomLeft.y,farBottomLeft.z);
+    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
 
-	// left plane - top edge - near to distant
-    glVertex3f(nearTopLeft.x,nearTopLeft.y,nearTopLeft.z);
-    glVertex3f(farTopLeft.x,farTopLeft.y,farTopLeft.z);
+	// left plane - top edge - vf.getNear to distant
+    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
 	
     glEnd();
 }
@@ -769,10 +715,10 @@ void display(void)
 			// set the camera to third-person view but offset so we can see the frustum
 			//----------------------------------------------------		
 			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
-			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
-			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
-			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
+			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch    );
+			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll     ); 
+			viewFrustumOffsetCamera.setUp		(   0.2 + ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update();
 			
 			whichCamera = viewFrustumOffsetCamera;
@@ -1131,13 +1077,17 @@ void key(unsigned char k, int x, int y)
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset;	// toggle view frustum from offset debugging
     
-	if (k == '[') ::viewFrustumOffsetYaw   -= 0.5;
-	if (k == ']') ::viewFrustumOffsetYaw   += 0.5;
-	if (k == '{') ::viewFrustumOffsetPitch -= 0.5;
-	if (k == '}') ::viewFrustumOffsetPitch += 0.5;
-	if (k == '(') ::viewFrustumOffsetRoll  -= 0.5;
-	if (k == ')') ::viewFrustumOffsetRoll  += 0.5;
-
+	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
+	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
+	if (k == '{') ::viewFrustumOffsetPitch     -= 0.5;
+	if (k == '}') ::viewFrustumOffsetPitch     += 0.5;
+	if (k == '(') ::viewFrustumOffsetRoll      -= 0.5;
+	if (k == ')') ::viewFrustumOffsetRoll      += 0.5;
+	if (k == '<') ::viewFrustumOffsetDistance  -= 0.5;
+	if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
+	if (k == ',') ::viewFrustumOffsetUp        -= 0.05;
+	if (k == '.') ::viewFrustumOffsetUp        += 0.05;
+	
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
@@ -1186,9 +1136,6 @@ void key(unsigned char k, int x, int y)
 #endif
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
-
-	// press the . key to get a new random sphere of voxels added 
-    if (k == '.') addRandomSphere(wantColorRandomizer);
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!

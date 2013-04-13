@@ -351,3 +351,4 @@ void printVoxelCode(unsigned char* voxelCode) {
         } while( (time2 - time1) < waitTime);
     }
 #endif
+
