@@ -742,6 +742,8 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
+        
+        /*
         // Test - Draw a blue sphere around a body part of mine!
         
         glPushMatrix();
@@ -750,8 +752,8 @@ void display(void)
                       myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).y,
                       myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).z);
         glutSolidSphere(0.03, 10, 10);
-                     
         glPopMatrix();
+        */
 		
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
