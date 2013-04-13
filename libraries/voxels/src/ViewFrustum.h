@@ -54,9 +54,11 @@ public:
 	const glm::vec3& getNearBottomLeft()  const { return _nearBottomLeft; };
 	const glm::vec3& getNearBottomRight() const { return _nearBottomRight; };
 
-	void calculateViewFrustum(glm::vec3 position, glm::vec3 direction, glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
+	void calculateViewFrustum(glm::vec3 position, glm::vec3 direction, 
+		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
 
-	ViewFrustum(glm::vec3 position, glm::vec3 direction, glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
+	ViewFrustum(glm::vec3 position, glm::vec3 direction, 
+		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
 	
 	void dump();
 };
