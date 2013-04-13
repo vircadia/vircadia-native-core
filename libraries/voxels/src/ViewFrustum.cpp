@@ -28,16 +28,16 @@ void ViewFrustum::calculateViewFrustum(glm::vec3 position, glm::vec3 direction,
 		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight) {
 	
 	// Save the values we were passed...
-	this->_position=position;
-	this->_direction=direction;
-	this->_up=up;
-	this->_right=right;
-	this->_screenWidth=screenWidth;
-	this->_screenHeight=screenHeight;
+	this->_position = position;
+	this->_direction = direction;
+	this->_up = up;
+	this->_right = right;
+	this->_screenWidth = screenWidth;
+	this->_screenHeight = screenHeight;
 	
 	glm::vec3 front    = direction;
-	float fovHalfAngle = 0.7854f*1.5; // 45 deg for half, so fov = 90 deg
-	float ratio        = screenWidth/screenHeight;
+	float fovHalfAngle = 0.7854f * 1.5; // 45 deg and some hackery. Still trying to figure out our correct fov
+	float ratio        = screenWidth / screenHeight;
 	
 	this->_nearDist = 0.1;
 	this->_farDist  = 10.0;
