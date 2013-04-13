@@ -60,9 +60,8 @@
 #include "MenuRow.h"
 #include "MenuColumn.h"
 #include "Menu.h"
-#include "Head.h"
-#include "Hand.h"
 #include "Camera.h"
+#include "Head.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -372,12 +371,13 @@ void simulateHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
     if (mousePressed == 1)
     {
-        //  Add a velocity to the hand corresponding to the detected size of the drag vector
+        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
+        
         const float MOUSE_HAND_FORCE = 1.5;
         float dx = mouseX - mouseStartX;
         float dy = mouseY - mouseStartY;
         glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        myAvatar.hand->addVelocity(vel*deltaTime);
+        //myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
 
@@ -799,7 +799,12 @@ void display(void)
         // Test - Draw a blue sphere around a body part of mine!
         
         glPushMatrix();
-        //glTranslate3f(myAvatar.GetRight
+        glColor4f(0,0,1, 0.7);
+        glTranslatef(myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).x,
+                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).y,
+                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).z);
+        glutSolidSphere(0.03, 10, 10);
+                     
         glPopMatrix();
 		
 		// draw a red sphere  
@@ -1208,7 +1213,7 @@ void *networkReceive(void *args)
             
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA:
-                    myAvatar.hand->processTransmitterData(incomingPacket, bytesReceived);
+                    myAvatar.processTransmitterData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_Z_COMMAND:
@@ -1405,7 +1410,6 @@ int main(int argc, const char * argv[])
     initDisplay();
     printf( "Initialized Display.\n" );
 
-    
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(key);
@@ -1417,10 +1421,8 @@ int main(int argc, const char * argv[])
 	glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
 	
-
     init();
     printf( "Init() complete.\n" );
-
 
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
