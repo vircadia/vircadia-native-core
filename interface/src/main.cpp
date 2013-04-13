@@ -649,8 +649,9 @@ void render_view_frustum() {
 		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
 		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
 	}
-		
+
     glEnd();
+    glEnable(GL_LIGHTING);
 }
 
 
