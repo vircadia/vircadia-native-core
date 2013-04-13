@@ -61,6 +61,8 @@ public:
 		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
 	
 	void dump();
+	
+	static float fovAngleAdust;
 };
 
 

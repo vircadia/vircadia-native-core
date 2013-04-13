@@ -152,15 +152,6 @@ bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
-bool frustumOn = false;				//  Whether or not to display the debug view frustum
-bool cameraFrustum = true;			// which frustum to look at
-
-bool viewFrustumFromOffset=false;   //  Wether or not to offset the view of the frustum
-float viewFrustumOffsetYaw = -90.0;
-float viewFrustumOffsetPitch = 7.5;
-float viewFrustumOffsetRoll = 0.0;
-float viewFrustumOffsetDistance = 0.0;
-float viewFrustumOffsetUp = 0.0;
 
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -492,15 +483,46 @@ void simulateHead(float frametime)
     }
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////////////////
 // render_view_frustum()
 //
 // Description: this will render the view frustum bounds for EITHER the head
-// 				or the "myCamera". It appears as if the orientation that comes
-//				from these two sources is in different coordinate spaces (namely)
-// 				their axis orientations don't match.
+// 				or the "myCamera". 
+//
+// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
+// We can draw it with each of these parts:
+//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
+//    * Near plane - this plane is drawn very close to the origin point.
+//    * Right/Left planes - these two planes are drawn between the near and far planes.
+//    * Far plane - the plane is drawn in the distance.
+// Modes - the following modes, will draw the following parts.
+//    * All - draws all the parts listed above
+//    * Planes - draws the planes but not the origin vectors
+//    * Origin Vectors - draws the origin vectors ONLY
+//    * Near Plane - draws only the near plane
+//    * Far Plane - draws only the far plane
+#define FRUSTUM_DRAW_MODE_ALL        0
+#define FRUSTUM_DRAW_MODE_VECTORS    1
+#define FRUSTUM_DRAW_MODE_PLANES     2
+#define FRUSTUM_DRAW_MODE_NEAR_PLANE 3
+#define FRUSTUM_DRAW_MODE_FAR_PLANE  4
+#define FRUSTUM_DRAW_MODE_COUNT      5
+
+// These global scoped variables are used by our render_view_frustum() function below, but are also available as globals
+// so that the keyboard and menu can manipulate them.
+
+int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the frustum in, see notes above
+
+bool  frustumOn = false;                  // Whether or not to display the debug view frustum
+bool  cameraFrustum = true;               // which frustum to look at
+
+bool  viewFrustumFromOffset=false;        // Wether or not to offset the view of the frustum
+float viewFrustumOffsetYaw = -90.0;       // the following variables control yaw, pitch, roll and distance form regular
+float viewFrustumOffsetPitch = 7.5;       // camera to the offset camera
+float viewFrustumOffsetRoll = 0.0;
+float viewFrustumOffsetDistance = 0.0;
+float viewFrustumOffsetUp = 0.0;
+
 void render_view_frustum() {
 	
 	glm::vec3 cameraPosition   = ::myCamera.getPosition(); 
@@ -533,7 +555,7 @@ void render_view_frustum() {
 		up = headUp;
 		right = headRight;
 	}
-    
+	
     // Ask the ViewFrustum class to calculate our corners
     ViewFrustum vf(position,direction,up,right,::WIDTH,::HEIGHT);
 	
@@ -543,102 +565,91 @@ void render_view_frustum() {
     glLineWidth(1.0);
     glBegin(GL_LINES);
 
-	// Drawing the head direction vectors
-    glm::vec3 headLookingAt      = headPosition + (headDirection * 0.2f);
-    glm::vec3 headLookingAtUp    = headPosition + (headUp * 0.2f);
-    glm::vec3 headLookingAtRight = headPosition + (headRight * 0.2f);
+	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_VECTORS) {
+		// Calculate the origin direction vectors
+		glm::vec3 lookingAt      = position + (direction * 0.2f);
+		glm::vec3 lookingAtUp    = position + (up * 0.2f);
+		glm::vec3 lookingAtRight = position + (right * 0.2f);
 
-	// Looking At from head = white
-    glColor3f(1,1,1);
-    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
-    glVertex3f(headLookingAt.x, headLookingAt.y, headLookingAt.z);
+		// Looking At = white
+		glColor3f(1,1,1);
+		glVertex3f(position.x, position.y, position.z);
+		glVertex3f(lookingAt.x, lookingAt.y, lookingAt.z);
 
-	// up from head = purple
-    glColor3f(1,0,1);
-    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
-    glVertex3f(headLookingAtUp.x, headLookingAtUp.y, headLookingAtUp.z);
+		// Looking At Up = purple
+		glColor3f(1,0,1);
+		glVertex3f(position.x, position.y, position.z);
+		glVertex3f(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
 
-	// right from head = cyan
-    glColor3f(0,1,1);
-    glVertex3f(headPosition.x, headPosition.y, headPosition.z);
-    glVertex3f(headLookingAtRight.x, headLookingAtRight.y, headLookingAtRight.z);
+		// Looking At Right = cyan
+		glColor3f(0,1,1);
+		glVertex3f(position.x, position.y, position.z);
+		glVertex3f(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
+	}
 
-	// Drawing the camera direction vectors
-    glm::vec3 cameraLookingAt      = cameraPosition + (cameraDirection * 0.2f);
-    glm::vec3 cameraLookingAtUp    = cameraPosition + (cameraUp * 0.2f);
-    glm::vec3 cameraLookingAtRight = cameraPosition + (cameraRight * 0.2f);
+	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
+			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
+		// Drawing the bounds of the frustum
+		// vf.getNear plane - bottom edge 
+		glColor3f(1,0,0);
+		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
 
-	// Looking At from camera = white
-    glColor3f(1,1,1);
-    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
-    glVertex3f(cameraLookingAt.x,cameraLookingAt.y,cameraLookingAt.z);
+		// vf.getNear plane - top edge
+		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
-	// up from camera = purple
-    glColor3f(1,0,1);
-    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
-    glVertex3f(cameraLookingAtUp.x,cameraLookingAtUp.y,cameraLookingAtUp.z);
+		// vf.getNear plane - right edge
+		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
 
-	// right from camera = cyan
-    glColor3f(0,1,1);
-    glVertex3f(cameraPosition.x,cameraPosition.y,cameraPosition.z);
-    glVertex3f(cameraLookingAtRight.x,cameraLookingAtRight.y,cameraLookingAtRight.z);
+		// vf.getNear plane - left edge
+		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+	}
 
+	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
+			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_FAR_PLANE) {
+		// vf.getFar plane - bottom edge 
+		glColor3f(0,1,0); // GREEN!!!
+		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
-	// Drawing the bounds of the frustum
-	// vf.getNear plane - bottom edge 
-    glColor3f(1,0,0);
-    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+		// vf.getFar plane - top edge
+		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
-	// vf.getNear plane - top edge
-    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
-    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+		// vf.getFar plane - right edge
+		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
-	// vf.getNear plane - right edge
-    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
-    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+		// vf.getFar plane - left edge
+		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+	}
 
-	// vf.getNear plane - left edge
-    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES) {
+		// RIGHT PLANE IS CYAN
+		// right plane - bottom edge - vf.getNear to distant 
+		glColor3f(0,1,1);
+		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
 
-	// vf.getFar plane - bottom edge 
-    glColor3f(0,1,0); // GREEN!!!
-    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
-    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+		// right plane - top edge - vf.getNear to distant
+		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
 
-	// vf.getFar plane - top edge
-    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
-    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
+		// LEFT PLANE IS BLUE
+		// left plane - bottom edge - vf.getNear to distant
+		glColor3f(0,0,1);
+		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
+		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
 
-	// vf.getFar plane - right edge
-    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
-    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
-
-	// vf.getFar plane - left edge
-    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
-    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
-
-	// RIGHT PLANE IS CYAN
-	// right plane - bottom edge - vf.getNear to distant 
-    glColor3f(0,1,1);
-    glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
-    glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
-
-	// right plane - top edge - vf.getNear to distant
-    glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
-    glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
-
-	// LEFT PLANE IS BLUE
-	// left plane - bottom edge - vf.getNear to distant
-    glColor3f(0,0,1);
-    glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-    glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
-
-	// left plane - top edge - vf.getNear to distant
-    glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
-    glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
-	
+		// left plane - top edge - vf.getNear to distant
+		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+	}
+		
     glEnd();
 }
 
@@ -883,10 +894,23 @@ void display(void)
     }
 }
 
+// int version of setValue()
 int setValue(int state, int *value) {
-    if (state == -2) {
+    if (state == MENU_ROW_PICKED) {
         *value = !(*value);
-    } else if (state == -1) {
+    } else if (state == MENU_ROW_GET_VALUE) {
+        return *value;
+    } else {
+        *value = state;
+    }
+    return *value;
+}
+
+// bool version of setValue()
+int setValue(int state, bool *value) {
+    if (state == MENU_ROW_PICKED) {
+        *value = !(*value);
+    } else if (state == MENU_ROW_GET_VALUE) {
         return *value;
     } else {
         *value = state;
@@ -912,6 +936,14 @@ int setNoise(int state) {
     return iRet;
 }
 
+int setVoxels(int state) {
+    return setValue(state, &::showingVoxels);
+}
+
+int setStars(int state) {
+    return setValue(state, &::starsOn);
+}
+
 int setStats(int state) {
     return setValue(state, &statsOn);
 }
@@ -924,18 +956,83 @@ int setMirror(int state) {
     return setValue(state, &headMirror);
 }
 
+int setDisplayFrustum(int state) {
+    return setValue(state, &::frustumOn);
+}
+
+int setFrustumOffset(int state) {
+    return setValue(state, &::viewFrustumFromOffset);
+}
+
+int setFrustumOrigin(int state) {
+    return setValue(state, &::cameraFrustum);
+}
+
+int quitApp(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::terminate();
+    }
+    return 2; // non state so menu class doesn't add "state"
+}
+
+int setFrustumRenderMode(int state) {
+    if (state == MENU_ROW_PICKED) {
+		::frustumDrawingMode = (::frustumDrawingMode+1)%FRUSTUM_DRAW_MODE_COUNT;
+    }
+    return ::frustumDrawingMode;
+}
+
+const char* modeAll     = " All\0"; 
+const char* modeVectors = " Vector\0"; 
+const char* modePlanes  = " Planes\0"; 
+const char* modeNear    = " Near\0"; 
+const char* modeFar     = " Far\0"; 
+
+const char* getFrustumRenderModeName(int state) {
+	const char * mode;
+	switch (state) {
+		case FRUSTUM_DRAW_MODE_ALL: 
+			mode = modeAll;
+			break;
+		case FRUSTUM_DRAW_MODE_VECTORS: 
+			mode = modeVectors;
+			break;
+		case FRUSTUM_DRAW_MODE_PLANES:
+			mode = modePlanes;
+			break;
+		case FRUSTUM_DRAW_MODE_NEAR_PLANE: 
+			mode = modeNear;
+			break;
+		case FRUSTUM_DRAW_MODE_FAR_PLANE: 
+			mode = modeFar;
+			break;
+	}
+	return mode;
+}
+
 void initMenu() {
-    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug;
+    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
     //  Options
     menuColumnOptions = menu.addColumn("Options");
-    menuColumnOptions->addRow("Head", setHead); 
-    menuColumnOptions->addRow("Field", setField); 
-    menuColumnOptions->addRow("Noise", setNoise); 
+    menuColumnOptions->addRow("(H)ead", setHead); 
+    menuColumnOptions->addRow("Field (f)", setField); 
+    menuColumnOptions->addRow("(N)oise", setNoise); 
     menuColumnOptions->addRow("Mirror", setMirror);
+    menuColumnOptions->addRow("(V)oxels", setVoxels);
+    menuColumnOptions->addRow("Stars (*)", setStars);
+    menuColumnOptions->addRow("(Q)uit", quitApp);
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
-    menuColumnTools->addRow("Stats", setStats); 
-    menuColumnTools->addRow("Menu", setMenu);
+    menuColumnTools->addRow("Stats (/)", setStats); 
+    menuColumnTools->addRow("(M)enu", setMenu);
+
+    // Debug
+    menuColumnFrustum = menu.addColumn("Frustum");
+    menuColumnFrustum->addRow("Display (F)rustum", setDisplayFrustum); 
+    menuColumnFrustum->addRow("Use (O)ffset Camera", setFrustumOffset); 
+    menuColumnFrustum->addRow("Switch (C)amera", setFrustumOrigin); 
+    menuColumnFrustum->addRow("(R)ender Mode", setFrustumRenderMode, getFrustumRenderModeName); 
+
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
     
@@ -1079,13 +1176,13 @@ void key(unsigned char k, int x, int y)
 {
     
 	//  Process keypresses 
- 	if (k == 'q')  ::terminate();
+ 	if (k == 'q' || k == 'Q')  ::terminate();
     if (k == '/')  statsOn = !statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
-    if (k == 'V')  ::showingVoxels = !::showingVoxels;		// toggle voxels
+    if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
-    if (k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset;	// toggle view frustum from offset debugging
+    if (k == 'O' || k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset; // toggle view frustum offset debugging
     
 	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
 	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
@@ -1097,6 +1194,9 @@ void key(unsigned char k, int x, int y)
 	if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
 	if (k == ',') ::viewFrustumOffsetUp        -= 0.05;
 	if (k == '.') ::viewFrustumOffsetUp        += 0.05;
+	if (k == '|') ViewFrustum::fovAngleAdust   -= 0.05;
+	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
+	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
 	
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
@@ -1105,7 +1205,7 @@ void key(unsigned char k, int x, int y)
     if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
     if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
     if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
-	if (k == 'n') 
+	if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
         if (noiseOn)
@@ -1126,7 +1226,7 @@ void key(unsigned char k, int x, int y)
         #endif
     }
     
-    if (k == 'm') setMenu(-2);
+    if (k == 'm' || k == 'M') setMenu(MENU_ROW_PICKED);
     
     if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
