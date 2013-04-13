@@ -26,9 +26,11 @@ public:
     ~MenuRow();
     void call();
     char * getName();
+	const char* getStateName();
     int getWidth(float scale, int mono, int leftPosition);
     int getWidth();
 private:
+	int nameLength;
     char rowName[MAX_COLUMN_NAME];
     int rowWidth;
     MenuRowCallback callback;
