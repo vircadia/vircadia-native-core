@@ -95,6 +95,7 @@ Head::Head() {
 	usingSprings = false;
 	
 	springForce				= 6.0f;
+	springToBodyTightness	= 4.0f;
 	springVelocityDecay		= 16.0f;
     
     hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
@@ -353,27 +354,27 @@ void Head::simulate(float deltaTime) {
 		
 	//notice that the z values from avatar.orientation are flipped to accommodate different coordinate system
     if (driveKeys[FWD]) {
-		glm::vec3 front( avatar.orientation.front.x, avatar.orientation.front.y, avatar.orientation.front.z );
+		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, avatar.orientation.getFront().z );
 		avatar.thrust += front * THRUST_MAG;
     }
     if (driveKeys[BACK]) {
-		glm::vec3 front( avatar.orientation.front.x, avatar.orientation.front.y, avatar.orientation.front.z );
+		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, avatar.orientation.getFront().z );
 		avatar.thrust -= front * THRUST_MAG;
     }
     if (driveKeys[RIGHT]) {
-		glm::vec3 right( avatar.orientation.right.x, avatar.orientation.right.y, avatar.orientation.right.z );
+		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, avatar.orientation.getRight().z );
 		avatar.thrust -= right * THRUST_MAG;
     }
     if (driveKeys[LEFT]) {
-		glm::vec3 right( avatar.orientation.right.x, avatar.orientation.right.y, avatar.orientation.right.z );
+		glm::vec3 right( avatar.orientation.getRight().x, avatar.orientation.getRight().y, avatar.orientation.getRight().z );
 		avatar.thrust += right * THRUST_MAG;
     }
     if (driveKeys[UP]) {
-		glm::vec3 up( avatar.orientation.up.x, avatar.orientation.up.y, avatar.orientation.up.z );
+		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, avatar.orientation.getUp().z );
 		avatar.thrust += up * THRUST_MAG;
     }
     if (driveKeys[DOWN]) {
-		glm::vec3 up( avatar.orientation.up.x, avatar.orientation.up.y, avatar.orientation.up.z );
+		glm::vec3 up( avatar.orientation.getUp().x, avatar.orientation.getUp().y, avatar.orientation.getUp().z );
 		avatar.thrust -= up * THRUST_MAG;
     }
     if (driveKeys[ROT_RIGHT]) {	
@@ -573,7 +574,7 @@ void Head::render(int faceToFace, int isMine) {
 
 	   
 void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
-	glm::vec3 pRight	= position + orientation.right * size;
+	glm::vec3 pRight	= position + orientation.getRight	() * size;
 	glm::vec3 pUp		= position + orientation.getUp		() * size;
 	glm::vec3 pFront	= position + orientation.getFront	() * size;
 		
@@ -781,27 +782,23 @@ void Head::setHandMovement( glm::vec3 movement ) {
 
 
 void Head::initializeAvatar() {
+	//avatar.position		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
 	closestOtherAvatar = 0;
 	
-	bodyYaw			= -90.0;
-	bodyPitch		= 0.0;
-	bodyRoll		= 0.0;
-	bodyYawDelta	= 0.0;
+	bodyYaw		= -90.0;
+	bodyPitch	= 0.0;
+	bodyRoll	= 0.0;
+	
+	bodyYawDelta = 0.0;
 	
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-		avatar.bone[b].parent				= AVATAR_BONE_NULL;	
-		avatar.bone[b].position				= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].defaultPosePosition	= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].springyPosition		= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].springyVelocity		= glm::vec3( 0.0, 0.0, 0.0 );
-		avatar.bone[b].yaw					= 0.0f;
-		avatar.bone[b].pitch				= 0.0f;
-		avatar.bone[b].roll					= 0.0f;
-		avatar.bone[b].length				= 0.0f;
+		avatar.bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
+		avatar.bone[b].springyVelocity	= glm::vec3( 0.0, 0.0, 0.0 );
 		avatar.bone[b].orientation.setToIdentity();
 	}
 
@@ -880,41 +877,6 @@ void Head::initializeAvatar() {
 	avatar.bone[ AVATAR_BONE_RIGHT_SHIN			].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
 	avatar.bone[ AVATAR_BONE_RIGHT_FOOT			].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
 
-
-	//----------------------------------------------------------------------------------------------------------------
-	// set the spring body tightness (determines how tightly the springy positions stay on the bone positions
-	//----------------------------------------------------------------------------------------------------------------
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-		avatar.bone[b].springBodyTightness = 4.0f;
-	}
-
-	/*
-	avatar.bone[ AVATAR_BONE_NULL			].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_PELVIS_SPINE	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_MID_SPINE		].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_CHEST_SPINE	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_NECK			].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_HEAD			].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_CHEST		].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_SHOULDER	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_UPPER_ARM	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_FOREARM	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_HAND		].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_RIGHT_CHEST	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_RIGHT_FOREARM	].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_RIGHT_HAND		].springBodyTightness = 0.0f;
-	avatar.bone[ AVATAR_BONE_LEFT_PELVIS	].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_LEFT_THIGH		].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_LEFT_SHIN		].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_LEFT_FOOT		].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_RIGHT_PELVIS	].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_RIGHT_THIGH	].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_RIGHT_SHIN		].springBodyTightness = 0.8f;
-	avatar.bone[ AVATAR_BONE_RIGHT_FOOT		].springBodyTightness = 0.8f;
-	*/
-	
 	//----------------------------------------------------------------------------
 	// calculate bone length
 	//----------------------------------------------------------------------------
@@ -995,15 +957,14 @@ void Head::updateAvatarSprings( float deltaTime ) {
 		if ( length > 0.0f ) {
 			glm::vec3 springDirection = springVector / length;
 			
-			float force = ( length - avatar.bone[b].length ) * springForce * deltaTime;			
+			float force = ( length - avatar.bone[b].length ) * springForce * deltaTime;
 			
 			avatar.bone[ b						].springyVelocity -= springDirection * force;
 			avatar.bone[ avatar.bone[b].parent	].springyVelocity += springDirection * force;
 		}
 		
-		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) *
-			avatar.bone[b].springBodyTightness * deltaTime;
-		
+		avatar.bone[b].springyVelocity += ( avatar.bone[b].position - avatar.bone[b].springyPosition ) * springToBodyTightness * deltaTime;
+
 		float decay = 1.0 - springVelocityDecay * deltaTime;
 		
 		if ( decay > 0.0 ) {
@@ -1024,32 +985,27 @@ float Head::getBodyYaw() {
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
-		avatar.orientation.front.x,
-		avatar.orientation.front.y,
-		avatar.orientation.front.z
+		avatar.orientation.getFront().x,
+		avatar.orientation.getFront().y,
+		avatar.orientation.getFront().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionUp() {
 	return glm::vec3
 	(
-		avatar.orientation.up.x,
-		avatar.orientation.up.y,
-		avatar.orientation.up.z
+		avatar.orientation.getUp().x,
+		avatar.orientation.getUp().y,
+		avatar.orientation.getUp().z
 	);
-}
-
-glm::vec3 Head::getBonePosition( AvatarBones b )
-{
-	return avatar.bone[b].position;
 }
 
 glm::vec3 Head::getHeadLookatDirectionRight() {
 	return glm::vec3
 	(
-		avatar.orientation.right.x,
-		avatar.orientation.right.y,
-		avatar.orientation.right.z
+		avatar.orientation.getRight().x,
+		avatar.orientation.getRight().y,
+		avatar.orientation.getRight().z
 	);
 }
 
@@ -1077,9 +1033,9 @@ void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
 	
 	transformedHandMovement 
-	= avatar.orientation.right	* -movedHandOffset.x
-	+ avatar.orientation.up	* -movedHandOffset.y
-	+ avatar.orientation.front	* -movedHandOffset.y * 0.4;
+	= avatar.orientation.getRight()	* -movedHandOffset.x
+	+ avatar.orientation.getUp()	* -movedHandOffset.y
+	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4f;
 	
 	//if holding hands, add a pull to the hand...
 	if ( usingSprings ) {
@@ -1123,8 +1079,10 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = avatar.bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * (float)ONE_HALF;
-	glm::vec3 perpendicular = glm::cross( avatar.orientation.front, armVector );
-	newElbowPosition += perpendicular * ( 1.0 - ( avatar.maxArmLength / distance ) ) * ONE_HALF;
+	glm::vec3 perpendicular = glm::cross( avatar.orientation.getFront(), armVector );
+
+	// XXXBHG - Jeffery, you should clean this up. You can't multiple glm::vec3's by doubles, only floats
+	newElbowPosition += perpendicular * (float)(( 1.0f - ( avatar.maxArmLength / distance ) ) * ONE_HALF);
 	avatar.bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
 	//-----------------------------------------------------------------------------
