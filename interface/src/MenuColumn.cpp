@@ -117,6 +117,14 @@ int MenuColumn::addRow(const char* rowName, MenuRowCallback callback) {
     return 0;
 }
 
+int MenuColumn::addRow(const char* rowName, MenuRowCallback callback, MenuStateNameCallback stateNameCallback) {
+    MenuRow* row;
+    row = new MenuRow(rowName, callback, stateNameCallback);
+    rows.push_back(*row);
+    delete row;
+    return 0;
+}
+
 int MenuColumn::getMaxRowWidth() {
     float scale = 0.09;
     int mono = 0;
@@ -148,7 +156,6 @@ void MenuColumn::render(int yOffset, int menuHeight, int lineHeight) {
     }
     int y = menuHeight + lineHeight / 2 ;
     char* rowName;
-    int columnWidth = 0;
     for (unsigned int i = 0; i < rows.size(); ++i) {
         rowName = rows[i].getName();
         drawtext(leftPosition + SPACE_BEFORE_ROW_NAME, y+5 + yOffset, scale, 0, 1.0, mono, rowName, 0, 0, 0);
