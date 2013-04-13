@@ -982,11 +982,11 @@ int setFrustumRenderMode(int state) {
     return ::frustumDrawingMode;
 }
 
-const char* modeAll     = " All\0"; 
-const char* modeVectors = " Vector\0"; 
-const char* modePlanes  = " Planes\0"; 
-const char* modeNear    = " Near\0"; 
-const char* modeFar     = " Far\0"; 
+const char* modeAll     = " - All "; 
+const char* modeVectors = " - Vectors "; 
+const char* modePlanes  = " - Planes "; 
+const char* modeNear    = " - Near "; 
+const char* modeFar     = " - Far "; 
 
 const char* getFrustumRenderModeName(int state) {
 	const char * mode;
