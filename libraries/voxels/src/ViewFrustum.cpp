@@ -10,7 +10,7 @@
 
 #include "ViewFrustum.h"
 
-float ViewFrustum::fovAngleAdust=1.75;
+float ViewFrustum::fovAngleAdust=1.65;
 
 ViewFrustum::ViewFrustum(glm::vec3 position, glm::vec3 direction, 
 		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight) {
@@ -41,8 +41,8 @@ void ViewFrustum::calculateViewFrustum(glm::vec3 position, glm::vec3 direction,
 	
 	// Calculating field of view.
 	//    0.7854f is 45 deg
-	//    ViewFrustum::fovAngleAdust defaults to 1.75
-	// Apparently our fov is around 1.75 times this value or 78.75 degrees
+	//    ViewFrustum::fovAngleAdust defaults to 1.65
+	// Apparently our fov is around 1.75 times this value or 74.25 degrees
 	// you can adjust this in interface by using the "|" and "\" keys to tweak
 	// the adjustment and see effects of different FOVs
 	float fovHalfAngle = 0.7854f * ViewFrustum::fovAngleAdust; 
