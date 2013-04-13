@@ -43,20 +43,17 @@ Cloud::Cloud(int num,
     }
 }
 
-
 void Cloud::render() {
-    
+
     float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f };
     
     glEnable( GL_TEXTURE_2D );
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     
-    
     float maxSize = 0.0f;
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
     glPointSize( maxSize );
 
-    
     glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
     glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
     glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );

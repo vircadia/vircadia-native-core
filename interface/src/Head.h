@@ -13,7 +13,6 @@
 #include "AgentData.h"
 #include "Field.h"
 #include "world.h"
-#include "Hand.h"
 #include "Orientation.h"	// added by Ventrella as a utility
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
@@ -196,7 +195,12 @@ class Head : public AgentData {
         void addThrust(glm::vec3 newThrust) { avatar.thrust += newThrust; };
         glm::vec3 getThrust() { return avatar.thrust; };
     
-        Hand * hand;
+        //
+        //  Related to getting transmitter UDP data used to animate the avatar hand
+        //
+
+        void processTransmitterData(char * packetData, int numBytes);
+        float getTransmitterHz() { return transmitterHz; };
     
     private:
         float noise;
@@ -273,6 +277,13 @@ class Head : public AgentData {
         void readSensors();
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     
+        //
+        //  Related to getting transmitter UDP data used to animate the avatar hand
+        //
+        timeval transmitterTimer;
+        float transmitterHz;
+        int transmitterPackets;
+
 };
 
 #endif
