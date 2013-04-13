@@ -98,8 +98,6 @@ Head::Head() {
 	springToBodyTightness	= 4.0f;
 	springVelocityDecay		= 16.0f;
     
-    hand = new Hand(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
-
     if (iris_texture.size() == 0) {
         switchToResourcesIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -175,11 +173,7 @@ Head::Head(const Head &otherHead) {
     
     sphere = NULL;
     
-    Hand newHand = Hand(*otherHead.hand);
-    hand = &newHand;
 }
-
-
 
 Head::~Head()  {
     if (sphere != NULL) {
@@ -1182,10 +1176,55 @@ void Head::parseData(void *data, int size) {
 	handBeingMoved = true;
 }
 
-
-
-
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     PitchTarget = pitch;
     YawTarget = yaw;
 }
+
+void Head::processTransmitterData(char *packetData, int numBytes) {
+    //  Read a packet from a transmitter app, process the data
+    float accX, accY, accZ,
+    graX, graY, graZ,
+    gyrX, gyrY, gyrZ,
+    linX, linY, linZ,
+    rot1, rot2, rot3, rot4;
+    sscanf((char *)packetData, "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f",
+           &accX, &accY, &accZ,
+           &graX, &graY, &graZ,
+           &gyrX, &gyrY, &gyrZ,
+           &linX, &linY, &linZ,
+           &rot1, &rot2, &rot3, &rot4);
+    
+    if (transmitterPackets++ == 0) {
+        gettimeofday(&transmitterTimer, NULL);
+    }
+    const int TRANSMITTER_COUNT = 100;
+    if (transmitterPackets % TRANSMITTER_COUNT == 0) {
+        // Every 100 packets, record the observed Hz of the transmitter data
+        timeval now;
+        gettimeofday(&now, NULL);
+        double msecsElapsed = diffclock(&transmitterTimer, &now);
+        transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT/(msecsElapsed/1000.0) );
+        transmitterTimer = now;
+    }
+    /*  NOTE:  PR:  Will add back in when ready to animate avatar hand
+
+    //  Add rotational forces to the hand
+    const float ANG_VEL_SENSITIVITY = 4.0;
+    const float ANG_VEL_THRESHOLD = 0.0;
+    float angVelScale = ANG_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
+    
+    addAngularVelocity(fabs(gyrX*angVelScale)>ANG_VEL_THRESHOLD?gyrX*angVelScale:0,
+                       fabs(gyrZ*angVelScale)>ANG_VEL_THRESHOLD?gyrZ*angVelScale:0,
+                       fabs(-gyrY*angVelScale)>ANG_VEL_THRESHOLD?-gyrY*angVelScale:0);
+    
+    //  Add linear forces to the hand
+    //const float LINEAR_VEL_SENSITIVITY = 50.0;
+    const float LINEAR_VEL_SENSITIVITY = 5.0;
+    float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
+    glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
+    addVelocity(linVel);
+    */
+    
+}
+
