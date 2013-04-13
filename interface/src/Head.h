@@ -256,7 +256,7 @@ class Head : public AgentData {
 		
 		float springVelocityDecay;
 		float springForce;
-		//float springToBodyTightness;
+		float springToBodyTightness; // XXXBHG - this had been commented out, but build breaks without it.
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
