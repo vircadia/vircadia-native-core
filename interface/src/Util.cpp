@@ -168,30 +168,6 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     
 } 
 
-// XXXBHG - These handy operators should probably go somewhere else, I'm surprised they don't
-// already exist somewhere in OpenGL. Maybe someone can point me to them if they do exist!
-glm::vec3 operator* (float lhs, const glm::vec3& rhs)
-{
-    glm::vec3 result = rhs;
-    result.x *= lhs;
-    result.y *= lhs;
-    result.z *= lhs;
-    return result;
-}
-
-// XXXBHG - These handy operators should probably go somewhere else, I'm surprised they don't
-// already exist somewhere in OpenGL. Maybe someone can point me to them if they do exist!
-glm::vec3 operator* (const glm::vec3& lhs, float rhs)
-{
-    glm::vec3 result = lhs;
-    result.x *= rhs;
-    result.y *= rhs;
-    result.z *= rhs;
-    return result;
-}
-
-
-
 void drawGroundPlaneGrid( float size, int resolution )
 {
 

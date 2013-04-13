@@ -33,6 +33,53 @@
 //  int			sampleAt;
 
 
+CounterStatHistory::CounterStatHistory() :
+    currentCount(0),
+    currentDelta(0),
+    currentTime(0.0),
+    lastCount(0),
+    lastTime(0.0),
+    totalTime(0.0),
+    sampleAt(-1),
+    sampleCount(0) {
+}
+
+CounterStatHistory::CounterStatHistory(std::string myName) :
+    name(myName),
+    currentCount(0),
+    currentDelta(0),
+    currentTime(0.0),
+    lastCount(0),
+    lastTime(0.0),
+    totalTime(0.0),
+    sampleAt(-1),
+    sampleCount(0) {
+}
+
+
+CounterStatHistory::CounterStatHistory(std::string myName, double initialTime, long initialCount) :
+    name(myName),
+    currentCount(initialCount),
+    currentDelta(0),
+    currentTime(initialTime),
+    lastCount(initialCount),
+    lastTime(initialTime),
+    totalTime(initialTime),
+    sampleAt(-1),
+    sampleCount(0) {
+}
+
+void CounterStatHistory::init() {
+    currentCount = 0;
+    currentDelta = 0;
+    currentTime = 0.0;
+    lastCount = 0;
+    lastTime = 0.0;
+    totalTime = 0.0;
+    sampleAt = -1;
+    sampleCount = 0;
+}
+
 void CounterStatHistory::recordSample(long thisCount) {
 	timeval now;
 	gettimeofday(&now,NULL);
