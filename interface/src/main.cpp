@@ -729,29 +729,30 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myAvatar.getPos() ); 
-
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
-			//-----------------------------------------------		
-			myCamera.setYaw		( - myAvatar.getBodyYaw() );
-			myCamera.setPitch	( 0.0  );
-			myCamera.setRoll	( 0.0  );
-			myCamera.setUp		( 0.4  );	
-			myCamera.setDistance( 0.03 );
-			myCamera.update();
+			//-----------------------------------------------
+			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setYaw				( - myAvatar.getBodyYaw() );
+			myCamera.setPitch			( 0.0  );
+			myCamera.setRoll			( 0.0  );
+			myCamera.setUp				( 0.4  );	
+			myCamera.setDistance		( 0.03 );
+			myCamera.setTightness		( 100.0f );
+			myCamera.update				( 1.f/FPS );
 		} else {
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch	(   0.0 );
-			myCamera.setRoll	(   0.0 );
-			myCamera.setUp		(   0.2 );
-			myCamera.setDistance(   1.6 );	
-			myCamera.setDistance(   0.5 );
-			myCamera.update();
+			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setPitch			(   0.0 );
+			myCamera.setRoll			(   0.0 );
+			myCamera.setUp				(   0.2 );
+			myCamera.setDistance		(   0.5 );
+			myCamera.setTightness		( 10.0f );
+			myCamera.update				( 1.f/FPS );
 		}
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
@@ -773,7 +774,7 @@ void display(void)
 			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
 			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
 			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
-			viewFrustumOffsetCamera.update();
+			viewFrustumOffsetCamera.update( 1.f/FPS );
 			
 			whichCamera = viewFrustumOffsetCamera;
 		}		

@@ -3,7 +3,7 @@
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
-//	adapted by Jeffrey Ventrella, starting on April 2, 2013
+//	adapted by Jeffrey Ventrella 
 //  Copyright (c) 2012 Physical, Inc.. All rights reserved.
 //
 
@@ -47,10 +47,6 @@ unsigned int iris_texture_height = 256;
 
 Head::Head() {
 	initializeAvatar();
-
-    //position	= glm::vec3(0,0,0);
-    //velocity	= glm::vec3(0,0,0);
-    //thrust		= glm::vec3(0,0,0);
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
     
@@ -573,9 +569,9 @@ void Head::render(int faceToFace, int isMine) {
 
 	   
 void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
-	glm::vec3 pRight	= position + orientation.right * size;
-	glm::vec3 pUp		= position + orientation.getUp		() * size;
-	glm::vec3 pFront	= position + orientation.getFront	() * size;
+	glm::vec3 pRight	= position + orientation.right	* size;
+	glm::vec3 pUp		= position + orientation.up		* size;
+	glm::vec3 pFront	= position + orientation.front	* size;
 		
 	glColor3f( 1.0f, 0.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );

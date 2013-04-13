@@ -250,13 +250,11 @@ class Head : public AgentData {
 		bool handBeingMoved;
 		bool previousHandBeingMoved;
 		glm::vec3 movedHandOffset;
-		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
 		
 		float springVelocityDecay;
 		float springForce;
-		//float springToBodyTightness;
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
