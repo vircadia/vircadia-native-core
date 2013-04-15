@@ -42,9 +42,6 @@ vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
-
-
-
 Head::Head() {
 	initializeAvatar();
 

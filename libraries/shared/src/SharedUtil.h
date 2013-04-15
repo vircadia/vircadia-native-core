@@ -10,12 +10,28 @@
 #define __hifi__SharedUtil__
 
 #include <stdint.h>
+#include <math.h>
 
 #ifdef _WIN32
 #include "Systime.h"
 #else
 #include <sys/time.h>
 #endif
+
+static const double	ZERO				= 0.0;
+static const double	ONE					= 1.0;
+static const double	ONE_HALF			= 0.5;
+static const double	ONE_THIRD			= 0.3333333;
+static const double	PIE					= 3.14159265359;
+static const double	PI_TIMES_TWO		= 3.14159265359 * 2.0;
+static const double PI_OVER_180			= 3.14159265359 / 180.0;
+static const double EPSILON				= 0.00001;	//smallish number - used as margin of error for some computations
+static const double SQUARE_ROOT_OF_2	= sqrt(2);
+static const double SQUARE_ROOT_OF_3	= sqrt(3);
+static const double METER				= 1.0;
+static const double DECIMETER			= 0.1;
+static const double CENTIMETER			= 0.01;
+static const double MILLIIMETER			= 0.001;
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();
