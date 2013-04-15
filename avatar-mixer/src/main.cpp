@@ -32,7 +32,7 @@
 #include <StdDev.h>
 #include <UDPSocket.h>
 
-#include "AvatarAgentData.h"
+#include "AvatarData.h"
 
 const int AVATAR_LISTEN_PORT = 55444;
 const unsigned short BROADCAST_INTERVAL_USECS = 20 * 1000 * 1000;
@@ -40,7 +40,7 @@ const unsigned short BROADCAST_INTERVAL_USECS = 20 * 1000 * 1000;
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
 
-    AvatarAgentData *agentData = (AvatarAgentData *)agentToAdd->getLinkedData();
+    AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
     
     int bytesWritten = sprintf((char *)currentPosition,
                                PACKET_FORMAT,
@@ -62,7 +62,7 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *
 
 void attachAvatarDataToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new AvatarAgentData());
+        newAgent->setLinkedData(new AvatarData());
     }
 }
 

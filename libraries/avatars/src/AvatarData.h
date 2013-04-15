@@ -1,26 +1,24 @@
 //
-//  AvatarAgentData.h
+//  AvatarData.h
 //  hifi
 //
 //  Created by Stephen Birarda on 4/9/13.
 //
 //
 
-#ifndef __hifi__AvatarAgentData__
-#define __hifi__AvatarAgentData__
+#ifndef __hifi__AvatarData__
+#define __hifi__AvatarData__
 
 #include <iostream>
 #include <AgentData.h>
 
-const char PACKET_FORMAT[] = "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f";
-
-class AvatarAgentData : public AgentData {
+class AvatarData : public AgentData {
 public:
-    AvatarAgentData();
-    ~AvatarAgentData();
+    AvatarData();
+    ~AvatarData();
     
     void parseData(void *data, int size);
-    AvatarAgentData* clone() const;
+    AvatarData* clone() const;
     
     float getPitch();
     void setPitch(float pitch);
@@ -55,4 +53,4 @@ private:
     float _handPositionZ;
 };
 
-#endif /* defined(__hifi__AvatarAgentData__) */
+#endif /* defined(__hifi__AvatarData__) */
