@@ -12,7 +12,7 @@ include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} ${MACRO_DIR})
+include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})

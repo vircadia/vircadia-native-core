@@ -1,5 +1,5 @@
-MACRO(INCLUDE_GLM TARGET MACRO_DIR)
-	set(GLM_ROOT_DIR ${MACRO_DIR}/../../externals)
+MACRO(INCLUDE_GLM TARGET ROOT_DIR)
+	set(GLM_ROOT_DIR ${ROOT_DIR}/externals)
 	find_package(GLM REQUIRED)
 	include_directories(${GLM_INCLUDE_DIRS})
-ENDMACRO(INCLUDE_GLM _target _macro_dir)
+ENDMACRO(INCLUDE_GLM _target _root_dir)

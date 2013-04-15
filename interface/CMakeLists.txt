@@ -26,7 +26,7 @@ endif (WIN32)
 
 # set up the external glm library
 include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} ${MACRO_DIR})
+include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)

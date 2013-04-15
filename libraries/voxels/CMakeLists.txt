@@ -11,10 +11,8 @@ set(TARGET_NAME voxels)
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-# include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} ${MACRO_DIR})
+include_glm(${TARGET_NAME} ${ROOT_DIR})
 
-# link the shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
