@@ -42,21 +42,21 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *
 
     AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
     
-    int bytesWritten = sprintf((char *)currentPosition,
-                               PACKET_FORMAT,
-                               agentData->getPitch(),
-                               agentData->getYaw(),
-                               agentData->getRoll(),
-                               agentData->getHeadPositionX(),
-                               agentData->getHeadPositionY(),
-                               agentData->getHeadPositionZ(),
-                               agentData->getLoudness(),
-                               agentData->getAverageLoudness(),
-                               agentData->getHandPositionX(),
-                               agentData->getHandPositionY(),
-                               agentData->getHandPositionZ());
+//    int bytesWritten = sprintf((char *)currentPosition,
+//                               PACKET_FORMAT,
+//                               agentData->getPitch(),
+//                               agentData->getYaw(),
+//                               agentData->getRoll(),
+//                               agentData->getHeadPositionX(),
+//                               agentData->getHeadPositionY(),
+//                               agentData->getHeadPositionZ(),
+//                               agentData->getLoudness(),
+//                               agentData->getAverageLoudness(),
+//                               agentData->getHandPositionX(),
+//                               agentData->getHandPositionY(),
+//                               agentData->getHandPositionZ());
 
-    currentPosition += bytesWritten;
+//    currentPosition += bytesWritten;
     return currentPosition;
 }
 

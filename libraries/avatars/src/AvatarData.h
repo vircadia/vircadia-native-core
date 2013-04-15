@@ -12,8 +12,8 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
-#include <AgentData.h>
 
+#include <AgentData.h>
 #include "Orientation.h"
 
 enum AvatarBones
