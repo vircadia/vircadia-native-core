@@ -8,6 +8,7 @@
 #include "Orientation.h"
 #include "Util.h"
 
+
 Orientation::Orientation() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );
 	up		= glm::vec3(  0.0,  1.0,  0.0 );
@@ -31,8 +32,8 @@ void Orientation::set( Orientation o ) {
 
 void Orientation::yaw( float angle ) {
 	float r = angle * PI_OVER_180;
-	float s = sin( r );
-	float c = cos( r );
+	float s = sin(r);
+	float c = cos(r);
 	
 	glm::vec3 cosineFront	= front * c;
 	glm::vec3 cosineRight	= right * c;
@@ -46,8 +47,8 @@ void Orientation::yaw( float angle ) {
 
 void Orientation::pitch( float angle ) {
 	float r = angle * PI_OVER_180;
-	float s = sin( r );
-	float c = cos( r );
+	float s = sin(r);
+	float c = cos(r);
 	
 	glm::vec3 cosineUp		= up	* c;
 	glm::vec3 cosineFront	= front	* c;
@@ -60,9 +61,9 @@ void Orientation::pitch( float angle ) {
 
 
 void Orientation::roll( float angle ) {
-	double r = angle * PI_OVER_180;
-	double s = sin( r );
-	double c = cos( r );
+	float r = angle * PI_OVER_180;
+	float s = sin(r);
+	float c = cos(r);
 	
 	glm::vec3 cosineUp		= up	* c;
 	glm::vec3 cosineRight	= right	* c;

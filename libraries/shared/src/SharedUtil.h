@@ -54,4 +54,5 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
 void usleep(int waitTime);
 #endif
 
+
 #endif /* defined(__hifi__SharedUtil__) */
