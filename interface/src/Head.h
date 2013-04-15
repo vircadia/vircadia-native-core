@@ -29,7 +29,18 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
-#define NUM_OTHER_AVATARS 5
+#define NUM_OTHER_AVATARS 5 // temporary - for testing purposes!
+
+
+enum AvatarMode
+{
+	AVATAR_MODE_STANDING = 0,
+	AVATAR_MODE_WALKING,
+	AVATAR_MODE_COMMUNICATING,
+	NUM_AVATAR_MODES
+};
+
+
 
 /*
 enum AvatarJoints
@@ -108,7 +119,7 @@ struct AvatarBone
 	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
-	float		springBodyTightness;	// how tightly (0 to 1) the springy position tries to stay on the position
+	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -122,7 +133,6 @@ struct Avatar
 	glm::vec3	thrust;
 	float		maxArmLength;
 	Orientation	orientation;
-	AvatarBone	bone[ NUM_AVATAR_BONES ];
 };
 
 class Head : public AgentData {
@@ -161,6 +171,11 @@ class Head : public AgentData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBones b );
 		glm::vec3 getBodyPosition();
+		
+		
+		AvatarMode getMode();
+		
+		void setTriggeringAction( bool trigger ); 
         
         void render(int faceToFace, int isMine);
 		
@@ -183,8 +198,8 @@ class Head : public AgentData {
         void setLoudness(float l) {loudness = l;};
         
         void SetNewHeadTarget(float, float);
-        glm::vec3 getPos() { return position; };
-        void setPos(glm::vec3 newpos) { position = newpos; };
+        glm::vec3 getPos() { return bodyPosition; };
+        void setPos(glm::vec3 newpos) { bodyPosition = newpos; };
     
         //  Set what driving keys are being pressed to control thrust levels
         void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
@@ -237,7 +252,9 @@ class Head : public AgentData {
         float audioAttack;
         float browAudioLift;
     
-        glm::vec3 position;
+        glm::vec3 bodyPosition;
+		
+		bool triggeringAction;
 		
 		float bodyYaw;
 		float bodyPitch;
@@ -265,6 +282,10 @@ class Head : public AgentData {
     
         GLUquadric *sphere;
 		Avatar avatar;
+		
+		AvatarBone	bone[ NUM_AVATAR_BONES ];
+		
+		AvatarMode mode;
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();

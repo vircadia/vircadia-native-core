@@ -164,8 +164,11 @@ int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by
 int headMouseX, headMouseY; 
 
 int mouseX, mouseY;				//  Where is the mouse
-int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
-int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
+
+//  Mouse location at start of last down click
+int mouseStartX;// = WIDTH	 / 2;
+int mouseStartY;// = HEIGHT / 2;
+int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
 int menuOn = 1;					//  Whether to show onscreen menu
@@ -1295,26 +1298,39 @@ void idle(void)
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		// If mouse is being dragged, update hand movement in the avatar
-		if ( mousePressed == 1 ) {
-
-			float xOffset = ( mouseX - mouseStartX ) / ( WIDTH	* ONE_HALF );
-			float yOffset = ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
-
-			float leftRight	= xOffset;
-			float downUp	= yOffset;
-			float backFront	= 0.0;
-			
-			glm::vec3 handMovement( leftRight, downUp, backFront );
-			myAvatar.setHandMovement( handMovement );		
+		//if ( mousePressed == 1 ) 
+		
+		if ( myAvatar.getMode() == AVATAR_MODE_STANDING ) {
+				float leftRight	= ( mouseX - mouseStartX ) / ( WIDTH  * ONE_HALF );
+				float downUp	= ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
+				float backFront	= 0.0;			
+				glm::vec3 handMovement( leftRight, downUp, backFront );
+				myAvatar.setHandMovement( handMovement );		
 		}		
+		else {
+			mouseStartX = mouseX;
+			mouseStartY = mouseY;
+		}
+		
+		//--------------------------------------------------------
+		// when the mouse is being pressed, an 'action' is being 
+		// triggered in the avatarthe action is context-based.
+		//--------------------------------------------------------
+		if ( mousePressed == 1 )
+		{
+			myAvatar.setTriggeringAction( true );
+		}
+		else
+		{
+			myAvatar.setTriggeringAction( false );
+		}
 		
         //  Simulation
-        simulateHead(1.f/FPS);
+        simulateHead( 1.f/FPS );
 		
 		
 		//test
 		/*
-		//  simulate the other agents
         for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
@@ -1373,8 +1389,8 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            mouseStartX = x;
-            mouseStartY = y;
+            //mouseStartX = x;
+            //mouseStartY = y;
         }
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
