@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 set(TARGET_NAME voxel-server)
 
-set(ROOT_DIR ../)
+set(ROOT_DIR ..)
 set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
