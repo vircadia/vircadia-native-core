@@ -698,7 +698,7 @@ void display(void)
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0  );
 			myCamera.setRoll			( 0.0  );
-			myCamera.setUp				( 0.4  );	
+			myCamera.setUp				( 0.53 );	
 			myCamera.setDistance		( 0.03 );
 			myCamera.setTightness		( 100.0f );
 			myCamera.update				( 1.f/FPS );
@@ -708,9 +708,9 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getPos() ); 
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0 );
+			myCamera.setPitch			(  10.0 );
 			myCamera.setRoll			(   0.0 );
-			myCamera.setUp				(   0.2 );
+			myCamera.setUp				(   0.45 );
 			myCamera.setDistance		(   0.5 );
 			myCamera.setTightness		( 10.0f );
 			myCamera.update				( 1.f/FPS );
@@ -1301,8 +1301,8 @@ void idle(void)
 		//if ( mousePressed == 1 ) 
 		
 		if ( myAvatar.getMode() == AVATAR_MODE_STANDING ) {
-				float leftRight	= ( mouseX - mouseStartX ) / ( WIDTH  * ONE_HALF );
-				float downUp	= ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
+				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
+				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
 				float backFront	= 0.0;			
 				glm::vec3 handMovement( leftRight, downUp, backFront );
 				myAvatar.setHandMovement( handMovement );		

@@ -110,11 +110,11 @@ Head::Head() {
 	//--------------------------------------------------
 	// test... just slam them into random positions...
 	//--------------------------------------------------
-	DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0, 0.1,  2.0 );
-	DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0, 0.1,  2.0 );
-	DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0, 0.1,  2.0 );
-	DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0, 0.1, -4.0 );
-	DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.1, -2.0 );
+	DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0, 0.3,  2.0 );
+	DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0, 0.3,  2.0 );
+	DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0, 0.3,  2.0 );
+	DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0, 0.3, -4.0 );
+	DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.3, -2.0 );
 }
 
 
@@ -871,7 +871,7 @@ void Head::initializeAvatar() {
 	//----------------------------------------------------------
 	// specify the default pose position
 	//----------------------------------------------------------
-	bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
+	bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.3,  0.0  );
 	bone[ AVATAR_BONE_MID_SPINE			].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
 	bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
 	bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06, 0.0  );
@@ -1062,7 +1062,7 @@ void Head::updateHandMovement() {
 	transformedHandMovement 
 	= avatar.orientation.getRight()	* -movedHandOffset.x
 	+ avatar.orientation.getUp()	* -movedHandOffset.y
-	+ avatar.orientation.getFront()	* -movedHandOffset.y * 0.4f;
+	+ avatar.orientation.getFront()	* -movedHandOffset.y * 1.0f;
 
 	bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
 	
@@ -1084,11 +1084,14 @@ void Head::updateHandMovement() {
 		}
 	}
 	
+	
+	
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------
 	glm::vec3 armVector = bone[ AVATAR_BONE_RIGHT_HAND ].position;
 	armVector -= bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
+
 
 	//-------------------------------------------------------------------------------
 	// test to see if right hand is being dragged beyond maximum arm length
@@ -1110,6 +1113,21 @@ void Head::updateHandMovement() {
 		constrainedPosition += armVector;
 		bone[ AVATAR_BONE_RIGHT_HAND ].position = constrainedPosition;
 	}
+	
+	/*
+	//-------------------------------------------------------------------------------
+	// keep arm from going through av body...
+	//-------------------------------------------------------------------------------	
+	glm::vec3 adjustedArmVector = bone[ AVATAR_BONE_RIGHT_HAND ].position;
+	adjustedArmVector -= bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
+	
+	float rightComponent = glm::dot( adjustedArmVector, avatar.orientation.getRight() );
+
+	if ( rightComponent < 0.0 )
+	{
+		bone[ AVATAR_BONE_RIGHT_HAND ].position -= avatar.orientation.getRight() * rightComponent;
+	}	
+	*/
 	
 	//-----------------------------------------------------------------------------
 	// set elbow position 
@@ -1159,7 +1177,7 @@ void Head::renderBody()
     // Render lines connecting the bone positions
 	//-----------------------------------------------------
 	if ( usingSprings ) {
-		glColor3f( 0.2f, 0.3f, 0.4f );
+		glColor3f( 0.4f, 0.5f, 0.6f );
 		glLineWidth(3.0);
 
 		for (int b=1; b<NUM_AVATAR_BONES; b++) {
