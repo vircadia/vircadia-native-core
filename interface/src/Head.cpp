@@ -256,7 +256,7 @@ void Head::simulate(float deltaTime) {
 	//-------------------------------------
 	// DEBUG - other avatars...
 	//-------------------------------------
-	closeEnoughToInteract = 0.5f;
+	closeEnoughToInteract = 0.3f;
 	closestOtherAvatar = -1;
 	float closestDistance = 10000.0f;
 	
@@ -923,7 +923,7 @@ void Head::calculateBoneLengths() {
 
 void Head::updateAvatarSkeleton() {
 	//----------------------------------
-	// rotate...
+	// rotate body...
 	//----------------------------------	
 	avatar.orientation.setToIdentity();
 	avatar.orientation.yaw( bodyYaw );
