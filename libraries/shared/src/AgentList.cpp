@@ -427,11 +427,11 @@ void AgentList::stopDomainServerCheckInThread() {
 }
 
 int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
-    memcpy(packedData, agentId, sizeof(uint16_t));
+    memcpy(agentId, packedData, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
 int packAgentId(unsigned char *packStore, uint16_t agentId) {
-    memcpy(&agentId, packStore, sizeof(uint16_t));
+    memcpy(packStore, &agentId, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
