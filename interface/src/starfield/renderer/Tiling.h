@@ -13,15 +13,8 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
-#ifdef _WIN32
-#include "../Config.h"
-#define lrint(x) (floor(x + (x > 0) ? 0.5 : -0.5)) 
-    inline float remainder(float x, float y) { return std::fmod(x, y); }
-    inline int round(float x) { return (floor(x + 0.5)); }
-    double log2( double n ) { return log( n ) / log( 2 ); }
-#else
 #include "starfield/Config.h"
-#endif
+
 namespace starfield {
 
     class Tiling {
@@ -35,7 +28,7 @@ namespace starfield {
         Tiling(unsigned k) : 
             _valK(k),
             _valRcpSlice(k / Radians::twicePi()) {
-            _valBits = ceil(log2(getTileCount()));
+            _valBits = ceil(log(getTileCount()) * 1.4426950408889634); // log2
         }
 
         unsigned getAzimuthalTiles() const { return _valK; }
@@ -58,7 +51,7 @@ namespace starfield {
     private:
 
         unsigned discreteAngle(float unsigned_angle) const {
-            return unsigned(round(unsigned_angle * _valRcpSlice));
+            return unsigned(floor(unsigned_angle * _valRcpSlice + 0.5f));
         }
 
         unsigned discreteAzimuth(float a) const {
