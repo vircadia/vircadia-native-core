@@ -20,13 +20,14 @@ enum CameraMode
 	NUM_CAMERA_MODES
 };
 
+static const float DEFAULT_CAMERA_TIGHTNESS = 10.0f;
 
 class Camera
 {
 public:
 	Camera();
 	
-	void update();
+	void update( float deltaTime );
 	
 	void setMode			( CameraMode	m ) { mode				= m; }
 	void setYaw				( float			y ) { yaw				= y; }
@@ -34,8 +35,9 @@ public:
 	void setRoll			( float			r ) { roll				= r; }
 	void setUp				( float			u ) { up				= u; }
 	void setDistance		( float			d ) { distance			= d; }
-	void setTargetPosition	( glm::vec3		t ) { targetPosition	= t; };
-	void setPosition		( glm::vec3		p ) { position			= p; };
+	void setTargetPosition	( glm::vec3		t ) { targetPosition	= t; }
+	void setPosition		( glm::vec3		p ) { position			= p; }
+	void setTightness		( float			t ) { tightness			= t; }
 	void setOrientation		( Orientation	o ) { orientation.set(o); }
 
 	float		getYaw			() { return yaw;			}
@@ -49,6 +51,7 @@ private:
 
 	CameraMode	mode;
 	glm::vec3	position;
+	glm::vec3	idealPosition;
 	glm::vec3	targetPosition;
 	float		fieldOfView;
 	float		yaw;
@@ -56,6 +59,7 @@ private:
 	float		roll;
 	float		up;
 	float		distance;
+	float		tightness;
 	Orientation	orientation;
 };
 

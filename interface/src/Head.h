@@ -32,7 +32,17 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
-#define NUM_OTHER_AVATARS 5
+#define NUM_OTHER_AVATARS 5 // temporary - for testing purposes!
+
+enum AvatarMode
+{
+	AVATAR_MODE_STANDING = 0,
+	AVATAR_MODE_WALKING,
+	AVATAR_MODE_COMMUNICATING,
+	NUM_AVATAR_MODES
+};
+
+
 
 enum AvatarBones
 {
@@ -71,7 +81,7 @@ struct AvatarBone
 	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
-	float		springBodyTightness;	// how tightly (0 to 1) the springy position tries to stay on the position
+	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -85,7 +95,6 @@ struct Avatar
 	glm::vec3	thrust;
 	float		maxArmLength;
 	Orientation	orientation;
-	AvatarBone	bone[ NUM_AVATAR_BONES ];
 };
 
 class Head : public AvatarData {
@@ -205,19 +214,21 @@ class Head : public AvatarData {
 		bool handBeingMoved;
 		bool previousHandBeingMoved;
 		glm::vec3 movedHandOffset;
-		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
 		
 		float springVelocityDecay;
 		float springForce;
-		float springToBodyTightness; // XXXBHG - this had been commented out, but build breaks without it.
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
     
         GLUquadric *sphere;
 		Avatar avatar;
+		
+		AvatarBone	bone[ NUM_AVATAR_BONES ];
+		
+		AvatarMode mode;
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();

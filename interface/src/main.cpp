@@ -164,8 +164,11 @@ int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by
 int headMouseX, headMouseY; 
 
 int mouseX, mouseY;				//  Where is the mouse
-int mouseStartX, mouseStartY;   //  Mouse location at start of last down click
-int mousePressed = 0;				//  true if mouse has been pressed (clear when finished)
+
+//  Mouse location at start of last down click
+int mouseStartX;// = WIDTH	 / 2;
+int mouseStartY;// = HEIGHT / 2;
+int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
 int menuOn = 1;					//  Whether to show onscreen menu
@@ -692,24 +695,27 @@ void display(void)
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
-			//-----------------------------------------------		
-			myCamera.setYaw		( - myAvatar.getBodyYaw() );
-			myCamera.setPitch	( 0.0  );
-			myCamera.setRoll	( 0.0  );
-			myCamera.setUp		( 0.4  );	
-			myCamera.setDistance( 0.03 );
-			myCamera.update();
+			//-----------------------------------------------
+			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setYaw				( - myAvatar.getBodyYaw() );
+			myCamera.setPitch			( 0.0  );
+			myCamera.setRoll			( 0.0  );
+			myCamera.setUp				( 0.53 );	
+			myCamera.setDistance		( 0.03 );
+			myCamera.setTightness		( 100.0f );
+			myCamera.update				( 1.f/FPS );
 		} else {
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch	(   0.0 );
-			myCamera.setRoll	(   0.0 );
-			myCamera.setUp		(   0.2 );
-			myCamera.setDistance(   1.6 );	
-			myCamera.setDistance(   0.5 );
-			myCamera.update();
+			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setPitch			(  10.0 );
+			myCamera.setRoll			(   0.0 );
+			myCamera.setUp				(   0.45 );
+			myCamera.setDistance		(   0.5 );
+			myCamera.setTightness		( 10.0f );
+			myCamera.update				( 1.f/FPS );
 		}
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
@@ -727,11 +733,11 @@ void display(void)
 			// set the camera to third-person view but offset so we can see the frustum
 			//----------------------------------------------------		
 			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch    );
-			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(   0.2 + ::viewFrustumOffsetUp       );
-			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
-			viewFrustumOffsetCamera.update();
+			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
+			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
+			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
+			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
+			viewFrustumOffsetCamera.update( 1.f/FPS );
 			
 			whichCamera = viewFrustumOffsetCamera;
 		}		
@@ -1285,8 +1291,7 @@ void *networkReceive(void *args)
     return NULL;
 }
 
-void idle(void)
-{
+void idle(void) {
     timeval check;
     gettimeofday(&check, NULL);
     
@@ -1294,26 +1299,39 @@ void idle(void)
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		// If mouse is being dragged, update hand movement in the avatar
-		if ( mousePressed == 1 ) {
-
-			float xOffset = ( mouseX - mouseStartX ) / ( WIDTH	* ONE_HALF );
-			float yOffset = ( mouseY - mouseStartY ) / ( HEIGHT * ONE_HALF );
-
-			float leftRight	= xOffset;
-			float downUp	= yOffset;
-			float backFront	= 0.0;
-			
-			glm::vec3 handMovement( leftRight, downUp, backFront );
-			myAvatar.setHandMovement( handMovement );		
+		//if ( mousePressed == 1 ) 
+		
+		if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
+				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
+				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
+				float backFront	= 0.0;			
+				glm::vec3 handMovement( leftRight, downUp, backFront );
+				myAvatar.setHandMovement( handMovement );		
 		}		
+		else {
+			mouseStartX = mouseX;
+			mouseStartY = mouseY;
+			//mouseStartX = (float)WIDTH  / 2.0f;
+			//mouseStartY = (float)HEIGHT / 2.0f;
+		}
+		
+		//--------------------------------------------------------
+		// when the mouse is being pressed, an 'action' is being 
+		// triggered in the avatar. The action is context-based.
+		//--------------------------------------------------------
+		if ( mousePressed == 1 ) {
+			myAvatar.setTriggeringAction( true );
+		}
+		else {
+			myAvatar.setTriggeringAction( false );
+		}
 		
         //  Simulation
-        simulateHead(1.f/FPS);
+        simulateHead( 1.f/FPS );
 		
 		
 		//test
 		/*
-		//  simulate the other agents
         for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
@@ -1372,8 +1390,8 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            mouseStartX = x;
-            mouseStartY = y;
+            //mouseStartX = x;
+            //mouseStartY = y;
         }
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
