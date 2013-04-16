@@ -1289,8 +1289,7 @@ void *networkReceive(void *args)
     return NULL;
 }
 
-void idle(void)
-{
+void idle(void) {
     timeval check;
     gettimeofday(&check, NULL);
     
@@ -1300,7 +1299,7 @@ void idle(void)
 		// If mouse is being dragged, update hand movement in the avatar
 		//if ( mousePressed == 1 ) 
 		
-		if ( myAvatar.getMode() == AVATAR_MODE_STANDING ) {
+		if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
 				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
 				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
 				float backFront	= 0.0;			
@@ -1310,18 +1309,18 @@ void idle(void)
 		else {
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
+			//mouseStartX = (float)WIDTH  / 2.0f;
+			//mouseStartY = (float)HEIGHT / 2.0f;
 		}
 		
 		//--------------------------------------------------------
 		// when the mouse is being pressed, an 'action' is being 
-		// triggered in the avatarthe action is context-based.
+		// triggered in the avatar. The action is context-based.
 		//--------------------------------------------------------
-		if ( mousePressed == 1 )
-		{
+		if ( mousePressed == 1 ) {
 			myAvatar.setTriggeringAction( true );
 		}
-		else
-		{
+		else {
 			myAvatar.setTriggeringAction( false );
 		}
 		

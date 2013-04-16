@@ -35,6 +35,8 @@ float browWidth = 0.8;
 float browThickness = 0.16;
 
 const float DECAY = 0.1;
+const float THRUST_MAG	= 10.0;
+const float YAW_MAG		= 300.0;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
@@ -101,8 +103,7 @@ Head::Head() {
         }
     }
 	
-	for (int o=0; o<NUM_OTHER_AVATARS; o++)
-	{
+	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
 		DEBUG_otherAvatarListTimer[o] = 0.0f;
 		DEBUG_otherAvatarListPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
 	}
@@ -256,7 +257,7 @@ void Head::simulate(float deltaTime) {
 	//-------------------------------------
 	// DEBUG - other avatars...
 	//-------------------------------------
-	closeEnoughToInteract = 0.3f;
+	//closeEnoughToInteract = 0.3f;
 	closestOtherAvatar = -1;
 	float closestDistance = 10000.0f;
 	
@@ -278,26 +279,15 @@ void Head::simulate(float deltaTime) {
 	*/
 	
 	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-	
-		/*
-		//-------------------------------------
-		// move the debug other avatars around...
-		//-------------------------------------
-		DEBUG_otherAvatarListTimer[o] += deltaTime;
-		float x = 6.0f * sin( DEBUG_otherAvatarListTimer[o] * 0.07 + o * 129.0 );
-		float z = 6.0f * sin( DEBUG_otherAvatarListTimer[o] * 0.10 + o * 12.0 );
-		float y = 0.0f;
-		*/
-
 		//-------------------------------------
 		// test other avs for proximity...
 		//-------------------------------------
-		glm::vec3 v( bone[ AVATAR_BONE_RIGHT_HAND ].position );
+		glm::vec3 v( bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
 		v -= DEBUG_otherAvatarListPosition[o];
 		
 		float distance = glm::length( v );
 
-		if ( distance < closeEnoughToInteract ) {
+		if ( distance < avatar.maxArmLength ) {
 			if ( distance < closestDistance ) {
 				closestDistance = distance;
 				closestOtherAvatar = o;
@@ -323,7 +313,7 @@ void Head::simulate(float deltaTime) {
 			//printf( "just started moving hand\n" );
 		}
 	}
-	else{
+	else {
 		if ( previousHandBeingMoved ){ 
 			usingSprings = false;
 			//printf( "just stopped moving hand\n" );
@@ -340,13 +330,9 @@ void Head::simulate(float deltaTime) {
 	
 	//-------------------------------------------------
 	// this handles the avatar being driven around...
-	//-------------------------------------------------
-    const float THRUST_MAG	= 10.0;
-    const float YAW_MAG		= 300.0;
-	
+	//-------------------------------------------------	
 	avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
 		
-	//notice that the z values from orientation are flipped to accommodate different coordinate system
     if (driveKeys[FWD]) {
 		glm::vec3 front( avatar.orientation.getFront().x, avatar.orientation.getFront().y, avatar.orientation.getFront().z );
 		avatar.thrust += front * THRUST_MAG;
@@ -379,9 +365,6 @@ void Head::simulate(float deltaTime) {
     }
 	
 	//----------------------------------------------------------
-	// if the avatar is moving, it is in "walking mode", 
-	// otherwise it is in "standing" mode
-	//----------------------------------------------------------
 	float translationalSpeed = glm::length( avatar.velocity );
 	float rotationalSpeed = fabs( bodyYawDelta );
 	if ( translationalSpeed + rotationalSpeed > 0.2 )
@@ -390,7 +373,7 @@ void Head::simulate(float deltaTime) {
 	}
 	else
 	{
-		mode = AVATAR_MODE_STANDING;
+		mode = AVATAR_MODE_COMMUNICATING;
 	}
 		
 	//----------------------------------------------------------
@@ -636,16 +619,10 @@ void Head::renderHead( int faceToFace, int isMine ) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-
-	//glTranslatef(leanSideways, 0.f, leanForward);
-    
-	//glRotatef(Yaw, 0, 1, 0);
-
     glRotatef( bodyYaw, 0, 1, 0);
     
-	//hand->render(1);
-    
-    //  Don't render a head if it is really close to your location, because that is your own head!
+		
+	//  Don't render a head if it is really close to your location, because that is your own head!
 	//if (!isMine || faceToFace) 
 	{
         
@@ -788,11 +765,9 @@ void Head::setHandMovement( glm::vec3 movement ) {
 	movedHandOffset = movement;
 }
 
-AvatarMode Head::getMode()
-{
+AvatarMode Head::getMode() {
 	return mode;
 }
-
 
 
 void Head::initializeAvatar() {
@@ -905,7 +880,6 @@ void Head::initializeAvatar() {
 	//----------------------------------------------------------------------------
 	updateAvatarSkeleton();
 }
-
 
 
 void Head::calculateBoneLengths() {
@@ -1061,8 +1035,8 @@ void Head::updateHandMovement() {
 	
 	transformedHandMovement 
 	= avatar.orientation.getRight()	* -movedHandOffset.x
-	+ avatar.orientation.getUp()	* -movedHandOffset.y
-	+ avatar.orientation.getFront()	* -movedHandOffset.y * 1.0f;
+	+ avatar.orientation.getUp()	* -movedHandOffset.y * 0.5f
+	+ avatar.orientation.getFront()	* -movedHandOffset.y;
 
 	bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
 	
@@ -1151,8 +1125,7 @@ void Head::updateHandMovement() {
 
 
 
-void Head::renderBody()
-{
+void Head::renderBody() {
 	//-----------------------------------------
     //  Render bone positions as spheres
 	//-----------------------------------------
