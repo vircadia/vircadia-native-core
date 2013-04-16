@@ -54,34 +54,43 @@ void ViewFrustum::calculate() {
 	
 	float twoTimesTanHalfFOV = 2.0f * tan(fovInRadians/2.0f);
 
-    float slightlySmaller    = 0.0f;
-    float slightlyInsideWidth= 0.0f - slightlySmaller;
-    float slightlyInsideNear = 0.0f + slightlySmaller;
-    float slightlyInsideFar  = 0.0f - slightlySmaller;
-    
-    float nearClip = this->_nearClip + slightlyInsideNear;
-    float farClip  = this->_farClip  + slightlyInsideFar;
+    // Do we need this?
+	//tang = (float)tan(ANG2RAD * angle * 0.5) ;
+
+    float nearClip = this->_nearClip;
+    float farClip  = this->_farClip;
 	
 	this->_nearHeight = (twoTimesTanHalfFOV * nearClip);
 	this->_nearWidth  = this->_nearHeight * this->_aspectRatio;
 	this->_farHeight  = (twoTimesTanHalfFOV * farClip);
 	this->_farWidth   = this->_farHeight * this->_aspectRatio;
 
-	float farHalfHeight    = (this->_farHeight * 0.5f) + slightlyInsideWidth;
-	float farHalfWidth     = (this->_farWidth  * 0.5f) + slightlyInsideWidth;
+	float farHalfHeight    = (this->_farHeight * 0.5f);
+	float farHalfWidth     = (this->_farWidth  * 0.5f);
 	this->_farCenter       = this->_position+front * farClip;
 	this->_farTopLeft      = this->_farCenter  + (this->_up * farHalfHeight)  - (this->_right * farHalfWidth); 
 	this->_farTopRight     = this->_farCenter  + (this->_up * farHalfHeight)  + (this->_right * farHalfWidth); 
 	this->_farBottomLeft   = this->_farCenter  - (this->_up * farHalfHeight)  - (this->_right * farHalfWidth); 
 	this->_farBottomRight  = this->_farCenter  - (this->_up * farHalfHeight)  + (this->_right * farHalfWidth); 
 
-	float nearHalfHeight   = (this->_nearHeight * 0.5f) + slightlyInsideWidth;
-	float nearHalfWidth    = (this->_nearWidth  * 0.5f) + slightlyInsideWidth;
+	float nearHalfHeight   = (this->_nearHeight * 0.5f);
+	float nearHalfWidth    = (this->_nearWidth  * 0.5f);
 	this->_nearCenter      = this->_position+front * nearClip;
 	this->_nearTopLeft     = this->_nearCenter + (this->_up * nearHalfHeight) - (this->_right * nearHalfWidth); 
 	this->_nearTopRight    = this->_nearCenter + (this->_up * nearHalfHeight) + (this->_right * nearHalfWidth); 
 	this->_nearBottomLeft  = this->_nearCenter - (this->_up * nearHalfHeight) - (this->_right * nearHalfWidth); 
 	this->_nearBottomRight = this->_nearCenter - (this->_up * nearHalfHeight) + (this->_right * nearHalfWidth); 
+
+	// compute the six planes
+	// the function set3Points assumes that the points
+	// are given in counter clockwise order
+	this->_planes[TOPP].set3Points(this->_nearTopRight,this->_nearTopLeft,this->_farTopLeft);
+	this->_planes[BOTTOMP].set3Points(this->_nearBottomLeft,this->_nearBottomRight,this->_farBottomRight);
+	this->_planes[LEFTP].set3Points(this->_nearTopLeft,this->_nearBottomLeft,this->_farBottomLeft);
+	this->_planes[RIGHTP].set3Points(this->_nearBottomRight,this->_nearTopRight,this->_farBottomRight);
+	this->_planes[NEARP].set3Points(this->_nearTopLeft,this->_nearTopRight,this->_nearBottomRight);
+	this->_planes[FARP].set3Points(this->_farTopRight,this->_farTopLeft,this->_farBottomLeft);
+
 }
 
 void ViewFrustum::dump() {
@@ -122,4 +131,38 @@ void ViewFrustum::dump() {
     	this->_nearBottomRight.x, this->_nearBottomRight.y, this->_nearBottomRight.z);
 }
 
+
+int ViewFrustum::pointInFrustum(glm::vec3 &p) {
+	int result = INSIDE;
+	for(int i=0; i < 6; i++) {
+		if (this->_planes[i].distance(p) < 0)
+			return OUTSIDE;
+	}
+	return(result);
+}
+
+int ViewFrustum::sphereInFrustum(glm::vec3 &center, float radius) {
+	int result = INSIDE;
+	float distance;
+	for(int i=0; i < 6; i++) {
+		distance = this->_planes[i].distance(center);
+		if (distance < -radius)
+			return OUTSIDE;
+		else if (distance < radius)
+			result =  INTERSECT;
+	}
+	return(result);
+}
+
+
+int ViewFrustum::boxInFrustum(AABox &b) {
+	int result = INSIDE;
+	for(int i=0; i < 6; i++) {
+		if (this->_planes[i].distance(b.getVertexP(this->_planes[i].normal)) < 0)
+			return OUTSIDE;
+		else if (this->_planes[i].distance(b.getVertexN(this->_planes[i].normal)) < 0)
+			result =  INTERSECT;
+	}
+	return(result);
+ }
 

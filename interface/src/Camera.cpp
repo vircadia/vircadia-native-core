@@ -14,8 +14,8 @@ Camera::Camera()
 	_mode			= CAMERA_MODE_THIRD_PERSON;
 	_tightness		= DEFAULT_CAMERA_TIGHTNESS;
 	_fieldOfView    = 60.0;     // default
-	_nearClip       = 0.1;      // default
-	_farClip        = 50.0;    // default
+	_nearClip       = 0.01;     // default
+	_farClip        = 50.0;     // default
 	_yaw            = 0.0;
 	_pitch			= 0.0;
 	_roll			= 0.0;
