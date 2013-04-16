@@ -1471,8 +1471,15 @@ void reshape(int width, int height)
 
     glLoadIdentity();
     
+    // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
+    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure!
+    if (::frustumOn) {
+        nearClip -= 0.01f;
+        farClip  += 0.01f;
+    }
+    
     // On window reshape, we need to tell OpenGL about our new setting
-    gluPerspective(fov,aspectRatio,nearClip-0.01f,farClip+0.01f);
+    gluPerspective(fov,aspectRatio,nearClip,farClip);
     
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
