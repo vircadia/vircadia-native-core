@@ -354,8 +354,8 @@ void reset_sensors()
     // 
     myAvatar.setRenderYaw(startYaw);
     
-    yaw = renderYawRate = 0; 
-    pitch = renderPitch = renderPitchRate = 0;
+    renderYawRate = 0; 
+    renderPitchRate = 0;
     myAvatar.setBodyPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
