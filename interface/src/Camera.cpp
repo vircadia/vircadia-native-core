@@ -9,9 +9,6 @@
 
 #include "Camera.h"
 
-
-
-//------------------------
 Camera::Camera()
 {
 	_mode			= CAMERA_MODE_THIRD_PERSON;
@@ -30,15 +27,11 @@ Camera::Camera()
 	_orientation.setToIdentity();
 }
 
-
-
-
-//------------------------------------
 void Camera::update( float deltaTime )
 {
 	float radian = ( _yaw / 180.0 ) * PIE;
 
-	//these need to be checked to make sure they correspond to the cordinate system.
+	// these need to be checked to make sure they correspond to the cordinate system.
 	float x = _distance * -sin( radian );
 	float z = _distance *  cos( radian );
 	float y = _up;
@@ -52,9 +45,7 @@ void Camera::update( float deltaTime )
 	
 	_position += ( _idealPosition - _position ) * t; 
 	
-	//-------------------------------------------------------------------------
-	//geterate the ortho-normals for the orientation based on the Euler angles
-	//------------------------------------------------------------------------
+	// geterate the ortho-normals for the orientation based on the Euler angles
 	_orientation.setToIdentity();
 	_orientation.yaw    ( _yaw	);
 	_orientation.pitch	( _pitch	);
