@@ -118,7 +118,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     while ((currentPosition - startPosition) < numTotalBytes) {
         currentPosition += unpackAgentId(currentPosition, &agentID);
         memcpy(packetHolder + 1, currentPosition, numBytesPerAgent);
-
+        
         int matchingAgentIndex = indexOfMatchingAgent(agentID);
         
         if (matchingAgentIndex >= 0) {
