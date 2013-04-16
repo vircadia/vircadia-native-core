@@ -745,9 +745,11 @@ void display(void)
 		// could be myCamera (if in normal mode)
 		// or could be viewFrustumOffsetCamera if in offset mode
 		//---------------------------------------------
+		
+		// I changed the ordering here - roll is FIRST (JJV) 
+        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
-        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
         if (::starsOn) {

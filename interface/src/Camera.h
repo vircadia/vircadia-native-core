@@ -30,7 +30,7 @@ public:
 	void update( float deltaTime );
 	
 	void setMode			( CameraMode	m ) { mode				= m; }
-	void setYaw				( float			y ) { yaw				= y; }
+	void setYaw				( float			y ) { idealYaw			= y; }
 	void setPitch			( float			p ) { pitch				= p; }
 	void setRoll			( float			r ) { roll				= r; }
 	void setUp				( float			u ) { up				= u; }
@@ -58,6 +58,7 @@ private:
 	float		pitch;
 	float		roll;
 	float		up;
+	float		idealYaw;
 	float		distance;
 	float		tightness;
 	Orientation	orientation;
