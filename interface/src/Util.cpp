@@ -8,8 +8,11 @@
 
 #include "InterfaceConfig.h"
 #include <iostream>
-#include <glm/glm.hpp>
 #include <cstring>
+
+#include <glm/glm.hpp>
+#include <SharedUtil.h>
+
 #include "world.h"
 #include "Util.h"
 

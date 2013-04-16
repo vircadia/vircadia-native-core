@@ -60,8 +60,10 @@ public:
      */
     void activate() const {
 
-        if (_hndProg != 0u)
+        if (_hndProg != 0u) {
+
             oGlLog( glUseProgram(_hndProg) );
+        }
     }
 
     /**
@@ -77,16 +79,20 @@ public:
      */
     bool addShader(GLenum type, GLsizei nStrings, GLchar const** strings) {
 
-        if (! _hndProg) { _hndProg = glCreateProgram(); }
+        if (! _hndProg && !! glCreateProgram) { 
+
+            _hndProg = glCreateProgram();
+        }
+        if (! _hndProg) { return false; }
 
         GLuint s = glCreateShader(type);
         glShaderSource(s, nStrings, strings, 0l);
         glCompileShader(s);
         GLint status; 
         glGetShaderiv(s, GL_COMPILE_STATUS, & status);
-        if (!! status)
+        if (status != 0)
             glAttachShader(_hndProg, s);
-#ifdef NDEBUG
+#ifdef NDEBUG // always fetch log in debug mode
         else
 #endif
             fetchLog(s, glGetShaderiv, glGetShaderInfoLog);
@@ -104,12 +110,21 @@ public:
         glLinkProgram(_hndProg);
         GLint status; 
         glGetProgramiv(_hndProg, GL_LINK_STATUS, & status);
-#ifdef NDEBUG
-        if (status == 0)
+#ifndef NDEBUG // always fetch log in debug mode
+        fetchLog(_hndProg, glGetProgramiv, glGetProgramInfoLog);
 #endif
+        if (status == 0) {
+#ifdef NDEBUG // only on error in release mode
             fetchLog(_hndProg, glGetProgramiv, glGetProgramInfoLog);
+#endif
+            glDeleteProgram(_hndProg);
+            _hndProg = 0u;
+            return false;
 
-        return status != 0;
+        } else {
+
+            return true;
+        }
     }
 
 private:

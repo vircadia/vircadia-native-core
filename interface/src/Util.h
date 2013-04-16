@@ -17,21 +17,6 @@
 
 #include <glm/glm.hpp>
 
-static const float	ZERO				= 0.0;
-static const float	ONE					= 1.0;
-static const float	ONE_HALF			= 0.5;
-static const double	ONE_THIRD			= 0.3333333;
-static const double	PIE					= 3.14159265359;
-static const double	PI_TIMES_TWO		= 3.14159265359 * 2.0;
-static const double PI_OVER_180			= 3.14159265359 / 180.0;
-static const double EPSILON				= 0.00001;	//smallish number - used as margin of error for some computations 
-static const double SQUARE_ROOT_OF_2	= sqrt(2);	
-static const double SQUARE_ROOT_OF_3	= sqrt(3);	
-static const float METER				= 1.0; 
-static const float DECIMETER			= 0.1; 
-static const float CENTIMETER			= 0.01; 
-static const float MILLIIMETER			= 0.001; 
-
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 

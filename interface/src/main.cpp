@@ -228,7 +228,7 @@ void displayStats(void)
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
 
-	glm::vec3 avatarPos = myAvatar.getPos();
+	glm::vec3 avatarPos = myAvatar.getBodyPosition();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
@@ -309,7 +309,7 @@ void init(void)
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
-    myAvatar.setPos(start_location );
+    myAvatar.setBodyPosition(start_location);
 	myCamera.setPosition( start_location );
     
 	
@@ -351,7 +351,7 @@ void reset_sensors()
     
     renderYawRate = 0; 
     renderPitchRate = 0;
-    myAvatar.setPos(start_location);
+    myAvatar.setBodyPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
     
@@ -449,8 +449,10 @@ void updateAvatar(float frametime)
     #endif
 
     //  Send my stream of head/hand data to the avatar mixer and voxel server
-    char broadcastString[200];
-    int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
+    unsigned char broadcastString[200];
+    *broadcastString = PACKET_HEADER_HEAD_DATA;
+    
+    int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
     AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
@@ -458,7 +460,7 @@ void updateAvatar(float frametime)
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 avatarPos = myAvatar.getPos();
+    	glm::vec3 avatarPos = myAvatar.getBodyPosition();
 
 		// For some reason, we don't want to flip X and Z here.
 		::paintingVoxel.x = avatarPos.x/10.0;  
@@ -473,7 +475,7 @@ void updateAvatar(float frametime)
 			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
 			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
-                AgentList::getInstance()->broadcastToAgents((char*)bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
 				delete bufferOut;
 			}
 		}
@@ -700,11 +702,13 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
+		myCamera.setTargetPosition( myAvatar.getBodyPosition() );
+
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0  );
 			myCamera.setRoll			( 0.0  );
@@ -716,7 +720,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
@@ -815,7 +819,7 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
-                glm::vec3 pos = agentHead->getPos();
+                glm::vec3 pos = agentHead->getBodyPosition();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
                 agentHead->render(0, 0);
                 glPopMatrix();
@@ -905,9 +909,11 @@ void display(void)
     
     //  If application has just started, report time from startup to now (first frame display)
     if (justStarted) {
-        printf("Startup Time: %4.2f\n",
-               (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0);
+        float startupTime = (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0;
         justStarted = false;
+        char title[30];
+        snprintf(title, 30, "Interface: %4.2f seconds", startupTime);
+        glutSetWindowTitle(title);
     }
 }
 
@@ -1087,14 +1093,14 @@ void sendVoxelServerEraseAll() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
-	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
+	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
+}\
 
 void sendVoxelServerAddScene() {
 	char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
 	int messageSize = strlen(message) + 1;
-	AgentList::getInstance()->broadcastToAgents(message, messageSize, &AGENT_TYPE_VOXEL, 1);
+	AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
@@ -1107,7 +1113,7 @@ void shiftPaintingColor()
 }
 
 void setupPaintingVoxel() {
-	glm::vec3 avatarPos = myAvatar.getPos();
+	glm::vec3 avatarPos = myAvatar.getBodyPosition();
 
 	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
 	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
@@ -1280,7 +1286,7 @@ void *networkReceive(void *args)
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    char *incomingPacket = new char[MAX_PACKET_SIZE];
+    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
@@ -1525,6 +1531,9 @@ int main(int argc, const char * argv[])
     AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
+    WIDTH = glutGet(GLUT_SCREEN_WIDTH);
+    HEIGHT = glutGet(GLUT_SCREEN_HEIGHT);
+    
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
