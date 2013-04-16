@@ -15,54 +15,70 @@
 
 class ViewFrustum {
 private:
-	glm::vec3 _position;
-	glm::vec3 _direction;
-	glm::vec3 _up;
-	glm::vec3 _right;
-	float _screenWidth;
-	float _screenHeight;
 
-	float _nearDist; 
-	float _farDist;
-	
-	float _nearHeight;
-	float _nearWidth;
-	float _farHeight;
-	float _farWidth;
+    // camera location/orientation attributes
+    glm::vec3   _position;
+    glm::vec3   _direction;
+    glm::vec3   _up;
+    glm::vec3   _right;
 
-	glm::vec3 _farCenter;
-	glm::vec3 _farTopLeft;      
-	glm::vec3 _farTopRight;     
-	glm::vec3 _farBottomLeft;   
-	glm::vec3 _farBottomRight;  
+    // Lens attributes
+    float       _fieldOfView;
+    float       _aspectRatio;
+    float       _nearClip; 
+    float       _farClip;
 
-	glm::vec3 _nearCenter; 
-	glm::vec3 _nearTopLeft;     
-	glm::vec3 _nearTopRight;    
-	glm::vec3 _nearBottomLeft;  
-	glm::vec3 _nearBottomRight; 
+    // Calculated values
+    float       _nearHeight;
+    float       _nearWidth;
+    float       _farHeight;
+    float       _farWidth;
+    glm::vec3   _farCenter;
+    glm::vec3   _farTopLeft;      
+    glm::vec3   _farTopRight;     
+    glm::vec3   _farBottomLeft;   
+    glm::vec3   _farBottomRight;  
+    glm::vec3   _nearCenter; 
+    glm::vec3   _nearTopLeft;     
+    glm::vec3   _nearTopRight;    
+    glm::vec3   _nearBottomLeft;  
+    glm::vec3   _nearBottomRight;
+    
 public:
-	const glm::vec3& getFarCenter()      const { return _farCenter; };
-	const glm::vec3& getFarTopLeft()     const { return _farTopLeft; };  
-	const glm::vec3& getFarTopRight()    const { return _farTopRight; };
-	const glm::vec3& getFarBottomLeft()  const { return _farBottomLeft; };
-	const glm::vec3& getFarBottomRight() const { return _farBottomRight; };
+    // setters for camera attributes
+    void setPosition        (const glm::vec3& p) { _position = p; }
+    void setOrientation     (const glm::vec3& d, const glm::vec3& u, const glm::vec3& r ) 
+        { _direction = d; _up = u; _right = r; }
 
-	const glm::vec3& getNearCenter()      const { return _nearCenter; };
-	const glm::vec3& getNearTopLeft()     const { return _nearTopLeft; };  
-	const glm::vec3& getNearTopRight()    const { return _nearTopRight; };
-	const glm::vec3& getNearBottomLeft()  const { return _nearBottomLeft; };
-	const glm::vec3& getNearBottomRight() const { return _nearBottomRight; };
+    // setters for lens attributes
+    void setFieldOfView     ( float f ) { _fieldOfView      = f; }
+    void setAspectRatio     ( float a ) { _aspectRatio      = a; }
+    void setNearClip        ( float n ) { _nearClip         = n; }
+    void setFarClip         ( float f ) { _farClip          = f; }
 
-	void calculateViewFrustum(glm::vec3 position, glm::vec3 direction, 
-		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
+    // getters for lens attributes
+    float getFieldOfView()                  const { return _fieldOfView;    };
+    float getAspectRatio()                  const { return _aspectRatio;    };
+    float getNearClip()                     const { return _nearClip;       };
+    float getFarClip()                      const { return _farClip;        };
 
-	ViewFrustum(glm::vec3 position, glm::vec3 direction, 
-		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight);
-	
-	void dump();
-	
-	static float fovAngleAdust;
+    const glm::vec3& getFarCenter()         const { return _farCenter;      };
+    const glm::vec3& getFarTopLeft()        const { return _farTopLeft;     };  
+    const glm::vec3& getFarTopRight()       const { return _farTopRight;    };
+    const glm::vec3& getFarBottomLeft()     const { return _farBottomLeft;  };
+    const glm::vec3& getFarBottomRight()    const { return _farBottomRight; };
+
+    const glm::vec3& getNearCenter()        const { return _nearCenter;     };
+    const glm::vec3& getNearTopLeft()       const { return _nearTopLeft;    };  
+    const glm::vec3& getNearTopRight()      const { return _nearTopRight;   };
+    const glm::vec3& getNearBottomLeft()    const { return _nearBottomLeft; };
+    const glm::vec3& getNearBottomRight()   const { return _nearBottomRight;};
+
+    void calculate();
+
+    ViewFrustum();
+
+    void dump();
 };
 
 
