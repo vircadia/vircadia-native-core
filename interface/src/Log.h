@@ -38,7 +38,7 @@ class Log {
 public:
 
     explicit Log(FILE* tPipeTo = stdout, unsigned bufferedLines = 1024,
-                 unsigned defaultLogWidth = 240, unsigned defaultCharWidth = 12, unsigned defaultCharHeight = 24);
+                 unsigned defaultLogWidth = 240, unsigned defaultCharWidth = 10, unsigned defaultCharHeight = 24);
     ~Log();
 
     void setLogWidth(unsigned pixels);

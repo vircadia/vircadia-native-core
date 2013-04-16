@@ -18,12 +18,13 @@
 
 namespace {
     // anonymous namespace - everything in here only exists within this very .cpp file
+    // just as 'static' on every effective line in plain C
 
     unsigned const CHARACTER_BUFFER_SIZE = 16384; 
     unsigned const LINE_BUFFER_SIZE = 256; 
     unsigned const MAX_MESSAGE_LENGTH = 512;
 
-    bool const TEXT_MONOSPACED = false;
+    bool const TEXT_MONOSPACED = true;
 
     float const TEXT_RED = 0.7f;
     float const TEXT_GREEN = 0.6f;
@@ -116,6 +117,11 @@ inline void Log::addMessage(char const* ptr) {
                 _itrLastLine[1] = 0l;
             } 
             *_itrLastLine = _itrWriteLineStart;
+
+            // terminate line, unless done already
+            if (c != '\0') {
+                *_itrWritePos++ = '\0';
+            }
 
             // remember start position in character buffer for next line and reset character count
             _itrWriteLineStart = _itrWritePos;
@@ -249,7 +255,10 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     // render text
     char** line = _ptrLinesEnd + showLines;
     int x = screenWidth - _valLogWidth;
-   
+
+
+    GLint matrixMode; 
+    glGetIntegerv(GL_MATRIX_MODE, & matrixMode);   
     glPushMatrix();
     glScalef(1.0f, yScale, 1.0f);
 
@@ -272,6 +281,7 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     }
 
     glPopMatrix();
+    glMatrixMode(matrixMode);
 }
 
 
