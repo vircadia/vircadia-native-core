@@ -896,7 +896,7 @@ void display(void)
         float startupTime = (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0;
         justStarted = false;
         char title[30];
-        sprintf(title, "Interface: %4.2f seconds", startupTime);
+        snprintf(title, 30, "Interface: %4.2f seconds", startupTime);
         glutSetWindowTitle(title);
     }
 }
