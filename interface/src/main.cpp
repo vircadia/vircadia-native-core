@@ -142,10 +142,7 @@ Audio audio(&audioScope, &myAvatar);
 #define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
                                          //  in the idle loop?
 
-float yaw = 0.f;                         //  The yaw, pitch for the avatar head
-float pitch = 0.f;                            
 float startYaw = 122.f;
-float renderPitch = 0.f;
 float renderYawRate = 0.f;
 float renderPitchRate = 0.f; 
 
@@ -357,8 +354,8 @@ void reset_sensors()
     // 
     myAvatar.setRenderYaw(startYaw);
     
-    yaw = renderYawRate = 0; 
-    pitch = renderPitch = renderPitchRate = 0;
+    renderYawRate = 0; 
+    renderPitchRate = 0;
     myAvatar.setPos(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
@@ -370,7 +367,7 @@ void reset_sensors()
     }
 }
 
-void simulateHand(float deltaTime) {
+void updateAvatarHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
     if (mousePressed == 1)
     {
@@ -384,28 +381,26 @@ void simulateHand(float deltaTime) {
     }
 }
 
-void simulateHead(float frametime)
-//  Using serial data, update avatar/render position and angles
+//
+//  Using gyro data, update both view frustum and avatar head position
+//
+void updateAvatar(float frametime)
 {
-//    float measured_pitch_rate = serialPort.getRelativeValue(PITCH_RATE);
-//    float measured_yaw_rate = serialPort.getRelativeValue(YAW_RATE);
-    
-    float measured_pitch_rate = 0;
-    float measured_yaw_rate = 0;
-    
-    //float measured_lateral_accel = serialPort.getRelativeValue(ACCEL_X);
-    //float measured_fwd_accel = serialPort.getRelativeValue(ACCEL_Z);
+    float gyroPitchRate = serialPort.getRelativeValue(PITCH_RATE);
+    float gyroYawRate = serialPort.getRelativeValue(YAW_RATE);
     
     myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
 		
-    //  Update head_mouse model 
+    //  
+    //  Update gyro-based mouse (X,Y on screen)
+    // 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
-    if (powf(measured_yaw_rate*measured_yaw_rate + 
-             measured_pitch_rate*measured_pitch_rate, 0.5) > MIN_MOUSE_RATE)
+    if (powf(gyroYawRate*gyroYawRate + 
+             gyroPitchRate*gyroPitchRate, 0.5) > MIN_MOUSE_RATE)
     {
-        headMouseX += measured_yaw_rate*MOUSE_SENSITIVITY;
-        headMouseY += measured_pitch_rate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
+        headMouseX += gyroYawRate*MOUSE_SENSITIVITY;
+        headMouseY += gyroPitchRate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
     }
     headMouseX = max(headMouseX, 0);
     headMouseX = min(headMouseX, WIDTH);
@@ -415,7 +410,6 @@ void simulateHead(float frametime)
     //  Update render direction (pitch/yaw) based on measured gyro rates
     const int MIN_YAW_RATE = 100;
     const int MIN_PITCH_RATE = 100;
-    
     const float YAW_SENSITIVITY = 0.02;
     const float PITCH_SENSITIVITY = 0.05;
     
@@ -424,23 +418,22 @@ void simulateHead(float frametime)
     if (myAvatar.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
     if (myAvatar.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
     
-    if (fabs(measured_yaw_rate) > MIN_YAW_RATE)  
+    if (fabs(gyroYawRate) > MIN_YAW_RATE)  
     {   
-        if (measured_yaw_rate > 0)
-            renderYawRate += (measured_yaw_rate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+        if (gyroYawRate > 0)
+            renderYawRate += (gyroYawRate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
         else 
-            renderYawRate += (measured_yaw_rate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
+            renderYawRate += (gyroYawRate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
     }
-    if (fabs(measured_pitch_rate) > MIN_PITCH_RATE) 
+    if (fabs(gyroPitchRate) > MIN_PITCH_RATE) 
     {
-        if (measured_pitch_rate > 0)
-            renderPitchRate += (measured_pitch_rate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+        if (gyroPitchRate > 0)
+            renderPitchRate += (gyroPitchRate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
         else 
-            renderPitchRate += (measured_pitch_rate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+            renderPitchRate += (gyroPitchRate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
     }
          
-    renderPitch += renderPitchRate;
-    
+    float renderPitch = myAvatar.getRenderPitch();
     // Decay renderPitch toward zero because we never look constantly up/down 
     renderPitch *= (1.f - 2.0*frametime);
 
@@ -448,9 +441,9 @@ void simulateHead(float frametime)
     renderPitchRate *= (1.f - 5.0*frametime);
     renderYawRate *= (1.f - 7.0*frametime);
     
-    //  Update own head data
+    //  Update own avatar data
     myAvatar.setRenderYaw(myAvatar.getRenderYaw() + renderYawRate);
-    myAvatar.setRenderPitch(renderPitch);
+    myAvatar.setRenderPitch(renderPitch + renderPitchRate);
     
     //  Get audio loudness data from audio input device
     float loudness, averageLoudness;
@@ -1358,8 +1351,10 @@ void idle(void) {
 			myAvatar.setTriggeringAction( false );
 		}
 		
-        //  Simulation
-        simulateHead( 1.f/FPS );
+        //
+        //  Sample hardware, update view frustum if needed, send avatar data to mixer/agents
+        //
+        updateAvatar( 1.f/FPS );
 		
 		
 		//test
@@ -1374,8 +1369,8 @@ void idle(void) {
         }
 		*/
 		
-        simulateHand(1.f/FPS);
-        
+        updateAvatarHand(1.f/FPS);
+    
         field.simulate(1.f/FPS);
         myAvatar.simulate(1.f/FPS);
         balls.simulate(1.f/FPS);

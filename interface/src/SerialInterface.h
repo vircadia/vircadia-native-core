@@ -45,8 +45,10 @@ public:
     void resetTrailingAverages();
     void renderLevels(int width, int height);
     bool active;
+    glm::vec3 getGravity() {return gravity;};
+    
 private:
-    int init(char * portname, int baud);
+    int initializePort(char * portname, int baud);
     void resetSerial();
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
@@ -54,6 +56,7 @@ private:
     int LED;
     int totalSamples;
     timeval lastGoodRead;
+    glm::vec3 gravity;
 };
 
 #endif
