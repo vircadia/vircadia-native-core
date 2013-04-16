@@ -156,7 +156,7 @@ int audioCallback (const void *inputBuffer,
             
             // memcpy the three float positions
             for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedHead->getPos()[p], sizeof(float));
+                memcpy(currentPacketPtr, &data->linkedHead->getBodyPosition()[p], sizeof(float));
                 currentPacketPtr += sizeof(float);
             }
             

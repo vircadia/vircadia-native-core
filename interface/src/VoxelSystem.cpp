@@ -184,7 +184,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
     int voxelsAdded = 0;
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerHead->getPos();
+    glm::vec3 viewerPosition = viewerHead->getBodyPosition();
 
     // XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
     // coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 

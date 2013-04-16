@@ -35,7 +35,6 @@
 #include "AvatarData.h"
 
 const int AVATAR_LISTEN_PORT = 55444;
-const unsigned short BROADCAST_INTERVAL_USECS = 20 * 1000 * 1000;
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
     currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());

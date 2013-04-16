@@ -34,6 +34,60 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define NUM_OTHER_AVATARS 5
 
+enum AvatarBones
+{
+	AVATAR_BONE_NULL = -1,
+	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (not supposed to be rotated)
+	AVATAR_BONE_MID_SPINE,			// connects torso			joint with chest			joint
+	AVATAR_BONE_CHEST_SPINE,		// connects chest			joint with neckBase			joint (not supposed to be rotated)
+	AVATAR_BONE_NECK,				// connects neckBase		joint with headBase			joint
+	AVATAR_BONE_HEAD,				// connects headBase		joint with headTop			joint
+	AVATAR_BONE_LEFT_CHEST,			// connects chest			joint with left clavicle	joint (not supposed to be rotated)
+	AVATAR_BONE_LEFT_SHOULDER,		// connects left clavicle	joint with left shoulder	joint
+	AVATAR_BONE_LEFT_UPPER_ARM,		// connects left shoulder	joint with left elbow		joint
+	AVATAR_BONE_LEFT_FOREARM,		// connects left elbow		joint with left wrist		joint
+	AVATAR_BONE_LEFT_HAND,			// connects left wrist		joint with left fingertips	joint
+	AVATAR_BONE_RIGHT_CHEST,		// connects chest			joint with right clavicle	joint (not supposed to be rotated)
+	AVATAR_BONE_RIGHT_SHOULDER,		// connects right clavicle	joint with right shoulder	joint
+	AVATAR_BONE_RIGHT_UPPER_ARM,	// connects right shoulder	joint with right elbow		joint
+	AVATAR_BONE_RIGHT_FOREARM,		// connects right elbow		joint with right wrist		joint
+	AVATAR_BONE_RIGHT_HAND,			// connects right wrist		joint with right fingertips	joint
+	AVATAR_BONE_LEFT_PELVIS,		// connects pelvis			joint with left hip			joint (not supposed to be rotated)
+	AVATAR_BONE_LEFT_THIGH,			// connects left hip		joint with left knee		joint
+	AVATAR_BONE_LEFT_SHIN,			// connects left knee		joint with left heel		joint
+	AVATAR_BONE_LEFT_FOOT,			// connects left heel		joint with left toes		joint
+	AVATAR_BONE_RIGHT_PELVIS,		// connects pelvis			joint with right hip		joint (not supposed to be rotated)
+	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
+	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
+	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
+    
+	NUM_AVATAR_BONES
+};
+
+struct AvatarBone
+{
+	AvatarBones	parent;					// which bone is this bone connected to?
+	glm::vec3	position;				// the position at the "end" of the bone
+	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
+	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
+	float		springBodyTightness;	// how tightly (0 to 1) the springy position tries to stay on the position
+	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
+	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
+	float		roll;					// the roll Euler angle of the bone rotation off the parent
+	Orientation	orientation;			// three orthogonal normals determined by yaw, pitch, roll
+	float		length;					// the length of the bone
+};
+
+struct Avatar
+{
+	glm::dvec3	velocity;
+	glm::vec3	thrust;
+	float		maxArmLength;
+	Orientation	orientation;
+	AvatarBone	bone[ NUM_AVATAR_BONES ];
+};
+
 class Head : public AvatarData {
     public:
         Head();
@@ -69,7 +123,6 @@ class Head : public AvatarData {
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBones b );
-		glm::vec3 getBodyPosition();
         
         void render(int faceToFace, int isMine);
 		
@@ -82,18 +135,12 @@ class Head : public AvatarData {
 		void setHandMovement( glm::vec3 movement );
 		void updateHandMovement();
         
-        //  Send and receive network data
-        int getBroadcastData(char * data);
-        void parseData(void *data, int size);
-        
         float getLoudness() {return loudness;};
         float getAverageLoudness() {return averageLoudness;};
         void setAverageLoudness(float al) {averageLoudness = al;};
         void setLoudness(float l) {loudness = l;};
         
         void SetNewHeadTarget(float, float);
-        glm::vec3 getPos() { return position; };
-        void setPos(glm::vec3 newpos) { position = newpos; };
     
         //  Set what driving keys are being pressed to control thrust levels
         void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
@@ -145,12 +192,7 @@ class Head : public AvatarData {
         float averageLoudness;
         float audioAttack;
         float browAudioLift;
-    
-        glm::vec3 position;
 		
-		float bodyYaw;
-		float bodyPitch;
-		float bodyRoll;
 		float bodyYawDelta;
 		
 		float		closeEnoughToInteract;
