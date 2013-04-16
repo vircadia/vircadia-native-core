@@ -1465,8 +1465,8 @@ int main(int argc, const char * argv[])
     AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
-    WIDTH = glutGet (GLUT_SCREEN_WIDTH);
-    HEIGHT = glutGet (GLUT_SCREEN_HEIGHT);
+    WIDTH = glutGet(GLUT_SCREEN_WIDTH);
+    HEIGHT = glutGet(GLUT_SCREEN_HEIGHT);
     
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
