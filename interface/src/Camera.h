@@ -43,7 +43,7 @@ public:
 */
 
     void setMode            ( CameraMode    m ) { _mode             = m; }
-    void setYaw             ( float         y ) { _yaw              = y; }
+    void setYaw             ( float         y ) { _idealYaw         = y; }
     void setPitch           ( float         p ) { _pitch            = p; }
     void setRoll            ( float         r ) { _roll             = r; }
     void setUp              ( float         u ) { _up               = u; }
