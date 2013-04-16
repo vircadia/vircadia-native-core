@@ -29,6 +29,7 @@ public:
 
 	void update( float deltaTime );
 	
+	/*
 	void setMode			( CameraMode	m ) { mode				= m; }
 	void setYaw				( float			y ) { idealYaw			= y; }
 	void setPitch			( float			p ) { pitch				= p; }
@@ -39,6 +40,7 @@ public:
 	void setPosition		( glm::vec3		p ) { position			= p; }
 	void setTightness		( float			t ) { tightness			= t; }
 	void setOrientation		( Orientation	o ) { orientation.set(o); }
+*/
 
     void setMode            ( CameraMode    m ) { _mode             = m; }
     void setYaw             ( float         y ) { _yaw              = y; }
@@ -68,19 +70,22 @@ public:
 
 private:
 
-	CameraMode	mode;
-	glm::vec3	position;
-	glm::vec3	idealPosition;
-	glm::vec3	targetPosition;
-	float		fieldOfView;
-	float		yaw;
-	float		pitch;
-	float		roll;
-	float		up;
-	float		idealYaw;
-	float		distance;
-	float		tightness;
-	Orientation	orientation;
+	CameraMode	_mode;
+	glm::vec3	_position;
+	glm::vec3	_idealPosition;
+	glm::vec3	_targetPosition;
+	float		_fieldOfView;
+    float		_aspectRatio;
+    float		_nearClip;
+    float		_farClip;
+	float		_yaw;
+	float		_pitch;
+	float		_roll;
+	float		_up;
+	float		_idealYaw;
+	float		_distance;
+	float		_tightness;
+	Orientation	_orientation;
 };
 
 #endif
