@@ -72,22 +72,27 @@ namespace starfield {
         size_t                  _valLodNalloc;
         size_t                  _valLodNrender;
         BrightnessLevels        _seqLodBrightness;
-        BrightnessLevel         _valLodAllocBrightness;
 
 #if STARFIELD_MULTITHREADING
         atomic<BrightnessLevel> _valLodBrightness;
+        BrightnessLevel         _valLodAllocBrightness;
 
         atomic<Renderer*>       _ptrRenderer;
 
         typedef lock_guard<mutex> lock;
 #else
         BrightnessLevel         _valLodBrightness;
+        BrightnessLevel         _valLodAllocBrightness;
 
         Renderer*               _ptrRenderer;
 
         #define lock
         #define _(x)
 #endif
+
+        static inline size_t toBufSize(double f) {
+            return size_t(floor(f + 0.5f));
+        }
 
     public:
 
@@ -99,8 +104,8 @@ namespace starfield {
             _valLodOveralloc(1.2),
             _valLodNalloc(0),
             _valLodNrender(0),
-            _valLodAllocBrightness(0),
             _valLodBrightness(0),
+            _valLodAllocBrightness(0),
             _ptrRenderer(0l) {
         }
 
@@ -144,8 +149,8 @@ namespace starfield {
 
                         rcpChange = 1.0;
 
-                        nRender = lrint(_valLodFraction * newLast);
-                        n = min(newLast, size_t(lrint(_valLodOveralloc * nRender)));
+                        nRender = toBufSize(_valLodFraction * newLast);
+                        n = min(newLast, toBufSize(_valLodOveralloc * nRender));
 
                     } else {
 
@@ -282,7 +287,7 @@ namespace starfield {
                 // calculate allocation size and corresponding brightness
                 // threshold
                 double oaFract = std::min(fraction * (1.0 + overalloc), 1.0);
-                n = lrint(oaFract * last);
+                n = toBufSize(oaFract * last);
                 bMin = _seqLodBrightness[n];
                 n = std::upper_bound(
                         _seqLodBrightness.begin() + n - 1,
@@ -290,7 +295,7 @@ namespace starfield {
                         bMin, GreaterBrightness() ) - _seqLodBrightness.begin();
 
                 // also determine number of vertices to render and brightness
-                nRender = lrint(fraction * last);
+                nRender = toBufSize(fraction * last);
                 // Note: nRender does not have to be accurate
                 b = _seqLodBrightness[nRender];
                 // this setting controls the renderer, also keep b as the 
@@ -304,7 +309,7 @@ namespace starfield {
 
 // fprintf(stderr, "Stars.cpp: "
 //        "fraction = %lf, oaFract = %lf, n = %d, n' = %d, bMin = %d, b = %d\n", 
-//        fraction, oaFract, lrint(oaFract * last)), n, bMin, b);
+//        fraction, oaFract, toBufSize(oaFract * last)), n, bMin, b);
 
                 // will not have to reallocate? set new fraction right away
                 // (it is consistent with the rest of the state in this case)

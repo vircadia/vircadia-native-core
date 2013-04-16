@@ -105,12 +105,10 @@ void AudioRingBuffer::setBearing(float newBearing) {
     bearing = newBearing;
 }
 
-void AudioRingBuffer::parseData(void *data, int size) {
-    unsigned char *audioDataStart = (unsigned char *) data;
-    
-    if (size > (bufferLengthSamples * sizeof(int16_t))) {
+void AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {    
+    if (numBytes > (bufferLengthSamples * sizeof(int16_t))) {
         
-        unsigned char *dataPtr = audioDataStart + 1;
+        unsigned char *dataPtr = sourceBuffer + 1;
         
         for (int p = 0; p < 3; p ++) {
             memcpy(&position[p], dataPtr, sizeof(float));
@@ -123,7 +121,7 @@ void AudioRingBuffer::parseData(void *data, int size) {
         memcpy(&bearing, dataPtr, sizeof(float));
         dataPtr += sizeof(float);
         
-        audioDataStart = dataPtr;
+        sourceBuffer = dataPtr;
     }
 
     if (endOfLastWrite == NULL) {
@@ -134,7 +132,7 @@ void AudioRingBuffer::parseData(void *data, int size) {
         started = false;
     }
     
-    memcpy(endOfLastWrite, audioDataStart, bufferLengthSamples * sizeof(int16_t));
+    memcpy(endOfLastWrite, sourceBuffer, bufferLengthSamples * sizeof(int16_t));
     
     endOfLastWrite += bufferLengthSamples;
     

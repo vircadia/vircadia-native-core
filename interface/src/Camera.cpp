@@ -5,8 +5,9 @@
 //
 //---------------------------------------------------------------------
 
+#include <SharedUtil.h>
+
 #include "Camera.h"
-#include "Util.h"
 
 
 
@@ -34,7 +35,7 @@ Camera::Camera()
 //------------------------------------
 void Camera::update( float deltaTime )
 {
-	double radian = ( yaw / 180.0 ) * PIE;
+	float radian = ( _yaw / 180.0 ) * PIE;
 
 	//these need to be checked to make sure they correspond to the coordinate system.
 	double x = distance * -sin( radian );
@@ -43,7 +44,8 @@ void Camera::update( float deltaTime )
 	
 	idealPosition = targetPosition + glm::vec3( x, y, z );
 	
-	float t = tightness * deltaTime;
+	_idealPosition = _targetPosition + glm::vec3( x, y, z );
+	float t = _tightness * deltaTime;
 	
 	if ( t > 1.0 ){
 		t = 1.0;
