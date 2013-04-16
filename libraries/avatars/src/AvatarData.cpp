@@ -7,6 +7,8 @@
 //
 
 #include <cstdio>
+#include <cstring>
+#include <stdint.h>
 
 #include <PacketHeaders.h>
 
