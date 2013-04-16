@@ -46,12 +46,8 @@ void Camera::update( float deltaTime )
 	
 	_position += ( _idealPosition - _position ) * t; 
 	_yaw      += ( _idealYaw      - _yaw      ) * t;
-		
-	//roll = 20.0;
-	
-	//-------------------------------------------------------------------------
+
 	// generate the ortho-normals for the orientation based on the Euler angles
-	//-------------------------------------------------------------------------
 	_orientation.setToIdentity();
 	_orientation.yaw	( _yaw	 );
 	_orientation.pitch	( _pitch );
