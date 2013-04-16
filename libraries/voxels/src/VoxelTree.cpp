@@ -192,37 +192,23 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 	VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
     
-    printf("deleteVoxelCodeFromTree() looking [codeBuffer] for:\n");
-    printOctalCode(codeBuffer);
-
-    printf("deleteVoxelCodeFromTree() found [nodeToDelete->octalCode] for:\n");
-    printOctalCode(nodeToDelete->octalCode);
-    
     // If the node exists...
 	int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
-	printf("compare octal codes of length %d\n",lengthInBytes);
 
-    if (0==memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
-    	printf("found node to delete...\n");
+    if (0 == memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
 
 		float* vertices = firstVertexForCode(nodeToDelete->octalCode);
-		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
 		delete []vertices;
 
 		if (parentNode) {
 			float* vertices = firstVertexForCode(parentNode->octalCode);
-			printf("parent of deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
 			delete []vertices;
 			
 			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
-			printf("child INDEX=%d\n",childNDX);
 
-			printf("deleting Node at parentNode->children[%d]\n",childNDX);
 			delete parentNode->children[childNDX]; // delete the child nodes
-			printf("setting parentNode->children[%d] to NULL\n",childNDX);
 			parentNode->children[childNDX]=NULL; // set it to NULL
 
-			printf("reaverageVoxelColors()\n");
 			reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 		}
     }

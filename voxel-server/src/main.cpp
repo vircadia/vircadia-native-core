@@ -385,7 +385,7 @@ int main(int argc, const char * argv[])
                     agentList->increaseAgentId();
                 }
                 
-                agentList->updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
+                agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
             }
         }
     }

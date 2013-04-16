@@ -19,7 +19,7 @@ class AudioRingBuffer : public AgentData {
         ~AudioRingBuffer();
         AudioRingBuffer(const AudioRingBuffer &otherRingBuffer);
     
-        void parseData(void *data, int size);
+        void parseData(unsigned char* sourceBuffer, int numBytes);
         AudioRingBuffer* clone() const;
 
         int16_t* getNextOutput();

@@ -27,9 +27,10 @@ VoxelAgentData* VoxelAgentData::clone() const {
     return new VoxelAgentData(*this);
 }
 
-void VoxelAgentData::parseData(void *data, int size) {
+void VoxelAgentData::parseData(unsigned char* sourceBuffer, int numBytes) {
+    // push past the packet header
+    sourceBuffer++;
+    
     // pull the position from the interface agent data packet
-    sscanf((char *)data,
-           "H%*f,%*f,%*f,%f,%f,%f",
-           &position[0], &position[1], &position[2]);
+    memcpy(&position, sourceBuffer, sizeof(float) * 3);
 }

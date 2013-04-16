@@ -228,7 +228,7 @@ void displayStats(void)
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
 
-	glm::vec3 avatarPos = myAvatar.getPos();
+	glm::vec3 avatarPos = myAvatar.getBodyPosition();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
@@ -314,7 +314,7 @@ void init(void)
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
-    myAvatar.setPos(start_location );
+    myAvatar.setBodyPosition(start_location);
 	myCamera.setPosition( start_location );
     
 	
@@ -356,7 +356,7 @@ void reset_sensors()
     
     renderYawRate = 0; 
     renderPitchRate = 0;
-    myAvatar.setPos(start_location);
+    myAvatar.setBodyPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
     
@@ -463,7 +463,7 @@ void updateAvatar(float frametime)
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 avatarPos = myAvatar.getPos();
+    	glm::vec3 avatarPos = myAvatar.getBodyPosition();
 
 		// For some reason, we don't want to flip X and Z here.
 		::paintingVoxel.x = avatarPos.x/10.0;  
@@ -705,11 +705,13 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
+		myCamera.setTargetPosition( myAvatar.getBodyPosition() );
+
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0  );
 			myCamera.setRoll			( 0.0  );
@@ -721,7 +723,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
@@ -820,7 +822,7 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
-                glm::vec3 pos = agentHead->getPos();
+                glm::vec3 pos = agentHead->getBodyPosition();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
                 agentHead->render(0, 0);
                 glPopMatrix();
@@ -1114,7 +1116,7 @@ void shiftPaintingColor()
 }
 
 void setupPaintingVoxel() {
-	glm::vec3 avatarPos = myAvatar.getPos();
+	glm::vec3 avatarPos = myAvatar.getBodyPosition();
 
 	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
 	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
@@ -1287,7 +1289,7 @@ void *networkReceive(void *args)
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    char *incomingPacket = new char[MAX_PACKET_SIZE];
+    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
