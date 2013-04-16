@@ -67,7 +67,7 @@
 #include <glm/gtc/swizzle.hpp>
 
 #include "UrlReader.h"
-#include "AngleUtils.h"
+#include "AngleUtil.h"
 #include "Radix2InplaceSort.h"
 #include "Radix2IntegerScanner.h"
 #include "FloodFill.h"
