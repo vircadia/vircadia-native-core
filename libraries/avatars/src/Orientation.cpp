@@ -6,8 +6,7 @@
 //-----------------------------------------------------------
 
 #include "Orientation.h"
-#include "Util.h"
-
+#include <SharedUtil.h>
 
 Orientation::Orientation() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );

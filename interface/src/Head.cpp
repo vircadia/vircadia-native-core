@@ -17,6 +17,7 @@
 #include "Head.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
+#include <PacketHeaders.h>
 
 using namespace std;
 
@@ -43,9 +44,6 @@ char iris_texture_file[] = "resources/images/green_eye.png";
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
-
-
-
 
 Head::Head() {
 	initializeAvatar();
@@ -123,8 +121,6 @@ Head::Head() {
 
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
-
-    bodyPosition = otherHead.bodyPosition;
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
 
@@ -380,12 +376,12 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update body yaw by body yaw delta
 	//----------------------------------------------------------
-	bodyYaw += bodyYawDelta * deltaTime;
+	_bodyYaw += bodyYawDelta * deltaTime;
 	
 	//----------------------------------------------------------
 	// (for now) set head yaw to body yaw
 	//----------------------------------------------------------
-	Yaw = bodyYaw;
+	Yaw = _bodyYaw;
 	
 	//----------------------------------------------------------
 	// decay body yaw delta
@@ -401,7 +397,7 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update position by velocity
 	//----------------------------------------------------------
-	bodyPosition += (glm::vec3)avatar.velocity * deltaTime;
+	_bodyPosition += (glm::vec3)avatar.velocity * deltaTime;
 
 	//----------------------------------------------------------
 	// decay velocity
@@ -516,7 +512,7 @@ void Head::render(int faceToFace, int isMine) {
 	// show avatar position
 	//---------------------------------------------------
 	glPushMatrix();
-		glTranslatef( bodyPosition.x, bodyPosition.y, bodyPosition.z );
+		glTranslatef(_bodyPosition.x, _bodyPosition.y, _bodyPosition.z);
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
@@ -620,7 +616,7 @@ void Head::renderHead( int faceToFace, int isMine ) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef( bodyYaw, 0, 1, 0);
+    glRotatef(_bodyYaw, 0, 1, 0);
     
 		
 	//  Don't render a head if it is really close to your location, because that is your own head!
@@ -778,9 +774,9 @@ void Head::initializeAvatar() {
 	
 	closestOtherAvatar = 0;
 	
-	bodyYaw		= -90.0;
-	bodyPitch	= 0.0;
-	bodyRoll	= 0.0;
+	_bodyYaw		= -90.0;
+	_bodyPitch	= 0.0;
+	_bodyRoll	= 0.0;
 	
 	bodyYawDelta = 0.0;
 	
@@ -901,24 +897,20 @@ void Head::updateAvatarSkeleton() {
 	// rotate body...
 	//----------------------------------	
 	avatar.orientation.setToIdentity();
-	avatar.orientation.yaw( bodyYaw );
+	avatar.orientation.yaw( _bodyYaw );
 
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( bone[b].parent == AVATAR_BONE_NULL ) {
-			bone[b].orientation.set( avatar.orientation );
-			
-//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );			
-
-			glm::vec3 ppp = bodyPosition;
+			bone[b].orientation.set(avatar.orientation);
+			//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
+			glm::vec3 ppp = _bodyPosition;
 			
 //			ppp.y += 0.2;
 			
 			bone[b].position = ppp;// + glm::vec3( 0.0f, 1.0f, 0.0f ) * 1.0f;
-					
-			
 		}
 		else {
 			bone[b].orientation.set( bone[ bone[b].parent ].orientation );
@@ -948,7 +940,7 @@ void Head::updateAvatarSprings( float deltaTime ) {
 		glm::vec3 springVector( bone[b].springyPosition );
 
 		if ( bone[b].parent == AVATAR_BONE_NULL ) {
-			springVector -= bodyPosition;
+			springVector -= _bodyPosition;
 		}
 		else {
 			springVector -= bone[ bone[b].parent ].springyPosition;
@@ -981,7 +973,7 @@ void Head::updateAvatarSprings( float deltaTime ) {
 }
 
 float Head::getBodyYaw() {
-	return bodyYaw;
+	return _bodyYaw;
 }
 
 glm::vec3 Head::getHeadLookatDirection() {
@@ -1019,17 +1011,6 @@ glm::vec3 Head::getHeadPosition() {
 		bone[ AVATAR_BONE_HEAD ].position.z
 	);
 }
-
-
-glm::vec3 Head::getBodyPosition() {
-	return glm::vec3
-	(
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.x,
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.y,
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.z
-	);
-}
-
 
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
@@ -1189,48 +1170,12 @@ void Head::renderBody() {
 	
 }
 
-
-
-// Transmit data to agents requesting it
-// called on me just prior to sending data to others (continuasly called)
-int Head::getBroadcastData(char* data) {
-    // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-            getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
-			//avatar.yaw, avatar.pitch, avatar.roll,
-            bodyPosition.x + leanSideways, bodyPosition.y, bodyPosition.z + leanForward,
-            loudness, averageLoudness,
-            //hand->getPos().x, hand->getPos().y, hand->getPos().z);  //previous to Ventrella change
-            bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.z ); 
-    return strlen(data);
-}
-
-
-//called on the other agents - assigns it to my views of the others
-void Head::parseData(void *data, int size) {
-	sscanf
-	(
-		(char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-		&Pitch, &Yaw, &Roll,
-		//&avatar.yaw, &avatar.pitch, &avatar.roll,
-		&bodyPosition.x, &bodyPosition.y, &bodyPosition.z,
-		&loudness, &averageLoudness,
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.z
-	);
-	
-	handBeingMoved = true;
-}
-
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     PitchTarget = pitch;
     YawTarget = yaw;
 }
 
-void Head::processTransmitterData(char *packetData, int numBytes) {
+void Head::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float accX, accY, accZ,
     graX, graY, graZ,

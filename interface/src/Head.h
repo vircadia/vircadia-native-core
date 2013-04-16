@@ -10,10 +10,13 @@
 #define __interface__head__
 
 #include <iostream>
-#include "AgentData.h"
+
+#include <AvatarData.h>
+#include <Orientation.h>	// added by Ventrella as a utility
+
 #include "Field.h"
 #include "world.h"
-#include "Orientation.h"	// added by Ventrella as a utility
+
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
@@ -38,48 +41,6 @@ enum AvatarMode
 	AVATAR_MODE_COMMUNICATING,
 	NUM_AVATAR_MODES
 };
-
-
-
-/*
-enum AvatarJoints
-{
-	AVATAR_JOINT_NULL = -1,
-	AVATAR_JOINT_PELVIS,
-	AVATAR_JOINT_TORSO,
-	AVATAR_JOINT_CHEST,
-	AVATAR_JOINT_NECK_BASE,
-	AVATAR_JOINT_HEAD_BASE,
-	AVATAR_JOINT_HEAD_TOP,
-	
-	AVATAR_JOINT_LEFT_CLAVICLE,
-	AVATAR_JOINT_LEFT_SHOULDER,
-	AVATAR_JOINT_LEFT_ELBOW,
-	AVATAR_JOINT_LEFT_WRIST,
-	AVATAR_JOINT_LEFT_FINGERTIPS,
-	
-	AVATAR_JOINT_RIGHT_CLAVICLE,
-	AVATAR_JOINT_RIGHT_SHOULDER,
-	AVATAR_JOINT_RIGHT_ELBOW,
-	AVATAR_JOINT_RIGHT_WRIST,
-	AVATAR_JOINT_RIGHT_FINGERTIPS,
-	
-	AVATAR_JOINT_LEFT_HIP,
-	AVATAR_JOINT_LEFT_KNEE,
-	AVATAR_JOINT_LEFT_HEEL,
-	AVATAR_JOINT_LEFT_TOES,
-	
-	AVATAR_JOINT_RIGHT_HIP,
-	AVATAR_JOINT_RIGHT_KNEE,
-	AVATAR_JOINT_RIGHT_HEEL,
-	AVATAR_JOINT_RIGHT_TOES,
-	
-	NUM_AVATAR_JOINTS
-};
-*/
-
-
-
 
 enum AvatarBones
 {
@@ -107,7 +68,7 @@ enum AvatarBones
 	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
 	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
 	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
-
+    
 	NUM_AVATAR_BONES
 };
 
@@ -134,7 +95,7 @@ struct Avatar
 	Orientation	orientation;
 };
 
-class Head : public AgentData {
+class Head : public AvatarData {
     public:
         Head();
         ~Head();
@@ -168,9 +129,7 @@ class Head : public AgentData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBones b );
-		glm::vec3 getBodyPosition();
-		
+		glm::vec3 getBonePosition( AvatarBones b );		
 		
 		AvatarMode getMode();
 		
@@ -187,18 +146,12 @@ class Head : public AgentData {
 		void setHandMovement( glm::vec3 movement );
 		void updateHandMovement();
         
-        //  Send and receive network data
-        int getBroadcastData(char * data);
-        void parseData(void *data, int size);
-        
         float getLoudness() {return loudness;};
         float getAverageLoudness() {return averageLoudness;};
         void setAverageLoudness(float al) {averageLoudness = al;};
         void setLoudness(float l) {loudness = l;};
         
         void SetNewHeadTarget(float, float);
-        glm::vec3 getPos() { return bodyPosition; };
-        void setPos(glm::vec3 newpos) { bodyPosition = newpos; };
     
         //  Set what driving keys are being pressed to control thrust levels
         void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
@@ -213,7 +166,7 @@ class Head : public AgentData {
         //  Related to getting transmitter UDP data used to animate the avatar hand
         //
 
-        void processTransmitterData(char * packetData, int numBytes);
+        void processTransmitterData(unsigned char * packetData, int numBytes);
         float getTransmitterHz() { return transmitterHz; };
     
     private:
@@ -250,14 +203,9 @@ class Head : public AgentData {
         float averageLoudness;
         float audioAttack;
         float browAudioLift;
-    
-        glm::vec3 bodyPosition;
 		
 		bool triggeringAction;
-		
-		float bodyYaw;
-		float bodyPitch;
-		float bodyRoll;
+    
 		float bodyYawDelta;
 		
 		float		closeEnoughToInteract;

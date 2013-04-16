@@ -112,33 +112,33 @@ long int VoxelSystem::getVoxelsBytesReadRunningAverage() {
 }
 
 
-void VoxelSystem::parseData(void *data, int size) {
+void VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
-    unsigned char command = *(unsigned char*)data;
-    unsigned char *voxelData = (unsigned char *) data + 1;
+    unsigned char command = *sourceBuffer;
+    unsigned char *voxelData = sourceBuffer + 1;
     
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
             // ask the VoxelTree to read the bitstream into the tree
-            tree->readBitstreamToTree(voxelData, size - 1);
+            tree->readBitstreamToTree(voxelData, numBytes - 1);
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
-            tree->processRemoveVoxelBitstream((unsigned char*)data,size);
+            tree->processRemoveVoxelBitstream(sourceBuffer, numBytes);
         break;
         case PACKET_HEADER_Z_COMMAND:
 
             // the Z command is a special command that allows the sender to send high level semantic
             // requests, like erase all, or add sphere scene, different receivers may handle these 
             // messages differently
-            char* packetData =(char*)data;
+            char* packetData = (char *)sourceBuffer;
             char* command = &packetData[1]; // start of the command
             int commandLength = strlen(command); // commands are null terminated strings
             int totalLength = 1+commandLength+1;
 
-            printf("got Z message len(%d)= %s\n",size,command);
+            printf("got Z message len(%d)= %s\n", numBytes, command);
 
-            while (totalLength <= size) {
+            while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
                     printf("got Z message == erase all\n");
                     tree->eraseAllVoxels();
@@ -184,7 +184,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
     int voxelsAdded = 0;
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerHead->getPos();
+    glm::vec3 viewerPosition = viewerHead->getBodyPosition();
 
     // XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
     // coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 

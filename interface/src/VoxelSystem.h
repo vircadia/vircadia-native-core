@@ -26,7 +26,7 @@ public:
     VoxelSystem();
     ~VoxelSystem();
     
-    void parseData(void *data, int size);
+    void parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelSystem* clone() const;
     
     void init();
