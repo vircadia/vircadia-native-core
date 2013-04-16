@@ -55,7 +55,7 @@ public:
     void updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
-    void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
+    void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     char getOwnerType();
     unsigned int getSocketListenPort();
     

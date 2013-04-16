@@ -40,7 +40,7 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *
     currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
 
     AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
-    currentPosition += agentData->getBroadcastData((char *) currentPosition);
+    currentPosition += agentData->getBroadcastData(currentPosition);
     
     return currentPosition;
 }
