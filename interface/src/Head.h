@@ -42,8 +42,6 @@ enum AvatarMode
 	NUM_AVATAR_MODES
 };
 
-
-
 enum AvatarBones
 {
 	AVATAR_BONE_NULL = -1,
@@ -131,7 +129,11 @@ class Head : public AvatarData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBones b );
+		glm::vec3 getBonePosition( AvatarBones b );		
+		
+		AvatarMode getMode();
+		
+		void setTriggeringAction( bool trigger ); 
         
         void render(int faceToFace, int isMine);
 		
@@ -202,6 +204,8 @@ class Head : public AvatarData {
         float audioAttack;
         float browAudioLift;
 		
+		bool triggeringAction;
+    
 		float bodyYawDelta;
 		
 		float		closeEnoughToInteract;

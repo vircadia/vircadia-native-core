@@ -122,8 +122,6 @@ Head::Head() {
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
 
-    //velocity = otherHead.velocity;
-    //thrust = otherHead.thrust;
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
 
     PupilSize = otherHead.PupilSize;
@@ -362,8 +360,26 @@ void Head::simulate(float deltaTime) {
 		bodyYawDelta += YAW_MAG * deltaTime;
     }
 	
+	//----------------------------------------------------------
+	float translationalSpeed = glm::length( avatar.velocity );
+	float rotationalSpeed = fabs( bodyYawDelta );
+	if ( translationalSpeed + rotationalSpeed > 0.2 )
+	{
+		mode = AVATAR_MODE_WALKING;
+	}
+	else
+	{
+		mode = AVATAR_MODE_COMMUNICATING;
+	}
+		
+	//----------------------------------------------------------
+	// update body yaw by body yaw delta
+	//----------------------------------------------------------
 	_bodyYaw += bodyYawDelta * deltaTime;
 	
+	//----------------------------------------------------------
+	// (for now) set head yaw to body yaw
+	//----------------------------------------------------------
 	Yaw = _bodyYaw;
 	
 	//----------------------------------------------------------
@@ -377,11 +393,10 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	avatar.velocity += glm::dvec3( avatar.thrust * deltaTime );
 		
+	//----------------------------------------------------------
+	// update position by velocity
+	//----------------------------------------------------------
 	_bodyPosition += (glm::vec3)avatar.velocity * deltaTime;
-	//avatar.position += (glm::vec3)avatar.velocity * deltaTime;
-	//position = avatar.position;
-	
-	//avatar.velocity *= 0.9;
 
 	//----------------------------------------------------------
 	// decay velocity
@@ -600,12 +615,7 @@ void Head::renderHead( int faceToFace, int isMine ) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-
-	//glTranslatef(leanSideways, 0.f, leanForward);
-    
-	//glRotatef(Yaw, 0, 1, 0);
-
-    glRotatef( _bodyYaw, 0, 1, 0);
+    glRotatef(_bodyYaw, 0, 1, 0);
     
 		
 	//  Don't render a head if it is really close to your location, because that is your own head!
@@ -892,9 +902,14 @@ void Head::updateAvatarSkeleton() {
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
-		if ( avatar.bone[b].parent == AVATAR_BONE_NULL ) {
-			avatar.bone[b].orientation.set( avatar.orientation );
-			avatar.bone[b].position = _bodyPosition;
+		if ( bone[b].parent == AVATAR_BONE_NULL ) {
+			bone[b].orientation.set(avatar.orientation);
+			//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
+			glm::vec3 ppp = _bodyPosition;
+			
+//			ppp.y += 0.2;
+			
+			bone[b].position = ppp;// + glm::vec3( 0.0f, 1.0f, 0.0f ) * 1.0f;
 		}
 		else {
 			bone[b].orientation.set( bone[ bone[b].parent ].orientation );
@@ -923,7 +938,7 @@ void Head::updateAvatarSprings( float deltaTime ) {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		glm::vec3 springVector( bone[b].springyPosition );
 
-		if ( avatar.bone[b].parent == AVATAR_BONE_NULL ) {
+		if ( bone[b].parent == AVATAR_BONE_NULL ) {
 			springVector -= _bodyPosition;
 		}
 		else {
@@ -1152,6 +1167,42 @@ void Head::renderBody() {
 		glPopMatrix();
 	}
 	
+}
+
+
+
+// Transmit data to agents requesting it
+// called on me just prior to sending data to others (continuasly called)
+int Head::getBroadcastData(char* data) {
+    // Copy data for transmission to the buffer, return length of data
+    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+            getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
+			//avatar.yaw, avatar.pitch, avatar.roll,
+            bodyPosition.x + leanSideways, bodyPosition.y, bodyPosition.z + leanForward,
+            loudness, averageLoudness,
+            //hand->getPos().x, hand->getPos().y, hand->getPos().z);  //previous to Ventrella change
+            bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+			bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+			bone[ AVATAR_BONE_RIGHT_HAND ].position.z ); 
+    return strlen(data);
+}
+
+
+//called on the other agents - assigns it to my views of the others
+void Head::parseData(void *data, int size) {
+	sscanf
+	(
+		(char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+		&Pitch, &Yaw, &Roll,
+		//&avatar.yaw, &avatar.pitch, &avatar.roll,
+		&bodyPosition.x, &bodyPosition.y, &bodyPosition.z,
+		&loudness, &averageLoudness,
+		&bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
+		&bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
+		&bone[ AVATAR_BONE_RIGHT_HAND ].position.z
+	);
+	
+	handBeingMoved = true;
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw) {
