@@ -16,14 +16,26 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 
-MenuRow::MenuRow() {
+MenuRow::MenuRow() :
+	callback(NULL),
+	stateNameCallback(NULL) {
 }
 
-MenuRow::MenuRow(const char * columnName, MenuRowCallback callback) {
-    int length = std::min(MAX_COLUMN_NAME - 5,(int) strlen(columnName));
-    strncpy(this->rowName, columnName, length);
-    memcpy(this->rowName + length, "    \0", 5);
-    this->callback = callback;
+MenuRow::MenuRow(const char * columnName, MenuRowCallback callback) :
+	callback(callback),
+	stateNameCallback(NULL) {
+	this->nameLength = strlen(columnName);
+    strncpy(this->rowName, columnName, MAX_COLUMN_NAME); // copy the base name
+    strncpy(this->rowName, this->getName(), MAX_COLUMN_NAME); // now add in state
+    rowWidth = 0;
+}
+
+MenuRow::MenuRow(const char * columnName, MenuRowCallback callback, MenuStateNameCallback stateNameCallback) :
+	callback(callback),
+	stateNameCallback(stateNameCallback) {
+	this->nameLength = strlen(columnName);
+    strncpy(this->rowName, columnName, MAX_COLUMN_NAME);
+    strncpy(this->rowName, this->getName(), MAX_COLUMN_NAME); // now add in state
     rowWidth = 0;
 }
 
@@ -31,19 +43,30 @@ MenuRow::~MenuRow() {
 }
 
 void MenuRow::call() {
-    callback(-2);
+    callback(MENU_ROW_PICKED);
+}
+
+const char* MenuRow::getStateName() {
+    int currentValue = callback(MENU_ROW_GET_VALUE);
+    const char* stateName;
+    // If the MenuRow has a custom stateNameCallback function, then call it to get a string 
+    // to display in the menu. Otherwise, use the default implementation.
+    if (stateNameCallback != NULL) {
+    	stateName = stateNameCallback(currentValue);
+    } else {
+		if (currentValue == 0) {
+			stateName = " OFF ";
+		} else if (currentValue == 1) {
+			stateName = " ON ";
+		} else  {
+			stateName = " ";
+		}
+    }
+    return stateName;
 }
 
 char* MenuRow::getName() {
-    int length = (int) strlen(this->rowName) - 4;
-    int currentValue = callback(-1);
-    if (currentValue == 0) {
-        memcpy(this->rowName + length, " OFF\0", 5);
-    } else if (currentValue == 1) {
-        memcpy(this->rowName + length, " ON \0", 5);
-    } else  {
-        memcpy(this->rowName + length, "    \0", 5);
-    }
+	strcpy(this->rowName + nameLength, getStateName());
     return this->rowName;
 }
 

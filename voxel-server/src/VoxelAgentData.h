@@ -22,7 +22,7 @@ public:
     ~VoxelAgentData();
     VoxelAgentData(const VoxelAgentData &otherAgentData);
     
-    void parseData(void *data, int size);
+    void parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelAgentData* clone() const;
 };
 

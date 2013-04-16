@@ -289,7 +289,7 @@ int main(int argc, const char * argv[])
     
     sockaddr agentPublicAddress;
     
-    char *packetData = new char[MAX_PACKET_SIZE];
+    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
 
     // loop to send to agents requesting data
@@ -352,7 +352,7 @@ int main(int argc, const char * argv[])
 
             	// the Z command is a special command that allows the sender to send the voxel server high level semantic
             	// requests, like erase all, or add sphere scene
-				char* command = &packetData[1]; // start of the command
+				char* command = (char*) &packetData[1]; // start of the command
 				int commandLength = strlen(command); // commands are null terminated strings
                 int totalLength = 1+commandLength+1;
 
@@ -385,7 +385,7 @@ int main(int argc, const char * argv[])
                     agentList->increaseAgentId();
                 }
                 
-                agentList->updateAgentWithData(&agentPublicAddress, (void *)packetData, receivedBytes);
+                agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
             }
         }
     }

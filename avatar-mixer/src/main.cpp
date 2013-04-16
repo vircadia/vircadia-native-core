@@ -32,37 +32,22 @@
 #include <StdDev.h>
 #include <UDPSocket.h>
 
-#include "AvatarAgentData.h"
+#include "AvatarData.h"
 
 const int AVATAR_LISTEN_PORT = 55444;
-const unsigned short BROADCAST_INTERVAL_USECS = 20 * 1000 * 1000;
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
-    currentPosition += packSocket(currentPosition, agentToAdd->getPublicSocket());
+    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
 
-    AvatarAgentData *agentData = (AvatarAgentData *)agentToAdd->getLinkedData();
+    AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
+    currentPosition += agentData->getBroadcastData(currentPosition);
     
-    int bytesWritten = sprintf((char *)currentPosition,
-                               PACKET_FORMAT,
-                               agentData->getPitch(),
-                               agentData->getYaw(),
-                               agentData->getRoll(),
-                               agentData->getHeadPositionX(),
-                               agentData->getHeadPositionY(),
-                               agentData->getHeadPositionZ(),
-                               agentData->getLoudness(),
-                               agentData->getAverageLoudness(),
-                               agentData->getHandPositionX(),
-                               agentData->getHandPositionY(),
-                               agentData->getHandPositionZ());
-
-    currentPosition += bytesWritten;
     return currentPosition;
 }
 
 void attachAvatarDataToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new AvatarAgentData());
+        newAgent->setLinkedData(new AvatarData());
     }
 }
 
@@ -78,7 +63,7 @@ int main(int argc, char* argv[])
     agentList->startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
-    char *packetData = new char[MAX_PACKET_SIZE];
+    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
@@ -92,7 +77,7 @@ int main(int argc, char* argv[])
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // this is positional data from an agent
-                    agentList->updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                     
                     currentBufferPosition = broadcastPacket + 1;
                     agentIndex = 0;
@@ -116,7 +101,7 @@ int main(int argc, char* argv[])
                     break;
                 default:
                     // hand this off to the AgentList
-                    agentList->processAgentData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->processAgentData(agentAddress, packetData, receivedBytes);
                     break;
             }
         }

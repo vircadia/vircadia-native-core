@@ -6,12 +6,12 @@
 //
 //  Channels are received in the following order (integer 0-4096 based on voltage 0-3.3v)
 //
-//  AIN 15:  Pitch Gyro (nodding your head 'yes')
-//  AIN 16:  Yaw Gyro (shaking your head 'no')
-//  AIN 17:  Roll Gyro (looking quizzical, tilting your head)
-//  AIN 18:  Lateral acceleration (moving from side-to-side in front of your monitor)
-//  AIN 19:  Up/Down acceleration (sitting up/ducking in front of your monitor)
-//  AIN 20:  Forward/Back acceleration (Toward or away from your monitor)
+//  0 - AIN 15:  Pitch Gyro (nodding your head 'yes')
+//  1 - AIN 16:  Yaw Gyro (shaking your head 'no')
+//  2 - AIN 17:  Roll Gyro (looking quizzical, tilting your head)
+//  3 - AIN 18:  Lateral acceleration (moving from side-to-side in front of your monitor)
+//  4 - AIN 19:  Up/Down acceleration (sitting up/ducking in front of your monitor)
+//  5 - AIN 20:  Forward/Back acceleration (Toward or away from your monitor)
 //
 
 #include "SerialInterface.h"
@@ -21,14 +21,15 @@
 #include <sys/time.h>
 #endif
 
-int serial_fd;
+int serialFd;
 const int MAX_BUFFER = 255;
-char serial_buffer[MAX_BUFFER];
-int serial_buffer_pos = 0;
+char serialBuffer[MAX_BUFFER];
+int serialBufferPos = 0;
 
 const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
-const short SAMPLES_TO_DISCARD = 100;
+const short SAMPLES_TO_DISCARD = 100;               //  Throw out the first few samples
+const int GRAVITY_SAMPLES = 200;                    //  Use the first samples to compute gravity vector
 
 void SerialInterface::pair() {
     
@@ -48,7 +49,7 @@ void SerialInterface::pair() {
                 char *serialPortname = new char[100];
                 sprintf(serialPortname, "/dev/%s", entry->d_name);
                 
-                init(serialPortname, 115200);
+                initializePort(serialPortname, 115200);
                 
                 delete [] serialPortname;
             }
@@ -60,18 +61,20 @@ void SerialInterface::pair() {
     
 }
 
-//  Init the serial port to the specified values
-int SerialInterface::init(char* portname, int baud)
+//  Connect to the serial port
+int SerialInterface::initializePort(char* portname, int baud)
 {
 #ifdef __APPLE__
-    serial_fd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
+    serialFd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
-    printf("Attemping to open serial interface: %s\n", portname);
+    printf("Opening SerialUSB %s: ", portname);
     
-    if (serial_fd == -1) return -1;     //  Failed to open port
-    
+    if (serialFd == -1) {
+        printf("Failed.\n");
+        return -1;     //  Failed to open port
+    }    
     struct termios options;
-    tcgetattr(serial_fd,&options);
+    tcgetattr(serialFd,&options);
     switch(baud)
     {
 		case 9600: cfsetispeed(&options,B9600);
@@ -95,10 +98,10 @@ int SerialInterface::init(char* portname, int baud)
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
-    tcsetattr(serial_fd,TCSANOW,&options);
+    tcsetattr(serialFd,TCSANOW,&options);
 
     
-    printf("Serial interface opened!\n");
+    printf("Connected.\n");
     resetSerial();    
     active = true;
  #endif
@@ -126,22 +129,17 @@ void SerialInterface::renderLevels(int width, int height) {
         glBegin(GL_LINES);
         glVertex2f(disp_x, height*0.95);
         glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
+        glColor4f(1, 0, 0, 1);
+        glVertex2f(disp_x - 3, height*(0.25 + 0.75f*getValue(i)/4096));
+        glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
         glEnd();
         //  Trailing Average value
-        glColor4f(1, 1, 0, 1);
         glBegin(GL_LINES);
-        glVertex2f(disp_x + 2, height*0.95);
-        glVertex2f(disp_x + 2, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
+        glColor4f(1, 1, 1, 1);
+        glVertex2f(disp_x, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
+        glVertex2f(disp_x + 4, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
         glEnd();
         
-        /*
-        glColor3f(1,0,0);
-        glBegin(GL_LINES);
-        glLineWidth(4.0);
-        glVertex2f(disp_x - 10, height*0.5 - getValue(i)/4096);
-        glVertex2f(disp_x + 10, height*0.5 - getValue(i)/4096);
-        glEnd();
-        */
         sprintf(val, "%d", getValue(i));
         drawtext(disp_x-GAP/2, (height*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
         
@@ -162,20 +160,20 @@ void SerialInterface::renderLevels(int width, int height) {
 }
 void SerialInterface::readData() {
 #ifdef __APPLE__
-    //  This array sets the rate of trailing averaging for each channel.
+    //  This array sets the rate of trailing averaging for each channel:
     //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
-    const float AVG_RATE[] =  {0.01, 0.01, 0.01, 0.01, 0.01, 0.01};
+    const float AVG_RATE[] =  {0.002, 0.002, 0.002, 0.002, 0.002, 0.002};
     char bufchar[1];
     
     int initialSamples = totalSamples;
     
-    while (read(serial_fd, &bufchar, 1) > 0) {        
+    while (read(serialFd, &bufchar, 1) > 0) {        
         //std::cout << bufchar[0];
-        serial_buffer[serial_buffer_pos] = bufchar[0];
-        serial_buffer_pos++;
+        serialBuffer[serialBufferPos] = bufchar[0];
+        serialBufferPos++;
         //  Have we reached end of a line of input?
-        if ((bufchar[0] == '\n') || (serial_buffer_pos >= MAX_BUFFER)) {
-            std::string serialLine(serial_buffer, serial_buffer_pos-1);
+        if ((bufchar[0] == '\n') || (serialBufferPos >= MAX_BUFFER)) {
+            std::string serialLine(serialBuffer, serialBufferPos-1);
             //std::cout << serialLine << "\n";
             int spot;
             //int channel = 0;
@@ -191,6 +189,7 @@ void SerialInterface::readData() {
                 serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
             }
             
+            //  Update Trailing Averages
             for (int i = 0; i < NUM_CHANNELS; i++) {
                 if (totalSamples > SAMPLES_TO_DISCARD) {
                     trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
@@ -200,8 +199,21 @@ void SerialInterface::readData() {
                 }
                    
             }
+            
+            //  Use a set of initial samples to compute gravity 
+            if (totalSamples < GRAVITY_SAMPLES) {
+                gravity.x += lastMeasured[ACCEL_X];
+                gravity.y += lastMeasured[ACCEL_Y];
+                gravity.z += lastMeasured[ACCEL_Z];
+            }
+            if (totalSamples == GRAVITY_SAMPLES) {
+                gravity = glm::normalize(gravity);
+                std::cout << "gravity: " << gravity.x << "," <<
+                            gravity.y << "," << gravity.z << "\n";
+            }
+
             totalSamples++;
-            serial_buffer_pos = 0;
+            serialBufferPos = 0;
         }
     }
     
@@ -210,7 +222,7 @@ void SerialInterface::readData() {
         gettimeofday(&now, NULL);
         
         if (diffclock(&lastGoodRead, &now) > NO_READ_MAXIMUM_MSECS) {
-            std::cout << "No data coming over serial. Shutting down SerialInterface.\n";
+            std::cout << "No data - Shutting down SerialInterface.\n";
             resetSerial();
         }
     } else {
@@ -223,6 +235,7 @@ void SerialInterface::resetSerial() {
 #ifdef __APPLE__
     active = false;
     totalSamples = 0;
+    gravity = glm::vec3(0,-1,0);
     
     gettimeofday(&lastGoodRead, NULL);
     
@@ -233,7 +246,7 @@ void SerialInterface::resetSerial() {
     }
     //  Clear serial input buffer
     for (int i = 1; i < MAX_BUFFER; i++) {
-        serial_buffer[i] = ' ';
+        serialBuffer[i] = ' ';
     }
 #endif
 }

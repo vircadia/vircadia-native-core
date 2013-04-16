@@ -10,10 +10,13 @@
 #define __interface__head__
 
 #include <iostream>
-#include "AgentData.h"
+
+#include <AvatarData.h>
+#include <Orientation.h>	// added by Ventrella as a utility
+
 #include "Field.h"
 #include "world.h"
-#include "Orientation.h"	// added by Ventrella as a utility
+
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
@@ -29,47 +32,15 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
-#define NUM_OTHER_AVATARS 5
+#define NUM_OTHER_AVATARS 5 // temporary - for testing purposes!
 
-/*
-enum AvatarJoints
+enum AvatarMode
 {
-	AVATAR_JOINT_NULL = -1,
-	AVATAR_JOINT_PELVIS,
-	AVATAR_JOINT_TORSO,
-	AVATAR_JOINT_CHEST,
-	AVATAR_JOINT_NECK_BASE,
-	AVATAR_JOINT_HEAD_BASE,
-	AVATAR_JOINT_HEAD_TOP,
-	
-	AVATAR_JOINT_LEFT_CLAVICLE,
-	AVATAR_JOINT_LEFT_SHOULDER,
-	AVATAR_JOINT_LEFT_ELBOW,
-	AVATAR_JOINT_LEFT_WRIST,
-	AVATAR_JOINT_LEFT_FINGERTIPS,
-	
-	AVATAR_JOINT_RIGHT_CLAVICLE,
-	AVATAR_JOINT_RIGHT_SHOULDER,
-	AVATAR_JOINT_RIGHT_ELBOW,
-	AVATAR_JOINT_RIGHT_WRIST,
-	AVATAR_JOINT_RIGHT_FINGERTIPS,
-	
-	AVATAR_JOINT_LEFT_HIP,
-	AVATAR_JOINT_LEFT_KNEE,
-	AVATAR_JOINT_LEFT_HEEL,
-	AVATAR_JOINT_LEFT_TOES,
-	
-	AVATAR_JOINT_RIGHT_HIP,
-	AVATAR_JOINT_RIGHT_KNEE,
-	AVATAR_JOINT_RIGHT_HEEL,
-	AVATAR_JOINT_RIGHT_TOES,
-	
-	NUM_AVATAR_JOINTS
+	AVATAR_MODE_STANDING = 0,
+	AVATAR_MODE_WALKING,
+	AVATAR_MODE_COMMUNICATING,
+	NUM_AVATAR_MODES
 };
-*/
-
-
-
 
 enum AvatarBones
 {
@@ -97,7 +68,7 @@ enum AvatarBones
 	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
 	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
 	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
-
+    
 	NUM_AVATAR_BONES
 };
 
@@ -108,7 +79,7 @@ struct AvatarBone
 	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
-	float		springBodyTightness;	// how tightly (0 to 1) the springy position tries to stay on the position
+	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -122,10 +93,9 @@ struct Avatar
 	glm::vec3	thrust;
 	float		maxArmLength;
 	Orientation	orientation;
-	AvatarBone	bone[ NUM_AVATAR_BONES ];
 };
 
-class Head : public AgentData {
+class Head : public AvatarData {
     public:
         Head();
         ~Head();
@@ -159,8 +129,11 @@ class Head : public AgentData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBones b );
-		glm::vec3 getBodyPosition();
+		glm::vec3 getBonePosition( AvatarBones b );		
+		
+		AvatarMode getMode();
+		
+		void setTriggeringAction( bool trigger ); 
         
         void render(int faceToFace, int isMine);
 		
@@ -173,18 +146,12 @@ class Head : public AgentData {
 		void setHandMovement( glm::vec3 movement );
 		void updateHandMovement();
         
-        //  Send and receive network data
-        int getBroadcastData(char * data);
-        void parseData(void *data, int size);
-        
         float getLoudness() {return loudness;};
         float getAverageLoudness() {return averageLoudness;};
         void setAverageLoudness(float al) {averageLoudness = al;};
         void setLoudness(float l) {loudness = l;};
         
         void SetNewHeadTarget(float, float);
-        glm::vec3 getPos() { return position; };
-        void setPos(glm::vec3 newpos) { position = newpos; };
     
         //  Set what driving keys are being pressed to control thrust levels
         void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
@@ -199,7 +166,7 @@ class Head : public AgentData {
         //  Related to getting transmitter UDP data used to animate the avatar hand
         //
 
-        void processTransmitterData(char * packetData, int numBytes);
+        void processTransmitterData(unsigned char * packetData, int numBytes);
         float getTransmitterHz() { return transmitterHz; };
     
     private:
@@ -236,12 +203,9 @@ class Head : public AgentData {
         float averageLoudness;
         float audioAttack;
         float browAudioLift;
-    
-        glm::vec3 position;
 		
-		float bodyYaw;
-		float bodyPitch;
-		float bodyRoll;
+		bool triggeringAction;
+    
 		float bodyYawDelta;
 		
 		float		closeEnoughToInteract;
@@ -254,19 +218,21 @@ class Head : public AgentData {
 		bool handBeingMoved;
 		bool previousHandBeingMoved;
 		glm::vec3 movedHandOffset;
-		//glm::vec3 movedHandPosition;
     
         int driveKeys[MAX_DRIVE_KEYS];
 		
 		float springVelocityDecay;
 		float springForce;
-		float springToBodyTightness; // XXXBHG - this had been commented out, but build breaks without it.
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
     
         GLUquadric *sphere;
 		Avatar avatar;
+		
+		AvatarBone	bone[ NUM_AVATAR_BONES ];
+		
+		AvatarMode mode;
 		
 		void initializeAvatar();
 		void updateAvatarSkeleton();

@@ -32,9 +32,9 @@ struct Rotations {
     static float halfPi()  { return 0.25f; }
 };
 
-/**
- * Converts an angle from one unit to another.
- */
+// 
+// Converts an angle from one unit to another.
+// 
 template< class UnitFrom, class UnitTo >
 float angleConvert(float a) {
 
@@ -42,21 +42,28 @@ float angleConvert(float a) {
 }
 
 
-/**
- * Clamps an angle to the range of [-180; 180) degrees.
- */
+// 
+// Clamps an angle to the range of [-180; 180) degrees.
+// 
 template< class Unit >
 float angleSignedNormal(float a) {
 
-    float result = remainder(a, Unit::twicePi());
-    if (result == Unit::pi())
-        result = -Unit::pi();
+    // result is remainder(a, Unit::twicePi());
+    float result = fmod(a, Unit::twicePi());
+    if (result >= Unit::pi()) {
+
+        result -= Unit::twicePi();
+
+    } else if (result < -Unit::pi()) {
+
+        result += Unit::twicePi();
+    } 
     return result;
 }
 
-/**
- * Clamps an angle to the range of [0; 360) degrees.
- */
+// 
+// Clamps an angle to the range of [0; 360) degrees.
+// 
 template< class Unit >
 float angleUnsignedNormal(float a) {
 
@@ -64,13 +71,13 @@ float angleUnsignedNormal(float a) {
 }
 
 
-/** 
- * Clamps a polar direction so that azimuth is in the range of [0; 360)
- * degrees and altitude is in the range of [-90; 90] degrees.
- *
- * The so normalized angle still contains ambiguity due to gimbal lock:
- * Both poles can be reached from any azimuthal direction.
- */
+//  
+// Clamps a polar direction so that azimuth is in the range of [0; 360)
+// degrees and altitude is in the range of [-90; 90] degrees.
+//
+// The so normalized angle still contains ambiguity due to gimbal lock:
+// Both poles can be reached from any azimuthal direction.
+// 
 template< class Unit >
 void angleHorizontalPolar(float& azimuth, float& altitude) {
 
