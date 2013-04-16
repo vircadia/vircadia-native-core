@@ -910,9 +910,11 @@ void display(void)
     
     //  If application has just started, report time from startup to now (first frame display)
     if (justStarted) {
-        printf("Startup Time: %4.2f\n",
-               (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0);
+        float startupTime = (usecTimestampNow() - usecTimestamp(&applicationStartupTime))/1000000.0;
         justStarted = false;
+        char title[30];
+        snprintf(title, 30, "Interface: %4.2f seconds", startupTime);
+        glutSetWindowTitle(title);
     }
 }
 
@@ -1530,6 +1532,9 @@ int main(int argc, const char * argv[])
     AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
+    WIDTH = glutGet(GLUT_SCREEN_WIDTH);
+    HEIGHT = glutGet(GLUT_SCREEN_HEIGHT);
+    
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
