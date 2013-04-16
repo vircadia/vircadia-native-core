@@ -188,7 +188,7 @@ void Head::reset() {
 
 //this pertains to moving the head with the glasses 
 //---------------------------------------------------
-void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
+void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
 {
     const float PITCH_ACCEL_COUPLING = 0.5;
@@ -445,8 +445,6 @@ void Head::simulate(float deltaTime) {
         }
     }
     
-	
-	
     const float DEGREES_BETWEEN_VIEWER_EYES = 3;
     const float DEGREES_TO_VIEWER_MOUTH = 7;
 
@@ -978,10 +976,6 @@ void Head::updateAvatarSprings( float deltaTime ) {
 
 		bone[b].springyPosition += bone[b].springyVelocity;
 	}
-}
-
-float Head::getBodyYaw() {
-	return bodyYaw;
 }
 
 glm::vec3 Head::getHeadLookatDirection() {

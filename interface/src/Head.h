@@ -142,7 +142,7 @@ class Head : public AgentData {
         Head* clone() const;
     
         void reset();
-        void UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
         void setNoise (float mag) { noise = mag; }
         void setPitch(float p) {Pitch = p; }
         void setYaw(float y) {Yaw = y; }
@@ -163,7 +163,9 @@ class Head : public AgentData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		float getBodyYaw();
+        float getBodyYaw() {return bodyYaw;};
+        void addBodyYaw(float y) {bodyYaw += y;};
+    
 		glm::vec3 getHeadLookatDirection();
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
