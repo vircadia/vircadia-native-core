@@ -47,6 +47,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Log.h"
+
 #include "Field.h"
 #include "world.h"
 #include "Util.h"
@@ -97,6 +99,8 @@ int HEIGHT = 800;
 int fullscreen = 0;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
+
+Log printLog;
 
 Oscilloscope audioScope(256,200,true);
 
@@ -323,9 +327,9 @@ void init(void)
         marker_capturer.position_updated(&position_updated);
         marker_capturer.frame_updated(&marker_frame_available);
         if(!marker_capturer.init_capture()){
-            printf("Camera-based marker capture initialized.\n");
+            printLog("Camera-based marker capture initialized.\n");
         }else{
-            printf("Error initializing camera-based marker capture.\n");
+            printLog("Error initializing camera-based marker capture.\n");
         }
     }
 #endif
@@ -558,13 +562,13 @@ void render_view_frustum() {
 	}
 
     /*
-    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
-    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
-    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
-    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
-    printf("fov=%f\n", fov);
-    printf("nearClip=%f\n", nearClip);
-    printf("farClip=%f\n", farClip);
+    printLog("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
+    printLog("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
+    printLog("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
+    printLog("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
+    printLog("fov=%f\n", fov);
+    printLog("nearClip=%f\n", nearClip);
+    printLog("farClip=%f\n", farClip);
     */
 
     // Set the viewFrustum up with the correct position and orientation of the camera	
@@ -884,6 +888,7 @@ void display(void)
         glLineWidth(1.0f);
         glPointSize(1.0f);
         displayStats();
+        printLog.render(WIDTH, HEIGHT);
     }
         
     //  Show menu
@@ -1101,7 +1106,7 @@ void sendVoxelServerEraseAll() {
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
 	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}\
+}
 
 void sendVoxelServerAddScene() {
 	char message[100];
@@ -1139,11 +1144,11 @@ void addRandomSphere(bool wantColorRandomizer)
 	float s = 0.001; // size of voxels to make up surface of sphere
 	bool solid = false;
 
-	printf("random sphere\n");
-	printf("radius=%f\n",r);
-	printf("xc=%f\n",xc);
-	printf("yc=%f\n",yc);
-	printf("zc=%f\n",zc);
+	printLog("random sphere\n");
+	printLog("radius=%f\n",r);
+	printLog("xc=%f\n",xc);
+	printLog("yc=%f\n",yc);
+	printLog("zc=%f\n",zc);
 
 	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
@@ -1417,7 +1422,7 @@ void reshape(int width, int height)
         farClip   = ::myCamera.getFarClip();
     }
 
-    //printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
+    //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
     //    width,height,aspectRatio,fov,nearClip,farClip);
     
     // Tell our viewFrustum about this change
@@ -1515,7 +1520,7 @@ int main(int argc, const char * argv[])
 
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, argv, "--local")) {
-    	printf("Local Domain MODE!\n");
+    	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
@@ -1555,11 +1560,11 @@ int main(int argc, const char * argv[])
     viewFrustumOffsetCamera.setNearClip(0.1);
     viewFrustumOffsetCamera.setFarClip(500.0);
 
-    printf( "Created Display Window.\n" );
+    printLog( "Created Display Window.\n" );
         
     initMenu();
     initDisplay();
-    printf( "Initialized Display.\n" );
+    printLog( "Initialized Display.\n" );
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -1573,7 +1578,7 @@ int main(int argc, const char * argv[])
     glutIdleFunc(idle);
 	
     init();
-    printf( "Init() complete.\n" );
+    printLog( "Init() complete.\n" );
 
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
@@ -1585,17 +1590,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
-        printf("Local Voxel File loaded.\n");
+        printLog("Local Voxel File loaded.\n");
 	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printf("Network receive thread created.\n");
+    printLog("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
 
-    printf("Normal exit.\n");
+    printLog("Normal exit.\n");
     ::terminate();
     return EXIT_SUCCESS;
 }   
