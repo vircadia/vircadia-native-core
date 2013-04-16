@@ -29,21 +29,8 @@ public:
 
 	void update( float deltaTime );
 	
-	/*
-	void setMode			( CameraMode	m ) { mode				= m; }
-	void setYaw				( float			y ) { idealYaw			= y; }
-	void setPitch			( float			p ) { pitch				= p; }
-	void setRoll			( float			r ) { roll				= r; }
-	void setUp				( float			u ) { up				= u; }
-	void setDistance		( float			d ) { distance			= d; }
-	void setTargetPosition	( glm::vec3		t ) { targetPosition	= t; }
-	void setPosition		( glm::vec3		p ) { position			= p; }
-	void setTightness		( float			t ) { tightness			= t; }
-	void setOrientation		( Orientation	o ) { orientation.set(o); }
-*/
-
     void setMode            ( CameraMode    m ) { _mode             = m; }
-    void setYaw             ( float         y ) { _yaw              = y; }
+    void setYaw             ( float         y ) { _idealYaw         = y; }
     void setPitch           ( float         p ) { _pitch            = p; }
     void setRoll            ( float         r ) { _roll             = r; }
     void setUp              ( float         u ) { _up               = u; }
