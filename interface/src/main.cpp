@@ -455,7 +455,9 @@ void updateAvatar(float frametime)
 
     //  Send my stream of head/hand data to the avatar mixer and voxel server
     unsigned char broadcastString[200];
-    int broadcastBytes = myAvatar.getBroadcastData(broadcastString);
+    *broadcastString = PACKET_HEADER_HEAD_DATA;
+    
+    int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
     AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
@@ -1097,7 +1099,7 @@ void sendVoxelServerEraseAll() {
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
 	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
+}\
 
 void sendVoxelServerAddScene() {
 	char message[100];
