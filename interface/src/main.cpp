@@ -696,7 +696,7 @@ void display(void)
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0  );
 			myCamera.setRoll			( 0.0  );
@@ -708,7 +708,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPos() ); 
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch			(  10.0 );
 			myCamera.setRoll			(   0.0 );

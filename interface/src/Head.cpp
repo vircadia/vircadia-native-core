@@ -1169,42 +1169,6 @@ void Head::renderBody() {
 	
 }
 
-
-
-// Transmit data to agents requesting it
-// called on me just prior to sending data to others (continuasly called)
-int Head::getBroadcastData(char* data) {
-    // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-            getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
-			//avatar.yaw, avatar.pitch, avatar.roll,
-            bodyPosition.x + leanSideways, bodyPosition.y, bodyPosition.z + leanForward,
-            loudness, averageLoudness,
-            //hand->getPos().x, hand->getPos().y, hand->getPos().z);  //previous to Ventrella change
-            bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.z ); 
-    return strlen(data);
-}
-
-
-//called on the other agents - assigns it to my views of the others
-void Head::parseData(void *data, int size) {
-	sscanf
-	(
-		(char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-		&Pitch, &Yaw, &Roll,
-		//&avatar.yaw, &avatar.pitch, &avatar.roll,
-		&bodyPosition.x, &bodyPosition.y, &bodyPosition.z,
-		&loudness, &averageLoudness,
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.z
-	);
-	
-	handBeingMoved = true;
-}
-
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     PitchTarget = pitch;
     YawTarget = yaw;
