@@ -105,7 +105,6 @@ ViewFrustum viewFrustum;			// current state of view frustum, perspective, orient
 Head myAvatar;                      // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
-Camera currentCamera = myCamera;   // could be either myCamera or viewFrustumOffsetCamera, this is the camera for OpenGL
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -738,47 +737,6 @@ void display(void)
 			myCamera.update				( 1.f/FPS );
 		}
 		
-/******		
-		// Note: currentCamera is used to pick between the normal camera myCamera for our 
-		// main camera, vs, an alternate camera. The alternate camera we support right now
-		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
-		// to add other cameras.
-		//
-		// Why have two cameras? Well, one reason is that because in the case of the render_view_frustum()
-		// code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
-		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-		currentCamera = myCamera;
-		
-		if (::viewFrustumFromOffset && ::frustumOn) {
-		
-    		viewFrustumOffsetCamera = myCamera; //.setTargetPosition( myAvatar.getPos() ); 
-		
-			//----------------------------------------------------
-			// set the camera to third-person view but offset so we can see the frustum
-			//----------------------------------------------------		
-			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch    );
-			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(   0.2 + ::viewFrustumOffsetUp       );
-			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
-			viewFrustumOffsetCamera.update();
-			
-		    // We'll be using this one!
-		    currentCamera = viewFrustumOffsetCamera;
-		}		
-	
-		//---------------------------------------------
-		// transform view according to whichCamera
-		// could be myCamera (if in normal mode)
-		// or could be viewFrustumOffsetCamera if in offset mode
-		//---------------------------------------------
-        glRotatef	( currentCamera.getPitch(),	1, 0, 0 );
-        glRotatef	( currentCamera.getYaw(),	0, 1, 0 );
-        glRotatef	( currentCamera.getRoll(),	0, 0, 1 );
-        glTranslatef( -currentCamera.getPosition().x, -currentCamera.getPosition().y, -currentCamera.getPosition().z );
-*****/
-
-
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
 		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
@@ -1032,13 +990,8 @@ int setDisplayFrustum(int state) {
 
 int setFrustumOffset(int state) {
     int value = setValue(state, &::viewFrustumFromOffset);
-    
-    // make sure we reset the camera for OpenGL appropriate
-    if (::viewFrustumFromOffset) {
-        currentCamera = ::viewFrustumOffsetCamera;
-    } else {
-        currentCamera = myCamera;
-    }
+
+    // reshape so that OpenGL will get the right lens details for the camera of choice    
     reshape(::WIDTH,::HEIGHT);
     
     return value;
@@ -1443,12 +1396,20 @@ void reshape(int width, int height)
     HEIGHT = height; 
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
-    
-    // get the lens details from the current camera
-    float fov       = ::currentCamera.getFieldOfView();
-    float nearClip  = ::currentCamera.getNearClip();
-    float farClip   = ::currentCamera.getFarClip();
+    float fov;
+    float nearClip;
+    float farClip;
 
+    // get the lens details from the current camera
+    if (::viewFrustumFromOffset) {
+        fov       = ::viewFrustumOffsetCamera.getFieldOfView();
+        nearClip  = ::viewFrustumOffsetCamera.getNearClip();
+        farClip   = ::viewFrustumOffsetCamera.getFarClip();
+    } else {
+        fov       = ::myCamera.getFieldOfView();
+        nearClip  = ::myCamera.getNearClip();
+        farClip   = ::myCamera.getFarClip();
+    }
 
     printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
         width,height,aspectRatio,fov,nearClip,farClip);
@@ -1472,7 +1433,9 @@ void reshape(int width, int height)
     glLoadIdentity();
     
     // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
-    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure!
+    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure! Basically, this makes
+    // the near clip a little bit closer (therefor you see more) and the far clip a little bit farther (also,
+    // to see more.)
     if (::frustumOn) {
         nearClip -= 0.01f;
         farClip  += 0.01f;
