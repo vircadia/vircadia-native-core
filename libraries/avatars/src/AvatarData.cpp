@@ -14,7 +14,7 @@
 
 #include "AvatarData.h"
 
-int packFloatAngleToTwoByte(char* buffer, float angle) {
+int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
     
     uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
@@ -45,20 +45,20 @@ AvatarData* AvatarData::clone() const {
 
 // transmit data to agents requesting it
 // called on me just prior to sending data to others (continuasly called)
-int AvatarData::getBroadcastData(char* destinationBuffer) {
-    char* bufferPointer = destinationBuffer;
-
+int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
+    unsigned char* bufferStart = destinationBuffer;
+    
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
-    memcpy(bufferPointer, &_bodyPosition, sizeof(float) * 3);
-    bufferPointer += sizeof(float) * 3;
+    memcpy(destinationBuffer, &_bodyPosition, sizeof(float) * 3);
+    destinationBuffer += sizeof(float) * 3;
     
-    bufferPointer += packFloatAngleToTwoByte(bufferPointer, _bodyYaw);
-    bufferPointer += packFloatAngleToTwoByte(bufferPointer, _bodyPitch);
-    bufferPointer += packFloatAngleToTwoByte(bufferPointer, _bodyRoll);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
-    return bufferPointer - destinationBuffer;
+    return destinationBuffer - bufferStart;
 }
 
 // called on the other agents - assigns it to my views of the others
