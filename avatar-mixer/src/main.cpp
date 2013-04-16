@@ -40,22 +40,8 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *
     currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
 
     AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
+    currentPosition += agentData->getBroadcastData((char *) currentPosition);
     
-//    int bytesWritten = sprintf((char *)currentPosition,
-//                               PACKET_FORMAT,
-//                               agentData->getPitch(),
-//                               agentData->getYaw(),
-//                               agentData->getRoll(),
-//                               agentData->getHeadPositionX(),
-//                               agentData->getHeadPositionY(),
-//                               agentData->getHeadPositionZ(),
-//                               agentData->getLoudness(),
-//                               agentData->getAverageLoudness(),
-//                               agentData->getHandPositionX(),
-//                               agentData->getHandPositionY(),
-//                               agentData->getHandPositionZ());
-
-//    currentPosition += bytesWritten;
     return currentPosition;
 }
 
@@ -91,7 +77,7 @@ int main(int argc, char* argv[])
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // this is positional data from an agent
-                    agentList->updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->updateAgentWithData(agentAddress, (void *)(packetData + 1), receivedBytes);
                     
                     currentBufferPosition = broadcastPacket + 1;
                     agentIndex = 0;

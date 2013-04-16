@@ -45,7 +45,6 @@ AvatarData* AvatarData::clone() const {
 // called on me just prior to sending data to others (continuasly called)
 int AvatarData::getBroadcastData(char* destinationBuffer) {
     char* bufferPointer = destinationBuffer;
-    *(bufferPointer++) = PACKET_HEADER_HEAD_DATA;
 
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
@@ -63,7 +62,7 @@ int AvatarData::getBroadcastData(char* destinationBuffer) {
 // called on the other agents - assigns it to my views of the others
 void AvatarData::parseData(void *sourceBuffer, int numBytes) {
     
-    char* bufferPointer = (char*) sourceBuffer + 1;
+    char* bufferPointer = (char*) sourceBuffer ;
     
     memcpy(&_bodyPosition, bufferPointer, sizeof(float) * 3);
     bufferPointer += sizeof(float) * 3;
