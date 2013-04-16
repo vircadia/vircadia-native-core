@@ -562,6 +562,7 @@ void render_view_frustum() {
 		farClip     = ::myCamera.getFarClip();
 	}
 
+    /*
     printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
     printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
     printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
@@ -569,7 +570,7 @@ void render_view_frustum() {
     printf("fov=%f\n", fov);
     printf("nearClip=%f\n", nearClip);
     printf("farClip=%f\n", farClip);
-
+    */
 
     // Set the viewFrustum up with the correct position and orientation of the camera	
     viewFrustum.setPosition(position);
@@ -583,7 +584,7 @@ void render_view_frustum() {
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
     
-    viewFrustum.dump();
+    //viewFrustum.dump();
 	
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
@@ -729,7 +730,7 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getPos() ); 
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(  10.0 );
+			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45 );
 			myCamera.setDistance		(   0.5 );
@@ -992,7 +993,9 @@ int setFrustumOffset(int state) {
     int value = setValue(state, &::viewFrustumFromOffset);
 
     // reshape so that OpenGL will get the right lens details for the camera of choice    
-    reshape(::WIDTH,::HEIGHT);
+    if (state == MENU_ROW_PICKED) {
+        reshape(::WIDTH,::HEIGHT);
+    }
     
     return value;
 }
@@ -1054,12 +1057,13 @@ void initMenu() {
     menuColumnOptions->addRow("(V)oxels", setVoxels);
     menuColumnOptions->addRow("Stars (*)", setStars);
     menuColumnOptions->addRow("(Q)uit", quitApp);
+
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats (/)", setStats); 
     menuColumnTools->addRow("(M)enu", setMenu);
 
-    // Debug
+    // Frustum Options
     menuColumnFrustum = menu.addColumn("Frustum");
     menuColumnFrustum->addRow("Display (F)rustum", setDisplayFrustum); 
     menuColumnFrustum->addRow("Use (O)ffset Camera", setFrustumOffset); 
@@ -1411,8 +1415,8 @@ void reshape(int width, int height)
         farClip   = ::myCamera.getFarClip();
     }
 
-    printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
-        width,height,aspectRatio,fov,nearClip,farClip);
+    //printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
+    //    width,height,aspectRatio,fov,nearClip,farClip);
     
     // Tell our viewFrustum about this change
     ::viewFrustum.setAspectRatio(aspectRatio);
