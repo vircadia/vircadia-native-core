@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // this is positional data from an agent
-                    agentList->updateAgentWithData(agentAddress, (void *)(packetData + 1), receivedBytes);
+                    agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                     
                     currentBufferPosition = broadcastPacket + 1;
                     agentIndex = 0;

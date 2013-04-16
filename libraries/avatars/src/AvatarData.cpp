@@ -60,16 +60,17 @@ int AvatarData::getBroadcastData(char* destinationBuffer) {
 }
 
 // called on the other agents - assigns it to my views of the others
-void AvatarData::parseData(void *sourceBuffer, int numBytes) {
+void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
-    char* bufferPointer = (char*) sourceBuffer ;
+    // increment to push past the packet header
+    sourceBuffer++;
     
-    memcpy(&_bodyPosition, bufferPointer, sizeof(float) * 3);
-    bufferPointer += sizeof(float) * 3;
+    memcpy(&_bodyPosition, sourceBuffer, sizeof(float) * 3);
+    sourceBuffer += sizeof(float) * 3;
    
-    bufferPointer += unpackFloatAngleFromTwoByte((uint16_t*)bufferPointer, &_bodyYaw);
-    bufferPointer += unpackFloatAngleFromTwoByte((uint16_t*)bufferPointer, &_bodyPitch);
-    bufferPointer += unpackFloatAngleFromTwoByte((uint16_t*)bufferPointer, &_bodyRoll);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
 }
 
 glm::vec3 AvatarData::getBodyPosition() {

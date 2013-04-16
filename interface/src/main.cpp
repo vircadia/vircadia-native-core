@@ -1260,7 +1260,7 @@ void *networkReceive(void *args)
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    char *incomingPacket = new char[MAX_PACKET_SIZE];
+    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
 
     while (!stopNetworkReceiveThread) {
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {

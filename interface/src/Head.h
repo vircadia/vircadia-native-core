@@ -139,7 +139,7 @@ class Head : public AvatarData {
 		
 		void renderBody();
 		void renderHead( int faceToFace, int isMine );
-		void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
+		void renderOrientataionDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
 				
@@ -166,7 +166,7 @@ class Head : public AvatarData {
         //  Related to getting transmitter UDP data used to animate the avatar hand
         //
 
-        void processTransmitterData(char * packetData, int numBytes);
+        void processTransmitterData(unsigned char * packetData, int numBytes);
         float getTransmitterHz() { return transmitterHz; };
     
     private:

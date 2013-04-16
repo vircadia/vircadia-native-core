@@ -309,7 +309,7 @@ int main(int argc, const char * argv[])
                         agentList->increaseAgentId();
                     }
                     
-                    agentList->updateAgentWithData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                 } else {
                     memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
                     agentList->getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);

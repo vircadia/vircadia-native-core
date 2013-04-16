@@ -26,7 +26,7 @@ public:
     void setBodyPosition(glm::vec3 bodyPosition);
     
     int getBroadcastData(char* destinationBuffer);
-    void parseData(void *sourceBuffer, int numBytes);
+    void parseData(unsigned char* sourceBuffer, int numBytes);
     
     float getBodyYaw();
     void  setBodyYaw(float bodyYaw);
