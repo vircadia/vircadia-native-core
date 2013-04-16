@@ -8,8 +8,6 @@
 //
 //
 
-#include <SharedUtil.h>
-
 #include "ViewFrustum.h"
 
 ViewFrustum::ViewFrustum() :
