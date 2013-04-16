@@ -139,7 +139,7 @@ class Head : public AvatarData {
 		
 		void renderBody();
 		void renderHead( int faceToFace, int isMine );
-		void renderOrientataionDirections( glm::vec3 position, Orientation orientation, float size );
+		void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
 				

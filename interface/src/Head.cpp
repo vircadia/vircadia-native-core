@@ -1174,7 +1174,7 @@ void Head::SetNewHeadTarget(float pitch, float yaw) {
     YawTarget = yaw;
 }
 
-void Head::processTransmitterData(unsigned char *packetData, int numBytes) {
+void Head::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float accX, accY, accZ,
     graX, graY, graZ,

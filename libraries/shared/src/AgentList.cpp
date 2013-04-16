@@ -81,10 +81,10 @@ unsigned int AgentList::getSocketListenPort() {
     return socketListenPort;
 }
 
-void AgentList::processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes) {
+void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
-            updateList((unsigned char *)packetData, dataBytes);
+            updateList(packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_PING: {

@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     agentList->startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
-    char *packetData = new char[MAX_PACKET_SIZE];
+    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
                     break;
                 default:
                     // hand this off to the AgentList
-                    agentList->processAgentData(agentAddress, (void *)packetData, receivedBytes);
+                    agentList->processAgentData(agentAddress, packetData, receivedBytes);
                     break;
             }
         }

@@ -411,7 +411,7 @@ void *receiveAudioViaUDP(void *args) {
             }
             if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
 
-            ringBuffer->parseData(receivedData, PACKET_LENGTH_BYTES);
+            ringBuffer->parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
 
             previousReceiveTime = currentReceiveTime;
         }
