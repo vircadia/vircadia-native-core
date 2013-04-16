@@ -31,7 +31,6 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define NUM_OTHER_AVATARS 5 // temporary - for testing purposes!
 
-
 enum AvatarMode
 {
 	AVATAR_MODE_STANDING = 0,
