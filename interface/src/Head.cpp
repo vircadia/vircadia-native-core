@@ -217,6 +217,7 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
 
     if ((Pitch < MAX_PITCH) && (Pitch > MIN_PITCH))
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+    
     addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
 
     if (head_mirror) {
