@@ -20,13 +20,14 @@ enum CameraMode
     NUM_CAMERA_MODES
 };
 
+static const float DEFAULT_CAMERA_TIGHTNESS = 10.0f;
 
 class Camera
 {
 public:
     Camera();
 
-    void update();
+	void update( float deltaTime );
 
     void setMode            ( CameraMode    m ) { _mode             = m; }
     void setYaw             ( float         y ) { _yaw              = y; }
@@ -36,7 +37,8 @@ public:
     void setDistance        ( float         d ) { _distance         = d; }
     void setTargetPosition  ( glm::vec3     t ) { _targetPosition   = t; };
     void setPosition        ( glm::vec3     p ) { _position         = p; };
-    void setOrientation     ( Orientation   o ) { _orientation.set(o); }
+    void setOrientation     ( Orientation   o ) { _orientation.set(o);   }
+    void setTightness       ( float         t ) { _tightness        = t; }
     void setFieldOfView     ( float         f ) { _fieldOfView      = f; }
     void setAspectRatio     ( float         a ) { _aspectRatio      = a; }
     void setNearClip        ( float         n ) { _nearClip         = n; }
@@ -57,12 +59,14 @@ private:
 
     CameraMode	_mode;
     glm::vec3   _position;
+	glm::vec3	_idealPosition;
     glm::vec3   _targetPosition;
     float       _yaw;
     float       _pitch;
     float       _roll;
     float       _up;
     float       _distance;
+	float		_tightness;
     Orientation _orientation;
 
     // Lens attributes
