@@ -8,14 +8,32 @@
 //
 //
 
+#include "Util.h"
 #include "ViewFrustum.h"
 
-float ViewFrustum::fovAngleAdust=1.65;
-
-ViewFrustum::ViewFrustum(glm::vec3 position, glm::vec3 direction, 
-		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight) {
-	this->calculateViewFrustum(position, direction, up, right, screenWidth, screenHeight);
-}
+ViewFrustum::ViewFrustum() :
+    _position(glm::vec3(0,0,0)),
+    _direction(glm::vec3(0,0,0)),
+    _up(glm::vec3(0,0,0)),
+    _right(glm::vec3(0,0,0)),
+    _fieldOfView(0.0),
+    _aspectRatio(1.0),
+    _nearClip(0.1),
+    _farClip(500.0),
+    _nearHeight(0.0),
+    _nearWidth(0.0),
+    _farHeight(0.0),
+    _farWidth(0.0),
+    _farCenter(glm::vec3(0,0,0)),
+    _farTopLeft(glm::vec3(0,0,0)),
+    _farTopRight(glm::vec3(0,0,0)),
+    _farBottomLeft(glm::vec3(0,0,0)),
+    _farBottomRight(glm::vec3(0,0,0)),
+    _nearCenter(glm::vec3(0,0,0)),
+    _nearTopLeft(glm::vec3(0,0,0)),
+    _nearTopRight(glm::vec3(0,0,0)),
+    _nearBottomLeft(glm::vec3(0,0,0)),
+    _nearBottomRight(glm::vec3(0,0,0)) { }
 
 /////////////////////////////////////////////////////////////////////////////////////
 // ViewFrustum::calculateViewFrustum()
@@ -26,47 +44,41 @@ ViewFrustum::ViewFrustum(glm::vec3 position, glm::vec3 direction,
 // Notes on how/why this works: 
 //     http://www.lighthouse3d.com/tutorials/view-frustum-culling/view-frustums-shape/
 //
-void ViewFrustum::calculateViewFrustum(glm::vec3 position, glm::vec3 direction, 
-		glm::vec3 up, glm::vec3 right, float screenWidth, float screenHeight) {
+void ViewFrustum::calculate() {
+
+    static const double PI_OVER_180			= 3.14159265359 / 180.0; // would be better if this was in a shared location
 	
-	// Save the values we were passed...
-	this->_position = position;
-	this->_direction = direction;
-	this->_up = up;
-	this->_right = right;
-	this->_screenWidth = screenWidth;
-	this->_screenHeight = screenHeight;
-	
-	glm::vec3 front    = direction;
+	glm::vec3 front    = _direction;
 	
 	// Calculating field of view.
-	//    0.7854f is 45 deg
-	//    ViewFrustum::fovAngleAdust defaults to 1.65
-	// Apparently our fov is around 1.75 times this value or 74.25 degrees
-	// you can adjust this in interface by using the "|" and "\" keys to tweak
-	// the adjustment and see effects of different FOVs
-	float fovHalfAngle = 0.7854f * ViewFrustum::fovAngleAdust; 
-	float ratio        = screenWidth / screenHeight;
+	float fovInRadians = this->_fieldOfView * PI_OVER_180;
 	
-	this->_nearDist = 0.1;
-	this->_farDist  = 10.0;
-	
-	this->_nearHeight = 2 * tan(fovHalfAngle) * this->_nearDist;
-	this->_nearWidth  = this->_nearHeight * ratio;
-	this->_farHeight  = 2 * tan(fovHalfAngle) * this->_farDist;
-	this->_farWidth   = this->_farHeight * ratio;
+	float twoTimesTanHalfFOV = 2.0f * tan(fovInRadians/2.0f);
 
-	float farHalfHeight    = this->_farHeight * 0.5f;
-	float farHalfWidth     = this->_farWidth  * 0.5f;
-	this->_farCenter       = this->_position+front * this->_farDist;
+    float slightlySmaller    = 0.0f;
+    float slightlyInsideWidth= 0.0f - slightlySmaller;
+    float slightlyInsideNear = 0.0f + slightlySmaller;
+    float slightlyInsideFar  = 0.0f - slightlySmaller;
+    
+    float nearClip = this->_nearClip + slightlyInsideNear;
+    float farClip  = this->_farClip  + slightlyInsideFar;
+	
+	this->_nearHeight = (twoTimesTanHalfFOV * nearClip);
+	this->_nearWidth  = this->_nearHeight * this->_aspectRatio;
+	this->_farHeight  = (twoTimesTanHalfFOV * farClip);
+	this->_farWidth   = this->_farHeight * this->_aspectRatio;
+
+	float farHalfHeight    = (this->_farHeight * 0.5f) + slightlyInsideWidth;
+	float farHalfWidth     = (this->_farWidth  * 0.5f) + slightlyInsideWidth;
+	this->_farCenter       = this->_position+front * farClip;
 	this->_farTopLeft      = this->_farCenter  + (this->_up * farHalfHeight)  - (this->_right * farHalfWidth); 
 	this->_farTopRight     = this->_farCenter  + (this->_up * farHalfHeight)  + (this->_right * farHalfWidth); 
 	this->_farBottomLeft   = this->_farCenter  - (this->_up * farHalfHeight)  - (this->_right * farHalfWidth); 
 	this->_farBottomRight  = this->_farCenter  - (this->_up * farHalfHeight)  + (this->_right * farHalfWidth); 
 
-	float nearHalfHeight   = this->_nearHeight * 0.5f;
-	float nearHalfWidth    = this->_nearWidth  * 0.5f;
-	this->_nearCenter      = this->_position+front * this->_nearDist;
+	float nearHalfHeight   = (this->_nearHeight * 0.5f) + slightlyInsideWidth;
+	float nearHalfWidth    = (this->_nearWidth  * 0.5f) + slightlyInsideWidth;
+	this->_nearCenter      = this->_position+front * nearClip;
 	this->_nearTopLeft     = this->_nearCenter + (this->_up * nearHalfHeight) - (this->_right * nearHalfWidth); 
 	this->_nearTopRight    = this->_nearCenter + (this->_up * nearHalfHeight) + (this->_right * nearHalfWidth); 
 	this->_nearBottomLeft  = this->_nearCenter - (this->_up * nearHalfHeight) - (this->_right * nearHalfWidth); 
@@ -80,11 +92,11 @@ void ViewFrustum::dump() {
     printf("up.x=%f, up.y=%f, up.z=%f\n", this->_up.x, this->_up.y, this->_up.z);
     printf("right.x=%f, right.y=%f, right.z=%f\n", this->_right.x, this->_right.y, this->_right.z);
 
-    printf("farDist=%f\n", this->_farDist);
+    printf("farDist=%f\n", this->_farClip);
     printf("farHeight=%f\n", this->_farHeight);
     printf("farWidth=%f\n", this->_farWidth);
 
-    printf("nearDist=%f\n", this->_nearDist);
+    printf("nearDist=%f\n", this->_nearClip);
     printf("nearHeight=%f\n", this->_nearHeight);
     printf("nearWidth=%f\n", this->_nearWidth);
 

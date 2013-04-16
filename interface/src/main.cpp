@@ -79,6 +79,9 @@
 
 using namespace std;
 
+void reshape(int width, int height); // will be defined below
+
+
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
 
@@ -97,10 +100,13 @@ bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-Head myAvatar;                       //  The rendered avatar of oneself
-Camera myCamera;					//  My view onto the world (sometimes on myself :)
+ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-                                    //  Starfield information
+Head myAvatar;                      // The rendered avatar of oneself
+Camera myCamera;                    // My view onto the world (sometimes on myself :)
+Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
+
+//  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 FieldOfView fov;
 Stars stars;
@@ -528,39 +534,57 @@ float viewFrustumOffsetUp = 0.0;
 
 void render_view_frustum() {
 	
-	glm::vec3 cameraPosition   = ::myCamera.getPosition(); 
-	glm::vec3 headPosition     = ::myAvatar.getHeadPosition();
-
-	glm::vec3 cameraDirection = ::myCamera.getOrientation().getFront() * glm::vec3(1,1,-1);
-	glm::vec3 headDirection    = myAvatar.getHeadLookatDirection(); // direction still backwards
-
-	glm::vec3 cameraUp  = myCamera.getOrientation().getUp() * glm::vec3(1,1,1);
-	glm::vec3 headUp    = myAvatar.getHeadLookatDirectionUp();
-
-	glm::vec3 cameraRight = myCamera.getOrientation().getRight() * glm::vec3(1,1,-1);
-	glm::vec3 headRight = myAvatar.getHeadLookatDirectionRight() * glm::vec3(-1,1,-1); // z is flipped!
-
 	// We will use these below, from either the camera or head vectors calculated above	
 	glm::vec3 position;
 	glm::vec3 direction;
 	glm::vec3 up;
 	glm::vec3 right;
+	float fov, nearClip, farClip;
 	
 	// Camera or Head?
 	if (::cameraFrustum) {
-		position = cameraPosition;
-		direction = cameraDirection;
-		up = cameraUp;
-		right = cameraRight;
+		position    = ::myCamera.getPosition();
+		direction   = ::myCamera.getOrientation().getFront() * glm::vec3(1,1,-1);
+		up          = ::myCamera.getOrientation().getUp() * glm::vec3(1,1,1);
+		right       = ::myCamera.getOrientation().getRight() * glm::vec3(1,1,-1);
+		fov         = ::myCamera.getFieldOfView();
+		nearClip    = ::myCamera.getNearClip();
+		farClip     = ::myCamera.getFarClip();
 	} else {
-		position = headPosition;
-		direction = headDirection;
-		up = headUp;
-		right = headRight;
+		position    = ::myAvatar.getHeadPosition();
+		direction   = ::myAvatar.getHeadLookatDirection();
+		up          = ::myAvatar.getHeadLookatDirectionUp();
+		right       = ::myAvatar.getHeadLookatDirectionRight() * glm::vec3(-1,1,-1);
+		
+		// NOTE: we use the same lens details if we draw from the head
+		fov         = ::myCamera.getFieldOfView();
+		nearClip    = ::myCamera.getNearClip();
+		farClip     = ::myCamera.getFarClip();
 	}
-	
+
+    /*
+    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
+    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
+    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
+    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
+    printf("fov=%f\n", fov);
+    printf("nearClip=%f\n", nearClip);
+    printf("farClip=%f\n", farClip);
+    */
+
+    // Set the viewFrustum up with the correct position and orientation of the camera	
+    viewFrustum.setPosition(position);
+    viewFrustum.setOrientation(direction,up,right);
+    
+    // Also make sure it's got the correct lens details from the camera
+    viewFrustum.setFieldOfView(fov);
+    viewFrustum.setNearClip(nearClip);
+    viewFrustum.setFarClip(farClip);
+
     // Ask the ViewFrustum class to calculate our corners
-    ViewFrustum vf(position,direction,up,right,::WIDTH,::HEIGHT);
+    viewFrustum.calculate();
+    
+    //viewFrustum.dump();
 	
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
@@ -593,64 +617,64 @@ void render_view_frustum() {
 	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
 			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
 		// Drawing the bounds of the frustum
-		// vf.getNear plane - bottom edge 
+		// viewFrustum.getNear plane - bottom edge 
 		glColor3f(1,0,0);
-		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
+		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
 
-		// vf.getNear plane - top edge
-		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
-		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+		// viewFrustum.getNear plane - top edge
+		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
 
-		// vf.getNear plane - right edge
-		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
-		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
+		// viewFrustum.getNear plane - right edge
+		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
 
-		// vf.getNear plane - left edge
-		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
+		// viewFrustum.getNear plane - left edge
+		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
 	}
 
 	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
 			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_FAR_PLANE) {
-		// vf.getFar plane - bottom edge 
+		// viewFrustum.getFar plane - bottom edge 
 		glColor3f(0,1,0); // GREEN!!!
-		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
-		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
 
-		// vf.getFar plane - top edge
-		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
-		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
+		// viewFrustum.getFar plane - top edge
+		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
-		// vf.getFar plane - right edge
-		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
-		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
+		// viewFrustum.getFar plane - right edge
+		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
-		// vf.getFar plane - left edge
-		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
-		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+		// viewFrustum.getFar plane - left edge
+		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
 	}
 
 	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES) {
 		// RIGHT PLANE IS CYAN
-		// right plane - bottom edge - vf.getNear to distant 
+		// right plane - bottom edge - viewFrustum.getNear to distant 
 		glColor3f(0,1,1);
-		glVertex3f(vf.getNearBottomRight().x, vf.getNearBottomRight().y, vf.getNearBottomRight().z);
-		glVertex3f(vf.getFarBottomRight().x, vf.getFarBottomRight().y, vf.getFarBottomRight().z);
+		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
 
-		// right plane - top edge - vf.getNear to distant
-		glVertex3f(vf.getNearTopRight().x, vf.getNearTopRight().y, vf.getNearTopRight().z);
-		glVertex3f(vf.getFarTopRight().x, vf.getFarTopRight().y, vf.getFarTopRight().z);
+		// right plane - top edge - viewFrustum.getNear to distant
+		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
 		// LEFT PLANE IS BLUE
-		// left plane - bottom edge - vf.getNear to distant
+		// left plane - bottom edge - viewFrustum.getNear to distant
 		glColor3f(0,0,1);
-		glVertex3f(vf.getNearBottomLeft().x, vf.getNearBottomLeft().y, vf.getNearBottomLeft().z);
-		glVertex3f(vf.getFarBottomLeft().x, vf.getFarBottomLeft().y, vf.getFarBottomLeft().z);
+		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
 
-		// left plane - top edge - vf.getNear to distant
-		glVertex3f(vf.getNearTopLeft().x, vf.getNearTopLeft().y, vf.getNearTopLeft().z);
-		glVertex3f(vf.getFarTopLeft().x, vf.getFarTopLeft().y, vf.getFarTopLeft().z);
+		// left plane - top edge - viewFrustum.getNear to distant
+		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
 	}
 
     glEnd();
@@ -660,8 +684,6 @@ void render_view_frustum() {
 
 void display(void)
 {
-	//printf( "avatar head lookat = %f, %f, %f\n", myAvatar.getAvatarHeadLookatDirection().x, myAvatar.getAvatarHeadLookatDirection().y, myAvatar.getAvatarHeadLookatDirection().z );
-
 	PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -708,13 +730,14 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getPos() ); 
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(  10.0 );
+			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45 );
 			myCamera.setDistance		(   0.5 );
 			myCamera.setTightness		( 10.0f );
 			myCamera.update				( 1.f/FPS );
 		}
+		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
 		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
@@ -725,21 +748,20 @@ void display(void)
 		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
 		Camera whichCamera = myCamera;
 		Camera viewFrustumOffsetCamera = myCamera;
-		
+
 		if (::viewFrustumFromOffset && ::frustumOn) {
 			//----------------------------------------------------
 			// set the camera to third-person view but offset so we can see the frustum
 			//----------------------------------------------------		
 			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch );
-			viewFrustumOffsetCamera.setRoll	(   0.0 + ::viewFrustumOffsetRoll  ); 
-			viewFrustumOffsetCamera.setUp		(   0.2 + 0.2 );
-			viewFrustumOffsetCamera.setDistance(   0.5 + 0.2 );
-			viewFrustumOffsetCamera.update( 1.f/FPS );
-			
+			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch    );
+			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll     ); 
+			viewFrustumOffsetCamera.setUp		(   0.2 + ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
+			viewFrustumOffsetCamera.update(1.f/FPS);
 			whichCamera = viewFrustumOffsetCamera;
 		}		
-	
+
 		//---------------------------------------------
 		// transform view according to whichCamera
 		// could be myCamera (if in normal mode)
@@ -749,6 +771,8 @@ void display(void)
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
         glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
+
+
 
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
@@ -966,7 +990,14 @@ int setDisplayFrustum(int state) {
 }
 
 int setFrustumOffset(int state) {
-    return setValue(state, &::viewFrustumFromOffset);
+    int value = setValue(state, &::viewFrustumFromOffset);
+
+    // reshape so that OpenGL will get the right lens details for the camera of choice    
+    if (state == MENU_ROW_PICKED) {
+        reshape(::WIDTH,::HEIGHT);
+    }
+    
+    return value;
 }
 
 int setFrustumOrigin(int state) {
@@ -1026,12 +1057,13 @@ void initMenu() {
     menuColumnOptions->addRow("(V)oxels", setVoxels);
     menuColumnOptions->addRow("Stars (*)", setStars);
     menuColumnOptions->addRow("(Q)uit", quitApp);
+
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats (/)", setStats); 
     menuColumnTools->addRow("(M)enu", setMenu);
 
-    // Debug
+    // Frustum Options
     menuColumnFrustum = menu.addColumn("Frustum");
     menuColumnFrustum->addRow("Display (F)rustum", setDisplayFrustum); 
     menuColumnFrustum->addRow("Use (O)ffset Camera", setFrustumOffset); 
@@ -1187,7 +1219,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
-    if (k == 'O' || k == 'G')  ::viewFrustumFromOffset = !::viewFrustumFromOffset; // toggle view frustum offset debugging
+    if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
     
 	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
 	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
@@ -1199,8 +1231,10 @@ void key(unsigned char k, int x, int y)
 	if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
 	if (k == ',') ::viewFrustumOffsetUp        -= 0.05;
 	if (k == '.') ::viewFrustumOffsetUp        += 0.05;
-	if (k == '|') ViewFrustum::fovAngleAdust   -= 0.05;
-	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
+
+//	if (k == '|') ViewFrustum::fovAngleAdust   -= 0.05;
+//	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
+
 	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
 	
     if (k == '&') {
@@ -1359,26 +1393,65 @@ void idle(void) {
 }
 
 
-
 void reshape(int width, int height)
 {
     WIDTH = width;
     HEIGHT = height; 
+    float aspectRatio = ((float)width/(float)height); // based on screen resize
 
+    float fov;
+    float nearClip;
+    float farClip;
+
+    // get the lens details from the current camera
+    if (::viewFrustumFromOffset) {
+        fov       = ::viewFrustumOffsetCamera.getFieldOfView();
+        nearClip  = ::viewFrustumOffsetCamera.getNearClip();
+        farClip   = ::viewFrustumOffsetCamera.getFarClip();
+    } else {
+        fov       = ::myCamera.getFieldOfView();
+        nearClip  = ::myCamera.getNearClip();
+        farClip   = ::myCamera.getFarClip();
+    }
+
+    //printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
+    //    width,height,aspectRatio,fov,nearClip,farClip);
+    
+    // Tell our viewFrustum about this change
+    ::viewFrustum.setAspectRatio(aspectRatio);
+
+    
+    glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     glMatrixMode(GL_PROJECTION); //hello
-    fov.setResolution(width, height)
-            .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-            .setPerspective(0.7854f);
-    glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
+    // XXXBHG - Note: this is Tobias's code for loading the perspective matrix. At Philip's suggestion, I'm removing
+    // it and putting back our old code that simply loaded the fov, ratio, and near/far clips. But I'm keeping this here
+    // for reference for now.
+    //fov.setResolution(width, height)
+    //        .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
+    //        .setPerspective(0.7854f);
+    //glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
+
+    glLoadIdentity();
+    
+    // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
+    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure! Basically, this makes
+    // the near clip a little bit closer (therefor you see more) and the far clip a little bit farther (also,
+    // to see more.)
+    if (::frustumOn) {
+        nearClip -= 0.01f;
+        farClip  += 0.01f;
+    }
+    
+    // On window reshape, we need to tell OpenGL about our new setting
+    gluPerspective(fov,aspectRatio,nearClip,farClip);
+    
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glViewport(0, 0, width, height);
+     
 }
-
-
 
 void mouseFunc( int button, int state, int x, int y ) 
 {
@@ -1469,6 +1542,12 @@ int main(int argc, const char * argv[])
     #ifdef _WIN32
     glewInit();
     #endif
+    
+    // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
+    // field of view and near and far clip to make it interesting.
+    //viewFrustumOffsetCamera.setFieldOfView(90.0);
+    viewFrustumOffsetCamera.setNearClip(0.1);
+    viewFrustumOffsetCamera.setFarClip(500.0);
 
     printf( "Created Display Window.\n" );
         
