@@ -9,8 +9,7 @@
 
 #include "Camera.h"
 
-Camera::Camera()
-{
+Camera::Camera() {
 	_mode			= CAMERA_MODE_THIRD_PERSON;
 	_tightness		= DEFAULT_CAMERA_TIGHTNESS;
 	_fieldOfView    = 60.0;     // default
@@ -28,26 +27,40 @@ Camera::Camera()
 	_orientation.setToIdentity();
 }
 
-void Camera::update( float deltaTime )
+
+
+void Camera::update( float deltaTime ) 
 {
+	//----------------------------------------
+	// derive t from tightness
+	//----------------------------------------
+	float t = _tightness * deltaTime;
+	
+	if ( t > 1.0 ){
+		t = 1.0;
+	}
+
+	//----------------------------------------
+	// update _yaw (before position!) 
+	//----------------------------------------
+	_yaw += ( _idealYaw - _yaw ) * t;
 	float radian = ( _yaw / 180.0 ) * PIE;
 
+	//----------------------------------------
+	// update _position
+	//----------------------------------------
 	//these need to be checked to make sure they correspond to the coordinate system.
 	double x = _distance * -sin( radian );
 	double z = _distance *  cos( radian );
 	double y = _up;
 		
 	_idealPosition = _targetPosition + glm::vec3( x, y, z );
-	float t = _tightness * deltaTime;
-	
-	if ( t > 1.0 ){
-		t = 1.0;
-	}
 	
 	_position += ( _idealPosition - _position ) * t; 
-	_yaw      += ( _idealYaw      - _yaw      ) * t;
 
+	//------------------------------------------------------------------------------
 	// generate the ortho-normals for the orientation based on the Euler angles
+	//------------------------------------------------------------------------------
 	_orientation.setToIdentity();
 	_orientation.yaw	( _yaw	 );
 	_orientation.pitch	( _pitch );
