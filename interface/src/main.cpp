@@ -103,7 +103,7 @@ Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-Head myAvatar;                      // The rendered avatar of oneself
+Head myAvatar(true);                // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
 
@@ -230,12 +230,7 @@ void displayStats(void)
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
             FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
-    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats); 
-    if (serialPort.active) {
-        sprintf(stats, "ADC samples = %d, LED = %d", 
-                serialPort.getNumSamples(), serialPort.getLED());
-        drawtext(300, statsVerticalOffset + 30, 0.10f, 0, 1.0, 0, stats);
-    }
+    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
@@ -386,7 +381,7 @@ void updateAvatar(float frametime)
     float gyroPitchRate = serialPort.getRelativeValue(PITCH_RATE);
     float gyroYawRate = serialPort.getRelativeValue(YAW_RATE);
     
-    myAvatar.UpdatePos(frametime, &serialPort, headMirror, &gravity);
+    myAvatar.UpdateGyros(frametime, &serialPort, headMirror, &gravity);
 		
     //  
     //  Update gyro-based mouse (X,Y on screen)
@@ -822,7 +817,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getBodyPosition();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, 0);
+                agentHead->render(0);
                 glPopMatrix();
             }
         }
@@ -837,7 +832,7 @@ void display(void)
     
 	
         //Render my own avatar
-		myAvatar.render( true, 1 );	
+		myAvatar.render(true);	
     }
     
     glPopMatrix();
@@ -1300,7 +1295,7 @@ void *networkReceive(void *args)
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
                                                                    bytesReceived,
-                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 2));
+                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 3));
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1475,7 +1470,7 @@ void mouseoverFunc( int x, int y)
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Head());
+        newAgent->setLinkedData(new Head(false));
     }
 }
 

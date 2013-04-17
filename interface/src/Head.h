@@ -20,6 +20,11 @@
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -80,6 +85,7 @@ struct AvatarBone
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
 	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
+    glm::quat   rotation;               // this will eventually replace yaw, pitch and roll (and maybe orienttion)
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -97,13 +103,13 @@ struct Avatar
 
 class Head : public AvatarData {
     public:
-        Head();
+        Head(bool isMine);
         ~Head();
         Head(const Head &otherHead);
         Head* clone() const;
     
         void reset();
-        void UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
         void setNoise (float mag) { noise = mag; }
         void setPitch(float p) {Pitch = p; }
         void setYaw(float y) {Yaw = y; }
@@ -124,7 +130,9 @@ class Head : public AvatarData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		float getBodyYaw();
+        float getBodyYaw() {return _bodyYaw;};
+        void addBodyYaw(float y) {_bodyYaw += y;};
+    
 		glm::vec3 getHeadLookatDirection();
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
@@ -135,10 +143,10 @@ class Head : public AvatarData {
 		
 		void setTriggeringAction( bool trigger ); 
         
-        void render(int faceToFace, int isMine);
+        void render(int faceToFace);
 		
 		void renderBody();
-		void renderHead( int faceToFace, int isMine );
+		void renderHead( int faceToFace);
 		//void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
@@ -158,9 +166,9 @@ class Head : public AvatarData {
         bool getDriveKeys(int key) { return driveKeys[key]; };
     
         //  Set/Get update the thrust that will move the avatar around
-        void setThrust(glm::vec3 newThrust) { avatar.thrust = newThrust; };
-        void addThrust(glm::vec3 newThrust) { avatar.thrust += newThrust; };
-        glm::vec3 getThrust() { return avatar.thrust; };
+        void setThrust(glm::vec3 newThrust) { _avatar.thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { _avatar.thrust += newThrust; };
+        glm::vec3 getThrust() { return _avatar.thrust; };
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
@@ -170,6 +178,7 @@ class Head : public AvatarData {
         float getTransmitterHz() { return transmitterHz; };
     
     private:
+        bool _isMine;
         float noise;
         float Pitch;
         float Yaw;
@@ -204,37 +213,33 @@ class Head : public AvatarData {
         float audioAttack;
         float browAudioLift;
 		
-		bool triggeringAction;
-    
-		float bodyYawDelta;
-		
-		float		closeEnoughToInteract;
-		int			closestOtherAvatar;
         
         //temporary - placeholder for real other avs
 		glm::vec3	DEBUG_otherAvatarListPosition	[ NUM_OTHER_AVATARS ];
 		float		DEBUG_otherAvatarListTimer		[ NUM_OTHER_AVATARS ];
 		
-		bool usingSprings;
-		
-		bool handBeingMoved;
-		bool previousHandBeingMoved;
-		glm::vec3 movedHandOffset;
+		bool        _triggeringAction;
+		float       _bodyYawDelta;
+		float       _closeEnoughToInteract;
+		int         _closestOtherAvatar;
+		bool        _usingSprings;
+		bool        _handBeingMoved;
+		bool        _previousHandBeingMoved;
+		glm::vec3   _movedHandOffset;
+		float       _springVelocityDecay;
+		float       _springForce;
+        glm::quat   _rotation; // the rotation of the avatar body as a whole
+		AvatarBone	_bone[ NUM_AVATAR_BONES ];
+		AvatarMode  _mode;
+		Avatar      _avatar;
     
         int driveKeys[MAX_DRIVE_KEYS];
 		
-		float springVelocityDecay;
-		float springForce;
         
         int eyeContact;
         eyeContactTargets eyeContactTarget;
     
         GLUquadric *sphere;
-		Avatar avatar;
-		
-		AvatarBone	bone[ NUM_AVATAR_BONES ];
-		
-		AvatarMode mode;
 
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     
@@ -244,18 +249,16 @@ class Head : public AvatarData {
         timeval transmitterTimer;
         float transmitterHz;
         int transmitterPackets;
-
         
-        //-------------------------------------------
+        //-----------------------------
         // private methods...
-        //-------------------------------------------
+        //-----------------------------
 		void initializeAvatar();
 		void initializeSkeleton();
 		void updateSkeleton();
 		void initializeBodySprings();
 		void updateBodySprings( float deltaTime );
 		void calculateBoneLengths();
-    
         void readSensors();
 };
 
