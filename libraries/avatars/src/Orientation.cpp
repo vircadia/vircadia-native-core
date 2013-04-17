@@ -9,7 +9,7 @@
 #include <SharedUtil.h>
 
 
-static bool testingForNormalizationAndOrthogonality = false;
+static bool testingForNormalizationAndOrthogonality = true;
 
 Orientation::Orientation() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );
@@ -94,9 +94,9 @@ void Orientation::setRightUpFront( const glm::vec3 &r, const glm::vec3 &u, const
 //----------------------------------------------------------------------
 void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 
-    //----------------------------------------------------------------
-    // make sure vectors are normalized (or close to length 1)
-    //----------------------------------------------------------------
+    //------------------------------------------------------------------
+    // make sure vectors are normalized (or close enough to length 1.0)
+    //------------------------------------------------------------------
 	float rightLength	= glm::length( right );
 	float upLength		= glm::length( up    );
 	float frontLength	= glm::length( front );

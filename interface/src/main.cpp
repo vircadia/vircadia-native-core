@@ -722,7 +722,7 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setPitch			(  10.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45);
 			myCamera.setDistance		(   1.0 );
@@ -761,6 +761,13 @@ void display(void)
         glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
+
+
+
+
+        //quick test for camera ortho-normal sanity check...
+        
+
 
 
 
@@ -1499,6 +1506,9 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    // Quick test of the Orientation class on startup!
+    testOrientationClass();    
+
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     
     gettimeofday(&applicationStartupTime, NULL);
@@ -1593,4 +1603,3 @@ int main(int argc, const char * argv[])
     ::terminate();
     return EXIT_SUCCESS;
 }   
-
