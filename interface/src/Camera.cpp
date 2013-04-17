@@ -62,8 +62,11 @@ void Camera::update( float deltaTime )
 	// generate the ortho-normals for the orientation based on the Euler angles
 	//------------------------------------------------------------------------------
 	_orientation.setToIdentity();
+    
 	_orientation.yaw	( _yaw	 );
 	_orientation.pitch	( _pitch );
 	_orientation.roll	( _roll	 );
+    
+    //printf( "orientation.front = %f, %f, %f\n", _orientation.front.x, _orientation.front.y, _orientation.front.z );
 }
 
