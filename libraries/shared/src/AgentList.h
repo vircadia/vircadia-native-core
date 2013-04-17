@@ -13,7 +13,6 @@
 #include <vector>
 #include <stdint.h>
 
-#include "shared_Log.h"
 #include "Agent.h"
 #include "UDPSocket.h"
 

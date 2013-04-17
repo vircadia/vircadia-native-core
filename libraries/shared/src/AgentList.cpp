@@ -14,6 +14,7 @@
 #include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+#include "shared_Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
