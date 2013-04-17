@@ -37,4 +37,39 @@ void drawGroundPlaneGrid( float size, int resolution );
 
 void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
+
+class oTestCase {
+public:
+    float yaw;
+    float pitch;
+    float roll;
+    
+    float frontX;    
+    float frontY;
+    float frontZ;    
+    
+    float upX;    
+    float upY;
+    float upZ;    
+    
+    float rightX;    
+    float rightY;
+    float rightZ;    
+    
+    oTestCase(
+        float yaw, float pitch, float roll, 
+        float frontX, float frontY, float frontZ,
+        float upX, float upY, float upZ,
+        float rightX, float rightY, float rightZ
+    ) : 
+        yaw(yaw),pitch(pitch),roll(roll),
+        frontX(frontX),frontY(frontY),frontZ(frontZ),
+        upX(upX),upY(upY),upZ(upZ),
+        rightX(rightX),rightY(rightY),rightZ(rightZ)
+    {};
+};
+
+
+void testOrientationClass();
+
 #endif
