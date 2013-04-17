@@ -1316,7 +1316,7 @@ void *networkReceive(void *args)
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
                                                                    bytesReceived,
-                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 2));
+                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 3));
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
