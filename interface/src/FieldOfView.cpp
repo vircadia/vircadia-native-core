@@ -1,6 +1,6 @@
 //
 // FieldOfView.cpp
-// interface
+// hifi
 //
 // Created by Tobias Schwinger on 3/21/13.
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
@@ -16,7 +16,7 @@
 using namespace glm;
 
 FieldOfView::FieldOfView() :
-    _matOrientation(mat4(1.0f)),
+    _matView(mat4(1.0f)),
     _vecBoundsLow(vec3(-1.0f,-1.0f,-1.0f)),
     _vecBoundsHigh(vec3(1.0f,1.0f,1.0f)),
     _valWidth(256.0f),
@@ -24,6 +24,17 @@ FieldOfView::FieldOfView() :
     _valAngle(0.61),
     _valZoom(1.0f), 
     _enmAspectBalancing(expose_less) {
+}
+
+FieldOfView& FieldOfView::setOrientation(mat4 const& matrix) {
+
+    _matView = affineInverse(matrix);
+    return *this;
+}
+
+mat4 FieldOfView::getOrientation() const {
+
+    return affineInverse(_matView);
 }
 
 mat4 FieldOfView::getViewerScreenXform() const {
@@ -48,14 +59,14 @@ mat4 FieldOfView::getViewerScreenXform() const {
 
 mat4 FieldOfView::getWorldViewerXform() const {
 
-    return translate(affineInverse(_matOrientation),
+    return translate(_matView,
             vec3(0.0f, 0.0f, -_vecBoundsHigh.z) );
 }
 
 mat4 FieldOfView::getWorldScreenXform() const {
 
     return translate(
-            getViewerScreenXform() * affineInverse(_matOrientation),
+            getViewerScreenXform() * _matView,
             vec3(0.0f, 0.0f, -_vecBoundsHigh.z) );
 }
 
@@ -65,7 +76,7 @@ mat4 FieldOfView::getViewerWorldXform() const {
 
     return translate(
             translate(mat4(1.0f), n_translate) 
-                * _matOrientation, -n_translate );
+                * affineInverse(_matView), -n_translate );
 }
 
 float FieldOfView::getPixelSize() const {

@@ -1,22 +1,30 @@
 //
 // FieldOfView.h
-// interface
+// hifi
 //
 // Created by Tobias Schwinger on 3/21/13.
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__FieldOfView__
-#define __interface__FieldOfView__
+#ifndef __hifi__FieldOfView__
+#define __hifi__FieldOfView__
 
 #include <glm/glm.hpp>
 
 // 
 // Viewing parameter encapsulation.
-// 
+//
+// Once configured provides transformation matrices between different coordinate spaces, such as
+//
+//   o world space, 
+//   o viewer space (orientation of local viewer, no projective transforms), and
+//   o screen space (as Viewer space + projection).
+//
+// Also provides information about the mapping of the screen space coordinates onto the screen.
+//
 class FieldOfView {
 
-        glm::mat4   _matOrientation;
+        glm::mat4   _matView;
         glm::vec3   _vecBoundsLow;
         glm::vec3   _vecBoundsHigh;
         float       _valWidth;
@@ -33,7 +41,9 @@ class FieldOfView {
         FieldOfView& setBounds(glm::vec3 const& low, glm::vec3 const& high) {
                 _vecBoundsLow = low; _vecBoundsHigh = high; return *this; }
 
-        FieldOfView& setOrientation(glm::mat4 const& matrix) { _matOrientation = matrix; return *this; }
+        FieldOfView& setView(glm::mat4 const& matrix) { _matView = matrix; return *this; }
+
+        FieldOfView& setOrientation(glm::mat4 const& matrix);
 
         FieldOfView& setPerspective(float angle) { _valAngle = angle; return *this; }
 
@@ -52,12 +62,19 @@ class FieldOfView {
 
         // dumb accessors
 
-        glm::mat4 const& getOrientation()    const   { return _matOrientation; }
+        glm::mat4 const& getView()           const   { return _matView; }
         float            getWidthInPixels()  const   { return _valWidth; }
         float            getHeightInPixels() const   { return _valHeight; }
         float            getPerspective()    const   { return _valAngle; }
 
         // matrices
+
+        //
+        // Returns a matrix representing the camera position and rotation in
+        // space. Similar to getViewerWorldXform but without translation offset
+        // applied.
+        //
+        glm::mat4 getOrientation() const;
 
         // 
         // Returns a full transformation matrix to project world coordinates
@@ -100,7 +117,8 @@ class FieldOfView {
         float getPixelSize() const;
 
         // 
-        // Returns the frustum as used for the projection matrices.
+        // Returns the frustum as used for the projection matrices. That
+        // is the one that applies when the current orientation is at identity.
         // The result depdends on the bounds, eventually aspect correction
         // for the current resolution, the perspective angle (specified in
         // respect to diagonal) and zoom.
@@ -109,7 +127,8 @@ class FieldOfView {
 
         // 
         // Returns the z-offset from the origin to where orientation ia
-        // applied.
+        // applied (in negated form equivalent to the 'near' parameter of
+        // gluPerspective).
         // 
         float getTransformOffset() const { return _vecBoundsHigh.z; }
 
@@ -119,5 +138,5 @@ class FieldOfView {
         float getAspectRatio() const { return _valHeight / _valWidth; }
 };
 
-#endif
+#endif /* defined(__hifi__FieldOfView__) */
 
