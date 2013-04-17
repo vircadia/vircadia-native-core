@@ -106,7 +106,7 @@ Head::Head() {
 	sphere = NULL;
 	
     if (iris_texture.size() == 0) {
-        switchToResourcesIfRequired();
+        switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
         if (error != 0) {
             std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
