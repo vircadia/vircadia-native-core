@@ -8,6 +8,9 @@
 #include "Orientation.h"
 #include <SharedUtil.h>
 
+
+static bool testingForNormalizationAndOrthogonality = true;
+
 Orientation::Orientation() {
 	right	= glm::vec3(  1.0,  0.0,  0.0 );
 	up		= glm::vec3(  0.0,  1.0,  0.0 );
@@ -41,6 +44,8 @@ void Orientation::yaw( float angle ) {
 	
 	front	= cosineFront + sineRight;
 	right	= cosineRight - sineFront;	
+    
+    if ( testingForNormalizationAndOrthogonality ) { testForOrthogonalAndNormalizedVectors( EPSILON ); }
 }
 
 
@@ -56,6 +61,8 @@ void Orientation::pitch( float angle ) {
 	
 	up		= cosineUp		+ sineFront;
 	front	= cosineFront	- sineUp;
+
+    if ( testingForNormalizationAndOrthogonality ) { testForOrthogonalAndNormalizedVectors( EPSILON ); }
 }
 
 
@@ -71,6 +78,8 @@ void Orientation::roll( float angle ) {
 	
 	up		= cosineUp		+ sineRight;
 	right	= cosineRight	- sineUp;	
+
+    if ( testingForNormalizationAndOrthogonality ) { testForOrthogonalAndNormalizedVectors( EPSILON ); }
 }
 
 
@@ -79,3 +88,75 @@ void Orientation::setRightUpFront( const glm::vec3 &r, const glm::vec3 &u, const
 	up		= u;
 	front	= f;
 }
+
+
+
+//----------------------------------------------------------------------
+void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
+
+    //------------------------------------------------------------------
+    // make sure vectors are normalized (or close enough to length 1.0)
+    //------------------------------------------------------------------
+	float rightLength	= glm::length( right );
+	float upLength		= glm::length( up    );
+	float frontLength	= glm::length( front );
+	     
+	if (( rightLength > 1.0f + epsilon )
+	||  ( rightLength < 1.0f - epsilon )) { 
+        printf( "Error in Orientation class: right direction length is %f \n", rightLength ); 
+    }
+	assert ( rightLength > 1.0f - epsilon );
+	assert ( rightLength < 1.0f + epsilon );
+
+
+	if (( upLength > 1.0f + epsilon )
+	||  ( upLength < 1.0f - epsilon )) { 
+        printf( "Error in Orientation class: up direction length is %f \n", upLength ); 
+    }
+	assert ( upLength > 1.0f - epsilon );
+	assert ( upLength < 1.0f + epsilon );
+
+
+	if (( frontLength > 1.0f + epsilon )
+	||  ( frontLength < 1.0f - epsilon )) { 
+        printf( "Error in Orientation class: front direction length is %f \n", frontLength ); 
+    }
+	assert ( frontLength > 1.0f - epsilon );
+	assert ( frontLength < 1.0f + epsilon );
+
+
+
+    //----------------------------------------------------------------
+    // make sure vectors are orthoginal (or close enough)
+    //----------------------------------------------------------------
+    glm::vec3 rightCross    = glm::cross( up, front );
+    glm::vec3 upCross       = glm::cross( front, right );
+    glm::vec3 frontCross    = glm::cross( right, up );
+    
+    float rightDiff = glm::length( rightCross - right );
+    float upDiff    = glm::length( upCross - up );
+    float frontDiff = glm::length( frontCross - front );
+
+
+    if ( rightDiff > epsilon ) { 
+        printf( "Error in Orientation class: right direction not orthogonal to up and/or front. " ); 
+        printf( "The tested cross of up and front is off by %f \n", rightDiff ); 
+    }
+	assert ( rightDiff < epsilon );
+    
+    
+    if ( upDiff > epsilon ) { 
+        printf( "Error in Orientation class: up direction not orthogonal to front and/or right. " ); 
+        printf( "The tested cross of front and right is off by %f \n", upDiff ); 
+    }
+	assert ( upDiff < epsilon );
+
+
+    if ( frontDiff > epsilon ) { 
+        printf( "Error in Orientation class: front direction not orthogonal to right and/or up. " ); 
+        printf( "The tested cross of right and up is off by %f \n", frontDiff ); 
+    }
+	assert ( frontDiff < epsilon );
+}
+
+

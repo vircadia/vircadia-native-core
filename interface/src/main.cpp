@@ -524,12 +524,12 @@ int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the 
 bool  frustumOn = false;                  // Whether or not to display the debug view frustum
 bool  cameraFrustum = true;               // which frustum to look at
 
-bool  viewFrustumFromOffset=false;        // Wether or not to offset the view of the frustum
-float viewFrustumOffsetYaw = -90.0;       // the following variables control yaw, pitch, roll and distance form regular
-float viewFrustumOffsetPitch = 7.5;       // camera to the offset camera
-float viewFrustumOffsetRoll = 0.0;
-float viewFrustumOffsetDistance = 0.0;
-float viewFrustumOffsetUp = 0.0;
+bool  viewFrustumFromOffset     =false;   // Wether or not to offset the view of the frustum
+float viewFrustumOffsetYaw      = -135.0; // the following variables control yaw, pitch, roll and distance form regular
+float viewFrustumOffsetPitch    = 0.0;    // camera to the offset camera
+float viewFrustumOffsetRoll     = 0.0;
+float viewFrustumOffsetDistance = 25.0;
+float viewFrustumOffsetUp       = 0.0;
 
 void render_view_frustum() {
 	
@@ -731,7 +731,7 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setPitch			(  10.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45);
 			myCamera.setDistance		(   1.0 );
@@ -751,29 +751,32 @@ void display(void)
 		Camera viewFrustumOffsetCamera = myCamera;
 
 		if (::viewFrustumFromOffset && ::frustumOn) {
-			//----------------------------------------------------
+
 			// set the camera to third-person view but offset so we can see the frustum
-			//----------------------------------------------------		
-			viewFrustumOffsetCamera.setYaw		( 180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(   0.0 + ::viewFrustumOffsetPitch    );
-			viewFrustumOffsetCamera.setRoll     (   0.0 + ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(   0.2 + ::viewFrustumOffsetUp       );
-			viewFrustumOffsetCamera.setDistance (   0.5 + ::viewFrustumOffsetDistance );
+			viewFrustumOffsetCamera.setYaw		(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
+			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
+			viewFrustumOffsetCamera.setUp		(  ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update(1.f/FPS);
 			whichCamera = viewFrustumOffsetCamera;
 		}		
 
-		//---------------------------------------------
 		// transform view according to whichCamera
 		// could be myCamera (if in normal mode)
 		// or could be viewFrustumOffsetCamera if in offset mode
-		//---------------------------------------------
-		
 		// I changed the ordering here - roll is FIRST (JJV) 
         glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
+
+
+
+
+        //quick test for camera ortho-normal sanity check...
+        
+
 
 
 
@@ -1315,7 +1318,10 @@ void *networkReceive(void *args)
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                                                                   incomingPacket,
+                                                                   bytesReceived,
+                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 2));
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1510,6 +1516,9 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    // Quick test of the Orientation class on startup!
+    testOrientationClass();    
+
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     
     gettimeofday(&applicationStartupTime, NULL);
@@ -1604,4 +1613,3 @@ int main(int argc, const char * argv[])
     ::terminate();
     return EXIT_SUCCESS;
 }   
-
