@@ -14,6 +14,10 @@
 #include <string>
 #include <map>
 
+#include "shared_Log.h"
+
+using shared::printLog;
+
 // Static class members initialization here!
 std::map<std::string,PerfStatHistory,std::less<std::string> > PerfStat::groupHistoryMap;
 bool PerfStat::wantDebugOut = false;
@@ -55,7 +59,7 @@ PerfStat::~PerfStat() {
 	}
 
 	if (wantDebugOut) {	
-		printf("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld\n",
+		printLog("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld\n",
 			this->group.c_str(),elapsed,average,count,totalTime,
 			(end.tv_usec-start.tv_usec),start.tv_usec,end.tv_usec,
 			(end.tv_sec-start.tv_sec),start.tv_sec,end.tv_sec

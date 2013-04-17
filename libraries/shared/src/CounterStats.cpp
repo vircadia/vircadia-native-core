@@ -19,7 +19,7 @@
 #endif
 #include <string>
 #include <map>
-
+#include "shared_Log.h"
 
 //private:
 //	long int	currentCount;
@@ -98,7 +98,7 @@ void CounterStatHistory::recordSample(double thisTime, long thisCount) {
 	this->currentTime = thisTime;
 	this->currentDelta = thisDelta;
 
-	//printf("CounterStatHistory[%s]::recordSample(thisTime %lf, thisCount= %ld)\n",this->name.c_str(),thisTime,thisCount);
+	//printLog("CounterStatHistory[%s]::recordSample(thisTime %lf, thisCount= %ld)\n",this->name.c_str(),thisTime,thisCount);
 	
 	// if more than 1/10th of a second has passed, then record 
 	// things in our rolling history
@@ -115,7 +115,7 @@ void CounterStatHistory::recordSample(double thisTime, long thisCount) {
 		this->timeSamples[this->sampleAt]=thisTime;
 		this->deltaSamples[this->sampleAt]=thisDelta;
 
-		//printf("CounterStatHistory[%s]::recordSample() ACTUALLY RECORDING IT sampleAt=%d thisTime %lf, thisCount= %ld)\n",this->name.c_str(),this->sampleAt,thisTime,thisCount);
+		//printLog("CounterStatHistory[%s]::recordSample() ACTUALLY RECORDING IT sampleAt=%d thisTime %lf, thisCount= %ld)\n",this->name.c_str(),this->sampleAt,thisTime,thisCount);
 
 	}
 		

@@ -10,6 +10,7 @@
 #define __interface__Log__
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <glm/glm.hpp>
 #include <pthread.h>
 
@@ -18,7 +19,13 @@ class Log;
 //
 // Call it as you would call 'printf'.
 //
-extern Log printLog;
+int printLog(char const* fmt, ...);
+
+//
+// Global instance.
+//
+extern Log logger;
+
 
 //
 // Logging subsystem.
@@ -57,6 +64,7 @@ public:
     void render(unsigned screenWidth, unsigned screenHeight);
 
     void operator()(char const* fmt, ...);
+    int  vprint(char const* fmt, va_list);
 
 private:
     // don't copy/assign

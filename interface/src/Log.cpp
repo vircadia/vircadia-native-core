@@ -144,10 +144,7 @@ inline void Log::addMessage(char const* ptr) {
 
 }
 
-void Log::operator()(char const* fmt, ...) {
-
-    va_list args;
-    va_start(args,fmt);
+int Log::vprint(char const* fmt, va_list args) {
     pthread_mutex_lock(& _mtx);
 
     // print to buffer
@@ -166,6 +163,14 @@ void Log::operator()(char const* fmt, ...) {
     }
 
     pthread_mutex_unlock(& _mtx);
+    return n;
+}
+
+void Log::operator()(char const* fmt, ...) {
+
+    va_list args;
+    va_start(args,fmt);
+    vprint(fmt, args);
     va_end(args);
 }
 
@@ -304,8 +309,13 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     glMatrixMode(matrixMode);
 }
 
-Log printLog;
+Log logger;
 
+int printLog(char const* fmt, ...) {
 
-
+    va_list args;
+    va_start(args,fmt);
+    logger.vprint(fmt, args);
+    va_end(args);
+}
 

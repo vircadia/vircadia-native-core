@@ -889,7 +889,7 @@ void display(void)
         glLineWidth(1.0f);
         glPointSize(1.0f);
         displayStats();
-        printLog.render(WIDTH, HEIGHT);
+        logger.render(WIDTH, HEIGHT);
     }
         
     //  Show menu
@@ -1514,6 +1514,9 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    shared::printLog = ::printLog;
+
+
     // Quick test of the Orientation class on startup!
     testOrientationClass();    
 

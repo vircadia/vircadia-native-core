@@ -12,12 +12,15 @@
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
+#include "shared_Log.h"
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+using shared::printLog;
 
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);
@@ -50,13 +53,13 @@ bool randomBoolean() {
 }
 
 void outputBits(unsigned char byte) {
-    printf("%d: ", byte);
+    printLog("%d: ", byte);
     
     for (int i = 0; i < 8; i++) {
-        printf("%d", byte >> (7 - i) & 1);
+        printLog("%d", byte >> (7 - i) & 1);
     }
     
-    printf("\n");
+    printLog("\n");
 }
 
 int numberOfOnes(unsigned char byte) {
@@ -328,14 +331,14 @@ void printVoxelCode(unsigned char* voxelCode) {
 	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
 	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    printf("octets=%d\n",octets);
-    printf("voxelSizeInBits=%d\n",voxelSizeInBits);
-    printf("voxelSizeInBytes=%d\n",voxelSizeInBytes);
-    printf("voxelSizeInOctets=%d\n",voxelSizeInOctets);
-    printf("voxelBufferSize=%d\n",voxelBufferSize);
+    printLog("octets=%d\n",octets);
+    printLog("voxelSizeInBits=%d\n",voxelSizeInBits);
+    printLog("voxelSizeInBytes=%d\n",voxelSizeInBytes);
+    printLog("voxelSizeInOctets=%d\n",voxelSizeInOctets);
+    printLog("voxelBufferSize=%d\n",voxelBufferSize);
     
     for(int i=0;i<voxelBufferSize;i++) {
-        printf("i=%d ",i);
+        printLog("i=%d ",i);
         outputBits(voxelCode[i]);
     }
 }
