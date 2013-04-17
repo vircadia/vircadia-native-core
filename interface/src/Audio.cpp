@@ -156,7 +156,7 @@ int audioCallback (const void *inputBuffer,
             
             // memcpy the three float positions
             for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedHead->getPos()[p], sizeof(float));
+                memcpy(currentPacketPtr, &data->linkedHead->getBodyPosition()[p], sizeof(float));
                 currentPacketPtr += sizeof(float);
             }
             
@@ -411,7 +411,7 @@ void *receiveAudioViaUDP(void *args) {
             }
             if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
 
-            ringBuffer->parseData(receivedData, PACKET_LENGTH_BYTES);
+            ringBuffer->parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
 
             previousReceiveTime = currentReceiveTime;
         }
@@ -444,8 +444,8 @@ Audio::Audio(Oscilloscope *s, Head *linkedHead)
     // read the walking sound from the raw file and store it
     // in the in memory array
     
-    switchToResourcesIfRequired();
-    FILE *soundFile = fopen("audio/walking.raw", "r");
+    switchToResourcesParentIfRequired();
+    FILE *soundFile = fopen("resources/audio/walking.raw", "r");
     
     // get length of file:
     std::fseek(soundFile, 0, SEEK_END);

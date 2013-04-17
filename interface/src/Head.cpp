@@ -17,6 +17,7 @@
 #include "Head.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
+#include <PacketHeaders.h>
 
 using namespace std;
 
@@ -44,11 +45,28 @@ vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
-
-
-
 Head::Head() {
 	initializeAvatar();
+    
+    
+	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.orientation.setToIdentity();
+	
+	closestOtherAvatar = 0;
+	
+	_bodyYaw		= -90.0;
+	_bodyPitch	= 0.0;
+	_bodyRoll	= 0.0;
+	
+	bodyYawDelta = 0.0;
+	
+	triggeringAction = false;
+	
+	mode = AVATAR_MODE_STANDING;
+
+    initializeSkeleton();
+    
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
     
@@ -96,7 +114,7 @@ Head::Head() {
 	springVelocityDecay		= 16.0f;
     
     if (iris_texture.size() == 0) {
-        switchToResourcesIfRequired();
+        switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
         if (error != 0) {
             std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -123,8 +141,25 @@ Head::Head() {
 
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
+    
+	avatar.velocity		= otherHead.avatar.velocity;
+	avatar.thrust		= otherHead.avatar.thrust;
+	avatar.orientation.set( otherHead.avatar.orientation );
+	
+	closestOtherAvatar = otherHead.closestOtherAvatar;
+	
+	_bodyYaw	= otherHead._bodyYaw;
+	_bodyPitch	= otherHead._bodyPitch;
+	_bodyRoll	= otherHead._bodyRoll;
+	
+	bodyYawDelta = otherHead.bodyYawDelta;
+	
+	triggeringAction = otherHead.triggeringAction;
+	
+	mode = otherHead.mode;
 
-    bodyPosition = otherHead.bodyPosition;
+    initializeSkeleton();
+    
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
 
@@ -218,6 +253,7 @@ void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int hea
 
     if ((Pitch < MAX_PITCH) && (Pitch > MIN_PITCH))
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+    
     addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
 
     if (head_mirror) {
@@ -301,14 +337,14 @@ void Head::simulate(float deltaTime) {
 	//------------------------
 	// update avatar skeleton
 	//------------------------ 
-	updateAvatarSkeleton();
+	updateSkeleton();
 	
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
 	//------------------------------------------------------------------------
 	if ( handBeingMoved ){
 		if (! previousHandBeingMoved ){ 
-			initializeAvatarSprings();
+			initializeBodySprings();
 			usingSprings = true;
 			//printf( "just started moving hand\n" );
 		}
@@ -322,7 +358,7 @@ void Head::simulate(float deltaTime) {
 	
 	if ( handBeingMoved ) {
 		updateHandMovement();
-		updateAvatarSprings( deltaTime );
+		updateBodySprings( deltaTime );
 	}
 
 	previousHandBeingMoved = handBeingMoved;
@@ -379,12 +415,12 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update body yaw by body yaw delta
 	//----------------------------------------------------------
-	bodyYaw += bodyYawDelta * deltaTime;
+	_bodyYaw += bodyYawDelta * deltaTime;
 	
 	//----------------------------------------------------------
 	// (for now) set head yaw to body yaw
 	//----------------------------------------------------------
-	Yaw = bodyYaw;
+	Yaw = _bodyYaw;
 	
 	//----------------------------------------------------------
 	// decay body yaw delta
@@ -400,7 +436,7 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update position by velocity
 	//----------------------------------------------------------
-	bodyPosition += (glm::vec3)avatar.velocity * deltaTime;
+	_bodyPosition += (glm::vec3)avatar.velocity * deltaTime;
 
 	//----------------------------------------------------------
 	// decay velocity
@@ -511,15 +547,16 @@ void Head::simulate(float deltaTime) {
 	  
 	   
 void Head::render(int faceToFace, int isMine) {
+
 	//---------------------------------------------------
 	// show avatar position
 	//---------------------------------------------------
 	glPushMatrix();
-		glTranslatef( bodyPosition.x, bodyPosition.y, bodyPosition.z );
+		glTranslatef(_bodyPosition.x, _bodyPosition.y, _bodyPosition.z);
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
-	
+    
 	//---------------------------------------------------
 	// show avatar orientation
 	//---------------------------------------------------
@@ -563,7 +600,9 @@ void Head::render(int faceToFace, int isMine) {
 }
 
 
-	   
+
+//this has been moved to Utils.cpp
+/*
 void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
 	glm::vec3 pRight	= position + orientation.right	* size;
 	glm::vec3 pUp		= position + orientation.up		* size;
@@ -571,22 +610,23 @@ void Head::renderOrientationDirections( glm::vec3 position, Orientation orientat
 		
 	glColor3f( 1.0f, 0.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pRight.x, pRight.y, pRight.z );
 	glEnd();
 
 	glColor3f( 0.0f, 1.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pUp.x, pUp.y, pUp.z );
 	glEnd();
 
 	glColor3f( 0.0f, 0.0f, 1.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pFront.x, pFront.y, pFront.z );
 	glEnd();
 }
+*/
 
 	  
 	   
@@ -619,7 +659,7 @@ void Head::renderHead( int faceToFace, int isMine ) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef( bodyYaw, 0, 1, 0);
+    glRotatef(_bodyYaw, 0, 1, 0);
     
 		
 	//  Don't render a head if it is really close to your location, because that is your own head!
@@ -771,22 +811,32 @@ AvatarMode Head::getMode() {
 
 
 void Head::initializeAvatar() {
+/*
 	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
 	
 	closestOtherAvatar = 0;
 	
-	bodyYaw		= -90.0;
-	bodyPitch	= 0.0;
-	bodyRoll	= 0.0;
+	_bodyYaw		= -90.0;
+	_bodyPitch	= 0.0;
+	_bodyRoll	= 0.0;
 	
 	bodyYawDelta = 0.0;
 	
 	triggeringAction = false;
 	
 	mode = AVATAR_MODE_STANDING;
-	
+
+    initializeSkeleton();
+    */
+}
+
+
+
+
+void Head::initializeSkeleton() {
+
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
 		bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
@@ -878,8 +928,10 @@ void Head::initializeAvatar() {
 	//----------------------------------------------------------------------------
 	// generate world positions
 	//----------------------------------------------------------------------------
-	updateAvatarSkeleton();
+	updateSkeleton();
 }
+
+
 
 
 void Head::calculateBoneLengths() {
@@ -895,29 +947,25 @@ void Head::calculateBoneLengths() {
 
 
 
-void Head::updateAvatarSkeleton() {
+void Head::updateSkeleton() {
 	//----------------------------------
 	// rotate body...
 	//----------------------------------	
 	avatar.orientation.setToIdentity();
-	avatar.orientation.yaw( bodyYaw );
+	avatar.orientation.yaw( _bodyYaw );
 
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( bone[b].parent == AVATAR_BONE_NULL ) {
-			bone[b].orientation.set( avatar.orientation );
-			
-//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );			
-
-			glm::vec3 ppp = bodyPosition;
+			bone[b].orientation.set(avatar.orientation);
+			//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
+			glm::vec3 ppp = _bodyPosition;
 			
 //			ppp.y += 0.2;
 			
 			bone[b].position = ppp;// + glm::vec3( 0.0f, 1.0f, 0.0f ) * 1.0f;
-					
-			
 		}
 		else {
 			bone[b].orientation.set( bone[ bone[b].parent ].orientation );
@@ -934,7 +982,7 @@ void Head::updateAvatarSkeleton() {
 }
 
 
-void Head::initializeAvatarSprings() {
+void Head::initializeBodySprings() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		bone[b].springyPosition = bone[b].position;
 		bone[b].springyVelocity = glm::vec3( 0.0f, 0.0f, 0.0f );
@@ -942,12 +990,12 @@ void Head::initializeAvatarSprings() {
 }
 
 
-void Head::updateAvatarSprings( float deltaTime ) {
+void Head::updateBodySprings( float deltaTime ) {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		glm::vec3 springVector( bone[b].springyPosition );
 
 		if ( bone[b].parent == AVATAR_BONE_NULL ) {
-			springVector -= bodyPosition;
+			springVector -= _bodyPosition;
 		}
 		else {
 			springVector -= bone[ bone[b].parent ].springyPosition;
@@ -980,7 +1028,7 @@ void Head::updateAvatarSprings( float deltaTime ) {
 }
 
 float Head::getBodyYaw() {
-	return bodyYaw;
+	return _bodyYaw;
 }
 
 glm::vec3 Head::getHeadLookatDirection() {
@@ -1018,17 +1066,6 @@ glm::vec3 Head::getHeadPosition() {
 		bone[ AVATAR_BONE_HEAD ].position.z
 	);
 }
-
-
-glm::vec3 Head::getBodyPosition() {
-	return glm::vec3
-	(
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.x,
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.y,
-		bone[ AVATAR_BONE_PELVIS_SPINE ].position.z
-	);
-}
-
 
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
@@ -1188,48 +1225,12 @@ void Head::renderBody() {
 	
 }
 
-
-
-// Transmit data to agents requesting it
-// called on me just prior to sending data to others (continuasly called)
-int Head::getBroadcastData(char* data) {
-    // Copy data for transmission to the buffer, return length of data
-    sprintf(data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-            getRenderPitch() + Pitch, -getRenderYaw() + 180 -Yaw, Roll,
-			//avatar.yaw, avatar.pitch, avatar.roll,
-            bodyPosition.x + leanSideways, bodyPosition.y, bodyPosition.z + leanForward,
-            loudness, averageLoudness,
-            //hand->getPos().x, hand->getPos().y, hand->getPos().z);  //previous to Ventrella change
-            bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-			bone[ AVATAR_BONE_RIGHT_HAND ].position.z ); 
-    return strlen(data);
-}
-
-
-//called on the other agents - assigns it to my views of the others
-void Head::parseData(void *data, int size) {
-	sscanf
-	(
-		(char *)data, "H%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-		&Pitch, &Yaw, &Roll,
-		//&avatar.yaw, &avatar.pitch, &avatar.roll,
-		&bodyPosition.x, &bodyPosition.y, &bodyPosition.z,
-		&loudness, &averageLoudness,
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.x, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.y, 
-		&bone[ AVATAR_BONE_RIGHT_HAND ].position.z
-	);
-	
-	handBeingMoved = true;
-}
-
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     PitchTarget = pitch;
     YawTarget = yaw;
 }
 
-void Head::processTransmitterData(char *packetData, int numBytes) {
+void Head::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float accX, accY, accZ,
     graX, graY, graZ,

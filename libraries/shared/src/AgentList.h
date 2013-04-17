@@ -49,13 +49,13 @@ public:
     
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     
-    void processAgentData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
-    void processBulkAgentData(sockaddr *senderAddress, void *packetData, int numTotalBytes, int numBytesPerAgent);
+    void processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
+    void processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes, int numBytesPerAgent);
    
-    void updateAgentWithData(sockaddr *senderAddress, void *packetData, size_t dataBytes);
-    void updateAgentWithData(Agent *agent, void *packetData, int dataBytes);
+    void updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
+    void updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
-    void broadcastToAgents(char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
+    void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     char getOwnerType();
     unsigned int getSocketListenPort();
     

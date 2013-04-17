@@ -10,12 +10,28 @@
 #define __hifi__SharedUtil__
 
 #include <stdint.h>
+#include <math.h>
 
 #ifdef _WIN32
 #include "Systime.h"
 #else
 #include <sys/time.h>
 #endif
+
+static const float ZERO             = 0.0f;
+static const float ONE              = 1.0f;
+static const float ONE_HALF			= 0.5f;
+static const float ONE_THIRD        = 0.333333f;
+static const float PIE              = 3.141592f;
+static const float PI_TIMES_TWO		= 3.141592f * 2.0f;
+static const float PI_OVER_180      = 3.141592f / 180.0f;
+static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
+static const float SQUARE_ROOT_OF_2 = (float)sqrt(2);
+static const float SQUARE_ROOT_OF_3 = (float)sqrt(3);
+static const float METER            = 1.0f;
+static const float DECIMETER        = 0.1f;
+static const float CENTIMETER       = 0.01f;
+static const float MILLIIMETER      = 0.001f;
 
 double usecTimestamp(timeval *time);
 double usecTimestampNow();
@@ -31,7 +47,7 @@ void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 
-void switchToResourcesIfRequired();
+void switchToResourcesParentIfRequired();
 
 const char* getCmdOption(int argc, const char * argv[],const char* option);
 bool cmdOptionExists(int argc, const char * argv[],const char* option);
