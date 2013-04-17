@@ -227,6 +227,87 @@ void renderOrientationDirections( glm::vec3 position, Orientation orientation, f
 	glEnd();
 }
 
+void testOrientationClass() {
+    printf("\n----------\ntestOrientationClass()\n----------\n\n");
+    
+    oTestCase tests[] = { 
+        //       - inputs ------------, outputs --------------------  -------------------  ----------------------------
+        //                              -- front -------------------, -- up -------------, -- right -------------------
+        //       ( yaw  , pitch, roll , front.x , front.y , front.z , up.x , up.y , up.z , right.x , right.y , right.z  )
+
+        // simple yaw tests
+        oTestCase( 0.f  , 0.f  , 0.f  ,  0.f    , 0.f     , 1.0f    ,  0.f , 1.0f , 0.f  , -1.0f   , 0.f     , 0.f      ),
+        oTestCase( 90.0f, 0.f  , 0.f  , 1.0f    , 0.f     , 0.f     ,  0.f , 1.0f , 0.f  , 0.0f    , 0.f     , 1.0f     ),
+        oTestCase(180.0f, 0.f  , 0.f  ,  0.f    , 0.f     , -1.0f   ,  0.f , 1.0f , 0.f  , 1.0f    , 0.f     , 0.f      ),
+        oTestCase(270.0f, 0.f  , 0.f  , -1.0f   , 0.f     , 0.f     ,  0.f , 1.0f , 0.f  , 0.0f    , 0.f     , -1.0f    ),
+
+        // simple pitch tests
+        oTestCase( 0.f  ,90.f  , 0.f  ,  0.f    , 1.0f     , 0.0f   ,  0.f , 0.0f , -1.0f, -1.0f   , 0.f     , 0.f      ),
+
+    };
+    
+    int failedCount = 0;
+    int totalTests = sizeof(tests)/sizeof(oTestCase);
+    
+    for (int i=0; i < totalTests; i++) {
+    
+        bool passed = true; // I'm an optimist!
+
+        float yaw   = tests[i].yaw;
+        float pitch = tests[i].pitch;
+        float roll  = tests[i].roll;
+
+        Orientation o1;
+        o1.setToIdentity();
+        o1.yaw(yaw);
+        o1.pitch(pitch);
+        o1.roll(roll);
+    
+        glm::vec3 front = o1.getFront();
+        glm::vec3 up    = o1.getUp();
+        glm::vec3 right = o1.getRight();
+
+        printf("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n\n",i+1,yaw,pitch,roll);
+
+        printf(" +front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
+        if (front.x == tests[i].frontX && front.y == tests[i].frontY && front.z == tests[i].frontZ) {
+            printf("  front vector PASSES!\n");
+        } else {
+            printf("  front vector FAILED! expected: \n");
+            printf("  front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
+            passed = false;
+        }
+            
+        printf(" +up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
+        if (up.x == tests[i].upX && up.y == tests[i].upY && up.z == tests[i].upZ) {
+            printf("  up vector PASSES!\n");
+        } else {
+            printf("  up vector FAILED! expected: \n");
+            printf("  up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
+            passed = false;
+        }
+
+
+        printf(" +right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
+        if (right.x == tests[i].rightX && right.y == tests[i].rightY && right.z == tests[i].rightZ) {
+            printf("  right vector PASSES!\n");
+        } else {
+            printf("  right vector FAILED! expected: \n");
+            printf("  right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
+            passed = false;
+        }
+        
+        if (!passed) {
+            printf("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
+            failedCount++;
+        }
+    }
+    printf("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
+    printf("\n----------DONE----------\n\n");
+}
+
+
+
 
 
 
