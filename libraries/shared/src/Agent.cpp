@@ -19,8 +19,6 @@
 #include <arpa/inet.h>
 #endif
 
-Agent::Agent() {}
-
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
     memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
@@ -37,7 +35,8 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     activeSocket = NULL;
     linkedData = NULL;
     
-    pthread_mutex_init(&deleteMutex, NULL);
+    deleteMutex = new pthread_mutex_t;
+    pthread_mutex_init(deleteMutex, NULL);
 }
 
 Agent::Agent(const Agent &otherAgent) {
@@ -67,25 +66,34 @@ Agent::Agent(const Agent &otherAgent) {
         linkedData = NULL;
     }
     
-    pthread_mutex_init(&deleteMutex, NULL);
+    deleteMutex = new pthread_mutex_t;
+    pthread_mutex_init(deleteMutex, NULL);
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
+    std::cout << "Agent swap constructor called on resize?\n";
     swap(*this, otherAgent);
     return *this;
 }
 
 void Agent::swap(Agent &first, Agent &second) {
     using std::swap;
+    
     swap(first.publicSocket, second.publicSocket);
     swap(first.localSocket, second.localSocket);
     swap(first.activeSocket, second.activeSocket);
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
     swap(first.agentId, second.agentId);
+    swap(first.firstRecvTimeUsecs, second.firstRecvTimeUsecs);
+    swap(first.lastRecvTimeUsecs, second.lastRecvTimeUsecs);
+    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {
+    // the deleteMutex isn't destroyed here
+    // that's handled by the agent list silent agent removal thread
+
     delete publicSocket;
     delete localSocket;
     delete linkedData;

@@ -331,7 +331,7 @@ void *removeSilentAgents(void *args) {
         
         for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
             
-            pthread_mutex_t * agentDeleteMutex = &agent->deleteMutex;
+            pthread_mutex_t* agentDeleteMutex = agent->deleteMutex;
             
             if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS 
             	&& agent->getType() != AGENT_TYPE_VOXEL
