@@ -22,8 +22,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-
+#include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
@@ -85,7 +84,7 @@ struct AvatarBone
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
 	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
-    glm::quat   rotation;               // this will eventually replace yaw, pitch and roll (and maybe orienttion)
+    glm::quat   rotation;               // this will eventually replace yaw, pitch and roll (and maybe orientation)
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent

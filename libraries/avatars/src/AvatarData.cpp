@@ -58,6 +58,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
+    //printf( "_bodyYaw = %f\n", _bodyYaw );
+    
     return destinationBuffer - bufferStart;
 }
 

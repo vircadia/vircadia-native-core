@@ -18,6 +18,9 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
+//#include <glm/glm.hpp>
+//#include <glm/gtc/quaternion.hpp>
+//#include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
 using namespace std;
 
@@ -529,8 +532,6 @@ void Head::simulate(float deltaTime) {
       
 	  
 	  
-	  
-	   
 void Head::render(int faceToFace, int isMine) {
 
 	//---------------------------------------------------
@@ -822,17 +823,17 @@ void Head::initializeSkeleton() {
 
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
         _bone[b].parent              = AVATAR_BONE_NULL;
-		_bone[b].position			 = glm::vec3( 0.0, 0.0, 0.0 );
-		_bone[b].defaultPosePosition = glm::vec3( 0.0, 0.0, 0.0 );
-		_bone[b].springyPosition     = glm::vec3( 0.0, 0.0, 0.0 );
-		_bone[b].springyVelocity     = glm::vec3( 0.0, 0.0, 0.0 );
+        _bone[b].position			 = glm::vec3( 0.0, 0.0, 0.0 );
+        _bone[b].defaultPosePosition = glm::vec3( 0.0, 0.0, 0.0 );
+        _bone[b].springyPosition     = glm::vec3( 0.0, 0.0, 0.0 );
+        _bone[b].springyVelocity     = glm::vec3( 0.0, 0.0, 0.0 );
         _bone[b].rotation            = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
-		_bone[b].yaw                 = 0.0;
-		_bone[b].pitch               = 0.0;
-		_bone[b].roll                = 0.0;
-		_bone[b].length              = 0.0;
-		_bone[b].springBodyTightness = 4.0;
-		_bone[b].orientation.setToIdentity();
+        _bone[b].yaw                 = 0.0;
+        _bone[b].pitch               = 0.0;
+        _bone[b].roll                = 0.0;
+        _bone[b].length              = 0.0;
+        _bone[b].springBodyTightness = 4.0;
+        _bone[b].orientation.setToIdentity();
 	}
 
 	//----------------------------------------------------------------------------
@@ -871,8 +872,8 @@ void Head::initializeSkeleton() {
 	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_LEFT_PELVIS		].parent = AVATAR_BONE_PELVIS_SPINE;
 	_bone[ AVATAR_BONE_LEFT_THIGH		].parent = AVATAR_BONE_LEFT_PELVIS;
-	_bone[ AVATAR_BONE_LEFT_SHIN			].parent = AVATAR_BONE_LEFT_THIGH;
-	_bone[ AVATAR_BONE_LEFT_FOOT			].parent = AVATAR_BONE_LEFT_SHIN;
+	_bone[ AVATAR_BONE_LEFT_SHIN		].parent = AVATAR_BONE_LEFT_THIGH;
+	_bone[ AVATAR_BONE_LEFT_FOOT		].parent = AVATAR_BONE_LEFT_SHIN;
 
 	//----------------------------------------------------------------------------
 	// right pelvis and leg
@@ -930,9 +931,9 @@ void Head::calculateBoneLengths() {
 	}
 
 	_avatar.maxArmLength
-	= _bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].length
-	+ _bone[ AVATAR_BONE_RIGHT_FOREARM	].length 
-	+ _bone[ AVATAR_BONE_RIGHT_HAND		].length;
+	= _bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].length
+	+ _bone[ AVATAR_BONE_RIGHT_FOREARM	 ].length 
+	+ _bone[ AVATAR_BONE_RIGHT_HAND		 ].length;
 }
 
 
@@ -943,19 +944,20 @@ void Head::updateSkeleton() {
 	//----------------------------------	
 	_avatar.orientation.setToIdentity();
 	_avatar.orientation.yaw( _bodyYaw );
-
+        
+    //test! - make sure this does what expected: st rotation to be identity PLUS _bodyYaw
+    _rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
+    
+    //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
+    
+    
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
 			_bone[b].orientation.set( _avatar.orientation );
-			//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
-			glm::vec3 ppp = _bodyPosition;
-			
-//			ppp.y += 0.2;
-			
-			_bone[b].position = ppp;// + glm::vec3( 0.0f, 1.0f, 0.0f ) * 1.0f;
+			_bone[b].position = _bodyPosition;
 		}
 		else {
 			_bone[b].orientation.set( _bone[ _bone[b].parent ].orientation );
@@ -967,6 +969,10 @@ void Head::updateSkeleton() {
 		float zz = -glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront	() );
 
 		glm::vec3 rotatedBoneVector( xx, yy, zz );
+        
+        //glm::vec3 myEuler ( 0.0f, 0.0f, 0.0f );
+        //glm::quat myQuat ( myEuler );
+        
 		_bone[b].position += rotatedBoneVector;
 	}	
 }
@@ -1056,6 +1062,8 @@ glm::vec3 Head::getHeadPosition() {
 		_bone[ AVATAR_BONE_HEAD ].position.z
 	);
 }
+
+
 
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
