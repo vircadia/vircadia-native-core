@@ -48,6 +48,26 @@ unsigned int iris_texture_height = 256;
 Head::Head() {
 	initializeAvatar();
     
+    
+	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
+	avatar.orientation.setToIdentity();
+	
+	closestOtherAvatar = 0;
+	
+	_bodyYaw		= -90.0;
+	_bodyPitch	= 0.0;
+	_bodyRoll	= 0.0;
+	
+	bodyYawDelta = 0.0;
+	
+	triggeringAction = false;
+	
+	mode = AVATAR_MODE_STANDING;
+
+    initializeSkeleton();
+    
+    
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
     
     PupilSize = 0.10;
@@ -121,6 +141,25 @@ Head::Head() {
 
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
+    
+	avatar.velocity		= otherHead.avatar.velocity;
+	avatar.thrust		= otherHead.avatar.thrust;
+	avatar.orientation.set( otherHead.avatar.orientation );
+	
+	closestOtherAvatar = otherHead.closestOtherAvatar;
+	
+	_bodyYaw	= otherHead._bodyYaw;
+	_bodyPitch	= otherHead._bodyPitch;
+	_bodyRoll	= otherHead._bodyRoll;
+	
+	bodyYawDelta = otherHead.bodyYawDelta;
+	
+	triggeringAction = otherHead.triggeringAction;
+	
+	mode = otherHead.mode;
+
+    initializeSkeleton();
+    
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
 
@@ -298,14 +337,14 @@ void Head::simulate(float deltaTime) {
 	//------------------------
 	// update avatar skeleton
 	//------------------------ 
-	updateAvatarSkeleton();
+	updateSkeleton();
 	
 	//------------------------------------------------------------------------
 	// reset hand and elbow position according to hand movement
 	//------------------------------------------------------------------------
 	if ( handBeingMoved ){
 		if (! previousHandBeingMoved ){ 
-			initializeAvatarSprings();
+			initializeBodySprings();
 			usingSprings = true;
 			//printf( "just started moving hand\n" );
 		}
@@ -319,7 +358,7 @@ void Head::simulate(float deltaTime) {
 	
 	if ( handBeingMoved ) {
 		updateHandMovement();
-		updateAvatarSprings( deltaTime );
+		updateBodySprings( deltaTime );
 	}
 
 	previousHandBeingMoved = handBeingMoved;
@@ -508,6 +547,8 @@ void Head::simulate(float deltaTime) {
 	  
 	   
 void Head::render(int faceToFace, int isMine) {
+
+/*
 	//---------------------------------------------------
 	// show avatar position
 	//---------------------------------------------------
@@ -516,7 +557,8 @@ void Head::render(int faceToFace, int isMine) {
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
-	
+*/
+    
 	//---------------------------------------------------
 	// show avatar orientation
 	//---------------------------------------------------
@@ -768,6 +810,7 @@ AvatarMode Head::getMode() {
 
 
 void Head::initializeAvatar() {
+/*
 	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.orientation.setToIdentity();
@@ -783,7 +826,16 @@ void Head::initializeAvatar() {
 	triggeringAction = false;
 	
 	mode = AVATAR_MODE_STANDING;
-	
+
+    initializeSkeleton();
+    */
+}
+
+
+
+
+void Head::initializeSkeleton() {
+
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
 		bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
@@ -875,8 +927,10 @@ void Head::initializeAvatar() {
 	//----------------------------------------------------------------------------
 	// generate world positions
 	//----------------------------------------------------------------------------
-	updateAvatarSkeleton();
+	updateSkeleton();
 }
+
+
 
 
 void Head::calculateBoneLengths() {
@@ -892,7 +946,7 @@ void Head::calculateBoneLengths() {
 
 
 
-void Head::updateAvatarSkeleton() {
+void Head::updateSkeleton() {
 	//----------------------------------
 	// rotate body...
 	//----------------------------------	
@@ -927,7 +981,7 @@ void Head::updateAvatarSkeleton() {
 }
 
 
-void Head::initializeAvatarSprings() {
+void Head::initializeBodySprings() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		bone[b].springyPosition = bone[b].position;
 		bone[b].springyVelocity = glm::vec3( 0.0f, 0.0f, 0.0f );
@@ -935,7 +989,7 @@ void Head::initializeAvatarSprings() {
 }
 
 
-void Head::updateAvatarSprings( float deltaTime ) {
+void Head::updateBodySprings( float deltaTime ) {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
 		glm::vec3 springVector( bone[b].springyPosition );
 

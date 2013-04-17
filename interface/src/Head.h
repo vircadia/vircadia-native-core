@@ -210,6 +210,8 @@ class Head : public AvatarData {
 		
 		float		closeEnoughToInteract;
 		int			closestOtherAvatar;
+        
+        //temporary - placeholder for real other avs
 		glm::vec3	DEBUG_otherAvatarListPosition	[ NUM_OTHER_AVATARS ];
 		float		DEBUG_otherAvatarListTimer		[ NUM_OTHER_AVATARS ];
 		
@@ -233,14 +235,7 @@ class Head : public AvatarData {
 		AvatarBone	bone[ NUM_AVATAR_BONES ];
 		
 		AvatarMode mode;
-		
-		void initializeAvatar();
-		void updateAvatarSkeleton();
-		void initializeAvatarSprings();
-		void updateAvatarSprings( float deltaTime );
-		void calculateBoneLengths();
-    
-        void readSensors();
+
         float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
     
         //
@@ -250,6 +245,18 @@ class Head : public AvatarData {
         float transmitterHz;
         int transmitterPackets;
 
+        
+        //-------------------------------------------
+        // private methods...
+        //-------------------------------------------
+		void initializeAvatar();
+		void initializeSkeleton();
+		void updateSkeleton();
+		void initializeBodySprings();
+		void updateBodySprings( float deltaTime );
+		void calculateBoneLengths();
+    
+        void readSensors();
 };
 
 #endif
