@@ -51,12 +51,18 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
+    
     memcpy(destinationBuffer, &_bodyPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+    
+    memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
+    destinationBuffer += sizeof(float) * 3;
+    
+    //std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
     
     return destinationBuffer - bufferStart;
 }
@@ -73,6 +79,10 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
+
+    memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
+    sourceBuffer += sizeof(float) * 3;
+
 }
 
 glm::vec3 AvatarData::getBodyPosition() {
@@ -83,6 +93,10 @@ glm::vec3 AvatarData::getBodyPosition() {
 
 void AvatarData::setBodyPosition(glm::vec3 bodyPosition) {
     _bodyPosition = bodyPosition;
+}
+
+void AvatarData::setHandPosition(glm::vec3 handPosition) {
+    _handPosition = handPosition;
 }
 
 float AvatarData::getBodyYaw() {

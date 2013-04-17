@@ -103,7 +103,7 @@ struct Avatar
 
 class Head : public AvatarData {
     public:
-        Head();
+        Head(bool isMine);
         ~Head();
         Head(const Head &otherHead);
         Head* clone() const;
@@ -143,10 +143,10 @@ class Head : public AvatarData {
 		
 		void setTriggeringAction( bool trigger ); 
         
-        void render(int faceToFace, int isMine);
+        void render(int faceToFace);
 		
 		void renderBody();
-		void renderHead( int faceToFace, int isMine );
+		void renderHead( int faceToFace);
 		//void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
@@ -178,6 +178,7 @@ class Head : public AvatarData {
         float getTransmitterHz() { return transmitterHz; };
     
     private:
+        bool _isMine;
         float noise;
         float Pitch;
         float Yaw;

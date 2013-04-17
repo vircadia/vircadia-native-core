@@ -102,7 +102,7 @@ Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-Head myAvatar;                      // The rendered avatar of oneself
+Head myAvatar(true);                // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
 
@@ -826,7 +826,7 @@ void display(void)
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getBodyPosition();
                 glTranslatef(-pos.x, -pos.y, -pos.z);
-                agentHead->render(0, 0);
+                agentHead->render(0);
                 glPopMatrix();
             }
         }
@@ -841,7 +841,7 @@ void display(void)
     
 	
         //Render my own avatar
-		myAvatar.render( true, 1 );	
+		myAvatar.render(true);	
     }
     
     glPopMatrix();
@@ -1494,7 +1494,7 @@ void mouseoverFunc( int x, int y)
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Head());
+        newAgent->setLinkedData(new Head(false));
     }
 }
 
