@@ -102,13 +102,13 @@ struct Avatar
 
 class Head : public AvatarData {
     public:
-        Head();
+        Head(bool isMine);
         ~Head();
         Head(const Head &otherHead);
         Head* clone() const;
     
         void reset();
-        void UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
         void setNoise (float mag) { noise = mag; }
         void setPitch(float p) {Pitch = p; }
         void setYaw(float y) {Yaw = y; }
@@ -129,7 +129,9 @@ class Head : public AvatarData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-		float getBodyYaw();
+        float getBodyYaw() {return _bodyYaw;};
+        void addBodyYaw(float y) {_bodyYaw += y;};
+    
 		glm::vec3 getHeadLookatDirection();
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
@@ -140,10 +142,10 @@ class Head : public AvatarData {
 		
 		void setTriggeringAction( bool trigger ); 
         
-        void render(int faceToFace, int isMine);
+        void render(int faceToFace);
 		
 		void renderBody();
-		void renderHead( int faceToFace, int isMine );
+		void renderHead( int faceToFace);
 		//void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
@@ -175,6 +177,7 @@ class Head : public AvatarData {
         float getTransmitterHz() { return transmitterHz; };
     
     private:
+        bool _isMine;
         float noise;
         float Pitch;
         float Yaw;

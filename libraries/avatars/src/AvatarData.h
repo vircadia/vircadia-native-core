@@ -24,6 +24,7 @@ public:
     
     glm::vec3 getBodyPosition();
     void setBodyPosition(glm::vec3 bodyPosition);
+    void setHandPosition(glm::vec3 handPosition);
     
     int getBroadcastData(unsigned char* destinationBuffer);
     void parseData(unsigned char* sourceBuffer, int numBytes);
@@ -39,6 +40,7 @@ public:
     
 protected:
     glm::vec3 _bodyPosition;
+    glm::vec3 _handPosition;
     
     float _bodyYaw;
     float _bodyPitch;

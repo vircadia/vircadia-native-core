@@ -48,7 +48,7 @@ vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
-Head::Head() {
+Head::Head(bool isMine) {
 	initializeAvatar();
     
 	_avatar.orientation.setToIdentity();
@@ -62,6 +62,7 @@ Head::Head() {
 	_bodyYawDelta       = 0.0;
 	_triggeringAction   = false;
 	_mode               = AVATAR_MODE_STANDING;
+    _isMine             = isMine;
 
     initializeSkeleton();
     
@@ -211,7 +212,7 @@ void Head::reset() {
 
 //this pertains to moving the head with the glasses 
 //---------------------------------------------------
-void Head::UpdatePos(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
+void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
 {
     const float PITCH_ACCEL_COUPLING = 0.5;
@@ -468,8 +469,6 @@ void Head::simulate(float deltaTime) {
         }
     }
     
-	
-	
     const float DEGREES_BETWEEN_VIEWER_EYES = 3;
     const float DEGREES_TO_VIEWER_MOUTH = 7;
 
@@ -556,7 +555,7 @@ void Head::render(int faceToFace, int isMine) {
 	//---------------------------------------------------
 	// render head
 	//---------------------------------------------------
-	renderHead( faceToFace, isMine );
+	renderHead(faceToFace);
 	
 	//---------------------------------------------------
 	// render other avatars (DEBUG TEST)
@@ -616,7 +615,7 @@ void Head::renderOrientationDirections( glm::vec3 position, Orientation orientat
 
 	  
 	   
-void Head::renderHead( int faceToFace, int isMine ) {
+void Head::renderHead( int faceToFace) {
     int side = 0;
         
     glEnable(GL_DEPTH_TEST);
@@ -662,6 +661,7 @@ void Head::renderHead( int faceToFace, int isMine ) {
         glColor3fv(skinColor);
 
         //  Head
+        if (!_isMine) glColor3f(0,0,1);         //  Temp:  Other people are BLUE
         glutSolidSphere(1, 30, 30);
                 
         //  Ears
@@ -1023,10 +1023,6 @@ void Head::updateBodySprings( float deltaTime ) {
 	}
 }
 
-float Head::getBodyYaw() {
-	return _bodyYaw;
-}
-
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
@@ -1073,8 +1069,8 @@ void Head::updateHandMovement() {
 	+ _avatar.orientation.getUp()	* -_movedHandOffset.y * 0.5f
 	+ _avatar.orientation.getFront()	* -_movedHandOffset.y;
 
-	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;	
-	
+	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
+	    
 	//if holding hands, add a pull to the hand...
 	if ( _usingSprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
@@ -1156,6 +1152,10 @@ void Head::updateHandMovement() {
 	glm::vec3 newWristPosition = _bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
 	newWristPosition += vv * 0.7f;
 	_bone[ AVATAR_BONE_RIGHT_FOREARM ].position = newWristPosition;
+    
+    //  Set the vector we send for hand position to other people to be our right hand
+    setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
+
 }
 
 
