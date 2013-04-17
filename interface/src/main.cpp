@@ -74,6 +74,7 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <AvatarData.h>
 
 #include "ViewFrustum.h"
 
@@ -1311,7 +1312,7 @@ void *networkReceive(void *args)
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
                                                                    bytesReceived,
-                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 3));
+                                                                   BYTES_PER_AVATAR);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);

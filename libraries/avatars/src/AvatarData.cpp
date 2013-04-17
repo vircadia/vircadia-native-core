@@ -10,6 +10,7 @@
 #include <cstring>
 #include <stdint.h>
 
+#include <SharedUtil.h>
 #include <PacketHeaders.h>
 
 #include "AvatarData.h"
@@ -23,7 +24,7 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     return sizeof(uint16_t);
 }
 
-int unpackFloatAngleFromTwoByte(uint16_t *byteAnglePointer, float *destinationPointer) {
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
     *destinationPointer = (*byteAnglePointer / std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
@@ -67,7 +68,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 
 // called on the other agents - assigns it to my views of the others
 void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    
     // increment to push past the packet header
     sourceBuffer++;
     
