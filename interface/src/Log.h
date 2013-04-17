@@ -13,8 +13,17 @@
 #include <glm/glm.hpp>
 #include <pthread.h>
 
-class Log {
+class Log;
 
+//
+// Call it as you would call 'printf'.
+//
+extern Log printLog;
+
+//
+// Logging subsystem.
+//
+class Log {
     FILE*       _ptrStream;
     char*       _arrChars;
     char*       _ptrCharsEnd;
@@ -35,6 +44,7 @@ class Log {
     float       _valCharAspect;     // aspect (h/w)
 
     pthread_mutex_t _mtx;
+
 public:
 
     explicit Log(FILE* tPipeTo = stdout, unsigned bufferedLines = 1024,
@@ -44,14 +54,18 @@ public:
     void setLogWidth(unsigned pixels);
     void setCharacterSize(unsigned width, unsigned height);
 
-    void operator()(char const* fmt, ...);
-
     void render(unsigned screenWidth, unsigned screenHeight);
 
+    void operator()(char const* fmt, ...);
+
 private:
+    // don't copy/assign
+    Log(Log const&); // = delete;
+    Log& operator=(Log const&); // = delete;
 
     inline void addMessage(char const*);
-    inline void recalcLineLength();
+
+    friend class LogStream; // for optional iostream-style interface that has to be #included separately
 };
 
 #endif

@@ -100,8 +100,6 @@ int fullscreen = 0;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
-Log printLog;
-
 Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.

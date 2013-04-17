@@ -19,9 +19,9 @@ namespace {
     // anonymous namespace - everything in here only exists within this very .cpp file
     // just as 'static' on every effective line in plain C
 
-    unsigned const CHARACTER_BUFFER_SIZE = 16384; 
-    unsigned const LINE_BUFFER_SIZE = 256; 
-    unsigned const MAX_MESSAGE_LENGTH = 512;
+    unsigned const CHARACTER_BUFFER_SIZE = 16384;   // number of character that are buffered
+    unsigned const LINE_BUFFER_SIZE = 256;          // number of lines that are buffered
+    unsigned const MAX_MESSAGE_LENGTH = 512;        // maximum number of characters for a message
 
     bool const TEXT_MONOSPACED = true;
 
@@ -31,7 +31,7 @@ namespace {
 
     // magic constants from the GLUT spec
     // http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-    // ultimately this stuff should be handled in Util??
+    // ultimately this stuff should be in Util.h??
     float const CHAR_UP = 119.05f;
     float const CHAR_DOWN = 33.33f;
     float const CHAR_WIDTH = 104.76f;
@@ -82,7 +82,13 @@ inline void Log::addMessage(char const* ptr) {
 
     // precondition: mutex is locked so noone gets in our way
 
+    // T-pipe, if requested
+    if (_ptrStream != 0l) {
+        fprintf(_ptrStream, "%s", ptr);
+    }
+
     while (*ptr != '\0') {
+        // process the characters
         char c = *ptr++;
 
         if (c == '\t') { 
@@ -98,7 +104,6 @@ inline void Log::addMessage(char const* ptr) {
         *_itrWritePos++ = c;
 
         if (_itrWritePos == _ptrCharsEnd) {
-
             // reached the end of the circular character buffer? -> start over
             _itrWritePos = _arrChars;
         }
@@ -107,19 +112,28 @@ inline void Log::addMessage(char const* ptr) {
 
             // new line? store its start to the line buffer and mark next line as empty
             ++_itrLastLine;
+            
             if (_itrLastLine == _ptrLinesEnd) {
                 _itrLastLine = _arrLines;
-                _arrLines[1] = 0l;
-            } else if (_itrLastLine + 1 == _ptrLinesEnd) {
-                _arrLines[0] = 0l;
-            } else {
                 _itrLastLine[1] = 0l;
+            } else if (_itrLastLine + 1 != _ptrLinesEnd) {
+                _itrLastLine[1] = 0l;
+            } else {
+                _arrLines[0] = 0l;
             } 
             *_itrLastLine = _itrWriteLineStart;
+
+            // debug mode: make sure all line pointers we write here are valid
+            assert(! (_itrLastLine < _arrLines || _itrLastLine >= _ptrLinesEnd));
+            assert(! (*_itrLastLine < _arrChars || *_itrLastLine >= _ptrCharsEnd));
 
             // terminate line, unless done already
             if (c != '\0') {
                 *_itrWritePos++ = '\0';
+
+                if (_itrWritePos == _ptrCharsEnd) {
+                    _itrWritePos = _arrChars;
+                }
             }
 
             // remember start position in character buffer for next line and reset character count
@@ -138,12 +152,10 @@ void Log::operator()(char const* fmt, ...) {
 
     // print to buffer
     char buf[MAX_MESSAGE_LENGTH];
-    if (vsnprintf(buf, MAX_MESSAGE_LENGTH, fmt, args) > 0) {
+    int n = vsnprintf(buf, MAX_MESSAGE_LENGTH, fmt, args); 
+    if (n > 0) {
 
-        // all fine? eventually T-pipe to posix file and add message to log
-        if (_ptrStream != 0l) {
-            fprintf(_ptrStream, "%s", buf);
-        }
+        // all fine? log the message
         addMessage(buf);
 
     } else {
@@ -208,6 +220,10 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
             showLines = n - 1;
             break;
         }
+
+        // debug mode: make sure all line pointers we find here are valid
+        assert(! (firstLine < _arrLines || firstLine >= _ptrLinesEnd));
+        assert(! (*firstLine < _arrChars || *firstLine >= _ptrCharsEnd));
     }
 
     // copy the line buffer portion into a contiguous region at _ptrLinesEnd
@@ -222,39 +238,35 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
         memcpy(_ptrLinesEnd + atEnd, _arrLines, (showLines - atEnd) * sizeof(char*));
     }
 
-    // copy relevant char buffer portion and determine information to remap the line pointers
+    // copy relevant char buffer portion and determine information to remap the pointers
     char* firstChar = *firstLine;
     char* lastChar = *lastLine + strlen(*lastLine) + 1;
     ptrdiff_t charOffset = _ptrCharsEnd - firstChar, charOffsetBeforeFirst = 0;
     if (firstChar <= lastChar) {
 
-        memcpy(_ptrCharsEnd, firstChar, lastChar - firstChar);
+        memcpy(_ptrCharsEnd, firstChar, lastChar - firstChar + 1);
 
     } else {
 
         unsigned atEnd = _ptrCharsEnd - firstChar;
         memcpy(_ptrCharsEnd, firstChar, atEnd);
-        memcpy(_ptrCharsEnd + atEnd, _arrChars, lastChar - _arrChars);
+        memcpy(_ptrCharsEnd + atEnd, _arrChars, lastChar + 1 - _arrChars);
 
         charOffsetBeforeFirst = _ptrCharsEnd + atEnd - _arrChars;
     }
 
     // get values for rendering
-    unsigned logWidth = _valLogWidth;
-    if (logWidth > screenWidth) {
-        logWidth = screenWidth;
-    }
+    float scaleFactor = _valCharScale;
     int yStart = int((screenHeight - _valCharYoffset) / _valCharAspect);
     int yStep = int(_valCharHeight / _valCharAspect);
     float yScale = _valCharAspect;
-
-    pthread_mutex_unlock(& _mtx);
-    // ok, we got all we need
 
     // render text
     char** line = _ptrLinesEnd + showLines;
     int x = screenWidth - _valLogWidth;
 
+    pthread_mutex_unlock(& _mtx);
+    // ok, we got all we need
 
     GLint matrixMode; 
     glGetIntegerv(GL_MATRIX_MODE, & matrixMode);   
@@ -263,17 +275,26 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
 
     for (int y = yStart; y > 0; y -= yStep) {
 
+        // debug mode: check line pointer is valid
+        assert(! (line < _ptrLinesEnd || line >= _ptrLinesEnd + (_ptrLinesEnd - _arrLines)));
+
         // get character pointer
-        char* chars = *--line;
-        if (! chars) {
+        if (--line < _ptrLinesEnd) {
             break;
         }
+        char* chars = *line;
+
+        // debug mode: check char pointer we find is valid
+        assert(! (chars < _arrChars || chars >= _ptrCharsEnd));
 
         // remap character pointer it to copied buffer
         chars += chars >= firstChar ? charOffset : charOffsetBeforeFirst;
 
+        // debug mode: check char pointer is still valid (in new range)
+        assert(! (chars < _ptrCharsEnd || chars >= _ptrCharsEnd + (_ptrCharsEnd - _arrChars)));
+
         // render the string
-        drawtext(x, y, _valCharScale, 0.0f, 1.0f, int(TEXT_MONOSPACED), 
+        drawtext(x, y, scaleFactor, 0.0f, 1.0f, int(TEXT_MONOSPACED), 
                  chars, TEXT_RED, TEXT_GREEN, TEXT_BLUE);
 
 //fprintf(stderr, "Log::render, message = \"%s\"\n", chars);
@@ -282,6 +303,9 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     glPopMatrix();
     glMatrixMode(matrixMode);
 }
+
+Log printLog;
+
 
 
 
