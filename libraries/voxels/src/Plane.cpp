@@ -5,6 +5,10 @@
 #include "Plane.h"
 #include <stdio.h>
 
+#include "voxels_Log.h"
+
+using voxels::printLog;
+
 // These are some useful utilities that vec3 is missing
 float vec3_length(const glm::vec3& v) {
 	return((float)sqrt(v.x*v.x + v.y*v.y + v.z*v.z));
@@ -79,5 +83,5 @@ float Plane::distance(const glm::vec3 &p) {
 }
 
 void Plane::print() {
-	//printf("Plane(");normal.print();printf("# %f)",d);
+	//printLog("Plane(");normal.print();printLog("# %f)",d);
 }
