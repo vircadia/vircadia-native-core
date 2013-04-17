@@ -19,6 +19,7 @@
 #include <PacketHeaders.h>
 #include "Audio.h"
 #include "Util.h"
+#include "Log.h"
 
 Oscilloscope * scope;
 
@@ -115,7 +116,7 @@ int audioCallback (const void *inputBuffer,
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
-    //printf("Audio callback at %6.0f\n", usecTimestampNow()/1000);
+    //printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
     
     if (inputLeft != NULL) {
         
@@ -231,21 +232,21 @@ int audioCallback (const void *inputBuffer,
     if (ringBuffer->getEndOfLastWrite() != NULL) {
         
         if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            //printf("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
+            //printLog("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
             starve_counter++;
             packetsReceivedThisPlayback = 0;
 
-            //printf("Starved #%d\n", starve_counter);
+            //printLog("Starved #%d\n", starve_counter);
             data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                //printf("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
+                //printLog("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
             } else {
-                //printf("pushing buffer\n");
+                //printLog("pushing buffer\n");
             }
             // play whatever we have in the audio buffer
             
@@ -391,12 +392,12 @@ void *receiveAudioViaUDP(void *args) {
             }
             
             double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
-            //printf("tDiff %4.1f\n", tDiff);
+            //printLog("tDiff %4.1f\n", tDiff);
             //  Discard first few received packets for computing jitter (often they pile up on start)    
             if (totalPacketsReceived > 3) stdev.addValue(tDiff);
             if (stdev.getSamples() > 500) {
                 sharedAudioData->measuredJitter = stdev.getStDev();
-                //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
+                //printLog("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
                 stdev.reset();
             }
             
@@ -407,7 +408,7 @@ void *receiveAudioViaUDP(void *args) {
                 packetsReceivedThisPlayback++;
              }
             else {
-                //printf("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
+                //printLog("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
             }
             if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
 
@@ -494,8 +495,8 @@ Audio::Audio(Oscilloscope *s, Head *linkedHead)
     return;
     
 error:
-    fprintf(stderr, "-- Failed to initialize portaudio --\n");
-    fprintf(stderr, "PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
+    printLog("-- Failed to initialize portaudio --\n");
+    printLog("PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
     initialized = false;
     delete[] audioData;
 }
@@ -629,8 +630,8 @@ bool Audio::terminate ()
     return true;
     
 error:
-    fprintf(stderr, "-- portaudio termination error --\n");
-    fprintf(stderr, "PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
+    printLog("-- portaudio termination error --\n");
+    printLog("PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
     return false;
 }
 

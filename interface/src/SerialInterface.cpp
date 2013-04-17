@@ -67,10 +67,10 @@ int SerialInterface::initializePort(char* portname, int baud)
 #ifdef __APPLE__
     serialFd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
-    printf("Opening SerialUSB %s: ", portname);
+    printLog("Opening SerialUSB %s: ", portname);
     
     if (serialFd == -1) {
-        printf("Failed.\n");
+        printLog("Failed.\n");
         return -1;     //  Failed to open port
     }    
     struct termios options;
@@ -101,7 +101,7 @@ int SerialInterface::initializePort(char* portname, int baud)
     tcsetattr(serialFd,TCSANOW,&options);
 
     
-    printf("Connected.\n");
+    printLog("Connected.\n");
     resetSerial();    
     active = true;
  #endif

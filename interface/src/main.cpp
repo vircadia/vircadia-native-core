@@ -151,7 +151,7 @@ float renderPitchRate = 0.f;
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
-int statsOn = 0;					//  Whether to show onscreen text overlay with stats
+bool statsOn = true;				//  Whether to show onscreen text overlay with stats
 bool starsOn = false;				//  Whether to display the stars
 bool paintOn = false;				//  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting

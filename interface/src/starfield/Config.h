@@ -39,6 +39,7 @@
 
 #include "InterfaceConfig.h"
 #include "OGlProgram.h"
+#include "Log.h"
 
 #include <cstddef>
 #include <cfloat>

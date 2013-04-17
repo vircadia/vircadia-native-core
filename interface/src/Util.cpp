@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <SharedUtil.h>
 
+#include "Log.h"
 #include "world.h"
 #include "Util.h"
 
@@ -258,7 +259,7 @@ void renderOrientationDirections( glm::vec3 position, Orientation orientation, f
 }
 
 void testOrientationClass() {
-    printf("\n----------\ntestOrientationClass()\n----------\n\n");
+    printLog("\n----------\ntestOrientationClass()\n----------\n\n");
     
     oTestCase tests[] = { 
         //       - inputs ------------, outputs --------------------  -------------------  ----------------------------
@@ -297,43 +298,43 @@ void testOrientationClass() {
         glm::vec3 up    = o1.getUp();
         glm::vec3 right = o1.getRight();
 
-        printf("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n\n",i+1,yaw,pitch,roll);
+        printLog("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n\n",i+1,yaw,pitch,roll);
 
-        printf(" +front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
+        printLog(" +front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
         if (front.x == tests[i].frontX && front.y == tests[i].frontY && front.z == tests[i].frontZ) {
-            printf("  front vector PASSES!\n");
+            printLog("  front vector PASSES!\n");
         } else {
-            printf("  front vector FAILED! expected: \n");
-            printf("  front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
+            printLog("  front vector FAILED! expected: \n");
+            printLog("  front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
             passed = false;
         }
             
-        printf(" +up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
+        printLog(" +up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
         if (up.x == tests[i].upX && up.y == tests[i].upY && up.z == tests[i].upZ) {
-            printf("  up vector PASSES!\n");
+            printLog("  up vector PASSES!\n");
         } else {
-            printf("  up vector FAILED! expected: \n");
-            printf("  up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
+            printLog("  up vector FAILED! expected: \n");
+            printLog("  up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
             passed = false;
         }
 
 
-        printf(" +right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
+        printLog(" +right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
         if (right.x == tests[i].rightX && right.y == tests[i].rightY && right.z == tests[i].rightZ) {
-            printf("  right vector PASSES!\n");
+            printLog("  right vector PASSES!\n");
         } else {
-            printf("  right vector FAILED! expected: \n");
-            printf("  right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
+            printLog("  right vector FAILED! expected: \n");
+            printLog("  right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
             passed = false;
         }
         
         if (!passed) {
-            printf("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
+            printLog("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
             failedCount++;
         }
     }
-    printf("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
-    printf("\n----------DONE----------\n\n");
+    printLog("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
+    printLog("\n----------DONE----------\n\n");
 }
 
 

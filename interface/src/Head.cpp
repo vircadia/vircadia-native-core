@@ -346,13 +346,13 @@ void Head::simulate(float deltaTime) {
 		if (! previousHandBeingMoved ){ 
 			initializeBodySprings();
 			usingSprings = true;
-			//printf( "just started moving hand\n" );
+			//printLog( "just started moving hand\n" );
 		}
 	}
 	else {
 		if ( previousHandBeingMoved ){ 
 			usingSprings = false;
-			//printf( "just stopped moving hand\n" );
+			//printLog( "just stopped moving hand\n" );
 		}
 	}
 	
@@ -962,7 +962,7 @@ void Head::updateSkeleton() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( bone[b].parent == AVATAR_BONE_NULL ) {
 			bone[b].orientation.set(avatar.orientation);
-			//printf( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
+			//printLog( "bodyPosition = %f, %f, %f\n", bodyPosition.x, bodyPosition.y, bodyPosition.z );
 			glm::vec3 ppp = _bodyPosition;
 			
 //			ppp.y += 0.2;

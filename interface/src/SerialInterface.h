@@ -10,6 +10,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceConfig.h"
+#include "Log.h"
 #include <iostream>
 
 // These includes are for serial port reading/writing
