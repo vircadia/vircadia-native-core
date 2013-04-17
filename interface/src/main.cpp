@@ -825,7 +825,7 @@ void display(void)
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getBodyPosition();
-                glTranslatef(-pos.x, -pos.y, -pos.z);
+                glTranslatef(pos.x, pos.y, pos.z);
                 agentHead->render(0);
                 glPopMatrix();
             }
@@ -839,7 +839,6 @@ void display(void)
         // brad's frustum for debugging
         if (::frustumOn) render_view_frustum();
     
-	
         //Render my own avatar
 		myAvatar.render(true);	
     }
@@ -1361,7 +1360,7 @@ void idle(void) {
 		}
 		
         //
-        //  Sample hardware, update view frustum if needed, send avatar data to mixer/agents
+        //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		

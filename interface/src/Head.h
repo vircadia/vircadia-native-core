@@ -252,7 +252,6 @@ class Head : public AvatarData {
         //-----------------------------
         // private methods...
         //-----------------------------
-		void initializeAvatar();
 		void initializeSkeleton();
 		void updateSkeleton();
 		void initializeBodySprings();

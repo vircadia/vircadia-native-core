@@ -49,7 +49,6 @@ unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
 
 Head::Head(bool isMine) {
-	initializeAvatar();
     
 	_avatar.orientation.setToIdentity();
 	_avatar.velocity    = glm::vec3( 0.0, 0.0, 0.0 );
@@ -133,7 +132,6 @@ Head::Head(bool isMine) {
 }
 
 Head::Head(const Head &otherHead) {
-	initializeAvatar();
     
 	_avatar.orientation.set( otherHead._avatar.orientation );
 	_avatar.velocity	= otherHead._avatar.velocity;
@@ -352,42 +350,44 @@ void Head::simulate(float deltaTime) {
 	_previousHandBeingMoved = _handBeingMoved;
 	_handBeingMoved = false;
 	
-	//-------------------------------------------------
-	// this handles the avatar being driven around...
-	//-------------------------------------------------	
-	_avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
-		
-    if (driveKeys[FWD]) {
-		glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
-		_avatar.thrust += front * THRUST_MAG;
-    }
-    if (driveKeys[BACK]) {
-		glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
-		_avatar.thrust -= front * THRUST_MAG;
-    }
-    if (driveKeys[RIGHT]) {
-		glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-		_avatar.thrust -= right * THRUST_MAG;
-    }
-    if (driveKeys[LEFT]) {
-		glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-		_avatar.thrust += right * THRUST_MAG;
-    }
-    if (driveKeys[UP]) {
-		glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
-		_avatar.thrust += up * THRUST_MAG;
-    }
-    if (driveKeys[DOWN]) {
-		glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
-		_avatar.thrust -= up * THRUST_MAG;
-    }
-    if (driveKeys[ROT_RIGHT]) {	
-		_bodyYawDelta -= YAW_MAG * deltaTime;
-    }
-    if (driveKeys[ROT_LEFT]) {	
-		_bodyYawDelta += YAW_MAG * deltaTime;
-    }
-	
+    if ( _isMine ) { // driving the avatar around should only apply is this is my avatar (as opposed to an avatar being driven remotely) 
+        //-------------------------------------------------
+        // this handles the avatar being driven around...
+        //-------------------------------------------------	
+        _avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
+            
+        if (driveKeys[FWD]) {
+            glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
+            _avatar.thrust += front * THRUST_MAG;
+        }
+        if (driveKeys[BACK]) {
+            glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
+            _avatar.thrust -= front * THRUST_MAG;
+        }
+        if (driveKeys[RIGHT]) {
+            glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
+            _avatar.thrust -= right * THRUST_MAG;
+        }
+        if (driveKeys[LEFT]) {
+            glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
+            _avatar.thrust += right * THRUST_MAG;
+        }
+        if (driveKeys[UP]) {
+            glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
+            _avatar.thrust += up * THRUST_MAG;
+        }
+        if (driveKeys[DOWN]) {
+            glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
+            _avatar.thrust -= up * THRUST_MAG;
+        }
+        if (driveKeys[ROT_RIGHT]) {	
+            _bodyYawDelta -= YAW_MAG * deltaTime;
+        }
+        if (driveKeys[ROT_LEFT]) {	
+            _bodyYawDelta += YAW_MAG * deltaTime;
+        }
+	}
+    
 	//----------------------------------------------------------
 	float translationalSpeed = glm::length( _avatar.velocity );
 	float rotationalSpeed = fabs( _bodyYawDelta );
@@ -403,7 +403,7 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update body yaw by body yaw delta
 	//----------------------------------------------------------
-	_bodyYaw += _bodyYawDelta * deltaTime;
+    _bodyYaw += _bodyYawDelta * deltaTime;
 	
 	//----------------------------------------------------------
 	// (for now) set head yaw to body yaw
@@ -650,7 +650,7 @@ void Head::renderHead( int faceToFace) {
 		
 	//  Don't render a head if it is really close to your location, because that is your own head!
 	//if (!isMine || faceToFace) 
-	{
+	//{
         
         glRotatef(Pitch, 1, 0, 0);
         glRotatef(Roll, 0, 0, 1);
@@ -780,7 +780,7 @@ void Head::renderHead( int faceToFace) {
         
         glPopMatrix();
 
-    }
+    //}
     glPopMatrix();
  }
  
@@ -794,29 +794,6 @@ void Head::setHandMovement( glm::vec3 movement ) {
 
 AvatarMode Head::getMode() {
 	return _mode;
-}
-
-
-void Head::initializeAvatar() {
-/*
-	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
-	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
-	avatar.orientation.setToIdentity();
-	
-	closestOtherAvatar = 0;
-	
-	_bodyYaw		= -90.0;
-	_bodyPitch	= 0.0;
-	_bodyRoll	= 0.0;
-	
-	bodyYawDelta = 0.0;
-	
-	triggeringAction = false;
-	
-	mode = AVATAR_MODE_STANDING;
-
-    initializeSkeleton();
-    */
 }
 
 
@@ -937,8 +914,6 @@ void Head::calculateBoneLengths() {
 	+ _bone[ AVATAR_BONE_RIGHT_HAND		 ].length;
 }
 
-
-
 void Head::updateSkeleton() {
 	//----------------------------------
 	// rotate body...
@@ -964,7 +939,12 @@ void Head::updateSkeleton() {
 			_bone[b].orientation.set( _bone[ _bone[b].parent ].orientation );
 			_bone[b].position = _bone[ _bone[b].parent ].position;
 		}
-											
+        
+        ///TEST! - get this working and then add a comment JJV
+        if ( ! _isMine ) {
+            _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
+        }
+                                            
 		float xx =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight	() );
 		float yy =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
 		float zz = -glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront	() );
@@ -1090,8 +1070,7 @@ void Head::updateHandMovement() {
 		}
 	}
 	
-	
-	
+
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------
@@ -1229,6 +1208,7 @@ void Head::SetNewHeadTarget(float pitch, float yaw) {
     YawTarget = yaw;
 }
 
+// getting data from Android transmitte app
 void Head::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float accX, accY, accZ,
