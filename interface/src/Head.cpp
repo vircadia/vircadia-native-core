@@ -48,25 +48,19 @@ unsigned int iris_texture_height = 256;
 Head::Head() {
 	initializeAvatar();
     
-    
+	avatar.orientation.setToIdentity();
 	avatar.velocity		= glm::vec3( 0.0, 0.0, 0.0 );
 	avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
-	avatar.orientation.setToIdentity();
-	
-	closestOtherAvatar = 0;
-	
-	_bodyYaw		= -90.0;
-	_bodyPitch	= 0.0;
-	_bodyRoll	= 0.0;
-	
-	bodyYawDelta = 0.0;
-	
-	triggeringAction = false;
-	
-	mode = AVATAR_MODE_STANDING;
+    rotation            = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
+	closestOtherAvatar  = 0;
+	_bodyYaw            = -90.0;
+	_bodyPitch          = 0.0;
+	_bodyRoll           = 0.0;
+	bodyYawDelta        = 0.0;
+	triggeringAction    = false;
+	mode                = AVATAR_MODE_STANDING;
 
     initializeSkeleton();
-    
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
     
@@ -102,17 +96,15 @@ Head::Head() {
     browAudioLift = 0.0;
     noise = 0;
 	
-	handBeingMoved = false;
-	previousHandBeingMoved = false;
-	movedHandOffset = glm::vec3( 0.0, 0.0, 0.0 );
+	handBeingMoved          = false;
+	previousHandBeingMoved  = false;
+	movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
+	usingSprings            = false;
+	springForce				= 6.0f;
+	springVelocityDecay		= 16.0f;
 	
 	sphere = NULL;
 	
-	usingSprings = false;
-	
-	springForce				= 6.0f;
-	springVelocityDecay		= 16.0f;
-    
     if (iris_texture.size() == 0) {
         switchToResourcesIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -137,30 +129,23 @@ Head::Head() {
 }
 
 
-
-
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
     
+	avatar.orientation.set( otherHead.avatar.orientation );
 	avatar.velocity		= otherHead.avatar.velocity;
 	avatar.thrust		= otherHead.avatar.thrust;
-	avatar.orientation.set( otherHead.avatar.orientation );
-	
-	closestOtherAvatar = otherHead.closestOtherAvatar;
-	
-	_bodyYaw	= otherHead._bodyYaw;
-	_bodyPitch	= otherHead._bodyPitch;
-	_bodyRoll	= otherHead._bodyRoll;
-	
-	bodyYawDelta = otherHead.bodyYawDelta;
-	
-	triggeringAction = otherHead.triggeringAction;
-	
-	mode = otherHead.mode;
+    rotation            = otherHead.rotation;
+	closestOtherAvatar  = otherHead.closestOtherAvatar;
+	_bodyYaw            = otherHead._bodyYaw;
+	_bodyPitch          = otherHead._bodyPitch;
+	_bodyRoll           = otherHead._bodyRoll;
+	bodyYawDelta        = otherHead.bodyYawDelta;
+	triggeringAction    = otherHead.triggeringAction;
+	mode                = otherHead.mode;
 
     initializeSkeleton();
     
-
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = otherHead.driveKeys[i];
 
     PupilSize = otherHead.PupilSize;
@@ -833,14 +818,19 @@ void Head::initializeAvatar() {
 }
 
 
-
-
 void Head::initializeSkeleton() {
 
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+        bone[b].parent              = AVATAR_BONE_NULL;
 		bone[b].position			= glm::vec3( 0.0, 0.0, 0.0 );
-		bone[b].springyPosition	= glm::vec3( 0.0, 0.0, 0.0 );
-		bone[b].springyVelocity	= glm::vec3( 0.0, 0.0, 0.0 );
+		bone[b].defaultPosePosition = glm::vec3( 0.0, 0.0, 0.0 );
+		bone[b].springyPosition     = glm::vec3( 0.0, 0.0, 0.0 );
+		bone[b].springyVelocity     = glm::vec3( 0.0, 0.0, 0.0 );
+        bone[b].rotation            = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+		bone[b].yaw                 = 0.0;
+		bone[b].pitch               = 0.0;
+		bone[b].roll                = 0.0;
+		bone[b].length              = 0.0;
 		bone[b].springBodyTightness = 4.0;
 		bone[b].orientation.setToIdentity();
 	}

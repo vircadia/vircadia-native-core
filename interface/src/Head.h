@@ -20,6 +20,11 @@
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 
+//#include <glm/glm.hpp>
+
+#include <glm/gtc/quaternion.hpp> and <glm/gtx/quaternion.hpp>
+
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -80,6 +85,7 @@ struct AvatarBone
 	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
 	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
+    glm::quat   rotation;               // this will eventually replace yaw, pitch and roll (and maybe orienttion)
 	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
 	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
 	float		roll;					// the roll Euler angle of the bone rotation off the parent
@@ -231,7 +237,9 @@ class Head : public AvatarData {
     
         GLUquadric *sphere;
 		Avatar avatar;
-		
+        
+        glm::quat rotation; // the rotation of the avatar body as a whole
+
 		AvatarBone	bone[ NUM_AVATAR_BONES ];
 		
 		AvatarMode mode;
