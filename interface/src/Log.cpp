@@ -313,9 +313,11 @@ Log logger;
 
 int printLog(char const* fmt, ...) {
 
+    int result;
     va_list args;
     va_start(args,fmt);
-    logger.vprint(fmt, args);
+    result = logger.vprint(fmt, args);
     va_end(args);
+    return result;
 }
 

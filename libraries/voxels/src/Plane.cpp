@@ -7,7 +7,7 @@
 
 #include "voxels_Log.h"
 
-using voxels::printLog;
+using voxels_lib::printLog;
 
 // These are some useful utilities that vec3 is missing
 float vec3_length(const glm::vec3& v) {

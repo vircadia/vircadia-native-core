@@ -50,6 +50,7 @@
 #include "Log.h"
 #include "shared_Log.h"
 #include "voxels_Log.h"
+#include "avatars_Log.h"
 
 #include "Field.h"
 #include "world.h"
@@ -136,7 +137,7 @@ Cloud cloud(0,                             //  Particles
             false                          //  Wrap
             );
 
-VoxelSystem voxSys;
+VoxelSystem voxels;
 Field field;
 
 #ifndef _WIN32
@@ -245,28 +246,28 @@ void displayStats(void)
     }
     
     std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxSys.getVoxelsRendered();
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxSys.getVoxelsCreated() << " (" << voxSys.getVoxelsCreatedRunningAverage() 
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
 		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxSys.getVoxelsColored() << " (" << voxSys.getVoxelsColoredRunningAverage() 
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
 		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 	
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxSys.getVoxelsBytesRead()  
-		<< " (" << voxSys.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
+		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	long int voxelsBytesPerColored = voxSys.getVoxelsColored() ? voxSys.getVoxelsBytesRead()/voxSys.getVoxelsColored() : 0;
-	long int voxelsBytesPerColoredAvg = voxSys.getVoxelsColoredRunningAverage() ? 
-		voxSys.getVoxelsBytesReadRunningAverage()/voxSys.getVoxelsColoredRunningAverage() : 0;
+	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
+	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
+		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
 
 	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
 		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
@@ -303,8 +304,8 @@ void initDisplay(void)
 
 void init(void)
 {
-    voxSys.init();
-    voxSys.setViewerHead(&myAvatar);
+    voxels.init();
+    voxels.setViewerHead(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
 
     headMouseX = WIDTH/2;
@@ -819,7 +820,7 @@ void display(void)
         //  Draw voxels
 		if ( showingVoxels )
 		{
-			voxSys.render();
+			voxels.render();
 		}
 		
         //  Draw field vectors
@@ -1153,7 +1154,7 @@ void addRandomSphere(bool wantColorRandomizer)
 	printLog("yc=%f\n",yc);
 	printLog("zc=%f\n",zc);
 
-	voxSys.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
+	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
 
@@ -1315,7 +1316,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_Z_COMMAND:
                 case PACKET_HEADER_ERASE_VOXEL:
-                    voxSys.parseData(incomingPacket, bytesReceived);
+                    voxels.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
@@ -1516,8 +1517,9 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
-    shared::printLog = ::printLog;
-    voxels::printLog = ::printLog;
+    shared_lib::printLog = & ::printLog;
+    voxels_lib::printLog = & ::printLog;
+    avatars_lib::printLog = & ::printLog;
 
     // Quick test of the Orientation class on startup!
     testOrientationClass();    
@@ -1601,7 +1603,7 @@ int main(int argc, const char * argv[])
 	// Voxel File. If so, load it now.
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
-	    voxSys.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
         printLog("Local Voxel File loaded.\n");
 	}
     

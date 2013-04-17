@@ -22,7 +22,7 @@
 
 #include "shared_Log.h"
 
-using shared::printLog;
+using shared_lib::printLog;
 
 sockaddr_in destSockaddr, senderAddress;
 

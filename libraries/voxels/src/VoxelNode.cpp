@@ -12,6 +12,8 @@
 #include "VoxelNode.h"
 #include "OctalCode.h"
 
+// using voxels_lib::printLog;
+
 VoxelNode::VoxelNode() {
     octalCode = NULL;
     

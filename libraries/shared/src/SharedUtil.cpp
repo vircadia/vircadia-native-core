@@ -20,7 +20,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-using shared::printLog;
+using shared_lib::printLog;
 
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);

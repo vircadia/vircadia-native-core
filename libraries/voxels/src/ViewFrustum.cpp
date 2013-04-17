@@ -11,7 +11,7 @@
 #include "ViewFrustum.h"
 #include "voxels_Log.h"
 
-using voxels::printLog;
+using voxels_lib::printLog;
 
 ViewFrustum::ViewFrustum() :
     _position(glm::vec3(0,0,0)),

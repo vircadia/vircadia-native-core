@@ -21,7 +21,7 @@
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
-using voxels::printLog;
+using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {

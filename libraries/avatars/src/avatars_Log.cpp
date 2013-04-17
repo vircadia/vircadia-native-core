@@ -1,5 +1,5 @@
 //
-// shared_Log.cpp
+// avatars_Log.cpp
 // hifi
 //
 // Created by Tobias Schwinger on 4/17/13.
@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace shared_lib {
+namespace avatars_lib {
     using namespace std;
 
     int (* printLog)(char const*, ...) = & printf;

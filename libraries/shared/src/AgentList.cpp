@@ -22,7 +22,7 @@
 #include <arpa/inet.h>
 #endif
 
-using shared::printLog;
+using shared_lib::printLog;
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
