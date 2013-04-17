@@ -19,17 +19,8 @@
 #include <sys/socket.h>
 #endif
 
-class Agent {
-    void swap(Agent &first, Agent &second);
-    sockaddr *publicSocket, *localSocket, *activeSocket;
-    char type;
-    uint16_t agentId;
-    double firstRecvTimeUsecs;
-    double lastRecvTimeUsecs;
-    AgentData *linkedData;
-    
-public:    
-    Agent();
+class Agent {    
+public:
     Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId);
     Agent(const Agent &otherAgent);
     ~Agent();
@@ -38,7 +29,7 @@ public:
     
     bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
     
-    pthread_mutex_t deleteMutex;
+    pthread_mutex_t *deleteMutex;
     
     char getType() const;
     const char* getTypeName() const;
@@ -59,7 +50,15 @@ public:
     AgentData* getLinkedData();
     void setLinkedData(AgentData *newData);
 
-    friend std::ostream& operator<<(std::ostream& os, const Agent* agent);       
+    friend std::ostream& operator<<(std::ostream& os, const Agent* agent);
+private:
+    void swap(Agent &first, Agent &second);
+    sockaddr *publicSocket, *localSocket, *activeSocket;
+    char type;
+    uint16_t agentId;
+    double firstRecvTimeUsecs;
+    double lastRecvTimeUsecs;
+    AgentData *linkedData;
 };
 
 std::ostream& operator<<(std::ostream& os, const Agent* agent);
