@@ -43,8 +43,6 @@ AvatarData* AvatarData::clone() const {
     return new AvatarData(*this);
 }
 
-// transmit data to agents requesting it
-// called on me just prior to sending data to others (continuasly called)
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     
