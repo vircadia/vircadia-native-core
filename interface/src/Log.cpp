@@ -14,7 +14,6 @@
 #include <stdarg.h>
 
 #include "Util.h"
-#include "ScopedLock.h"
 
 namespace {
     // anonymous namespace - everything in here only exists within this very .cpp file
