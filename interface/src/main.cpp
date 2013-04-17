@@ -769,6 +769,13 @@ void display(void)
 
 
 
+
+        //quick test for camera ortho-normal sanity check...
+        
+
+
+
+
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
         	stars.render(fov);

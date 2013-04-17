@@ -602,7 +602,9 @@ void Head::render(int faceToFace, int isMine) {
 }
 
 
-	   
+
+//this has been moved to Utils.cpp
+/*
 void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
 	glm::vec3 pRight	= position + orientation.right	* size;
 	glm::vec3 pUp		= position + orientation.up		* size;
@@ -610,22 +612,23 @@ void Head::renderOrientationDirections( glm::vec3 position, Orientation orientat
 		
 	glColor3f( 1.0f, 0.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pRight.x, pRight.y, pRight.z );
 	glEnd();
 
 	glColor3f( 0.0f, 1.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pUp.x, pUp.y, pUp.z );
 	glEnd();
 
 	glColor3f( 0.0f, 0.0f, 1.0f );
 	glBegin( GL_LINE_STRIP );
-	glVertex3f( bone[ AVATAR_BONE_HEAD ].position.x, bone[ AVATAR_BONE_HEAD ].position.y, bone[ AVATAR_BONE_HEAD ].position.z );
+	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( pFront.x, pFront.y, pFront.z );
 	glEnd();
 }
+*/
 
 	  
 	   

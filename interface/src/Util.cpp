@@ -16,6 +16,7 @@
 #include "world.h"
 #include "Util.h"
 
+
 //  Return the azimuth angle in degrees between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf;
@@ -200,5 +201,32 @@ void drawGroundPlaneGrid( float size, int resolution )
 		glEnd();
 	}
 }
+
+
+void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
+	glm::vec3 pRight	= position + orientation.right	* size;
+	glm::vec3 pUp		= position + orientation.up		* size;
+	glm::vec3 pFront	= position + orientation.front	* size;
+		
+	glColor3f( 1.0f, 0.0f, 0.0f );
+	glBegin( GL_LINE_STRIP );
+	glVertex3f( position.x, position.y, position.z );
+	glVertex3f( pRight.x, pRight.y, pRight.z );
+	glEnd();
+
+	glColor3f( 0.0f, 1.0f, 0.0f );
+	glBegin( GL_LINE_STRIP );
+	glVertex3f( position.x, position.y, position.z );
+	glVertex3f( pUp.x, pUp.y, pUp.z );
+	glEnd();
+
+	glColor3f( 0.0f, 0.0f, 1.0f );
+	glBegin( GL_LINE_STRIP );
+	glVertex3f( position.x, position.y, position.z );
+	glVertex3f( pFront.x, pFront.y, pFront.z );
+	glEnd();
+}
+
+
 
 
