@@ -15,6 +15,8 @@
 
 #include <AgentData.h>
 
+const int BYTES_PER_AVATAR = 30;
+
 class AvatarData : public AgentData {
 public:
     AvatarData();

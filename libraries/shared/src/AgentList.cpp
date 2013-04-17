@@ -109,7 +109,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
 
     unsigned char *startPosition = (unsigned char *)packetData;
     unsigned char *currentPosition = startPosition + 1;
-    unsigned char *packetHolder = new unsigned char[numBytesPerAgent + 1];
+    unsigned char packetHolder[numBytesPerAgent + 1];
     
     packetHolder[0] = PACKET_HEADER_HEAD_DATA;
     
@@ -122,13 +122,12 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         int matchingAgentIndex = indexOfMatchingAgent(agentID);
         
         if (matchingAgentIndex >= 0) {
+            
             updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
         }
         
         currentPosition += numBytesPerAgent;
     }
-    
-    delete[] packetHolder;
 }
 
 void AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -148,7 +147,7 @@ void AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int
             linkedDataCreateCallback(agent);
         }
     }
-    
+
     agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
