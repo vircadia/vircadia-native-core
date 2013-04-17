@@ -548,7 +548,6 @@ void Head::simulate(float deltaTime) {
 	   
 void Head::render(int faceToFace, int isMine) {
 
-/*
 	//---------------------------------------------------
 	// show avatar position
 	//---------------------------------------------------
@@ -557,7 +556,6 @@ void Head::render(int faceToFace, int isMine) {
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
-*/
     
 	//---------------------------------------------------
 	// show avatar orientation
