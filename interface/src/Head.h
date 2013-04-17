@@ -124,8 +124,8 @@ class Head : public AvatarData {
         float getYaw() {return Yaw;}
         float getLastMeasuredYaw() {return YawRate;}
 		
-        float getBodyYaw() {return bodyYaw;};
-        void addBodyYaw(float y) {bodyYaw += y;};
+        float getBodyYaw() {return _bodyYaw;};
+        void addBodyYaw(float y) {_bodyYaw += y;};
     
 		glm::vec3 getHeadLookatDirection();
 		glm::vec3 getHeadLookatDirectionUp();
