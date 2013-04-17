@@ -22,7 +22,6 @@ void Orientation::setToIdentity() {
 	front	= glm::vec3(  0.0,  0.0,  1.0 );	
 }
 
-
 void Orientation::set( Orientation o ) { 
 	right	= o.right;
 	up		= o.up;
@@ -125,7 +124,7 @@ void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 
 
     //----------------------------------------------------------------
-    // make sure vectors are orthoginal (or close enough)
+    // make sure vectors are orthogonal (or close enough)
     //----------------------------------------------------------------
     glm::vec3 rightCross    = glm::cross( up, front );
     glm::vec3 upCross       = glm::cross( front, right );
