@@ -57,7 +57,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
-    //printf( "_bodyYaw = %f\n", _bodyYaw );
+    memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
+    destinationBuffer += sizeof(float) * 3;
+    
+    //std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
     
     return destinationBuffer - bufferStart;
 }

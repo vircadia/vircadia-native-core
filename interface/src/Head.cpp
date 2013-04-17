@@ -132,7 +132,6 @@ Head::Head(bool isMine) {
 	DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.3, -2.0 );
 }
 
-
 Head::Head(const Head &otherHead) {
 	initializeAvatar();
     
@@ -531,7 +530,9 @@ void Head::simulate(float deltaTime) {
       
 	  
 	  
-void Head::render(int faceToFace, int isMine) {
+	  
+	   
+void Head::render(int faceToFace) {
 
 	//---------------------------------------------------
 	// show avatar position
