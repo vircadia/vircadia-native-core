@@ -39,6 +39,9 @@ public:
 	glm::vec3 getFront()	{ return front;	}
 	
 	void setRightUpFront( const glm::vec3 &, const glm::vec3 &, const glm::vec3 & );
+	
+private: 
+	void testForOrthogonalAndNormalizedVectors( float epsilon );
 };
 
 
