@@ -1310,7 +1310,10 @@ void *networkReceive(void *args)
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived, sizeof(float) * 11);
+                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                                                                   incomingPacket,
+                                                                   bytesReceived,
+                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 2));
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
