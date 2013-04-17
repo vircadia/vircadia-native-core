@@ -149,7 +149,7 @@ namespace starfield {
             matrix[3][2] = 0.0f;
 
             // extract local z vector
-            vec3 ahead = swizzle<X,Y,Z>( column(matrix, 2) );
+            vec3 ahead = vec3(matrix[2]);
 
             float azimuth = atan2(ahead.x,-ahead.z) + Radians::pi();
             float altitude = atan2(-ahead.y, hypotf(ahead.x, ahead.z));
@@ -163,7 +163,7 @@ namespace starfield {
 // fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tileIndex);
 
 
-#if STARFIELD_DEBUG_LOD 
+#if STARFIELD_DEBUG_CULLING
             mat4 matrix_debug = glm::translate( 
                     glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
                     vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
@@ -173,7 +173,7 @@ namespace starfield {
                     * glm::affineInverse(matrix);
 
             this->_itrOutIndex = (unsigned*) _arrBatchOffs;
-            this->_vecWxform = swizzle<X,Y,Z>(row(matrix, 3));
+            this->_vecWxform = vec3(row(matrix, 3));
             this->_valHalfPersp = halfPersp;
             this->_valMinBright = minBright;
 
@@ -181,13 +181,13 @@ namespace starfield {
                     _arrTile, _arrTile + _objTiling.getTileCount(),
                     (Tile**) _arrBatchCount));
 
-#if STARFIELD_DEBUG_LOD
+#if STARFIELD_DEBUG_CULLING
 #   define matrix matrix_debug
 #endif
             this->glBatch(glm::value_ptr(matrix), prepareBatch(
                     (unsigned*) _arrBatchOffs, _itrOutIndex) );
 
-#if STARFIELD_DEBUG_LOD
+#if STARFIELD_DEBUG_CULLING
 #   undef matrix
 #endif
         }

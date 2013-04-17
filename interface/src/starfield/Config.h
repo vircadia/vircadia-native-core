@@ -25,8 +25,8 @@
 #define STARFIELD_LOW_MEMORY 0 //  set to 1 not to use 16-bit types
 #endif
 
-#ifndef STARFIELD_DEBUG_LOD
-#define STARFIELD_DEBUG_LOD 0 // set to 1 to peek behind the scenes
+#ifndef STARFIELD_DEBUG_CULLING
+#define STARFIELD_DEBUG_CULLING 0 // set to 1 to peek behind the scenes
 #endif
 
 #ifndef STARFIELD_MULTITHREADING
@@ -64,7 +64,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <glm/gtc/swizzle.hpp>
 
 #include "UrlReader.h"
 #include "AngleUtil.h"
@@ -80,13 +79,11 @@ namespace starfield {
     using glm::vec4;
     using glm::dot;
     using glm::normalize;
-    using glm::swizzle;
     using glm::X;
     using glm::Y;
     using glm::Z;
     using glm::W;
     using glm::mat4;
-    using glm::column;
     using glm::row;
 
     using namespace std;
