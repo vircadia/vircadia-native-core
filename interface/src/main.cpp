@@ -708,12 +708,12 @@ void display(void)
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
+			myCamera.setTargetPosition	( myAvatar.getBodyPosition() ); // XXXBHG - Shouldn't we use Head position here?
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0  );
 			myCamera.setRoll			( 0.0  );
-			myCamera.setUp				( 0.53 );	
-			myCamera.setDistance		( 0.03 );
+			myCamera.setUp				( 0.6 );	
+			myCamera.setDistance		( 0.3  );
 			myCamera.setTightness		( 100.0f );
 			myCamera.update				( 1.f/FPS );
 		} else {
@@ -724,8 +724,8 @@ void display(void)
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
-			myCamera.setUp				(   0.45 );
-			myCamera.setDistance		(   0.5 );
+			myCamera.setUp				(   0.45);
+			myCamera.setDistance		(   1.0 );
 			myCamera.setTightness		( 10.0f );
 			myCamera.update				( 1.f/FPS );
 		}
@@ -759,9 +759,11 @@ void display(void)
 		// could be myCamera (if in normal mode)
 		// or could be viewFrustumOffsetCamera if in offset mode
 		//---------------------------------------------
+		
+		// I changed the ordering here - roll is FIRST (JJV) 
+        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
-        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
 

@@ -12,6 +12,8 @@
 #define __hifi__ViewFrustum__
 
 #include <glm/glm.hpp>
+#include "Plane.h"
+#include "AABox.h"
 
 class ViewFrustum {
 private:
@@ -43,6 +45,8 @@ private:
     glm::vec3   _nearTopRight;    
     glm::vec3   _nearBottomLeft;  
     glm::vec3   _nearBottomRight;
+    enum { TOPP = 0, BOTTOMP, LEFTP, RIGHTP, NEARP, FARP };
+    Plane _planes[6]; // How will this be used?
     
 public:
     // setters for camera attributes
@@ -79,6 +83,13 @@ public:
     ViewFrustum();
 
     void dump();
+    
+    enum {OUTSIDE, INTERSECT, INSIDE};
+
+    int pointInFrustum(glm::vec3 &p);
+    int sphereInFrustum(glm::vec3 &center, float radius);
+    int boxInFrustum(AABox &b);
+    
 };
 
 

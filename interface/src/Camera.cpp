@@ -9,40 +9,34 @@
 
 #include "Camera.h"
 
-
-
-//------------------------
 Camera::Camera()
 {
 	_mode			= CAMERA_MODE_THIRD_PERSON;
 	_tightness		= DEFAULT_CAMERA_TIGHTNESS;
 	_fieldOfView    = 60.0;     // default
-	_nearClip       = 0.1;      // default
-	_farClip        = 50.0;    // default
+	_nearClip       = 0.01;     // default
+	_farClip        = 50.0;     // default
 	_yaw            = 0.0;
 	_pitch			= 0.0;
 	_roll			= 0.0;
 	_up				= 0.0;
 	_distance		= 0.0;
+	_idealYaw		= 0.0;
 	_targetPosition	= glm::vec3( 0.0, 0.0, 0.0 );
 	_position		= glm::vec3( 0.0, 0.0, 0.0 );
 	_idealPosition	= glm::vec3( 0.0, 0.0, 0.0 );
 	_orientation.setToIdentity();
 }
 
-
-
-
-//------------------------------------
 void Camera::update( float deltaTime )
 {
 	float radian = ( _yaw / 180.0 ) * PIE;
 
-	//these need to be checked to make sure they correspond to the cordinate system.
-	float x = _distance * -sin( radian );
-	float z = _distance *  cos( radian );
-	float y = _up;
-	
+	//these need to be checked to make sure they correspond to the coordinate system.
+	double x = _distance * -sin( radian );
+	double z = _distance *  cos( radian );
+	double y = _up;
+		
 	_idealPosition = _targetPosition + glm::vec3( x, y, z );
 	float t = _tightness * deltaTime;
 	
@@ -51,13 +45,12 @@ void Camera::update( float deltaTime )
 	}
 	
 	_position += ( _idealPosition - _position ) * t; 
-	
-	//-------------------------------------------------------------------------
-	//geterate the ortho-normals for the orientation based on the Euler angles
-	//------------------------------------------------------------------------
+	_yaw      += ( _idealYaw      - _yaw      ) * t;
+
+	// generate the ortho-normals for the orientation based on the Euler angles
 	_orientation.setToIdentity();
-	_orientation.yaw    ( _yaw	);
-	_orientation.pitch	( _pitch	);
-	_orientation.roll	( _roll	);
+	_orientation.yaw	( _yaw	 );
+	_orientation.pitch	( _pitch );
+	_orientation.roll	( _roll	 );
 }
 

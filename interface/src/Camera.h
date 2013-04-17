@@ -28,9 +28,9 @@ public:
     Camera();
 
 	void update( float deltaTime );
-
+	
     void setMode            ( CameraMode    m ) { _mode             = m; }
-    void setYaw             ( float         y ) { _yaw              = y; }
+    void setYaw             ( float         y ) { _idealYaw         = y; }
     void setPitch           ( float         p ) { _pitch            = p; }
     void setRoll            ( float         r ) { _roll             = r; }
     void setUp              ( float         u ) { _up               = u; }
@@ -57,23 +57,22 @@ public:
 
 private:
 
-    CameraMode	_mode;
-    glm::vec3   _position;
+	CameraMode	_mode;
+	glm::vec3	_position;
 	glm::vec3	_idealPosition;
-    glm::vec3   _targetPosition;
-    float       _yaw;
-    float       _pitch;
-    float       _roll;
-    float       _up;
-    float       _distance;
+	glm::vec3	_targetPosition;
+	float		_fieldOfView;
+    float		_aspectRatio;
+    float		_nearClip;
+    float		_farClip;
+	float		_yaw;
+	float		_pitch;
+	float		_roll;
+	float		_up;
+	float		_idealYaw;
+	float		_distance;
 	float		_tightness;
-    Orientation _orientation;
-
-    // Lens attributes
-    float       _fieldOfView;       // in degrees
-    float       _aspectRatio;       // width/height
-    float       _nearClip;          // in world units? - XXXBHG - we need to think about this!
-    float       _farClip;           // in world units?
+	Orientation	_orientation;
 };
 
 #endif
