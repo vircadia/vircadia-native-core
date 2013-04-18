@@ -9,8 +9,6 @@
 #ifndef __interface__head__
 #define __interface__head__
 
-#include <iostream>
-
 #include <AvatarData.h>
 #include <Orientation.h>
 

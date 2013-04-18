@@ -7,13 +7,19 @@
 
 #include "Orientation.h"
 #include <SharedUtil.h>
+#include "avatars_Log.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 //#include "Util.h"
 
+using avatars_lib::printLog;
 
 // XXXBHG - this test has not yet been reworked to match the correct vector orientation 
 // of the coordinate system, so don't  use it for now.
+//
+// tosh - yep, I noticed... :-)
+// 
 static bool testingForNormalizationAndOrthogonality = false;
 
 Orientation::Orientation() {
@@ -110,7 +116,7 @@ void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 	     
 	if (( rightLength > 1.0f + epsilon )
 	||  ( rightLength < 1.0f - epsilon )) { 
-        printf( "Error in Orientation class: right direction length is %f \n", rightLength ); 
+        printLog( "Error in Orientation class: right direction length is %f \n", rightLength ); 
     }
 	assert ( rightLength > 1.0f - epsilon );
 	assert ( rightLength < 1.0f + epsilon );
@@ -118,7 +124,7 @@ void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 
 	if (( upLength > 1.0f + epsilon )
 	||  ( upLength < 1.0f - epsilon )) { 
-        printf( "Error in Orientation class: up direction length is %f \n", upLength ); 
+        printLog( "Error in Orientation class: up direction length is %f \n", upLength ); 
     }
 	assert ( upLength > 1.0f - epsilon );
 	assert ( upLength < 1.0f + epsilon );
@@ -126,7 +132,7 @@ void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 
 	if (( frontLength > 1.0f + epsilon )
 	||  ( frontLength < 1.0f - epsilon )) { 
-        printf( "Error in Orientation class: front direction length is %f \n", frontLength ); 
+        printLog( "Error in Orientation class: front direction length is %f \n", frontLength ); 
     }
 	assert ( frontLength > 1.0f - epsilon );
 	assert ( frontLength < 1.0f + epsilon );
@@ -143,22 +149,22 @@ void Orientation::testForOrthogonalAndNormalizedVectors( float epsilon ) {
 
 
     if ( rightDiff > epsilon ) { 
-        printf( "Error in Orientation class: right direction not orthogonal to up and/or front. " ); 
-        printf( "The tested cross of up and front is off by %f \n", rightDiff ); 
+        printLog( "Error in Orientation class: right direction not orthogonal to up and/or front. " ); 
+        printLog( "The tested cross of up and front is off by %f \n", rightDiff ); 
     }
 	assert ( rightDiff < epsilon );
     
     
     if ( upDiff > epsilon ) { 
-        printf( "Error in Orientation class: up direction not orthogonal to front and/or right. " ); 
-        printf( "The tested cross of front and right is off by %f \n", upDiff ); 
+        printLog( "Error in Orientation class: up direction not orthogonal to front and/or right. " ); 
+        printLog( "The tested cross of front and right is off by %f \n", upDiff ); 
     }
 	assert ( upDiff < epsilon );
 
 
     if ( frontDiff > epsilon ) { 
-        printf( "Error in Orientation class: front direction not orthogonal to right and/or up. " ); 
-        printf( "The tested cross of right and up is off by %f \n", frontDiff ); 
+        printLog( "Error in Orientation class: front direction not orthogonal to right and/or up. " ); 
+        printLog( "The tested cross of right and up is off by %f \n", frontDiff ); 
     }
 	assert ( frontDiff < epsilon );
 }

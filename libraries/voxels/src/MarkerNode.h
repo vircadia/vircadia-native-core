@@ -9,8 +9,6 @@
 #ifndef __hifi__MarkerNode__
 #define __hifi__MarkerNode__
 
-#include <iostream>
-
 class MarkerNode {
 public:
     MarkerNode();

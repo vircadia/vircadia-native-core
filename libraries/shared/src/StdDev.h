@@ -9,8 +9,6 @@
 #ifndef __hifi__StdDev__
 #define __hifi__StdDev__
 
-#include <iostream>
-
 class StDev {
     public:
         StDev();

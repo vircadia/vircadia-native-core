@@ -9,8 +9,6 @@
 #ifndef __hifi__AvatarData__
 #define __hifi__AvatarData__
 
-#include <iostream>
-
 #include <glm/glm.hpp>
 
 #include <AgentData.h>

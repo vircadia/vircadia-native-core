@@ -10,6 +10,7 @@
 #include "Agent.h"
 #include "AgentTypes.h"
 #include <cstring>
+#include "shared_Log.h"
 #include "UDPSocket.h"
 #include "SharedUtil.h"
 
@@ -18,6 +19,8 @@
 #else
 #include <arpa/inet.h>
 #endif
+
+using shared_lib::printLog;
 
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
@@ -206,6 +209,16 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
     return type == otherAgentType
         && socketMatch(publicSocket, otherPublicSocket)
         && socketMatch(localSocket, otherLocalSocket);
+}
+
+void Agent::printLog(Agent const& agent) {
+
+    sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
+    sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
+
+    ::printLog("T: %s (%c) PA: %8x:%d LA: %8x:%d\n", agent.getTypeName(), agent.type,
+                                                     inet_ntoa(agentPublicSocket->sin_addr), ntohs(agentPublicSocket->sin_port),
+                                                     inet_ntoa(agentLocalSocket->sin_addr), ntohs(agentLocalSocket->sin_port));
 }
 
 std::ostream& operator<<(std::ostream& os, const Agent* agent) {

@@ -14,6 +14,10 @@
 #include <PacketHeaders.h>
 
 #include "AvatarData.h"
+#include "avatars_Log.h"
+
+using avatars_lib::printLog;
+
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
@@ -58,12 +62,12 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
-    //printf( "_bodyYaw = %f", _bodyYaw );
+    //printLog( "_bodyYaw = %f", _bodyYaw );
     
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
-    std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
+    printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
     
     return destinationBuffer - bufferStart;
 }
@@ -83,12 +87,10 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
     
-    //printf( "_bodyYaw = %f", _bodyYaw );
+    //printLog( "_bodyYaw = %f", _bodyYaw );
 
-    //std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
-    //std::cout << _bodyPosition.x << ", " << _bodyPosition.y << ", " << _bodyPosition.z << "\n";
-
-
+    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
+    //printLog("%f, %f, %f\n", _bodyPosition.x,  _bodyPosition.y, _bodyPosition.z);
 }
 
 glm::vec3 AvatarData::getBodyPosition() {

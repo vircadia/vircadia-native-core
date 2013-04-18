@@ -9,8 +9,8 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#include <iostream>
 #include <stdint.h>
+#include <ostream>
 #include "AgentData.h"
 
 #ifdef _WIN32
@@ -50,6 +50,7 @@ public:
     AgentData* getLinkedData();
     void setLinkedData(AgentData *newData);
 
+    static void printLog(Agent const&);
     friend std::ostream& operator<<(std::ostream& os, const Agent* agent);
 private:
     void swap(Agent &first, Agent &second);
