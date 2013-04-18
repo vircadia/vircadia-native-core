@@ -19,6 +19,7 @@
 
 #include <Orientation.h>
 
+void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);

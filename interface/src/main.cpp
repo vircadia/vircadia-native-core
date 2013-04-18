@@ -54,7 +54,7 @@
 #include "Audio.h"
 #endif
 
-#include "FieldOfView.h"
+#include "AngleUtil.h"
 #include "Stars.h"
 
 #include "MenuRow.h"
@@ -96,6 +96,7 @@ int headMirror = 1;                 //  Whether to mirror own head when viewing 
 int WIDTH = 1200;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
+float aspectRatio = 1.0f;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
@@ -109,12 +110,8 @@ Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the v
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
-FieldOfView fov;
+char starCacheFile[] = "cachedStars.txt";
 Stars stars;
-#ifdef STARFIELD_KEYS
-int starsTiles = 20;
-double starsLod = 1.0;
-#endif
 
 bool showingVoxels = true;
 
@@ -302,7 +299,7 @@ void init(void)
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
 
-    stars.readInput(starFile, 0);
+    stars.readInput(starFile, starCacheFile, 0);
  
     //  Initialize Field values
     field = Field();
@@ -765,18 +762,12 @@ void display(void)
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
-
-
-
-        //quick test for camera ortho-normal sanity check...
-        
-
-
-
-
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
-        	stars.render(fov);
+
+            glm::mat4 view;
+            glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
+        	stars.render(angleConvert<Degrees,Radians>(whichCamera.getFieldOfView()),  aspectRatio, view);
         }
 
         glEnable(GL_LIGHTING);
@@ -1277,13 +1268,6 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
-#ifdef STARFIELD_KEYS
-    if (k == 'u') stars.setResolution(starsTiles += 1);
-    if (k == 'j') stars.setResolution(starsTiles = max(starsTiles-1,1));
-    if (k == 'i') if (starsLod < 1.0) starsLod = stars.changeLOD(1.01);
-    if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
-    if (k == 'r') stars.readInput(starFile, 0);
-#endif
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
 }
@@ -1401,7 +1385,7 @@ void reshape(int width, int height)
 {
     WIDTH = width;
     HEIGHT = height; 
-    float aspectRatio = ((float)width/(float)height); // based on screen resize
+    aspectRatio = ((float)width/(float)height); // based on screen resize
 
     float fov;
     float nearClip;
@@ -1428,14 +1412,6 @@ void reshape(int width, int height)
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     glMatrixMode(GL_PROJECTION); //hello
-
-    // XXXBHG - Note: this is Tobias's code for loading the perspective matrix. At Philip's suggestion, I'm removing
-    // it and putting back our old code that simply loaded the fov, ratio, and near/far clips. But I'm keeping this here
-    // for reference for now.
-    //fov.setResolution(width, height)
-    //        .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-    //        .setPerspective(0.7854f);
-    //glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glLoadIdentity();
     
@@ -1507,7 +1483,20 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 int main(int argc, const char * argv[])
 {
     // Quick test of the Orientation class on startup!
-    testOrientationClass();    
+    //testOrientationClass();   //  PER - commented out to test orthonormal code
+    
+    //
+    //  For Brad:  Demo of function to test conversion of euler angles to orthonormals
+    //             (Note that the euler angles order is Pitch, Yaw, Roll, and in radians)
+    // 
+    glm::vec3 angles(0, PI/4, 0);
+    glm::vec3 fwd, left, up;
+
+    eulerToOrthonormals(&angles, &fwd, &left, &up);
+    
+    printf("fwd: %4.2f, %4.2f, %4.2f\n", fwd.x, fwd.y, fwd.z);
+    printf("left: %4.2f, %4.2f, %4.2f\n", left.x, left.y, left.z);
+    printf("up: %4.2f, %4.2f, %4.2f\n", up.x, up.y, up.z);
 
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     

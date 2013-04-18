@@ -6,13 +6,17 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-
 #include "UrlReader.h"
 
 #include <new>
+
 #ifdef _WIN32
 #define NOCURL_IN_WINDOWS
 #endif
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #ifndef NOCURL_IN_WINDOWS
 #include <curl/curl.h>
 size_t const UrlReader::max_read_ahead = CURL_MAX_WRITE_SIZE;
@@ -21,6 +25,7 @@ size_t const UrlReader::max_read_ahead = 0;
 #endif
 
 char const* const UrlReader::success = "UrlReader: Success!";
+char const* const UrlReader::success_cached = "UrlReader:: Using local file.";
 char const* const UrlReader::error_init_failed      = "UrlReader: Initialization failed.";
 char const* const UrlReader::error_aborted          = "UrlReader: Processing error.";
 char const* const UrlReader::error_buffer_overflow  = "UrlReader: Buffer overflow.";
@@ -29,7 +34,7 @@ char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete pro
 #define hnd_curl static_cast<CURL*>(_ptrImpl)
 
 UrlReader::UrlReader()
-    : _ptrImpl(0l), _arrXtra(0l), _strError(0l) {
+    : _ptrImpl(0l), _arrXtra(0l), _strError(0l), _arrCacheRdBuf(0l) {
 
     _arrXtra = new(std::nothrow) char[max_read_ahead];
     if (! _arrXtra) { _strError = error_init_failed; return; }
@@ -39,12 +44,14 @@ UrlReader::UrlReader()
     curl_easy_setopt(hnd_curl, CURLOPT_NOSIGNAL, 1l);
     curl_easy_setopt(hnd_curl, CURLOPT_FAILONERROR, 1l);
     curl_easy_setopt(hnd_curl, CURLOPT_FILETIME, 1l);
+    curl_easy_setopt(hnd_curl, CURLOPT_ENCODING, ""); 
 #endif
 }
 
 UrlReader::~UrlReader() {
 
-    delete _arrXtra;
+    delete[] _arrXtra;
+    delete[] _arrCacheRdBuf;
 #ifndef NOCURL_IN_WINDOWS
     if (! hnd_curl) return;
     curl_easy_cleanup(hnd_curl);
@@ -78,14 +85,42 @@ void UrlReader::getinfo(char const*& url,
         char const*& type, int64_t& length, int64_t& stardate) {
 #ifndef NOCURL_IN_WINDOWS
 
+    double clen;
+    long time;
+    curl_easy_getinfo(hnd_curl, CURLINFO_FILETIME, & time);
+
+    // check caching file time whether we actually want to download anything
+    if (_strCacheFile != 0l) {
+        struct stat s;
+        stat(_strCacheFile, & s);
+        if (time > s.st_mtime) {
+            // file on server is newer -> update cache file
+            _ptrCacheFile = fopen(_strCacheFile, "wb");
+            if (_ptrCacheFile != 0l) {
+                _valCacheMode = cache_write;
+            }
+        } else {
+            // file on server is older -> use cache file
+            if (! _arrCacheRdBuf) {
+                _arrCacheRdBuf = new (std::nothrow) char[max_read_ahead];
+                if (! _arrCacheRdBuf) {
+                    _valCacheMode = no_cache;
+                }
+            }
+            _ptrCacheFile = fopen(_strCacheFile, "rb");
+            if (_ptrCacheFile != 0l) {
+                _valCacheMode = cache_read;
+            }
+            _strError = success_cached;
+        }
+    }
+
     curl_easy_getinfo(hnd_curl, CURLINFO_EFFECTIVE_URL, & url);
     curl_easy_getinfo(hnd_curl, CURLINFO_CONTENT_TYPE, & type);
 
-    double clen;
     curl_easy_getinfo(hnd_curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, & clen);
     length = static_cast<int64_t>(clen);
 
-    long time;
     curl_easy_getinfo(hnd_curl, CURLINFO_FILETIME, & time);
     stardate = time;
 #endif

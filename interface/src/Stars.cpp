@@ -7,7 +7,6 @@
 //
 
 #include "InterfaceConfig.h"
-#include "FieldOfView.h"
 #include "Stars.h"
 
 #define __interface__Starfield_impl__
@@ -23,8 +22,8 @@ Stars::~Stars() {
     delete _ptrController; 
 }
 
-bool Stars::readInput(const char* url, unsigned limit) {
-    return _ptrController->readInput(url, limit); 
+bool Stars::readInput(const char* url, const char* cacheFile, unsigned limit) {
+    return _ptrController->readInput(url, cacheFile, limit); 
 }
 
 bool Stars::setResolution(unsigned k) { 
@@ -35,8 +34,9 @@ float Stars::changeLOD(float fraction, float overalloc, float realloc) {
     return float(_ptrController->changeLOD(fraction, overalloc, realloc));
 } 
 
-void Stars::render(FieldOfView const& fov) {
-    _ptrController->render(fov.getPerspective(), fov.getAspectRatio(), fov.getOrientation()); 
+void Stars::render(float fovDiagonal, float aspect, glm::mat4 const& view) {
+
+    _ptrController->render(fovDiagonal, aspect, glm::affineInverse(view)); 
 }
 
 

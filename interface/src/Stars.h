@@ -9,7 +9,7 @@
 #ifndef __interface__Stars__
 #define __interface__Stars__
 
-#include "FieldOfView.h"
+#include <glm/glm.hpp>
 
 namespace starfield { class Controller; }
 
@@ -31,13 +31,13 @@ class Stars  {
          * The limit parameter allows to reduce the number of stars
          * that are loaded, keeping the brightest ones.
          */
-        bool readInput(const char* url, unsigned limit = 200000);
+        bool readInput(const char* url, const char* cacheFile = 0l, unsigned limit = 200000);
 
         /**
          * Renders the starfield from a local viewer's perspective.
          * The parameter specifies the field of view.
          */
-        void render(FieldOfView const& fov);
+        void render(float fovDiagonal, float aspect, glm::mat4 const& view);
 
         /**
          * Sets the resolution for FOV culling.
