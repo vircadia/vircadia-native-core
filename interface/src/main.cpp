@@ -722,7 +722,7 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(  10.0 );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45);
 			myCamera.setDistance		(   1.0 );
@@ -1483,20 +1483,10 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 int main(int argc, const char * argv[])
 {
     // Quick test of the Orientation class on startup!
-    //testOrientationClass();   //  PER - commented out to test orthonormal code
-    
-    //
-    //  For Brad:  Demo of function to test conversion of euler angles to orthonormals
-    //             (Note that the euler angles order is Pitch, Yaw, Roll, and in radians)
-    // 
-    glm::vec3 angles(0, PI/4, 0);
-    glm::vec3 fwd, left, up;
-
-    eulerToOrthonormals(&angles, &fwd, &left, &up);
-    
-    printf("fwd: %4.2f, %4.2f, %4.2f\n", fwd.x, fwd.y, fwd.z);
-    printf("left: %4.2f, %4.2f, %4.2f\n", left.x, left.y, left.z);
-    printf("up: %4.2f, %4.2f, %4.2f\n", up.x, up.y, up.z);
+    if (cmdOptionExists(argc, argv, "--testOrientation")) {
+        testOrientationClass();
+        return EXIT_SUCCESS;
+    }
 
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     
