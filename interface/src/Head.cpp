@@ -275,50 +275,49 @@ void Head::setTriggeringAction( bool d ) {
 
 
 void Head::simulate(float deltaTime) {
-
-	//-------------------------------------
-	// DEBUG - other avatars...
-	//-------------------------------------
-	//closeEnoughToInteract = 0.3f;
-	_closestOtherAvatar = -1;
-	float closestDistance = 10000.0f;
-	
-	
-	/*
-	AgentList * agentList = AgentList::getInstance();
+    
+    //-------------------------------------------------------------
+    // if the avatar being simulated is mone, then loop through
+    // all the other avatars to get information about them...
+    //-------------------------------------------------------------
+    if ( _isMine )
+    {
+        //-------------------------------------
+        // DEBUG - other avatars...
+        //-------------------------------------
+        _closestOtherAvatar = -1;
+        float closestDistance = 10000.0f;
+        
+        AgentList * agentList = AgentList::getInstance();
 
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
             if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_INTERFACE ) )) {
-                Head *agentHead = (Head *)agent->getLinkedData();
+                Head *otherAvatar = (Head *)agent->getLinkedData();
                
-				// when this is working, I will grab the position here...
-				//glm::vec3 pos = agentHead->getPos();
-
+                // when this is working, I will grab the position here...
+                glm::vec3 otherAvatarPosition = otherAvatar->getBodyPosition();
             }
         }
-	*/
-	
-	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-		//-------------------------------------
-		// test other avs for proximity...
-		//-------------------------------------
-		glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
-		v -= DEBUG_otherAvatarListPosition[o];
-		
-		float distance = glm::length( v );
+        
+        for (int o=0; o<NUM_OTHER_AVATARS; o++) {
+            //-------------------------------------
+            // test other avs for proximity...
+            //-------------------------------------
+            glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
+            v -= DEBUG_otherAvatarListPosition[o];
+            
+            float distance = glm::length( v );
 
-		if ( distance < _avatar.maxArmLength ) {
-			if ( distance < closestDistance ) {
-				closestDistance = distance;
-				_closestOtherAvatar = o;
-			}
-		}
-	}
-
-
-
+            if ( distance < _avatar.maxArmLength ) {
+                if ( distance < closestDistance ) {
+                    closestDistance = distance;
+                    _closestOtherAvatar = o;
+                }
+            }
+        }
+    }
 
 	//------------------------
 	// update avatar skeleton
@@ -521,10 +520,7 @@ void Head::simulate(float deltaTime) {
             EyebrowRoll[0] = EyebrowRoll[1] = BrowRollAngle[rand()%5];
             EyebrowRoll[1]*=-1;
         }
-                         
     }
-	
-	//hand->simulate(deltaTime);
 }
       
 	  
@@ -557,31 +553,37 @@ void Head::render(int faceToFace) {
 	//---------------------------------------------------
 	renderHead(faceToFace);
 	
-	//---------------------------------------------------
-	// render other avatars (DEBUG TEST)
-	//---------------------------------------------------
-	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-		glPushMatrix();
-			glTranslatef( DEBUG_otherAvatarListPosition[o].x, DEBUG_otherAvatarListPosition[o].y, DEBUG_otherAvatarListPosition[o].z );
-			glScalef( 0.03, 0.03, 0.03 );
-			glutSolidSphere( 1, 10, 10 );
-		glPopMatrix();
-	}
+	//---------------------------------------------------------------------------
+	// if this is my avatar, then render my interactions with the other avatars
+	//---------------------------------------------------------------------------
+    if ( _isMine )
+    {
+        //---------------------------------------------------
+        // render other avatars (DEBUG TEST)
+        //---------------------------------------------------
+        for (int o=0; o<NUM_OTHER_AVATARS; o++) {
+            glPushMatrix();
+                glTranslatef( DEBUG_otherAvatarListPosition[o].x, DEBUG_otherAvatarListPosition[o].y, DEBUG_otherAvatarListPosition[o].z );
+                glScalef( 0.03, 0.03, 0.03 );
+                glutSolidSphere( 1, 10, 10 );
+            glPopMatrix();
+        }
 
-	if ( _usingSprings ) {
-		if ( _closestOtherAvatar != -1 ) {					
+        if ( _usingSprings ) {
+            if ( _closestOtherAvatar != -1 ) {					
 
-			glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-			glm::vec3 v2( DEBUG_otherAvatarListPosition[ _closestOtherAvatar ] );
-			
-			glLineWidth( 5.0 );
-			glColor4f( 0.9f, 0.5f, 0.2f, 0.6 );
-			glBegin( GL_LINE_STRIP );
-			glVertex3f( v1.x, v1.y, v1.z );
-			glVertex3f( v2.x, v2.y, v2.z );
-			glEnd();
-		}
-	}
+                glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
+                glm::vec3 v2( DEBUG_otherAvatarListPosition[ _closestOtherAvatar ] );
+                
+                glLineWidth( 5.0 );
+                glColor4f( 0.9f, 0.5f, 0.2f, 0.6 );
+                glBegin( GL_LINE_STRIP );
+                glVertex3f( v1.x, v1.y, v1.z );
+                glVertex3f( v2.x, v2.y, v2.z );
+                glEnd();
+            }
+        }
+    }
 }
 
 
@@ -615,7 +617,7 @@ void Head::renderOrientationDirections( glm::vec3 position, Orientation orientat
 
 	  
 	   
-void Head::renderHead( int faceToFace) {
+void Head::renderHead(int faceToFace) {
     int side = 0;
         
     glEnable(GL_DEPTH_TEST);
@@ -623,8 +625,7 @@ void Head::renderHead( int faceToFace) {
     
     glPushMatrix();
     
-	
-	if ( _usingSprings ) {
+	if (_usingSprings) {
 		glTranslatef
 		( 
 			_bone[ AVATAR_BONE_HEAD ].springyPosition.x, 
@@ -644,142 +645,137 @@ void Head::renderHead( int faceToFace) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef(_bodyYaw, 0, 1, 0);
-    
-		
-	//  Don't render a head if it is really close to your location, because that is your own head!
-	//if (!isMine || faceToFace) 
-	//{
-        
-        glRotatef(Pitch, 1, 0, 0);
-        glRotatef(Roll, 0, 0, 1);
-        
-        // Overall scale of head
-        if (faceToFace) glScalef(2.0, 2.0, 2.0);
-        else glScalef(0.75, 1.0, 1.0);
-		
-        glColor3fv(skinColor);
-
-        //  Head
-        if (!_isMine) glColor3f(0,0,1);         //  Temp:  Other people are BLUE
-        glutSolidSphere(1, 30, 30);
-                
-        //  Ears
-        glPushMatrix();
-            glTranslatef(1.0, 0, 0);
-            for(side = 0; side < 2; side++) {
-                glPushMatrix();
-                    glScalef(0.3, 0.65, .65);
-                    glutSolidSphere(0.5, 30, 30);  
-                glPopMatrix();
-                glTranslatef(-2.0, 0, 0);
-            }
-        glPopMatrix();
-
-        // Eyebrows
-        audioAttack = 0.9*audioAttack + 0.1*fabs(loudness - lastLoudness);
-        lastLoudness = loudness;
-    
-        const float BROW_LIFT_THRESHOLD = 100;
-        if (audioAttack > BROW_LIFT_THRESHOLD)
-            browAudioLift += sqrt(audioAttack)/1000.0;
-        
-        browAudioLift *= .90;
-        
-        glPushMatrix();
-            glTranslatef(-interBrowDistance/2.0,0.4,0.45);
-            for(side = 0; side < 2; side++) {
-                glColor3fv(browColor);
-                glPushMatrix();
-                    glTranslatef(0, 0.35 + browAudioLift, 0);
-                    glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
-                    glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
-                    glScalef(browWidth, browThickness, 1);
-                    glutSolidCube(0.5);
-                glPopMatrix();
-                glTranslatef(interBrowDistance, 0, 0);
-            }
-        glPopMatrix();
-        
-        
-        // Mouth
-        
-        glPushMatrix();
-            glTranslatef(0,-0.35,0.75);
-            glColor3f(0,0,0);
-            glRotatef(MouthPitch, 1, 0, 0);
-            glRotatef(MouthYaw, 0, 0, 1);
-            glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/30.0), 1);
-            glutSolidCube(0.5);
-        glPopMatrix();
-        
-        glTranslatef(0, 1.0, 0);
-       
-        glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
-        // Right Eye
-        glRotatef(-10, 1, 0, 0);
-        glColor3fv(eyeColor);
-        glPushMatrix(); 
-        {
-            glTranslatef(interPupilDistance/10.0, 0, 0.05);
-            glRotatef(20, 0, 0, 1);
-            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
-            glutSolidSphere(0.25, 30, 30);
-        }
-        glPopMatrix();
-        
-        // Right Pupil
-        if (sphere == NULL) {
-            sphere = gluNewQuadric();
-            gluQuadricTexture(sphere, GL_TRUE);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            gluQuadricOrientation(sphere, GLU_OUTSIDE);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
-        }
-
-        glPushMatrix();
-        {
-            glRotatef(EyeballPitch[1], 1, 0, 0);
-            glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
-            glTranslatef(0,0,.35);
-            glRotatef(-75,1,0,0);
-            glScalef(1.0, 0.4, 1.0);
+    glRotatef(_bodyYaw, 0, 1, 0);// should this use Yaw?
             
-            glEnable(GL_TEXTURE_2D);
-            gluSphere(sphere, PupilSize, 15, 15);
-            glDisable(GL_TEXTURE_2D);
-        }
+    glRotatef(Pitch, 1, 0, 0);
+    glRotatef(Roll, 0, 0, 1);
+    
+    // Overall scale of head
+    if (faceToFace) glScalef(2.0, 2.0, 2.0);
+    else glScalef(0.75, 1.0, 1.0);
+    
+    glColor3fv(skinColor);
 
-        glPopMatrix();
-        // Left Eye
-        glColor3fv(eyeColor);
-        glTranslatef(interPupilDistance, 0, 0);
-        glPushMatrix(); 
-        {
-            glTranslatef(-interPupilDistance/10.0, 0, .05);
-            glRotatef(-20, 0, 0, 1);
-            glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
-            glutSolidSphere(0.25, 30, 30);
+    //  Head
+    if (!_isMine) glColor3f(0,0,1);         //  Temp:  Other people are BLUE
+    glutSolidSphere(1, 30, 30);
+            
+    //  Ears
+    glPushMatrix();
+        glTranslatef(1.0, 0, 0);
+        for(side = 0; side < 2; side++) {
+            glPushMatrix();
+                glScalef(0.3, 0.65, .65);
+                glutSolidSphere(0.5, 30, 30);  
+            glPopMatrix();
+            glTranslatef(-2.0, 0, 0);
         }
-        glPopMatrix();
-        // Left Pupil
-        glPushMatrix();
-        {
-            glRotatef(EyeballPitch[0], 1, 0, 0);
-            glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
-            glTranslatef(0, 0, .35);
-            glRotatef(-75, 1, 0, 0);
-            glScalef(1.0, 0.4, 1.0);
+    glPopMatrix();
 
-            glEnable(GL_TEXTURE_2D);
-            gluSphere(sphere, PupilSize, 15, 15);
-            glDisable(GL_TEXTURE_2D);
+    // Eyebrows
+    audioAttack = 0.9*audioAttack + 0.1*fabs(loudness - lastLoudness);
+    lastLoudness = loudness;
+
+    const float BROW_LIFT_THRESHOLD = 100;
+    if (audioAttack > BROW_LIFT_THRESHOLD)
+        browAudioLift += sqrt(audioAttack)/1000.0;
+    
+    browAudioLift *= .90;
+    
+    glPushMatrix();
+        glTranslatef(-interBrowDistance/2.0,0.4,0.45);
+        for(side = 0; side < 2; side++) {
+            glColor3fv(browColor);
+            glPushMatrix();
+                glTranslatef(0, 0.35 + browAudioLift, 0);
+                glRotatef(EyebrowPitch[side]/2.0, 1, 0, 0);
+                glRotatef(EyebrowRoll[side]/2.0, 0, 0, 1);
+                glScalef(browWidth, browThickness, 1);
+                glutSolidCube(0.5);
+            glPopMatrix();
+            glTranslatef(interBrowDistance, 0, 0);
         }
+    glPopMatrix();
+    
+    
+    // Mouth
+    
+    glPushMatrix();
+        glTranslatef(0,-0.35,0.75);
+        glColor3f(0,0,0);
+        glRotatef(MouthPitch, 1, 0, 0);
+        glRotatef(MouthYaw, 0, 0, 1);
+        glScalef(MouthWidth*(.7 + sqrt(averageLoudness)/60.0), MouthHeight*(1.0 + sqrt(averageLoudness)/30.0), 1);
+        glutSolidCube(0.5);
+    glPopMatrix();
+    
+    glTranslatef(0, 1.0, 0);
+   
+    glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
+    // Right Eye
+    glRotatef(-10, 1, 0, 0);
+    glColor3fv(eyeColor);
+    glPushMatrix(); 
+    {
+        glTranslatef(interPupilDistance/10.0, 0, 0.05);
+        glRotatef(20, 0, 0, 1);
+        glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+        glutSolidSphere(0.25, 30, 30);
+    }
+    glPopMatrix();
+    
+    // Right Pupil
+    if (sphere == NULL) {
+        sphere = gluNewQuadric();
+        gluQuadricTexture(sphere, GL_TRUE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gluQuadricOrientation(sphere, GLU_OUTSIDE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+    }
+
+    glPushMatrix();
+    {
+        glRotatef(EyeballPitch[1], 1, 0, 0);
+        glRotatef(EyeballYaw[1] + PupilConverge, 0, 1, 0);
+        glTranslatef(0,0,.35);
+        glRotatef(-75,1,0,0);
+        glScalef(1.0, 0.4, 1.0);
         
-        glPopMatrix();
+        glEnable(GL_TEXTURE_2D);
+        gluSphere(sphere, PupilSize, 15, 15);
+        glDisable(GL_TEXTURE_2D);
+    }
 
-    //}
+    glPopMatrix();
+    // Left Eye
+    glColor3fv(eyeColor);
+    glTranslatef(interPupilDistance, 0, 0);
+    glPushMatrix(); 
+    {
+        glTranslatef(-interPupilDistance/10.0, 0, .05);
+        glRotatef(-20, 0, 0, 1);
+        glScalef(EyeballScaleX, EyeballScaleY, EyeballScaleZ);
+        glutSolidSphere(0.25, 30, 30);
+    }
+    glPopMatrix();
+    // Left Pupil
+    glPushMatrix();
+    {
+        glRotatef(EyeballPitch[0], 1, 0, 0);
+        glRotatef(EyeballYaw[0] - PupilConverge, 0, 1, 0);
+        glTranslatef(0, 0, .35);
+        glRotatef(-75, 1, 0, 0);
+        glScalef(1.0, 0.4, 1.0);
+
+        glEnable(GL_TEXTURE_2D);
+        gluSphere(sphere, PupilSize, 15, 15);
+        glDisable(GL_TEXTURE_2D);
+    }
+    
+    glPopMatrix();
+
+
     glPopMatrix();
  }
  
