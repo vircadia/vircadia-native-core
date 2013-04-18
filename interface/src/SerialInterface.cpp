@@ -169,7 +169,6 @@ void SerialInterface::readData() {
     int initialSamples = totalSamples;
     
     while (read(serialFd, &bufchar, 1) > 0) { 
-        //printLof("%c", bufchar[0]);
         serialBuffer[serialBufferPos] = bufchar[0];
         serialBufferPos++;
         //  Have we reached end of a line of input?
@@ -209,7 +208,7 @@ void SerialInterface::readData() {
             }
             if (totalSamples == GRAVITY_SAMPLES) {
                 gravity = glm::normalize(gravity);
-                //printLof("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
+                printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
             }
 
             totalSamples++;
