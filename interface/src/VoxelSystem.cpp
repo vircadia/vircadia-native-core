@@ -93,24 +93,24 @@ long int VoxelSystem::getVoxelsCreated() {
     return tree->voxelsCreated;
 }
 
-long int VoxelSystem::getVoxelsCreatedRunningAverage() {
-    return tree->voxelsCreatedStats.getRunningAverage();
+float VoxelSystem::getVoxelsCreatedPerSecondAverage() {
+    return (1 / tree->voxelsCreatedStats.getEventDeltaAverage());
 }
 
 long int VoxelSystem::getVoxelsColored() {
     return tree->voxelsColored;
 }
 
-long int VoxelSystem::getVoxelsColoredRunningAverage() {
-    return tree->voxelsColoredStats.getRunningAverage();
+float VoxelSystem::getVoxelsColoredPerSecondAverage() {
+    return (1 / tree->voxelsColoredStats.getEventDeltaAverage());
 }
 
 long int VoxelSystem::getVoxelsBytesRead() {
     return tree->voxelsBytesRead;
 }
 
-long int VoxelSystem::getVoxelsBytesReadRunningAverage() {
-    return tree->voxelsBytesReadStats.getRunningAverage();
+float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
+    return tree->voxelsBytesReadStats.getAverageSampleValuePerSecond();
 }
 
 

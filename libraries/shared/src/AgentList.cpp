@@ -108,6 +108,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     if (bulkSendAgentIndex >= 0) {
         Agent *bulkSendAgent = &agents[bulkSendAgentIndex];
         bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
+        bulkSendAgent->recordBytesReceived(numTotalBytes);
     }
 
     unsigned char *startPosition = packetData;
@@ -144,6 +145,7 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *pack
 
 void AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
     agent->setLastRecvTimeUsecs(usecTimestampNow());
+    agent->recordBytesReceived(dataBytes);
     
     if (agent->getLinkedData() == NULL) {
         if (linkedDataCreateCallback != NULL) {
