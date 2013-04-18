@@ -63,7 +63,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
-    //std::cout << _bodyPosition.x << ", " << _bodyPosition.y << ", " << _bodyPosition.z << "\n";
+    std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
     
     return destinationBuffer - bufferStart;
 }
