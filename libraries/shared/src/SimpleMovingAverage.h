@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/18/13.
-//  Based heavily on Brad Hefta-Gaub's CounterStats class (RIP)
+//  Replaces Brad Hefta-Gaub's CounterStats class (RIP)
 //
 //
 

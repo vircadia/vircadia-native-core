@@ -37,6 +37,7 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     
     activeSocket = NULL;
     linkedData = NULL;
+    _movingAverage = NULL;
     
     deleteMutex = new pthread_mutex_t;
     pthread_mutex_init(deleteMutex, NULL);
@@ -69,6 +70,13 @@ Agent::Agent(const Agent &otherAgent) {
         linkedData = NULL;
     }
     
+    if (otherAgent._movingAverage != NULL) {
+        _movingAverage = new SimpleMovingAverage(100);
+        memcpy(_movingAverage, otherAgent._movingAverage, sizeof(SimpleMovingAverage));
+    } else {
+        _movingAverage = NULL;
+    }
+    
     deleteMutex = new pthread_mutex_t;
     pthread_mutex_init(deleteMutex, NULL);
 }
@@ -89,6 +97,7 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.agentId, second.agentId);
     swap(first.firstRecvTimeUsecs, second.firstRecvTimeUsecs);
     swap(first.lastRecvTimeUsecs, second.lastRecvTimeUsecs);
+    swap(first._movingAverage, second._movingAverage);
     swap(first.deleteMutex, second.deleteMutex);
 }
 
@@ -99,6 +108,7 @@ Agent::~Agent() {
     delete publicSocket;
     delete localSocket;
     delete linkedData;
+    delete _movingAverage;
 }
 
 char Agent::getType() const {
@@ -209,6 +219,31 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
     return type == otherAgentType
         && socketMatch(publicSocket, otherPublicSocket)
         && socketMatch(localSocket, otherLocalSocket);
+}
+
+void Agent::recordBytesReceived(int bytesReceived) {
+    if (_movingAverage == NULL) {
+        printf("Setting up the moving average for agent\n");
+        _movingAverage = new SimpleMovingAverage(100);
+    }
+    
+    _movingAverage->updateAverage((float) bytesReceived);
+}
+
+float Agent::getAveragePacketsPerSecond() {
+    if (_movingAverage != NULL) {
+        return (1 / _movingAverage->getEventDeltaAverage());
+    } else {
+        return 0;
+    }
+}
+
+float Agent::getAverageKilobitsPerSecond() {
+    if (_movingAverage != NULL) {
+        return (_movingAverage->getAverageSampleValuePerSecond() * (8.0f / 1000));
+    } else {
+        return 0;
+    }
 }
 
 void Agent::printLog(Agent const& agent) {
