@@ -74,10 +74,11 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <AvatarData.h>
+#include <PerfStat.h>
+#include <SimpleMovingAverage.h>
 
 #include "ViewFrustum.h"
 
@@ -235,35 +236,6 @@ void displayStats(void)
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
             FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
     drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
-    
-    std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
-    drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
-	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
-	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
-	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
-		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
-	voxelStats.str("");
-	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
-	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
-		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
-
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
-		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
 
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -1297,7 +1269,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_ERASE_VOXEL:
                     voxels.parseData(incomingPacket, bytesReceived);
                     break;
-                case PACKET_HEADER_BULK_AVATAR_DATA:
+                case PACKET_HEADER_BULK_AVATAR_DATA:                    
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
                                                                    bytesReceived,
