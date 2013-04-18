@@ -454,6 +454,8 @@ void updateAvatar(float frametime)
     *broadcastString = PACKET_HEADER_HEAD_DATA;
     
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
+    broadcastBytes++;
+    
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
     AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
