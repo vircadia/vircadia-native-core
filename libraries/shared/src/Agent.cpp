@@ -222,7 +222,6 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
 
 void Agent::recordBytesReceived(int bytesReceived) {
     if (_bytesReceivedMovingAverage == NULL) {
-        printf("Setting up the moving average for agent\n");
         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
     }
     
