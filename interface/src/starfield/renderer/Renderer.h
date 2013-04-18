@@ -133,14 +133,14 @@ namespace starfield {
             // determine dimensions based on a sought screen diagonal
             //
             //  ww + hh = dd
-            //  a = h / w => h = wa
-            //  ww + ww aa = dd
-            //  ww = dd / (1 + aa)
+            //  a = w / h => w = ha
+            //  hh + hh aa = dd
+            //  hh = dd / (1 + aa)
             float diag = 2.0f * std::sin(halfPersp);
             float nearClip = std::cos(halfPersp);
             
-            float hw = 0.5f * sqrt(diag * diag / (1.0f + aspect * aspect));
-            float hh = hw * aspect;
+            float hh = 0.5f * sqrt(diag * diag / (1.0f + aspect * aspect));
+            float hw = hh * aspect;
 
             // cancel all translation
             mat4 matrix = orientation;
