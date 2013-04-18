@@ -108,15 +108,15 @@ class Head : public AvatarData {
     
         void reset();
         void UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
-        void setNoise (float mag) { noise = mag; }
+        void setNoise (float mag) { _noise = mag; }
         void setPitch(float p) {_headPitch = p; }
         void setYaw(float y) {_headYaw = y; }
         void setRoll(float r) {_headRoll = r; };
-        void setScale(float s) {scale = s; };
-        void setRenderYaw(float y) {renderYaw = y;}
-        void setRenderPitch(float p) {renderPitch = p;}
-        float getRenderYaw() {return renderYaw;}
-        float getRenderPitch() {return renderPitch;}
+        void setScale(float s) {_scale = s; };
+        void setRenderYaw(float y) {_renderYaw = y;}
+        void setRenderPitch(float p) {_renderPitch = p;}
+        float getRenderYaw() {return _renderYaw;}
+        float getRenderPitch() {return _renderPitch;}
         void setLeanForward(float dist);
         void setLeanSideways(float dist);
         void addPitch(float p) {_headPitch -= p; }
@@ -152,16 +152,16 @@ class Head : public AvatarData {
 		void setHandMovement( glm::vec3 movement );
 		void updateHandMovement();
         
-        float getLoudness() {return loudness;};
-        float getAverageLoudness() {return averageLoudness;};
-        void setAverageLoudness(float al) {averageLoudness = al;};
-        void setLoudness(float l) {loudness = l;};
+        float getLoudness() {return _loudness;};
+        float getAverageLoudness() {return _averageLoudness;};
+        void setAverageLoudness(float al) {_averageLoudness = al;};
+        void setLoudness(float l) {_loudness = l;};
         
         void SetNewHeadTarget(float, float);
     
         //  Set what driving keys are being pressed to control thrust levels
-        void setDriveKeys(int key, bool val) { driveKeys[key] = val; };
-        bool getDriveKeys(int key) { return driveKeys[key]; };
+        void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
+        bool getDriveKeys(int key) { return _driveKeys[key]; };
     
         //  Set/Get update the thrust that will move the avatar around
         void setThrust(glm::vec3 newThrust) { _avatar.thrust = newThrust; };
@@ -173,51 +173,48 @@ class Head : public AvatarData {
         //
 
         void processTransmitterData(unsigned char * packetData, int numBytes);
-        float getTransmitterHz() { return transmitterHz; };
+        float getTransmitterHz() { return _transmitterHz; };
     
     private:
-        bool _isMine;
-        float noise;
+        bool  _isMine;
+        float _noise;
         float _headPitch;
         float _headYaw;
         float _headRoll;
         float _headPitchRate;
         float _headYawRate;
         float _headRollRate;
-        float EyeballPitch[2];
-        float EyeballYaw[2];
-        float EyebrowPitch[2];
-        float EyebrowRoll[2];
-        float EyeballScaleX, EyeballScaleY, EyeballScaleZ;
-        float interPupilDistance;
-        float interBrowDistance;
-        float NominalPupilSize;
-        float PupilSize;
-        float MouthPitch;
-        float MouthYaw;
-        float MouthWidth;
-        float MouthHeight;
-        float leanForward;
-        float leanSideways;
-        float PitchTarget; 
-        float YawTarget; 
-        float NoiseEnvelope;
-        float PupilConverge;
-        float scale;
+        float _eyeballPitch[2];
+        float _eyeballYaw[2];
+        float _eyebrowPitch[2];
+        float _eyebrowRoll[2];
+        float _eyeballScaleX, _eyeballScaleY, _eyeballScaleZ;
+        float _interPupilDistance;
+        float _interBrowDistance;
+        float _nominalPupilSize;
+        float _pupilSize;
+        float _mouthPitch;
+        float _mouthYaw;
+        float _mouthWidth;
+        float _mouthHeight;
+        float _leanForward;
+        float _leanSideways;
+        float _pitchTarget; 
+        float _yawTarget; 
+        float _noiseEnvelope;
+        float _pupilConverge;
+        float _scale;
         
         //  Sound loudness information
-        float loudness, lastLoudness;
-        float averageLoudness;
-        float audioAttack;
-        float browAudioLift;
+        float _loudness, _lastLoudness;
+        float _averageLoudness;
+        float _audioAttack;
+        float _browAudioLift;
         
-        glm::vec3 _TEST_bigSpherePosition;
-        float     _TEST_bigSphereRadius;
-        
-        //temporary - placeholder for real other avs
-		glm::vec3	DEBUG_otherAvatarListPosition	[ NUM_OTHER_AVATARS ];
-		float		DEBUG_otherAvatarListTimer		[ NUM_OTHER_AVATARS ];
-		
+        glm::vec3   _TEST_bigSpherePosition;
+        float       _TEST_bigSphereRadius;
+		glm::vec3	_DEBUG_otherAvatarListPosition[ NUM_OTHER_AVATARS ];
+		float		_DEBUG_otherAvatarListTimer   [ NUM_OTHER_AVATARS ];
 		bool        _triggeringAction;
 		float       _bodyYawDelta;
 		float       _closeEnoughToInteract;
@@ -232,23 +229,21 @@ class Head : public AvatarData {
 		AvatarBone	_bone[ NUM_AVATAR_BONES ];
 		AvatarMode  _mode;
 		Avatar      _avatar;
+        int         _driveKeys[MAX_DRIVE_KEYS];
+        int         _eyeContact;
+        eyeContactTargets _eyeContactTarget;
     
-        int driveKeys[MAX_DRIVE_KEYS];
-		
-        
-        int eyeContact;
-        eyeContactTargets eyeContactTarget;
-    
-        GLUquadric *sphere;
+        GLUquadric *_sphere;
 
-        float renderYaw, renderPitch;       //   Pitch from view frustum when this is own head.
+        float _renderYaw;
+        float _renderPitch; //   Pitch from view frustum when this is own head.
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
         //
-        timeval transmitterTimer;
-        float transmitterHz;
-        int transmitterPackets;
+        timeval _transmitterTimer;
+        float   _transmitterHz;
+        int     _transmitterPackets;
         
         //-----------------------------
         // private methods...

@@ -362,6 +362,7 @@ void reset_sensors()
     }
 }
 
+/*
 void updateAvatarHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
     if (mousePressed == 1)
@@ -375,6 +376,7 @@ void updateAvatarHand(float deltaTime) {
         //myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
+*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
@@ -532,38 +534,47 @@ void render_view_frustum() {
 	glm::vec3 up;
 	glm::vec3 right;
 	float fov, nearClip, farClip;
+	float yaw, pitch, roll;
 	
 	// Camera or Head?
 	if (::cameraFrustum) {
 		position    = ::myCamera.getPosition();
-		direction   = ::myCamera.getOrientation().getFront() * glm::vec3(1,1,-1);
-		up          = ::myCamera.getOrientation().getUp() * glm::vec3(1,1,1);
-		right       = ::myCamera.getOrientation().getRight() * glm::vec3(1,1,-1);
-		fov         = ::myCamera.getFieldOfView();
-		nearClip    = ::myCamera.getNearClip();
-		farClip     = ::myCamera.getFarClip();
 	} else {
 		position    = ::myAvatar.getHeadPosition();
-		direction   = ::myAvatar.getHeadLookatDirection();
-		up          = ::myAvatar.getHeadLookatDirectionUp();
-		right       = ::myAvatar.getHeadLookatDirectionRight() * glm::vec3(-1,1,-1);
-		
-		// NOTE: we use the same lens details if we draw from the head
-		fov         = ::myCamera.getFieldOfView();
-		nearClip    = ::myCamera.getNearClip();
-		farClip     = ::myCamera.getFarClip();
 	}
+    
+    // This bit of hackery is all because our Cameras report the incorrect yaw.
+    // For whatever reason, the camera has a yaw set to 180.0-trueYaw, so we basically
+    // need to get the "yaw" from the camera and adjust it to be the trueYaw
+    yaw         =  -(::myCamera.getOrientation().getYaw()-180);
+    pitch       = ::myCamera.getOrientation().getPitch();
+    roll        = ::myCamera.getOrientation().getRoll();
+    fov         = ::myCamera.getFieldOfView();
+    nearClip    = ::myCamera.getNearClip();
+    farClip     = ::myCamera.getFarClip();
+	
+	// We can't use the camera's Orientation because of it's broken yaw. so we make a new
+	// correct orientation to get our vectors
+    Orientation o;
+    o.yaw(yaw);
+    o.pitch(pitch);
+    o.roll(roll);
+
+    direction   = o.getFront();
+    up          = o.getUp();
+    right       = o.getRight();
 
     /*
-    printLog("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
-    printLog("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
-    printLog("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
-    printLog("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
-    printLog("fov=%f\n", fov);
-    printLog("nearClip=%f\n", nearClip);
-    printLog("farClip=%f\n", farClip);
+    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
+    printf("yaw=%f, pitch=%f, roll=%f\n", yaw,pitch,roll);
+    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
+    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
+    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
+    printf("fov=%f\n", fov);
+    printf("nearClip=%f\n", nearClip);
+    printf("farClip=%f\n", farClip);
     */
-
+    
     // Set the viewFrustum up with the correct position and orientation of the camera	
     viewFrustum.setPosition(position);
     viewFrustum.setOrientation(direction,up,right);
@@ -820,8 +831,6 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
-                glm::vec3 pos = agentHead->getBodyPosition();
-                glTranslatef(pos.x, pos.y, pos.z);
                 agentHead->render(0);
                 glPopMatrix();
             }
@@ -1347,30 +1356,33 @@ void idle(void) {
 		else {
 			myAvatar.setTriggeringAction( false );
 		}
+        
+        float deltaTime = 1.f/FPS;
 		
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		
+        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *agentHead = (Head *)agent->getLinkedData();
-                agentHead->simulate(1.f/FPS);
+                Head *avatar = (Head *)agent->getLinkedData();
+                avatar->simulate(deltaTime);
             }
         }
+        
 		
-		
-        updateAvatarHand(1.f/FPS);
+        //updateAvatarHand(1.f/FPS);
     
-        field.simulate(1.f/FPS);
-        myAvatar.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
-        cloud.simulate(1.f/FPS);
+        field.simulate   (deltaTime);
+        myAvatar.simulate(deltaTime);
+        balls.simulate   (deltaTime);
+        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;
