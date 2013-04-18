@@ -211,7 +211,7 @@ void drawGroundPlaneGrid( float size, int resolution )
 	glLineWidth(2.0);
 		
 	float gridSize = 10.0;
-	int gridResolution = 10;
+	int gridResolution = 20;
 
 	for (int g=0; g<gridResolution; g++)
 	{
@@ -232,6 +232,15 @@ void drawGroundPlaneGrid( float size, int resolution )
 		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
 		glEnd();
 	}
+    
+    // Draw a translucent quad just underneath the grid.
+    glColor4f(0.5, 0.5, 0.5, 0.4);
+    glBegin(GL_QUADS);
+    glVertex3f(-gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
+    glVertex3f(gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
+    glVertex3f(gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
+    glVertex3f(-gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
+    glEnd();
 }
 
 
