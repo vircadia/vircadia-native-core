@@ -38,6 +38,8 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
+bool usingBigSphereCollisionTest = false;
+
 const float DECAY = 0.1;
 const float THRUST_MAG	= 10.0;
 const float YAW_MAG		= 300.0;
@@ -65,13 +67,16 @@ Head::Head(bool isMine) {
 
     initializeSkeleton();
     
+    _TEST_bigSphereRadius = 0.3f;
+    _TEST_bigSpherePosition = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
+    
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) driveKeys[i] = false; 
     
     PupilSize = 0.10;
     interPupilDistance = 0.6;
     interBrowDistance = 0.75;
     NominalPupilSize = 0.10;
-    Yaw = 0.0;
+    _headYaw = 0.0;
     EyebrowPitch[0] = EyebrowPitch[1] = -30;
     EyebrowRoll[0] = 20;
     EyebrowRoll[1] = -20;
@@ -153,7 +158,7 @@ Head::Head(const Head &otherHead) {
     interPupilDistance = otherHead.interPupilDistance;
     interBrowDistance = otherHead.interBrowDistance;
     NominalPupilSize = otherHead.NominalPupilSize;
-    Yaw = otherHead.Yaw;
+    _headYaw = otherHead._headYaw;
     EyebrowPitch[0] = otherHead.EyebrowPitch[0];
     EyebrowPitch[1] = otherHead.EyebrowPitch[1];
     EyebrowRoll[0] = otherHead.EyebrowRoll[0];
@@ -202,7 +207,7 @@ Head* Head::clone() const {
 }
 
 void Head::reset() {
-    Pitch = Yaw = Roll = 0;
+    _headPitch = _headYaw = _headRoll = 0;
     leanForward = leanSideways = 0;
 }
 
@@ -214,13 +219,13 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
 {
     const float PITCH_ACCEL_COUPLING = 0.5;
     const float ROLL_ACCEL_COUPLING = -1.0;
-    float measured_pitch_rate = serialInterface->getRelativeValue(PITCH_RATE);
-    YawRate = serialInterface->getRelativeValue(YAW_RATE);
+    float measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
+    _headYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
     float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
-                                ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(ROLL_RATE);
+                                ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
-                                PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(PITCH_RATE);
-    float measured_roll_rate = serialInterface->getRelativeValue(ROLL_RATE);
+                                PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_PITCH_RATE);
+    float measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     
     //std::cout << "Pitch Rate: " << serialInterface->getRelativeValue(PITCH_RATE) <<
     //    " fwd_accel: " << serialInterface->getRelativeValue(ACCEL_Z) << "\n";
@@ -237,18 +242,18 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
     const float MAX_YAW = 85;
     const float MIN_YAW = -85;
 
-    if ((Pitch < MAX_PITCH) && (Pitch > MIN_PITCH))
+    if ((_headPitch < MAX_PITCH) && (_headPitch > MIN_PITCH))
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
     
     addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
 
     if (head_mirror) {
-        if ((Yaw < MAX_YAW) && (Yaw > MIN_YAW))
-            addYaw(-YawRate * HEAD_ROTATION_SCALE * frametime);
+        if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW))
+            addYaw(-_headYawRate * HEAD_ROTATION_SCALE * frametime);
         addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
     } else {
-        if ((Yaw < MAX_YAW) && (Yaw > MIN_YAW))
-            addYaw(YawRate * -HEAD_ROTATION_SCALE * frametime);
+        if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW))
+            addYaw(_headYawRate * -HEAD_ROTATION_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
 }
@@ -256,7 +261,7 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
 void Head::addLean(float x, float z) {
     //  Add Body lean as impulse 
     leanSideways += x;
-    leanForward += z;
+    leanForward  += z;
 }
 
 
@@ -277,7 +282,7 @@ void Head::setTriggeringAction( bool d ) {
 void Head::simulate(float deltaTime) {
     
     //-------------------------------------------------------------
-    // if the avatar being simulated is mone, then loop through
+    // if the avatar being simulated is mine, then loop through
     // all the other avatars to get information about them...
     //-------------------------------------------------------------
     if ( _isMine )
@@ -288,6 +293,7 @@ void Head::simulate(float deltaTime) {
         _closestOtherAvatar = -1;
         float closestDistance = 10000.0f;
         
+        /*
         AgentList * agentList = AgentList::getInstance();
 
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
@@ -297,10 +303,12 @@ void Head::simulate(float deltaTime) {
                 Head *otherAvatar = (Head *)agent->getLinkedData();
                
                 // when this is working, I will grab the position here...
-                glm::vec3 otherAvatarPosition = otherAvatar->getBodyPosition();
+                //glm::vec3 otherAvatarPosition = otherAvatar->getBodyPosition();
             }
         }
+        */
         
+        ///for testing only (prior to having real avs working)
         for (int o=0; o<NUM_OTHER_AVATARS; o++) {
             //-------------------------------------
             // test other avs for proximity...
@@ -317,7 +325,15 @@ void Head::simulate(float deltaTime) {
                 }
             }
         }
-    }
+        
+        if ( usingBigSphereCollisionTest ) {
+            //--------------------------------------------------------------
+            // test for avatar collision response (using a big sphere :)
+            //--------------------------------------------------------------
+            updateBigSphereCollisionTest(deltaTime);
+        }
+            
+    }//if ( _isMine )
 
 	//------------------------
 	// update avatar skeleton
@@ -340,7 +356,7 @@ void Head::simulate(float deltaTime) {
 			//printf( "just stopped moving hand\n" );
 		}
 	}
-	
+    	
 	if ( _handBeingMoved ) {
 		updateHandMovement();
 		updateBodySprings( deltaTime );
@@ -407,10 +423,10 @@ void Head::simulate(float deltaTime) {
     _bodyYaw += _bodyYawDelta * deltaTime;
     }
         
-	//----------------------------------------------------------
-	// (for now) set head yaw to body yaw
-	//----------------------------------------------------------
-	Yaw = _bodyYaw;
+	// we will be eventually getting head rotation from elsewhere. For now, just setting it to body rotation 
+	_headYaw   = _bodyYaw;
+	_headPitch = _bodyPitch;
+	_headRoll  = _bodyRoll;
 	
 	//----------------------------------------------------------
 	// decay body yaw delta
@@ -422,11 +438,11 @@ void Head::simulate(float deltaTime) {
 	// add thrust to velocity
 	//----------------------------------------------------------
 	_avatar.velocity += glm::dvec3(_avatar.thrust * deltaTime);
-		
-	//----------------------------------------------------------
-	// update position by velocity
-	//----------------------------------------------------------
-	_bodyPosition += (glm::vec3)_avatar.velocity * deltaTime;
+
+    //----------------------------------------------------------
+    // update position by velocity
+    //----------------------------------------------------------
+    _bodyPosition += (glm::vec3)_avatar.velocity * deltaTime;
 
 	//----------------------------------------------------------
 	// decay velocity
@@ -436,15 +452,15 @@ void Head::simulate(float deltaTime) {
 	
     if (!noise) {
         //  Decay back toward center 
-        Pitch *= (1.f - DECAY*2*deltaTime);
-        Yaw *= (1.f - DECAY*2*deltaTime);
-        Roll *= (1.f - DECAY*2*deltaTime);
+        _headPitch *= (1.0f - DECAY*2*deltaTime);
+        _headYaw   *= (1.0f - DECAY*2*deltaTime);
+        _headRoll  *= (1.0f - DECAY*2*deltaTime);
     }
     else {
         //  Move toward new target  
-        Pitch += (PitchTarget - Pitch)*10*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ;
-        Yaw += (YawTarget - Yaw)*10*deltaTime; //  (1.f - DECAY*deltaTime);
-        Roll *= (1.f - DECAY*deltaTime);
+        _headPitch += (PitchTarget - _headPitch)*10*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ;
+        _headYaw += (YawTarget - _headYaw)*10*deltaTime; //  (1.f - DECAY*deltaTime);
+        _headRoll *= (1.f - DECAY*deltaTime);
     }
     
     leanForward *= (1.f - DECAY*30.f*deltaTime);
@@ -486,15 +502,15 @@ void Head::simulate(float deltaTime) {
         if (eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
         if (eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
         
-        EyeballPitch[0] = EyeballPitch[1] = -Pitch + eye_target_pitch_adjust;
-        EyeballYaw[0] = EyeballYaw[1] = -Yaw + eye_target_yaw_adjust;
+        EyeballPitch[0] = EyeballPitch[1] = -_headPitch + eye_target_pitch_adjust;
+        EyeballYaw[0] = EyeballYaw[1] = -_headYaw + eye_target_yaw_adjust;
     }
 	
 
     if (noise)
     {
-        Pitch += (randFloat() - 0.5)*0.2*NoiseEnvelope;
-        Yaw += (randFloat() - 0.5)*0.3*NoiseEnvelope;
+        _headPitch += (randFloat() - 0.5)*0.2*NoiseEnvelope;
+        _headYaw += (randFloat() - 0.5)*0.3*NoiseEnvelope;
         //PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
         
         if (randFloat() < 0.005) MouthWidth = MouthWidthChoices[rand()%3];
@@ -504,7 +520,7 @@ void Head::simulate(float deltaTime) {
             if (randFloat() < 0.01)  EyeballYaw[0] = EyeballYaw[1] = (randFloat()- 0.5)*10;
         }         
 
-        if ((randFloat() < 0.005) && (fabs(PitchTarget - Pitch) < 1.0) && (fabs(YawTarget - Yaw) < 1.0)) {
+        if ((randFloat() < 0.005) && (fabs(PitchTarget - _headPitch) < 1.0) && (fabs(YawTarget - _headYaw) < 1.0)) {
             SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
         }
 
@@ -526,18 +542,83 @@ void Head::simulate(float deltaTime) {
 	  
 	  
 	  
+//--------------------------------------------------------------------------------
+// This is a workspace for testing avatar body collision detection and response
+//--------------------------------------------------------------------------------
+void Head::updateBigSphereCollisionTest( float deltaTime ) {
+
+    float myBodyApproximateBoundingRadius = 1.0f;
+    glm::vec3 vectorFromMyBodyToBigSphere(_bodyPosition - _TEST_bigSpherePosition);
+    bool jointCollision = false;
+
+    float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
+    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + _TEST_bigSphereRadius)
+    {
+        for (int b=0; b<NUM_AVATAR_BONES; b++) 
+        {
+            glm::vec3 vectorFromJointToBigSphere(_bone[b].position - _TEST_bigSpherePosition);
+            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphere);
+            float combinedRadius = _bone[b].radius + _TEST_bigSphereRadius;
+            if ( distanceToBigSphereCenter < combinedRadius ) 
+            {
+                jointCollision = true;
+                if (distanceToBigSphereCenter > 0.0) 
+                {
+                    float amp = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
+                    glm::vec3 collisionForce = vectorFromJointToBigSphere * amp;                        
+                    _bone[b].springyVelocity += collisionForce * 8.0f * deltaTime;
+                    _avatar.velocity += collisionForce * 18.0f * deltaTime;
+                }
+            }
+        }
+        
+        if ( jointCollision ) {
+            //----------------------------------------------------------
+            // add gravity to velocity
+            //----------------------------------------------------------
+            _avatar.velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * 0.05;
+            
+            //----------------------------------------------------------
+            // ground collisions
+            //----------------------------------------------------------
+            if ( _bodyPosition.y < 0.0 ) {
+                _bodyPosition.y = 0.0;
+                if ( _avatar.velocity.y < 0.0 ) {
+                    _avatar.velocity.y *= -0.7;
+                }
+            }       
+        }     
+    }
+}
+      
+      
+      
 	   
 void Head::render(int faceToFace) {
 
 	//---------------------------------------------------
 	// show avatar position
 	//---------------------------------------------------
+    glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
 	glPushMatrix();
 		glTranslatef(_bodyPosition.x, _bodyPosition.y, _bodyPosition.z);
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
     
+    
+    if ( usingBigSphereCollisionTest ) {
+        //---------------------------------------------------
+        // show TEST big sphere 
+        //---------------------------------------------------
+        glColor4f( 0.5f, 0.6f, 0.8f, 0.7 );
+        glPushMatrix();
+            glTranslatef(_TEST_bigSpherePosition.x, _TEST_bigSpherePosition.y, _TEST_bigSpherePosition.z);
+            glScalef( _TEST_bigSphereRadius, _TEST_bigSphereRadius, _TEST_bigSphereRadius );
+            glutSolidSphere( 1, 20, 20 );
+        glPopMatrix();
+     }
+     
 	//---------------------------------------------------
 	// show avatar orientation
 	//---------------------------------------------------
@@ -645,19 +726,22 @@ void Head::renderHead(int faceToFace) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef(_bodyYaw, 0, 1, 0);// should this use Yaw?
-            
-    glRotatef(Pitch, 1, 0, 0);
-    glRotatef(Roll, 0, 0, 1);
+    glRotatef(_headYaw,   0, 1, 0); 
+    glRotatef(_headPitch, 1, 0, 0);
+    glRotatef(_headRoll,  0, 0, 1);
     
     // Overall scale of head
     if (faceToFace) glScalef(2.0, 2.0, 2.0);
     else glScalef(0.75, 1.0, 1.0);
     
-    glColor3fv(skinColor);
 
     //  Head
-    if (!_isMine) glColor3f(0,0,1);         //  Temp:  Other people are BLUE
+    if (_isMine) {
+        glColor3fv(skinColor);
+    }
+    else {
+        glColor3f(0,0,1); //  Temp:  Other people are BLUE
+    }
     glutSolidSphere(1, 30, 30);
             
     //  Ears
@@ -805,6 +889,7 @@ void Head::initializeSkeleton() {
         _bone[b].pitch               = 0.0;
         _bone[b].roll                = 0.0;
         _bone[b].length              = 0.0;
+        _bone[b].radius              = 0.02; //default
         _bone[b].springBodyTightness = 4.0;
         _bone[b].orientation.setToIdentity();
 	}
@@ -1144,14 +1229,14 @@ void Head::renderBody() {
 			glColor3fv( lightBlue );
 			glPushMatrix();
 				glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
-				glutSolidSphere( 0.02f, 10.0f, 5.0f );
+				glutSolidSphere( _bone[b].radius, 10.0f, 5.0f );
 			glPopMatrix();
 		}
 		else {
 			glColor3fv( skinColor );
 			glPushMatrix();
 				glTranslatef( _bone[b].position.x, _bone[b].position.y, _bone[b].position.z );
-				glutSolidSphere( 0.02f, 10.0f, 5.0f );
+				glutSolidSphere( _bone[b].radius, 10.0f, 5.0f );
 			glPopMatrix();
 		}
 	}

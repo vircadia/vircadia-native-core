@@ -170,8 +170,8 @@ int headMouseX, headMouseY;
 int mouseX, mouseY;				//  Where is the mouse
 
 //  Mouse location at start of last down click
-int mouseStartX;// = WIDTH	 / 2;
-int mouseStartY;// = HEIGHT / 2;
+int mouseStartX = WIDTH	 / 2;
+int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
@@ -382,8 +382,8 @@ void updateAvatarHand(float deltaTime) {
 //
 void updateAvatar(float frametime)
 {
-    float gyroPitchRate = serialPort.getRelativeValue(PITCH_RATE);
-    float gyroYawRate = serialPort.getRelativeValue(YAW_RATE);
+    float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
+    float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
     myAvatar.UpdateGyros(frametime, &serialPort, headMirror, &gravity);
 		
@@ -1334,22 +1334,21 @@ void idle(void) {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-		// If mouse is being dragged, update hand movement in the avatar
-		//if ( mousePressed == 1 ) 
 		
-		if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
+		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
 				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
 				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
 				float backFront	= 0.0;			
 				glm::vec3 handMovement( leftRight, downUp, backFront );
 				myAvatar.setHandMovement( handMovement );		
-		}		
+		/*}		
 		else {
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
 			//mouseStartX = (float)WIDTH  / 2.0f;
 			//mouseStartY = (float)HEIGHT / 2.0f;
 		}
+        */
 		
 		//--------------------------------------------------------
 		// when the mouse is being pressed, an 'action' is being 
