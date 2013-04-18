@@ -25,7 +25,7 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
 }
 
 int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
 
