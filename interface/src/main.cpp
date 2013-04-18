@@ -539,9 +539,9 @@ void render_view_frustum() {
 		position    = ::myAvatar.getHeadPosition();
 	}
     
-    // This bit of hackery is all because our Camera's report the incorrect yaw.
+    // This bit of hackery is all because our Cameras report the incorrect yaw.
     // For whatever reason, the camera has a yaw set to 180.0-trueYaw, so we basically
-    // need to get the "yaw" from the body
+    // need to get the "yaw" from the camera and adjust it to be the trueYaw
     yaw         =  -(::myCamera.getOrientation().getYaw()-180);
     pitch       = ::myCamera.getOrientation().getPitch();
     roll        = ::myCamera.getOrientation().getRoll();
