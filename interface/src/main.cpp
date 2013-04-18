@@ -1365,10 +1365,9 @@ void idle(void) {
         //
         updateAvatar( 1.f/FPS );
 		
-		
-		//test
-		/*
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+        //loop through all the other avatars and simulate them.
+        AgentList * agentList = AgentList::getInstance();
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
@@ -1376,7 +1375,7 @@ void idle(void) {
                 agentHead->simulate(1.f/FPS);
             }
         }
-		*/
+		
 		
         updateAvatarHand(1.f/FPS);
     

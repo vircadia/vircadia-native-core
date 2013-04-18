@@ -388,6 +388,7 @@ void Head::simulate(float deltaTime) {
         }
 	}
     
+    
 	//----------------------------------------------------------
 	float translationalSpeed = glm::length( _avatar.velocity );
 	float rotationalSpeed = fabs( _bodyYawDelta );
@@ -403,8 +404,10 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// update body yaw by body yaw delta
 	//----------------------------------------------------------
+    if (_isMine) {
     _bodyYaw += _bodyYawDelta * deltaTime;
-	
+    }
+        
 	//----------------------------------------------------------
 	// (for now) set head yaw to body yaw
 	//----------------------------------------------------------
@@ -414,12 +417,12 @@ void Head::simulate(float deltaTime) {
 	// decay body yaw delta
 	//----------------------------------------------------------
     const float TEST_YAW_DECAY = 5.0;
-    _bodyYawDelta *= ( 1.0 - TEST_YAW_DECAY * deltaTime );
+    _bodyYawDelta *= (1.0 - TEST_YAW_DECAY * deltaTime);
 
 	//----------------------------------------------------------
 	// add thrust to velocity
 	//----------------------------------------------------------
-	_avatar.velocity += glm::dvec3( _avatar.thrust * deltaTime );
+	_avatar.velocity += glm::dvec3(_avatar.thrust * deltaTime);
 		
 	//----------------------------------------------------------
 	// update position by velocity
@@ -431,8 +434,6 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
     const float LIN_VEL_DECAY = 5.0;
     _avatar.velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
-	
-		
 	
     if (!noise) {
         //  Decay back toward center 
@@ -450,8 +451,6 @@ void Head::simulate(float deltaTime) {
     leanForward *= (1.f - DECAY*30.f*deltaTime);
     leanSideways *= (1.f - DECAY*30.f*deltaTime);
     
-	
-	
     //  Update where the avatar's eyes are 
     //
     //  First, decide if we are making eye contact or not
