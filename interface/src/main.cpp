@@ -363,6 +363,7 @@ void reset_sensors()
     }
 }
 
+/*
 void updateAvatarHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
     if (mousePressed == 1)
@@ -376,6 +377,7 @@ void updateAvatarHand(float deltaTime) {
         //myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
+*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
@@ -1357,30 +1359,33 @@ void idle(void) {
 		else {
 			myAvatar.setTriggeringAction( false );
 		}
+        
+        float deltaTime = 1.f/FPS;
 		
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		
+        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *agentHead = (Head *)agent->getLinkedData();
-                agentHead->simulate(1.f/FPS);
+                Head *avatar = (Head *)agent->getLinkedData();
+                avatar->simulate(deltaTime);
             }
         }
+        
 		
-		
-        updateAvatarHand(1.f/FPS);
+        //updateAvatarHand(1.f/FPS);
     
-        field.simulate(1.f/FPS);
-        myAvatar.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
-        cloud.simulate(1.f/FPS);
+        field.simulate   (deltaTime);
+        myAvatar.simulate(deltaTime);
+        balls.simulate   (deltaTime);
+        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;

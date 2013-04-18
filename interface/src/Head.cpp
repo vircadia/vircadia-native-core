@@ -33,7 +33,7 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
-bool usingBigSphereCollisionTest = true;
+bool usingBigSphereCollisionTest = false;
 
 const float DECAY = 0.1;
 const float THRUST_MAG	= 10.0;
@@ -381,11 +381,11 @@ void Head::simulate(float deltaTime) {
         }
         if (_driveKeys[RIGHT]) {
             glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-            _avatar.thrust -= right * THRUST_MAG;
+            _avatar.thrust += right * THRUST_MAG;
         }
         if (_driveKeys[LEFT]) {
             glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-            _avatar.thrust += right * THRUST_MAG;
+            _avatar.thrust -= right * THRUST_MAG;
         }
         if (_driveKeys[UP]) {
             glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
