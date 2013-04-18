@@ -20,6 +20,8 @@ using avatars_lib::printLog;
 //
 // tosh - yep, I noticed... :-)
 // 
+// JJV - I noticed too :-)
+//
 static bool testingForNormalizationAndOrthogonality = false;
 
 Orientation::Orientation() {
