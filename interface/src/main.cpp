@@ -54,7 +54,7 @@
 #include "Audio.h"
 #endif
 
-#include "FieldOfView.h"
+#include "AngleUtil.h"
 #include "Stars.h"
 
 #include "MenuRow.h"
@@ -96,6 +96,7 @@ int headMirror = 1;                 //  Whether to mirror own head when viewing 
 int WIDTH = 1200;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
+float aspectRatio = 1.0f;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
@@ -109,12 +110,8 @@ Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the v
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
-FieldOfView fov;
+char starCacheFile[] = "cachedStars.txt";
 Stars stars;
-#ifdef STARFIELD_KEYS
-int starsTiles = 20;
-double starsLod = 1.0;
-#endif
 
 bool showingVoxels = true;
 
@@ -170,8 +167,8 @@ int headMouseX, headMouseY;
 int mouseX, mouseY;				//  Where is the mouse
 
 //  Mouse location at start of last down click
-int mouseStartX;// = WIDTH	 / 2;
-int mouseStartY;// = HEIGHT / 2;
+int mouseStartX = WIDTH	 / 2;
+int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
@@ -302,7 +299,7 @@ void init(void)
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
 
-    stars.readInput(starFile, 0);
+    stars.readInput(starFile, starCacheFile, 0);
  
     //  Initialize Field values
     field = Field();
@@ -382,8 +379,8 @@ void updateAvatarHand(float deltaTime) {
 //
 void updateAvatar(float frametime)
 {
-    float gyroPitchRate = serialPort.getRelativeValue(PITCH_RATE);
-    float gyroYawRate = serialPort.getRelativeValue(YAW_RATE);
+    float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
+    float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
     myAvatar.UpdateGyros(frametime, &serialPort, headMirror, &gravity);
 		
@@ -765,18 +762,12 @@ void display(void)
         glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
-
-
-
-        //quick test for camera ortho-normal sanity check...
-        
-
-
-
-
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
-        	stars.render(fov);
+
+            glm::mat4 view;
+            glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
+        	stars.render(angleConvert<Degrees,Radians>(whichCamera.getFieldOfView()),  aspectRatio, view);
         }
 
         glEnable(GL_LIGHTING);
@@ -842,7 +833,6 @@ void display(void)
         // brad's frustum for debugging
         if (::frustumOn) render_view_frustum();
     
-	
         //Render my own avatar
 		myAvatar.render(true);	
     }
@@ -1278,13 +1268,6 @@ void key(unsigned char k, int x, int y)
     if (k == ' ') reset_sensors();
     if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
-#ifdef STARFIELD_KEYS
-    if (k == 'u') stars.setResolution(starsTiles += 1);
-    if (k == 'j') stars.setResolution(starsTiles = max(starsTiles-1,1));
-    if (k == 'i') if (starsLod < 1.0) starsLod = stars.changeLOD(1.01);
-    if (k == 'k') if (starsLod > 0.01) starsLod = stars.changeLOD(0.99);
-    if (k == 'r') stars.readInput(starFile, 0);
-#endif
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
 }
@@ -1335,22 +1318,21 @@ void idle(void) {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-		// If mouse is being dragged, update hand movement in the avatar
-		//if ( mousePressed == 1 ) 
 		
-		if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
+		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
 				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
 				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
 				float backFront	= 0.0;			
 				glm::vec3 handMovement( leftRight, downUp, backFront );
 				myAvatar.setHandMovement( handMovement );		
-		}		
+		/*}		
 		else {
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
 			//mouseStartX = (float)WIDTH  / 2.0f;
 			//mouseStartY = (float)HEIGHT / 2.0f;
 		}
+        */
 		
 		//--------------------------------------------------------
 		// when the mouse is being pressed, an 'action' is being 
@@ -1364,14 +1346,13 @@ void idle(void) {
 		}
 		
         //
-        //  Sample hardware, update view frustum if needed, send avatar data to mixer/agents
+        //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		
-		
-		//test
-		/*
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+        //loop through all the other avatars and simulate them.
+        AgentList * agentList = AgentList::getInstance();
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
@@ -1379,7 +1360,7 @@ void idle(void) {
                 agentHead->simulate(1.f/FPS);
             }
         }
-		*/
+		
 		
         updateAvatarHand(1.f/FPS);
     
@@ -1404,7 +1385,7 @@ void reshape(int width, int height)
 {
     WIDTH = width;
     HEIGHT = height; 
-    float aspectRatio = ((float)width/(float)height); // based on screen resize
+    aspectRatio = ((float)width/(float)height); // based on screen resize
 
     float fov;
     float nearClip;
@@ -1431,14 +1412,6 @@ void reshape(int width, int height)
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     glMatrixMode(GL_PROJECTION); //hello
-
-    // XXXBHG - Note: this is Tobias's code for loading the perspective matrix. At Philip's suggestion, I'm removing
-    // it and putting back our old code that simply loaded the fov, ratio, and near/far clips. But I'm keeping this here
-    // for reference for now.
-    //fov.setResolution(width, height)
-    //        .setBounds(glm::vec3(-0.5f,-0.5f,-500.0f), glm::vec3(0.5f, 0.5f, 0.1f) )
-    //        .setPerspective(0.7854f);
-    //glLoadMatrixf(glm::value_ptr(fov.getViewerScreenXform()));
 
     glLoadIdentity();
     

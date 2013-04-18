@@ -28,9 +28,9 @@
 #define ACCEL_Z 5 
 
 //  Gyro sensors, in coodinate system of head/airplane
-#define PITCH_RATE 1
-#define YAW_RATE 0
-#define ROLL_RATE 2
+#define HEAD_PITCH_RATE 1
+#define HEAD_YAW_RATE 0
+#define HEAD_ROLL_RATE 2
 
 class SerialInterface {
 public:
