@@ -1026,7 +1026,7 @@ void Head::updateSkeleton() {
                                             
 		float xx =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight	() );
 		float yy =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
-		float zz = -glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront	() );
+		float zz =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront	() );
 
 		glm::vec3 rotatedBoneVector( xx, yy, zz );
         
