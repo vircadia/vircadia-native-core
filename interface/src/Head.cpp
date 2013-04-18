@@ -922,7 +922,7 @@ void Head::updateSkeleton() {
 	_avatar.orientation.yaw( _bodyYaw );
         
     //test! - make sure this does what expected: st rotation to be identity PLUS _bodyYaw
-    _rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
+    //_rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
     
     //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
     
@@ -940,7 +940,7 @@ void Head::updateSkeleton() {
 			_bone[b].position = _bone[ _bone[b].parent ].position;
 		}
         
-        ///TEST! - get this working and then add a comment JJV
+        ///TEST! - get this working and then add a comment; JJV
         if ( ! _isMine ) {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
@@ -1051,7 +1051,7 @@ void Head::updateHandMovement() {
 	+ _avatar.orientation.getFront()	* -_movedHandOffset.y;
 
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
-	    
+    
 	//if holding hands, add a pull to the hand...
 	if ( _usingSprings ) {
 		if ( _closestOtherAvatar != -1 ) {	

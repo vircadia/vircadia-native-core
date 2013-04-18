@@ -63,7 +63,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
-    //std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
+    std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
     
     return destinationBuffer - bufferStart;
 }
@@ -79,8 +79,6 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
-
-    printf( "_bodyYaw = %f\n", _bodyYaw );
 
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
