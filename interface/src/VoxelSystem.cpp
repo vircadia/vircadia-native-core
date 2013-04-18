@@ -102,15 +102,15 @@ long int VoxelSystem::getVoxelsColored() {
 }
 
 float VoxelSystem::getVoxelsColoredPerSecondAverage() {
-    return tree->voxelsColoredStats.getEventDeltaAverage();
+    return (1 / tree->voxelsColoredStats.getEventDeltaAverage());
 }
 
 long int VoxelSystem::getVoxelsBytesRead() {
     return tree->voxelsBytesRead;
 }
 
-float VoxelSystem::getVoxelsBytesReadAverage() {
-    return tree->voxelsBytesReadStats.getAverage();
+float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
+    return tree->voxelsBytesReadStats.getAverageSampleValuePerSecond();
 }
 
 

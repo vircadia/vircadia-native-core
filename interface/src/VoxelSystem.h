@@ -42,7 +42,7 @@ public:
     long int getVoxelsBytesRead();
     float getVoxelsCreatedPerSecondAverage();
     float getVoxelsColoredPerSecondAverage();
-    float getVoxelsBytesReadAverage();
+    float getVoxelsBytesReadPerSecondAverage();
 
 private:
     int voxelsRendered;
