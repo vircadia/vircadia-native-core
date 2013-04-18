@@ -82,7 +82,10 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
+    
+    //printf( "_bodyYaw = %f", _bodyYaw );
 
+    //std::cout << _handPosition.x << ", " << _handPosition.y << ", " << _handPosition.z << "\n";
     //std::cout << _bodyPosition.x << ", " << _bodyPosition.y << ", " << _bodyPosition.z << "\n";
 
 
