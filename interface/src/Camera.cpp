@@ -6,6 +6,7 @@
 //---------------------------------------------------------------------
 
 #include <SharedUtil.h>
+// #include "Log.h"
 
 #include "Camera.h"
 
@@ -67,6 +68,6 @@ void Camera::update( float deltaTime )
 	_orientation.pitch	( _pitch );
 	_orientation.roll	( _roll	 );
     
-    //printf( "orientation.front = %f, %f, %f\n", _orientation.front.x, _orientation.front.y, _orientation.front.z );
+    //printLog( "orientation.front = %f, %f, %f\n", _orientation.front.x, _orientation.front.y, _orientation.front.z );
 }
 

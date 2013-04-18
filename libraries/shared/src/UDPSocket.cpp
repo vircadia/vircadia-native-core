@@ -18,7 +18,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <unistd.h>
 #endif
+
+#include "shared_Log.h"
+
+using shared_lib::printLog;
 
 sockaddr_in destSockaddr, senderAddress;
 
@@ -104,7 +109,7 @@ UDPSocket::UDPSocket(int listeningPort) {
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     
     if (handle <= 0) {
-        printf("Failed to create socket.\n");
+        printLog("Failed to create socket.\n");
         return;
     }
     
@@ -117,7 +122,7 @@ UDPSocket::UDPSocket(int listeningPort) {
     bind_address.sin_port = htons((uint16_t) listeningPort);
     
     if (bind(handle, (const sockaddr*) &bind_address, sizeof(sockaddr_in)) < 0) {
-        printf("Failed to bind socket to port %d.\n", listeningPort);
+        printLog("Failed to bind socket to port %d.\n", listeningPort);
         return;
     }
     
@@ -127,7 +132,7 @@ UDPSocket::UDPSocket(int listeningPort) {
     tv.tv_usec = 500000;
     setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
     
-    printf("Created UDP socket listening on port %d.\n", listeningPort);
+    printLog("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
 UDPSocket::~UDPSocket() {
@@ -196,7 +201,7 @@ int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) 
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
     
     if (sent_bytes != byteLength) {
-        printf("Failed to send packet: %s\n", strerror(errno));
+        printLog("Failed to send packet: %s\n", strerror(errno));
         return false;
     }
     

@@ -10,7 +10,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceConfig.h"
-#include <iostream>
+#include "Log.h"
 
 // These includes are for serial port reading/writing
 #ifdef __APPLE__

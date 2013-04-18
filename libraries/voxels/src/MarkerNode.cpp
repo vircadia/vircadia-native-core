@@ -7,6 +7,7 @@
 //
 
 #include "MarkerNode.h"
+#include <stddef.h>
 
 MarkerNode::MarkerNode() {
     for (int i = 0; i < 8; i++) {

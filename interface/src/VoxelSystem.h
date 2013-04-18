@@ -11,7 +11,6 @@
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
-#include <iostream>
 #include <UDPSocket.h>
 #include <AgentData.h>
 #include <VoxelTree.h>

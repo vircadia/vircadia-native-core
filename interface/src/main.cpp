@@ -24,8 +24,6 @@
 //
 
 #include "InterfaceConfig.h"
-#include <iostream>
-#include <fstream>
 #include <math.h>
 #include <string.h>
 #include <sstream>
@@ -46,6 +44,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "Log.h"
+#include "shared_Log.h"
+#include "voxels_Log.h"
+#include "avatars_Log.h"
 
 #include "Field.h"
 #include "world.h"
@@ -147,11 +150,11 @@ float renderPitchRate = 0.f;
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
-int statsOn = 0;					//  Whether to show onscreen text overlay with stats
-bool starsOn = false;				//  Whether to display the stars
-bool paintOn = false;				//  Whether to paint voxels as you fly around
-VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
-unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
+bool statsOn = false;               //  Whether to show onscreen text overlay with stats
+bool starsOn = false;               //  Whether to display the stars
+bool paintOn = false;               //  Whether to paint voxels as you fly around
+VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
+unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 
 int noiseOn = 0;					//  Whether to add random noise 
@@ -316,9 +319,9 @@ void init(void)
         marker_capturer.position_updated(&position_updated);
         marker_capturer.frame_updated(&marker_frame_available);
         if(!marker_capturer.init_capture()){
-            printf("Camera-based marker capture initialized.\n");
+            printLog("Camera-based marker capture initialized.\n");
         }else{
-            printf("Error initializing camera-based marker capture.\n");
+            printLog("Error initializing camera-based marker capture.\n");
         }
     }
 #endif
@@ -884,6 +887,7 @@ void display(void)
         glLineWidth(1.0f);
         glPointSize(1.0f);
         displayStats();
+        logger.render(WIDTH, HEIGHT);
     }
         
     //  Show menu
@@ -1083,7 +1087,7 @@ void testPointToVoxel()
 	float s=0.1;
 	for (float x=0; x<=1; x+= 0.05)
 	{
-		std::cout << " x=" << x << " ";
+		printLog(" x=%f");
 
 		unsigned char red   = 200; //randomColorValue(65);
 		unsigned char green = 200; //randomColorValue(65);
@@ -1092,7 +1096,7 @@ void testPointToVoxel()
 		unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
 		printVoxelCode(voxelCode);
 		delete voxelCode;
-		std::cout << std::endl;
+		printLog("\n");
 	}
 }
 
@@ -1101,7 +1105,7 @@ void sendVoxelServerEraseAll() {
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
 	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}\
+}
 
 void sendVoxelServerAddScene() {
 	char message[100];
@@ -1139,11 +1143,11 @@ void addRandomSphere(bool wantColorRandomizer)
 	float s = 0.001; // size of voxels to make up surface of sphere
 	bool solid = false;
 
-	printf("random sphere\n");
-	printf("radius=%f\n",r);
-	printf("xc=%f\n",xc);
-	printf("yc=%f\n",yc);
-	printf("zc=%f\n",zc);
+	printLog("random sphere\n");
+	printLog("radius=%f\n",r);
+	printLog("xc=%f\n",xc);
+	printLog("yc=%f\n",yc);
+	printLog("zc=%f\n",zc);
 
 	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
@@ -1411,7 +1415,7 @@ void reshape(int width, int height)
         farClip   = ::myCamera.getFarClip();
     }
 
-    //printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
+    //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
     //    width,height,aspectRatio,fov,nearClip,farClip);
     
     // Tell our viewFrustum about this change
@@ -1491,6 +1495,10 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    shared_lib::printLog = & ::printLog;
+    voxels_lib::printLog = & ::printLog;
+    avatars_lib::printLog = & ::printLog;
+
     // Quick test of the Orientation class on startup!
     if (cmdOptionExists(argc, argv, "--testOrientation")) {
         testOrientationClass();
@@ -1507,7 +1515,7 @@ int main(int argc, const char * argv[])
 
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, argv, "--local")) {
-    	printf("Local Domain MODE!\n");
+    	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
@@ -1547,11 +1555,11 @@ int main(int argc, const char * argv[])
     viewFrustumOffsetCamera.setNearClip(0.1);
     viewFrustumOffsetCamera.setFarClip(500.0);
 
-    printf( "Created Display Window.\n" );
+    printLog( "Created Display Window.\n" );
         
     initMenu();
     initDisplay();
-    printf( "Initialized Display.\n" );
+    printLog( "Initialized Display.\n" );
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -1565,7 +1573,7 @@ int main(int argc, const char * argv[])
     glutIdleFunc(idle);
 	
     init();
-    printf( "Init() complete.\n" );
+    printLog( "Init() complete.\n" );
 
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
@@ -1577,17 +1585,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
-        printf("Local Voxel File loaded.\n");
+        printLog("Local Voxel File loaded.\n");
 	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printf("Network receive thread created.\n");
+    printLog("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
 
-    printf("Normal exit.\n");
+    printLog("Normal exit.\n");
     ::terminate();
     return EXIT_SUCCESS;
 }   

@@ -14,12 +14,15 @@
 #include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+#include "shared_Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
+
+using shared_lib::printLog;
 
 const char * SOLO_AGENT_TYPES_STRING = "MV";
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
@@ -37,7 +40,7 @@ AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPo
     if (_sharedInstance == NULL) {
         _sharedInstance = new AgentList(ownerType, socketListenPort);
     } else {
-        printf("AgentList createInstance called with existing instance.\n");
+        printLog("AgentList createInstance called with existing instance.\n");
     }
     
     return _sharedInstance;
@@ -45,7 +48,7 @@ AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPo
 
 AgentList* AgentList::getInstance() {
     if (_sharedInstance == NULL) {
-        printf("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        printLog("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
     return _sharedInstance;
@@ -237,7 +240,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activatePublicSocket();
         }
         
-        std::cout << "Added agent - " << &newAgent << "\n";
+        printLog("Added agent - ");
+        Agent::printLog(newAgent);
         
         pthread_mutex_lock(&vectorChangeMutex);
         agents.push_back(newAgent);
@@ -336,7 +340,8 @@ void *removeSilentAgents(void *args) {
             	&& agent->getType() != AGENT_TYPE_VOXEL
                 && pthread_mutex_trylock(agentDeleteMutex) == 0) {
                 
-                std::cout << "Killing agent " << &(*agent)  << "\n";
+                printLog("Killing agent - ");
+                Agent::printLog(*agent);
                 
                 // make sure the vector isn't currently adding an agent
                 pthread_mutex_lock(&vectorChangeMutex);
@@ -390,12 +395,12 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server: %s \n", DOMAIN_HOSTNAME);
+            printLog("Domain server: %s \n", DOMAIN_HOSTNAME);
             
         } else {
-            printf("Failed lookup domainserver\n");
+            printLog("Failed lookup domainserver\n");
         }
-    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    } else printLog("Using static domainserver IP: %s\n", DOMAIN_IP);
     
     
     while (!domainServerCheckinStopFlag) {

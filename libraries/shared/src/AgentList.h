@@ -9,9 +9,9 @@
 #ifndef __hifi__AgentList__
 #define __hifi__AgentList__
 
-#include <iostream>
 #include <vector>
 #include <stdint.h>
+
 #include "Agent.h"
 #include "UDPSocket.h"
 

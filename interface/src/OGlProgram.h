@@ -2,18 +2,19 @@
 #define __interface__OpenGlSupport__
 
 #include "InterfaceConfig.h"
+#include "Log.h"
 
-/**
- * Macro to log OpenGl errors to stderr.
- * Example: oglLog( glPushMatrix() );
- */
+// 
+// Macro to log OpenGl errors.
+// Example: oglLog( glPushMatrix() );
+//
 #define oGlLog(stmt) \
     stmt; \
     { \
         GLenum e = glGetError(); \
         if (e != GL_NO_ERROR) { \
-            fprintf(stderr, __FILE__ ":"  oGlLog_stringize(__LINE__) \
-                    " [OpenGL] %s\n", gluErrorString(e)); \
+            printLog(__FILE__ ":"  oGlLog_stringize(__LINE__) \
+                     " [OpenGL] %s\n", gluErrorString(e)); \
         } \
     } \
     (void) 0
@@ -21,10 +22,10 @@
 #define oGlLog_stringize(x) oGlLog_stringize_i(x)
 #define oGlLog_stringize_i(x) # x
 
-/**
- * Encapsulation of the otherwise lengthy call sequence to compile
- * and link shading pipelines.
- */
+// 
+// Encapsulation of the otherwise lengthy call sequence to compile
+// and link shading pipelines.
+//
 class OGlProgram {
 
     GLuint _hndProg;
@@ -54,10 +55,10 @@ public:
     }
 #endif
 
-    /**
-     * Activates the executable for rendering.
-     * Shaders must be added and linked before this will work.
-     */
+    // 
+    // Activates the executable for rendering.
+    // Shaders must be added and linked before this will work.
+    // 
     void activate() const {
 
         if (_hndProg != 0u) {
@@ -66,17 +67,17 @@ public:
         }
     }
 
-    /**
-     * Adds a shader to the program.
-     */
+    // 
+    // Adds a shader to the program.
+    // 
     bool addShader(GLenum type, GLchar const* cString) { 
 
         return addShader(type, 1, & cString);        
     }
 
-    /**
-     * Adds a shader to the program and logs to stderr.
-     */
+    // 
+    // Adds a shader to the program and logs to stderr.
+    // 
     bool addShader(GLenum type, GLsizei nStrings, GLchar const** strings) {
 
         if (! _hndProg && !! glCreateProgram) { 
@@ -100,9 +101,9 @@ public:
         return !! status;
     }
 
-    /**
-     * Links the program and logs to stderr.
-     */
+    // 
+    // Links the program and logs to stderr.
+    // 
     bool link() {
 
         if (! _hndProg) { return false; }
@@ -136,7 +137,7 @@ private:
         if (!! logLength) {
             GLchar* message = new GLchar[logLength];
             getLog(handle, logLength, 0l, message);
-            fprintf(stderr, "%s\n", message);
+            printLog("%s\n", message);
             delete[] message;
         }
     }
