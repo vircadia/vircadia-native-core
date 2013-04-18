@@ -11,10 +11,42 @@
 #include <cstring>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <SharedUtil.h>
 
 #include "world.h"
 #include "Util.h"
+
+
+
+void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up) {
+    //
+    //  Converts from three euler angles to the associated orthonormal vectors
+    //
+    //  Angles contains (pitch, yaw, roll) in radians
+    //
+    
+    //  First, create the quaternion associated with these euler angles
+    glm::quat q(glm::vec3(angles->x, angles->y, angles->z));
+    
+    //  Next, create a rotation matrix from that quaternion
+    glm::mat4 rotation;
+    rotation = glm::mat4_cast(q);
+    
+    //  Transform the original vectors by the rotation matrix to get the new vectors
+    glm::vec4 u(0,1,0,0);
+    glm::vec4 l(1,0,0,0);
+    glm::vec4 f(0,0,1,0);
+    glm::vec4 uNew = u*rotation;
+    glm::vec4 lNew = l*rotation;
+    glm::vec4 fNew = f*rotation;
+    
+    //  Copy the answers to output vectors
+    up->x = uNew.x;  up->y = uNew.y;  up->z = uNew.z;
+    left->x = lNew.x;  left->y = lNew.y;  left->z = lNew.z;
+    fwd->x = fNew.x;  fwd->y = fNew.y;  fwd->z = fNew.z;
+    
+}
 
 
 //  Return the azimuth angle in degrees between two points.
