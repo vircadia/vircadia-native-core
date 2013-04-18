@@ -19,6 +19,7 @@
 #ifdef __APPLE__
 #include <regex.h>
 #include <sys/time.h>
+#include <string>
 #endif
 
 int serialFd;
@@ -208,7 +209,7 @@ void SerialInterface::readData() {
             }
             if (totalSamples == GRAVITY_SAMPLES) {
                 gravity = glm::normalize(gravity);
-                printLof("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
+                //printLof("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
             }
 
             totalSamples++;
