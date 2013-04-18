@@ -866,9 +866,9 @@ void Head::renderHead(int faceToFace) {
  
  
 
-void Head::setHandMovement( glm::vec3 movement ) {
+void Head::setHandMovement( glm::vec3 handOffset ) {
 	_handBeingMoved = true;
-	_movedHandOffset = movement;
+	_movedHandOffset = handOffset;
 }
 
 AvatarMode Head::getMode() {
@@ -1024,9 +1024,9 @@ void Head::updateSkeleton() {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
                                             
-		float xx =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight	() );
-		float yy =  glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
-		float zz = -glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront	() );
+		float xx = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight() );
+		float yy = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
+		float zz = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront() );
 
 		glm::vec3 rotatedBoneVector( xx, yy, zz );
         
@@ -1125,9 +1125,9 @@ void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
 	
 	transformedHandMovement 
-	= _avatar.orientation.getRight()	* -_movedHandOffset.x
-	+ _avatar.orientation.getUp()	* -_movedHandOffset.y * 0.5f
-	+ _avatar.orientation.getFront()	* -_movedHandOffset.y;
+	= _avatar.orientation.getRight() *  _movedHandOffset.x
+	+ _avatar.orientation.getUp()	 * -_movedHandOffset.y * 0.5f
+	+ _avatar.orientation.getFront() * -_movedHandOffset.y;
 
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
