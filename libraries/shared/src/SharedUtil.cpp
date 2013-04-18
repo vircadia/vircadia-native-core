@@ -77,7 +77,7 @@ bool oneAtBit(unsigned char byte, int bitIndex) {
     return (byte >> (7 - bitIndex) & 1);
 }
 
-void switchToResourcesIfRequired() {
+void switchToResourcesParentIfRequired() {
 #ifdef __APPLE__
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -88,6 +88,7 @@ void switchToResourcesIfRequired() {
     CFRelease(resourcesURL);
     
     chdir(path);
+    chdir("..");
 #endif
 }
 

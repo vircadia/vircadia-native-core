@@ -13,7 +13,6 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceConfig.h"
-#include <iostream>
 
 class Oscilloscope {
 public:

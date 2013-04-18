@@ -109,11 +109,11 @@ namespace starfield {
             _ptrRenderer(0l) {
         }
 
-        bool readInput(const char* url, unsigned limit)
+        bool readInput(const char* url, const char* cacheFile, unsigned limit)
         {
             InputVertices vertices;
 
-            if (! Loader().loadVertices(vertices, url, limit))
+            if (! Loader().loadVertices(vertices, url, cacheFile, limit))
                 return false;
 
             BrightnessLevels brightness;

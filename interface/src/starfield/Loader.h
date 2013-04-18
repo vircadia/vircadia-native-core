@@ -33,7 +33,7 @@ namespace starfield {
     public:
 
         bool loadVertices(
-                InputVertices& destination, char const* url, unsigned limit)
+                InputVertices& destination, char const* url, char const* cacheFile, unsigned limit)
         {
             _ptrVertices = & destination;
             _valLimit = limit;
@@ -43,7 +43,7 @@ namespace starfield {
 #endif
             _strUrl = url; // in case we fail early
 
-            if (! UrlReader::readUrl(url, *this))
+            if (! UrlReader::readUrl(url, *this, cacheFile))
             {
                 printLog("%s:%d: %s\n",
                         _strUrl, _valLineNo, getError());

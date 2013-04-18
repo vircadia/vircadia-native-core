@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <unistd.h>
 #endif
 
 #include "shared_Log.h"

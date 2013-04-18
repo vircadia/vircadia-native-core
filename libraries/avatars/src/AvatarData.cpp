@@ -10,9 +10,14 @@
 #include <cstring>
 #include <stdint.h>
 
+#include <SharedUtil.h>
 #include <PacketHeaders.h>
 
 #include "AvatarData.h"
+#include "avatars_Log.h"
+
+using avatars_lib::printLog;
+
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
@@ -23,8 +28,8 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     return sizeof(uint16_t);
 }
 
-int unpackFloatAngleFromTwoByte(uint16_t *byteAnglePointer, float *destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
 
@@ -43,14 +48,13 @@ AvatarData* AvatarData::clone() const {
     return new AvatarData(*this);
 }
 
-// transmit data to agents requesting it
-// called on me just prior to sending data to others (continuasly called)
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
+    
     memcpy(destinationBuffer, &_bodyPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
@@ -58,12 +62,18 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
+    //printLog( "_bodyYaw = %f", _bodyYaw );
+    
+    memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
+    destinationBuffer += sizeof(float) * 3;
+    
+    printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
+    
     return destinationBuffer - bufferStart;
 }
 
 // called on the other agents - assigns it to my views of the others
 void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    
     // increment to push past the packet header
     sourceBuffer++;
     
@@ -73,6 +83,14 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
+
+    memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
+    sourceBuffer += sizeof(float) * 3;
+    
+    //printLog( "_bodyYaw = %f", _bodyYaw );
+
+    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
+    //printLog("%f, %f, %f\n", _bodyPosition.x,  _bodyPosition.y, _bodyPosition.z);
 }
 
 glm::vec3 AvatarData::getBodyPosition() {
@@ -83,6 +101,10 @@ glm::vec3 AvatarData::getBodyPosition() {
 
 void AvatarData::setBodyPosition(glm::vec3 bodyPosition) {
     _bodyPosition = bodyPosition;
+}
+
+void AvatarData::setHandPosition(glm::vec3 handPosition) {
+    _handPosition = handPosition;
 }
 
 float AvatarData::getBodyYaw() {

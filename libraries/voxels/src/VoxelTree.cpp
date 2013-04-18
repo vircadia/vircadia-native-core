@@ -18,7 +18,6 @@
 #include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
-#include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
 using voxels_lib::printLog;
