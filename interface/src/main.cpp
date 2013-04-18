@@ -263,6 +263,13 @@ void displayStats(void)
     
 	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    
+    Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+    char avatarMixerStats[200];
+    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+            roundf(avatarMixer->getAverageKilobitsPerSecond()),
+            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups

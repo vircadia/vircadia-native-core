@@ -24,7 +24,12 @@
 
 using shared_lib::printLog;
 
-const char * SOLO_AGENT_TYPES_STRING = "MV";
+const char SOLO_AGENT_TYPES_STRING[] = {
+    AGENT_TYPE_AVATAR_MIXER,
+    AGENT_TYPE_AUDIO_MIXER,
+    AGENT_TYPE_VOXEL
+};
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
@@ -285,6 +290,18 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
             break;
         }
     }
+}
+
+Agent* AgentList::soloAgentOfType(char agentType) {    
+    if (memchr(SOLO_AGENT_TYPES_STRING, agentType, 1)) {
+        for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+            if (agent->getType() == agentType) {
+                return &*agent;
+            }
+        }
+    }
+    
+    return NULL;
 }
 
 void *pingUnknownAgents(void *args) {
