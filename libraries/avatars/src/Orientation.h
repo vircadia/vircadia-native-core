@@ -34,6 +34,10 @@ public:
 	void pitch	( float );
 	void roll	( float );
 
+	float getYaw() { return _yaw; };
+	float getPitch(){ return _pitch; };
+	float getRoll(){ return _roll; };
+
 	void set( Orientation );
 	void setToIdentity();
 
