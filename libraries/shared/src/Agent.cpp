@@ -71,7 +71,6 @@ Agent::Agent(const Agent &otherAgent) {
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
-    std::cout << "Agent swap constructor called on resize?\n";
     swap(*this, otherAgent);
     return *this;
 }

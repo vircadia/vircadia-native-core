@@ -107,7 +107,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
     }
 
-    unsigned char *startPosition = (unsigned char *)packetData;
+    unsigned char *startPosition = packetData;
     unsigned char *currentPosition = startPosition + 1;
     unsigned char packetHolder[numBytesPerAgent + 1];
     
