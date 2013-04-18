@@ -38,7 +38,7 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
-bool usingBigSphereCollisionTest = false;
+bool usingBigSphereCollisionTest = true;
 
 const float DECAY = 0.1;
 const float THRUST_MAG	= 10.0;
