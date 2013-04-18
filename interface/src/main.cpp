@@ -826,7 +826,7 @@ void display(void)
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
                 glm::vec3 pos = agentHead->getBodyPosition();
-                glTranslatef(-pos.x, -pos.y, -pos.z);
+                glTranslatef(pos.x, pos.y, pos.z);
                 agentHead->render(0);
                 glPopMatrix();
             }
