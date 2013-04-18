@@ -14,21 +14,23 @@
 
 class SimpleMovingAverage {
 public:
-    SimpleMovingAverage(float numSamplesToAverage);
+    SimpleMovingAverage(int numSamplesToAverage);
     
     int updateAverage(float sample);
     void reset();
     
     int getSampleCount() { return _numSamples; };
     float getAverage() { return _average; };
-    float getEventDeltaAverage() { return _eventDeltaAverage; };
+    float getEventDeltaAverage();
     float getAverageSampleValuePerSecond();
 private:
     int _numSamples;
-    int _numSamplesToAverage;
     double _lastEventTimestamp;
     float _average;
     float _eventDeltaAverage;
+    
+    const float WEIGHTING;
+    const float ONE_MINUS_WEIGHTING;
 };
 
 #endif /* defined(__hifi__Stats__) */
