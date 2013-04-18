@@ -7,14 +7,12 @@
 //  Copyright (c) 2012 Physical, Inc.. All rights reserved.
 //
 
-#include <iostream>
 #include <glm/glm.hpp>
 #include <vector>
 #include <lodepng.h>
-#include <fstream>
-#include <sstream>
 #include <SharedUtil.h>
 #include "Head.h"
+#include "Log.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
@@ -117,7 +115,7 @@ Head::Head(bool isMine) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
         if (error != 0) {
-            std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+            printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
 	
@@ -226,12 +224,12 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
                                 PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_PITCH_RATE);
     float measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    
-    //std::cout << "Pitch Rate: " << serialInterface->getRelativeValue(PITCH_RATE) <<
-    //    " fwd_accel: " << serialInterface->getRelativeValue(ACCEL_Z) << "\n";
-    //std::cout << "Roll Rate: " << serialInterface->getRelativeValue(ROLL_RATE) <<
-    //" ACCEL_X: " << serialInterface->getRelativeValue(ACCEL_X) << "\n";
-    //std::cout << "Pitch: " << Pitch << "\n";
+   
+    //printLog("Pitch Rate: %d ACCEL_Z: %d\n", serialInterface->getRelativeValue(PITCH_RATE), 
+    //                                         serialInterface->getRelativeValue(ACCEL_Z));
+    //printLog("Pitch Rate: %d ACCEL_X: %d\n", serialInterface->getRelativeValue(PITCH_RATE), 
+    //                                         serialInterface->getRelativeValue(ACCEL_Z));
+    //printLog("Pitch: %f\n", Pitch);
     
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.70;
@@ -347,13 +345,13 @@ void Head::simulate(float deltaTime) {
 		if (! _previousHandBeingMoved ){ 
 			initializeBodySprings();
 			_usingSprings = true;
-			//printf( "just started moving hand\n" );
+			//printLog( "just started moving hand\n" );
 		}
 	}
 	else {
 		if ( _previousHandBeingMoved ){ 
 			_usingSprings = false;
-			//printf( "just stopped moving hand\n" );
+			//printLog( "just stopped moving hand\n" );
 		}
 	}
     	

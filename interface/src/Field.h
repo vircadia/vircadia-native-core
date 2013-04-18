@@ -9,7 +9,6 @@
 #ifndef __interface__Field__
 #define __interface__Field__
 
-#include <iostream>
 #include <glm/glm.hpp>
 #include "InterfaceConfig.h"
 #include "world.h"

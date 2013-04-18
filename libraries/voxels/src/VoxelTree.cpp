@@ -13,13 +13,14 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
+#include "voxels_Log.h"
 #include "PacketHeaders.h"
 #include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
-#include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
+using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {
@@ -416,7 +417,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
 	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
 	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
-	printf("processRemoveVoxelBitstream() receivedBytes=%d itemNumber=%d\n",bufferSizeBytes,itemNumber);
+	printLog("processRemoveVoxelBitstream() receivedBytes=%d itemNumber=%d\n",bufferSizeBytes,itemNumber);
 	int atByte = 3;
 	unsigned char* pVoxelData = (unsigned char*)&bitstream[3];
 	while (atByte < bufferSizeBytes) {
@@ -424,7 +425,7 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
 		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
 
 		float* vertices = firstVertexForCode(pVoxelData);
-		printf("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+		printLog("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
 		delete []vertices;
 
 		deleteVoxelCodeFromTree(pVoxelData);
@@ -510,11 +511,11 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     
     int totalBytesRead = 0;
     if(file.is_open()) {
-		printf("loading file...\n");    
+		printLog("loading file...\n");    
         bool bail = false;
         while (!file.eof() && !bail) {
             file.get(octets);
-			//printf("octets=%d...\n",octets);    
+			//printLog("octets=%d...\n",octets);    
             totalBytesRead++;
             lengthInBytes = bytesRequiredForCodeLength(octets)-1; //(octets*3/8)+1;
             unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
@@ -536,14 +537,14 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
             file.get(colorRead);
             blue = (unsigned char)colorRead;
 
-            printf("voxel color from file  red:%d, green:%d, blue:%d \n",red,green,blue);
+            printLog("voxel color from file  red:%d, green:%d, blue:%d \n",red,green,blue);
             vCount++;
 
             int colorRandomizer = wantColorRandomizer ? randIntInRange (-5, 5) : 0;
             voxelData[lengthInBytes+1] = std::max(0,std::min(255,red + colorRandomizer));
             voxelData[lengthInBytes+2] = std::max(0,std::min(255,green + colorRandomizer));
             voxelData[lengthInBytes+3] = std::max(0,std::min(255,blue + colorRandomizer));
-            printf("voxel color after rand red:%d, green:%d, blue:%d\n",
+            printLog("voxel color after rand red:%d, green:%d, blue:%d\n",
                    voxelData[lengthInBytes+1], voxelData[lengthInBytes+2], voxelData[lengthInBytes+3]);
 
             //printVoxelCode(voxelData);
@@ -608,7 +609,7 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	// If you also iterate form the interior of the sphere to the radius, makeing
 	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
 	for (; ri <= (r+(s/2.0)); ri+=s) {
-		//printf("radius: ri=%f ri+s=%f (r+(s/2.0))=%f\n",ri,ri+s,(r+(s/2.0)));
+		//printLog("radius: ri=%f ri+s=%f (r+(s/2.0))=%f\n",ri,ri+s,(r+(s/2.0)));
 		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta) {
 			for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
 				t++; // total voxels
@@ -622,7 +623,7 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
                 // only use our actual desired color on the outer edge, otherwise
                 // use our "average" color
                 if (ri+(s*2.0)>=r) {
-					//printf("painting candy shell radius: ri=%f r=%f\n",ri,r);
+					//printLog("painting candy shell radius: ri=%f r=%f\n",ri,r);
 					red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
 					green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
 					blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
@@ -630,7 +631,7 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 				
 				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
                 this->readCodeColorBufferToTree(voxelData);
-				//printf("voxel data for x:%f y:%f z:%f s:%f\n",x,y,z,s);
+				//printLog("voxel data for x:%f y:%f z:%f s:%f\n",x,y,z,s);
                 //printVoxelCode(voxelData);
                 delete voxelData;
 			}

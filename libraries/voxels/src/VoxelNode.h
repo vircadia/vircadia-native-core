@@ -9,8 +9,6 @@
 #ifndef __hifi__VoxelNode__
 #define __hifi__VoxelNode__
 
-#include <iostream>
-
 class VoxelNode {
 public:
     VoxelNode();

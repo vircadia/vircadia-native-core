@@ -14,9 +14,16 @@
 #include <glm/gtc/quaternion.hpp>
 #include <SharedUtil.h>
 
+#include "Log.h"
 #include "world.h"
 #include "Util.h"
 
+using namespace std;
+
+// no clue which versions are affected...
+#define WORKAROUND_BROKEN_GLUT_STROKES
+// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
+static float MONO_STROKE_WIDTH_GLUT = 104.76;
 
 
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
@@ -143,12 +150,17 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
-int widthText(float scale, int mono, char *string) {
+int widthText(float scale, int mono, char const* string) {
     int width = 0;
     if (!mono) {
         width = scale * glutStrokeLength(GLUT_STROKE_ROMAN, (const unsigned char *) string);
     } else {
+#ifndef WORKAROUND_BROKEN_GLUT_STROKES
         width = scale * glutStrokeLength(GLUT_STROKE_MONO_ROMAN, (const unsigned char *) string);
+#else
+        // return value is unreliable, so just calculate it
+        width = scale * float(strlen(string)) * MONO_STROKE_WIDTH_GLUT;
+#endif
     }
     return width;
 }
@@ -170,8 +182,27 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     len = (int) strlen(string);
 	for (i = 0; i < len; i++)
 	{
-        if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
-        else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(string[i]));
+        if (!mono) {
+            glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
+        } else {
+#ifdef WORKAROUND_BROKEN_GLUT_STROKES
+            if (string[i] != 'm') {
+#endif
+                glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(string[i]));
+#ifdef WORKAROUND_BROKEN_GLUT_STROKES
+            } else {
+                // some glut implementations have a broken 'm'...
+                unsigned char tmpStr[2]; 
+                tmpStr[0] = string[i];
+                tmpStr[1] = '\0';
+                float scale = MONO_STROKE_WIDTH_GLUT / glutStrokeLength(GLUT_STROKE_ROMAN, tmpStr);
+                glScalef(scale, 1.0f, 1.0f);
+                glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
+                // staying humble on the stack - might be in projection mode
+                glScalef(1.0f / scale, 1.0f, 1.0f);
+            }
+#endif
+        }
 	}
     glPopMatrix();
 
@@ -261,13 +292,13 @@ void renderOrientationDirections( glm::vec3 position, Orientation orientation, f
 
 bool closeEnoughForGovernmentWork(float a, float b) {
     float distance = std::abs(a-b);
-    //printf("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
+    //printLog("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
     return (distance < 0.00001f);
 }
 
 
 void testOrientationClass() {
-    printf("\n----------\ntestOrientationClass()\n----------\n\n");
+    printLog("\n----------\ntestOrientationClass()\n----------\n\n");
     
     oTestCase tests[] = { 
         //       - inputs ------------, outputs --------------------  -------------------  ----------------------------
@@ -337,53 +368,53 @@ void testOrientationClass() {
         glm::vec3 up    = o1.getUp();
         glm::vec3 right = o1.getRight();
 
-        printf("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n",i+1,yaw,pitch,roll);
+        printLog("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n",i+1,yaw,pitch,roll);
 
-        printf("\nFRONT\n");
-        printf(" + received: front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
+        printLog("\nFRONT\n");
+        printLog(" + received: front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
         
         if (closeEnoughForGovernmentWork(front.x, tests[i].frontX) 
             && closeEnoughForGovernmentWork(front.y, tests[i].frontY)
             && closeEnoughForGovernmentWork(front.z, tests[i].frontZ)) {
-            printf("  front vector PASSES!\n");
+            printLog("  front vector PASSES!\n");
         } else {
-            printf("   expected: front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
-            printf("  front vector FAILED! \n");
+            printLog("   expected: front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
+            printLog("  front vector FAILED! \n");
             passed = false;
         }
             
-        printf("\nUP\n");
-        printf(" + received: up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
+        printLog("\nUP\n");
+        printLog(" + received: up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
         if (closeEnoughForGovernmentWork(up.x, tests[i].upX) 
             && closeEnoughForGovernmentWork(up.y, tests[i].upY)
             && closeEnoughForGovernmentWork(up.z, tests[i].upZ)) {
-            printf("  up vector PASSES!\n");
+            printLog("  up vector PASSES!\n");
         } else {
-            printf("  expected: up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
-            printf("  up vector FAILED!\n");
+            printLog("  expected: up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
+            printLog("  up vector FAILED!\n");
             passed = false;
         }
 
 
-        printf("\nRIGHT\n");
-        printf(" + received: right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
+        printLog("\nRIGHT\n");
+        printLog(" + received: right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
         if (closeEnoughForGovernmentWork(right.x, tests[i].rightX) 
             && closeEnoughForGovernmentWork(right.y, tests[i].rightY)
             && closeEnoughForGovernmentWork(right.z, tests[i].rightZ)) {
-            printf("  right vector PASSES!\n");
+            printLog("  right vector PASSES!\n");
         } else {
-            printf("   expected: right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
-            printf("  right vector FAILED!\n");
+            printLog("   expected: right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
+            printLog("  right vector FAILED!\n");
             passed = false;
         }
         
         if (!passed) {
-            printf("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
+            printLog("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
             failedCount++;
         }
     }
-    printf("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
-    printf("\n----------DONE----------\n\n");
+    printLog("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
+    printLog("\n----------DONE----------\n\n");
 }
 
 

@@ -9,8 +9,6 @@
 #ifndef __interface__UDPSocket__
 #define __interface__UDPSocket__
 
-#include <iostream>
-
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
