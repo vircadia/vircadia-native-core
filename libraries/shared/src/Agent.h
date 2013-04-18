@@ -72,7 +72,7 @@ private:
     uint16_t agentId;
     double firstRecvTimeUsecs;
     double lastRecvTimeUsecs;
-    SimpleMovingAverage* _movingAverage;
+    SimpleMovingAverage* _bytesReceivedMovingAverage;
     AgentData* linkedData;
     
 };
