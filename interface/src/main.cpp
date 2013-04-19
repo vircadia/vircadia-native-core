@@ -762,9 +762,10 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-            glm::mat4 view;
-            glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
-        	stars.render(angleConvert<Degrees,Radians>(whichCamera.getFieldOfView()),  aspectRatio, view);
+
+            // finally render the starfield
+        	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+            
         }
 
         glEnable(GL_LIGHTING);

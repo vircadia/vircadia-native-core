@@ -130,16 +130,17 @@ namespace starfield {
 
             float halfPersp = perspective * 0.5f;
 
-            // determine dimensions based on a sought screen diagonal
+            // define diagonal and near distance
+            float halfDiag = std::sin(halfPersp);
+            float nearClip = std::cos(halfPersp);
+            
+            // determine half dimensions based on the screen diagonal
             //
             //  ww + hh = dd
             //  a = w / h => w = ha
             //  hh + hh aa = dd
             //  hh = dd / (1 + aa)
-            float diag = 2.0f * std::sin(halfPersp);
-            float nearClip = std::cos(halfPersp);
-            
-            float hh = 0.5f * sqrt(diag * diag / (1.0f + aspect * aspect));
+            float hh = sqrt(halfDiag * halfDiag / (1.0f + aspect * aspect));
             float hw = hh * aspect;
 
             // cancel all translation
@@ -154,32 +155,34 @@ namespace starfield {
             float azimuth = atan2(ahead.x,-ahead.z) + Radians::pi();
             float altitude = atan2(-ahead.y, hypotf(ahead.x, ahead.z));
             angleHorizontalPolar<Radians>(azimuth, altitude);
+            float const eps = 0.002f;
+            altitude = glm::clamp(altitude,
+                                  -Radians::halfPi() + eps, Radians::halfPi() - eps);
 #if STARFIELD_HEMISPHERE_ONLY
             altitude = std::max(0.0f, altitude);
 #endif
-            unsigned tileIndex = 
-                    _objTiling.getTileIndex(azimuth, altitude);
-
 // fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tileIndex);
 
 
 #if STARFIELD_DEBUG_CULLING
-            mat4 matrix_debug = glm::translate( 
-                    glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
-                    vec3(0.0f, 0.0f, -4.0f)) * glm::affineInverse(matrix);
+            mat4 matrix_debug = glm::translate(glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
+                                               vec3(0.0f, 0.0f, -4.0f)) *
+                    glm::affineInverse(matrix);
 #endif
 
-            matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f)
-                    * glm::affineInverse(matrix);
+            matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f) * glm::affineInverse(matrix); 
 
             this->_itrOutIndex = (unsigned*) _arrBatchOffs;
             this->_vecWxform = vec3(row(matrix, 3));
             this->_valHalfPersp = halfPersp;
             this->_valMinBright = minBright;
 
-            floodFill(_arrTile + tileIndex, TileSelection(*this, 
-                    _arrTile, _arrTile + _objTiling.getTileCount(),
-                    (Tile**) _arrBatchCount));
+            TileSelection::Cursor cursor;
+            cursor.current = _arrTile + _objTiling.getTileIndex(azimuth, altitude);
+            cursor.firstInRow = _arrTile + _objTiling.getTileIndex(0.0f, altitude);
+
+            floodFill(cursor, TileSelection(*this, _arrTile, _arrTile + _objTiling.getTileCount(),
+                                            (TileSelection::Cursor*) _arrBatchCount));
 
 #if STARFIELD_DEBUG_CULLING
 #   define matrix matrix_debug
@@ -269,31 +272,35 @@ namespace starfield {
 
         class TileSelection {
 
+        public:
+            struct Cursor { Tile* current, * firstInRow; };
+        private:
             Renderer&           _refRenderer;
-            Tile** const        _arrStack;
-            Tile**              _itrStack;
+            Cursor*     const   _arrStack;
+            Cursor*             _itrStack;
             Tile const* const   _arrTile;
-            Tile const* const   _itrTilesEnd;
+            Tile const* const   _ptrTilesEnd;
 
         public:
 
             TileSelection(Renderer& renderer, Tile const* tiles, 
-                          Tile const* tiles_end, Tile** stack) :
+                          Tile const* tiles_end, Cursor* stack) :
 
                 _refRenderer(renderer),
                 _arrStack(stack),
                 _itrStack(stack), 
                 _arrTile(tiles), 
-                _itrTilesEnd(tiles_end) {
+                _ptrTilesEnd(tiles_end) {
             }
      
         protected:
 
             // flood fill strategy
 
-            bool select(Tile* t) {
+            bool select(Cursor const& c) {
+                Tile* t = c.current;
 
-                if (t < _arrTile || t >= _itrTilesEnd ||
+                if (t < _arrTile || t >= _ptrTilesEnd ||
                         !! (t->flags & Tile::checked)) {
 
                     // out of bounds or been here already
@@ -311,7 +318,8 @@ namespace starfield {
                 return false;
             }
 
-            bool process(Tile* t) { 
+            bool process(Cursor const& c) { 
+                Tile* t = c.current;
 
                 if (! (t->flags & Tile::visited)) {
 
@@ -321,26 +329,45 @@ namespace starfield {
                 return false;
             }
 
-            void right(Tile*& cursor) const   { cursor += 1; }
-            void left(Tile*& cursor)  const   { cursor -= 1; }
-            void up(Tile*& cursor)    const   { cursor += yStride(); }
-            void down(Tile*& cursor)  const   { cursor -= yStride(); }
+            void right(Cursor& c) const {
 
-            void defer(Tile* t) { *_itrStack++ = t; }
+                c.current += 1;
+                if (c.current == c.firstInRow + _refRenderer._objTiling.getAzimuthalTiles()) {
+                    c.current = c.firstInRow;
+                }
+            }
+            void left(Cursor& c)  const {
+ 
+                if (c.current == c.firstInRow) {
+                    c.current = c.firstInRow + _refRenderer._objTiling.getAzimuthalTiles();
+                }
+                c.current -= 1;
+            }
+            void up(Cursor& c) const { 
 
-            bool deferred(Tile*& cursor) {
+                unsigned d = _refRenderer._objTiling.getAzimuthalTiles();
+                c.current += d;
+                c.firstInRow += d;
+            }
+            void down(Cursor& c)  const {
+
+                unsigned d = _refRenderer._objTiling.getAzimuthalTiles();
+                c.current -= d;
+                c.firstInRow -= d;
+            }
+
+            void defer(Cursor const& t) {
+
+                *_itrStack++ = t;
+            }
+
+            bool deferred(Cursor& cursor) {
 
                 if (_itrStack != _arrStack) {
                     cursor = *--_itrStack;
                     return true;
                 }
                 return false;
-            }
-
-        private:
-            unsigned yStride() const {
-
-                return _refRenderer._objTiling.getAzimuthalTiles();
             }
         };
 
@@ -362,6 +389,7 @@ namespace starfield {
         bool tileVisible(Tile* t, unsigned i) {
 
             float slice = _objTiling.getSliceAngle();
+            float halfSlice = 0.5f * slice;
             unsigned stride = _objTiling.getAzimuthalTiles();
             float azimuth = (i % stride) * slice;
             float altitude = (i / stride) * slice - Radians::halfPi();
@@ -371,14 +399,13 @@ namespace starfield {
             vec3 tileCenter = vec3(gx * exz, sin(altitude), gz * exz);
             float w = dot(_vecWxform, tileCenter);
 
-            float halfSlice = 0.5f * slice;
-            float daz = halfSlice * cos(abs(altitude) - halfSlice);
+            float daz = halfSlice * cos(std::max(0.0f, abs(altitude) - halfSlice));
             float dal = halfSlice;
             float adjustedNear = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
 
 // fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
-            return w > adjustedNear;
+            return w >= adjustedNear;
         }
 
         void updateVertexCount(Tile* t, BrightnessLevel minBright) {
