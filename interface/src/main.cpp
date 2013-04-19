@@ -426,6 +426,22 @@ void reset_sensors()
     }
 }
 
+/*
+void updateAvatarHand(float deltaTime) {
+    //  If mouse is being dragged, send current force to the hand controller
+    if (mousePressed == 1)
+    {
+        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
+        
+        const float MOUSE_HAND_FORCE = 1.5;
+        float dx = mouseX - mouseStartX;
+        float dy = mouseY - mouseStartY;
+        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
+        //myAvatar.hand->addVelocity(vel*deltaTime);
+    }
+}
+*/
+
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
