@@ -40,9 +40,9 @@ public:
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
-    long int getVoxelsCreatedRunningAverage();
-    long int getVoxelsColoredRunningAverage();
-    long int getVoxelsBytesReadRunningAverage();
+    float getVoxelsCreatedPerSecondAverage();
+    float getVoxelsColoredPerSecondAverage();
+    float getVoxelsBytesReadPerSecondAverage();
 
 private:
     int voxelsRendered;

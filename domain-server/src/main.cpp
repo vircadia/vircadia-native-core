@@ -133,7 +133,7 @@ int main(int argc, const char * argv[])
                 
                 if (DEBUG_TO_SELF ||
                     !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
-                    if (strchr(SOLO_AGENT_TYPES_STRING, (int) agent->getType()) == NULL) {
+                    if (memchr(SOLO_AGENT_TYPES_STRING, agent->getType(), 1) == NULL) {
                         // this is an agent of which there can be multiple, just add them to the packet
                         currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
                     } else {

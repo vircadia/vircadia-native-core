@@ -74,10 +74,11 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <AvatarData.h>
+#include <PerfStat.h>
+#include <SimpleMovingAverage.h>
 
 #include "ViewFrustum.h"
 
@@ -296,31 +297,36 @@ void displayStats(void)
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
-		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
+    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
-	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
-		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
-
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
-		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	float voxelsBytesPerColored = voxels.getVoxelsColored()
+        ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
+        : 0;
+    
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
+    Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+    char avatarMixerStats[200];
+    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+            roundf(avatarMixer->getAverageKilobitsPerSecond()),
+            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
