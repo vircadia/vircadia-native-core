@@ -177,7 +177,7 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
 
-struct HandMovement
+struct HandController
 {
     bool  enabled;
     int   startX;
@@ -193,59 +193,61 @@ struct HandMovement
     float envelope;
 };
 
-HandMovement handMovement;
+HandController handController;
 
-void initializeHandMovement() {
-   handMovement.enabled      = false;
-   handMovement.startX       = WIDTH  / 2;
-   handMovement.startY       = HEIGHT / 2;
-   handMovement.x            = 0; 
-   handMovement.y            = 0;
-   handMovement.lastX        = 0; 
-   handMovement.lastY        = 0;
-   handMovement.velocityX    = 0;
-   handMovement.velocityY    = 0;
-   handMovement.rampUpRate   = 0.05;
-   handMovement.rampDownRate = 0.02;
-   handMovement.envelope     = 0.0f;
+void initializeHandController() {
+   handController.enabled      = false;
+   handController.startX       = WIDTH  / 2;
+   handController.startY       = HEIGHT / 2;
+   handController.x            = 0; 
+   handController.y            = 0;
+   handController.lastX        = 0; 
+   handController.lastY        = 0;
+   handController.velocityX    = 0;
+   handController.velocityY    = 0;
+   handController.rampUpRate   = 0.05;
+   handController.rampDownRate = 0.02;
+   handController.envelope     = 0.0f;
 
 }
 
-void updateHandMovement( int x, int y ) {
-    handMovement.lastX = handMovement.x;
-    handMovement.lastY = handMovement.y;
-    handMovement.x = x;
-    handMovement.y = y;
-    handMovement.velocityX = handMovement.x - handMovement.lastX;
-    handMovement.velocityY = handMovement.y - handMovement.lastY;
+void updateHandController( int x, int y ) {
+    handController.lastX = handController.x;
+    handController.lastY = handController.y;
+    handController.x = x;
+    handController.y = y;
+    handController.velocityX = handController.x - handController.lastX;
+    handController.velocityY = handController.y - handController.lastY;
 
-    if (( handMovement.velocityX != 0 )
-    ||  ( handMovement.velocityY != 0 )) {
-        handMovement.enabled = true;
-        if ( handMovement.envelope < 1.0 ) {
-            handMovement.envelope += handMovement.rampUpRate;
-            if ( handMovement.envelope >= 1.0 ) { 
-                handMovement.envelope = 1.0; 
+    if (( handController.velocityX != 0 )
+    ||  ( handController.velocityY != 0 )) {
+        handController.enabled = true;
+        myAvatar.startHandMovement();
+        if ( handController.envelope < 1.0 ) {
+            handController.envelope += handController.rampUpRate;
+            if ( handController.envelope >= 1.0 ) { 
+                handController.envelope = 1.0; 
             }
         }
     }
 
-   if ( ! handMovement.enabled ) {
-        if ( handMovement.envelope > 0.0 ) {
-            handMovement.envelope -= handMovement.rampDownRate;
-            if ( handMovement.envelope <= 0.0 ) { 
-                handMovement.startX = WIDTH	 / 2;
-                handMovement.startY = HEIGHT / 2;
-                handMovement.envelope = 0.0; 
+   if ( ! handController.enabled ) {
+        if ( handController.envelope > 0.0 ) {
+            handController.envelope -= handController.rampDownRate;
+            if ( handController.envelope <= 0.0 ) { 
+                handController.startX = WIDTH	 / 2;
+                handController.startY = HEIGHT / 2;
+                handController.envelope = 0.0; 
+                myAvatar.stopHandMovement();
             }
         }
     }
     
-    if ( handMovement.envelope > 0.0 ) {
-        float leftRight	= ( ( handMovement.x - handMovement.startX ) / (float)WIDTH  ) * handMovement.envelope;
-        float downUp	= ( ( handMovement.y - handMovement.startY ) / (float)HEIGHT ) * handMovement.envelope;
+    if ( handController.envelope > 0.0 ) {
+        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
+        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
         float backFront	= 0.0;			
-        myAvatar.setHandMovement( glm::vec3( leftRight, downUp, backFront ) );		
+        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
     }
 }
 
@@ -378,7 +380,7 @@ void init(void)
     voxels.setViewerHead(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
     
-    initializeHandMovement();
+    initializeHandController();
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -443,22 +445,6 @@ void reset_sensors()
         serialPort.resetTrailingAverages();
     }
 }
-
-/*
-void updateAvatarHand(float deltaTime) {
-    //  If mouse is being dragged, send current force to the hand controller
-    if (mousePressed == 1)
-    {
-        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
-        
-        const float MOUSE_HAND_FORCE = 1.5;
-        float dx = mouseX - mouseStartX;
-        float dy = mouseY - mouseStartY;
-        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        //myAvatar.hand->addVelocity(vel*deltaTime);
-    }
-}
-*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
@@ -1416,7 +1402,7 @@ void idle(void) {
         float deltaTime = 1.f/FPS;
 
         // update behaviors for avatar hand movement 
-        updateHandMovement( mouseX, mouseY );
+        updateHandController( mouseX, mouseY );
         
 		// when the mouse is being pressed, an 'action' is being 
 		// triggered in the avatar. The action is context-based.
@@ -1427,9 +1413,9 @@ void idle(void) {
 			myAvatar.setTriggeringAction( false );
 		}
         
-        // walking triggers the handMovement to stop
+        // walking triggers the handController to stop
         if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
-            handMovement.enabled = false;
+            handController.enabled = false;
 		}
         
         //

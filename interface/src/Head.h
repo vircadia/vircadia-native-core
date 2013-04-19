@@ -40,7 +40,7 @@ enum AvatarMode
 {
 	AVATAR_MODE_STANDING = 0,
 	AVATAR_MODE_WALKING,
-	AVATAR_MODE_COMMUNICATING,
+	AVATAR_MODE_INTERACTING,
 	NUM_AVATAR_MODES
 };
 
@@ -89,14 +89,6 @@ struct AvatarBone
 	Orientation	orientation;			// three orthogonal normals determined by yaw, pitch, roll
 	float		length;					// the length of the bone
 	float		radius;					// used for detecting collisions for certain physical effects
-};
-
-struct Avatar
-{
-	glm::dvec3	velocity;
-	glm::vec3	thrust;
-	float		maxArmLength;
-	Orientation	orientation;
 };
 
 class Head : public AvatarData {
@@ -149,7 +141,9 @@ class Head : public AvatarData {
 
         void simulate(float);
 				
-		void setHandMovement( glm::vec3 movement );
+		void startHandMovement();
+		void stopHandMovement();
+		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement();
         
         float getLoudness() {return _loudness;};
@@ -164,9 +158,9 @@ class Head : public AvatarData {
         bool getDriveKeys(int key) { return _driveKeys[key]; };
     
         //  Set/Get update the thrust that will move the avatar around
-        void setThrust(glm::vec3 newThrust) { _avatar.thrust = newThrust; };
-        void addThrust(glm::vec3 newThrust) { _avatar.thrust += newThrust; };
-        glm::vec3 getThrust() { return _avatar.thrust; };
+        void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
+        glm::vec3 getThrust() { return _thrust; };
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
@@ -218,16 +212,17 @@ class Head : public AvatarData {
 		float       _bodyYawDelta;
 		float       _closeEnoughToInteract;
 		int         _closestOtherAvatar;
-		bool        _usingSprings;
-		bool        _handBeingMoved;
-		bool        _previousHandBeingMoved;
+		bool        _usingBodySprings;
 		glm::vec3   _movedHandOffset;
 		float       _springVelocityDecay;
 		float       _springForce;
         glm::quat   _rotation; // the rotation of the avatar body as a whole
 		AvatarBone	_bone[ NUM_AVATAR_BONES ];
 		AvatarMode  _mode;
-		Avatar      _avatar;
+        glm::dvec3	_velocity;
+        glm::vec3	_thrust;
+        float		_maxArmLength;
+        Orientation	_orientation;
         int         _driveKeys[MAX_DRIVE_KEYS];
         int         _eyeContact;
         eyeContactTargets _eyeContactTarget;
