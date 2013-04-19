@@ -167,15 +167,72 @@ int displayField = 0;
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
 
-int mouseX, mouseY;				//  Where is the mouse
+int mouseX = 0;
+int mouseY = 0;
 
 //  Mouse location at start of last down click
-int mouseStartX = WIDTH	 / 2;
-int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
 int menuOn = 1;					//  Whether to show onscreen menu
+
+struct HandMovement
+{
+    bool  enabled      = false;
+    int   startX       = WIDTH	/ 2;
+    int   startY       = HEIGHT / 2;
+    int   x            = 0; 
+    int   y            = 0;
+    int   lastX        = 0; 
+    int   lastY        = 0;
+    int   velocityX    = 0;
+    int   velocityY    = 0;
+    float rampUpRate   = 0.05;
+    float rampDownRate = 0.02;
+    float envelope     = 0.0f;
+};
+
+HandMovement handMovement;
+
+void updateHandMovement( int x, int y ) {
+    handMovement.lastX = handMovement.x;
+    handMovement.lastY = handMovement.y;
+    handMovement.x = x;
+    handMovement.y = y;
+    handMovement.velocityX = handMovement.x - handMovement.lastX;
+    handMovement.velocityY = handMovement.y - handMovement.lastY;
+
+    if (( handMovement.velocityX != 0 )
+    ||  ( handMovement.velocityY != 0 )) {
+        handMovement.enabled = true;
+        if ( handMovement.envelope < 1.0 ) {
+            handMovement.envelope += handMovement.rampUpRate;
+            if ( handMovement.envelope >= 1.0 ) { 
+                handMovement.envelope = 1.0; 
+            }
+        }
+    }
+
+   if ( ! handMovement.enabled ) {
+        if ( handMovement.envelope > 0.0 ) {
+            handMovement.envelope -= handMovement.rampDownRate;
+            if ( handMovement.envelope <= 0.0 ) { 
+                handMovement.startX = WIDTH	 / 2;
+                handMovement.startY = HEIGHT / 2;
+                handMovement.envelope = 0.0; 
+            }
+        }
+    }
+    
+    if ( handMovement.envelope > 0.0 ) {
+        float leftRight	= ( ( handMovement.x - handMovement.startX ) / (float)WIDTH  ) * handMovement.envelope;
+        float downUp	= ( ( handMovement.y - handMovement.startY ) / (float)HEIGHT ) * handMovement.envelope;
+        float backFront	= 0.0;			
+        myAvatar.setHandMovement( glm::vec3( leftRight, downUp, backFront ) );		
+    }
+}
+
+
 
 //
 //  Serial USB Variables
@@ -362,22 +419,6 @@ void reset_sensors()
         serialPort.resetTrailingAverages();
     }
 }
-
-/*
-void updateAvatarHand(float deltaTime) {
-    //  If mouse is being dragged, send current force to the hand controller
-    if (mousePressed == 1)
-    {
-        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
-        
-        const float MOUSE_HAND_FORCE = 1.5;
-        float dx = mouseX - mouseStartX;
-        float dy = mouseY - mouseStartY;
-        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        //myAvatar.hand->addVelocity(vel*deltaTime);
-    }
-}
-*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
@@ -830,10 +871,10 @@ void display(void)
             agent != agentList->getAgents().end();
             agent++) {
             if (agent->getLinkedData() != NULL) {
-                Head *agentHead = (Head *)agent->getLinkedData();
-                glPushMatrix();
-                agentHead->render(0);
-                glPopMatrix();
+                Head *avatar = (Head *)agent->getLinkedData();
+                //glPushMatrix();
+                avatar->render(0);
+                //glPopMatrix();
             }
         }
     
@@ -1332,25 +1373,13 @@ void idle(void) {
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		
-		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
-				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
-				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
-				float backFront	= 0.0;			
-				glm::vec3 handMovement( leftRight, downUp, backFront );
-				myAvatar.setHandMovement( handMovement );		
-		/*}		
-		else {
-			mouseStartX = mouseX;
-			mouseStartY = mouseY;
-			//mouseStartX = (float)WIDTH  / 2.0f;
-			//mouseStartY = (float)HEIGHT / 2.0f;
-		}
-        */
-		
-		//--------------------------------------------------------
+        float deltaTime = 1.f/FPS;
+
+        // update behaviors for avatar hand movement 
+        updateHandMovement( mouseX, mouseY );
+        
 		// when the mouse is being pressed, an 'action' is being 
 		// triggered in the avatar. The action is context-based.
-		//--------------------------------------------------------
 		if ( mousePressed == 1 ) {
 			myAvatar.setTriggeringAction( true );
 		}
@@ -1358,8 +1387,11 @@ void idle(void) {
 			myAvatar.setTriggeringAction( false );
 		}
         
-        float deltaTime = 1.f/FPS;
-		
+        // walking triggers the handMovement to stop
+        if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
+            handMovement.enabled = false;
+		}
+        
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
@@ -1457,8 +1489,6 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            //mouseStartX = x;
-            //mouseStartY = y;
         }
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
@@ -1478,11 +1508,16 @@ void motionFunc( int x, int y)
 void mouseoverFunc( int x, int y)
 {
     menu.mouseOver(x, y);
+
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
     {}
 }
+
+
+
+
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
