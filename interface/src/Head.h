@@ -214,7 +214,6 @@ class Head : public AvatarData {
         glm::vec3   _TEST_bigSpherePosition;
         float       _TEST_bigSphereRadius;
 		glm::vec3	_DEBUG_otherAvatarListPosition[ NUM_OTHER_AVATARS ];
-		float		_DEBUG_otherAvatarListTimer   [ NUM_OTHER_AVATARS ];
 		bool        _triggeringAction;
 		float       _bodyYawDelta;
 		float       _closeEnoughToInteract;
