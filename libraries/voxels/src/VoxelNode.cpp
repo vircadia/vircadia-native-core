@@ -8,8 +8,11 @@
 
 #include <cstring>
 #include "SharedUtil.h"
+//#include "voxels_Log.h"
 #include "VoxelNode.h"
 #include "OctalCode.h"
+
+// using voxels_lib::printLog;
 
 VoxelNode::VoxelNode() {
     octalCode = NULL;
@@ -76,7 +79,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 		// if no child, or child doesn't have a color
 		if (children[i] == NULL || children[i]->color[3] != 1) {
 			allChildrenMatch=false;
-			//printf("SADNESS child missing or not colored! i=%d\n",i);
+			//printLog("SADNESS child missing or not colored! i=%d\n",i);
 			break;
 		} else {
 			if (i==0) {
@@ -92,7 +95,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	
 	
 	if (allChildrenMatch) {
-		//printf("allChildrenMatch: pruning tree\n");
+		//printLog("allChildrenMatch: pruning tree\n");
 		for (int i = 0; i < 8; i++) {
 			delete children[i]; // delete all the child nodes
 			children[i]=NULL; // set it to NULL

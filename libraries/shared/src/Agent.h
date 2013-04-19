@@ -9,15 +9,17 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#include <iostream>
 #include <stdint.h>
-#include "AgentData.h"
+#include <ostream>
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
 #include <sys/socket.h>
 #endif
+
+#include "SimpleMovingAverage.h"
+#include "AgentData.h"
 
 class Agent {    
 public:
@@ -34,31 +36,45 @@ public:
     char getType() const;
     const char* getTypeName() const;
     void setType(char newType);
+    
     uint16_t getAgentId();
     void setAgentId(uint16_t thisAgentId);
+    
     double getFirstRecvTimeUsecs();
     void setFirstRecvTimeUsecs(double newTimeUsecs);
+    
     double getLastRecvTimeUsecs();
     void setLastRecvTimeUsecs(double newTimeUsecs);
+    
     sockaddr* getPublicSocket();
     void setPublicSocket(sockaddr *newSocket);
     sockaddr* getLocalSocket();
     void setLocalSocket(sockaddr *newSocket);
     sockaddr* getActiveSocket();
+    
     void activatePublicSocket();
     void activateLocalSocket();
+    
     AgentData* getLinkedData();
     void setLinkedData(AgentData *newData);
+    
+    void  recordBytesReceived(int bytesReceived);
+    float getAverageKilobitsPerSecond();
+    float getAveragePacketsPerSecond();
 
+    static void printLog(Agent const&);
     friend std::ostream& operator<<(std::ostream& os, const Agent* agent);
 private:
     void swap(Agent &first, Agent &second);
+    
     sockaddr *publicSocket, *localSocket, *activeSocket;
     char type;
     uint16_t agentId;
     double firstRecvTimeUsecs;
     double lastRecvTimeUsecs;
-    AgentData *linkedData;
+    SimpleMovingAverage* _bytesReceivedMovingAverage;
+    AgentData* linkedData;
+    
 };
 
 std::ostream& operator<<(std::ostream& os, const Agent* agent);

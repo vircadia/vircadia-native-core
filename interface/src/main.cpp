@@ -24,8 +24,6 @@
 //
 
 #include "InterfaceConfig.h"
-#include <iostream>
-#include <fstream>
 #include <math.h>
 #include <string.h>
 #include <sstream>
@@ -46,6 +44,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "Log.h"
+#include "shared_Log.h"
+#include "voxels_Log.h"
+#include "avatars_Log.h"
 
 #include "Field.h"
 #include "world.h"
@@ -71,9 +74,11 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <AvatarData.h>
+#include <PerfStat.h>
+#include <SimpleMovingAverage.h>
 
 #include "ViewFrustum.h"
 
@@ -146,11 +151,11 @@ float renderPitchRate = 0.f;
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
-int statsOn = 0;					//  Whether to show onscreen text overlay with stats
-bool starsOn = false;				//  Whether to display the stars
-bool paintOn = false;				//  Whether to paint voxels as you fly around
-VoxelDetail paintingVoxel;			//	The voxel we're painting if we're painting
-unsigned char dominantColor = 0;	//	The dominant color of the voxel we're painting
+bool statsOn = false;               //  Whether to show onscreen text overlay with stats
+bool starsOn = false;               //  Whether to display the stars
+bool paintOn = false;               //  Whether to paint voxels as you fly around
+VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
+unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 
 int noiseOn = 0;					//  Whether to add random noise 
@@ -166,8 +171,8 @@ int headMouseX, headMouseY;
 int mouseX, mouseY;				//  Where is the mouse
 
 //  Mouse location at start of last down click
-int mouseStartX;// = WIDTH	 / 2;
-int mouseStartY;// = HEIGHT / 2;
+int mouseStartX = WIDTH	 / 2;
+int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;                          // main menu
@@ -235,31 +240,36 @@ void displayStats(void)
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
-		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
+    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
-	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
-		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
-
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
-		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	float voxelsBytesPerColored = voxels.getVoxelsColored()
+        ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
+        : 0;
+    
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
+    Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+    char avatarMixerStats[200];
+    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+            roundf(avatarMixer->getAverageKilobitsPerSecond()),
+            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -315,9 +325,9 @@ void init(void)
         marker_capturer.position_updated(&position_updated);
         marker_capturer.frame_updated(&marker_frame_available);
         if(!marker_capturer.init_capture()){
-            printf("Camera-based marker capture initialized.\n");
+            printLog("Camera-based marker capture initialized.\n");
         }else{
-            printf("Error initializing camera-based marker capture.\n");
+            printLog("Error initializing camera-based marker capture.\n");
         }
     }
 #endif
@@ -359,6 +369,7 @@ void reset_sensors()
     }
 }
 
+/*
 void updateAvatarHand(float deltaTime) {
     //  If mouse is being dragged, send current force to the hand controller
     if (mousePressed == 1)
@@ -372,14 +383,15 @@ void updateAvatarHand(float deltaTime) {
         //myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
+*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
 void updateAvatar(float frametime)
 {
-    float gyroPitchRate = serialPort.getRelativeValue(PITCH_RATE);
-    float gyroYawRate = serialPort.getRelativeValue(YAW_RATE);
+    float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
+    float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
     myAvatar.UpdateGyros(frametime, &serialPort, headMirror, &gravity);
 		
@@ -450,6 +462,8 @@ void updateAvatar(float frametime)
     *broadcastString = PACKET_HEADER_HEAD_DATA;
     
     int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
+    broadcastBytes++;
+    
     const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
     
     AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
@@ -527,30 +541,39 @@ void render_view_frustum() {
 	glm::vec3 up;
 	glm::vec3 right;
 	float fov, nearClip, farClip;
+	float yaw, pitch, roll;
 	
 	// Camera or Head?
 	if (::cameraFrustum) {
 		position    = ::myCamera.getPosition();
-		direction   = ::myCamera.getOrientation().getFront() * glm::vec3(1,1,-1);
-		up          = ::myCamera.getOrientation().getUp() * glm::vec3(1,1,1);
-		right       = ::myCamera.getOrientation().getRight() * glm::vec3(1,1,-1);
-		fov         = ::myCamera.getFieldOfView();
-		nearClip    = ::myCamera.getNearClip();
-		farClip     = ::myCamera.getFarClip();
 	} else {
 		position    = ::myAvatar.getHeadPosition();
-		direction   = ::myAvatar.getHeadLookatDirection();
-		up          = ::myAvatar.getHeadLookatDirectionUp();
-		right       = ::myAvatar.getHeadLookatDirectionRight() * glm::vec3(-1,1,-1);
-		
-		// NOTE: we use the same lens details if we draw from the head
-		fov         = ::myCamera.getFieldOfView();
-		nearClip    = ::myCamera.getNearClip();
-		farClip     = ::myCamera.getFarClip();
 	}
+    
+    // This bit of hackery is all because our Cameras report the incorrect yaw.
+    // For whatever reason, the camera has a yaw set to 180.0-trueYaw, so we basically
+    // need to get the "yaw" from the camera and adjust it to be the trueYaw
+    yaw         =  -(::myCamera.getOrientation().getYaw()-180);
+    pitch       = ::myCamera.getOrientation().getPitch();
+    roll        = ::myCamera.getOrientation().getRoll();
+    fov         = ::myCamera.getFieldOfView();
+    nearClip    = ::myCamera.getNearClip();
+    farClip     = ::myCamera.getFarClip();
+	
+	// We can't use the camera's Orientation because of it's broken yaw. so we make a new
+	// correct orientation to get our vectors
+    Orientation o;
+    o.yaw(yaw);
+    o.pitch(pitch);
+    o.roll(roll);
+
+    direction   = o.getFront();
+    up          = o.getUp();
+    right       = o.getRight();
 
     /*
     printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
+    printf("yaw=%f, pitch=%f, roll=%f\n", yaw,pitch,roll);
     printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
     printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
     printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
@@ -558,7 +581,7 @@ void render_view_frustum() {
     printf("nearClip=%f\n", nearClip);
     printf("farClip=%f\n", farClip);
     */
-
+    
     // Set the viewFrustum up with the correct position and orientation of the camera	
     viewFrustum.setPosition(position);
     viewFrustum.setOrientation(direction,up,right);
@@ -719,7 +742,7 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(  10.0 );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0 );
 			myCamera.setUp				(   0.45);
 			myCamera.setDistance		(   1.0 );
@@ -816,8 +839,6 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *agentHead = (Head *)agent->getLinkedData();
                 glPushMatrix();
-                glm::vec3 pos = agentHead->getBodyPosition();
-                glTranslatef(-pos.x, -pos.y, -pos.z);
                 agentHead->render(0);
                 glPopMatrix();
             }
@@ -831,7 +852,6 @@ void display(void)
         // brad's frustum for debugging
         if (::frustumOn) render_view_frustum();
     
-	
         //Render my own avatar
 		myAvatar.render(true);	
     }
@@ -874,6 +894,7 @@ void display(void)
         glLineWidth(1.0f);
         glPointSize(1.0f);
         displayStats();
+        logger.render(WIDTH, HEIGHT);
     }
         
     //  Show menu
@@ -1073,7 +1094,7 @@ void testPointToVoxel()
 	float s=0.1;
 	for (float x=0; x<=1; x+= 0.05)
 	{
-		std::cout << " x=" << x << " ";
+		printLog(" x=%f");
 
 		unsigned char red   = 200; //randomColorValue(65);
 		unsigned char green = 200; //randomColorValue(65);
@@ -1082,7 +1103,7 @@ void testPointToVoxel()
 		unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
 		printVoxelCode(voxelCode);
 		delete voxelCode;
-		std::cout << std::endl;
+		printLog("\n");
 	}
 }
 
@@ -1091,7 +1112,7 @@ void sendVoxelServerEraseAll() {
     sprintf(message,"%c%s",'Z',"erase all");
 	int messageSize = strlen(message) + 1;
 	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}\
+}
 
 void sendVoxelServerAddScene() {
 	char message[100];
@@ -1129,11 +1150,11 @@ void addRandomSphere(bool wantColorRandomizer)
 	float s = 0.001; // size of voxels to make up surface of sphere
 	bool solid = false;
 
-	printf("random sphere\n");
-	printf("radius=%f\n",r);
-	printf("xc=%f\n",xc);
-	printf("yc=%f\n",yc);
-	printf("zc=%f\n",zc);
+	printLog("random sphere\n");
+	printLog("radius=%f\n",r);
+	printLog("xc=%f\n",xc);
+	printLog("yc=%f\n",yc);
+	printLog("zc=%f\n",zc);
 
 	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
@@ -1296,7 +1317,7 @@ void *networkReceive(void *args)
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
                                                                    bytesReceived,
-                                                                   (sizeof(float) * 3) + (sizeof(uint16_t) * 3));
+                                                                   BYTES_PER_AVATAR);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1317,22 +1338,21 @@ void idle(void) {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-		// If mouse is being dragged, update hand movement in the avatar
-		//if ( mousePressed == 1 ) 
 		
-		if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
+		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
 				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
 				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
 				float backFront	= 0.0;			
 				glm::vec3 handMovement( leftRight, downUp, backFront );
 				myAvatar.setHandMovement( handMovement );		
-		}		
+		/*}		
 		else {
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
 			//mouseStartX = (float)WIDTH  / 2.0f;
 			//mouseStartY = (float)HEIGHT / 2.0f;
 		}
+        */
 		
 		//--------------------------------------------------------
 		// when the mouse is being pressed, an 'action' is being 
@@ -1344,31 +1364,33 @@ void idle(void) {
 		else {
 			myAvatar.setTriggeringAction( false );
 		}
+        
+        float deltaTime = 1.f/FPS;
 		
         //
-        //  Sample hardware, update view frustum if needed, send avatar data to mixer/agents
+        //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		
-		
-		//test
-		/*
-        for(std::vector<Agent>::iterator agent = agentList.getAgents().begin(); agent != agentList.getAgents().end(); agent++) 
+        
+        //loop through all the other avatars and simulate them.
+        AgentList * agentList = AgentList::getInstance();
+        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *agentHead = (Head *)agent->getLinkedData();
-                agentHead->simulate(1.f/FPS);
+                Head *avatar = (Head *)agent->getLinkedData();
+                avatar->simulate(deltaTime);
             }
         }
-		*/
+        
 		
-        updateAvatarHand(1.f/FPS);
+        //updateAvatarHand(1.f/FPS);
     
-        field.simulate(1.f/FPS);
-        myAvatar.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
-        cloud.simulate(1.f/FPS);
+        field.simulate   (deltaTime);
+        myAvatar.simulate(deltaTime);
+        balls.simulate   (deltaTime);
+        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;
@@ -1403,7 +1425,7 @@ void reshape(int width, int height)
         farClip   = ::myCamera.getFarClip();
     }
 
-    //printf("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
+    //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
     //    width,height,aspectRatio,fov,nearClip,farClip);
     
     // Tell our viewFrustum about this change
@@ -1483,8 +1505,15 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    shared_lib::printLog = & ::printLog;
+    voxels_lib::printLog = & ::printLog;
+    avatars_lib::printLog = & ::printLog;
+
     // Quick test of the Orientation class on startup!
-    testOrientationClass();    
+    if (cmdOptionExists(argc, argv, "--testOrientation")) {
+        testOrientationClass();
+        return EXIT_SUCCESS;
+    }
 
     AgentList::createInstance(AGENT_TYPE_INTERFACE);
     
@@ -1496,7 +1525,7 @@ int main(int argc, const char * argv[])
 
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, argv, "--local")) {
-    	printf("Local Domain MODE!\n");
+    	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
@@ -1536,11 +1565,11 @@ int main(int argc, const char * argv[])
     viewFrustumOffsetCamera.setNearClip(0.1);
     viewFrustumOffsetCamera.setFarClip(500.0);
 
-    printf( "Created Display Window.\n" );
+    printLog( "Created Display Window.\n" );
         
     initMenu();
     initDisplay();
-    printf( "Initialized Display.\n" );
+    printLog( "Initialized Display.\n" );
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -1554,7 +1583,7 @@ int main(int argc, const char * argv[])
     glutIdleFunc(idle);
 	
     init();
-    printf( "Init() complete.\n" );
+    printLog( "Init() complete.\n" );
 
 	// Check to see if the user passed in a command line option for randomizing colors
 	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
@@ -1566,17 +1595,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
-        printf("Local Voxel File loaded.\n");
+        printLog("Local Voxel File loaded.\n");
 	}
     
     // create thread for receipt of data via UDP
     pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printf("Network receive thread created.\n");
+    printLog("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
 
-    printf("Normal exit.\n");
+    printLog("Normal exit.\n");
     ::terminate();
     return EXIT_SUCCESS;
 }   

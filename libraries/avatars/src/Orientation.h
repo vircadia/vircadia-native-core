@@ -20,12 +20,23 @@ enum Axis
 
 class Orientation
 {
+private:
+    float   _yaw;
+    float   _pitch;
+    float   _roll;
+    
+    void update(); // actually updates the vectors from yaw, pitch, roll
+
 public:
 	Orientation();
 	
 	void yaw	( float );
 	void pitch	( float );
 	void roll	( float );
+
+	float getYaw() { return _yaw; };
+	float getPitch(){ return _pitch; };
+	float getRoll(){ return _roll; };
 
 	void set( Orientation );
 	void setToIdentity();

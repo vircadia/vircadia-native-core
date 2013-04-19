@@ -211,7 +211,7 @@ namespace starfield {
                 return false;
             }
 
-// fprintf(stderr, "Stars.cpp: setResolution(%d)\n", k);
+// printLog("Stars.cpp: setResolution(%d)\n", k);
 
 #if STARFIELD_MULTITHREADING
             if (k != _valTileResolution.load(memory_order_relaxed)) 
@@ -251,7 +251,7 @@ namespace starfield {
             VertexOrder scanner(tiling);
             radix2InplaceSort(_seqInput.begin(), _seqInput.end(), scanner);
 
-// fprintf(stderr, 
+// printLog(
 //        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
      
             recreateRenderer(n, k, b, bMin);
@@ -266,7 +266,7 @@ namespace starfield {
             assert(overalloc >= realloc && realloc >= 0.0);
             assert(overalloc <= 1.0 && realloc <= 1.0);
 
-// fprintf(stderr, 
+// printLog(
 //       "Stars.cpp: changeLOD(%lf, %lf, %lf)\n", factor, overalloc, realloc);
 
             size_t n, nRender;
@@ -307,7 +307,7 @@ namespace starfield {
                 _valLodBrightness = b;
 #endif
 
-// fprintf(stderr, "Stars.cpp: "
+// printLog("Stars.cpp: "
 //        "fraction = %lf, oaFract = %lf, n = %d, n' = %d, bMin = %d, b = %d\n", 
 //        fraction, oaFract, toBufSize(oaFract * last)), n, bMin, b);
 
@@ -327,7 +327,7 @@ namespace starfield {
 
                 recreateRenderer(n, _valTileResolution, b, bMin); 
 
-// fprintf(stderr, "Stars.cpp: LOD reallocation\n"); 
+// printLog("Stars.cpp: LOD reallocation\n"); 
      
                 // publish new lod state
 

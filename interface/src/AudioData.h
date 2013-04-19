@@ -9,7 +9,6 @@
 #ifndef __interface__AudioData__
 #define __interface__AudioData__
 
-#include <iostream>
 #include <stdint.h>
 #include <glm/glm.hpp>
 #include "AudioRingBuffer.h"

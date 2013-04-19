@@ -14,6 +14,7 @@
 #include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+#include "shared_Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -21,7 +22,14 @@
 #include <arpa/inet.h>
 #endif
 
-const char * SOLO_AGENT_TYPES_STRING = "MV";
+using shared_lib::printLog;
+
+const char SOLO_AGENT_TYPES_STRING[] = {
+    AGENT_TYPE_AVATAR_MIXER,
+    AGENT_TYPE_AUDIO_MIXER,
+    AGENT_TYPE_VOXEL
+};
+
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
 char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
@@ -37,7 +45,7 @@ AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPo
     if (_sharedInstance == NULL) {
         _sharedInstance = new AgentList(ownerType, socketListenPort);
     } else {
-        printf("AgentList createInstance called with existing instance.\n");
+        printLog("AgentList createInstance called with existing instance.\n");
     }
     
     return _sharedInstance;
@@ -45,7 +53,7 @@ AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPo
 
 AgentList* AgentList::getInstance() {
     if (_sharedInstance == NULL) {
-        printf("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        printLog("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
     return _sharedInstance;
@@ -105,11 +113,12 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     if (bulkSendAgentIndex >= 0) {
         Agent *bulkSendAgent = &agents[bulkSendAgentIndex];
         bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
+        bulkSendAgent->recordBytesReceived(numTotalBytes);
     }
 
-    unsigned char *startPosition = (unsigned char *)packetData;
+    unsigned char *startPosition = packetData;
     unsigned char *currentPosition = startPosition + 1;
-    unsigned char *packetHolder = new unsigned char[numBytesPerAgent + 1];
+    unsigned char packetHolder[numBytesPerAgent + 1];
     
     packetHolder[0] = PACKET_HEADER_HEAD_DATA;
     
@@ -122,13 +131,12 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         int matchingAgentIndex = indexOfMatchingAgent(agentID);
         
         if (matchingAgentIndex >= 0) {
+            
             updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
         }
         
         currentPosition += numBytesPerAgent;
     }
-    
-    delete[] packetHolder;
 }
 
 void AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -142,13 +150,14 @@ void AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *pack
 
 void AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
     agent->setLastRecvTimeUsecs(usecTimestampNow());
+    agent->recordBytesReceived(dataBytes);
     
     if (agent->getLinkedData() == NULL) {
         if (linkedDataCreateCallback != NULL) {
             linkedDataCreateCallback(agent);
         }
     }
-    
+
     agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
@@ -238,7 +247,8 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             newAgent.activatePublicSocket();
         }
         
-        std::cout << "Added agent - " << &newAgent << "\n";
+        printLog("Added agent - ");
+        Agent::printLog(newAgent);
         
         pthread_mutex_lock(&vectorChangeMutex);
         agents.push_back(newAgent);
@@ -280,6 +290,18 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
             break;
         }
     }
+}
+
+Agent* AgentList::soloAgentOfType(char agentType) {    
+    if (memchr(SOLO_AGENT_TYPES_STRING, agentType, 1)) {
+        for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+            if (agent->getType() == agentType) {
+                return &*agent;
+            }
+        }
+    }
+    
+    return NULL;
 }
 
 void *pingUnknownAgents(void *args) {
@@ -337,7 +359,8 @@ void *removeSilentAgents(void *args) {
             	&& agent->getType() != AGENT_TYPE_VOXEL
                 && pthread_mutex_trylock(agentDeleteMutex) == 0) {
                 
-                std::cout << "Killing agent " << &(*agent)  << "\n";
+                printLog("Killing agent - ");
+                Agent::printLog(*agent);
                 
                 // make sure the vector isn't currently adding an agent
                 pthread_mutex_lock(&vectorChangeMutex);
@@ -391,12 +414,12 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printf("Domain server: %s \n", DOMAIN_HOSTNAME);
+            printLog("Domain server: %s \n", DOMAIN_HOSTNAME);
             
         } else {
-            printf("Failed lookup domainserver\n");
+            printLog("Failed lookup domainserver\n");
         }
-    } else printf("Using static domainserver IP: %s\n", DOMAIN_IP);
+    } else printLog("Using static domainserver IP: %s\n", DOMAIN_IP);
     
     
     while (!domainServerCheckinStopFlag) {

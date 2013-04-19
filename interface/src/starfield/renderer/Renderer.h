@@ -125,7 +125,7 @@ namespace starfield {
                     mat4 const& orientation,
                     BrightnessLevel minBright) {
 
-// fprintf(stderr, "
+// printLog("
 //      Stars.cpp: rendering at minimal brightness %d\n", minBright);
 
             float halfPersp = perspective * 0.5f;
@@ -161,8 +161,10 @@ namespace starfield {
 #if STARFIELD_HEMISPHERE_ONLY
             altitude = std::max(0.0f, altitude);
 #endif
-// fprintf(stderr, "Stars.cpp: starting on tile #%d\n", tileIndex);
+            unsigned tileIndex = 
+                    _objTiling.getTileIndex(azimuth, altitude);
 
+// printLog("Stars.cpp: starting on tile #%d\n", tileIndex);
 
 #if STARFIELD_DEBUG_CULLING
             mat4 matrix_debug = glm::translate(glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
@@ -248,7 +250,7 @@ namespace starfield {
                     if (bv >= b)
                         ++count_active;
 
-// fprintf(stderr, "Stars.cpp: Vertex %d on tile #%d\n", vertexIndex, tileIndex);
+// printLog("Stars.cpp: Vertex %d on tile #%d\n", vertexIndex, tileIndex);
 
                     // write converted vertex
                     _arrData[vertexIndex++] = *i;
@@ -403,7 +405,7 @@ namespace starfield {
             float dal = halfSlice;
             float adjustedNear = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
 
-// fprintf(stderr, "Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
+// printLog("Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
             return w >= adjustedNear;
         }
@@ -513,10 +515,10 @@ namespace starfield {
 
         void glBatch(GLfloat const* matrix, GLsizei n_ranges) {
 
-// fprintf(stderr, "Stars.cpp: rendering %d-multibatch\n", n_ranges);
+// printLog("Stars.cpp: rendering %d-multibatch\n", n_ranges);
 
 // for (int i = 0; i < n_ranges; ++i)
-//     fprintf(stderr, "Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
+//     printLog("Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
 //             _arrBatchOffs[i], _arrBatchCount[i]);
 
             glDisable(GL_DEPTH_TEST);

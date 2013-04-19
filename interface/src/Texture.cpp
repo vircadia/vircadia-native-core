@@ -9,6 +9,8 @@
 #include "Texture.h"
 
 #include "InterfaceConfig.h"
+#include "Log.h"
+
 #include <lodepng.h>
 #include <vector>
 #include <cstdio>
@@ -30,7 +32,7 @@ int load_png_as_texture(char* filename)
     unsigned int width = 1, height = 1;
     unsigned error = lodepng::decode(image, width, height, filename);
     if (error) {
-        std::cout << "Error loading texture" << std::endl;
+        printLog("Error loading texture\n");
         return (int) error;
     }
 
@@ -43,7 +45,7 @@ int load_png_as_texture(char* filename)
     
     if(glGetError() != GL_NO_ERROR)
     {
-        std::cout << "Error initing GL" << std::endl;
+        printLog("Error initing GL\n");
         return 1;
     }
     

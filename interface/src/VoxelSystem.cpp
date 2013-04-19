@@ -17,6 +17,8 @@
 #include <PacketHeaders.h>
 #include <OctalCode.h>
 #include <pthread.h>
+#include "Log.h"
+
 #include "VoxelSystem.h"
 
 const int MAX_VOXELS_PER_SYSTEM = 250000;
@@ -91,24 +93,24 @@ long int VoxelSystem::getVoxelsCreated() {
     return tree->voxelsCreated;
 }
 
-long int VoxelSystem::getVoxelsCreatedRunningAverage() {
-    return tree->voxelsCreatedStats.getRunningAverage();
+float VoxelSystem::getVoxelsCreatedPerSecondAverage() {
+    return (1 / tree->voxelsCreatedStats.getEventDeltaAverage());
 }
 
 long int VoxelSystem::getVoxelsColored() {
     return tree->voxelsColored;
 }
 
-long int VoxelSystem::getVoxelsColoredRunningAverage() {
-    return tree->voxelsColoredStats.getRunningAverage();
+float VoxelSystem::getVoxelsColoredPerSecondAverage() {
+    return (1 / tree->voxelsColoredStats.getEventDeltaAverage());
 }
 
 long int VoxelSystem::getVoxelsBytesRead() {
     return tree->voxelsBytesRead;
 }
 
-long int VoxelSystem::getVoxelsBytesReadRunningAverage() {
-    return tree->voxelsBytesReadStats.getRunningAverage();
+float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
+    return tree->voxelsBytesReadStats.getAverageSampleValuePerSecond();
 }
 
 
@@ -136,15 +138,15 @@ void VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             int commandLength = strlen(command); // commands are null terminated strings
             int totalLength = 1+commandLength+1;
 
-            printf("got Z message len(%d)= %s\n", numBytes, command);
+            printLog("got Z message len(%d)= %s\n", numBytes, command);
 
             while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
-                    printf("got Z message == erase all\n");
+                    printLog("got Z message == erase all\n");
                     tree->eraseAllVoxels();
                 }
                 if (0==strcmp(command,(char*)"add scene")) {
-                    printf("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
+                    printLog("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
                 }
                 totalLength += commandLength+1;
             }
@@ -194,14 +196,14 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
     float viewerZ = swapXandZ ? viewerPosition[0] : viewerPosition[2];
 
     // debugging code.
-    //printf("treeToArrays() halfUnitForVoxel=%f\n",halfUnitForVoxel);
-    //printf("treeToArrays() viewerPosition {x,y,z or [0],[1],[2]} ={%f,%f,%f}\n",
-    //      viewerPosition[0],viewerPosition[1],viewerPosition[2]);
-    //printf("treeToArrays() nodePosition   {x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
-    //      nodePosition[0],nodePosition[1],nodePosition[2]);
+    //printLog("treeToArrays() halfUnitForVoxel=%f\n",halfUnitForVoxel);
+    //printLog("treeToArrays() viewerPosition {x,y,z or [0],[1],[2]} ={%f,%f,%f}\n",
+    //         viewerPosition[0],viewerPosition[1],viewerPosition[2]);
+    //printLog("treeToArrays() nodePosition   {x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
+    //         nodePosition[0],nodePosition[1],nodePosition[2]);
     //float* vertices = firstVertexForCode(currentNode->octalCode);
-    //printf("treeToArrays() firstVerticesForCode(currentNode->octalCode)={x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
-    //      vertices[0],vertices[1],vertices[2]);
+    //printLog("treeToArrays() firstVerticesForCode(currentNode->octalCode)={x,y,z or [0],[1],[2]} = {%f,%f,%f}\n",
+    //         vertices[0],vertices[1],vertices[2]);
     //delete []vertices;
     
     float distanceToVoxelCenter = sqrtf(powf(viewerX - nodePosition[0] - halfUnitForVoxel, 2) +
@@ -209,7 +211,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, float nodePosition[3]) {
                                         powf(viewerZ - nodePosition[2] - halfUnitForVoxel, 2));
 
     int boundaryPosition = boundaryDistanceForRenderLevel(*currentNode->octalCode + 1);
-    //printf("treeToArrays() distanceToVoxelCenter=%f boundaryPosition=%d\n",distanceToVoxelCenter,boundaryPosition);
+    //printLog("treeToArrays() distanceToVoxelCenter=%f boundaryPosition=%d\n",distanceToVoxelCenter,boundaryPosition);
 
     bool alwaysDraw = false; // XXXBHG - temporary debug code. Flip this to true to disable LOD blurring
 

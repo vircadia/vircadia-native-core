@@ -9,11 +9,11 @@
 #ifndef __hifi__AvatarData__
 #define __hifi__AvatarData__
 
-#include <iostream>
-
 #include <glm/glm.hpp>
 
 #include <AgentData.h>
+
+const int BYTES_PER_AVATAR = 30;
 
 class AvatarData : public AgentData {
 public:

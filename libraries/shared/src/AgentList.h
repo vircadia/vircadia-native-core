@@ -9,9 +9,9 @@
 #ifndef __hifi__AgentList__
 #define __hifi__AgentList__
 
-#include <iostream>
 #include <vector>
 #include <stdint.h>
+
 #include "Agent.h"
 #include "UDPSocket.h"
 
@@ -22,7 +22,7 @@
 const int MAX_PACKET_SIZE = 1500;
 const unsigned int AGENT_SOCKET_LISTEN_PORT = 40103;
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
-extern const char *SOLO_AGENT_TYPES_STRING;
+extern const char SOLO_AGENT_TYPES_STRING[];
 
 extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
@@ -58,6 +58,8 @@ public:
     void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     char getOwnerType();
     unsigned int getSocketListenPort();
+    
+    Agent* soloAgentOfType(char agentType);
     
     void startSilentAgentRemovalThread();
     void stopSilentAgentRemovalThread();

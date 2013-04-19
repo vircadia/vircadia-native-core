@@ -11,10 +11,49 @@
 #include <cstring>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <SharedUtil.h>
 
+#include "Log.h"
 #include "world.h"
 #include "Util.h"
+
+using namespace std;
+
+// no clue which versions are affected...
+#define WORKAROUND_BROKEN_GLUT_STROKES
+// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
+static float MONO_STROKE_WIDTH_GLUT = 104.76;
+
+
+void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
+    //
+    //  Converts from three euler angles to the associated orthonormal vectors
+    //
+    //  Angles contains (pitch, yaw, roll) in radians
+    //
+    
+    //  First, create the quaternion associated with these euler angles
+    glm::quat q(glm::vec3(angles->x, -(angles->y), angles->z));
+
+    //  Next, create a rotation matrix from that quaternion
+    glm::mat4 rotation;
+    rotation = glm::mat4_cast(q);
+    
+    //  Transform the original vectors by the rotation matrix to get the new vectors
+    glm::vec4 qup(0,1,0,0);
+    glm::vec4 qright(-1,0,0,0);
+    glm::vec4 qfront(0,0,1,0);
+    glm::vec4 upNew    = qup*rotation;
+    glm::vec4 rightNew = qright*rotation;
+    glm::vec4 frontNew = qfront*rotation;
+    
+    //  Copy the answers to output vectors
+    up->x = upNew.x;  up->y = upNew.y;  up->z = upNew.z;
+    right->x = rightNew.x;  right->y = rightNew.y;  right->z = rightNew.z;
+    front->x = frontNew.x;  front->y = frontNew.y;  front->z = frontNew.z;
+}
+
 
 
 //  Return the azimuth angle in degrees between two points.
@@ -111,12 +150,17 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
-int widthText(float scale, int mono, char *string) {
+int widthText(float scale, int mono, char const* string) {
     int width = 0;
     if (!mono) {
         width = scale * glutStrokeLength(GLUT_STROKE_ROMAN, (const unsigned char *) string);
     } else {
+#ifndef WORKAROUND_BROKEN_GLUT_STROKES
         width = scale * glutStrokeLength(GLUT_STROKE_MONO_ROMAN, (const unsigned char *) string);
+#else
+        // return value is unreliable, so just calculate it
+        width = scale * float(strlen(string)) * MONO_STROKE_WIDTH_GLUT;
+#endif
     }
     return width;
 }
@@ -138,8 +182,27 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     len = (int) strlen(string);
 	for (i = 0; i < len; i++)
 	{
-        if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
-        else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(string[i]));
+        if (!mono) {
+            glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
+        } else {
+#ifdef WORKAROUND_BROKEN_GLUT_STROKES
+            if (string[i] != 'm') {
+#endif
+                glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(string[i]));
+#ifdef WORKAROUND_BROKEN_GLUT_STROKES
+            } else {
+                // some glut implementations have a broken 'm'...
+                unsigned char tmpStr[2]; 
+                tmpStr[0] = string[i];
+                tmpStr[1] = '\0';
+                float scale = MONO_STROKE_WIDTH_GLUT / glutStrokeLength(GLUT_STROKE_ROMAN, tmpStr);
+                glScalef(scale, 1.0f, 1.0f);
+                glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
+                // staying humble on the stack - might be in projection mode
+                glScalef(1.0f / scale, 1.0f, 1.0f);
+            }
+#endif
+        }
 	}
     glPopMatrix();
 
@@ -179,7 +242,7 @@ void drawGroundPlaneGrid( float size, int resolution )
 	glLineWidth(2.0);
 		
 	float gridSize = 10.0;
-	int gridResolution = 10;
+	int gridResolution = 20;
 
 	for (int g=0; g<gridResolution; g++)
 	{
@@ -200,6 +263,15 @@ void drawGroundPlaneGrid( float size, int resolution )
 		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
 		glEnd();
 	}
+    
+    // Draw a translucent quad just underneath the grid.
+    glColor4f(0.5, 0.5, 0.5, 0.4);
+    glBegin(GL_QUADS);
+    glVertex3f(-gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
+    glVertex3f(gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
+    glVertex3f(gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
+    glVertex3f(-gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
+    glEnd();
 }
 
 
@@ -227,8 +299,15 @@ void renderOrientationDirections( glm::vec3 position, Orientation orientation, f
 	glEnd();
 }
 
+bool closeEnoughForGovernmentWork(float a, float b) {
+    float distance = std::abs(a-b);
+    //printLog("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
+    return (distance < 0.00001f);
+}
+
+
 void testOrientationClass() {
-    printf("\n----------\ntestOrientationClass()\n----------\n\n");
+    printLog("\n----------\ntestOrientationClass()\n----------\n\n");
     
     oTestCase tests[] = { 
         //       - inputs ------------, outputs --------------------  -------------------  ----------------------------
@@ -236,14 +315,45 @@ void testOrientationClass() {
         //       ( yaw  , pitch, roll , front.x , front.y , front.z , up.x , up.y , up.z , right.x , right.y , right.z  )
 
         // simple yaw tests
-        oTestCase( 0.f  , 0.f  , 0.f  ,  0.f    , 0.f     , 1.0f    ,  0.f , 1.0f , 0.f  , -1.0f   , 0.f     , 0.f      ),
-        oTestCase( 90.0f, 0.f  , 0.f  , 1.0f    , 0.f     , 0.f     ,  0.f , 1.0f , 0.f  , 0.0f    , 0.f     , 1.0f     ),
-        oTestCase(180.0f, 0.f  , 0.f  ,  0.f    , 0.f     , -1.0f   ,  0.f , 1.0f , 0.f  , 1.0f    , 0.f     , 0.f      ),
-        oTestCase(270.0f, 0.f  , 0.f  , -1.0f   , 0.f     , 0.f     ,  0.f , 1.0f , 0.f  , 0.0f    , 0.f     , -1.0f    ),
+        oTestCase( 0.f  , 0.f  , 0.f  ,  0.f       , 0.f , 1.0f      ,  0.f , 1.0f , 0.f  , -1.0f     , 0.f     , 0.f      ),
+        oTestCase(45.0f , 0.f  , 0.f  ,  0.707107f , 0.f , 0.707107f ,  0.f , 1.0f , 0.f  , -0.707107f, 0.f     , 0.707107f),
+        oTestCase( 90.0f, 0.f  , 0.f  , 1.0f    , 0.f     , 0.f     ,   0.f , 1.0f , 0.f  , 0.0f    , 0.f     , 1.0f     ),
+        oTestCase(135.0f, 0.f  , 0.f  ,  0.707107f , 0.f ,-0.707107f ,  0.f , 1.0f , 0.f  , 0.707107f, 0.f     , 0.707107f),
+        oTestCase(180.0f, 0.f  , 0.f  ,  0.f    , 0.f     , -1.0f   ,   0.f , 1.0f , 0.f  , 1.0f    , 0.f     , 0.f      ),
+        oTestCase(225.0f, 0.f  , 0.f  , -0.707107f , 0.f ,-0.707107f ,  0.f , 1.0f , 0.f  , 0.707107f, 0.f     , -0.707107f),
+        oTestCase(270.0f, 0.f  , 0.f  , -1.0f   , 0.f    , 0.f       ,   0.f , 1.0f , 0.f  , 0.0f    , 0.f     , -1.0f    ),
+        oTestCase(315.0f, 0.f  , 0.f  , -0.707107f , 0.f , 0.707107f ,  0.f , 1.0f , 0.f  , -0.707107f, 0.f     , -0.707107f),
+        oTestCase(-45.0f, 0.f  , 0.f  , -0.707107f , 0.f , 0.707107f ,  0.f , 1.0f , 0.f  , -0.707107f, 0.f     , -0.707107f),
+        oTestCase(-90.0f, 0.f  , 0.f  , -1.0f   , 0.f    , 0.f       ,   0.f , 1.0f , 0.f  , 0.0f    , 0.f     , -1.0f    ),
+        oTestCase(-135.0f,0.f  , 0.f  , -0.707107f , 0.f ,-0.707107f ,  0.f , 1.0f , 0.f  , 0.707107f, 0.f     , -0.707107f),
+        oTestCase(-180.0f,0.f  , 0.f  ,  0.f    , 0.f     , -1.0f   ,   0.f , 1.0f , 0.f  , 1.0f    , 0.f     , 0.f      ),
+        oTestCase(-225.0f,0.f  , 0.f  ,  0.707107f , 0.f ,-0.707107f ,  0.f , 1.0f , 0.f  , 0.707107f, 0.f     , 0.707107f),
+        oTestCase(-270.0f,0.f  , 0.f  , 1.0f    , 0.f     , 0.f     ,   0.f , 1.0f , 0.f  , 0.0f    , 0.f     , 1.0f     ),
+        oTestCase(-315.0f,0.f  , 0.f  ,  0.707107f , 0.f , 0.707107f ,  0.f , 1.0f , 0.f  , -0.707107f, 0.f     , 0.707107f),
 
         // simple pitch tests
-        oTestCase( 0.f  ,90.f  , 0.f  ,  0.f    , 1.0f     , 0.0f   ,  0.f , 0.0f , -1.0f, -1.0f   , 0.f     , 0.f      ),
+        oTestCase( 0.f  , 0.f  , 0.f  ,  0.f, 0.f       , 1.0f      ,  0.f , 1.0f    , 0.f       ,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,45.0f , 0.f  ,  0.f, 0.707107f , 0.707107f,   0.f ,0.707107f, -0.707107f,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,90.f  , 0.f  ,  0.f, 1.0f      , 0.0f     ,   0.f ,0.0f     , -1.0f     ,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,135.0f, 0.f  ,  0.f, 0.707107f , -0.707107f,  0.f ,-0.707107f, -0.707107f,   -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,180.f , 0.f  ,  0.f, 0.0f      ,-1.0f     ,   0.f ,-1.0f    , 0.f       ,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,225.0f, 0.f  ,  0.f,-0.707107f , -0.707107f,  0.f ,-0.707107f, 0.707107f,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,270.f , 0.f  ,  0.f,-1.0f      , 0.0f     ,   0.f ,0.0f     , 1.0f      ,    -1.0f  , 0.f  , 0.f  ),
+        oTestCase( 0.f  ,315.0f, 0.f  ,  0.f,-0.707107f , 0.707107f,  0.f , 0.707107f,  0.707107f,    -1.0f  , 0.f  , 0.f  ),
 
+        // simple roll tests
+        oTestCase( 0.f  , 0.f  , 0.f    , 0.f  , 0.f , 1.0f  ,  0.f       , 1.0f      ,0.0f   , -1.0f     , 0.f      , 0.0f ),
+        oTestCase( 0.f  , 0.f  ,45.0f   , 0.f  , 0.f , 1.0f  ,  0.707107f , 0.707107f ,0.0f   , -0.707107f, 0.707107f, 0.0f ),
+        oTestCase( 0.f  , 0.f  ,90.f    , 0.f  , 0.f , 1.0f  ,  1.0f      , 0.0f      ,0.0f   , 0.0f      , 1.0f     , 0.0f ),
+        oTestCase( 0.f  , 0.f  ,135.0f  , 0.f  , 0.f , 1.0f  ,  0.707107f , -0.707107f,0.0f   , 0.707107f , 0.707107f, 0.0f ),
+        oTestCase( 0.f  , 0.f  ,180.f   , 0.f  , 0.f , 1.0f  ,  0.0f      , -1.0f     ,0.0f   , 1.0f      , 0.0f     , 0.0f ),
+        oTestCase( 0.f  , 0.f  ,225.0f  , 0.f  , 0.f , 1.0f  ,  -0.707107f, -0.707107f,0.0f   , 0.707107f ,-0.707107f, 0.0f ),
+        oTestCase( 0.f  , 0.f  ,270.f   , 0.f  , 0.f , 1.0f  , -1.0f      , 0.0f      ,0.0f   , 0.0f      , -1.0f    , 0.0f ),
+        oTestCase( 0.f  , 0.f  ,315.0f  , 0.f  , 0.f , 1.0f  ,  -0.707107f, 0.707107f ,0.0f   , -0.707107f,-0.707107f, 0.0f ),
+
+        // yaw combo tests
+        oTestCase( 90.f , 90.f , 0.f    ,  0.f  , 1.0f , 0.0f    ,  -1.0f , 0.0f , 0.f     , 0.0f , 0.f   , 1.0f       ),
+        oTestCase( 90.f , 0.f , 90.f    ,  1.0f , 0.0f,  0.f     ,  0.0f , 0.0f , -1.f     , 0.0f , 1.0f  , 0.0f       ),
     };
     
     int failedCount = 0;
@@ -267,46 +377,54 @@ void testOrientationClass() {
         glm::vec3 up    = o1.getUp();
         glm::vec3 right = o1.getRight();
 
-        printf("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n\n",i+1,yaw,pitch,roll);
+        printLog("\n-----\nTest: %d - yaw=%f , pitch=%f , roll=%f \n",i+1,yaw,pitch,roll);
 
-        printf(" +front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
-        if (front.x == tests[i].frontX && front.y == tests[i].frontY && front.z == tests[i].frontZ) {
-            printf("  front vector PASSES!\n");
+        printLog("\nFRONT\n");
+        printLog(" + received: front.x=%f, front.y=%f, front.z=%f\n",front.x,front.y,front.z);
+        
+        if (closeEnoughForGovernmentWork(front.x, tests[i].frontX) 
+            && closeEnoughForGovernmentWork(front.y, tests[i].frontY)
+            && closeEnoughForGovernmentWork(front.z, tests[i].frontZ)) {
+            printLog("  front vector PASSES!\n");
         } else {
-            printf("  front vector FAILED! expected: \n");
-            printf("  front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
+            printLog("   expected: front.x=%f, front.y=%f, front.z=%f\n",tests[i].frontX,tests[i].frontY,tests[i].frontZ);
+            printLog("  front vector FAILED! \n");
             passed = false;
         }
             
-        printf(" +up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
-        if (up.x == tests[i].upX && up.y == tests[i].upY && up.z == tests[i].upZ) {
-            printf("  up vector PASSES!\n");
+        printLog("\nUP\n");
+        printLog(" + received: up.x=%f,    up.y=%f,    up.z=%f\n",up.x,up.y,up.z);
+        if (closeEnoughForGovernmentWork(up.x, tests[i].upX) 
+            && closeEnoughForGovernmentWork(up.y, tests[i].upY)
+            && closeEnoughForGovernmentWork(up.z, tests[i].upZ)) {
+            printLog("  up vector PASSES!\n");
         } else {
-            printf("  up vector FAILED! expected: \n");
-            printf("  up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
+            printLog("  expected: up.x=%f, up.y=%f, up.z=%f\n",tests[i].upX,tests[i].upY,tests[i].upZ);
+            printLog("  up vector FAILED!\n");
             passed = false;
         }
 
 
-        printf(" +right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
-        if (right.x == tests[i].rightX && right.y == tests[i].rightY && right.z == tests[i].rightZ) {
-            printf("  right vector PASSES!\n");
+        printLog("\nRIGHT\n");
+        printLog(" + received: right.x=%f, right.y=%f, right.z=%f\n",right.x,right.y,right.z);
+        if (closeEnoughForGovernmentWork(right.x, tests[i].rightX) 
+            && closeEnoughForGovernmentWork(right.y, tests[i].rightY)
+            && closeEnoughForGovernmentWork(right.z, tests[i].rightZ)) {
+            printLog("  right vector PASSES!\n");
         } else {
-            printf("  right vector FAILED! expected: \n");
-            printf("  right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
+            printLog("   expected: right.x=%f, right.y=%f, right.z=%f\n",tests[i].rightX,tests[i].rightY,tests[i].rightZ);
+            printLog("  right vector FAILED!\n");
             passed = false;
         }
         
         if (!passed) {
-            printf("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
+            printLog("\n-----\nTest: %d - FAILED! \n----------\n\n",i+1);
             failedCount++;
         }
     }
-    printf("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
-    printf("\n----------DONE----------\n\n");
+    printLog("\n-----\nTotal Failed: %d out of %d \n----------\n\n",failedCount,totalTests);
+    printLog("\n----------DONE----------\n\n");
 }
-
-
 
 
 

@@ -11,7 +11,6 @@
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
-#include <iostream>
 #include <UDPSocket.h>
 #include <AgentData.h>
 #include <VoxelTree.h>
@@ -41,9 +40,9 @@ public:
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
-    long int getVoxelsCreatedRunningAverage();
-    long int getVoxelsColoredRunningAverage();
-    long int getVoxelsBytesReadRunningAverage();
+    float getVoxelsCreatedPerSecondAverage();
+    float getVoxelsColoredPerSecondAverage();
+    float getVoxelsBytesReadPerSecondAverage();
 
 private:
     int voxelsRendered;

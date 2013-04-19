@@ -10,6 +10,7 @@
 #include "Agent.h"
 #include "AgentTypes.h"
 #include <cstring>
+#include "shared_Log.h"
 #include "UDPSocket.h"
 #include "SharedUtil.h"
 
@@ -18,6 +19,8 @@
 #else
 #include <arpa/inet.h>
 #endif
+
+using shared_lib::printLog;
 
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
     publicSocket = new sockaddr;
@@ -34,6 +37,7 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     
     activeSocket = NULL;
     linkedData = NULL;
+    _bytesReceivedMovingAverage = NULL;
     
     deleteMutex = new pthread_mutex_t;
     pthread_mutex_init(deleteMutex, NULL);
@@ -66,12 +70,18 @@ Agent::Agent(const Agent &otherAgent) {
         linkedData = NULL;
     }
     
+    if (otherAgent._bytesReceivedMovingAverage != NULL) {
+        _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
+        memcpy(_bytesReceivedMovingAverage, otherAgent._bytesReceivedMovingAverage, sizeof(SimpleMovingAverage));
+    } else {
+        _bytesReceivedMovingAverage = NULL;
+    }
+    
     deleteMutex = new pthread_mutex_t;
     pthread_mutex_init(deleteMutex, NULL);
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
-    std::cout << "Agent swap constructor called on resize?\n";
     swap(*this, otherAgent);
     return *this;
 }
@@ -87,6 +97,7 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.agentId, second.agentId);
     swap(first.firstRecvTimeUsecs, second.firstRecvTimeUsecs);
     swap(first.lastRecvTimeUsecs, second.lastRecvTimeUsecs);
+    swap(first._bytesReceivedMovingAverage, second._bytesReceivedMovingAverage);
     swap(first.deleteMutex, second.deleteMutex);
 }
 
@@ -97,6 +108,7 @@ Agent::~Agent() {
     delete publicSocket;
     delete localSocket;
     delete linkedData;
+    delete _bytesReceivedMovingAverage;
 }
 
 char Agent::getType() const {
@@ -197,7 +209,6 @@ void Agent::setLinkedData(AgentData *newData) {
     linkedData = newData;
 }
 
-
 bool Agent::operator==(const Agent& otherAgent) {
     return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
 }
@@ -207,6 +218,40 @@ bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, cha
     return type == otherAgentType
         && socketMatch(publicSocket, otherPublicSocket)
         && socketMatch(localSocket, otherLocalSocket);
+}
+
+void Agent::recordBytesReceived(int bytesReceived) {
+    if (_bytesReceivedMovingAverage == NULL) {
+        _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
+    }
+    
+    _bytesReceivedMovingAverage->updateAverage((float) bytesReceived);
+}
+
+float Agent::getAveragePacketsPerSecond() {
+    if (_bytesReceivedMovingAverage != NULL) {
+        return (1 / _bytesReceivedMovingAverage->getEventDeltaAverage());
+    } else {
+        return 0;
+    }
+}
+
+float Agent::getAverageKilobitsPerSecond() {
+    if (_bytesReceivedMovingAverage != NULL) {
+        return (_bytesReceivedMovingAverage->getAverageSampleValuePerSecond() * (8.0f / 1000));
+    } else {
+        return 0;
+    }
+}
+
+void Agent::printLog(Agent const& agent) {
+
+    sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
+    sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
+
+    ::printLog("T: %s (%c) PA: %s:%d LA: %s:%d\n", agent.getTypeName(), agent.type,
+                                                   inet_ntoa(agentPublicSocket->sin_addr), ntohs(agentPublicSocket->sin_port),
+                                                   inet_ntoa(agentLocalSocket->sin_addr), ntohs(agentLocalSocket->sin_port));
 }
 
 std::ostream& operator<<(std::ostream& os, const Agent* agent) {

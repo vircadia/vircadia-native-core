@@ -19,6 +19,7 @@
 #ifdef __APPLE__
 #include <regex.h>
 #include <sys/time.h>
+#include <string>
 #endif
 
 int serialFd;
@@ -67,10 +68,10 @@ int SerialInterface::initializePort(char* portname, int baud)
 #ifdef __APPLE__
     serialFd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
-    printf("Opening SerialUSB %s: ", portname);
+    printLog("Opening SerialUSB %s: ", portname);
     
     if (serialFd == -1) {
-        printf("Failed.\n");
+        printLog("Failed.\n");
         return -1;     //  Failed to open port
     }    
     struct termios options;
@@ -101,7 +102,7 @@ int SerialInterface::initializePort(char* portname, int baud)
     tcsetattr(serialFd,TCSANOW,&options);
 
     
-    printf("Connected.\n");
+    printLog("Connected.\n");
     resetSerial();    
     active = true;
  #endif
@@ -167,14 +168,13 @@ void SerialInterface::readData() {
     
     int initialSamples = totalSamples;
     
-    while (read(serialFd, &bufchar, 1) > 0) {        
-        //std::cout << bufchar[0];
+    while (read(serialFd, &bufchar, 1) > 0) { 
         serialBuffer[serialBufferPos] = bufchar[0];
         serialBufferPos++;
         //  Have we reached end of a line of input?
         if ((bufchar[0] == '\n') || (serialBufferPos >= MAX_BUFFER)) {
             std::string serialLine(serialBuffer, serialBufferPos-1);
-            //std::cout << serialLine << "\n";
+            //printLog("%s\n", serialLine.c_str());
             int spot;
             //int channel = 0;
             std::string val;
@@ -182,7 +182,7 @@ void SerialInterface::readData() {
                 spot = serialLine.find_first_of(" ", 0);
                 if (spot != std::string::npos) {
                     val = serialLine.substr(0,spot);
-                    //std::cout << val << "\n";
+                    //printLog("%s\n", val.c_str());
                     if (i < NUM_CHANNELS) lastMeasured[i] = atoi(val.c_str());
                     else samplesAveraged = atoi(val.c_str());
                 } else LED = atoi(serialLine.c_str());
@@ -208,8 +208,7 @@ void SerialInterface::readData() {
             }
             if (totalSamples == GRAVITY_SAMPLES) {
                 gravity = glm::normalize(gravity);
-                std::cout << "gravity: " << gravity.x << "," <<
-                            gravity.y << "," << gravity.z << "\n";
+                printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
             }
 
             totalSamples++;
@@ -222,7 +221,7 @@ void SerialInterface::readData() {
         gettimeofday(&now, NULL);
         
         if (diffclock(&lastGoodRead, &now) > NO_READ_MAXIMUM_MSECS) {
-            std::cout << "No data - Shutting down SerialInterface.\n";
+            printLog("No data - Shutting down SerialInterface.\n");
             resetSerial();
         }
     } else {

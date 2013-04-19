@@ -45,13 +45,12 @@ namespace starfield {
 
             if (! UrlReader::readUrl(url, *this, cacheFile))
             {
-                fprintf(stderr, "%s:%d: %s\n",
+                printLog("%s:%d: %s\n",
                         _strUrl, _valLineNo, getError());
 
                 return false;
             }
- fprintf(stderr, "Stars.cpp: read %u vertices, using %lu\n", 
-      _valRecordsRead, _ptrVertices->size());
+            printLog("Stars.cpp: read %u vertices, using %lu\n", _valRecordsRead, _ptrVertices->size());
 
             return true;
         }
@@ -72,7 +71,7 @@ namespace starfield {
 
             _ptrVertices->clear();
             _ptrVertices->reserve(_valLimit);
-// fprintf(stderr, "Stars.cpp: loader begin %s\n", url);
+// printLog("Stars.cpp: loader begin %s\n", url);
         }
         
         size_t transfer(char* input, size_t bytes) {
@@ -111,7 +110,7 @@ namespace starfield {
 
                 } else {
 
-                    fprintf(stderr, "Stars.cpp:%d: Bad input from %s\n", 
+                    printLog("Stars.cpp:%d: Bad input from %s\n", 
                             _valLineNo, _strUrl);
                 }
 
@@ -136,7 +135,7 @@ namespace starfield {
             // remember the brightness at its top
             if (_valRecordsRead == _valLimit) {
 
-// fprintf(stderr, "Stars.cpp: vertex limit reached -> heap mode\n");
+// printLog("Stars.cpp: vertex limit reached -> heap mode\n");
 
                 make_heap(
                     _ptrVertices->begin(), _ptrVertices->end(),
