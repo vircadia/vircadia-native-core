@@ -33,7 +33,7 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
-bool usingBigSphereCollisionTest = false;
+bool usingBigSphereCollisionTest = true;
 
 const float DECAY = 0.1;
 const float THRUST_MAG	= 10.0;
@@ -104,10 +104,8 @@ Head::Head(bool isMine) {
     _lastLoudness           = 0.0;
     _browAudioLift          = 0.0;
     _noise                  = 0;
-	_handBeingMoved         = false;
-	_previousHandBeingMoved = false;
 	_movedHandOffset        = glm::vec3( 0.0, 0.0, 0.0 );
-	_usingSprings           = false;
+	_usingBodySprings       = false;
 	_springForce            = 6.0f;
 	_springVelocityDecay    = 16.0f;
 	
@@ -338,32 +336,15 @@ void Head::simulate(float deltaTime) {
 	//------------------------ 
 	updateSkeleton();
 	
-	//------------------------------------------------------------------------
-	// reset hand and elbow position according to hand movement
-	//------------------------------------------------------------------------
-	if ( _handBeingMoved ){
-		if (! _previousHandBeingMoved ){ 
-			initializeBodySprings();
-			_usingSprings = true;
-			//printLog( "just started moving hand\n" );
-		}
-	}
-	else {
-		if ( _previousHandBeingMoved ){ 
-			_usingSprings = false;
-			//printLog( "just stopped moving hand\n" );
-		}
-	}
-    	
-	if ( _handBeingMoved ) {
+	//------------------------------------------------------------
+	// reset hand and arm positions according to hand movement
+	//------------------------------------------------------------
+	if (_usingBodySprings) {
 		updateHandMovement();
 		updateBodySprings( deltaTime );
 	}
-
-	_previousHandBeingMoved = _handBeingMoved;
-	_handBeingMoved = false;
 	
-    if ( _isMine ) { // driving the avatar around should only apply is this is my avatar (as opposed to an avatar being driven remotely) 
+    if ( _isMine ) { // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely) 
         //-------------------------------------------------
         // this handles the avatar being driven around...
         //-------------------------------------------------	
@@ -411,7 +392,7 @@ void Head::simulate(float deltaTime) {
 	}
 	else
 	{
-		_mode = AVATAR_MODE_COMMUNICATING;
+		_mode = AVATAR_MODE_INTERACTING;
 	}
 		
 	//----------------------------------------------------------
@@ -571,6 +552,18 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
         }
         
         if ( jointCollision ) {
+            if (!_usingBodySprings) {
+                _usingBodySprings = true;
+                initializeBodySprings();
+            }
+            /*
+            else {
+                if (_usingSprings) {
+                    _usingSprings = false;
+                }
+            }
+            */
+            
             //----------------------------------------------------------
             // add gravity to velocity
             //----------------------------------------------------------
@@ -648,7 +641,7 @@ void Head::render(int faceToFace) {
             glPopMatrix();
         }
 
-        if ( _usingSprings ) {
+        if (_usingBodySprings) {
             if ( _closestOtherAvatar != -1 ) {					
 
                 glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
@@ -704,7 +697,7 @@ void Head::renderHead(int faceToFace) {
     
     glPushMatrix();
     
-	if (_usingSprings) {
+	if (_usingBodySprings) {
 		glTranslatef
 		( 
 			_bone[ AVATAR_BONE_HEAD ].springyPosition.x, 
@@ -862,17 +855,25 @@ void Head::renderHead(int faceToFace) {
  }
  
  
- 
+void Head::startHandMovement() {
 
-void Head::setHandMovement( glm::vec3 handOffset ) {
-	_handBeingMoved = true;
+    if (!_usingBodySprings) {
+        initializeBodySprings();
+        _usingBodySprings = true;
+    }
+}
+
+void Head::stopHandMovement() {
+    _usingBodySprings = false;
+}
+ 
+void Head::setHandMovementValues( glm::vec3 handOffset ) {
 	_movedHandOffset = handOffset;
 }
 
 AvatarMode Head::getMode() {
 	return _mode;
 }
-
 
 void Head::initializeSkeleton() {
 
@@ -1133,7 +1134,7 @@ void Head::updateHandMovement() {
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
 	//if holding hands, add a pull to the hand...
-	if ( _usingSprings ) {
+	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
 			if ( _triggeringAction ) {
 				
@@ -1225,7 +1226,7 @@ void Head::renderBody() {
     //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-		if ( _usingSprings ) {
+		if ( _usingBodySprings ) {
 			glColor3fv( lightBlue );
 			glPushMatrix();
 				glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
@@ -1244,7 +1245,7 @@ void Head::renderBody() {
 	//-----------------------------------------------------
     // Render lines connecting the bone positions
 	//-----------------------------------------------------
-	if ( _usingSprings ) {
+	if ( _usingBodySprings ) {
 		glColor3f( 0.4f, 0.5f, 0.6f );
 		glLineWidth(3.0);
 
@@ -1272,7 +1273,7 @@ void Head::renderBody() {
 	}
 	
 	
-	if (( _usingSprings ) && ( _triggeringAction )) {
+	if (( _usingBodySprings ) && ( _triggeringAction )) {
 		glColor4f( 1.0, 1.0, 0.5, 0.5 );
 		glPushMatrix();
 			glTranslatef

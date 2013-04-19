@@ -22,6 +22,16 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+
+// Note to self: 
+// modes I might need to implement for avatar
+//
+// walking                   usingSprings - ramping down
+// bumping into sphere       usingSprings is on
+// moving hand               usingSprings is on
+// stuck to another hand     usingSprings is on
+
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -40,7 +50,7 @@ enum AvatarMode
 {
 	AVATAR_MODE_STANDING = 0,
 	AVATAR_MODE_WALKING,
-	AVATAR_MODE_COMMUNICATING,
+	AVATAR_MODE_INTERACTING,
 	NUM_AVATAR_MODES
 };
 
@@ -149,7 +159,9 @@ class Head : public AvatarData {
 
         void simulate(float);
 				
-		void setHandMovement( glm::vec3 movement );
+		void startHandMovement();
+		void stopHandMovement();
+		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement();
         
         float getLoudness() {return _loudness;};
@@ -218,9 +230,7 @@ class Head : public AvatarData {
 		float       _bodyYawDelta;
 		float       _closeEnoughToInteract;
 		int         _closestOtherAvatar;
-		bool        _usingSprings;
-		bool        _handBeingMoved;
-		bool        _previousHandBeingMoved;
+		bool        _usingBodySprings;
 		glm::vec3   _movedHandOffset;
 		float       _springVelocityDecay;
 		float       _springForce;
