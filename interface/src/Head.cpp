@@ -120,20 +120,18 @@ Head::Head(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
-	
-	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-		_DEBUG_otherAvatarListTimer[o] = 0.0f;
-		_DEBUG_otherAvatarListPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
-	}
-	
-	//--------------------------------------------------
-	// test... just slam them into random positions...
-	//--------------------------------------------------
-	_DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0, 0.3, -4.0 );
-	_DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.3, -2.0 );
+		
+    if (_isMine)
+    {
+        //--------------------------------------------------
+        // test... just slam them into random positions...
+        //--------------------------------------------------
+        _DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0f, 0.3f,  2.0f );
+        _DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0f, 0.3f,  2.0f );
+        _DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0f, 0.3f,  2.0f );
+        _DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0f, 0.3f, -4.0f );
+        _DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0f, 0.3f, -2.0f );
+    }
 }
 
 Head::Head(const Head &otherHead) {
@@ -1023,7 +1021,7 @@ void Head::updateSkeleton() {
         if ( ! _isMine ) {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
-                                            
+
 		float xx = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight() );
 		float yy = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
 		float zz = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront() );
@@ -1065,9 +1063,12 @@ void Head::updateBodySprings( float deltaTime ) {
 			float force = ( length - _bone[b].length ) * _springForce * deltaTime;
 			
 			_bone[ b						].springyVelocity -= springDirection * force;
-			_bone[ _bone[b].parent	].springyVelocity += springDirection * force;
+            
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                _bone[ _bone[b].parent	].springyVelocity += springDirection * force;
+            }
 		}
-		
+        
 		_bone[b].springyVelocity += ( _bone[b].position - _bone[b].springyPosition ) * _bone[b].springBodyTightness * deltaTime;
 
 		float decay = 1.0 - _springVelocityDecay * deltaTime;
@@ -1144,11 +1145,12 @@ void Head::updateHandMovement() {
 				 
 				transformedHandMovement += handShakePull;
 				*/
+                
 				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _DEBUG_otherAvatarListPosition[ _closestOtherAvatar ];				
 			}
 		}
 	}
-
+    
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------
@@ -1247,10 +1249,12 @@ void Head::renderBody() {
 		glLineWidth(3.0);
 
 		for (int b=1; b<NUM_AVATAR_BONES; b++) {
-			glBegin( GL_LINE_STRIP );
-			glVertex3fv( &_bone[ _bone[ b ].parent ].springyPosition.x );
-			glVertex3fv( &_bone[ b ].springyPosition.x );
-			glEnd();
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                glBegin( GL_LINE_STRIP );
+                glVertex3fv( &_bone[ _bone[ b ].parent ].springyPosition.x );
+                glVertex3fv( &_bone[ b ].springyPosition.x );
+                glEnd();
+            }
 		}
 	}
 	else {
@@ -1258,10 +1262,12 @@ void Head::renderBody() {
 		glLineWidth(3.0);
 
 		for (int b=1; b<NUM_AVATAR_BONES; b++) {
-			glBegin( GL_LINE_STRIP );
-			glVertex3fv( &_bone[ _bone[ b ].parent ].position.x );
-			glVertex3fv( &_bone[ b ].position.x);
-			glEnd();
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                glBegin( GL_LINE_STRIP );
+                glVertex3fv( &_bone[ _bone[ b ].parent ].position.x );
+                glVertex3fv( &_bone[ b ].position.x);
+                glEnd();
+            }
 		}
 	}
 	
