@@ -22,16 +22,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
-
-// Note to self: 
-// modes I might need to implement for avatar
-//
-// walking                   usingSprings - ramping down
-// bumping into sphere       usingSprings is on
-// moving hand               usingSprings is on
-// stuck to another hand     usingSprings is on
-
-
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -101,14 +91,6 @@ struct AvatarBone
 	float		radius;					// used for detecting collisions for certain physical effects
 };
 
-struct Avatar
-{
-	glm::dvec3	velocity;
-	glm::vec3	thrust;
-	float		maxArmLength;
-	Orientation	orientation;
-};
-
 class Head : public AvatarData {
     public:
         Head(bool isMine);
@@ -176,9 +158,9 @@ class Head : public AvatarData {
         bool getDriveKeys(int key) { return _driveKeys[key]; };
     
         //  Set/Get update the thrust that will move the avatar around
-        void setThrust(glm::vec3 newThrust) { _avatar.thrust = newThrust; };
-        void addThrust(glm::vec3 newThrust) { _avatar.thrust += newThrust; };
-        glm::vec3 getThrust() { return _avatar.thrust; };
+        void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
+        void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
+        glm::vec3 getThrust() { return _thrust; };
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
@@ -237,7 +219,10 @@ class Head : public AvatarData {
         glm::quat   _rotation; // the rotation of the avatar body as a whole
 		AvatarBone	_bone[ NUM_AVATAR_BONES ];
 		AvatarMode  _mode;
-		Avatar      _avatar;
+        glm::dvec3	_velocity;
+        glm::vec3	_thrust;
+        float		_maxArmLength;
+        Orientation	_orientation;
         int         _driveKeys[MAX_DRIVE_KEYS];
         int         _eyeContact;
         eyeContactTargets _eyeContactTarget;
