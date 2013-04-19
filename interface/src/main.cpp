@@ -174,26 +174,42 @@ int mouseY = 0;
 //  Mouse location at start of last down click
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
-Menu menu;                          // main menu
-int menuOn = 1;					//  Whether to show onscreen menu
+Menu menu;       // main menu
+int menuOn = 1;  //  Whether to show onscreen menu
 
 struct HandMovement
 {
-    bool  enabled      = false;
-    int   startX       = WIDTH	/ 2;
-    int   startY       = HEIGHT / 2;
-    int   x            = 0; 
-    int   y            = 0;
-    int   lastX        = 0; 
-    int   lastY        = 0;
-    int   velocityX    = 0;
-    int   velocityY    = 0;
-    float rampUpRate   = 0.05;
-    float rampDownRate = 0.02;
-    float envelope     = 0.0f;
+    bool  enabled;
+    int   startX;
+    int   startY;
+    int   x; 
+    int   y;
+    int   lastX; 
+    int   lastY;
+    int   velocityX;
+    int   velocityY;
+    float rampUpRate;
+    float rampDownRate;
+    float envelope;
 };
 
 HandMovement handMovement;
+
+void initializeHandMovement() {
+   handMovement.enabled      = false;
+   handMovement.startX       = WIDTH  / 2;
+   handMovement.startY       = HEIGHT / 2;
+   handMovement.x            = 0; 
+   handMovement.y            = 0;
+   handMovement.lastX        = 0; 
+   handMovement.lastY        = 0;
+   handMovement.velocityX    = 0;
+   handMovement.velocityY    = 0;
+   handMovement.rampUpRate   = 0.05;
+   handMovement.rampDownRate = 0.02;
+   handMovement.envelope     = 0.0f;
+
+}
 
 void updateHandMovement( int x, int y ) {
     handMovement.lastX = handMovement.x;
@@ -361,6 +377,8 @@ void init(void)
     voxels.init();
     voxels.setViewerHead(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
+    
+    initializeHandMovement();
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
