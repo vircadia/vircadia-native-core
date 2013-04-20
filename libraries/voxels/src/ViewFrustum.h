@@ -54,6 +54,12 @@ public:
     void setOrientation     (const glm::vec3& d, const glm::vec3& u, const glm::vec3& r ) 
         { _direction = d; _up = u; _right = r; }
 
+    // getters for camera attributes
+    const glm::vec3& getPosition()  const { return _position;  };
+    const glm::vec3& getDirection() const { return _direction; };
+    const glm::vec3& getUp()        const { return _up;        };
+    const glm::vec3& getRight()     const { return _right;     };
+
     // setters for lens attributes
     void setFieldOfView     ( float f ) { _fieldOfView      = f; }
     void setAspectRatio     ( float a ) { _aspectRatio      = a; }
