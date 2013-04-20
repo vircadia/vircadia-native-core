@@ -19,8 +19,17 @@ AABox::AABox(void) {
 }
 
 
-AABox::~AABox() {}
+AABox::~AABox() {
+    // nothing to do
+}
 
+
+void AABox::scale(float scale) {
+    corner = corner*scale;
+    x *= scale;
+    y *= scale;
+    z *= scale;
+}
 	
 
 void AABox::setBox(const glm::vec3& corner,  float x, float y, float z) {

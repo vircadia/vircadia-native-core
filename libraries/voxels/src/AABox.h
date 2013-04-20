@@ -27,6 +27,8 @@ public:
 	// for use in frustum computations
 	glm::vec3 getVertexP(const glm::vec3& normal);
 	glm::vec3 getVertexN(const glm::vec3& normal);
+	
+	void scale(float scale);
 };
 
 
