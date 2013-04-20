@@ -9,7 +9,7 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include "CounterStats.h"
+#include "SimpleMovingAverage.h"
 
 #include "VoxelNode.h"
 #include "MarkerNode.h"
@@ -23,13 +23,15 @@ typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, bool down, void* extr
 
 class VoxelTree {
 public:
+    // when a voxel is created in the tree (object new'd)
 	long voxelsCreated;
+    // when a voxel is colored/set in the tree (object may have already existed)
 	long voxelsColored;
 	long voxelsBytesRead;
-	
-	CounterStatHistory voxelsCreatedStats;
-	CounterStatHistory voxelsColoredStats;
-	CounterStatHistory voxelsBytesReadStats;
+    
+    SimpleMovingAverage voxelsCreatedStats;
+	SimpleMovingAverage voxelsColoredStats;
+	SimpleMovingAverage voxelsBytesReadStats;
 
     VoxelTree();
     ~VoxelTree();

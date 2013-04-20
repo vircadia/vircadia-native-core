@@ -15,7 +15,6 @@
 #include "SharedUtil.h"
 #include "voxels_Log.h"
 #include "PacketHeaders.h"
-#include "CounterStats.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
 #include <fstream> // to load voxels from file
@@ -46,19 +45,17 @@ int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     }
 }
 
-VoxelTree::VoxelTree() {
+VoxelTree::VoxelTree() :
+    voxelsCreated(0),
+    voxelsColored(0),
+    voxelsBytesRead(0),
+    voxelsCreatedStats(100),
+    voxelsColoredStats(100),
+    voxelsBytesReadStats(100) {
+        
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
-
-	// Some stats tracking    
-	this->voxelsCreated = 0; // when a voxel is created in the tree (object new'd)
-	this->voxelsColored = 0; // when a voxel is colored/set in the tree (object may have already existed)
-	this->voxelsBytesRead = 0;
-	voxelsCreatedStats.name = "voxelsCreated";
-	voxelsColoredStats.name = "voxelsColored";
-	voxelsBytesReadStats.name = "voxelsBytesRead";
-
 }
 
 VoxelTree::~VoxelTree() {
@@ -147,7 +144,7 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             if (destinationNode->children[i] == NULL) {
                 destinationNode->addChildAtIndex(i);
                 this->voxelsCreated++;
-                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
+                this->voxelsCreatedStats.updateAverage(1);
             }
             
             // pull the color for this child
@@ -156,7 +153,7 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             newColor[3] = 1;
             destinationNode->children[i]->setColor(newColor);
 			this->voxelsColored++;
-			this->voxelsColoredStats.recordSample(this->voxelsColored);
+			this->voxelsColoredStats.updateAverage(1);
            
             bytesRead += 3;
         }
@@ -179,7 +176,7 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
                 // add a child at that index, if it doesn't exist
                 destinationNode->addChildAtIndex(childIndex);
                 this->voxelsCreated++;
-                this->voxelsCreatedStats.recordSample(this->voxelsCreated);
+                this->voxelsCreatedStats.updateAverage(this->voxelsCreated);
             }
             
             // tell the child to read the subsequent data
@@ -207,7 +204,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
     
     this->voxelsBytesRead += bufferSizeBytes;
-	this->voxelsBytesReadStats.recordSample(this->voxelsBytesRead);
+	this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
 }
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because

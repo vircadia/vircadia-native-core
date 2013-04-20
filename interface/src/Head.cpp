@@ -47,9 +47,9 @@ unsigned int iris_texture_height = 256;
 
 Head::Head(bool isMine) {
     
-	_avatar.orientation.setToIdentity();
-	_avatar.velocity    = glm::vec3( 0.0, 0.0, 0.0 );
-	_avatar.thrust		= glm::vec3( 0.0, 0.0, 0.0 );
+	_orientation.setToIdentity();
+	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
+	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
 	_closestOtherAvatar = 0;
 	_bodyYaw            = -90.0;
@@ -59,6 +59,10 @@ Head::Head(bool isMine) {
 	_triggeringAction   = false;
 	_mode               = AVATAR_MODE_STANDING;
     _isMine             = isMine;
+    _maxArmLength       = 0.0;
+    //_transmitterTimer   = 0;
+    _transmitterHz      = 0.0;
+    _transmitterPackets = 0;
 
     initializeSkeleton();
     
@@ -67,49 +71,53 @@ Head::Head(bool isMine) {
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false; 
     
-    _pupilSize              = 0.10;
-    _interPupilDistance     = 0.6;
-    _interBrowDistance      = 0.75;
-    _nominalPupilSize       = 0.10;
-    _headYaw                = 0.0;
-    _eyebrowPitch[0]        = -30;
-    _eyebrowPitch[1]        = -30;
-    _eyebrowRoll [0]        = 20;
-    _eyebrowRoll [1]        = -20;
-    _mouthPitch             = 0;
-    _mouthYaw               = 0;
-    _mouthWidth             = 1.0;
-    _mouthHeight            = 0.2;
-    _eyeballPitch[0]        = 0;
-    _eyeballPitch[1]        = 0;
-    _eyeballScaleX          = 1.2;  
-    _eyeballScaleY          = 1.5; 
-    _eyeballScaleZ          = 1.0;
-    _eyeballYaw[0]          = 0;
-    _eyeballYaw[1]          = 0;
-    _pitchTarget            = 0;
-    _yawTarget              = 0; 
-    _noiseEnvelope          = 1.0;
-    _pupilConverge          = 10.0;
-    _leanForward            = 0.0;
-    _leanSideways           = 0.0;
-    _eyeContact             = 1;
-    _eyeContactTarget       = LEFT_EYE;
-    _scale                  = 1.0;
-    _renderYaw              = 0.0;
-    _renderPitch            = 0.0;
-    _audioAttack            = 0.0;
-    _loudness               = 0.0;
-    _averageLoudness        = 0.0;
-    _lastLoudness           = 0.0;
-    _browAudioLift          = 0.0;
-    _noise                  = 0;
-	_handBeingMoved         = false;
-	_previousHandBeingMoved = false;
-	_movedHandOffset        = glm::vec3( 0.0, 0.0, 0.0 );
-	_usingSprings           = false;
-	_springForce            = 6.0f;
-	_springVelocityDecay    = 16.0f;
+    _head.pupilSize          = 0.10;
+    _head.interPupilDistance = 0.6;
+    _head.interBrowDistance  = 0.75;
+    _head.nominalPupilSize   = 0.10;
+    _head.yaw                = 0.0;
+    _head.pitch              = 0.0;
+    _head.roll               = 0.0;
+    _head.pitchRate          = 0.0;
+    _head.yawRate            = 0.0;
+    _head.rollRate           = 0.0;
+    _head.eyebrowPitch[0]    = -30;
+    _head.eyebrowPitch[1]    = -30;
+    _head.eyebrowRoll [0]    = 20;
+    _head.eyebrowRoll [1]    = -20;
+    _head.mouthPitch         = 0;
+    _head.mouthYaw           = 0;
+    _head.mouthWidth         = 1.0;
+    _head.mouthHeight        = 0.2;
+    _head.eyeballPitch[0]    = 0;
+    _head.eyeballPitch[1]    = 0;
+    _head.eyeballScaleX      = 1.2;  
+    _head.eyeballScaleY      = 1.5; 
+    _head.eyeballScaleZ      = 1.0;
+    _head.eyeballYaw[0]      = 0;
+    _head.eyeballYaw[1]      = 0;
+    _head.pitchTarget        = 0;
+    _head.yawTarget          = 0; 
+    _head.noiseEnvelope      = 1.0;
+    _head.pupilConverge      = 10.0;
+    _head.leanForward        = 0.0;
+    _head.leanSideways       = 0.0;
+    _head.eyeContact         = 1;
+    _head.eyeContactTarget   = LEFT_EYE;
+    _head.scale              = 1.0;
+    _head.audioAttack        = 0.0;
+    _head.loudness           = 0.0;
+    _head.averageLoudness    = 0.0;
+    _head.lastLoudness       = 0.0;
+    _head.browAudioLift      = 0.0;
+    _head.noise              = 0;
+    
+	_movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
+	_usingBodySprings        = false;
+	_springForce             = 6.0f;
+	_springVelocityDecay     = 16.0f;
+    _renderYaw               = 0.0;
+    _renderPitch             = 0.0;
 	
 	_sphere = NULL;
 	
@@ -120,80 +128,104 @@ Head::Head(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
-	
-	for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-		_DEBUG_otherAvatarListTimer[o] = 0.0f;
-		_DEBUG_otherAvatarListPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
-	}
-	
-	//--------------------------------------------------
-	// test... just slam them into random positions...
-	//--------------------------------------------------
-	_DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0, 0.3,  2.0 );
-	_DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0, 0.3, -4.0 );
-	_DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0, 0.3, -2.0 );
+		
+    //--------------------------------------------------
+    // test... just slam them into random positions...
+    //--------------------------------------------------
+    _DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0f, 0.3f,  2.0f );
+    _DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0f, 0.3f,  2.0f );
+    _DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0f, 0.3f,  2.0f );
+    _DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0f, 0.3f, -4.0f );
+    _DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0f, 0.3f, -2.0f );
 }
 
-Head::Head(const Head &otherHead) {
+Head::Head(const Head &otherAvatar) {
+ 
+    _velocity               = otherAvatar._velocity;
+	_thrust                 = otherAvatar._thrust;
+    _rotation               = otherAvatar._rotation;
+	_closestOtherAvatar     = otherAvatar._closestOtherAvatar;
+	_bodyYaw                = otherAvatar._bodyYaw;
+	_bodyPitch              = otherAvatar._bodyPitch;
+	_bodyRoll               = otherAvatar._bodyRoll;
+	_bodyYawDelta           = otherAvatar._bodyYawDelta;
+	_triggeringAction       = otherAvatar._triggeringAction;
+	_mode                   = otherAvatar._mode;
+    _isMine                 = otherAvatar._isMine;
+    _renderYaw              = otherAvatar._renderYaw;
+    _renderPitch            = otherAvatar._renderPitch;
+    _maxArmLength           = otherAvatar._maxArmLength;
+    _transmitterTimer       = otherAvatar._transmitterTimer;
+    _transmitterHz          = otherAvatar._transmitterHz;
+    _transmitterPackets     = otherAvatar._transmitterPackets;
+    _TEST_bigSphereRadius   = otherAvatar._TEST_bigSphereRadius;
+    _TEST_bigSpherePosition = otherAvatar._TEST_bigSpherePosition;
+	_movedHandOffset        = otherAvatar._movedHandOffset;
+	_usingBodySprings       = otherAvatar._usingBodySprings;
+	_springForce            = otherAvatar._springForce;
+	_springVelocityDecay    = otherAvatar._springVelocityDecay;
+	
+	_orientation.set( otherAvatar._orientation );
     
-	_avatar.orientation.set( otherHead._avatar.orientation );
-	_avatar.velocity	= otherHead._avatar.velocity;
-	_avatar.thrust		= otherHead._avatar.thrust;
-    _rotation           = otherHead._rotation;
-	_closestOtherAvatar = otherHead._closestOtherAvatar;
-	_bodyYaw            = otherHead._bodyYaw;
-	_bodyPitch          = otherHead._bodyPitch;
-	_bodyRoll           = otherHead._bodyRoll;
-	_bodyYawDelta       = otherHead._bodyYawDelta;
-	_triggeringAction   = otherHead._triggeringAction;
-	_mode               = otherHead._mode;
+    //for (int o=0;o<NUM_OTHER_AVATARS; o++) {
+    //    _DEBUG_otherAvatarListPosition[o] = otherAvatar._DEBUG_otherAvatarListPosition[o];
+    //}
+    
+	_sphere = NULL;
 
     initializeSkeleton();
     
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherHead._driveKeys[i];
+    for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
 
-    _pupilSize          = otherHead._pupilSize;
-    _interPupilDistance = otherHead._interPupilDistance;
-    _interBrowDistance  = otherHead._interBrowDistance;
-    _nominalPupilSize   = otherHead._nominalPupilSize;
-    _headYaw            = otherHead._headYaw;
-    _eyebrowPitch[0]    = otherHead._eyebrowPitch[0];
-    _eyebrowPitch[1]    = otherHead._eyebrowPitch[1];
-    _eyebrowRoll [0]    = otherHead._eyebrowRoll [0];
-    _eyebrowRoll [1]    = otherHead._eyebrowRoll [1];
-    _mouthPitch         = otherHead._mouthPitch;
-    _mouthYaw           = otherHead._mouthYaw;
-    _mouthWidth         = otherHead._mouthWidth;
-    _mouthHeight        = otherHead._mouthHeight;
-    _eyeballPitch[0]    = otherHead._eyeballPitch[0];
-    _eyeballPitch[1]    = otherHead._eyeballPitch[1];
-    _eyeballScaleX      = otherHead._eyeballScaleX;
-    _eyeballScaleY      = otherHead._eyeballScaleY;
-    _eyeballScaleZ      = otherHead._eyeballScaleZ;
-    _eyeballYaw[0]      = otherHead._eyeballYaw[0];
-    _eyeballYaw[1]      = otherHead._eyeballYaw[1];
-    _pitchTarget        = otherHead._pitchTarget;
-    _yawTarget          = otherHead._yawTarget;
-    _noiseEnvelope      = otherHead._noiseEnvelope;
-    _pupilConverge      = otherHead._pupilConverge;
-    _leanForward        = otherHead._leanForward;
-    _leanSideways       = otherHead._leanSideways;
-    _eyeContact         = otherHead._eyeContact;
-    _eyeContactTarget   = otherHead._eyeContactTarget;
-    _scale              = otherHead._scale;
-    _renderYaw          = otherHead._renderYaw;
-    _renderPitch        = otherHead._renderPitch;
-    _audioAttack        = otherHead._audioAttack;
-    _loudness           = otherHead._loudness;
-    _averageLoudness    = otherHead._averageLoudness;
-    _lastLoudness       = otherHead._lastLoudness;
-    _browAudioLift      = otherHead._browAudioLift;
-    _noise              = otherHead._noise;
+    _head.pupilSize          = otherAvatar._head.pupilSize;
+    _head.interPupilDistance = otherAvatar._head.interPupilDistance;
+    _head.interBrowDistance  = otherAvatar._head.interBrowDistance;
+    _head.nominalPupilSize   = otherAvatar._head.nominalPupilSize;
+    _head.yaw                = otherAvatar._head.yaw;
+    _head.pitch              = otherAvatar._head.pitch;
+    _head.roll               = otherAvatar._head.roll;
+    _head.yawRate            = otherAvatar._head.yawRate;
+    _head.pitchRate          = otherAvatar._head.pitchRate;
+    _head.rollRate           = otherAvatar._head.rollRate;
+    _head.eyebrowPitch[0]    = otherAvatar._head.eyebrowPitch[0];
+    _head.eyebrowPitch[1]    = otherAvatar._head.eyebrowPitch[1];
+    _head.eyebrowRoll [0]    = otherAvatar._head.eyebrowRoll [0];
+    _head.eyebrowRoll [1]    = otherAvatar._head.eyebrowRoll [1];
+    _head.mouthPitch         = otherAvatar._head.mouthPitch;
+    _head.mouthYaw           = otherAvatar._head.mouthYaw;
+    _head.mouthWidth         = otherAvatar._head.mouthWidth;
+    _head.mouthHeight        = otherAvatar._head.mouthHeight;
+    _head.eyeballPitch[0]    = otherAvatar._head.eyeballPitch[0];
+    _head.eyeballPitch[1]    = otherAvatar._head.eyeballPitch[1];
+    _head.eyeballScaleX      = otherAvatar._head.eyeballScaleX;
+    _head.eyeballScaleY      = otherAvatar._head.eyeballScaleY;
+    _head.eyeballScaleZ      = otherAvatar._head.eyeballScaleZ;
+    _head.eyeballYaw[0]      = otherAvatar._head.eyeballYaw[0];
+    _head.eyeballYaw[1]      = otherAvatar._head.eyeballYaw[1];
+    _head.pitchTarget        = otherAvatar._head.pitchTarget;
+    _head.yawTarget          = otherAvatar._head.yawTarget;
+    _head.noiseEnvelope      = otherAvatar._head.noiseEnvelope;
+    _head.pupilConverge      = otherAvatar._head.pupilConverge;
+    _head.leanForward        = otherAvatar._head.leanForward;
+    _head.leanSideways       = otherAvatar._head.leanSideways;
+    _head.eyeContact         = otherAvatar._head.eyeContact;
+    _head.eyeContactTarget   = otherAvatar._head.eyeContactTarget;
+    _head.scale              = otherAvatar._head.scale;
+    _head.audioAttack        = otherAvatar._head.audioAttack;
+    _head.loudness           = otherAvatar._head.loudness;
+    _head.averageLoudness    = otherAvatar._head.averageLoudness;
+    _head.lastLoudness       = otherAvatar._head.lastLoudness;
+    _head.browAudioLift      = otherAvatar._head.browAudioLift;
+    _head.noise              = otherAvatar._head.noise;
     
-    _sphere = NULL;
-    
+	
+    if (iris_texture.size() == 0) {
+        switchToResourcesParentIfRequired();
+        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
+        if (error != 0) {
+            printLog("error %u: %s\n", error, lodepng_error_text(error));
+        }
+    }
 }
 
 Head::~Head()  {
@@ -207,8 +239,8 @@ Head* Head::clone() const {
 }
 
 void Head::reset() {
-    _headPitch = _headYaw = _headRoll = 0;
-    _leanForward = _leanSideways = 0;
+    _head.pitch = _head.yaw = _head.roll = 0;
+    _head.leanForward = _head.leanSideways = 0;
 }
 
 
@@ -220,7 +252,7 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
     const float PITCH_ACCEL_COUPLING = 0.5;
     const float ROLL_ACCEL_COUPLING = -1.0;
     float measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-    _headYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
+    _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
     float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
                                 ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
@@ -242,35 +274,35 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
     const float MAX_YAW = 85;
     const float MIN_YAW = -85;
 
-    if ((_headPitch < MAX_PITCH) && (_headPitch > MIN_PITCH))
+    if ((_head.pitch < MAX_PITCH) && (_head.pitch > MIN_PITCH))
         addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
     
     addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
 
     if (head_mirror) {
-        if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW))
-            addYaw(-_headYawRate * HEAD_ROTATION_SCALE * frametime);
+        if ((_head.yaw < MAX_YAW) && (_head.yaw > MIN_YAW))
+            addYaw(-_head.yawRate * HEAD_ROTATION_SCALE * frametime);
         addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
     } else {
-        if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW))
-            addYaw(_headYawRate * -HEAD_ROTATION_SCALE * frametime);
+        if ((_head.yaw < MAX_YAW) && (_head.yaw > MIN_YAW))
+            addYaw(_head.yawRate * -HEAD_ROTATION_SCALE * frametime);
         addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
     } 
 }
 
 void Head::addLean(float x, float z) {
     //  Add Body lean as impulse 
-    _leanSideways += x;
-    _leanForward  += z;
+    _head.leanSideways += x;
+    _head.leanForward  += z;
 }
 
 
 void Head::setLeanForward(float dist){
-    _leanForward = dist;
+    _head.leanForward = dist;
 }
 
 void Head::setLeanSideways(float dist){
-    _leanSideways = dist;
+    _head.leanSideways = dist;
 }
 
 void Head::setTriggeringAction( bool d ) {
@@ -318,7 +350,7 @@ void Head::simulate(float deltaTime) {
             
             float distance = glm::length( v );
 
-            if ( distance < _avatar.maxArmLength ) {
+            if ( distance < _maxArmLength ) {
                 if ( distance < closestDistance ) {
                     closestDistance = distance;
                     _closestOtherAvatar = o;
@@ -340,60 +372,43 @@ void Head::simulate(float deltaTime) {
 	//------------------------ 
 	updateSkeleton();
 	
-	//------------------------------------------------------------------------
-	// reset hand and elbow position according to hand movement
-	//------------------------------------------------------------------------
-	if ( _handBeingMoved ){
-		if (! _previousHandBeingMoved ){ 
-			initializeBodySprings();
-			_usingSprings = true;
-			//printLog( "just started moving hand\n" );
-		}
-	}
-	else {
-		if ( _previousHandBeingMoved ){ 
-			_usingSprings = false;
-			//printLog( "just stopped moving hand\n" );
-		}
-	}
-    	
-	if ( _handBeingMoved ) {
+	//------------------------------------------------------------
+	// reset hand and arm positions according to hand movement
+	//------------------------------------------------------------
+	if (_usingBodySprings) {
 		updateHandMovement();
 		updateBodySprings( deltaTime );
 	}
-
-	_previousHandBeingMoved = _handBeingMoved;
-	_handBeingMoved = false;
 	
-    if ( _isMine ) { // driving the avatar around should only apply is this is my avatar (as opposed to an avatar being driven remotely) 
+    if ( _isMine ) { // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely) 
         //-------------------------------------------------
         // this handles the avatar being driven around...
         //-------------------------------------------------	
-        _avatar.thrust = glm::vec3( 0.0, 0.0, 0.0 );
+        _thrust = glm::vec3( 0.0, 0.0, 0.0 );
             
         if (_driveKeys[FWD]) {
-            glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
-            _avatar.thrust += front * THRUST_MAG;
+            glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
+            _thrust += front * THRUST_MAG;
         }
         if (_driveKeys[BACK]) {
-            glm::vec3 front( _avatar.orientation.getFront().x, _avatar.orientation.getFront().y, _avatar.orientation.getFront().z );
-            _avatar.thrust -= front * THRUST_MAG;
+            glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
+            _thrust -= front * THRUST_MAG;
         }
         if (_driveKeys[RIGHT]) {
-            glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-            _avatar.thrust -= right * THRUST_MAG;
+            glm::vec3 right( _orientation.getRight().x, _orientation.getRight().y, _orientation.getRight().z );
+            _thrust += right * THRUST_MAG;
         }
         if (_driveKeys[LEFT]) {
-            glm::vec3 right( _avatar.orientation.getRight().x, _avatar.orientation.getRight().y, _avatar.orientation.getRight().z );
-            _avatar.thrust += right * THRUST_MAG;
+            glm::vec3 right( _orientation.getRight().x, _orientation.getRight().y, _orientation.getRight().z );
+            _thrust -= right * THRUST_MAG;
         }
         if (_driveKeys[UP]) {
-            glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
-            _avatar.thrust += up * THRUST_MAG;
+            glm::vec3 up( _orientation.getUp().x, _orientation.getUp().y, _orientation.getUp().z );
+            _thrust += up * THRUST_MAG;
         }
         if (_driveKeys[DOWN]) {
-            glm::vec3 up( _avatar.orientation.getUp().x, _avatar.orientation.getUp().y, _avatar.orientation.getUp().z );
-            _avatar.thrust -= up * THRUST_MAG;
+            glm::vec3 up( _orientation.getUp().x, _orientation.getUp().y, _orientation.getUp().z );
+            _thrust -= up * THRUST_MAG;
         }
         if (_driveKeys[ROT_RIGHT]) {	
             _bodyYawDelta -= YAW_MAG * deltaTime;
@@ -405,7 +420,7 @@ void Head::simulate(float deltaTime) {
     
     
 	//----------------------------------------------------------
-	float translationalSpeed = glm::length( _avatar.velocity );
+	float translationalSpeed = glm::length( _velocity );
 	float rotationalSpeed = fabs( _bodyYawDelta );
 	if ( translationalSpeed + rotationalSpeed > 0.2 )
 	{
@@ -413,7 +428,7 @@ void Head::simulate(float deltaTime) {
 	}
 	else
 	{
-		_mode = AVATAR_MODE_COMMUNICATING;
+		_mode = AVATAR_MODE_INTERACTING;
 	}
 		
 	//----------------------------------------------------------
@@ -424,9 +439,9 @@ void Head::simulate(float deltaTime) {
     }
         
 	// we will be eventually getting head rotation from elsewhere. For now, just setting it to body rotation 
-	_headYaw   = _bodyYaw;
-	_headPitch = _bodyPitch;
-	_headRoll  = _bodyRoll;
+	_head.yaw   = _bodyYaw;
+	_head.pitch = _bodyPitch;
+	_head.roll  = _bodyRoll;
 	
 	//----------------------------------------------------------
 	// decay body yaw delta
@@ -437,45 +452,45 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// add thrust to velocity
 	//----------------------------------------------------------
-	_avatar.velocity += glm::dvec3(_avatar.thrust * deltaTime);
+	_velocity += glm::dvec3(_thrust * deltaTime);
 
     //----------------------------------------------------------
     // update position by velocity
     //----------------------------------------------------------
-    _bodyPosition += (glm::vec3)_avatar.velocity * deltaTime;
+    _bodyPosition += (glm::vec3)_velocity * deltaTime;
 
 	//----------------------------------------------------------
 	// decay velocity
 	//----------------------------------------------------------
     const float LIN_VEL_DECAY = 5.0;
-    _avatar.velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
+    _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
-    if (!_noise) {
+    if (!_head.noise) {
         //  Decay back toward center 
-        _headPitch *= (1.0f - DECAY*2*deltaTime);
-        _headYaw   *= (1.0f - DECAY*2*deltaTime);
-        _headRoll  *= (1.0f - DECAY*2*deltaTime);
+        _head.pitch *= (1.0f - DECAY*2*deltaTime);
+        _head.yaw   *= (1.0f - DECAY*2*deltaTime);
+        _head.roll  *= (1.0f - DECAY*2*deltaTime);
     }
     else {
         //  Move toward new target  
-        _headPitch += (_pitchTarget - _headPitch)*10*deltaTime;   // (1.f - DECAY*deltaTime)*Pitch + ;
-        _headYaw += (_yawTarget - _headYaw)*10*deltaTime; //  (1.f - DECAY*deltaTime);
-        _headRoll *= (1.f - DECAY*deltaTime);
+        _head.pitch += (_head.pitchTarget - _head.pitch)*10*deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
+        _head.yaw   += (_head.yawTarget   - _head.yaw  )*10*deltaTime; //  (1.f - DECAY*deltaTime);
+        _head.roll *= (1.f - DECAY*deltaTime);
     }
     
-    _leanForward  *= (1.f - DECAY*30.f*deltaTime);
-    _leanSideways *= (1.f - DECAY*30.f*deltaTime);
+    _head.leanForward  *= (1.f - DECAY*30.f*deltaTime);
+    _head.leanSideways *= (1.f - DECAY*30.f*deltaTime);
     
     //  Update where the avatar's eyes are 
     //
     //  First, decide if we are making eye contact or not
     if (randFloat() < 0.005) {
-        _eyeContact = !_eyeContact;
-        _eyeContact = 1;
-        if (!_eyeContact) {
+        _head.eyeContact = !_head.eyeContact;
+        _head.eyeContact = 1;
+        if (!_head.eyeContact) {
             //  If we just stopped making eye contact,move the eyes markedly away
-            _eyeballPitch[0] = _eyeballPitch[1] = _eyeballPitch[0] + 5.0 + (randFloat() - 0.5)*10;
-            _eyeballYaw[0] = _eyeballYaw[1] = _eyeballYaw[0] + 5.0 + (randFloat()- 0.5)*5;
+            _head.eyeballPitch[0] = _head.eyeballPitch[1] = _head.eyeballPitch[0] + 5.0 + (randFloat() - 0.5)*10;
+            _head.eyeballYaw  [0] = _head.eyeballYaw  [1] = _head.eyeballYaw  [0] + 5.0 + (randFloat() - 0.5)*5;
         } else {
             //  If now making eye contact, turn head to look right at viewer
             SetNewHeadTarget(0,0);
@@ -485,56 +500,56 @@ void Head::simulate(float deltaTime) {
     const float DEGREES_BETWEEN_VIEWER_EYES = 3;
     const float DEGREES_TO_VIEWER_MOUTH = 7;
 
-    if (_eyeContact) {
+    if (_head.eyeContact) {
         //  Should we pick a new eye contact target?
         if (randFloat() < 0.01) {
             //  Choose where to look next
             if (randFloat() < 0.1) {
-                _eyeContactTarget = MOUTH;
+                _head.eyeContactTarget = MOUTH;
             } else {
-                if (randFloat() < 0.5) _eyeContactTarget = LEFT_EYE; else _eyeContactTarget = RIGHT_EYE;
+                if (randFloat() < 0.5) _head.eyeContactTarget = LEFT_EYE; else _head.eyeContactTarget = RIGHT_EYE;
             }
         }
         //  Set eyeball pitch and yaw to make contact
         float eye_target_yaw_adjust = 0;
         float eye_target_pitch_adjust = 0;
-        if (_eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
-        if (_eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
-        if (_eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
+        if (_head.eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
+        if (_head.eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
+        if (_head.eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
         
-        _eyeballPitch[0] = _eyeballPitch[1] = -_headPitch + eye_target_pitch_adjust;
-        _eyeballYaw[0] = _eyeballYaw[1] = -_headYaw + eye_target_yaw_adjust;
+        _head.eyeballPitch[0] = _head.eyeballPitch[1] = -_head.pitch + eye_target_pitch_adjust;
+        _head.eyeballYaw[0] = _head.eyeballYaw[1] = -_head.yaw + eye_target_yaw_adjust;
     }
 	
 
-    if (_noise)
+    if (_head.noise)
     {
-        _headPitch += (randFloat() - 0.5)*0.2*_noiseEnvelope;
-        _headYaw += (randFloat() - 0.5)*0.3*_noiseEnvelope;
+        _head.pitch += (randFloat() - 0.5)*0.2*_head.noiseEnvelope;
+        _head.yaw += (randFloat() - 0.5)*0.3*_head.noiseEnvelope;
         //PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
         
-        if (randFloat() < 0.005) _mouthWidth = MouthWidthChoices[rand()%3];
+        if (randFloat() < 0.005) _head.mouthWidth = MouthWidthChoices[rand()%3];
         
-        if (!_eyeContact) {
-            if (randFloat() < 0.01)  _eyeballPitch[0] = _eyeballPitch[1] = (randFloat() - 0.5)*20;
-            if (randFloat() < 0.01)  _eyeballYaw[0] = _eyeballYaw[1] = (randFloat()- 0.5)*10;
+        if (!_head.eyeContact) {
+            if (randFloat() < 0.01)  _head.eyeballPitch[0] = _head.eyeballPitch[1] = (randFloat() - 0.5)*20;
+            if (randFloat() < 0.01)  _head.eyeballYaw[0] = _head.eyeballYaw[1] = (randFloat()- 0.5)*10;
         }         
 
-        if ((randFloat() < 0.005) && (fabs(_pitchTarget - _headPitch) < 1.0) && (fabs(_yawTarget - _headYaw) < 1.0)) {
+        if ((randFloat() < 0.005) && (fabs(_head.pitchTarget - _head.pitch) < 1.0) && (fabs(_head.yawTarget - _head.yaw) < 1.0)) {
             SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
         }
 
         if (0) {
 
             //  Pick new target
-            _pitchTarget = (randFloat() - 0.5)*45;
-            _yawTarget = (randFloat() - 0.5)*22;
+            _head.pitchTarget = (randFloat() - 0.5)*45;
+            _head.yawTarget = (randFloat() - 0.5)*22;
         }
         if (randFloat() < 0.01)
         {
-            _eyebrowPitch[0] = _eyebrowPitch[1] = BrowPitchAngle[rand()%3];
-            _eyebrowRoll[0] = _eyebrowRoll[1] = BrowRollAngle[rand()%5];
-            _eyebrowRoll[1]*=-1;
+            _head.eyebrowPitch[0] = _head.eyebrowPitch[1] = BrowPitchAngle[rand()%3];
+            _head.eyebrowRoll [0] = _head.eyebrowRoll[1] = BrowRollAngle[rand()%5];
+            _head.eyebrowRoll [1]*=-1;
         }
     }
 }
@@ -567,24 +582,36 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
                     float amp = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
                     glm::vec3 collisionForce = vectorFromJointToBigSphere * amp;                        
                     _bone[b].springyVelocity += collisionForce * 8.0f * deltaTime;
-                    _avatar.velocity += collisionForce * 18.0f * deltaTime;
+                    _velocity += collisionForce * 18.0f * deltaTime;
                 }
             }
         }
         
         if ( jointCollision ) {
+            if (!_usingBodySprings) {
+                _usingBodySprings = true;
+                initializeBodySprings();
+            }
+            /*
+            else {
+                if (_usingSprings) {
+                    _usingSprings = false;
+                }
+            }
+            */
+            
             //----------------------------------------------------------
             // add gravity to velocity
             //----------------------------------------------------------
-            _avatar.velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * 0.05;
+            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * 0.05;
             
             //----------------------------------------------------------
             // ground collisions
             //----------------------------------------------------------
             if ( _bodyPosition.y < 0.0 ) {
                 _bodyPosition.y = 0.0;
-                if ( _avatar.velocity.y < 0.0 ) {
-                    _avatar.velocity.y *= -0.7;
+                if ( _velocity.y < 0.0 ) {
+                    _velocity.y *= -0.7;
                 }
             }       
         }     
@@ -650,7 +677,7 @@ void Head::render(int faceToFace) {
             glPopMatrix();
         }
 
-        if ( _usingSprings ) {
+        if (_usingBodySprings) {
             if ( _closestOtherAvatar != -1 ) {					
 
                 glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
@@ -667,35 +694,6 @@ void Head::render(int faceToFace) {
     }
 }
 
-
-
-//this has been moved to Utils.cpp
-/*
-void Head::renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
-	glm::vec3 pRight	= position + orientation.right	* size;
-	glm::vec3 pUp		= position + orientation.up		* size;
-	glm::vec3 pFront	= position + orientation.front	* size;
-		
-	glColor3f( 1.0f, 0.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pRight.x, pRight.y, pRight.z );
-	glEnd();
-
-	glColor3f( 0.0f, 1.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pUp.x, pUp.y, pUp.z );
-	glEnd();
-
-	glColor3f( 0.0f, 0.0f, 1.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pFront.x, pFront.y, pFront.z );
-	glEnd();
-}
-*/
-
 	  
 	   
 void Head::renderHead(int faceToFace) {
@@ -706,7 +704,7 @@ void Head::renderHead(int faceToFace) {
     
     glPushMatrix();
     
-	if (_usingSprings) {
+	if (_usingBodySprings) {
 		glTranslatef
 		( 
 			_bone[ AVATAR_BONE_HEAD ].springyPosition.x, 
@@ -726,9 +724,9 @@ void Head::renderHead(int faceToFace) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef(_headYaw,   0, 1, 0); 
-    glRotatef(_headPitch, 1, 0, 0);
-    glRotatef(_headRoll,  0, 0, 1);
+    glRotatef(_head.yaw,   0, 1, 0); 
+    glRotatef(_head.pitch, 1, 0, 0);
+    glRotatef(_head.roll,  0, 0, 1);
     
     // Overall scale of head
     if (faceToFace) glScalef(2.0, 2.0, 2.0);
@@ -757,27 +755,27 @@ void Head::renderHead(int faceToFace) {
     glPopMatrix();
 
     // _eyebrows
-    _audioAttack = 0.9*_audioAttack + 0.1*fabs(_loudness - _lastLoudness);
-    _lastLoudness = _loudness;
+    _head.audioAttack = 0.9*_head.audioAttack + 0.1*fabs(_head.loudness - _head.lastLoudness);
+    _head.lastLoudness = _head.loudness;
 
     const float BROW_LIFT_THRESHOLD = 100;
-    if (_audioAttack > BROW_LIFT_THRESHOLD)
-        _browAudioLift += sqrt(_audioAttack)/1000.0;
+    if (_head.audioAttack > BROW_LIFT_THRESHOLD)
+        _head.browAudioLift += sqrt(_head.audioAttack)/1000.0;
     
-    _browAudioLift *= .90;
+    _head.browAudioLift *= .90;
     
     glPushMatrix();
-        glTranslatef(-_interBrowDistance/2.0,0.4,0.45);
+        glTranslatef(-_head.interBrowDistance/2.0,0.4,0.45);
         for(side = 0; side < 2; side++) {
             glColor3fv(browColor);
             glPushMatrix();
-                glTranslatef(0, 0.35 + _browAudioLift, 0);
-                glRotatef(_eyebrowPitch[side]/2.0, 1, 0, 0);
-                glRotatef(_eyebrowRoll[side]/2.0, 0, 0, 1);
+                glTranslatef(0, 0.35 + _head.browAudioLift, 0);
+                glRotatef(_head.eyebrowPitch[side]/2.0, 1, 0, 0);
+                glRotatef(_head.eyebrowRoll[side]/2.0, 0, 0, 1);
                 glScalef(browWidth, browThickness, 1);
                 glutSolidCube(0.5);
             glPopMatrix();
-            glTranslatef(_interBrowDistance, 0, 0);
+            glTranslatef(_head.interBrowDistance, 0, 0);
         }
     glPopMatrix();
     
@@ -787,23 +785,23 @@ void Head::renderHead(int faceToFace) {
     glPushMatrix();
         glTranslatef(0,-0.35,0.75);
         glColor3f(0,0,0);
-        glRotatef(_mouthPitch, 1, 0, 0);
-        glRotatef(_mouthYaw, 0, 0, 1);
-        glScalef(_mouthWidth*(.7 + sqrt(_averageLoudness)/60.0), _mouthHeight*(1.0 + sqrt(_averageLoudness)/30.0), 1);
+        glRotatef(_head.mouthPitch, 1, 0, 0);
+        glRotatef(_head.mouthYaw, 0, 0, 1);
+        glScalef(_head.mouthWidth*(.7 + sqrt(_head.averageLoudness)/60.0), _head.mouthHeight*(1.0 + sqrt(_head.averageLoudness)/30.0), 1);
         glutSolidCube(0.5);
     glPopMatrix();
     
     glTranslatef(0, 1.0, 0);
    
-    glTranslatef(-_interPupilDistance/2.0,-0.68,0.7);
+    glTranslatef(-_head.interPupilDistance/2.0,-0.68,0.7);
     // Right Eye
     glRotatef(-10, 1, 0, 0);
     glColor3fv(eyeColor);
     glPushMatrix(); 
     {
-        glTranslatef(_interPupilDistance/10.0, 0, 0.05);
+        glTranslatef(_head.interPupilDistance/10.0, 0, 0.05);
         glRotatef(20, 0, 0, 1);
-        glScalef(_eyeballScaleX, _eyeballScaleY, _eyeballScaleZ);
+        glScalef(_head.eyeballScaleX, _head.eyeballScaleY, _head.eyeballScaleZ);
         glutSolidSphere(0.25, 30, 30);
     }
     glPopMatrix();
@@ -820,40 +818,40 @@ void Head::renderHead(int faceToFace) {
 
     glPushMatrix();
     {
-        glRotatef(_eyeballPitch[1], 1, 0, 0);
-        glRotatef(_eyeballYaw[1] + _pupilConverge, 0, 1, 0);
+        glRotatef(_head.eyeballPitch[1], 1, 0, 0);
+        glRotatef(_head.eyeballYaw[1] + _head.yaw + _head.pupilConverge, 0, 1, 0);
         glTranslatef(0,0,.35);
         glRotatef(-75,1,0,0);
         glScalef(1.0, 0.4, 1.0);
         
         glEnable(GL_TEXTURE_2D);
-        gluSphere(_sphere, _pupilSize, 15, 15);
+        gluSphere(_sphere, _head.pupilSize, 15, 15);
         glDisable(GL_TEXTURE_2D);
     }
 
     glPopMatrix();
     // Left Eye
     glColor3fv(eyeColor);
-    glTranslatef(_interPupilDistance, 0, 0);
+    glTranslatef(_head.interPupilDistance, 0, 0);
     glPushMatrix(); 
     {
-        glTranslatef(-_interPupilDistance/10.0, 0, .05);
+        glTranslatef(-_head.interPupilDistance/10.0, 0, .05);
         glRotatef(-20, 0, 0, 1);
-        glScalef(_eyeballScaleX, _eyeballScaleY, _eyeballScaleZ);
+        glScalef(_head.eyeballScaleX, _head.eyeballScaleY, _head.eyeballScaleZ);
         glutSolidSphere(0.25, 30, 30);
     }
     glPopMatrix();
     // Left Pupil
     glPushMatrix();
     {
-        glRotatef(_eyeballPitch[0], 1, 0, 0);
-        glRotatef(_eyeballYaw[0] - _pupilConverge, 0, 1, 0);
+        glRotatef(_head.eyeballPitch[0], 1, 0, 0);
+        glRotatef(_head.eyeballYaw[0] + _head.yaw - _head.pupilConverge, 0, 1, 0);
         glTranslatef(0, 0, .35);
         glRotatef(-75, 1, 0, 0);
         glScalef(1.0, 0.4, 1.0);
 
         glEnable(GL_TEXTURE_2D);
-        gluSphere(_sphere, _pupilSize, 15, 15);
+        gluSphere(_sphere, _head.pupilSize, 15, 15);
         glDisable(GL_TEXTURE_2D);
     }
     
@@ -864,17 +862,25 @@ void Head::renderHead(int faceToFace) {
  }
  
  
- 
+void Head::startHandMovement() {
 
-void Head::setHandMovement( glm::vec3 handOffset ) {
-	_handBeingMoved = true;
+    if (!_usingBodySprings) {
+        initializeBodySprings();
+        _usingBodySprings = true;
+    }
+}
+
+void Head::stopHandMovement() {
+    _usingBodySprings = false;
+}
+ 
+void Head::setHandMovementValues( glm::vec3 handOffset ) {
 	_movedHandOffset = handOffset;
 }
 
 AvatarMode Head::getMode() {
 	return _mode;
 }
-
 
 void Head::initializeSkeleton() {
 
@@ -987,7 +993,7 @@ void Head::calculateBoneLengths() {
 		_bone[b].length = glm::length( _bone[b].defaultPosePosition );
 	}
 
-	_avatar.maxArmLength
+	_maxArmLength
 	= _bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].length
 	+ _bone[ AVATAR_BONE_RIGHT_FOREARM	 ].length 
 	+ _bone[ AVATAR_BONE_RIGHT_HAND		 ].length;
@@ -997,13 +1003,13 @@ void Head::updateSkeleton() {
 	//----------------------------------
 	// rotate body...
 	//----------------------------------	
-	_avatar.orientation.setToIdentity();
-	_avatar.orientation.yaw( _bodyYaw );
+	_orientation.setToIdentity();
+	_orientation.yaw( _bodyYaw );
         
     //test! - make sure this does what expected: st rotation to be identity PLUS _bodyYaw
-    //_rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
+    //_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
     
-    //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _avatar.orientation.up );
+    //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
     
     
 	//------------------------------------------------------------------------
@@ -1011,7 +1017,7 @@ void Head::updateSkeleton() {
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
-			_bone[b].orientation.set( _avatar.orientation );
+			_bone[b].orientation.set( _orientation );
 			_bone[b].position = _bodyPosition;
 		}
 		else {
@@ -1023,7 +1029,7 @@ void Head::updateSkeleton() {
         if ( ! _isMine ) {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
-                                            
+
 		float xx = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight() );
 		float yy = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
 		float zz = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront() );
@@ -1065,9 +1071,12 @@ void Head::updateBodySprings( float deltaTime ) {
 			float force = ( length - _bone[b].length ) * _springForce * deltaTime;
 			
 			_bone[ b						].springyVelocity -= springDirection * force;
-			_bone[ _bone[b].parent	].springyVelocity += springDirection * force;
+            
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                _bone[ _bone[b].parent	].springyVelocity += springDirection * force;
+            }
 		}
-		
+        
 		_bone[b].springyVelocity += ( _bone[b].position - _bone[b].springyPosition ) * _bone[b].springBodyTightness * deltaTime;
 
 		float decay = 1.0 - _springVelocityDecay * deltaTime;
@@ -1086,27 +1095,27 @@ void Head::updateBodySprings( float deltaTime ) {
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
-		_avatar.orientation.getFront().x,
-		_avatar.orientation.getFront().y,
-		_avatar.orientation.getFront().z
+		_orientation.getFront().x,
+		_orientation.getFront().y,
+		_orientation.getFront().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionUp() {
 	return glm::vec3
 	(
-		_avatar.orientation.getUp().x,
-		_avatar.orientation.getUp().y,
-		_avatar.orientation.getUp().z
+		_orientation.getUp().x,
+		_orientation.getUp().y,
+		_orientation.getUp().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionRight() {
 	return glm::vec3
 	(
-		_avatar.orientation.getRight().x,
-		_avatar.orientation.getRight().y,
-		_avatar.orientation.getRight().z
+		_orientation.getRight().x,
+		_orientation.getRight().y,
+		_orientation.getRight().z
 	);
 }
 
@@ -1125,14 +1134,14 @@ void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
 	
 	transformedHandMovement 
-	= _avatar.orientation.getRight() *  _movedHandOffset.x
-	+ _avatar.orientation.getUp()	 * -_movedHandOffset.y * 0.5f
-	+ _avatar.orientation.getFront() * -_movedHandOffset.y;
+	= _orientation.getRight() *  _movedHandOffset.x
+	+ _orientation.getUp()	 * -_movedHandOffset.y * 0.5f
+	+ _orientation.getFront() * -_movedHandOffset.y;
 
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
 	//if holding hands, add a pull to the hand...
-	if ( _usingSprings ) {
+	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
 			if ( _triggeringAction ) {
 				
@@ -1144,11 +1153,12 @@ void Head::updateHandMovement() {
 				 
 				transformedHandMovement += handShakePull;
 				*/
+                
 				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _DEBUG_otherAvatarListPosition[ _closestOtherAvatar ];				
 			}
 		}
 	}
-
+    
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------
@@ -1164,14 +1174,14 @@ void Head::updateHandMovement() {
 	//-------------------------------------------------------------------------------
 	// if right hand is being dragged beyond maximum arm length...
 	//-------------------------------------------------------------------------------	
-	if ( distance > _avatar.maxArmLength ) {
+	if ( distance > _maxArmLength ) {
 		//-------------------------------------------------------------------------------
 		// reset right hand to be constrained to maximum arm length
 		//-------------------------------------------------------------------------------
 		_bone[ AVATAR_BONE_RIGHT_HAND ].position = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		glm::vec3 armNormal = armVector / distance;
-		armVector = armNormal * _avatar.maxArmLength;
-		distance = _avatar.maxArmLength;
+		armVector = armNormal * _maxArmLength;
+		distance = _maxArmLength;
 		glm::vec3 constrainedPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 		constrainedPosition += armVector;
 		_bone[ AVATAR_BONE_RIGHT_HAND ].position = constrainedPosition;
@@ -1197,9 +1207,9 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * ONE_HALF;
-	glm::vec3 perpendicular = glm::cross( _avatar.orientation.getFront(), armVector );
+	glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
 
-	newElbowPosition += perpendicular * ( 1.0f - ( _avatar.maxArmLength / distance ) ) * ONE_HALF;
+	newElbowPosition += perpendicular * ( 1.0f - ( _maxArmLength / distance ) ) * ONE_HALF;
 	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
 	//-----------------------------------------------------------------------------
@@ -1223,7 +1233,7 @@ void Head::renderBody() {
     //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-		if ( _usingSprings ) {
+		if ( _usingBodySprings ) {
 			glColor3fv( lightBlue );
 			glPushMatrix();
 				glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
@@ -1242,15 +1252,17 @@ void Head::renderBody() {
 	//-----------------------------------------------------
     // Render lines connecting the bone positions
 	//-----------------------------------------------------
-	if ( _usingSprings ) {
+	if ( _usingBodySprings ) {
 		glColor3f( 0.4f, 0.5f, 0.6f );
 		glLineWidth(3.0);
 
 		for (int b=1; b<NUM_AVATAR_BONES; b++) {
-			glBegin( GL_LINE_STRIP );
-			glVertex3fv( &_bone[ _bone[ b ].parent ].springyPosition.x );
-			glVertex3fv( &_bone[ b ].springyPosition.x );
-			glEnd();
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                glBegin( GL_LINE_STRIP );
+                glVertex3fv( &_bone[ _bone[ b ].parent ].springyPosition.x );
+                glVertex3fv( &_bone[ b ].springyPosition.x );
+                glEnd();
+            }
 		}
 	}
 	else {
@@ -1258,15 +1270,17 @@ void Head::renderBody() {
 		glLineWidth(3.0);
 
 		for (int b=1; b<NUM_AVATAR_BONES; b++) {
-			glBegin( GL_LINE_STRIP );
-			glVertex3fv( &_bone[ _bone[ b ].parent ].position.x );
-			glVertex3fv( &_bone[ b ].position.x);
-			glEnd();
+            if ( _bone[b].parent != AVATAR_BONE_NULL ) {
+                glBegin( GL_LINE_STRIP );
+                glVertex3fv( &_bone[ _bone[ b ].parent ].position.x );
+                glVertex3fv( &_bone[ b ].position.x);
+                glEnd();
+            }
 		}
 	}
 	
 	
-	if (( _usingSprings ) && ( _triggeringAction )) {
+	if (( _usingBodySprings ) && ( _triggeringAction )) {
 		glColor4f( 1.0, 1.0, 0.5, 0.5 );
 		glPushMatrix();
 			glTranslatef
@@ -1282,8 +1296,8 @@ void Head::renderBody() {
 }
 
 void Head::SetNewHeadTarget(float pitch, float yaw) {
-    _pitchTarget = pitch;
-    _yawTarget = yaw;
+    _head.pitchTarget = pitch;
+    _head.yawTarget   = yaw;
 }
 
 // getting data from Android transmitte app

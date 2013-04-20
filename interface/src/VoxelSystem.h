@@ -41,9 +41,9 @@ public:
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
-    long int getVoxelsCreatedRunningAverage();
-    long int getVoxelsColoredRunningAverage();
-    long int getVoxelsBytesReadRunningAverage();
+    float getVoxelsCreatedPerSecondAverage();
+    float getVoxelsColoredPerSecondAverage();
+    float getVoxelsBytesReadPerSecondAverage();
 
     // Methods that recurse tree
     void randomizeVoxelColors();

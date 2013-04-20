@@ -74,10 +74,11 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <PerfStat.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <AvatarData.h>
+#include <PerfStat.h>
+#include <SimpleMovingAverage.h>
 
 #include "ViewFrustum.h"
 
@@ -167,15 +168,90 @@ int displayField = 0;
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
 
-int mouseX, mouseY;				//  Where is the mouse
+int mouseX = 0;
+int mouseY = 0;
 
 //  Mouse location at start of last down click
-int mouseStartX = WIDTH	 / 2;
-int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
-Menu menu;                          // main menu
-int menuOn = 1;					//  Whether to show onscreen menu
+Menu menu;       // main menu
+int menuOn = 1;  //  Whether to show onscreen menu
+
+struct HandController
+{
+    bool  enabled;
+    int   startX;
+    int   startY;
+    int   x; 
+    int   y;
+    int   lastX; 
+    int   lastY;
+    int   velocityX;
+    int   velocityY;
+    float rampUpRate;
+    float rampDownRate;
+    float envelope;
+};
+
+HandController handController;
+
+void initializeHandController() {
+   handController.enabled      = false;
+   handController.startX       = WIDTH  / 2;
+   handController.startY       = HEIGHT / 2;
+   handController.x            = 0; 
+   handController.y            = 0;
+   handController.lastX        = 0; 
+   handController.lastY        = 0;
+   handController.velocityX    = 0;
+   handController.velocityY    = 0;
+   handController.rampUpRate   = 0.05;
+   handController.rampDownRate = 0.02;
+   handController.envelope     = 0.0f;
+
+}
+
+void updateHandController( int x, int y ) {
+    handController.lastX = handController.x;
+    handController.lastY = handController.y;
+    handController.x = x;
+    handController.y = y;
+    handController.velocityX = handController.x - handController.lastX;
+    handController.velocityY = handController.y - handController.lastY;
+
+    if (( handController.velocityX != 0 )
+    ||  ( handController.velocityY != 0 )) {
+        handController.enabled = true;
+        myAvatar.startHandMovement();
+        if ( handController.envelope < 1.0 ) {
+            handController.envelope += handController.rampUpRate;
+            if ( handController.envelope >= 1.0 ) { 
+                handController.envelope = 1.0; 
+            }
+        }
+    }
+
+   if ( ! handController.enabled ) {
+        if ( handController.envelope > 0.0 ) {
+            handController.envelope -= handController.rampDownRate;
+            if ( handController.envelope <= 0.0 ) { 
+                handController.startX = WIDTH	 / 2;
+                handController.startY = HEIGHT / 2;
+                handController.envelope = 0.0; 
+                myAvatar.stopHandMovement();
+            }
+        }
+    }
+    
+    if ( handController.envelope > 0.0 ) {
+        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
+        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
+        float backFront	= 0.0;			
+        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
+    }
+}
+
+
 
 //
 //  Serial USB Variables
@@ -239,31 +315,36 @@ void displayStats(void)
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredRunningAverage() 
-		<< "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredPerSecondAverage()
+    << "/sec) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()  
-		<< " (" << voxels.getVoxelsBytesReadRunningAverage() << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
+    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
-	long int voxelsBytesPerColored = voxels.getVoxelsColored() ? voxels.getVoxelsBytesRead()/voxels.getVoxelsColored() : 0;
-	long int voxelsBytesPerColoredAvg = voxels.getVoxelsColoredRunningAverage() ? 
-		voxels.getVoxelsBytesReadRunningAverage()/voxels.getVoxelsColoredRunningAverage() : 0;
-
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored  
-		<< " (" << voxelsBytesPerColoredAvg << "/sec in last "<< COUNTETSTATS_TIME_FRAME << " seconds) ";
+	float voxelsBytesPerColored = voxels.getVoxelsColored()
+        ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
+        : 0;
+    
+	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-	
+    
+    Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+    char avatarMixerStats[200];
+    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+            roundf(avatarMixer->getAverageKilobitsPerSecond()),
+            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -298,6 +379,8 @@ void init(void)
     voxels.init();
     voxels.setViewerHead(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
+    
+    initializeHandController();
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -360,20 +443,6 @@ void reset_sensors()
     
     if (serialPort.active) {
         serialPort.resetTrailingAverages();
-    }
-}
-
-void updateAvatarHand(float deltaTime) {
-    //  If mouse is being dragged, send current force to the hand controller
-    if (mousePressed == 1)
-    {
-        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
-        
-        const float MOUSE_HAND_FORCE = 1.5;
-        float dx = mouseX - mouseStartX;
-        float dy = mouseY - mouseStartY;
-        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        //myAvatar.hand->addVelocity(vel*deltaTime);
     }
 }
 
@@ -828,10 +897,10 @@ void display(void)
             agent != agentList->getAgents().end();
             agent++) {
             if (agent->getLinkedData() != NULL) {
-                Head *agentHead = (Head *)agent->getLinkedData();
-                glPushMatrix();
-                agentHead->render(0);
-                glPopMatrix();
+                Head *avatar = (Head *)agent->getLinkedData();
+                //glPushMatrix();
+                avatar->render(0);
+                //glPopMatrix();
             }
         }
     
@@ -1368,55 +1437,49 @@ void idle(void) {
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		
-		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
-				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
-				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
-				float backFront	= 0.0;			
-				glm::vec3 handMovement( leftRight, downUp, backFront );
-				myAvatar.setHandMovement( handMovement );		
-		/*}		
-		else {
-			mouseStartX = mouseX;
-			mouseStartY = mouseY;
-			//mouseStartX = (float)WIDTH  / 2.0f;
-			//mouseStartY = (float)HEIGHT / 2.0f;
-		}
-        */
-		
-		//--------------------------------------------------------
+        float deltaTime = 1.f/FPS;
+
+        // update behaviors for avatar hand movement 
+        updateHandController( mouseX, mouseY );
+        
 		// when the mouse is being pressed, an 'action' is being 
 		// triggered in the avatar. The action is context-based.
-		//--------------------------------------------------------
 		if ( mousePressed == 1 ) {
 			myAvatar.setTriggeringAction( true );
 		}
 		else {
 			myAvatar.setTriggeringAction( false );
 		}
-		
+        
+        // walking triggers the handController to stop
+        if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
+            handController.enabled = false;
+		}
+        
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar( 1.f/FPS );
 		
+        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *agentHead = (Head *)agent->getLinkedData();
-                agentHead->simulate(1.f/FPS);
+                Head *avatar = (Head *)agent->getLinkedData();
+                avatar->simulate(deltaTime);
             }
         }
+        
 		
-		
-        updateAvatarHand(1.f/FPS);
+        //updateAvatarHand(1.f/FPS);
     
-        field.simulate(1.f/FPS);
-        myAvatar.simulate(1.f/FPS);
-        balls.simulate(1.f/FPS);
-        cloud.simulate(1.f/FPS);
+        field.simulate   (deltaTime);
+        myAvatar.simulate(deltaTime);
+        balls.simulate   (deltaTime);
+        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;
@@ -1490,8 +1553,6 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            //mouseStartX = x;
-            //mouseStartY = y;
         }
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
@@ -1511,11 +1572,16 @@ void motionFunc( int x, int y)
 void mouseoverFunc( int x, int y)
 {
     menu.mouseOver(x, y);
+
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
     {}
 }
+
+
+
+
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
