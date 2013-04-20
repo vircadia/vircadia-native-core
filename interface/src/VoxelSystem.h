@@ -14,6 +14,7 @@
 #include <UDPSocket.h>
 #include <AgentData.h>
 #include <VoxelTree.h>
+#include <ViewFrustum.h>
 #include "Head.h"
 #include "Util.h"
 #include "world.h"
@@ -44,7 +45,27 @@ public:
     long int getVoxelsColoredRunningAverage();
     long int getVoxelsBytesReadRunningAverage();
 
+    // Methods that recurse tree
+    void randomizeVoxelColors();
+    void falseColorizeRandom();
+    void trueColorize();
+    void falseColorizeInView(ViewFrustum* viewFrustum);
+    void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
+
 private:
+    // Operation functions for tree recursion methods
+    static int _nodeCount;
+    static bool randomColorOperation(VoxelNode* node, bool down, void* extraData);
+    static bool falseColorizeRandomOperation(VoxelNode* node, bool down, void* extraData);
+    static bool trueColorizeOperation(VoxelNode* node, bool down, void* extraData);
+    static bool falseColorizeInViewOperation(VoxelNode* node, bool down, void* extraData);
+    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, bool down, void* extraData);
+    static bool getDistanceFromViewRangeOperation(VoxelNode* node, bool down, void* extraData);
+
+    // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
+    static float _maxDistance;
+    static float _minDistance;
+
     int voxelsRendered;
     Head *viewerHead;
     VoxelTree *tree;
@@ -59,7 +80,7 @@ private:
     GLuint vboIndicesID;
     pthread_mutex_t bufferWriteLock;
 
-    int treeToArrays(VoxelNode *currentNode, float nodePosition[3]);
+    int treeToArrays(VoxelNode *currentNode, const glm::vec3& nodePosition);
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
 };
