@@ -91,6 +91,48 @@ struct AvatarBone
 	float		radius;					// used for detecting collisions for certain physical effects
 };
 
+struct AvatarHead
+{
+    float pitch;
+    float yaw;
+    float roll;
+    float pitchRate;
+    float yawRate;
+    float rollRate;
+    float noise;
+    float eyeballPitch[2];
+    float eyeballYaw  [2];
+    float eyebrowPitch[2];
+    float eyebrowRoll [2];
+    float eyeballScaleX;
+    float eyeballScaleY;
+    float eyeballScaleZ;
+    float interPupilDistance;
+    float interBrowDistance;
+    float nominalPupilSize;
+    float pupilSize;
+    float mouthPitch;
+    float mouthYaw;
+    float mouthWidth;
+    float mouthHeight;
+    float leanForward;
+    float leanSideways;
+    float pitchTarget; 
+    float yawTarget; 
+    float noiseEnvelope;
+    float pupilConverge;
+    float scale;
+    int   eyeContact;
+    float browAudioLift;
+    eyeContactTargets eyeContactTarget;
+    
+    //  Sound loudness information
+    float loudness, lastLoudness;
+    float averageLoudness;
+    float audioAttack;
+};
+
+
 class Head : public AvatarData {
     public:
         Head(bool isMine);
@@ -98,30 +140,29 @@ class Head : public AvatarData {
         Head(const Head &otherHead);
         Head* clone() const;
     
-        void reset();
-        void UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
-        void setNoise (float mag) { _noise = mag; }
-        void setPitch(float p) {_headPitch = p; }
-        void setYaw(float y) {_headYaw = y; }
-        void setRoll(float r) {_headRoll = r; };
-        void setScale(float s) {_scale = s; };
-        void setRenderYaw(float y) {_renderYaw = y;}
-        void setRenderPitch(float p) {_renderPitch = p;}
+        void  reset();
+        void  UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void  setNoise (float mag) { _head.noise = mag; }
+        void  setPitch(float p) {_head.pitch = p; }
+        void  setYaw(float y) {_head.yaw = y; }
+        void  setRoll(float r) {_head.roll = r; };
+        void  setScale(float s) {_head.scale = s; };
+        void  setRenderYaw(float y) {_renderYaw = y;}
+        void  setRenderPitch(float p) {_renderPitch = p;}
         float getRenderYaw() {return _renderYaw;}
         float getRenderPitch() {return _renderPitch;}
-        void setLeanForward(float dist);
-        void setLeanSideways(float dist);
-        void addPitch(float p) {_headPitch -= p; }
-        void addYaw(float y){_headYaw -= y; }
-        void addRoll(float r){_headRoll += r; }
-        void addLean(float x, float z);
-        float getPitch() {return _headPitch;}
-        float getRoll() {return _headRoll;}
-        float getYaw() {return _headYaw;}
-        float getLastMeasuredYaw() {return _headYawRate;}
-		
+        void  setLeanForward(float dist);
+        void  setLeanSideways(float dist);
+        void  addPitch(float p) {_head.pitch -= p; }
+        void  addYaw(float y){_head.yaw -= y; }
+        void  addRoll(float r){_head.roll += r; }
+        void  addLean(float x, float z);
+        float getPitch() {return _head.pitch;}
+        float getRoll() {return _head.roll;}
+        float getYaw() {return _head.yaw;}
+        float getLastMeasuredYaw() {return _head.yawRate;}
         float getBodyYaw() {return _bodyYaw;};
-        void addBodyYaw(float y) {_bodyYaw += y;};
+        void  addBodyYaw(float y) {_bodyYaw += y;};
     
 		glm::vec3 getHeadLookatDirection();
 		glm::vec3 getHeadLookatDirectionUp();
@@ -137,7 +178,6 @@ class Head : public AvatarData {
 		
 		void renderBody();
 		void renderHead( int faceToFace);
-		//void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
         void simulate(float);
 				
@@ -146,10 +186,10 @@ class Head : public AvatarData {
 		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement();
         
-        float getLoudness() {return _loudness;};
-        float getAverageLoudness() {return _averageLoudness;};
-        void setAverageLoudness(float al) {_averageLoudness = al;};
-        void setLoudness(float l) {_loudness = l;};
+        float getLoudness() {return _head.loudness;};
+        float getAverageLoudness() {return _head.averageLoudness;};
+        void setAverageLoudness(float al) {_head.averageLoudness = al;};
+        void setLoudness(float l) {_head.loudness = l;};
         
         void SetNewHeadTarget(float, float);
     
@@ -170,41 +210,8 @@ class Head : public AvatarData {
         float getTransmitterHz() { return _transmitterHz; };
     
     private:
-        bool  _isMine;
-        float _noise;
-        float _headPitch;
-        float _headYaw;
-        float _headRoll;
-        float _headPitchRate;
-        float _headYawRate;
-        float _headRollRate;
-        float _eyeballPitch[2];
-        float _eyeballYaw[2];
-        float _eyebrowPitch[2];
-        float _eyebrowRoll[2];
-        float _eyeballScaleX, _eyeballScaleY, _eyeballScaleZ;
-        float _interPupilDistance;
-        float _interBrowDistance;
-        float _nominalPupilSize;
-        float _pupilSize;
-        float _mouthPitch;
-        float _mouthYaw;
-        float _mouthWidth;
-        float _mouthHeight;
-        float _leanForward;
-        float _leanSideways;
-        float _pitchTarget; 
-        float _yawTarget; 
-        float _noiseEnvelope;
-        float _pupilConverge;
-        float _scale;
-        
-        //  Sound loudness information
-        float _loudness, _lastLoudness;
-        float _averageLoudness;
-        float _audioAttack;
-        float _browAudioLift;
-        
+        AvatarHead  _head;    
+        bool        _isMine;
         glm::vec3   _TEST_bigSpherePosition;
         float       _TEST_bigSphereRadius;
 		glm::vec3	_DEBUG_otherAvatarListPosition[ NUM_OTHER_AVATARS ];
@@ -224,13 +231,9 @@ class Head : public AvatarData {
         float		_maxArmLength;
         Orientation	_orientation;
         int         _driveKeys[MAX_DRIVE_KEYS];
-        int         _eyeContact;
-        eyeContactTargets _eyeContactTarget;
-    
-        GLUquadric *_sphere;
-
-        float _renderYaw;
-        float _renderPitch; //   Pitch from view frustum when this is own head.
+        GLUquadric* _sphere;
+        float       _renderYaw;
+        float       _renderPitch; //   Pitch from view frustum when this is own head.
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
