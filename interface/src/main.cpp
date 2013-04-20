@@ -1021,6 +1021,39 @@ int setFrustumRenderMode(int state) {
     return ::frustumDrawingMode;
 }
 
+int doRandomizeVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.randomizeVoxelColors();
+    }
+    return state;
+}
+
+
+int doFalseRandomizeVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.falseColorizeRandom();
+    }
+    return state;
+}
+
+int doTrueVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.trueColorize();
+    }
+    return state;
+}
+
+int doFalseColorizeInView(int state) {
+    if (state == MENU_ROW_PICKED) {
+        if (::frustumOn) {
+            // we probably want to make sure the viewFrustum is initialized first
+            voxels.falseColorizeDistanceFromView(&::viewFrustum);
+        }
+    }
+    return state;
+}
+
+
 const char* modeAll     = " - All "; 
 const char* modeVectors = " - Vectors "; 
 const char* modePlanes  = " - Planes "; 
@@ -1075,7 +1108,10 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
-    
+    menuColumnDebug->addRow("Randomize Voxel Colors (Z)", doRandomizeVoxelColors);
+    menuColumnDebug->addRow("Randomize FALSE Voxel Colors", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
+    menuColumnDebug->addRow("True Colors", doTrueVoxelColors);
 }
 
 void testPointToVoxel()
@@ -1239,6 +1275,8 @@ void key(unsigned char k, int x, int y)
 //	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
 
 	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
+
+	if (k == 'Z') doRandomizeVoxelColors(MENU_ROW_PICKED);
 	
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
