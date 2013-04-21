@@ -85,14 +85,23 @@ void ViewFrustum::calculate() {
 	_nearBottomRight = _nearCenter - (_up * nearHalfHeight) + (_right * nearHalfWidth); 
 
 	// compute the six planes
-	// the function set3Points assumes that the points
-	// are given in counter clockwise order
-	_planes[TOPP].set3Points(_nearTopRight,_nearTopLeft,_farTopLeft);
-	_planes[BOTTOMP].set3Points(_nearBottomLeft,_nearBottomRight,_farBottomRight);
-	_planes[LEFTP].set3Points(_nearTopLeft,_nearBottomLeft,_farBottomLeft);
-	_planes[RIGHTP].set3Points(_nearBottomRight,_nearTopRight,_farBottomRight);
-	_planes[NEARP].set3Points(_nearTopLeft,_nearTopRight,_nearBottomRight);
-	_planes[FARP].set3Points(_farTopRight,_farTopLeft,_farBottomLeft);
+	// The planes are defined such that the normal points towards the inside of the view frustum. 
+	// Testing if an object is inside the view frustum is performed by computing on which side of 
+	// the plane the object resides. This can be done computing the signed distance from the point
+	// to the plane. If it is on the side that the normal is pointing, i.e. the signed distance 
+	// is positive, then it is on the right side of the respective plane. If an object is on the 
+	// right side of all six planes then the object is inside the frustum.
+
+	// the function set3Points assumes that the points are given in counter clockwise order, assume you
+	// are inside the frustum, facing the plane. Start with any point, and go counter clockwise for
+	// three consecutive points
+	
+	_planes[TOP_PLANE   ].set3Points(_nearTopRight,_nearTopLeft,_farTopLeft);
+	_planes[BOTTOM_PLANE].set3Points(_nearBottomLeft,_nearBottomRight,_farBottomRight);
+	_planes[LEFT_PLANE  ].set3Points(_nearBottomLeft,_farBottomLeft,_farTopLeft);
+	_planes[RIGHT_PLANE ].set3Points(_farBottomRight,_nearBottomRight,_nearTopRight);
+	_planes[NEAR_PLANE  ].set3Points(_nearBottomRight,_nearBottomLeft,_nearTopLeft);
+	_planes[FAR_PLANE   ].set3Points(_farBottomLeft,_farBottomRight,_farTopRight);
 
 }
 
@@ -135,11 +144,26 @@ void ViewFrustum::dump() {
 }
 
 
+//enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
+const char* ViewFrustum::debugPlaneName (int plane) const {
+    switch (plane) {
+        case TOP_PLANE:    return "Top Plane";
+        case BOTTOM_PLANE: return "Bottom Plane";
+        case LEFT_PLANE:   return "Left Plane";
+        case RIGHT_PLANE:  return "Right Plane";
+        case NEAR_PLANE:   return "Near Plane";
+        case FAR_PLANE:    return "Far Plane";
+    }
+    return "Unknown";
+}
+
+
 int ViewFrustum::pointInFrustum(glm::vec3 &p) {
 	int result = INSIDE;
 	for(int i=0; i < 6; i++) {
-		if (_planes[i].distance(p) < 0)
+		if (_planes[i].distance(p) < 0) {
 			return OUTSIDE;
+		}
 	}
 	return(result);
 }
@@ -160,17 +184,17 @@ int ViewFrustum::sphereInFrustum(glm::vec3 &center, float radius) {
 
 int ViewFrustum::boxInFrustum(AABox &b) {
 
-printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",b.corner.x,b.corner.y,b.corner.z,b.x);
+    printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",b.corner.x,b.corner.y,b.corner.z,b.x);
 	int result = INSIDE;
 	for(int i=0; i < 6; i++) {
 
         printf("plane[%d] -- point(%f,%f,%f) normal(%f,%f,%f) d=%f \n",i,
-            _planes[i].point.x, _planes[i].point.y, _planes[i].point.z, 
-            _planes[i].normal.x, _planes[i].normal.y, _planes[i].normal.z, 
-            _planes[i].d
+            _planes[i].getPoint().x, _planes[i].getPoint().y, _planes[i].getPoint().z,
+            _planes[i].getNormal().x, _planes[i].getNormal().y, _planes[i].getNormal().z,
+            _planes[i].getDCoefficient()
         );
 
-	    glm::vec3 normal = _planes[i].normal;
+	    glm::vec3 normal = _planes[i].getNormal();
 	    glm::vec3 boxVertexP = b.getVertexP(normal);
 	    float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 

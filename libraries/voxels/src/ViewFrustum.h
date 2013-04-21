@@ -45,8 +45,10 @@ private:
     glm::vec3   _nearTopRight;    
     glm::vec3   _nearBottomLeft;  
     glm::vec3   _nearBottomRight;
-    enum { TOPP = 0, BOTTOMP, LEFTP, RIGHTP, NEARP, FARP };
+    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     Plane _planes[6]; // How will this be used?
+    
+    const char* debugPlaneName (int plane) const;
     
 public:
     // setters for camera attributes
