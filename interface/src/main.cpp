@@ -555,34 +555,14 @@ void updateAvatar(float frametime)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-// render_view_frustum()
+// renderViewFrustum()
 //
-// Description: this will render the view frustum bounds for EITHER the head
+// Description: this will load the view frustum bounds for EITHER the head
 // 				or the "myCamera". 
 //
-// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
-// We can draw it with each of these parts:
-//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
-//    * Near plane - this plane is drawn very close to the origin point.
-//    * Right/Left planes - these two planes are drawn between the near and far planes.
-//    * Far plane - the plane is drawn in the distance.
-// Modes - the following modes, will draw the following parts.
-//    * All - draws all the parts listed above
-//    * Planes - draws the planes but not the origin vectors
-//    * Origin Vectors - draws the origin vectors ONLY
-//    * Near Plane - draws only the near plane
-//    * Far Plane - draws only the far plane
-#define FRUSTUM_DRAW_MODE_ALL        0
-#define FRUSTUM_DRAW_MODE_VECTORS    1
-#define FRUSTUM_DRAW_MODE_PLANES     2
-#define FRUSTUM_DRAW_MODE_NEAR_PLANE 3
-#define FRUSTUM_DRAW_MODE_FAR_PLANE  4
-#define FRUSTUM_DRAW_MODE_COUNT      5
 
-// These global scoped variables are used by our render_view_frustum() function below, but are also available as globals
-// so that the keyboard and menu can manipulate them.
-
-int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the frustum in, see notes above
+// These global scoped variables are used by our loadViewFrustum() and renderViewFrustum functions below, but are also
+//  available as globals so that the keyboard and menu can manipulate them.
 
 bool  frustumOn = false;                  // Whether or not to display the debug view frustum
 bool  cameraFrustum = true;               // which frustum to look at
@@ -594,8 +574,7 @@ float viewFrustumOffsetRoll     = 0.0;
 float viewFrustumOffsetDistance = 25.0;
 float viewFrustumOffsetUp       = 0.0;
 
-void render_view_frustum() {
-	
+void loadViewFrustum(ViewFrustum& viewFrustum) {
 	// We will use these below, from either the camera or head vectors calculated above	
 	glm::vec3 position;
 	glm::vec3 direction;
@@ -654,8 +633,44 @@ void render_view_frustum() {
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
-    
-    //viewFrustum.dump();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// renderViewFrustum()
+//
+// Description: this will render the view frustum bounds for EITHER the head
+// 				or the "myCamera". 
+//
+// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
+// We can draw it with each of these parts:
+//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
+//    * Near plane - this plane is drawn very close to the origin point.
+//    * Right/Left planes - these two planes are drawn between the near and far planes.
+//    * Far plane - the plane is drawn in the distance.
+// Modes - the following modes, will draw the following parts.
+//    * All - draws all the parts listed above
+//    * Planes - draws the planes but not the origin vectors
+//    * Origin Vectors - draws the origin vectors ONLY
+//    * Near Plane - draws only the near plane
+//    * Far Plane - draws only the far plane
+#define FRUSTUM_DRAW_MODE_ALL        0
+#define FRUSTUM_DRAW_MODE_VECTORS    1
+#define FRUSTUM_DRAW_MODE_PLANES     2
+#define FRUSTUM_DRAW_MODE_NEAR_PLANE 3
+#define FRUSTUM_DRAW_MODE_FAR_PLANE  4
+#define FRUSTUM_DRAW_MODE_COUNT      5
+
+int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the frustum in, see notes above
+
+void renderViewFrustum(ViewFrustum& viewFrustum) {
+
+    // Load it with the latest details!
+    loadViewFrustum(viewFrustum);
+	
+    glm::vec3 position  = viewFrustum.getPosition();
+    glm::vec3 direction = viewFrustum.getDirection();
+    glm::vec3 up        = viewFrustum.getUp();
+    glm::vec3 right     = viewFrustum.getRight();
 	
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
@@ -816,7 +831,7 @@ void display(void)
 		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
 		// to add other cameras.
 		//
-		// Why have two cameras? Well, one reason is that because in the case of the render_view_frustum()
+		// Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
 		// code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
 		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
 		Camera whichCamera = myCamera;
@@ -910,7 +925,7 @@ void display(void)
         if (!displayHead && statsOn) render_world_box();
         
         // brad's frustum for debugging
-        if (::frustumOn) render_view_frustum();
+        if (::frustumOn) renderViewFrustum(::viewFrustum);
     
         //Render my own avatar
 		myAvatar.render(true);	
@@ -1112,12 +1127,19 @@ int doTrueVoxelColors(int state) {
     return state;
 }
 
+int doFalseColorizeByDistance(int state) {
+    if (state == MENU_ROW_PICKED) {
+        loadViewFrustum(::viewFrustum);
+        voxels.falseColorizeDistanceFromView(&::viewFrustum);
+    }
+    return state;
+}
+
 int doFalseColorizeInView(int state) {
     if (state == MENU_ROW_PICKED) {
-        if (::frustumOn) {
-            // we probably want to make sure the viewFrustum is initialized first
-            voxels.falseColorizeDistanceFromView(&::viewFrustum);
-        }
+        loadViewFrustum(::viewFrustum);
+        // we probably want to make sure the viewFrustum is initialized first
+        voxels.falseColorizeInView(&::viewFrustum);
     }
     return state;
 }
@@ -1177,10 +1199,11 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
-    menuColumnDebug->addRow("Randomize Voxel Colors (Z)", doRandomizeVoxelColors);
-    menuColumnDebug->addRow("Randomize FALSE Voxel Colors", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
     menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
-    menuColumnDebug->addRow("True Colors", doTrueVoxelColors);
+    menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
 }
 
 void testPointToVoxel()
@@ -1345,8 +1368,6 @@ void key(unsigned char k, int x, int y)
 
 	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
 
-	if (k == 'Z') doRandomizeVoxelColors(MENU_ROW_PICKED);
-	
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
