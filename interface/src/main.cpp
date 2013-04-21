@@ -341,11 +341,15 @@ void displayStats(void)
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
-    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
-            roundf(avatarMixer->getAverageKilobitsPerSecond()),
-            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    if (avatarMixer) {
+        sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+                roundf(avatarMixer->getAverageKilobitsPerSecond()),
+                roundf(avatarMixer->getAveragePacketsPerSecond()));
+    } else {
+        sprintf(avatarMixerStats, "No Avatar Mixer");
+    }
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
-
+    
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
 		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
