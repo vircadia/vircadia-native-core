@@ -465,7 +465,7 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
             voxelBox.x, voxelBox.y, voxelBox.z);
     
         // If the voxel is outside of the view frustum, then false color it red
-        if (ViewFrustum::OUTSIDE == viewFrustum->boxInFrustum(voxelBox)) {
+        if (ViewFrustum::OUTSIDE == viewFrustum->pointInFrustum(voxelBox.corner)) {
             // Out of view voxels are colored RED
             unsigned char newR = 255;
             unsigned char newG = 0;
