@@ -1639,7 +1639,7 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_INTERFACE);
+    AgentList::createInstance(AGENT_TYPE_AVATAR);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
