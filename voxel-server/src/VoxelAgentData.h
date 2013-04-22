@@ -11,18 +11,17 @@
 
 #include <iostream>
 #include <AgentData.h>
+#include <AvatarData.h>
 #include "MarkerNode.h"
 
-class VoxelAgentData : public AgentData {
+class VoxelAgentData : public AvatarData {
 public:
-    float position[3];
     MarkerNode *rootMarkerNode;
 
     VoxelAgentData();
     ~VoxelAgentData();
     VoxelAgentData(const VoxelAgentData &otherAgentData);
     
-    void parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelAgentData* clone() const;
 };
 

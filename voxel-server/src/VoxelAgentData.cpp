@@ -19,18 +19,10 @@ VoxelAgentData::~VoxelAgentData() {
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    memcpy(position, otherAgentData.position, sizeof(float) * 3);
+    memcpy(&_bodyPosition, &otherAgentData._bodyPosition, sizeof(_bodyPosition));
     rootMarkerNode = new MarkerNode();
 }
 
 VoxelAgentData* VoxelAgentData::clone() const {
     return new VoxelAgentData(*this);
-}
-
-void VoxelAgentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    // push past the packet header
-    sourceBuffer++;
-    
-    // pull the position from the interface agent data packet
-    memcpy(&position, sourceBuffer, sizeof(float) * 3);
 }

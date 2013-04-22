@@ -11,6 +11,7 @@
 
 #include "SimpleMovingAverage.h"
 
+#include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "MarkerNode.h"
 
@@ -50,8 +51,10 @@ public:
     unsigned char * loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                         VoxelNode *currentVoxelNode,
                                         MarkerNode *currentMarkerNode,
-                                        float * agentPosition,
+                                        const glm::vec3& agentPosition,
                                         float thisNodePosition[3],
+                                        const ViewFrustum& viewFrustum,
+                                        bool viewFrustumCulling,
                                         unsigned char * octalCode = NULL);
     
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);

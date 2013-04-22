@@ -85,6 +85,7 @@
 using namespace std;
 
 void reshape(int width, int height); // will be defined below
+void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
 
 pthread_t networkReceiveThread;
@@ -522,6 +523,22 @@ void updateAvatar(float frametime)
     myAvatar.setAverageLoudness(averageLoudness);
     #endif
 
+    // Update Avatar with latest camera and view frustum data...
+    // NOTE: we get this from the view frustum, to make it simpler, since the
+    // loadViewFrumstum() method will get the correct details from the camera
+    // We could optimize this to not actually load the viewFrustum, since we don't
+    // actually need to calculate the view frustum planes to send these details 
+    // to the server.
+    loadViewFrustum(::viewFrustum);
+    myAvatar.setCameraPosition(::viewFrustum.getPosition());
+    myAvatar.setCameraDirection(::viewFrustum.getDirection());
+    myAvatar.setCameraUp(::viewFrustum.getUp());
+    myAvatar.setCameraRight(::viewFrustum.getRight());
+    myAvatar.setCameraFov(::viewFrustum.getFieldOfView());
+    myAvatar.setCameraAspectRatio(::viewFrustum.getAspectRatio());
+    myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
+    myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
+
     //  Send my stream of head/hand data to the avatar mixer and voxel server
     unsigned char broadcastString[200];
     *broadcastString = PACKET_HEADER_HEAD_DATA;
@@ -559,7 +576,7 @@ void updateAvatar(float frametime)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-// renderViewFrustum()
+// loadViewFrustum()
 //
 // Description: this will load the view frustum bounds for EITHER the head
 // 				or the "myCamera". 
