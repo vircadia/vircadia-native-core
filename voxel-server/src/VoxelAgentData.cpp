@@ -28,9 +28,10 @@ VoxelAgentData* VoxelAgentData::clone() const {
 }
 
 void VoxelAgentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    // push past the packet header
-    sourceBuffer++;
+    // call base class to parse the data
+    AvatarData::parseData(sourceBuffer,numBytes);
     
-    // pull the position from the interface agent data packet
-    memcpy(&position, sourceBuffer, sizeof(float) * 3);
+    // make sure our class knows it's position
+    memcpy(&position, &_bodyPosition, sizeof(_bodyPosition));
 }
+
