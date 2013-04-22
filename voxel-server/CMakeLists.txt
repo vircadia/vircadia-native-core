@@ -7,7 +7,6 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(GLM_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 # set up the external glm library
 include(${MACRO_DIR}/IncludeGLM.cmake)
@@ -23,6 +22,3 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 # link in the hifi voxels library
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
-
-# find required libraries
-find_package(GLM REQUIRED)
