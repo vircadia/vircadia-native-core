@@ -274,15 +274,15 @@ int main(int argc, const char * argv[])
 
     const char* DEBUG_VIEW_FRUSTUM="--DebugViewFrustum";
     ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
-	printf("debugViewFrustum=%s\n",(::debugViewFrustum?"yes":"no"));
+	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
 
     const char* VIEW_FRUSTUM_CULLING="--ViewFrustumCulling";
     ::viewFrustumCulling = cmdOptionExists(argc, argv, VIEW_FRUSTUM_CULLING);
-	printf("viewFrustumCulling=%s\n",(::viewFrustumCulling?"yes":"no"));
+	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
 	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-	printf("wantColorRandomizer=%s\n",(::wantColorRandomizer?"yes":"no"));
+	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
