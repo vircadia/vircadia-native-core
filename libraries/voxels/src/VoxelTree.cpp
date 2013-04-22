@@ -17,6 +17,7 @@
 #include "PacketHeaders.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
+#include "ViewFrustum.h"
 #include <fstream> // to load voxels from file
 
 using voxels_lib::printLog;
@@ -266,8 +267,10 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                VoxelNode *currentVoxelNode,
                                                MarkerNode *currentMarkerNode,
-                                               float * agentPosition,
+                                               const glm::vec3& agentPosition,
                                                float thisNodePosition[3],
+                                               const ViewFrustum& viewFrustum,
+                                               bool viewFrustumCulling,
                                                unsigned char * stopOctalCode)
 {
     static unsigned char *initialBitstreamPos = bitstreamBuffer;
@@ -294,22 +297,38 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         unsigned char * childMaskPointer = NULL;
         
         float halfUnitForVoxel = powf(0.5, *currentVoxelNode->octalCode) * (0.5 * TREE_SCALE);
-
-		// XXXBHG - Note: It appears as if the X and Z coordinates of Head or Agent are flip-flopped relative to the 
-		// coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 
-		// to fix this behavior. To disable this swap, set swapXandZ to false.
-		// XXXBHG - 2013/04/11 - adding a note to my branch, I think this code is now broken.
-        bool swapXandZ=false;
-        float agentX = swapXandZ ? agentPosition[2] : agentPosition[0];
-        float agentZ = swapXandZ ? agentPosition[0] : agentPosition[2];
-        
-        float distanceToVoxelCenter = sqrtf(powf(agentX - thisNodePosition[0] - halfUnitForVoxel, 2) +
+        float distanceToVoxelCenter = sqrtf(powf(agentPosition[0] - thisNodePosition[0] - halfUnitForVoxel, 2) +
                                             powf(agentPosition[1] - thisNodePosition[1] - halfUnitForVoxel, 2) +
-                                            powf(agentZ - thisNodePosition[2] - halfUnitForVoxel, 2));
+                                            powf(agentPosition[2] - thisNodePosition[2] - halfUnitForVoxel, 2));
+
+        // If the voxel is outside of the view frustum, then don't bother sending or recursing
+        bool voxelInView = true;
+        
+        /**** not yet working properly at this level! **************************************************************************
+        if (viewFrustumCulling) {
+            float fullUnitForVoxel = halfUnitForVoxel * 2.0f;
+            AABox voxelBox;
+            voxelBox.setBox(glm::vec3(thisNodePosition[0],thisNodePosition[1],thisNodePosition[2]),
+                fullUnitForVoxel,fullUnitForVoxel,fullUnitForVoxel);
+        
+            //printf("VoxelTree::loadBitstreamBuffer() voxelBox.corner=(%f,%f,%f) x=%f \n",
+            //  voxelBox.getCorner().x,voxelBox.getCorner().y,voxelBox.getCorner().z, voxelBox.getSize().x);
+    
+            voxelInView = (ViewFrustum::OUTSIDE != viewFrustum.pointInFrustum(voxelBox.getCorner()));
+        } else {
+            voxelInView = true;
+        }
+        **********************************************************************************************************************/
         
         // if the distance to this voxel's center is less than the threshold
         // distance for its children, we should send the children
-        if (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentVoxelNode->octalCode + 1)) {
+        bool voxelIsClose = (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentVoxelNode->octalCode + 1));
+        bool sendVoxel = voxelIsClose && voxelInView;
+
+        //printf("VoxelTree::loadBitstreamBuffer() sendVoxel=%d, voxelIsClose=%d, voxelInView=%d, viewFrustumCulling=%d\n",
+        //  sendVoxel, voxelIsClose, voxelInView, viewFrustumCulling);
+        
+        if (sendVoxel) {
             
             // write this voxel's data if we're below or at
             // or at the same level as the stopOctalCode
@@ -341,16 +360,78 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                 
                 for (int i = 0; i < 8; i++) {
                     
-                    // check if the child exists and is not transparent
-                    if (currentVoxelNode->children[i] != NULL
-                        && currentVoxelNode->children[i]->isColored()) {
+                    // Rules for including a child:
+                    // 1) child must exists
+                    if ((currentVoxelNode->children[i] != NULL)) {
+                        // 2) child must have a color...
+                        if (currentVoxelNode->children[i]->isColored()) {
                         
-                        // copy in the childs color to bitstreamBuffer
-                        memcpy(colorPointer, currentVoxelNode->children[i]->getTrueColor(), 3);
-                        colorPointer += 3;
+                            unsigned char* childOctalCode = currentVoxelNode->children[i]->octalCode;
+
+                            float childPosition[3];
+                            copyFirstVertexForCode(childOctalCode,(float*)&childPosition);
+                            childPosition[0] *= TREE_SCALE; // scale it up
+                            childPosition[1] *= TREE_SCALE; // scale it up
+                            childPosition[2] *= TREE_SCALE; // scale it up
                         
-                        // set the colorMask by bitshifting the value of childExists
-                        *bitstreamBuffer += (1 << (7 - i));
+                            float halfChildVoxel = powf(0.5, *childOctalCode) * (0.5 * TREE_SCALE);
+                            float distanceToChildCenter = sqrtf(powf(agentPosition[0] - childPosition[0] - halfChildVoxel, 2) +
+                                                                powf(agentPosition[1] - childPosition[1] - halfChildVoxel, 2) +
+                                                                powf(agentPosition[2] - childPosition[2] - halfChildVoxel, 2));
+
+                            float fullChildVoxel = halfChildVoxel * 2.0f;
+                            AABox childBox;
+                            childBox.setBox(glm::vec3(childPosition[0], childPosition[1], childPosition[2]),
+                                fullChildVoxel, fullChildVoxel, fullChildVoxel);
+        
+                            //printf("VoxelTree::loadBitstreamBuffer() childBox.corner=(%f,%f,%f) x=%f \n",
+                            //  childBox.getCorner().x,childBox.getCorner().y,childBox.getCorner().z, childBox.getSize().x);
+
+                            // XXXBHG - not sure we want to do this "distance/LOD culling" at this level.
+                            //bool childIsClose = (distanceToChildCenter < boundaryDistanceForRenderLevel(*childOctalCode + 1));
+                            
+                            bool childIsClose = true; // for now, assume we're close enough
+                            bool childInView  = !viewFrustumCulling || 
+                                (ViewFrustum::OUTSIDE != viewFrustum.pointInFrustum(childBox.getCorner()));
+
+                            /// XXXBHG - debug code, switch this to true, and we'll send everything but include false coloring
+                            // on voxels based on whether or not they match these rules.
+                            bool falseColorInsteadOfCulling = false;
+                            
+                            // removed childIsClose - until we determine if we want to include that
+                            bool sendChild =  (childInView) || falseColorInsteadOfCulling; 
+                            
+                            //printf("VoxelTree::loadBitstreamBuffer() childIsClose=%d, childInView=%d\n",
+                            //    childIsClose, childInView);
+
+                            // if we sendAnyway, we'll do false coloring of the voxels based on childIsClose && childInView
+                            if (sendChild) {
+                        
+                                // copy in the childs color to bitstreamBuffer
+                                if (childIsClose && childInView) {
+                                    // true color
+                                    memcpy(colorPointer, currentVoxelNode->children[i]->getTrueColor(), 3);
+                                } else {
+                                    unsigned char red[3]   = {255,0,0};
+                                    unsigned char green[3] = {0,255,0};
+                                    unsigned char blue[3]  = {0,0,255};
+                                    if (!childIsClose && !childInView) {
+                                        // If both too far, and not in view, color them red
+                                        memcpy(colorPointer, red, 3);
+                                    } else if (!childIsClose) {
+                                        // If too far, but in view, color them blue
+                                        memcpy(colorPointer, blue, 3);
+                                    } else {
+                                        // If close, but out of view, color them green
+                                        memcpy(colorPointer, green, 3);
+                                    }
+                                }
+                                colorPointer += 3;
+                        
+                                // set the colorMask by bitshifting the value of childExists
+                                *bitstreamBuffer += (1 << (7 - i));
+                            }
+                        }
                     }
                 }
                 
@@ -414,6 +495,8 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                                  currentMarkerNode->children[i],
                                                                  agentPosition,
                                                                  childNodePosition,
+                                                                 viewFrustum,
+                                                                 viewFrustumCulling,
                                                                  stopOctalCode);
                         
                         if (bitstreamBuffer - arrBufferBeforeChild > 0) {

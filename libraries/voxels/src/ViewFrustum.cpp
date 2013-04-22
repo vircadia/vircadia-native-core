@@ -105,7 +105,7 @@ void ViewFrustum::calculate() {
 
 }
 
-void ViewFrustum::dump() {
+void ViewFrustum::dump() const {
 
     printLog("position.x=%f, position.y=%f, position.z=%f\n", _position.x, _position.y, _position.z);
     printLog("direction.x=%f, direction.y=%f, direction.z=%f\n", _direction.x, _direction.y, _direction.z);
@@ -158,17 +158,25 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
 }
 
 
-int ViewFrustum::pointInFrustum(const glm::vec3& point) {
+int ViewFrustum::pointInFrustum(const glm::vec3& point) const {
+
+    //printf("ViewFrustum::pointInFrustum() point=%f,%f,%f\n",point.x,point.y,point.z);
+    //dump();
+
 	int result = INSIDE;
 	for(int i=0; i < 6; i++) {
-		if (_planes[i].distance(point) < 0) {
+	    float distance = _planes[i].distance(point);
+
+        //printf("plane[%d] %s -- distance=%f \n",i,debugPlaneName(i),distance);
+	
+		if (distance < 0) {
 			return OUTSIDE;
 		}
 	}
 	return(result);
 }
 
-int ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) {
+int ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
 	int result = INSIDE;
 	float distance;
 	for(int i=0; i < 6; i++) {
@@ -182,7 +190,7 @@ int ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) {
 }
 
 
-int ViewFrustum::boxInFrustum(const AABox& box) {
+int ViewFrustum::boxInFrustum(const AABox& box) const {
 
     printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",
         box.getCorner().x,box.getCorner().y,box.getCorner().z,box.getSize().x);

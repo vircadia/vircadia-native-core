@@ -90,13 +90,13 @@ public:
 
     ViewFrustum();
 
-    void dump();
+    void dump() const;
     
     enum {OUTSIDE, INTERSECT, INSIDE};
 
-    int pointInFrustum(const glm::vec3& point);
-    int sphereInFrustum(const glm::vec3& center, float radius);
-    int boxInFrustum(const AABox& box);
+    int pointInFrustum(const glm::vec3& point) const;
+    int sphereInFrustum(const glm::vec3& center, float radius) const;
+    int boxInFrustum(const AABox& box) const;
     
 };
 
