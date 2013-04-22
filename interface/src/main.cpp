@@ -932,7 +932,7 @@ void display(void)
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
-            if (agent->getLinkedData() != NULL) {
+            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Head *avatar = (Head *)agent->getLinkedData();
                 //glPushMatrix();
                 
