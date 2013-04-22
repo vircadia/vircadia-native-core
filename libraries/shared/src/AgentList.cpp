@@ -228,7 +228,6 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (agent == agents.end()) {
         // we didn't have this agent, so add them
-        
         Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
@@ -281,7 +280,7 @@ void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes
 void AgentList::handlePingReply(sockaddr *agentAddress) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
         // check both the public and local addresses for each agent to see if we find a match
-        // prioritize the private address so that we prune erroneous local matches        
+        // prioritize the private address so that we prune erroneous local matches
         if (socketMatch(agent->getPublicSocket(), agentAddress)) {
             agent->activatePublicSocket();
             break;

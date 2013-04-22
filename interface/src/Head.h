@@ -34,7 +34,7 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
-#define NUM_OTHER_AVATARS 5 // temporary - for testing purposes!
+#define MAX_OTHER_AVATARS 50 // temporary - for testing purposes!
 
 enum AvatarMode
 {
@@ -172,7 +172,7 @@ class Head : public AvatarData {
 		
 		AvatarMode getMode();
 		
-		void setTriggeringAction( bool trigger ); 
+		void setMousePressed( bool pressed ); 
         
         void render(int faceToFace);
 		
@@ -214,26 +214,29 @@ class Head : public AvatarData {
         bool        _isMine;
         glm::vec3   _TEST_bigSpherePosition;
         float       _TEST_bigSphereRadius;
-		glm::vec3	_DEBUG_otherAvatarListPosition[ NUM_OTHER_AVATARS ];
-		bool        _triggeringAction;
+		glm::vec3	_otherAvatarHandPosition[ MAX_OTHER_AVATARS ];
+		bool        _mousePressed;
 		float       _bodyYawDelta;
-		float       _closeEnoughToInteract;
+		//float       _closeEnoughToInteract;
 		int         _closestOtherAvatar;
 		bool        _usingBodySprings;
 		glm::vec3   _movedHandOffset;
 		float       _springVelocityDecay;
 		float       _springForce;
-        glm::quat   _rotation; // the rotation of the avatar body as a whole
+        glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
 		AvatarBone	_bone[ NUM_AVATAR_BONES ];
 		AvatarMode  _mode;
         glm::dvec3	_velocity;
         glm::vec3	_thrust;
         float		_maxArmLength;
         Orientation	_orientation;
+        int         _numOtherAvatarsInView;
+
         int         _driveKeys[MAX_DRIVE_KEYS];
         GLUquadric* _sphere;
         float       _renderYaw;
         float       _renderPitch; //   Pitch from view frustum when this is own head.
+    
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand

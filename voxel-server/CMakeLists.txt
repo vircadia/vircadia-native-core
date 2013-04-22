@@ -7,7 +7,6 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(GLM_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 # set up the external glm library
 include(${MACRO_DIR}/IncludeGLM.cmake)

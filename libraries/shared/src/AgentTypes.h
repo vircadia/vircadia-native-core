@@ -20,7 +20,7 @@
 // Agent Type Codes
 const char AGENT_TYPE_DOMAIN = 'D';
 const char AGENT_TYPE_VOXEL = 'V';
-const char AGENT_TYPE_INTERFACE = 'I'; // could also be injector???
+const char AGENT_TYPE_AVATAR = 'I'; // could also be injector???
 const char AGENT_TYPE_AUDIO_MIXER = 'M';
 const char AGENT_TYPE_AVATAR_MIXER = 'W';
 

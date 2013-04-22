@@ -209,7 +209,6 @@ void initializeHandController() {
    handController.rampUpRate   = 0.05;
    handController.rampDownRate = 0.02;
    handController.envelope     = 0.0f;
-
 }
 
 void updateHandController( int x, int y ) {
@@ -239,7 +238,8 @@ void updateHandController( int x, int y ) {
                 handController.startX = WIDTH	 / 2;
                 handController.startY = HEIGHT / 2;
                 handController.envelope = 0.0; 
-                myAvatar.stopHandMovement();
+//prototype                
+//myAvatar.stopHandMovement();
             }
         }
     }
@@ -935,6 +935,9 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *avatar = (Head *)agent->getLinkedData();
                 //glPushMatrix();
+                
+//printf( "rendering remote avatar\n" );                
+                
                 avatar->render(0);
                 //glPopMatrix();
             }
@@ -1000,11 +1003,18 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
-    //  Draw number of nearby people always
+    //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents: %ld\n", AgentList::getInstance()->getAgents().size());
-    drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    
+    int totalAgents = AgentList::getInstance()->getAgents().size();
+    int totalAvatars = 0, totalServers = 0;
+    for (int i = 0; i < totalAgents; i++) {
+        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
+            ? totalAvatars++ : totalServers++;
+    }
+    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
@@ -1407,7 +1417,6 @@ void key(unsigned char k, int x, int y)
         {
             myAvatar.setNoise(0);
         }
-
     }
     
     if (k == 'h') {
@@ -1484,13 +1493,12 @@ void idle(void) {
         // update behaviors for avatar hand movement 
         updateHandController( mouseX, mouseY );
         
-		// when the mouse is being pressed, an 'action' is being 
-		// triggered in the avatar. The action is context-based.
+		// tell my avatar if the mouse is being pressed...
 		if ( mousePressed == 1 ) {
-			myAvatar.setTriggeringAction( true );
+			myAvatar.setMousePressed( true );
 		}
 		else {
-			myAvatar.setTriggeringAction( false );
+			myAvatar.setMousePressed( false );
 		}
         
         // walking triggers the handController to stop
@@ -1503,7 +1511,6 @@ void idle(void) {
         //
         updateAvatar( 1.f/FPS );
 		
-        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
@@ -1511,11 +1518,13 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) 
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
+                
+//printf( "simulating remote avatar\n" );                
+                
                 avatar->simulate(deltaTime);
             }
         }
         
-		
         //updateAvatarHand(1.f/FPS);
     
         field.simulate   (deltaTime);
@@ -1623,8 +1632,6 @@ void mouseoverFunc( int x, int y)
 
 
 
-
-
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
         newAgent->setLinkedData(new Head(false));
@@ -1649,7 +1656,7 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_INTERFACE);
+    AgentList::createInstance(AGENT_TYPE_AVATAR);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");

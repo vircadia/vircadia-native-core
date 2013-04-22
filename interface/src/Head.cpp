@@ -47,7 +47,8 @@ unsigned int iris_texture_height = 256;
 
 Head::Head(bool isMine) {
     
-	_orientation.setToIdentity();
+    _orientation.setToIdentity();
+    
 	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
 	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
@@ -56,13 +57,14 @@ Head::Head(bool isMine) {
 	_bodyPitch          = 0.0;
 	_bodyRoll           = 0.0;
 	_bodyYawDelta       = 0.0;
-	_triggeringAction   = false;
+	_mousePressed       = false;
 	_mode               = AVATAR_MODE_STANDING;
     _isMine             = isMine;
     _maxArmLength       = 0.0;
     //_transmitterTimer   = 0;
     _transmitterHz      = 0.0;
     _transmitterPackets = 0;
+    _numOtherAvatarsInView = 0;
 
     initializeSkeleton();
     
@@ -113,7 +115,8 @@ Head::Head(bool isMine) {
     _head.noise              = 0;
     
 	_movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
-	_usingBodySprings        = false;
+_usingBodySprings        = true;
+//_usingBodySprings        = false;
 	_springForce             = 6.0f;
 	_springVelocityDecay     = 16.0f;
     _renderYaw               = 0.0;
@@ -132,11 +135,11 @@ Head::Head(bool isMine) {
     //--------------------------------------------------
     // test... just slam them into random positions...
     //--------------------------------------------------
-    _DEBUG_otherAvatarListPosition[ 0 ] = glm::vec3(  0.0f, 0.3f,  2.0f );
-    _DEBUG_otherAvatarListPosition[ 1 ] = glm::vec3(  4.0f, 0.3f,  2.0f );
-    _DEBUG_otherAvatarListPosition[ 2 ] = glm::vec3(  2.0f, 0.3f,  2.0f );
-    _DEBUG_otherAvatarListPosition[ 3 ] = glm::vec3(  1.0f, 0.3f, -4.0f );
-    _DEBUG_otherAvatarListPosition[ 4 ] = glm::vec3( -2.0f, 0.3f, -2.0f );
+    _otherAvatarHandPosition[ 0 ] = glm::vec3(  0.0f, 0.3f,  2.0f );
+    _otherAvatarHandPosition[ 1 ] = glm::vec3(  4.0f, 0.3f,  2.0f );
+    _otherAvatarHandPosition[ 2 ] = glm::vec3(  2.0f, 0.3f,  2.0f );
+    _otherAvatarHandPosition[ 3 ] = glm::vec3(  1.0f, 0.3f, -4.0f );
+    _otherAvatarHandPosition[ 4 ] = glm::vec3( -2.0f, 0.3f, -2.0f );
 }
 
 Head::Head(const Head &otherAvatar) {
@@ -149,7 +152,7 @@ Head::Head(const Head &otherAvatar) {
 	_bodyPitch              = otherAvatar._bodyPitch;
 	_bodyRoll               = otherAvatar._bodyRoll;
 	_bodyYawDelta           = otherAvatar._bodyYawDelta;
-	_triggeringAction       = otherAvatar._triggeringAction;
+	_mousePressed       = otherAvatar._mousePressed;
 	_mode                   = otherAvatar._mode;
     _isMine                 = otherAvatar._isMine;
     _renderYaw              = otherAvatar._renderYaw;
@@ -163,8 +166,7 @@ Head::Head(const Head &otherAvatar) {
 	_movedHandOffset        = otherAvatar._movedHandOffset;
 	_usingBodySprings       = otherAvatar._usingBodySprings;
 	_springForce            = otherAvatar._springForce;
-	_springVelocityDecay    = otherAvatar._springVelocityDecay;
-	
+	_springVelocityDecay    = otherAvatar._springVelocityDecay;    
 	_orientation.set( otherAvatar._orientation );
     
     //for (int o=0;o<NUM_OTHER_AVATARS; o++) {
@@ -305,8 +307,8 @@ void Head::setLeanSideways(float dist){
     _head.leanSideways = dist;
 }
 
-void Head::setTriggeringAction( bool d ) {
-	_triggeringAction = d;
+void Head::setMousePressed( bool d ) {
+	_mousePressed = d;
 }
 
 
@@ -325,21 +327,38 @@ void Head::simulate(float deltaTime) {
         _closestOtherAvatar = -1;
         float closestDistance = 10000.0f;
         
-        /*
         AgentList * agentList = AgentList::getInstance();
+        
+        _numOtherAvatarsInView =0;
 
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
-            if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_INTERFACE ) )) {
+            if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_AVATAR ) )) {
                 Head *otherAvatar = (Head *)agent->getLinkedData();
-               
-                // when this is working, I will grab the position here...
-                //glm::vec3 otherAvatarPosition = otherAvatar->getBodyPosition();
+                
+                 if ( _numOtherAvatarsInView < MAX_OTHER_AVATARS ) {
+                 
+                    //-----------------------------------------------------------
+                    // test other avatar hand position for proximity...
+                    //-----------------------------------------------------------
+                    _otherAvatarHandPosition[ _numOtherAvatarsInView ] = otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
+                    glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
+                    v -= _otherAvatarHandPosition[ _numOtherAvatarsInView ];
+                    
+                    float distance = glm::length( v );
+                    if ( distance < _maxArmLength ) {
+                        if ( distance < closestDistance ) {
+                            closestDistance = distance;
+                            _closestOtherAvatar = _numOtherAvatarsInView;
+                            _numOtherAvatarsInView++;
+                        }
+                    }
+                }
             }
         }
-        */
         
+        /*
         ///for testing only (prior to having real avs working)
         for (int o=0; o<NUM_OTHER_AVATARS; o++) {
             //-------------------------------------
@@ -357,16 +376,17 @@ void Head::simulate(float deltaTime) {
                 }
             }
         }
+        */
         
-        if ( usingBigSphereCollisionTest ) {
-            //--------------------------------------------------------------
-            // test for avatar collision response (using a big sphere :)
-            //--------------------------------------------------------------
-            updateBigSphereCollisionTest(deltaTime);
-        }
-            
     }//if ( _isMine )
-
+        
+    if ( usingBigSphereCollisionTest ) {
+        //--------------------------------------------------------------
+        // test for avatar collision response (using a big sphere :)
+        //--------------------------------------------------------------
+        updateBigSphereCollisionTest(deltaTime);
+    }
+            
 	//------------------------
 	// update avatar skeleton
 	//------------------------ 
@@ -385,7 +405,7 @@ void Head::simulate(float deltaTime) {
         // this handles the avatar being driven around...
         //-------------------------------------------------	
         _thrust = glm::vec3( 0.0, 0.0, 0.0 );
-            
+             
         if (_driveKeys[FWD]) {
             glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
             _thrust += front * THRUST_MAG;
@@ -592,13 +612,6 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
                 _usingBodySprings = true;
                 initializeBodySprings();
             }
-            /*
-            else {
-                if (_usingSprings) {
-                    _usingSprings = false;
-                }
-            }
-            */
             
             //----------------------------------------------------------
             // add gravity to velocity
@@ -669,9 +682,9 @@ void Head::render(int faceToFace) {
         //---------------------------------------------------
         // render other avatars (DEBUG TEST)
         //---------------------------------------------------
-        for (int o=0; o<NUM_OTHER_AVATARS; o++) {
+        for (int o=0; o<_numOtherAvatarsInView; o++) {
             glPushMatrix();
-                glTranslatef( _DEBUG_otherAvatarListPosition[o].x, _DEBUG_otherAvatarListPosition[o].y, _DEBUG_otherAvatarListPosition[o].z );
+                glTranslatef( _otherAvatarHandPosition[o].x, _otherAvatarHandPosition[o].y, _otherAvatarHandPosition[o].z );
                 glScalef( 0.03, 0.03, 0.03 );
                 glutSolidSphere( 1, 10, 10 );
             glPopMatrix();
@@ -681,10 +694,10 @@ void Head::render(int faceToFace) {
             if ( _closestOtherAvatar != -1 ) {					
 
                 glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-                glm::vec3 v2( _DEBUG_otherAvatarListPosition[ _closestOtherAvatar ] );
+                glm::vec3 v2( _otherAvatarHandPosition[ _closestOtherAvatar ] );
                 
-                glLineWidth( 5.0 );
-                glColor4f( 0.9f, 0.5f, 0.2f, 0.6 );
+                glLineWidth( 8.0 );
+                glColor4f( 0.7f, 0.4f, 0.1f, 0.6 );
                 glBegin( GL_LINE_STRIP );
                 glVertex3f( v1.x, v1.y, v1.z );
                 glVertex3f( v2.x, v2.y, v2.z );
@@ -871,7 +884,7 @@ void Head::startHandMovement() {
 }
 
 void Head::stopHandMovement() {
-    _usingBodySprings = false;
+//_usingBodySprings = false;
 }
  
 void Head::setHandMovementValues( glm::vec3 handOffset ) {
@@ -1005,19 +1018,13 @@ void Head::updateSkeleton() {
 	//----------------------------------	
 	_orientation.setToIdentity();
 	_orientation.yaw( _bodyYaw );
-        
-    //test! - make sure this does what expected: st rotation to be identity PLUS _bodyYaw
-    //_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
-    
-    //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
-    
-    
+
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
-			_bone[b].orientation.set( _orientation );
+            _bone[b].orientation.set( _orientation );
 			_bone[b].position = _bodyPosition;
 		}
 		else {
@@ -1070,7 +1077,7 @@ void Head::updateBodySprings( float deltaTime ) {
 			
 			float force = ( length - _bone[b].length ) * _springForce * deltaTime;
 			
-			_bone[ b						].springyVelocity -= springDirection * force;
+			_bone[b].springyVelocity -= springDirection * force;
             
             if ( _bone[b].parent != AVATAR_BONE_NULL ) {
                 _bone[ _bone[b].parent	].springyVelocity += springDirection * force;
@@ -1095,27 +1102,27 @@ void Head::updateBodySprings( float deltaTime ) {
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
-		_orientation.getFront().x,
-		_orientation.getFront().y,
-		_orientation.getFront().z
+        _orientation.getFront().x,
+        _orientation.getFront().y,
+        _orientation.getFront().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionUp() {
 	return glm::vec3
 	(
-		_orientation.getUp().x,
-		_orientation.getUp().y,
-		_orientation.getUp().z
+        _orientation.getUp().x,
+        _orientation.getUp().y,
+        _orientation.getUp().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionRight() {
 	return glm::vec3
 	(
-		_orientation.getRight().x,
-		_orientation.getRight().y,
-		_orientation.getRight().z
+        _orientation.getRight().x,
+        _orientation.getRight().y,
+        _orientation.getRight().z
 	);
 }
 
@@ -1129,21 +1136,26 @@ glm::vec3 Head::getHeadPosition() {
 }
 
 
+glm::vec3 Head::getBonePosition( AvatarBones b ) {
+    return _bone[b].position;
+}
+
+
 
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
-	
+	    
 	transformedHandMovement 
 	= _orientation.getRight() *  _movedHandOffset.x
-	+ _orientation.getUp()	 * -_movedHandOffset.y * 0.5f
+	+ _orientation.getUp()	  * -_movedHandOffset.y * 0.5f
 	+ _orientation.getFront() * -_movedHandOffset.y;
-
+    
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
 	//if holding hands, add a pull to the hand...
 	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
-			if ( _triggeringAction ) {
+			if ( _mousePressed ) {
 				
 				/*
 				glm::vec3 handShakePull( DEBUG_otherAvatarListPosition[ closestOtherAvatar ]);
@@ -1154,7 +1166,7 @@ void Head::updateHandMovement() {
 				transformedHandMovement += handShakePull;
 				*/
                 
-				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _DEBUG_otherAvatarListPosition[ _closestOtherAvatar ];				
+				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _otherAvatarHandPosition[ _closestOtherAvatar ];				
 			}
 		}
 	}
@@ -1207,6 +1219,7 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * ONE_HALF;
+//glm::vec3 perpendicular = glm::cross( frontDirection, armVector );
 	glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
 
 	newElbowPosition += perpendicular * ( 1.0f - ( _maxArmLength / distance ) ) * ONE_HALF;
@@ -1233,6 +1246,18 @@ void Head::renderBody() {
     //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+
+/*
+if ( _isMine )
+{
+    printf( "my avatar: %d\n", _usingBodySprings );
+}
+else
+{
+    printf( "other avatar: %d\n", _usingBodySprings );
+}
+*/
+
 		if ( _usingBodySprings ) {
 			glColor3fv( lightBlue );
 			glPushMatrix();
@@ -1280,7 +1305,7 @@ void Head::renderBody() {
 	}
 	
 	
-	if (( _usingBodySprings ) && ( _triggeringAction )) {
+	if (( _usingBodySprings ) && ( _mousePressed )) {
 		glColor4f( 1.0, 1.0, 0.5, 0.5 );
 		glPushMatrix();
 			glTranslatef

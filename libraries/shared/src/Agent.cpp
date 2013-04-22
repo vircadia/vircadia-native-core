@@ -132,7 +132,7 @@ const char* Agent::getTypeName() const {
 		case AGENT_TYPE_VOXEL:
 			name = AGENT_TYPE_NAME_VOXEL;
 			break;
-		case AGENT_TYPE_INTERFACE:
+		case AGENT_TYPE_AVATAR:
 			name = AGENT_TYPE_NAME_INTERFACE;
 			break;
 		case AGENT_TYPE_AUDIO_MIXER:
