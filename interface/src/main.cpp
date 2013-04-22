@@ -993,7 +993,7 @@ void display(void)
     int totalAgents = AgentList::getInstance()->getAgents().size();
     int totalAvatars = 0, totalServers = 0;
     for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_INTERFACE)
+        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
             ? totalAvatars++ : totalServers++;
     }
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
