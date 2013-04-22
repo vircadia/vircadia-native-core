@@ -306,7 +306,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
         
         /**** not yet working properly at this level! **************************************************************************
         if (viewFrustumCulling) {
-            float fullUnitForVoxel = halfUnitForVoxel*2.0f;
+            float fullUnitForVoxel = halfUnitForVoxel * 2.0f;
             AABox voxelBox;
             voxelBox.setBox(glm::vec3(thisNodePosition[0],thisNodePosition[1],thisNodePosition[2]),
                 fullUnitForVoxel,fullUnitForVoxel,fullUnitForVoxel);
@@ -379,10 +379,10 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                                 powf(agentPosition[1] - childPosition[1] - halfChildVoxel, 2) +
                                                                 powf(agentPosition[2] - childPosition[2] - halfChildVoxel, 2));
 
-                            float fullChildVoxel = halfChildVoxel*2.0f;
+                            float fullChildVoxel = halfChildVoxel * 2.0f;
                             AABox childBox;
-                            childBox.setBox(glm::vec3(childPosition[0],childPosition[1],childPosition[2]),
-                                fullChildVoxel,fullChildVoxel,fullChildVoxel);
+                            childBox.setBox(glm::vec3(childPosition[0], childPosition[1], childPosition[2]),
+                                fullChildVoxel, fullChildVoxel, fullChildVoxel);
         
                             //printf("VoxelTree::loadBitstreamBuffer() childBox.corner=(%f,%f,%f) x=%f \n",
                             //  childBox.getCorner().x,childBox.getCorner().y,childBox.getCorner().z, childBox.getSize().x);

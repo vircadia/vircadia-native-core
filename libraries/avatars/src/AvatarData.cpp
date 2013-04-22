@@ -90,19 +90,12 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(_cameraNearClip);
     memcpy(destinationBuffer, &_cameraFarClip, sizeof(_cameraFarClip));
     destinationBuffer += sizeof(_cameraFarClip);
-    
-    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
 
-    //printf("AvatarData::getBroadcastData() numBytes=%ld\n",(destinationBuffer - bufferStart));
-    
     return destinationBuffer - bufferStart;
 }
 
 // called on the other agents - assigns it to my views of the others
 void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
-
-    //printf("AvatarData::parseData() numBytes=%d\n",numBytes);
-
     // increment to push past the packet header
     sourceBuffer++;
     
@@ -133,11 +126,6 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(_cameraNearClip);
     memcpy(&_cameraFarClip, sourceBuffer, sizeof(_cameraFarClip));
     sourceBuffer += sizeof(_cameraFarClip);
-    
-    //printLog( "_bodyYaw = %f", _bodyYaw );
-
-    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
-    //printLog("%f, %f, %f\n", _bodyPosition.x,  _bodyPosition.y, _bodyPosition.z);
 }
 
 glm::vec3 AvatarData::getBodyPosition() {
