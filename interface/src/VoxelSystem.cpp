@@ -460,12 +460,12 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
     
         voxelBox.scale(TREE_SCALE);
     
-        printf("voxelBox corner=(%f,%f,%f) x=%f y=%f z=%f\n",
-            voxelBox.corner.x, voxelBox.corner.y, voxelBox.corner.z,
-            voxelBox.x, voxelBox.y, voxelBox.z);
+        printf("voxelBox corner=(%f,%f,%f) x=%f\n",
+            voxelBox.getCorner().x, voxelBox.getCorner().y, voxelBox.getCorner().z,
+            voxelBox.getSize().x);
     
         // If the voxel is outside of the view frustum, then false color it red
-        if (ViewFrustum::OUTSIDE == viewFrustum->pointInFrustum(voxelBox.corner)) {
+        if (ViewFrustum::OUTSIDE == viewFrustum->pointInFrustum(voxelBox.getCorner())) {
             // Out of view voxels are colored RED
             unsigned char newR = 255;
             unsigned char newG = 0;

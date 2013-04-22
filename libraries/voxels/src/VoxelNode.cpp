@@ -41,12 +41,18 @@ VoxelNode::~VoxelNode() {
 }
 
 void VoxelNode::getAABox(AABox& box) const {
+    
+    glm::vec3 corner;
+    glm::vec3 size;
+    
     // copy corner into box
-    copyFirstVertexForCode(octalCode,(float*)&box.corner);
+    copyFirstVertexForCode(octalCode,(float*)&corner);
     
     // this tells you the "size" of the voxel
     float voxelScale = 1 / powf(2, *octalCode);
-    box.x = box.y = box.z = voxelScale;
+    size = glm::vec3(voxelScale,voxelScale,voxelScale);
+    
+    box.setBox(corner,size);
 }
 
 void VoxelNode::addChildAtIndex(int childIndex) {

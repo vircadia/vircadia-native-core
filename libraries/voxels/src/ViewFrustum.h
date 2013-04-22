@@ -94,9 +94,9 @@ public:
     
     enum {OUTSIDE, INTERSECT, INSIDE};
 
-    int pointInFrustum(glm::vec3 &p);
-    int sphereInFrustum(glm::vec3 &center, float radius);
-    int boxInFrustum(AABox &b);
+    int pointInFrustum(const glm::vec3& point);
+    int sphereInFrustum(const glm::vec3& center, float radius);
+    int boxInFrustum(const AABox& box);
     
 };
 
