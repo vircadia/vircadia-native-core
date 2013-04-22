@@ -76,6 +76,14 @@ int main(int argc, char* argv[]) {
     // move eve away from the origin
     eve.setBodyPosition(glm::vec3(3, 0, -3));
     
+    // turn her back towards the origin
+    eve.setBodyYaw(-45);
+    
+    // put her hand out so somebody can shake it
+    eve.setHandPosition(glm::vec3(eve.getBodyPosition()[0] - 0.2,
+                                  0.25,
+                                  eve.getBodyPosition()[2] + 0.1));
+    
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
