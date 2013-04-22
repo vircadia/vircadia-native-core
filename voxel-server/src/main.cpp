@@ -48,6 +48,8 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
+bool debugViewFrustum = false;
+bool viewFrustumCulling = false; // for now
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -165,6 +167,24 @@ void *distributeVoxelsToListeners(void *args) {
             Agent *thisAgent = (Agent *)&agentList->getAgents()[i];
             VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
             
+            ViewFrustum viewFrustum;
+            // get position and orientation details from the camera
+            viewFrustum.setPosition(agentData->getCameraPosition());
+            viewFrustum.setOrientation(agentData->getCameraDirection(),agentData->getCameraUp(),agentData->getCameraRight());
+    
+            // Also make sure it's got the correct lens details from the camera
+            viewFrustum.setFieldOfView(agentData->getCameraFov());
+            viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
+            viewFrustum.setNearClip(agentData->getCameraNearClip());
+            viewFrustum.setFarClip(agentData->getCameraFarClip());
+            
+            viewFrustum.calculate();
+
+            // debug for fun!!
+            if (::debugViewFrustum) {
+                viewFrustum.dump();
+            }
+            
             // lock this agent's delete mutex so that the delete thread doesn't
             // kill the agent while we are working with it
             pthread_mutex_lock(thisAgent->deleteMutex);
@@ -181,6 +201,8 @@ void *distributeVoxelsToListeners(void *args) {
                                                            agentData->rootMarkerNode,
                                                            agentData->position,
                                                            treeRoot,
+                                                           viewFrustum,
+                                                           ::viewFrustumCulling,
                                                            stopOctal);
                 
                 agentList->getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
@@ -249,16 +271,23 @@ int main(int argc, const char * argv[])
     agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
+
+    const char* DEBUG_VIEW_FRUSTUM="--DebugViewFrustum";
+    ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
+	printf("debugViewFrustum=%s\n",(::debugViewFrustum?"yes":"no"));
+
+    const char* VIEW_FRUSTUM_CULLING="--ViewFrustumCulling";
+    ::viewFrustumCulling = cmdOptionExists(argc, argv, VIEW_FRUSTUM_CULLING);
+	printf("viewFrustumCulling=%s\n",(::viewFrustumCulling?"yes":"no"));
     
+	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
+    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
+	printf("wantColorRandomizer=%s\n",(::wantColorRandomizer?"yes":"no"));
+
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
 	const char* INPUT_FILE="-i";
-    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-
-	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
-    
     if (voxelsFilename) {
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
@@ -269,7 +298,6 @@ int main(int argc, const char * argv[])
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
 	}
-
 	
 	const char* ADD_SPHERE="--AddSphere";
 	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";

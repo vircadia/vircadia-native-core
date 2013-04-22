@@ -11,6 +11,7 @@
 
 #include "SimpleMovingAverage.h"
 
+#include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "MarkerNode.h"
 
@@ -52,6 +53,8 @@ public:
                                         MarkerNode *currentMarkerNode,
                                         float * agentPosition,
                                         float thisNodePosition[3],
+                                        const ViewFrustum& viewFrustum,
+                                        bool viewFrustumCulling,
                                         unsigned char * octalCode = NULL);
     
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
