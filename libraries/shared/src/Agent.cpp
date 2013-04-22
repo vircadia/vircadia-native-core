@@ -249,9 +249,14 @@ void Agent::printLog(Agent const& agent) {
     sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
     sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
 
-    ::printLog("T: %s (%c) PA: %s:%d LA: %s:%d\n", agent.getTypeName(), agent.type,
-                                                   inet_ntoa(agentPublicSocket->sin_addr), ntohs(agentPublicSocket->sin_port),
-                                                   inet_ntoa(agentLocalSocket->sin_addr), ntohs(agentLocalSocket->sin_port));
+    ::printLog("ID: %d T: %s (%c) PA: %s:%d LA: %s:%d\n",
+               agent.agentId,
+               agent.getTypeName(),
+               agent.type,
+               inet_ntoa(agentPublicSocket->sin_addr),
+               ntohs(agentPublicSocket->sin_port),
+               inet_ntoa(agentLocalSocket->sin_addr),
+               ntohs(agentLocalSocket->sin_port));
 }
 
 std::ostream& operator<<(std::ostream& os, const Agent* agent) {
