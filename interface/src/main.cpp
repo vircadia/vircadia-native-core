@@ -983,11 +983,18 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
-    //  Draw number of nearby people always
+    //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents: %ld\n", AgentList::getInstance()->getAgents().size());
-    drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    
+    int totalAgents = AgentList::getInstance()->getAgents().size();
+    int totalAvatars = 0, totalServers = 0;
+    for (int i = 0; i < totalAgents; i++) {
+        if (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_INTERFACE) totalAvatars++;
+        else totalServers++;
+    }
+    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
