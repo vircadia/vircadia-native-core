@@ -35,9 +35,7 @@ float browThickness = 0.16;
 
 bool usingBigSphereCollisionTest = true;
 
-const float DECAY = 0.1;
-const float THRUST_MAG	= 10.0;
-const float YAW_MAG		= 300.0;
+
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
@@ -380,7 +378,19 @@ void Head::simulate(float deltaTime) {
         //--------------------------------------------------------------
         updateBigSphereCollisionTest(deltaTime);
     }
-            
+    
+    if ( AVATAR_GRAVITY ) {
+        if ( _bodyPosition.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
+            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
+        }
+        else {
+            if ( _bodyPosition.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
+                 _bodyPosition.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
+                _velocity.y = 0.0;
+            }       
+        }
+    }
+    
 	//------------------------
 	// update avatar skeleton
 	//------------------------ 
@@ -460,7 +470,6 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// decay body yaw delta
 	//----------------------------------------------------------
-    const float TEST_YAW_DECAY = 5.0;
     _bodyYawDelta *= (1.0 - TEST_YAW_DECAY * deltaTime);
 
 	//----------------------------------------------------------
@@ -476,7 +485,6 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// decay velocity
 	//----------------------------------------------------------
-    const float LIN_VEL_DECAY = 5.0;
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
     if (!_head.noise) {
@@ -585,7 +593,7 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
     {
         for (int b=0; b<NUM_AVATAR_BONES; b++) 
         {
-            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].position - _TEST_bigSpherePosition);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - _TEST_bigSpherePosition);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _bone[b].radius + _TEST_bigSphereRadius;
             if ( distanceToBigSphereCenter < combinedRadius ) 
@@ -598,9 +606,9 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
                     glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;  
                                           
-                    _bone[b].springyVelocity += collisionForce *  8.0f * deltaTime;
-                    _velocity                += collisionForce * 18.0f * deltaTime;
-                    _bone[b].position = _TEST_bigSpherePosition + directionVector * combinedRadius;
+                    _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
+                    _velocity                += collisionForce * 100.0f * deltaTime;
+                    _bone[b].springyPosition = _TEST_bigSpherePosition + directionVector * combinedRadius;
                 }
             }
         }
@@ -609,22 +617,7 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
             if (!_usingBodySprings) {
                 _usingBodySprings = true;
                 initializeBodySprings();
-            }
-            
-            //----------------------------------------------------------
-            // add gravity to velocity
-            //----------------------------------------------------------
-            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * 0.05;
-            
-            //----------------------------------------------------------
-            // ground collisions
-            //----------------------------------------------------------
-            if ( _bodyPosition.y < 0.0 ) {
-                _bodyPosition.y = 0.0;
-                if ( _velocity.y < 0.0 ) {
-                    _velocity.y *= -0.7;
-                }
-            }       
+            }            
         }     
     }
 }
@@ -677,6 +670,7 @@ void Head::render(int faceToFace) {
 	//---------------------------------------------------------------------------
     if ( _isMine )
     {
+        /*
         //---------------------------------------------------
         // render other avatars (DEBUG TEST)
         //---------------------------------------------------
@@ -687,6 +681,7 @@ void Head::render(int faceToFace) {
                 glutSolidSphere( 1, 10, 10 );
             glPopMatrix();
         }
+        */
 
         if (_usingBodySprings) {
             if ( _closestOtherAvatar != -1 ) {					
@@ -1124,12 +1119,23 @@ glm::vec3 Head::getHeadLookatDirectionRight() {
 }
 
 glm::vec3 Head::getHeadPosition() {
+
+    if ( _usingBodySprings ) {
+        return _bone[ AVATAR_BONE_HEAD ].springyPosition;
+    }
+    
+    return _bone[ AVATAR_BONE_HEAD ].position;
+    
+
+/*
 	return glm::vec3
 	(
 		_bone[ AVATAR_BONE_HEAD ].position.x,
 		_bone[ AVATAR_BONE_HEAD ].position.y,
 		_bone[ AVATAR_BONE_HEAD ].position.z
 	);
+*/
+
 }
 
 

@@ -22,6 +22,13 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+const bool  AVATAR_GRAVITY  = true;
+const float DECAY           = 0.1;
+const float THRUST_MAG      = 10.0;
+const float YAW_MAG         = 300.0;
+const float TEST_YAW_DECAY  = 5.0;
+const float LIN_VEL_DECAY   = 5.0;
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
