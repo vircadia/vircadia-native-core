@@ -170,7 +170,7 @@ void *distributeVoxelsToListeners(void *args) {
             ViewFrustum viewFrustum;
             // get position and orientation details from the camera
             viewFrustum.setPosition(agentData->getCameraPosition());
-            viewFrustum.setOrientation(agentData->getCameraDirection(),agentData->getCameraUp(),agentData->getCameraRight());
+            viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
     
             // Also make sure it's got the correct lens details from the camera
             viewFrustum.setFieldOfView(agentData->getCameraFov());
