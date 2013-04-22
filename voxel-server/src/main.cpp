@@ -272,42 +272,42 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-    const char* DEBUG_VIEW_FRUSTUM="--DebugViewFrustum";
+    const char* DEBUG_VIEW_FRUSTUM = "--DebugViewFrustum";
     ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
 	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
 
-    const char* VIEW_FRUSTUM_CULLING="--ViewFrustumCulling";
+    const char* VIEW_FRUSTUM_CULLING = "--ViewFrustumCulling";
     ::viewFrustumCulling = cmdOptionExists(argc, argv, VIEW_FRUSTUM_CULLING);
 	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
-	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
+	const char* WANT_COLOR_RANDOMIZER = "--WantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-	const char* INPUT_FILE="-i";
+	const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
     
-	const char* ADD_RANDOM_VOXELS="--AddRandomVoxels";
+	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
 	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
 		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
 	}
 	
-	const char* ADD_SPHERE="--AddSphere";
-	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";
+	const char* ADD_SPHERE = "--AddSphere";
+	const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
 	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
 		addSphere(&randomTree,false,wantColorRandomizer);
     } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
 		addSphere(&randomTree,true,wantColorRandomizer);
     }
 
-	const char* NO_ADD_SCENE="--NoAddScene";
+	const char* NO_ADD_SCENE = "--NoAddScene";
 	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
 		addSphereScene(&randomTree,wantColorRandomizer);
     }
