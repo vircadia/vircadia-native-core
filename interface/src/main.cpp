@@ -208,7 +208,6 @@ void initializeHandController() {
    handController.rampUpRate   = 0.05;
    handController.rampDownRate = 0.02;
    handController.envelope     = 0.0f;
-
 }
 
 void updateHandController( int x, int y ) {
@@ -238,7 +237,8 @@ void updateHandController( int x, int y ) {
                 handController.startX = WIDTH	 / 2;
                 handController.startY = HEIGHT / 2;
                 handController.envelope = 0.0; 
-                myAvatar.stopHandMovement();
+//prototype                
+//myAvatar.stopHandMovement();
             }
         }
     }
@@ -918,6 +918,9 @@ void display(void)
             if (agent->getLinkedData() != NULL) {
                 Head *avatar = (Head *)agent->getLinkedData();
                 //glPushMatrix();
+                
+//printf( "rendering remote avatar\n" );                
+                
                 avatar->render(0);
                 //glPopMatrix();
             }
@@ -1397,7 +1400,6 @@ void key(unsigned char k, int x, int y)
         {
             myAvatar.setNoise(0);
         }
-
     }
     
     if (k == 'h') {
@@ -1474,13 +1476,12 @@ void idle(void) {
         // update behaviors for avatar hand movement 
         updateHandController( mouseX, mouseY );
         
-		// when the mouse is being pressed, an 'action' is being 
-		// triggered in the avatar. The action is context-based.
+		// tell my avatar if the mouse is being pressed...
 		if ( mousePressed == 1 ) {
-			myAvatar.setTriggeringAction( true );
+			myAvatar.setMousePressed( true );
 		}
 		else {
-			myAvatar.setTriggeringAction( false );
+			myAvatar.setMousePressed( false );
 		}
         
         // walking triggers the handController to stop
@@ -1493,7 +1494,6 @@ void idle(void) {
         //
         updateAvatar( 1.f/FPS );
 		
-        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
@@ -1501,11 +1501,13 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) 
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
+                
+//printf( "simulating remote avatar\n" );                
+                
                 avatar->simulate(deltaTime);
             }
         }
         
-		
         //updateAvatarHand(1.f/FPS);
     
         field.simulate   (deltaTime);
