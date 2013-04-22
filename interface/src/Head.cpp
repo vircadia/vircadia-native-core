@@ -115,8 +115,7 @@ Head::Head(bool isMine) {
     _head.noise              = 0;
     
 	_movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
-_usingBodySprings        = true;
-//_usingBodySprings        = false;
+    _usingBodySprings        = true;
 	_springForce             = 6.0f;
 	_springVelocityDecay     = 16.0f;
     _renderYaw               = 0.0;
@@ -168,11 +167,7 @@ Head::Head(const Head &otherAvatar) {
 	_springForce            = otherAvatar._springForce;
 	_springVelocityDecay    = otherAvatar._springVelocityDecay;    
 	_orientation.set( otherAvatar._orientation );
-    
-    //for (int o=0;o<NUM_OTHER_AVATARS; o++) {
-    //    _DEBUG_otherAvatarListPosition[o] = otherAvatar._DEBUG_otherAvatarListPosition[o];
-    //}
-    
+        
 	_sphere = NULL;
 
     initializeSkeleton();
@@ -310,7 +305,6 @@ void Head::setLeanSideways(float dist){
 void Head::setMousePressed( bool d ) {
 	_mousePressed = d;
 }
-
 
 
 void Head::simulate(float deltaTime) {
@@ -591,18 +585,22 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
     {
         for (int b=0; b<NUM_AVATAR_BONES; b++) 
         {
-            glm::vec3 vectorFromJointToBigSphere(_bone[b].position - _TEST_bigSpherePosition);
-            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphere);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].position - _TEST_bigSpherePosition);
+            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _bone[b].radius + _TEST_bigSphereRadius;
             if ( distanceToBigSphereCenter < combinedRadius ) 
             {
                 jointCollision = true;
                 if (distanceToBigSphereCenter > 0.0) 
                 {
-                    float amp = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
-                    glm::vec3 collisionForce = vectorFromJointToBigSphere * amp;                        
-                    _bone[b].springyVelocity += collisionForce * 8.0f * deltaTime;
-                    _velocity += collisionForce * 18.0f * deltaTime;
+                    glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
+                    
+                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
+                    glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;  
+                                          
+                    _bone[b].springyVelocity += collisionForce *  8.0f * deltaTime;
+                    _velocity                += collisionForce * 18.0f * deltaTime;
+                    _bone[b].position = _TEST_bigSpherePosition + directionVector * combinedRadius;
                 }
             }
         }
@@ -874,7 +872,6 @@ void Head::renderHead(int faceToFace) {
     glPopMatrix();
  }
  
- 
 void Head::startHandMovement() {
 
     if (!_usingBodySprings) {
@@ -1136,7 +1133,7 @@ glm::vec3 Head::getHeadPosition() {
 }
 
 
-glm::vec3 Head::getBonePosition( AvatarBones b ) {
+glm::vec3 Head::getBonePosition( AvatarBoneID b ) {
     return _bone[b].position;
 }
 
@@ -1246,18 +1243,8 @@ void Head::renderBody() {
     //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-
-/*
-if ( _isMine )
-{
-    printf( "my avatar: %d\n", _usingBodySprings );
-}
-else
-{
-    printf( "other avatar: %d\n", _usingBodySprings );
-}
-*/
-
+        //renderBoneAsBlock( (AvatarBoneID)b);
+        
 		if ( _usingBodySprings ) {
 			glColor3fv( lightBlue );
 			glPushMatrix();
@@ -1317,8 +1304,20 @@ else
 			glutSolidSphere( 0.03f, 10.0f, 5.0f );
 		glPopMatrix();
 	}
-	
 }
+
+
+void Head::renderBoneAsBlock( AvatarBoneID b ) {
+
+        glColor3fv( lightBlue );
+        glPushMatrix();
+            glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
+            glutSolidSphere( _bone[b].radius, 10.0f, 5.0f );
+        glPopMatrix();
+}
+
+
+
 
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     _head.pitchTarget = pitch;
