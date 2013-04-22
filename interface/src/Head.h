@@ -223,17 +223,19 @@ class Head : public AvatarData {
 		glm::vec3   _movedHandOffset;
 		float       _springVelocityDecay;
 		float       _springForce;
-        glm::quat   _rotation; // the rotation of the avatar body as a whole
+        glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
 		AvatarBone	_bone[ NUM_AVATAR_BONES ];
 		AvatarMode  _mode;
         glm::dvec3	_velocity;
         glm::vec3	_thrust;
         float		_maxArmLength;
         Orientation	_orientation;
+
         int         _driveKeys[MAX_DRIVE_KEYS];
         GLUquadric* _sphere;
         float       _renderYaw;
         float       _renderPitch; //   Pitch from view frustum when this is own head.
+    
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
