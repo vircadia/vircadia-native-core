@@ -711,22 +711,15 @@ void Head::renderHead(int faceToFace) {
     glPushMatrix();
     
 	if (_usingBodySprings) {
-		glTranslatef
-		( 
-			_bone[ AVATAR_BONE_HEAD ].springyPosition.x, 
-			_bone[ AVATAR_BONE_HEAD ].springyPosition.y, 
-			_bone[ AVATAR_BONE_HEAD ].springyPosition.z 
-		);
+		glTranslatef(_bone[ AVATAR_BONE_HEAD ].springyPosition.x,
+                     _bone[ AVATAR_BONE_HEAD ].springyPosition.y,
+                     _bone[ AVATAR_BONE_HEAD ].springyPosition.z);
 	}
 	else {
-		glTranslatef
-		( 
-			_bone[ AVATAR_BONE_HEAD ].position.x, 
-			_bone[ AVATAR_BONE_HEAD ].position.y, 
-			_bone[ AVATAR_BONE_HEAD ].position.z 
-		);
+		glTranslatef(_bone[ AVATAR_BONE_HEAD ].position.x,
+                     _bone[ AVATAR_BONE_HEAD ].position.y,
+                     _bone[ AVATAR_BONE_HEAD ].position.z);
 	}
-	
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
@@ -734,18 +727,9 @@ void Head::renderHead(int faceToFace) {
     glRotatef(_head.pitch, 1, 0, 0);
     glRotatef(_head.roll,  0, 0, 1);
     
-    // Overall scale of head
-    if (faceToFace) glScalef(2.0, 2.0, 2.0);
-    else glScalef(0.75, 1.0, 1.0);
+    glScalef(2.0, 2.0, 2.0);
+    glColor3fv(skinColor);
     
-
-    //  Head
-    if (_isMine) {
-        glColor3fv(skinColor);
-    }
-    else {
-        glColor3f(0,0,1); //  Temp:  Other people are BLUE
-    }
     glutSolidSphere(1, 30, 30);
             
     //  Ears
