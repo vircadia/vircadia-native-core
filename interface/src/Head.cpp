@@ -47,7 +47,8 @@ unsigned int iris_texture_height = 256;
 
 Head::Head(bool isMine) {
     
-	_orientation.setToIdentity();
+    _orientation.setToIdentity();
+    
 	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
 	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
@@ -163,8 +164,7 @@ Head::Head(const Head &otherAvatar) {
 	_movedHandOffset        = otherAvatar._movedHandOffset;
 	_usingBodySprings       = otherAvatar._usingBodySprings;
 	_springForce            = otherAvatar._springForce;
-	_springVelocityDecay    = otherAvatar._springVelocityDecay;
-	
+	_springVelocityDecay    = otherAvatar._springVelocityDecay;    
 	_orientation.set( otherAvatar._orientation );
     
     //for (int o=0;o<NUM_OTHER_AVATARS; o++) {
@@ -385,7 +385,7 @@ void Head::simulate(float deltaTime) {
         // this handles the avatar being driven around...
         //-------------------------------------------------	
         _thrust = glm::vec3( 0.0, 0.0, 0.0 );
-            
+             
         if (_driveKeys[FWD]) {
             glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
             _thrust += front * THRUST_MAG;
@@ -1005,19 +1005,35 @@ void Head::updateSkeleton() {
 	//----------------------------------	
 	_orientation.setToIdentity();
 	_orientation.yaw( _bodyYaw );
-        
-    //test! - make sure this does what expected: st rotation to be identity PLUS _bodyYaw
-    //_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
+
+/*
+glm::quat quaternion
+(
+    glm::vec3
+    ( 
+        _bodyPitch * PI_OVER_180,
+        _bodyYaw   * PI_OVER_180,
+        _bodyRoll  * PI_OVER_180
+    )
+);
+
+glm::mat4 rotationMatrix = glm::mat4_cast( quaternion );
     
-    //glm::quat yaw_rotation = glm::angleAxis( _bodyYaw, _orientation.up );
-    
+glm::vec4 right(  1.0, 0.0, 0.0, 0.0 );
+glm::vec4 up   (  0.0, 1.0, 0.0, 0.0 );
+glm::vec4 front(  0.0, 0.0, 1.0, 0.0 );
+
+rightDirection = glm::vec3( right * rotationMatrix );
+upDirection    = glm::vec3( up    * rotationMatrix );
+frontDirection = glm::vec3( front * rotationMatrix );
+*/
     
 	//------------------------------------------------------------------------
 	// calculate positions of all bones by traversing the skeleton tree:
 	//------------------------------------------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
-			_bone[b].orientation.set( _orientation );
+            _bone[b].orientation.set( _orientation );
 			_bone[b].position = _bodyPosition;
 		}
 		else {
@@ -1095,27 +1111,27 @@ void Head::updateBodySprings( float deltaTime ) {
 glm::vec3 Head::getHeadLookatDirection() {
 	return glm::vec3
 	(
-		_orientation.getFront().x,
-		_orientation.getFront().y,
-		_orientation.getFront().z
+        _orientation.getFront().x,
+        _orientation.getFront().y,
+        _orientation.getFront().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionUp() {
 	return glm::vec3
 	(
-		_orientation.getUp().x,
-		_orientation.getUp().y,
-		_orientation.getUp().z
+        _orientation.getUp().x,
+        _orientation.getUp().y,
+        _orientation.getUp().z
 	);
 }
 
 glm::vec3 Head::getHeadLookatDirectionRight() {
 	return glm::vec3
 	(
-		_orientation.getRight().x,
-		_orientation.getRight().y,
-		_orientation.getRight().z
+        _orientation.getRight().x,
+        _orientation.getRight().y,
+        _orientation.getRight().z
 	);
 }
 
@@ -1132,12 +1148,13 @@ glm::vec3 Head::getHeadPosition() {
 
 void Head::updateHandMovement() {
 	glm::vec3 transformedHandMovement;
-	
+	    
 	transformedHandMovement 
 	= _orientation.getRight() *  _movedHandOffset.x
-	+ _orientation.getUp()	 * -_movedHandOffset.y * 0.5f
+	+ _orientation.getUp()	  * -_movedHandOffset.y * 0.5f
 	+ _orientation.getFront() * -_movedHandOffset.y;
-
+    
+    
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
 	//if holding hands, add a pull to the hand...
@@ -1207,6 +1224,7 @@ void Head::updateHandMovement() {
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * ONE_HALF;
+//glm::vec3 perpendicular = glm::cross( frontDirection, armVector );
 	glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
 
 	newElbowPosition += perpendicular * ( 1.0f - ( _maxArmLength / distance ) ) * ONE_HALF;
