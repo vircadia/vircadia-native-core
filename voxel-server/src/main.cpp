@@ -199,7 +199,7 @@ void *distributeVoxelsToListeners(void *args) {
                 stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
                                                            randomTree.rootNode,
                                                            agentData->rootMarkerNode,
-                                                           agentData->position,
+                                                           agentData->getBodyPosition(),
                                                            treeRoot,
                                                            viewFrustum,
                                                            ::viewFrustumCulling,

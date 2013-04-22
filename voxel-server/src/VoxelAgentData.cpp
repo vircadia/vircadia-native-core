@@ -19,19 +19,10 @@ VoxelAgentData::~VoxelAgentData() {
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    memcpy(position, otherAgentData.position, sizeof(float) * 3);
+    memcpy(&_bodyPosition, &otherAgentData._bodyPosition, sizeof(_bodyPosition));
     rootMarkerNode = new MarkerNode();
 }
 
 VoxelAgentData* VoxelAgentData::clone() const {
     return new VoxelAgentData(*this);
 }
-
-void VoxelAgentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    // call base class to parse the data
-    AvatarData::parseData(sourceBuffer,numBytes);
-    
-    // make sure our class knows it's position
-    memcpy(&position, &_bodyPosition, sizeof(_bodyPosition));
-}
-

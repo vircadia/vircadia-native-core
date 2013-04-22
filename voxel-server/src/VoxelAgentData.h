@@ -16,14 +16,12 @@
 
 class VoxelAgentData : public AvatarData {
 public:
-    float position[3];
     MarkerNode *rootMarkerNode;
 
     VoxelAgentData();
     ~VoxelAgentData();
     VoxelAgentData(const VoxelAgentData &otherAgentData);
     
-    void parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelAgentData* clone() const;
 };
 
