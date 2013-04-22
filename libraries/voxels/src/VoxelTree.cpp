@@ -66,6 +66,27 @@ VoxelTree::~VoxelTree() {
     }
 }
 
+// Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
+// stops recursion if operation function returns false.
+void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
+    recurseNodeWithOperation(rootNode, operation,extraData);
+}
+
+// Recurses voxel node with an operation function
+void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperation operation, void* extraData) {
+    // call the operation function going "down" first, stop deeper recursion if function returns false
+    if (operation(node,true,extraData)) {
+        for (int i = 0; i < sizeof(node->children)/sizeof(node->children[0]); i++) {
+            VoxelNode* child = node->children[i];
+            if (child) {
+                recurseNodeWithOperation(child,operation,extraData);
+            }
+        }
+        // call operation on way back up
+        operation(node,false,extraData);
+    }
+}
+
 VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
@@ -127,8 +148,10 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             }
             
             // pull the color for this child
-            memcpy(destinationNode->children[i]->color, nodeData + bytesRead, 3);
-            destinationNode->children[i]->color[3] = 1;
+            nodeColor newColor;
+            memcpy(newColor, nodeData + bytesRead, 3);
+            newColor[3] = 1;
+            destinationNode->children[i]->setColor(newColor);
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
            
@@ -233,8 +256,11 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     
     // give this node its color
     int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
-    memcpy(lastCreatedNode->color, codeColorBuffer + octalCodeBytes, 3);
-    lastCreatedNode->color[3] = 1;
+
+    nodeColor newColor;
+    memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
+    newColor[3] = 1;
+    lastCreatedNode->setColor(newColor);
 }
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
@@ -273,7 +299,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
 		// coords of the voxel space. This flip flop causes LOD behavior to be extremely odd. This is my temporary hack 
 		// to fix this behavior. To disable this swap, set swapXandZ to false.
 		// XXXBHG - 2013/04/11 - adding a note to my branch, I think this code is now broken.
-        bool swapXandZ=true;
+        bool swapXandZ=false;
         float agentX = swapXandZ ? agentPosition[2] : agentPosition[0];
         float agentZ = swapXandZ ? agentPosition[0] : agentPosition[2];
         
@@ -317,10 +343,10 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                     
                     // check if the child exists and is not transparent
                     if (currentVoxelNode->children[i] != NULL
-                        && currentVoxelNode->children[i]->color[3] != 0) {
+                        && currentVoxelNode->children[i]->isColored()) {
                         
                         // copy in the childs color to bitstreamBuffer
-                        memcpy(colorPointer, currentVoxelNode->children[i]->color, 3);
+                        memcpy(colorPointer, currentVoxelNode->children[i]->getTrueColor(), 3);
                         colorPointer += 3;
                         
                         // set the colorMask by bitshifting the value of childExists
@@ -358,9 +384,19 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                             currentMarkerNode->children[i] = new MarkerNode();
                         }
                         
-                        // calculate the child's position based on the parent position
                         float childNodePosition[3];
-                        
+                        copyFirstVertexForCode(currentVoxelNode->children[i]->octalCode,(float*)&childNodePosition);
+                        childNodePosition[0] *= TREE_SCALE; // scale it up
+                        childNodePosition[1] *= TREE_SCALE; // scale it up
+                        childNodePosition[2] *= TREE_SCALE; // scale it up
+                
+                        /**** disabled *****************************************************************************************
+                        // Note: Stephen, I intentionally left this in so you would talk to me about it. Here's the deal, this
+                        // code doesn't seem to work correctly. It returns X and Z flipped and the values are negative. Since 
+                        // we use the firstVertexForCode() function in VoxelSystem to calculate the child vertex and that DOES
+                        //  work, I've decided to use that function to calculate our position for LOD handling.
+                        //
+                        // calculate the child's position based on the parent position
                         for (int j = 0; j < 3; j++) {
                             childNodePosition[j] = thisNodePosition[j];
                             
@@ -370,6 +406,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                 childNodePosition[j] -= (powf(0.5, *currentVoxelNode->children[i]->octalCode) * TREE_SCALE);
                             }
                         }
+                        **** disabled *****************************************************************************************/
                         
                         // ask the child to load the bitstream buffer with their data
                         childStopOctalCode = loadBitstreamBuffer(bitstreamBuffer,
@@ -437,7 +474,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     
     // create the color mask
     for (int i = 0; i < 8; i++) {
-        if (startNode->children[i] != NULL && startNode->children[i]->color[3] != 0) {
+        if (startNode->children[i] != NULL && startNode->children[i]->isColored()) {
             colorMask += (1 << (7 - i));
         }
     }
@@ -446,9 +483,9 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     
     // output the colors we have
     for (int j = 0; j < 8; j++) {
-        if (startNode->children[j] != NULL && startNode->children[j]->color[3] != 0) {
+        if (startNode->children[j] != NULL && startNode->children[j]->isColored()) {
             for (int c = 0; c < 3; c++) {
-                outputBits(startNode->children[j]->color[c]);
+                outputBits(startNode->children[j]->getTrueColor()[c]);
             }
         }
     }

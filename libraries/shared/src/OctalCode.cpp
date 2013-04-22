@@ -104,9 +104,8 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     return newCode;
 }
 
-float * firstVertexForCode(unsigned char * octalCode) {
-    float * firstVertex = new float[3];
-    memset(firstVertex, 0, 3 * sizeof(float));
+void copyFirstVertexForCode(unsigned char * octalCode, float* output) {
+    memset(output, 0, 3 * sizeof(float));
     
     float currentScale = 0.5;
     
@@ -114,11 +113,16 @@ float * firstVertexForCode(unsigned char * octalCode) {
         int sectionIndex = sectionValue(octalCode + 1 + (3 * i / 8), (3 * i) % 8);
         
         for (int j = 0; j < 3; j++) {
-            firstVertex[j] += currentScale * (int)oneAtBit(sectionIndex, 5 + j);
+            output[j] += currentScale * (int)oneAtBit(sectionIndex, 5 + j);
         }
         
         currentScale *= 0.5;
     }
-    
+}
+
+float * firstVertexForCode(unsigned char * octalCode) {
+    float * firstVertex = new float[3];
+    copyFirstVertexForCode(octalCode, firstVertex);
     return firstVertex;
 }
+
