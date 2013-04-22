@@ -19,7 +19,9 @@
 VoxelNode::VoxelNode() {
     octalCode = NULL;
     
+#ifdef HAS_FALSE_COLOR
     _falseColored = false; // assume true color
+#endif
     
     // default pointers to child nodes to NULL
     for (int i = 0; i < 8; i++) {
@@ -83,6 +85,9 @@ void VoxelNode::setColorFromAverageOfChildren() {
     setColor(newColor);
 }
 
+// Note: !NO_FALSE_COLOR implementations of setFalseColor(), setFalseColored(), and setColor() here.
+//       the actual NO_FALSE_COLOR version are inline in the VoxelNode.h
+#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
 void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
     _falseColored=true;
     _currentColor[0] = red;
@@ -91,7 +96,7 @@ void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
     _currentColor[3] = 1; // XXXBHG - False colors are always considered set
 }
 
-void VoxelNode::setFalseColored(bool isFalseColored) { 
+void VoxelNode::setFalseColored(bool isFalseColored) {
     // if we were false colored, and are no longer false colored, then swap back
     if (_falseColored && !isFalseColored) {
         memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
@@ -107,6 +112,7 @@ void VoxelNode::setColor(const nodeColor& color) {
         memcpy(&_currentColor,&color,sizeof(nodeColor));
     }
 }
+#endif
 
 // will detect if children are leaves AND the same color
 // and in that case will delete the children and make this node
