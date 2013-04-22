@@ -73,6 +73,9 @@ int main(int argc, char* argv[]) {
     // create an AvatarData object, "eve"
     AvatarData eve = AvatarData();
     
+    // move eve away from the origin
+    eve.setBodyPosition(glm::vec3(3, 0, -3));
+    
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
