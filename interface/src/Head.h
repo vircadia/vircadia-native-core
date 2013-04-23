@@ -22,6 +22,13 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+const bool  AVATAR_GRAVITY  = true;
+const float DECAY           = 0.1;
+const float THRUST_MAG      = 10.0;
+const float YAW_MAG         = 300.0;
+const float TEST_YAW_DECAY  = 5.0;
+const float LIN_VEL_DECAY   = 5.0;
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -44,7 +51,7 @@ enum AvatarMode
 	NUM_AVATAR_MODES
 };
 
-enum AvatarBones
+enum AvatarBoneID
 {
 	AVATAR_BONE_NULL = -1,
 	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (not supposed to be rotated)
@@ -76,19 +83,19 @@ enum AvatarBones
 
 struct AvatarBone
 {
-	AvatarBones	parent;					// which bone is this bone connected to?
-	glm::vec3	position;				// the position at the "end" of the bone
-	glm::vec3	defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-	glm::vec3	springyPosition;		// used for special effects (a 'flexible' variant of position)
-	glm::dvec3	springyVelocity;		// used for special effects ( the velocity of the springy position)
-	float		springBodyTightness;	// how tightly the springy position tries to stay on the position
-    glm::quat   rotation;               // this will eventually replace yaw, pitch and roll (and maybe orientation)
-	float		yaw;					// the yaw Euler angle of the bone rotation off the parent
-	float		pitch;					// the pitch Euler angle of the bone rotation off the parent
-	float		roll;					// the roll Euler angle of the bone rotation off the parent
-	Orientation	orientation;			// three orthogonal normals determined by yaw, pitch, roll
-	float		length;					// the length of the bone
-	float		radius;					// used for detecting collisions for certain physical effects
+	AvatarBoneID parent;				// which bone is this bone connected to?
+	glm::vec3	 position;				// the position at the "end" of the bone
+	glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+	glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
+	glm::dvec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
+	float		 springBodyTightness;	// how tightly the springy position tries to stay on the position
+    glm::quat    rotation;              // this will eventually replace yaw, pitch and roll (and maybe orientation)
+	float		 yaw;					// the yaw Euler angle of the bone rotation off the parent
+	float		 pitch;					// the pitch Euler angle of the bone rotation off the parent
+	float		 roll;					// the roll Euler angle of the bone rotation off the parent
+	Orientation	 orientation;			// three orthogonal normals determined by yaw, pitch, roll
+	float		 length;				// the length of the bone
+	float		 radius;                // used for detecting collisions for certain physical effects
 };
 
 struct AvatarHead
@@ -168,19 +175,15 @@ class Head : public AvatarData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBones b );		
+		glm::vec3 getBonePosition( AvatarBoneID b );		
 		
 		AvatarMode getMode();
 		
 		void setMousePressed( bool pressed ); 
-        
         void render(int faceToFace);
-		
 		void renderBody();
 		void renderHead( int faceToFace);
-
         void simulate(float);
-				
 		void startHandMovement();
 		void stopHandMovement();
 		void setHandMovementValues( glm::vec3 movement );
@@ -217,7 +220,6 @@ class Head : public AvatarData {
 		glm::vec3	_otherAvatarHandPosition[ MAX_OTHER_AVATARS ];
 		bool        _mousePressed;
 		float       _bodyYawDelta;
-		//float       _closeEnoughToInteract;
 		int         _closestOtherAvatar;
 		bool        _usingBodySprings;
 		glm::vec3   _movedHandOffset;
@@ -231,12 +233,10 @@ class Head : public AvatarData {
         float		_maxArmLength;
         Orientation	_orientation;
         int         _numOtherAvatarsInView;
-
         int         _driveKeys[MAX_DRIVE_KEYS];
         GLUquadric* _sphere;
         float       _renderYaw;
         float       _renderPitch; //   Pitch from view frustum when this is own head.
-    
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
@@ -255,6 +255,8 @@ class Head : public AvatarData {
 		void calculateBoneLengths();
         void updateBigSphereCollisionTest( float deltaTime );
         void readSensors();
+        void renderBoneAsBlock( AvatarBoneID b );
+
 };
 
 #endif
