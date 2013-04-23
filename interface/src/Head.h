@@ -100,9 +100,6 @@ struct AvatarBone
 
 struct AvatarHead
 {
-    float pitch;
-    float yaw;
-    float roll;
     float pitchRate;
     float yawRate;
     float rollRate;
@@ -134,7 +131,7 @@ struct AvatarHead
     eyeContactTargets eyeContactTarget;
     
     //  Sound loudness information
-    float loudness, lastLoudness;
+    float lastLoudness;
     float averageLoudness;
     float audioAttack;
 };
@@ -148,11 +145,8 @@ class Head : public AvatarData {
         Head* clone() const;
     
         void  reset();
-        void  UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
         void  setNoise (float mag) { _head.noise = mag; }
-        void  setPitch(float p) {_head.pitch = p; }
-        void  setYaw(float y) {_head.yaw = y; }
-        void  setRoll(float r) {_head.roll = r; };
         void  setScale(float s) {_head.scale = s; };
         void  setRenderYaw(float y) {_renderYaw = y;}
         void  setRenderPitch(float p) {_renderPitch = p;}
@@ -160,14 +154,8 @@ class Head : public AvatarData {
         float getRenderPitch() {return _renderPitch;}
         void  setLeanForward(float dist);
         void  setLeanSideways(float dist);
-        void  addPitch(float p) {_head.pitch -= p; }
-        void  addYaw(float y){_head.yaw -= y; }
-        void  addRoll(float r){_head.roll += r; }
         void  addLean(float x, float z);
-        float getPitch() {return _head.pitch;}
-        float getRoll() {return _head.roll;}
-        float getYaw() {return _head.yaw;}
-        float getLastMeasuredYaw() {return _head.yawRate;}
+        float getLastMeasuredHeadYaw() const {return _head.yawRate;}
         float getBodyYaw() {return _bodyYaw;};
         void  addBodyYaw(float y) {_bodyYaw += y;};
     
@@ -180,19 +168,17 @@ class Head : public AvatarData {
 		AvatarMode getMode();
 		
 		void setMousePressed( bool pressed ); 
-        void render(int faceToFace);
+        void render(bool lookingInMirror);
 		void renderBody();
-		void renderHead( int faceToFace);
+		void renderHead(bool lookingInMirror);
         void simulate(float);
 		void startHandMovement();
 		void stopHandMovement();
 		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement();
         
-        float getLoudness() {return _head.loudness;};
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
-        void setLoudness(float l) {_head.loudness = l;};
         
         void SetNewHeadTarget(float, float);
     
