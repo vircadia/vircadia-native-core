@@ -13,20 +13,28 @@
 #include <PacketHeaders.h>
 #include <AgentList.h>
 #include <AvatarData.h>
+#include <AudioInjector.h>
 
 const int EVE_AGENT_LIST_PORT = 55441;
 const float DATA_SEND_INTERVAL_MSECS = 10;
+const float MIN_AUDIO_SEND_INTERVAL_SECS = 10;
+const int MIN_ITERATIONS_BETWEEN_AUDIO_SENDS = (MIN_AUDIO_SEND_INTERVAL_SECS * 1000) / DATA_SEND_INTERVAL_MSECS;
+const int MAX_AUDIO_SEND_INTERVAL_SECS = 15;
+const float MAX_ITERATIONS_BETWEEN_AUDIO_SENDS = (MAX_AUDIO_SEND_INTERVAL_SECS * 1000) / DATA_SEND_INTERVAL_MSECS;
 
 bool stopReceiveAgentDataThread;
+bool injectAudioThreadRunning = false;
 
-void *receiveAgentData(void *args)
-{
+int TEMP_AUDIO_LISTEN_PORT = 55439;
+UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
+
+void *receiveAgentData(void *args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
     unsigned char incomingPacket[MAX_PACKET_SIZE];
     
-    AgentList *agentList = AgentList::getInstance();
-    Agent *avatarMixer = NULL;
+    AgentList* agentList = AgentList::getInstance();
+    Agent* avatarMixer = NULL;
     
     while (!::stopReceiveAgentDataThread) {
         if (agentList->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) { 
@@ -54,9 +62,35 @@ void *receiveAgentData(void *args)
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
+void *injectAudio(void *args) {
+    ::injectAudioThreadRunning = true;
+    
+    AudioInjector* eveAudioInjector = (AudioInjector *)args;
+    
+    // look for an audio mixer in our agent list
+    Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+    
+    if (audioMixer != NULL) {
+        // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
+        if (audioMixer->getActiveSocket() == NULL) {
+            audioMixer->activatePublicSocket();
+        }
+        
+        // we have an active audio mixer we can send data to
+        eveAudioInjector->injectAudio(&::audioSocket, audioMixer->getActiveSocket());
+    }
+    
+    ::injectAudioThreadRunning = false;
+    pthread_exit(0);
+    return NULL;
+}
+
+int main(int argc, const char* argv[]) {
+    // new seed for random audio sleep times
+    srand(time(0));
+    
     // create an AgentList instance to handle communication with other agents
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LIST_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LIST_PORT);
     
     // start telling the domain server that we are alive
     agentList->startDomainServerCheckInThread();
@@ -84,6 +118,9 @@ int main(int argc, char* argv[]) {
                                   0.25,
                                   eve.getBodyPosition()[2] + 0.1));
     
+    // read eve's audio data
+    AudioInjector eveAudioInjector("eve.raw");
+    
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
@@ -91,6 +128,9 @@ int main(int argc, char* argv[]) {
     
     timeval thisSend;
     double numMicrosecondsSleep = 0;
+    
+    int numIterationsLeftBeforeAudioSend = 0;
+    pthread_t injectAudioThread;
     
     while (true) {
         // update the thisSend timeval to the current time
@@ -104,9 +144,19 @@ int main(int argc, char* argv[]) {
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer
             numBytesToSend = eve.getBroadcastData((broadcastPacket + 1));
             
-            
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
             agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, numBytesToSend);
+        }
+        
+        if (numIterationsLeftBeforeAudioSend == 0) {
+            if (!::injectAudioThreadRunning) {
+                pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
+                
+                numIterationsLeftBeforeAudioSend = randIntInRange(MIN_ITERATIONS_BETWEEN_AUDIO_SENDS,
+                                                                  MAX_ITERATIONS_BETWEEN_AUDIO_SENDS);
+            }
+        } else {
+            numIterationsLeftBeforeAudioSend--;
         }
         
         // sleep for the correct amount of time to have data send be consistently timed
