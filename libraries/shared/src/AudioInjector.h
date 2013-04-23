@@ -23,7 +23,7 @@ public:
     void setBearing(float bearing) { _bearing = bearing; }
     void setAttenuationModifier(unsigned char attenuationModifier) { _attenuationModifier = attenuationModifier; }
     
-    void injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket);
+    const void injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket);
 private:
     int16_t* _audioSampleArray;
     int _numTotalBytesAudio;
