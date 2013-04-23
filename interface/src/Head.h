@@ -29,6 +29,9 @@ const float YAW_MAG         = 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
+const float COLLISION_BODY_RADIUS = 0.3;
+const float COLLISION_HEIGHT = 1.5;
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 #define FWD 0
@@ -41,7 +44,7 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
 
-#define MAX_OTHER_AVATARS 50 // temporary - for testing purposes!
+#define MAX_OTHER_AVATARS 10 // temporary - for testing purposes!
 
 enum AvatarMode
 {
@@ -79,6 +82,15 @@ enum AvatarBoneID
 	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
     
 	NUM_AVATAR_BONES
+};
+
+struct AvatarCollisionElipsoid
+{
+    bool      colliding;
+    glm::vec3 position;
+    float     girth;
+    float     height;
+    glm::vec3 upVector;
 };
 
 struct AvatarBone
@@ -175,8 +187,11 @@ class Head : public AvatarData {
 		glm::vec3 getHeadLookatDirectionUp();
 		glm::vec3 getHeadLookatDirectionRight();
 		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBoneID b );		
-		
+		glm::vec3 getBonePosition( AvatarBoneID b );	
+        glm::vec3 getBodyUpDirection();
+        float getGirth();
+        float getHeight();
+        
 		AvatarMode getMode();
 		
 		void setMousePressed( bool pressed ); 
@@ -193,6 +208,8 @@ class Head : public AvatarData {
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
         void setLoudness(float l) {_head.loudness = l;};
+        
+        bool testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector );
         
         void SetNewHeadTarget(float, float);
     
@@ -236,7 +253,9 @@ class Head : public AvatarData {
         int         _driveKeys[MAX_DRIVE_KEYS];
         GLUquadric* _sphere;
         float       _renderYaw;
-        float       _renderPitch; //   Pitch from view frustum when this is own head.
+        float       _renderPitch; //   Pitch from view frustum when this is own head
+        
+        AvatarCollisionElipsoid _collisionElipsoid;
     
         //
         //  Related to getting transmitter UDP data used to animate the avatar hand
@@ -253,7 +272,7 @@ class Head : public AvatarData {
 		void initializeBodySprings();
 		void updateBodySprings( float deltaTime );
 		void calculateBoneLengths();
-        void updateBigSphereCollisionTest( float deltaTime );
+        void updateAvatarCollisionDetectionAndResponse( glm::vec3, float radius, float deltaTime );
         void readSensors();
         void renderBoneAsBlock( AvatarBoneID b );
 
