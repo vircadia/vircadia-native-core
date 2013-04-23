@@ -20,8 +20,8 @@ public:
     
     AvatarData* clone() const;
     
-    glm::vec3 getBodyPosition();
-    void setBodyPosition(glm::vec3 bodyPosition);
+    glm::vec3 getPosition();
+    void setPosition(glm::vec3 position);
     void setHandPosition(glm::vec3 handPosition);
     
     int getBroadcastData(unsigned char* destinationBuffer);
@@ -75,7 +75,7 @@ public:
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
 protected:
-    glm::vec3 _bodyPosition;
+    glm::vec3 _position;
     glm::vec3 _handPosition;
     
     //  Body rotation

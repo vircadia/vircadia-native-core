@@ -328,7 +328,7 @@ void Head::simulate(float deltaTime) {
                     //------------------------------------------------------
                     updateAvatarCollisionDetectionAndResponse
                     (
-                        otherAvatar->getBodyPosition(), 
+                        otherAvatar->getPosition(), 
                         otherAvatar->getGirth(), 
                         otherAvatar->getHeight(), 
                         otherAvatar->getBodyUpDirection(),
@@ -378,12 +378,12 @@ void Head::simulate(float deltaTime) {
     }
     
     if ( AVATAR_GRAVITY ) {
-        if ( _bodyPosition.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
+        if ( _position.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
             _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
         }
         else {
-            if ( _bodyPosition.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
-                 _bodyPosition.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
+            if ( _position.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
+                 _position.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
                 _velocity.y = 0.0;
             }       
         }
@@ -474,7 +474,7 @@ void Head::simulate(float deltaTime) {
     //----------------------------------------------------------
     // update position by velocity
     //----------------------------------------------------------
-    _bodyPosition += (glm::vec3)_velocity * deltaTime;
+    _position += (glm::vec3)_velocity * deltaTime;
 
 	//----------------------------------------------------------
 	// decay velocity
@@ -600,7 +600,7 @@ void Head::updateAvatarCollisionDetectionAndResponse
 ( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector, float deltaTime ) {
 
     float myBodyApproximateBoundingRadius = 1.0f;
-    glm::vec3 vectorFromMyBodyToBigSphere(_bodyPosition - collisionPosition);
+    glm::vec3 vectorFromMyBodyToBigSphere(_position - collisionPosition);
     bool jointCollision = false;
 
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
@@ -647,7 +647,7 @@ void Head::render(bool lookingInMirror) {
 	//---------------------------------------------------
     glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
 	glPushMatrix();
-		glTranslatef(_bodyPosition.x, _bodyPosition.y, _bodyPosition.z);
+		glTranslatef(_position.x, _position.y, _position.z);
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
@@ -1017,7 +1017,7 @@ void Head::updateSkeleton() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {	
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
             _bone[b].orientation.set( _orientation );
-			_bone[b].position = _bodyPosition;
+			_bone[b].position = _position;
 		}
 		else {
 			_bone[b].orientation.set( _bone[ _bone[b].parent ].orientation );
@@ -1056,7 +1056,7 @@ void Head::updateBodySprings( float deltaTime ) {
 		glm::vec3 springVector( _bone[b].springyPosition );
 
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
-			springVector -= _bodyPosition;
+			springVector -= _position;
 		}
 		else {
 			springVector -= _bone[ _bone[b].parent ].springyPosition;
