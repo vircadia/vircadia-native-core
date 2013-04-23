@@ -428,7 +428,7 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain server: %s \n", DOMAIN_HOSTNAME);
+            printLog("Domain server: %s - %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
             
         } else {
             printLog("Failed lookup domainserver\n");
