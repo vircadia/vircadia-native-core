@@ -1456,8 +1456,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
-                                                                   bytesReceived,
-                                                                   BYTES_PER_AVATAR);
+                                                                   bytesReceived);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);

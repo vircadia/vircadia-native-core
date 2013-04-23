@@ -114,7 +114,7 @@ float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
 }
 
 
-void VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
+int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     unsigned char *voxelData = sourceBuffer + 1;
@@ -154,6 +154,7 @@ void VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
     
     setupNewVoxelsForDrawing();
+    return numBytes;
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
