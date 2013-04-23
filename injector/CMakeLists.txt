@@ -14,4 +14,4 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 # link the threads library
 find_package(Threads REQUIRED)
-target_link_libraries(injector ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
