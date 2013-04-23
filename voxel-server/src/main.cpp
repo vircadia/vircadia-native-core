@@ -49,7 +49,7 @@ VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
 bool debugViewFrustum = false;
-bool viewFrustumCulling = false; // for now
+bool viewFrustumCulling = true; // for now
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -276,8 +276,8 @@ int main(int argc, const char * argv[])
     ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
 	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
 
-    const char* VIEW_FRUSTUM_CULLING = "--ViewFrustumCulling";
-    ::viewFrustumCulling = cmdOptionExists(argc, argv, VIEW_FRUSTUM_CULLING);
+    const char* NO_VIEW_FRUSTUM_CULLING = "--NoViewFrustumCulling";
+    ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
 	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
 	const char* WANT_COLOR_RANDOMIZER = "--WantColorRandomizer";
