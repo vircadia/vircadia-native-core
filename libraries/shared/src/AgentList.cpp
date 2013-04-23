@@ -24,7 +24,7 @@
 
 using shared_lib::printLog;
 
-const char SOLO_AGENT_TYPES_STRING[] = {
+const char SOLO_AGENT_TYPES[3] = {
     AGENT_TYPE_AVATAR_MIXER,
     AGENT_TYPE_AUDIO_MIXER,
     AGENT_TYPE_VOXEL
@@ -305,8 +305,8 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
     }
 }
 
-Agent* AgentList::soloAgentOfType(char agentType) {    
-    if (memchr(SOLO_AGENT_TYPES_STRING, agentType, 1)) {
+Agent* AgentList::soloAgentOfType(char agentType) {
+    if (memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES)) != NULL) {
         for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
             if (agent->getType() == agentType) {
                 return &*agent;
