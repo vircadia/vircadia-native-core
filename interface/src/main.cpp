@@ -1456,8 +1456,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
-                                                                   bytesReceived,
-                                                                   BYTES_PER_AVATAR);
+                                                                   bytesReceived);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1500,7 +1499,7 @@ void idle(void) {
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
-        updateAvatar( 1.f/FPS );
+        updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
@@ -1509,14 +1508,9 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) 
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
-                
-//printf( "simulating remote avatar\n" );                
-                
                 avatar->simulate(deltaTime);
             }
         }
-        
-        //updateAvatarHand(1.f/FPS);
     
         field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);

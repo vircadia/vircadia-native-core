@@ -149,7 +149,7 @@ Head::Head(const Head &otherAvatar) {
 	_bodyPitch              = otherAvatar._bodyPitch;
 	_bodyRoll               = otherAvatar._bodyRoll;
 	_bodyYawDelta           = otherAvatar._bodyYawDelta;
-	_mousePressed       = otherAvatar._mousePressed;
+	_mousePressed           = otherAvatar._mousePressed;
 	_mode                   = otherAvatar._mode;
     _isMine                 = otherAvatar._isMine;
     _renderYaw              = otherAvatar._renderYaw;
@@ -892,45 +892,25 @@ void Head::initializeSkeleton() {
 	//----------------------------------------------------------------------------
 	// parental hierarchy
 	//----------------------------------------------------------------------------
-
-	//----------------------------------------------------------------------------
-	// spine and head
-	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_PELVIS_SPINE		].parent = AVATAR_BONE_NULL;
 	_bone[ AVATAR_BONE_MID_SPINE        ].parent = AVATAR_BONE_PELVIS_SPINE;
 	_bone[ AVATAR_BONE_CHEST_SPINE		].parent = AVATAR_BONE_MID_SPINE;
 	_bone[ AVATAR_BONE_NECK				].parent = AVATAR_BONE_CHEST_SPINE;
 	_bone[ AVATAR_BONE_HEAD				].parent = AVATAR_BONE_NECK;
-	
-	//----------------------------------------------------------------------------
-	// left chest and arm
-	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_LEFT_CHEST		].parent = AVATAR_BONE_MID_SPINE;
 	_bone[ AVATAR_BONE_LEFT_SHOULDER    ].parent = AVATAR_BONE_LEFT_CHEST;
 	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].parent = AVATAR_BONE_LEFT_SHOULDER;
 	_bone[ AVATAR_BONE_LEFT_FOREARM		].parent = AVATAR_BONE_LEFT_UPPER_ARM;
 	_bone[ AVATAR_BONE_LEFT_HAND		].parent = AVATAR_BONE_LEFT_FOREARM;
-
-	//----------------------------------------------------------------------------
-	// right chest and arm
-	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_RIGHT_CHEST		].parent = AVATAR_BONE_MID_SPINE;
 	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].parent = AVATAR_BONE_RIGHT_CHEST;
 	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].parent = AVATAR_BONE_RIGHT_SHOULDER;
 	_bone[ AVATAR_BONE_RIGHT_FOREARM	].parent = AVATAR_BONE_RIGHT_UPPER_ARM;
 	_bone[ AVATAR_BONE_RIGHT_HAND		].parent = AVATAR_BONE_RIGHT_FOREARM;
-	
-	//----------------------------------------------------------------------------
-	// left pelvis and leg
-	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_LEFT_PELVIS		].parent = AVATAR_BONE_PELVIS_SPINE;
 	_bone[ AVATAR_BONE_LEFT_THIGH		].parent = AVATAR_BONE_LEFT_PELVIS;
 	_bone[ AVATAR_BONE_LEFT_SHIN		].parent = AVATAR_BONE_LEFT_THIGH;
 	_bone[ AVATAR_BONE_LEFT_FOOT		].parent = AVATAR_BONE_LEFT_SHIN;
-
-	//----------------------------------------------------------------------------
-	// right pelvis and leg
-	//----------------------------------------------------------------------------
 	_bone[ AVATAR_BONE_RIGHT_PELVIS		].parent = AVATAR_BONE_PELVIS_SPINE;
 	_bone[ AVATAR_BONE_RIGHT_THIGH		].parent = AVATAR_BONE_RIGHT_PELVIS;
 	_bone[ AVATAR_BONE_RIGHT_SHIN		].parent = AVATAR_BONE_RIGHT_THIGH;
@@ -944,12 +924,12 @@ void Head::initializeSkeleton() {
 	_bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
 	_bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
 	_bone[ AVATAR_BONE_HEAD				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
-	_bone[ AVATAR_BONE_LEFT_CHEST		].defaultPosePosition = glm::vec3( -0.06,  0.06,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_CHEST		].defaultPosePosition = glm::vec3( -0.05,  0.05,  0.0  );
 	_bone[ AVATAR_BONE_LEFT_SHOULDER	].defaultPosePosition = glm::vec3( -0.03,  0.0,   0.0  );
 	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
 	_bone[ AVATAR_BONE_LEFT_FOREARM		].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
 	_bone[ AVATAR_BONE_LEFT_HAND		].defaultPosePosition = glm::vec3(  0.0,  -0.05,  0.0  );
-	_bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::vec3(  0.06,  0.06,  0.0  );
+	_bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::vec3(  0.05,  0.05,  0.0  );
 	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].defaultPosePosition = glm::vec3(  0.03,  0.0,   0.0  );
 	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
 	_bone[ AVATAR_BONE_RIGHT_FOREARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
@@ -971,12 +951,12 @@ void Head::initializeSkeleton() {
 	_bone[ AVATAR_BONE_HEAD				].radius = 0.02;
 	_bone[ AVATAR_BONE_LEFT_CHEST		].radius = 0.025;
 	_bone[ AVATAR_BONE_LEFT_SHOULDER	].radius = 0.02;
-	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].radius = 0.015;
 	_bone[ AVATAR_BONE_LEFT_FOREARM		].radius = 0.015;
 	_bone[ AVATAR_BONE_LEFT_HAND		].radius = 0.01;
 	_bone[ AVATAR_BONE_RIGHT_CHEST		].radius = 0.025;
 	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].radius = 0.02;
-	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].radius = 0.015;
 	_bone[ AVATAR_BONE_RIGHT_FOREARM	].radius = 0.015;
 	_bone[ AVATAR_BONE_RIGHT_HAND		].radius = 0.01;
 	_bone[ AVATAR_BONE_LEFT_PELVIS		].radius = 0.02;
@@ -1157,16 +1137,12 @@ void Head::updateHandMovement() {
 	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
 			if ( _mousePressed ) {
+
+    
+				glm::vec3 handToHandVector( _otherAvatarHandPosition[ _closestOtherAvatar ]);
+				handToHandVector -= _bone[ AVATAR_BONE_RIGHT_HAND ].position;
 				
-				/*
-				glm::vec3 handShakePull( DEBUG_otherAvatarListPosition[ closestOtherAvatar ]);
-				handShakePull -= _bone[ AVATAR_BONE_RIGHT_HAND ].position;
-				
-				handShakePull *= 1.0;
-				 
-				transformedHandMovement += handShakePull;
-				*/
-                
+				//_bone[ AVATAR_BONE_RIGHT_HAND ].springyVelocity -= handPull;				
 				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _otherAvatarHandPosition[ _closestOtherAvatar ];				
 			}
 		}
@@ -1250,7 +1226,7 @@ void Head::renderBody() {
         //renderBoneAsBlock( (AvatarBoneID)b);
         
         //render bone orientation
-        //renderOrientationDirections( _bone[b].position, _bone[b].orientation, 0.05f );
+        renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
     
 		if ( _usingBodySprings ) {
 			glColor3fv( skinColor );

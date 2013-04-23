@@ -135,7 +135,11 @@ int main(int argc, const char * argv[])
                     !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
                     if (memchr(SOLO_AGENT_TYPES_STRING, agent->getType(), 1) == NULL) {
                         // this is an agent of which there can be multiple, just add them to the packet
-                        currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
+                        // don't send avatar agents to other avatars, that will come from avatar mixer
+                        if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
+                            currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
+                        }
+                        
                     } else {
                         // solo agent, we need to only send newest
                         if (newestSoloAgents[agent->getType()] == NULL ||

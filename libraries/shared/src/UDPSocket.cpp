@@ -28,20 +28,24 @@ using shared_lib::printLog;
 sockaddr_in destSockaddr, senderAddress;
 
 bool socketMatch(sockaddr *first, sockaddr *second) {
-    // utility function that indicates if two sockets are equivalent
-   
-    // currently only compares two IPv4 addresses
-    // expandable to IPv6 by adding else if for AF_INET6
-    
-    if (first->sa_family != second->sa_family) {
-        // not the same family, can't be equal
-        return false;
-    } else if (first->sa_family == AF_INET) {
-        sockaddr_in *firstIn = (sockaddr_in *) first;
-        sockaddr_in *secondIn = (sockaddr_in *) second;
+    if (first != NULL && second != NULL) {
+        // utility function that indicates if two sockets are equivalent
         
-        return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
+        // currently only compares two IPv4 addresses
+        // expandable to IPv6 by adding else if for AF_INET6
+        
+        if (first->sa_family != second->sa_family) {
+            // not the same family, can't be equal
+            return false;
+        } else if (first->sa_family == AF_INET) {
+            sockaddr_in *firstIn = (sockaddr_in *) first;
+            sockaddr_in *secondIn = (sockaddr_in *) second;
+            
+            return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
             && firstIn->sin_port == secondIn->sin_port;
+        } else {
+            return false;
+        }
     } else {
         return false;
     }
