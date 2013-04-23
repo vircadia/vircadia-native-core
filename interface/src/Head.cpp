@@ -136,6 +136,7 @@ Head::Head(bool isMine) {
 		
     for (int o=0; o<MAX_OTHER_AVATARS; o++) {
         _otherAvatarHandPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
+        _otherAvatarHandState   [o] = 0;
     }
 }
 
@@ -320,14 +321,33 @@ void Head::simulate(float deltaTime) {
             if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_AVATAR ) )) {
                 Head *otherAvatar = (Head *)agent->getLinkedData();
                 
-                 if ( _numOtherAvatarsInView < MAX_OTHER_AVATARS ) {
+                if ( _numOtherAvatarsInView < MAX_OTHER_AVATARS ) {
+                 
+                    //------------------------------------------------------
+                    // check for collisions with other avatars and respond 
+                    //------------------------------------------------------
+                    updateAvatarCollisionDetectionAndResponse
+                    (
+                        otherAvatar->getBodyPosition(), 
+                        otherAvatar->getGirth(), 
+                        otherAvatar->getHeight(), 
+                        otherAvatar->getBodyUpDirection(),
+                        deltaTime
+                    );
                  
                     //-----------------------------------------------------------
-                    // test other avatar hand position for proximity...
+                    // test other avatar hand position for proximity and state
                     //-----------------------------------------------------------
                     _otherAvatarHandPosition[ _numOtherAvatarsInView ] = otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
+                    _otherAvatarHandState   [ _numOtherAvatarsInView ] = (int)otherAvatar->getHandState();
+
                     glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
                     v -= _otherAvatarHandPosition[ _numOtherAvatarsInView ];
+                    
+                    //if ( otherAvatar->getHandState() == 1 ) 
+                    {
+                        printf( "otherAvatar->getHandState() is %d\n", (int)otherAvatar->getHandState() );
+                    }
                     
                     float distance = glm::length( v );
                     if ( distance < _maxArmLength ) {
@@ -347,7 +367,14 @@ void Head::simulate(float deltaTime) {
         //--------------------------------------------------------------
         // test for avatar collision response (using a big sphere :)
         //--------------------------------------------------------------
-        updateAvatarCollisionDetectionAndResponse(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
+        updateAvatarCollisionDetectionAndResponse
+        (
+            _TEST_bigSpherePosition, 
+            _TEST_bigSphereRadius, 
+            _TEST_bigSphereRadius, 
+            glm::vec3( 0.0, 1.0, 0.0 ),
+            deltaTime
+        );
     }
     
     if ( AVATAR_GRAVITY ) {
@@ -565,37 +592,25 @@ float Head::getHeight() {
 glm::vec3 Head::getBodyUpDirection() {
     return _orientation.getUp();
 }
-
-      
-bool Head::testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector ) {
-    _collisionElipsoid.colliding = false;
-    _collisionElipsoid.position  = glm::vec3( 0.0, 0.0, 0.0 );
-    _collisionElipsoid.upVector  = glm::vec3( 0.0, 0.0, 0.0 );
-    _collisionElipsoid.girth     = 0.0;
-    _collisionElipsoid.height    = 0.0;
-    
-    return false;
-}
-
-	  
 	  
 //--------------------------------------------------------------------------------
 // This is a workspace for testing avatar body collision detection and response
 //--------------------------------------------------------------------------------
-void Head::updateAvatarCollisionDetectionAndResponse( glm::vec3 collisionPosition, float collisionRadius, float deltaTime ) {
+void Head::updateAvatarCollisionDetectionAndResponse
+( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector, float deltaTime ) {
 
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_bodyPosition - collisionPosition);
     bool jointCollision = false;
 
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionRadius )
+    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionGirth )
     {
         for (int b=0; b<NUM_AVATAR_BONES; b++) 
         {
             glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - collisionPosition);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-            float combinedRadius = _bone[b].radius + collisionRadius;
+            float combinedRadius = _bone[b].radius + collisionGirth;
             if ( distanceToBigSphereCenter < combinedRadius ) 
             {
                 jointCollision = true;
@@ -972,8 +987,11 @@ void Head::initializeSkeleton() {
 	updateSkeleton();
 }
 
-
-
+/*
+int Head::getHandState() {
+    return _handState;
+}
+*/
 
 void Head::calculateBoneLengths() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
@@ -1128,6 +1146,9 @@ void Head::updateHandMovement() {
     
     setHandState(_mousePressed);
     
+    
+    //printf( "_handState = %d", _handState );    
+    
 	//if holding hands, add a pull to the hand...
 	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
@@ -1249,8 +1270,10 @@ void Head::renderBody() {
 		}
 	}
 	
-	if (( _usingBodySprings ) && ( getHandState() )) {
-		glColor4f( 1.0, 1.0, 0.5, 0.5 );
+    //---------------------------------------------------------
+    // if the hand is grasping, show it...
+    //---------------------------------------------------------
+	if (( _usingBodySprings ) && ( getHandState() == 1 )) {
 		glPushMatrix();
 			glTranslatef
 			( 
@@ -1258,7 +1281,10 @@ void Head::renderBody() {
 				_bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.y, 
 				_bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.z 
 			);
-			glutSolidSphere( 0.03f, 10.0f, 5.0f );
+            glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
+            glColor4f( 1.0, 1.0, 0.4, 0.2 ); glutSolidSphere( 0.025f, 10.0f, 10.0f );
+            glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
+
 		glPopMatrix();
 	}
 }

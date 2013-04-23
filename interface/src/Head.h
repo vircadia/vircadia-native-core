@@ -177,6 +177,7 @@ class Head : public AvatarData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBoneID b );	
         glm::vec3 getBodyUpDirection();
+        //int       getHandState();
         float getGirth();
         float getHeight();
         
@@ -195,7 +196,7 @@ class Head : public AvatarData {
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
         
-        bool testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector );
+        //bool testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector );
         
         void SetNewHeadTarget(float, float);
     
@@ -221,6 +222,7 @@ class Head : public AvatarData {
         glm::vec3   _TEST_bigSpherePosition;
         float       _TEST_bigSphereRadius;
 		glm::vec3	_otherAvatarHandPosition[ MAX_OTHER_AVATARS ];
+		int         _otherAvatarHandState   [ MAX_OTHER_AVATARS ];
 		bool        _mousePressed;
 		float       _bodyYawDelta;
 		int         _closestOtherAvatar;
@@ -258,7 +260,8 @@ class Head : public AvatarData {
 		void initializeBodySprings();
 		void updateBodySprings( float deltaTime );
 		void calculateBoneLengths();
-        void updateAvatarCollisionDetectionAndResponse( glm::vec3, float radius, float deltaTime );
+        void updateAvatarCollisionDetectionAndResponse( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector, float deltaTime );
+        
         void readSensors();
         void renderBoneAsBlock( AvatarBoneID b );
 

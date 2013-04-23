@@ -1494,7 +1494,7 @@ void idle(void) {
         //
         updateAvatar(deltaTime);
 		
-        //loop through all the other avatars and simulate them.
+        //loop through all the other avatars and simulate them...
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
@@ -1502,9 +1502,6 @@ void idle(void) {
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
-                
-                //not ready yet...
-                //myAvatar.testForCollision( avatar->getBodyPosition(), avatar->getGirth(), avatar->getHeight(), avatar->getBodyUpDirection() );
             }
         }
     
@@ -1515,7 +1512,6 @@ void idle(void) {
 
         glutPostRedisplay();
         lastTimeIdle = check;
-        
     }
     
     //  Read serial data 
