@@ -160,8 +160,10 @@ bool perfStatsOn = false;			//  Do we want to display perfStats?
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
+bool gyroLook = false;               //  Whether to allow the gyro data from head to move your view
+
 int displayLevels = 0;
-bool lookingInMirror = 0;            //  Are we currently rendering one's own head as if in mirror?
+bool lookingInMirror = 0;           //  Are we currently rendering one's own head as if in mirror?
 int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
@@ -476,31 +478,18 @@ void updateAvatar(float frametime)
     headMouseY = min(headMouseY, HEIGHT);
     
     //  Update render direction (pitch/yaw) based on measured gyro rates
-    const int MIN_YAW_RATE = 100;
-    const int MIN_PITCH_RATE = 100;
-    const float YAW_SENSITIVITY = 0.02;
-    const float PITCH_SENSITIVITY = 0.05;
+    const float MIN_YAW_RATE = 5;
+    const float YAW_SENSITIVITY = 1.0;
     
-    //  Update render pitch and yaw rates based on keyPositions
-    const float KEY_YAW_SENSITIVITY = 2.0;
-    if (myAvatar.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
-    if (myAvatar.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
-    
-    if (fabs(gyroYawRate) > MIN_YAW_RATE)  
-    {   
-        if (gyroYawRate > 0)
-            renderYawRate += (gyroYawRate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
-        else 
-            renderYawRate += (gyroYawRate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
-    }
-    if (fabs(gyroPitchRate) > MIN_PITCH_RATE) 
+    //  If enabled, Update render pitch and yaw based on gyro data
+    if (::gyroLook)
     {
-        if (gyroPitchRate > 0)
-            renderPitchRate += (gyroPitchRate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
-        else 
-            renderPitchRate += (gyroPitchRate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
+        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
+        //if (fabs(myAvatar.getHeadYaw()) > MIN_YAW_ANGLE) {
+            myAvatar.addBodyYaw(-gyroYawRate * YAW_SENSITIVITY * frametime);
+        }
     }
-         
+    
     float renderPitch = myAvatar.getRenderPitch();
     // Decay renderPitch toward zero because we never look constantly up/down 
     renderPitch *= (1.f - 2.0*frametime);
@@ -1072,6 +1061,12 @@ int setNoise(int state) {
     return iRet;
 }
 
+int setGyroLook(int state) {
+    int iRet = setValue(state, &::gyroLook);
+    std::cout << "gyro look" << ::gyroLook << "\n";
+    return iRet;
+}
+
 int setVoxels(int state) {
     return setValue(state, &::showingVoxels);
 }
@@ -1190,16 +1185,20 @@ const char* getFrustumRenderModeName(int state) {
 }
 
 void initMenu() {
-    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
+    MenuColumn *menuColumnOptions, *menuColumnRender, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
     //  Options
     menuColumnOptions = menu.addColumn("Options");
     menuColumnOptions->addRow("Mirror (h)", setHead); 
-    menuColumnOptions->addRow("Field (f)", setField); 
-    menuColumnOptions->addRow("(N)oise", setNoise); 
-    menuColumnOptions->addRow("(V)oxels", setVoxels);
-    menuColumnOptions->addRow("Stars (*)", setStars);
-    menuColumnOptions->addRow("(Q)uit", quitApp);
+    menuColumnOptions->addRow("Noise (n)", setNoise);
+    menuColumnOptions->addRow("Gyro Look", setGyroLook);
+    menuColumnOptions->addRow("Quit (q)", quitApp);
 
+    //  Render
+    menuColumnRender = menu.addColumn("Render");
+    menuColumnRender->addRow("Voxels (V)", setVoxels);
+    menuColumnRender->addRow("Stars (*)", setStars);
+    menuColumnRender->addRow("Field (f)", setField);
+    
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
     menuColumnTools->addRow("Stats (/)", setStats); 
