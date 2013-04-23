@@ -96,8 +96,6 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-int headMirror = 1;                 //  Whether to mirror own head when viewing it
-
 int WIDTH = 1200;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
@@ -163,7 +161,7 @@ int noiseOn = 0;					//  Whether to add random noise
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
 int displayLevels = 0;
-int displayHead = 0;
+bool lookingInMirror = 0;            //  Are we currently rendering one's own head as if in mirror?
 int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
@@ -459,7 +457,7 @@ void updateAvatar(float frametime)
     float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
     float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
-    myAvatar.UpdateGyros(frametime, &serialPort, headMirror, &gravity);
+    myAvatar.UpdateGyros(frametime, &serialPort, &gravity);
 		
     //  
     //  Update gyro-based mouse (X,Y on screen)
@@ -819,7 +817,7 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		if ( displayHead ) {
+		if ( ::lookingInMirror ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
@@ -912,7 +910,7 @@ void display(void)
 		drawGroundPlaneGrid( 5.0f, 9 );
 		
         //  Draw cloud of dots
-        if (!displayHead) cloud.render();
+        if (!::lookingInMirror) cloud.render();
     
         //  Draw voxels
 		if ( showingVoxels )
@@ -934,16 +932,16 @@ void display(void)
             }
         }
     
-        if ( !displayHead ) balls.render();
+        if ( !::lookingInMirror ) balls.render();
     
         //  Render the world box
-        if (!displayHead && statsOn) render_world_box();
+        if (!::lookingInMirror && statsOn) render_world_box();
         
         // brad's frustum for debugging
         if (::frustumOn) renderViewFrustum(::viewFrustum);
     
         //Render my own avatar
-		myAvatar.render(true);	
+		myAvatar.render(::lookingInMirror);
     }
     
     glPopMatrix();
@@ -961,7 +959,7 @@ void display(void)
         if (audioScope.getState()) audioScope.render();
         #endif
 
-        if (displayHeadMouse && !displayHead && statsOn) {
+        if (displayHeadMouse && !::lookingInMirror && statsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -1057,7 +1055,7 @@ int setValue(int state, bool *value) {
 }
 
 int setHead(int state) {
-    return setValue(state, &displayHead);
+    return setValue(state, &::lookingInMirror);
 }
 
 int setField(int state) {
@@ -1088,10 +1086,6 @@ int setStats(int state) {
 
 int setMenu(int state) {
     return setValue(state, &::menuOn);
-}
-
-int setMirror(int state) {
-    return setValue(state, &headMirror);
 }
 
 int setDisplayFrustum(int state) {
@@ -1199,10 +1193,9 @@ void initMenu() {
     MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
     //  Options
     menuColumnOptions = menu.addColumn("Options");
-    menuColumnOptions->addRow("(H)ead", setHead); 
+    menuColumnOptions->addRow("Mirror (h)", setHead); 
     menuColumnOptions->addRow("Field (f)", setField); 
     menuColumnOptions->addRow("(N)oise", setNoise); 
-    menuColumnOptions->addRow("Mirror", setMirror);
     menuColumnOptions->addRow("(V)oxels", setVoxels);
     menuColumnOptions->addRow("Stars (*)", setStars);
     menuColumnOptions->addRow("(Q)uit", quitApp);
@@ -1411,9 +1404,9 @@ void key(unsigned char k, int x, int y)
     }
     
     if (k == 'h') {
-        displayHead = !displayHead;
+        ::lookingInMirror = !::lookingInMirror;
         #ifndef _WIN32
-        audio.setMixerLoopbackFlag(displayHead);
+        audio.setMixerLoopbackFlag(::lookingInMirror);
         #endif
     }
     
@@ -1509,6 +1502,9 @@ void idle(void) {
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
+                
+                //not ready yet...
+                //myAvatar.testForCollision( avatar->getBodyPosition(), avatar->getGirth(), avatar->getHeight(), avatar->getBodyUpDirection() );
             }
         }
     
