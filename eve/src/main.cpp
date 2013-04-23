@@ -26,7 +26,7 @@ bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
 
 int TEMP_AUDIO_LISTEN_PORT = 55439;
-UDPSocket audioSocket = UDPSocket(TEMP_AUDIO_LISTEN_PORT);
+UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
 
 void *receiveAgentData(void *args) {
     sockaddr senderAddress;

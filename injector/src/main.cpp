@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
     srand(time(0));
     int AUDIO_UDP_SEND_PORT = 1500 + (rand() % (int)(1500 - 2000 + 1));
     
-    UDPSocket streamSocket = UDPSocket(AUDIO_UDP_SEND_PORT);
+    UDPSocket streamSocket(AUDIO_UDP_SEND_PORT);
     
     sockaddr_in mixerSocket;
     mixerSocket.sin_family = AF_INET;
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
             std::cout << "[FATAL] Source audio file not specified" << std::endl;
             exit(-1);
         } else {
-            AudioInjector injector = AudioInjector(sourceAudioFile);
+            AudioInjector injector(sourceAudioFile);
             
             injector.setPosition(::floatArguments);
             injector.setBearing(*(::floatArguments + 3));
