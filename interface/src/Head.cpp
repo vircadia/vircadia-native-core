@@ -1126,13 +1126,13 @@ void Head::updateHandMovement() {
     
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
-    //-----------------------------------------------------
-	// if holding hands, apply the appropriate forces...
-    //-----------------------------------------------------
+    setHandState(_mousePressed);
+    
+	//if holding hands, add a pull to the hand...
 	if ( _usingBodySprings ) {
 		if ( _closestOtherAvatar != -1 ) {	
 			if ( _mousePressed ) {
-
+            
 				glm::vec3 handToHandVector( _otherAvatarHandPosition[ _closestOtherAvatar ]);
 				handToHandVector -= _bone[ AVATAR_BONE_RIGHT_HAND ].position;
 				
