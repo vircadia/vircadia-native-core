@@ -157,14 +157,17 @@ int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packe
 
 int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
     agent->setLastRecvTimeUsecs(usecTimestampNow());
-    agent->recordBytesReceived(dataBytes);
+    
+    if (agent->getActiveSocket() != NULL) {
+        agent->recordBytesReceived(dataBytes);
+    }
     
     if (agent->getLinkedData() == NULL) {
         if (linkedDataCreateCallback != NULL) {
             linkedDataCreateCallback(agent);
         }
     }
-
+    
     return agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
@@ -180,7 +183,7 @@ int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
 
 int AgentList::indexOfMatchingAgent(uint16_t agentID) {
     for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->getActiveSocket() != NULL && agent->getAgentId() == agentID) {
+        if (agent->getAgentId() == agentID) {
             return agent - agents.begin();
         }
     }
