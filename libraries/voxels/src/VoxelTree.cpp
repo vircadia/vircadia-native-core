@@ -392,7 +392,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                             
                             bool childIsClose = true; // for now, assume we're close enough
                             bool childInView  = !viewFrustumCulling || 
-                                (ViewFrustum::OUTSIDE != viewFrustum.pointInFrustum(childBox.getCorner()));
+                                (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(childBox));
 
                             /// XXXBHG - debug code, switch this to true, and we'll send everything but include false coloring
                             // on voxels based on whether or not they match these rules.
