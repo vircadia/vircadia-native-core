@@ -23,11 +23,19 @@
 using shared_lib::printLog;
 
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
-    publicSocket = new sockaddr;
-    memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    if (agentPublicSocket != NULL) {
+        publicSocket = new sockaddr;
+        memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    } else {
+        publicSocket = NULL;
+    }
     
-    localSocket = new sockaddr;
-    memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    if (agentLocalSocket != NULL) {
+        localSocket = new sockaddr;
+        memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    } else {
+        localSocket = NULL;
+    }
     
     type = agentType;
     agentId = thisAgentId;
@@ -44,11 +52,19 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
 }
 
 Agent::Agent(const Agent &otherAgent) {
-    publicSocket = new sockaddr;
-    memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+    if (otherAgent.publicSocket != NULL) {
+        publicSocket = new sockaddr;
+        memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+    } else {
+        publicSocket = NULL;
+    }
     
-    localSocket = new sockaddr;
-    memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    if (otherAgent.localSocket != NULL) {
+        localSocket = new sockaddr;
+        memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    } else {
+        localSocket = NULL;
+    }
     
     agentId = otherAgent.agentId;
     
