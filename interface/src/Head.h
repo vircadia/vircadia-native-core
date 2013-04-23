@@ -155,7 +155,7 @@ class Head : public AvatarData {
         void  setLeanForward(float dist);
         void  setLeanSideways(float dist);
         void  addLean(float x, float z);
-        float getLastMeasuredHeadYaw() {return _head.yawRate;}
+        float getLastMeasuredHeadYaw() const {return _head.yawRate;}
         float getBodyYaw() {return _bodyYaw;};
         void  addBodyYaw(float y) {_bodyYaw += y;};
     
