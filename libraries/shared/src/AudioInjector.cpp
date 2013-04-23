@@ -8,6 +8,7 @@
 
 #include <sys/time.h>
 #include <fstream>
+#include <cstring>
 
 #include "SharedUtil.h"
 #include "PacketHeaders.h"
