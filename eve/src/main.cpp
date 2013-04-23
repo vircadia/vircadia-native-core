@@ -33,8 +33,8 @@ void *receiveAgentData(void *args) {
     ssize_t bytesReceived;
     unsigned char incomingPacket[MAX_PACKET_SIZE];
     
-    AgentList *agentList = AgentList::getInstance();
-    Agent *avatarMixer = NULL;
+    AgentList* agentList = AgentList::getInstance();
+    Agent* avatarMixer = NULL;
     
     while (!::stopReceiveAgentDataThread) {
         if (agentList->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) { 
@@ -65,10 +65,10 @@ void *receiveAgentData(void *args) {
 void *injectAudio(void *args) {
     ::injectAudioThreadRunning = true;
     
-    AudioInjector *eveAudioInjector = (AudioInjector *)args;
+    AudioInjector* eveAudioInjector = (AudioInjector *)args;
     
     // look for an audio mixer in our agent list
-    Agent *audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+    Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
     
     if (audioMixer != NULL) {
         // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
@@ -85,12 +85,12 @@ void *injectAudio(void *args) {
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
     // new seed for random audio sleep times
     srand(time(0));
     
     // create an AgentList instance to handle communication with other agents
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LIST_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LIST_PORT);
     
     // start telling the domain server that we are alive
     agentList->startDomainServerCheckInThread();
@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
                                   eve.getBodyPosition()[2] + 0.1));
     
     // read eve's audio data
-    AudioInjector eveAudioInjector = AudioInjector("eve.raw");
+    AudioInjector eveAudioInjector("eve.raw");
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;

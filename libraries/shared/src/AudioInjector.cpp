@@ -45,7 +45,6 @@ AudioInjector::AudioInjector(const char* filename) :
         
         sourceFile.read((char *)_audioSampleArray, _numTotalBytesAudio);
     }
-    
 }
 
 AudioInjector::~AudioInjector() {
