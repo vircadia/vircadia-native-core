@@ -22,7 +22,7 @@
 const int MAX_PACKET_SIZE = 1500;
 const unsigned int AGENT_SOCKET_LISTEN_PORT = 40103;
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
-extern const char SOLO_AGENT_TYPES[];
+extern const char SOLO_AGENT_TYPES[3];
 
 extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
