@@ -1501,6 +1501,9 @@ void idle(void) {
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
+                
+                //not ready yet...
+                //myAvatar.testForCollision( avatar->getBodyPosition(), avatar->getGirth(), avatar->getHeight(), avatar->getBodyUpDirection() );
             }
         }
     

@@ -119,7 +119,13 @@ Head::Head(bool isMine) {
     _renderPitch             = 0.0;
 	
 	_sphere = NULL;
-	
+
+    _collisionElipsoid.colliding = false;
+    _collisionElipsoid.position  = glm::vec3( 0.0, 0.0, 0.0 );
+    _collisionElipsoid.upVector  = glm::vec3( 0.0, 0.0, 0.0 );
+    _collisionElipsoid.girth     = 0.0;
+    _collisionElipsoid.height    = 0.0;
+
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -128,15 +134,11 @@ Head::Head(bool isMine) {
         }
     }
 		
-    //--------------------------------------------------
-    // test... just slam them into random positions...
-    //--------------------------------------------------
-    _otherAvatarHandPosition[ 0 ] = glm::vec3(  0.0f, 0.3f,  2.0f );
-    _otherAvatarHandPosition[ 1 ] = glm::vec3(  4.0f, 0.3f,  2.0f );
-    _otherAvatarHandPosition[ 2 ] = glm::vec3(  2.0f, 0.3f,  2.0f );
-    _otherAvatarHandPosition[ 3 ] = glm::vec3(  1.0f, 0.3f, -4.0f );
-    _otherAvatarHandPosition[ 4 ] = glm::vec3( -2.0f, 0.3f, -2.0f );
+    for (int o=0; o<MAX_OTHER_AVATARS; o++) {
+        _otherAvatarHandPosition[o] = glm::vec3( 0.0f, 0.0f, 0.0f );
+    }
 }
+
 
 Head::Head(const Head &otherAvatar) {
  
@@ -297,7 +299,6 @@ void Head::setMousePressed( bool d ) {
 	_mousePressed = d;
 }
 
-
 void Head::simulate(float deltaTime) {
     
     //-------------------------------------------------------------
@@ -306,9 +307,6 @@ void Head::simulate(float deltaTime) {
     //-------------------------------------------------------------
     if ( _isMine )
     {
-        //-------------------------------------
-        // DEBUG - other avatars...
-        //-------------------------------------
         _closestOtherAvatar = -1;
         float closestDistance = 10000.0f;
         
@@ -343,33 +341,13 @@ void Head::simulate(float deltaTime) {
             }
         }
         
-        /*
-        ///for testing only (prior to having real avs working)
-        for (int o=0; o<NUM_OTHER_AVATARS; o++) {
-            //-------------------------------------
-            // test other avs for proximity...
-            //-------------------------------------
-            glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
-            v -= _DEBUG_otherAvatarListPosition[o];
-            
-            float distance = glm::length( v );
-
-            if ( distance < _maxArmLength ) {
-                if ( distance < closestDistance ) {
-                    closestDistance = distance;
-                    _closestOtherAvatar = o;
-                }
-            }
-        }
-        */
-        
     }//if ( _isMine )
         
     if ( usingBigSphereCollisionTest ) {
         //--------------------------------------------------------------
         // test for avatar collision response (using a big sphere :)
         //--------------------------------------------------------------
-        updateBigSphereCollisionTest(deltaTime);
+        updateAvatarCollisionDetectionAndResponse(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
     if ( AVATAR_GRAVITY ) {
@@ -574,26 +552,50 @@ void Head::simulate(float deltaTime) {
     }
 }
       
+      
+float Head::getGirth() {
+    return COLLISION_BODY_RADIUS;
+}
+
+float Head::getHeight() {
+    return COLLISION_HEIGHT;
+}
 	  
+      
+glm::vec3 Head::getBodyUpDirection() {
+    return _orientation.getUp();
+}
+
+      
+bool Head::testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector ) {
+    _collisionElipsoid.colliding = false;
+    _collisionElipsoid.position  = glm::vec3( 0.0, 0.0, 0.0 );
+    _collisionElipsoid.upVector  = glm::vec3( 0.0, 0.0, 0.0 );
+    _collisionElipsoid.girth     = 0.0;
+    _collisionElipsoid.height    = 0.0;
+    
+    return false;
+}
+
 	  
 	  
 //--------------------------------------------------------------------------------
 // This is a workspace for testing avatar body collision detection and response
 //--------------------------------------------------------------------------------
-void Head::updateBigSphereCollisionTest( float deltaTime ) {
+void Head::updateAvatarCollisionDetectionAndResponse( glm::vec3 collisionPosition, float collisionRadius, float deltaTime ) {
 
     float myBodyApproximateBoundingRadius = 1.0f;
-    glm::vec3 vectorFromMyBodyToBigSphere(_bodyPosition - _TEST_bigSpherePosition);
+    glm::vec3 vectorFromMyBodyToBigSphere(_bodyPosition - collisionPosition);
     bool jointCollision = false;
 
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + _TEST_bigSphereRadius)
+    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionRadius )
     {
         for (int b=0; b<NUM_AVATAR_BONES; b++) 
         {
-            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - _TEST_bigSpherePosition);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - collisionPosition);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-            float combinedRadius = _bone[b].radius + _TEST_bigSphereRadius;
+            float combinedRadius = _bone[b].radius + collisionRadius;
             if ( distanceToBigSphereCenter < combinedRadius ) 
             {
                 jointCollision = true;
@@ -606,7 +608,7 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
                                           
                     _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
                     _velocity                += collisionForce * 100.0f * deltaTime;
-                    _bone[b].springyPosition = _TEST_bigSpherePosition + directionVector * combinedRadius;
+                    _bone[b].springyPosition = collisionPosition + directionVector * combinedRadius;
                 }
             }
         }
@@ -663,19 +665,6 @@ void Head::render(bool lookingInMirror) {
 	//---------------------------------------------------------------------------
     if ( _isMine )
     {
-        /*
-        //---------------------------------------------------
-        // render other avatars (DEBUG TEST)
-        //---------------------------------------------------
-        for (int o=0; o<_numOtherAvatarsInView; o++) {
-            glPushMatrix();
-                glTranslatef( _otherAvatarHandPosition[o].x, _otherAvatarHandPosition[o].y, _otherAvatarHandPosition[o].z );
-                glScalef( 0.03, 0.03, 0.03 );
-                glutSolidSphere( 1, 10, 10 );
-            glPopMatrix();
-        }
-        */
-
         if (_usingBodySprings) {
             if ( _closestOtherAvatar != -1 ) {					
 
@@ -1147,7 +1136,6 @@ void Head::updateHandMovement() {
 				glm::vec3 handToHandVector( _otherAvatarHandPosition[ _closestOtherAvatar ]);
 				handToHandVector -= _bone[ AVATAR_BONE_RIGHT_HAND ].position;
 				
-				//_bone[ AVATAR_BONE_RIGHT_HAND ].springyVelocity -= handPull;				
 				_bone[ AVATAR_BONE_RIGHT_HAND ].position = _otherAvatarHandPosition[ _closestOtherAvatar ];				
 			} 
 		}
@@ -1158,7 +1146,6 @@ void Head::updateHandMovement() {
 	//-------------------------------------------------------------------------------
 	glm::vec3 armVector = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
 	armVector -= _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
-
 
 	//-------------------------------------------------------------------------------
 	// test to see if right hand is being dragged beyond maximum arm length
@@ -1180,30 +1167,13 @@ void Head::updateHandMovement() {
 		constrainedPosition += armVector;
 		_bone[ AVATAR_BONE_RIGHT_HAND ].position = constrainedPosition;
 	}
-	
-	/*
-	//-------------------------------------------------------------------------------
-	// keep arm from going through av body...
-	//-------------------------------------------------------------------------------	
-	glm::vec3 adjustedArmVector = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
-	adjustedArmVector -= _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
-	
-	float rightComponent = glm::dot( adjustedArmVector, avatar.orientation.getRight() );
-
-	if ( rightComponent < 0.0 )
-	{
-		_bone[ AVATAR_BONE_RIGHT_HAND ].position -= avatar.orientation.getRight() * rightComponent;
-	}	
-	*/
-	
+		
 	//-----------------------------------------------------------------------------
 	// set elbow position 
 	//-----------------------------------------------------------------------------
 	glm::vec3 newElbowPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * ONE_HALF;
-//glm::vec3 perpendicular = glm::cross( frontDirection, armVector );
 	glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
-
 	newElbowPosition += perpendicular * ( 1.0f - ( _maxArmLength / distance ) ) * ONE_HALF;
 	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position = newElbowPosition;
 
