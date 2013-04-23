@@ -57,7 +57,7 @@ void AudioInjector::setPosition(float* position) {
     _position[2] = position[2];
 }
 
-void AudioInjector::injectAudio(UDPSocket *injectorSocket, sockaddr *destinationSocket) {
+void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) {
     if (_audioSampleArray != NULL) {
         timeval startTime;
         
