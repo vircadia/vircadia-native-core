@@ -130,10 +130,15 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         
         int matchingAgentIndex = indexOfMatchingAgent(agentID);
         
-        if (matchingAgentIndex >= 0) {
+        if (matchingAgentIndex < 0) {
+            // we're missing this agent, we need to add it to the list
+            addOrUpdateAgent(NULL, NULL, AGENT_TYPE_AVATAR, agentID);
             
-            updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
+            // theoretically if we can lock the vector we could assume this is size - 1
+            matchingAgentIndex = indexOfMatchingAgent(agentID);
         }
+        
+        updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
         
         currentPosition += numBytesPerAgent;
     }
@@ -219,11 +224,15 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
 bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
     std::vector<Agent>::iterator agent;
     
-    for (agent = agents.begin(); agent != agents.end(); agent++) {
-        if (agent->matches(publicSocket, localSocket, agentType)) {
-            // we already have this agent, stop checking
-            break;
+    if (publicSocket != NULL) {
+        for (agent = agents.begin(); agent != agents.end(); agent++) {
+            if (agent->matches(publicSocket, localSocket, agentType)) {
+                // we already have this agent, stop checking
+                break;
+            }
         }
+    } else {
+        agent = agents.end();
     }
     
     if (agent == agents.end()) {
@@ -316,7 +325,8 @@ void *pingUnknownAgents(void *args) {
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
-            if (agent->getActiveSocket() == NULL) {
+            if (agent->getActiveSocket() == NULL
+                && (agent->getPublicSocket() != NULL && agent->getLocalSocket() != NULL)) {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
                 agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
