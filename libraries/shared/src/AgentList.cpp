@@ -106,7 +106,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
     }
 }
 
-void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes, int numBytesPerAgent) {
+void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
     // find the avatar mixer in our agent list and update the lastRecvTime from it
     int bulkSendAgentIndex = indexOfMatchingAgent(senderAddress);
 
@@ -118,7 +118,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
 
     unsigned char *startPosition = packetData;
     unsigned char *currentPosition = startPosition + 1;
-    unsigned char packetHolder[numBytesPerAgent + 1];
+    unsigned char packetHolder[numTotalBytes];
     
     packetHolder[0] = PACKET_HEADER_HEAD_DATA;
     
@@ -126,7 +126,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     
     while ((currentPosition - startPosition) < numTotalBytes) {
         currentPosition += unpackAgentId(currentPosition, &agentID);
-        memcpy(packetHolder + 1, currentPosition, numBytesPerAgent);
+        memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
         
         int matchingAgentIndex = indexOfMatchingAgent(agentID);
         
@@ -138,22 +138,24 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
             matchingAgentIndex = indexOfMatchingAgent(agentID);
         }
         
-        updateAgentWithData(&agents[matchingAgentIndex], packetHolder, numBytesPerAgent + 1);
-        
-        currentPosition += numBytesPerAgent;
+        currentPosition += updateAgentWithData(&agents[matchingAgentIndex],
+                                               packetHolder,
+                                               numTotalBytes - (currentPosition - startPosition));
     }
 }
 
-void AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
+int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     // find the agent by the sockaddr
     int agentIndex = indexOfMatchingAgent(senderAddress);
     
     if (agentIndex != -1) {
-        updateAgentWithData(&agents[agentIndex], packetData, dataBytes);
+        return updateAgentWithData(&agents[agentIndex], packetData, dataBytes);
+    } else {
+        return 0;
     }
 }
 
-void AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
+int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
     agent->setLastRecvTimeUsecs(usecTimestampNow());
     agent->recordBytesReceived(dataBytes);
     
@@ -163,7 +165,7 @@ void AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int
         }
     }
 
-    agent->getLinkedData()->parseData(packetData, dataBytes);
+    return agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
 int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {

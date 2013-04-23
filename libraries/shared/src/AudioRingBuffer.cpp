@@ -105,7 +105,7 @@ void AudioRingBuffer::setBearing(float newBearing) {
     bearing = newBearing;
 }
 
-void AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {    
+int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     if (numBytes > (bufferLengthSamples * sizeof(int16_t))) {
         
         unsigned char *dataPtr = sourceBuffer + 1;
@@ -140,7 +140,9 @@ void AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     if (endOfLastWrite >= buffer + ringBufferLengthSamples) {
         endOfLastWrite = buffer;
-    }    
+    }
+    
+    return numBytes;
 }
 
 short AudioRingBuffer::diffLastWriteNextOutput()
