@@ -168,9 +168,9 @@ class Head : public AvatarData {
 		AvatarMode getMode();
 		
 		void setMousePressed( bool pressed ); 
-        void render(int faceToFace);
+        void render(bool lookingInMirror);
 		void renderBody();
-		void renderHead( int faceToFace);
+		void renderHead(bool lookingInMirror);
         void simulate(float);
 		void startHandMovement();
 		void stopHandMovement();

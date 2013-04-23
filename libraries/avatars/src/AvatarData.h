@@ -39,20 +39,20 @@ public:
     void setHeadPitch(float p) {_headPitch = p; }
     void setHeadYaw(float y) {_headYaw = y; }
     void setHeadRoll(float r) {_headRoll = r; };
-    float getHeadPitch() { return _headPitch; };
-    float getHeadYaw() { return _headYaw; };
-    float getHeadRoll() { return _headRoll; };
+    const float getHeadPitch() const { return _headPitch; };
+    const float getHeadYaw() const { return _headYaw; };
+    const float getHeadRoll() const { return _headRoll; };
     void  addHeadPitch(float p) {_headPitch -= p; }
     void  addHeadYaw(float y){_headYaw -= y; }
     void  addHeadRoll(float r){_headRoll += r; }
 
     //  Hand State
     void setHandState(char s) { _handState = s; };
-    float getHandState() {return _handState; };
+    const float getHandState() const {return _handState; };
 
     //  Instantaneous audio loudness to drive mouth/facial animation
     void setLoudness(float l) { _audioLoudness = l; };
-    float getLoudness() {return _audioLoudness; };
+    const float getLoudness() const {return _audioLoudness; };
 
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };

@@ -161,7 +161,7 @@ int noiseOn = 0;					//  Whether to add random noise
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
 int displayLevels = 0;
-int lookingInMirror = 0;            //  Are we currently rendering one's own head as if in mirror?
+bool lookingInMirror = 0;            //  Are we currently rendering one's own head as if in mirror?
 int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement

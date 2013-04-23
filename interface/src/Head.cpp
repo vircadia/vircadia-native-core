@@ -487,19 +487,19 @@ void Head::simulate(float deltaTime) {
 
     if (!_head.noise) {
         //  Decay back toward center 
-        _headPitch *= (1.0f - DECAY*2*deltaTime);
-        _headYaw   *= (1.0f - DECAY*2*deltaTime);
-        _headRoll  *= (1.0f - DECAY*2*deltaTime);
+        _headPitch *= (1.0f - DECAY * 2 * deltaTime);
+        _headYaw   *= (1.0f - DECAY * 2 * deltaTime);
+        _headRoll  *= (1.0f - DECAY * 2 * deltaTime);
     }
     else {
         //  Move toward new target  
-        _headPitch += (_head.pitchTarget - _headPitch)*10*deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
-        _headYaw   += (_head.yawTarget   - _headYaw  )*10*deltaTime; //  (1.f - DECAY*deltaTime);
-        _headRoll *= (1.f - DECAY*deltaTime);
+        _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
+        _headYaw   += (_head.yawTarget   - _headYaw  ) * 10 * deltaTime; //  (1.f - DECAY*deltaTime);
+        _headRoll *= 1.f - (DECAY * deltaTime);
     }
     
-    _head.leanForward  *= (1.f - DECAY*30.f*deltaTime);
-    _head.leanSideways *= (1.f - DECAY*30.f*deltaTime);
+    _head.leanForward  *= (1.f - DECAY * 30 * deltaTime);
+    _head.leanSideways *= (1.f - DECAY * 30 * deltaTime);
     
     //  Update where the avatar's eyes are 
     //
@@ -509,8 +509,8 @@ void Head::simulate(float deltaTime) {
         _head.eyeContact = 1;
         if (!_head.eyeContact) {
             //  If we just stopped making eye contact,move the eyes markedly away
-            _head.eyeballPitch[0] = _head.eyeballPitch[1] = _head.eyeballPitch[0] + 5.0 + (randFloat() - 0.5)*10;
-            _head.eyeballYaw  [0] = _head.eyeballYaw  [1] = _head.eyeballYaw  [0] + 5.0 + (randFloat() - 0.5)*5;
+            _head.eyeballPitch[0] = _head.eyeballPitch[1] = _head.eyeballPitch[0] + 5.0 + (randFloat() - 0.5) * 10;
+            _head.eyeballYaw  [0] = _head.eyeballYaw  [1] = _head.eyeballYaw  [0] + 5.0 + (randFloat() - 0.5) * 5;
         } else {
             //  If now making eye contact, turn head to look right at viewer
             SetNewHeadTarget(0,0);
@@ -544,32 +544,32 @@ void Head::simulate(float deltaTime) {
 
     if (_head.noise)
     {
-        _headPitch += (randFloat() - 0.5)*0.2*_head.noiseEnvelope;
-        _headYaw += (randFloat() - 0.5)*0.3*_head.noiseEnvelope;
-        //PupilSize += (randFloat() - 0.5)*0.001*NoiseEnvelope;
+        _headPitch += (randFloat() - 0.5) * 0.2 * _head.noiseEnvelope;
+        _headYaw += (randFloat() - 0.5) * 0.3 *_head.noiseEnvelope;
+        //PupilSize += (randFloat() - 0.5) * 0.001*NoiseEnvelope;
         
         if (randFloat() < 0.005) _head.mouthWidth = MouthWidthChoices[rand()%3];
         
         if (!_head.eyeContact) {
-            if (randFloat() < 0.01)  _head.eyeballPitch[0] = _head.eyeballPitch[1] = (randFloat() - 0.5)*20;
-            if (randFloat() < 0.01)  _head.eyeballYaw[0] = _head.eyeballYaw[1] = (randFloat()- 0.5)*10;
+            if (randFloat() < 0.01)  _head.eyeballPitch[0] = _head.eyeballPitch[1] = (randFloat() - 0.5) * 20;
+            if (randFloat() < 0.01)  _head.eyeballYaw[0] = _head.eyeballYaw[1] = (randFloat()- 0.5) * 10;
         }         
 
         if ((randFloat() < 0.005) && (fabs(_head.pitchTarget - _headPitch) < 1.0) && (fabs(_head.yawTarget - _headYaw) < 1.0)) {
-            SetNewHeadTarget((randFloat()-0.5)*20.0, (randFloat()-0.5)*45.0);
+            SetNewHeadTarget((randFloat()-0.5) * 20.0, (randFloat()-0.5) * 45.0);
         }
 
         if (0) {
 
             //  Pick new target
-            _head.pitchTarget = (randFloat() - 0.5)*45;
-            _head.yawTarget = (randFloat() - 0.5)*22;
+            _head.pitchTarget = (randFloat() - 0.5) * 45;
+            _head.yawTarget = (randFloat() - 0.5) * 22;
         }
         if (randFloat() < 0.01)
         {
             _head.eyebrowPitch[0] = _head.eyebrowPitch[1] = BrowPitchAngle[rand()%3];
             _head.eyebrowRoll [0] = _head.eyebrowRoll[1] = BrowRollAngle[rand()%5];
-            _head.eyebrowRoll [1]*=-1;
+            _head.eyebrowRoll [1] *=-1;
         }
     }
 }
@@ -619,11 +619,11 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
         }     
     }
 }
-      
+
       
       
 	   
-void Head::render(int lookingInMirror) {
+void Head::render(bool lookingInMirror) {
 
 	//---------------------------------------------------
 	// show avatar position
@@ -695,7 +695,7 @@ void Head::render(int lookingInMirror) {
 
 
 	   
-void Head::renderHead(int lookingInMirror) {
+void Head::renderHead(bool lookingInMirror) {
     int side = 0;
         
     glEnable(GL_DEPTH_TEST);
@@ -749,17 +749,17 @@ void Head::renderHead(int lookingInMirror) {
     glPopMatrix();
 
     // _eyebrows
-    _head.audioAttack = 0.9*_head.audioAttack + 0.1*fabs(_audioLoudness - _head.lastLoudness);
+    _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
     _head.lastLoudness = _audioLoudness;
 
     const float BROW_LIFT_THRESHOLD = 100;
     if (_head.audioAttack > BROW_LIFT_THRESHOLD)
-        _head.browAudioLift += sqrt(_head.audioAttack)/1000.0;
+        _head.browAudioLift += sqrt(_head.audioAttack) / 1000.0;
     
     _head.browAudioLift *= .90;
     
     glPushMatrix();
-        glTranslatef(-_head.interBrowDistance/2.0,0.4,0.45);
+        glTranslatef(-_head.interBrowDistance / 2.0,0.4,0.45);
         for(side = 0; side < 2; side++) {
             glColor3fv(browColor);
             glPushMatrix();
