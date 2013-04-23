@@ -35,9 +35,7 @@ float browThickness = 0.16;
 
 bool usingBigSphereCollisionTest = true;
 
-const float DECAY = 0.1;
-const float THRUST_MAG	= 10.0;
-const float YAW_MAG		= 300.0;
+
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
@@ -115,8 +113,7 @@ Head::Head(bool isMine) {
     _head.noise              = 0;
     
 	_movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
-_usingBodySprings        = true;
-//_usingBodySprings        = false;
+    _usingBodySprings        = true;
 	_springForce             = 6.0f;
 	_springVelocityDecay     = 16.0f;
     _renderYaw               = 0.0;
@@ -168,11 +165,7 @@ Head::Head(const Head &otherAvatar) {
 	_springForce            = otherAvatar._springForce;
 	_springVelocityDecay    = otherAvatar._springVelocityDecay;    
 	_orientation.set( otherAvatar._orientation );
-    
-    //for (int o=0;o<NUM_OTHER_AVATARS; o++) {
-    //    _DEBUG_otherAvatarListPosition[o] = otherAvatar._DEBUG_otherAvatarListPosition[o];
-    //}
-    
+        
 	_sphere = NULL;
 
     initializeSkeleton();
@@ -312,7 +305,6 @@ void Head::setMousePressed( bool d ) {
 }
 
 
-
 void Head::simulate(float deltaTime) {
     
     //-------------------------------------------------------------
@@ -386,7 +378,19 @@ void Head::simulate(float deltaTime) {
         //--------------------------------------------------------------
         updateBigSphereCollisionTest(deltaTime);
     }
-            
+    
+    if ( AVATAR_GRAVITY ) {
+        if ( _bodyPosition.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
+            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
+        }
+        else {
+            if ( _bodyPosition.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
+                 _bodyPosition.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
+                _velocity.y = 0.0;
+            }       
+        }
+    }
+    
 	//------------------------
 	// update avatar skeleton
 	//------------------------ 
@@ -466,7 +470,6 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// decay body yaw delta
 	//----------------------------------------------------------
-    const float TEST_YAW_DECAY = 5.0;
     _bodyYawDelta *= (1.0 - TEST_YAW_DECAY * deltaTime);
 
 	//----------------------------------------------------------
@@ -482,7 +485,6 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
 	// decay velocity
 	//----------------------------------------------------------
-    const float LIN_VEL_DECAY = 5.0;
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
     if (!_head.noise) {
@@ -591,18 +593,22 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
     {
         for (int b=0; b<NUM_AVATAR_BONES; b++) 
         {
-            glm::vec3 vectorFromJointToBigSphere(_bone[b].position - _TEST_bigSpherePosition);
-            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphere);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - _TEST_bigSpherePosition);
+            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _bone[b].radius + _TEST_bigSphereRadius;
             if ( distanceToBigSphereCenter < combinedRadius ) 
             {
                 jointCollision = true;
                 if (distanceToBigSphereCenter > 0.0) 
                 {
-                    float amp = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
-                    glm::vec3 collisionForce = vectorFromJointToBigSphere * amp;                        
-                    _bone[b].springyVelocity += collisionForce * 8.0f * deltaTime;
-                    _velocity += collisionForce * 18.0f * deltaTime;
+                    glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
+                    
+                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius); 
+                    glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;  
+                                          
+                    _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
+                    _velocity                += collisionForce * 100.0f * deltaTime;
+                    _bone[b].springyPosition = _TEST_bigSpherePosition + directionVector * combinedRadius;
                 }
             }
         }
@@ -611,22 +617,7 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
             if (!_usingBodySprings) {
                 _usingBodySprings = true;
                 initializeBodySprings();
-            }
-            
-            //----------------------------------------------------------
-            // add gravity to velocity
-            //----------------------------------------------------------
-            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * 0.05;
-            
-            //----------------------------------------------------------
-            // ground collisions
-            //----------------------------------------------------------
-            if ( _bodyPosition.y < 0.0 ) {
-                _bodyPosition.y = 0.0;
-                if ( _velocity.y < 0.0 ) {
-                    _velocity.y *= -0.7;
-                }
-            }       
+            }            
         }     
     }
 }
@@ -658,12 +649,7 @@ void Head::render(int faceToFace) {
             glutSolidSphere( 1, 20, 20 );
         glPopMatrix();
      }
-     
-	//---------------------------------------------------
-	// show avatar orientation
-	//---------------------------------------------------
-	renderOrientationDirections( _bone[ AVATAR_BONE_HEAD ].position, _bone[ AVATAR_BONE_HEAD ].orientation, 0.2f );
-	
+     	
 	//---------------------------------------------------
 	// render body
 	//---------------------------------------------------
@@ -679,6 +665,7 @@ void Head::render(int faceToFace) {
 	//---------------------------------------------------------------------------
     if ( _isMine )
     {
+        /*
         //---------------------------------------------------
         // render other avatars (DEBUG TEST)
         //---------------------------------------------------
@@ -689,6 +676,7 @@ void Head::render(int faceToFace) {
                 glutSolidSphere( 1, 10, 10 );
             glPopMatrix();
         }
+        */
 
         if (_usingBodySprings) {
             if ( _closestOtherAvatar != -1 ) {					
@@ -714,6 +702,11 @@ void Head::renderHead(int faceToFace) {
         
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
+    
+	//---------------------------------------------------
+	// show head orientation
+	//---------------------------------------------------
+	//renderOrientationDirections( _bone[ AVATAR_BONE_HEAD ].position, _bone[ AVATAR_BONE_HEAD ].orientation, 0.2f );
     
     glPushMatrix();
     
@@ -858,7 +851,6 @@ void Head::renderHead(int faceToFace) {
     glPopMatrix();
  }
  
- 
 void Head::startHandMovement() {
 
     if (!_usingBodySprings) {
@@ -892,7 +884,7 @@ void Head::initializeSkeleton() {
         _bone[b].pitch               = 0.0;
         _bone[b].roll                = 0.0;
         _bone[b].length              = 0.0;
-        _bone[b].radius              = 0.02; //default
+        _bone[b].radius              = 0.0;
         _bone[b].springBodyTightness = 4.0;
         _bone[b].orientation.setToIdentity();
 	}
@@ -947,29 +939,54 @@ void Head::initializeSkeleton() {
 	//----------------------------------------------------------
 	// specify the default pose position
 	//----------------------------------------------------------
-	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.3,  0.0  );
-	_bone[ AVATAR_BONE_MID_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
-	_bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,  0.0  );
-	_bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06, 0.0  );
-	_bone[ AVATAR_BONE_HEAD				].defaultPosePosition = glm::vec3(  0.0,   0.06, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_CHEST		].defaultPosePosition = glm::vec3( -0.06,  0.06, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_SHOULDER	].defaultPosePosition = glm::vec3( -0.03,  0.0,  0.0  );
-	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.12, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_FOREARM		].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
-	_bone[ AVATAR_BONE_LEFT_HAND		].defaultPosePosition = glm::vec3(  0.0,  -0.05, 0.0  );
-	_bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::vec3(  0.06,  0.06, 0.0  );
-	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].defaultPosePosition = glm::vec3(  0.03,  0.0,  0.0  );
-	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.12, 0.0  );
-	_bone[ AVATAR_BONE_RIGHT_FOREARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
-	_bone[ AVATAR_BONE_RIGHT_HAND		].defaultPosePosition = glm::vec3(  0.0,  -0.05, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_PELVIS		].defaultPosePosition = glm::vec3( -0.05,  0.0,  0.0  );
-	_bone[ AVATAR_BONE_LEFT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
-	_bone[ AVATAR_BONE_LEFT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
-	_bone[ AVATAR_BONE_RIGHT_PELVIS		].defaultPosePosition = glm::vec3(  0.05,  0.0,  0.0  );
-	_bone[ AVATAR_BONE_RIGHT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
-	_bone[ AVATAR_BONE_RIGHT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15, 0.0  );
-	_bone[ AVATAR_BONE_RIGHT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.04 );
+	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.3,   0.0  );
+	_bone[ AVATAR_BONE_MID_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
+	_bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
+	_bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
+	_bone[ AVATAR_BONE_HEAD				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_CHEST		].defaultPosePosition = glm::vec3( -0.06,  0.06,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_SHOULDER	].defaultPosePosition = glm::vec3( -0.03,  0.0,   0.0  );
+	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
+	_bone[ AVATAR_BONE_LEFT_FOREARM		].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
+	_bone[ AVATAR_BONE_LEFT_HAND		].defaultPosePosition = glm::vec3(  0.0,  -0.05,  0.0  );
+	_bone[ AVATAR_BONE_RIGHT_CHEST		].defaultPosePosition = glm::vec3(  0.06,  0.06,  0.0  );
+	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].defaultPosePosition = glm::vec3(  0.03,  0.0,   0.0  );
+	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
+	_bone[ AVATAR_BONE_RIGHT_FOREARM	].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
+	_bone[ AVATAR_BONE_RIGHT_HAND		].defaultPosePosition = glm::vec3(  0.0,  -0.05,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_PELVIS		].defaultPosePosition = glm::vec3( -0.05,  0.0,   0.0  );
+	_bone[ AVATAR_BONE_LEFT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	_bone[ AVATAR_BONE_LEFT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
+	_bone[ AVATAR_BONE_RIGHT_PELVIS		].defaultPosePosition = glm::vec3(  0.05,  0.0,   0.0  );
+	_bone[ AVATAR_BONE_RIGHT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	_bone[ AVATAR_BONE_RIGHT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	_bone[ AVATAR_BONE_RIGHT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
+
+
+	_bone[ AVATAR_BONE_PELVIS_SPINE		].radius = 0.05;
+	_bone[ AVATAR_BONE_MID_SPINE		].radius = 0.06;
+	_bone[ AVATAR_BONE_CHEST_SPINE		].radius = 0.03;
+	_bone[ AVATAR_BONE_NECK				].radius = 0.02;
+	_bone[ AVATAR_BONE_HEAD				].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_CHEST		].radius = 0.025;
+	_bone[ AVATAR_BONE_LEFT_SHOULDER	].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_UPPER_ARM	].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_FOREARM		].radius = 0.015;
+	_bone[ AVATAR_BONE_LEFT_HAND		].radius = 0.01;
+	_bone[ AVATAR_BONE_RIGHT_CHEST		].radius = 0.025;
+	_bone[ AVATAR_BONE_RIGHT_SHOULDER	].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_FOREARM	].radius = 0.015;
+	_bone[ AVATAR_BONE_RIGHT_HAND		].radius = 0.01;
+	_bone[ AVATAR_BONE_LEFT_PELVIS		].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_THIGH		].radius = 0.02;
+	_bone[ AVATAR_BONE_LEFT_SHIN		].radius = 0.015;
+	_bone[ AVATAR_BONE_LEFT_FOOT		].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_PELVIS		].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_THIGH		].radius = 0.02;
+	_bone[ AVATAR_BONE_RIGHT_SHIN		].radius = 0.015;
+	_bone[ AVATAR_BONE_RIGHT_FOOT		].radius = 0.02;
 
 	//----------------------------------------------------------------------------
 	// calculate bone length
@@ -1111,16 +1128,16 @@ glm::vec3 Head::getHeadLookatDirectionRight() {
 }
 
 glm::vec3 Head::getHeadPosition() {
-	return glm::vec3
-	(
-		_bone[ AVATAR_BONE_HEAD ].position.x,
-		_bone[ AVATAR_BONE_HEAD ].position.y,
-		_bone[ AVATAR_BONE_HEAD ].position.z
-	);
+
+    if ( _usingBodySprings ) {
+        return _bone[ AVATAR_BONE_HEAD ].springyPosition;
+    }
+    
+    return _bone[ AVATAR_BONE_HEAD ].position;
 }
 
 
-glm::vec3 Head::getBonePosition( AvatarBones b ) {
+glm::vec3 Head::getBonePosition( AvatarBoneID b ) {
     return _bone[b].position;
 }
 
@@ -1230,30 +1247,23 @@ void Head::renderBody() {
     //  Render bone positions as spheres
 	//-----------------------------------------
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
-
-/*
-if ( _isMine )
-{
-    printf( "my avatar: %d\n", _usingBodySprings );
-}
-else
-{
-    printf( "other avatar: %d\n", _usingBodySprings );
-}
-*/
-
+        //renderBoneAsBlock( (AvatarBoneID)b);
+        
+        //render bone orientation
+        //renderOrientationDirections( _bone[b].position, _bone[b].orientation, 0.05f );
+    
 		if ( _usingBodySprings ) {
-			glColor3fv( lightBlue );
+			glColor3fv( skinColor );
 			glPushMatrix();
 				glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
-				glutSolidSphere( _bone[b].radius, 10.0f, 5.0f );
+				glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
 			glPopMatrix();
 		}
 		else {
 			glColor3fv( skinColor );
 			glPushMatrix();
 				glTranslatef( _bone[b].position.x, _bone[b].position.y, _bone[b].position.z );
-				glutSolidSphere( _bone[b].radius, 10.0f, 5.0f );
+				glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
 			glPopMatrix();
 		}
 	}
@@ -1288,7 +1298,6 @@ else
 		}
 	}
 	
-	
 	if (( _usingBodySprings ) && ( _mousePressed )) {
 		glColor4f( 1.0, 1.0, 0.5, 0.5 );
 		glPushMatrix();
@@ -1301,8 +1310,24 @@ else
 			glutSolidSphere( 0.03f, 10.0f, 5.0f );
 		glPopMatrix();
 	}
-	
 }
+
+
+
+void Head::renderBoneAsBlock( AvatarBoneID b ) {
+    glColor3fv( skinColor );
+    glPushMatrix();
+        glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
+        glScalef( _bone[b].radius, _bone[b].length, _bone[b].radius );
+        glRotatef(_bone[b].yaw,   0, 1, 0 ); 
+        glRotatef(_bone[b].pitch, 1, 0, 0 );
+        glRotatef(_bone[b].roll,  0, 0, 1 );
+        glutSolidCube(1.0);
+    glPopMatrix();
+}
+
+
+
 
 void Head::SetNewHeadTarget(float pitch, float yaw) {
     _head.pitchTarget = pitch;
