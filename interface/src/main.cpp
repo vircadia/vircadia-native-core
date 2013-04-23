@@ -817,7 +817,7 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		if ( lookingInMirror ) {
+		if ( ::lookingInMirror ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
@@ -910,7 +910,7 @@ void display(void)
 		drawGroundPlaneGrid( 5.0f, 9 );
 		
         //  Draw cloud of dots
-        if (!lookingInMirror) cloud.render();
+        if (!::lookingInMirror) cloud.render();
     
         //  Draw voxels
 		if ( showingVoxels )
@@ -932,16 +932,16 @@ void display(void)
             }
         }
     
-        if ( !lookingInMirror ) balls.render();
+        if ( !::lookingInMirror ) balls.render();
     
         //  Render the world box
-        if (!lookingInMirror && statsOn) render_world_box();
+        if (!::lookingInMirror && statsOn) render_world_box();
         
         // brad's frustum for debugging
         if (::frustumOn) renderViewFrustum(::viewFrustum);
     
         //Render my own avatar
-		myAvatar.render(lookingInMirror);
+		myAvatar.render(::lookingInMirror);
     }
     
     glPopMatrix();
@@ -959,7 +959,7 @@ void display(void)
         if (audioScope.getState()) audioScope.render();
         #endif
 
-        if (displayHeadMouse && !lookingInMirror && statsOn) {
+        if (displayHeadMouse && !::lookingInMirror && statsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -1055,7 +1055,7 @@ int setValue(int state, bool *value) {
 }
 
 int setHead(int state) {
-    return setValue(state, &lookingInMirror);
+    return setValue(state, &::lookingInMirror);
 }
 
 int setField(int state) {
@@ -1193,7 +1193,7 @@ void initMenu() {
     MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
     //  Options
     menuColumnOptions = menu.addColumn("Options");
-    menuColumnOptions->addRow("(H)ead", setHead); 
+    menuColumnOptions->addRow("Mirror (h)", setHead); 
     menuColumnOptions->addRow("Field (f)", setField); 
     menuColumnOptions->addRow("(N)oise", setNoise); 
     menuColumnOptions->addRow("(V)oxels", setVoxels);
@@ -1404,9 +1404,9 @@ void key(unsigned char k, int x, int y)
     }
     
     if (k == 'h') {
-        lookingInMirror = !lookingInMirror;
+        ::lookingInMirror = !::lookingInMirror;
         #ifndef _WIN32
-        audio.setMixerLoopbackFlag(lookingInMirror);
+        audio.setMixerLoopbackFlag(::lookingInMirror);
         #endif
     }
     
