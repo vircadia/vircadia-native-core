@@ -85,7 +85,7 @@ void *injectAudio(void *args) {
     return NULL;
 }
 
-int main(const int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) {
     // new seed for random audio sleep times
     srand(time(0));
     

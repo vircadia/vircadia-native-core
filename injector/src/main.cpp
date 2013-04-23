@@ -93,7 +93,7 @@ bool processParameters(int parameterCount, char* parameterData[])
     return true;
 };
 
-int main(const int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) {
 
     srand(time(0));
     int AUDIO_UDP_SEND_PORT = 1500 + (rand() % (int)(1500 - 2000 + 1));
