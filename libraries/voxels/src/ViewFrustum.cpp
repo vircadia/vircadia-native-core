@@ -192,16 +192,16 @@ int ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
 
 int ViewFrustum::boxInFrustum(const AABox& box) const {
 
-    printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",
-        box.getCorner().x,box.getCorner().y,box.getCorner().z,box.getSize().x);
+    //printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",
+    //    box.getCorner().x,box.getCorner().y,box.getCorner().z,box.getSize().x);
 	int result = INSIDE;
 	for(int i=0; i < 6; i++) {
 
-        printf("plane[%d] -- point(%f,%f,%f) normal(%f,%f,%f) d=%f \n",i,
-            _planes[i].getPoint().x, _planes[i].getPoint().y, _planes[i].getPoint().z,
-            _planes[i].getNormal().x, _planes[i].getNormal().y, _planes[i].getNormal().z,
-            _planes[i].getDCoefficient()
-        );
+        //printf("plane[%d] -- point(%f,%f,%f) normal(%f,%f,%f) d=%f \n",i,
+        //    _planes[i].getPoint().x, _planes[i].getPoint().y, _planes[i].getPoint().z,
+        //    _planes[i].getNormal().x, _planes[i].getNormal().y, _planes[i].getNormal().z,
+        //    _planes[i].getDCoefficient()
+        //);
 
 	    glm::vec3 normal = _planes[i].getNormal();
 	    glm::vec3 boxVertexP = box.getVertexP(normal);
@@ -210,13 +210,11 @@ int ViewFrustum::boxInFrustum(const AABox& box) const {
 	    glm::vec3 boxVertexN = box.getVertexN(normal);
 	    float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
 	    
-	    
-	    
-        printf("plane[%d] normal=(%f,%f,%f) bVertexP=(%f,%f,%f) planeToBoxVertexPDistance=%f  boxVertexN=(%f,%f,%f) planeToBoxVertexNDistance=%f\n",i, 
-            normal.x,normal.y,normal.z,
-            boxVertexP.x,boxVertexP.y,boxVertexP.z,planeToBoxVertexPDistance,
-            boxVertexN.x,boxVertexN.y,boxVertexN.z,planeToBoxVertexNDistance
-            );
+        //printf("plane[%d] normal=(%f,%f,%f) bVertexP=(%f,%f,%f) planeToBoxVertexPDistance=%f  boxVertexN=(%f,%f,%f) planeToBoxVertexNDistance=%f\n",i, 
+        //    normal.x,normal.y,normal.z,
+        //    boxVertexP.x,boxVertexP.y,boxVertexP.z,planeToBoxVertexPDistance,
+        //    boxVertexN.x,boxVertexN.y,boxVertexN.z,planeToBoxVertexNDistance
+        //    );
 
 		if (planeToBoxVertexPDistance < 0) {
 			return OUTSIDE;

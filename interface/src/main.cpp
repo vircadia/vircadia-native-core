@@ -819,18 +819,16 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myAvatar.getBodyPosition() );
-
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getBodyPosition() ); // XXXBHG - Shouldn't we use Head position here?
+			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
-			myCamera.setPitch			( 0.0  );
-			myCamera.setRoll			( 0.0  );
-			myCamera.setUp				( 0.6 );	
-			myCamera.setDistance		( 0.3  );
+			myCamera.setPitch			( 0.0 );
+			myCamera.setRoll			( 0.0 );
+			myCamera.setUp				( 0.0 );	
+			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
 			myCamera.update				( 1.f/FPS );
 		} else {
@@ -839,12 +837,12 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
-			myCamera.setRoll			(   0.0 );
-			myCamera.setUp				(   0.45);
-			myCamera.setDistance		(   1.0 );
-			myCamera.setTightness		( 10.0f );
-			myCamera.update				( 1.f/FPS );
+			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setRoll			(   0.0  );
+			myCamera.setUp				(   0.45 );
+			myCamera.setDistance		(   1.0  );
+			myCamera.setTightness		(   8.0f );
+			myCamera.update				( 1.f/FPS);
 		}
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -907,13 +905,11 @@ void display(void)
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
 		glPushMatrix();
-			//glTranslatef( 0.0f, sphereRadius, 0.0f );
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
 		//draw a grid gound plane....
 		drawGroundPlaneGrid( 5.0f, 9 );
-		
 		
         //  Draw cloud of dots
         if (!displayHead) cloud.render();
@@ -934,12 +930,7 @@ void display(void)
             agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Head *avatar = (Head *)agent->getLinkedData();
-                //glPushMatrix();
-                
-//printf( "rendering remote avatar\n" );                
-                
                 avatar->render(0);
-                //glPopMatrix();
             }
         }
     
@@ -1509,7 +1500,7 @@ void idle(void) {
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
-        updateAvatar( 1.f/FPS );
+        updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
@@ -1518,14 +1509,9 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) 
 			{
                 Head *avatar = (Head *)agent->getLinkedData();
-                
-//printf( "simulating remote avatar\n" );                
-                
                 avatar->simulate(deltaTime);
             }
         }
-        
-        //updateAvatarHand(1.f/FPS);
     
         field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
