@@ -264,23 +264,27 @@ void Agent::printLog(Agent const& agent) {
 
     sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
     sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
+    
+    const char* publicAddressString = (agentPublicSocket == NULL)
+        ? "Unknown"
+        : inet_ntoa(agentPublicSocket->sin_addr);
+    unsigned short publicAddressPort = (agentPublicSocket == NULL)
+        ? 0
+        : ntohs(agentPublicSocket->sin_port);
+    
+    const char* localAddressString = (agentLocalSocket == NULL)
+        ? "Unknown"
+        : inet_ntoa(agentLocalSocket->sin_addr);
+    unsigned short localAddressPort = (agentLocalSocket == NULL)
+        ? 0
+        : ntohs(agentPublicSocket->sin_port);
 
     ::printLog("ID: %d T: %s (%c) PA: %s:%d LA: %s:%d\n",
                agent.agentId,
                agent.getTypeName(),
                agent.type,
-               inet_ntoa(agentPublicSocket->sin_addr),
-               ntohs(agentPublicSocket->sin_port),
-               inet_ntoa(agentLocalSocket->sin_addr),
-               ntohs(agentLocalSocket->sin_port));
-}
-
-std::ostream& operator<<(std::ostream& os, const Agent* agent) {
-    sockaddr_in *agentPublicSocket = (sockaddr_in *)agent->publicSocket;
-    sockaddr_in *agentLocalSocket = (sockaddr_in *)agent->localSocket;
-    
-    os << "T: " << agent->getTypeName() << " (" << agent->type << ") PA: " << inet_ntoa(agentPublicSocket->sin_addr) <<
-        ":" << ntohs(agentPublicSocket->sin_port) << " LA: " << inet_ntoa(agentLocalSocket->sin_addr) <<
-        ":" << ntohs(agentLocalSocket->sin_port);
-    return os;
+               publicAddressString,
+               publicAddressPort,
+               localAddressString,
+               localAddressPort);
 }

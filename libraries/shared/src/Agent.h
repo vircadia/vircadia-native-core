@@ -63,7 +63,6 @@ public:
     float getAveragePacketsPerSecond();
 
     static void printLog(Agent const&);
-    friend std::ostream& operator<<(std::ostream& os, const Agent* agent);
 private:
     void swap(Agent &first, Agent &second);
     
