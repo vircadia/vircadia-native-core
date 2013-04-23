@@ -91,7 +91,7 @@ int main(int argc, const char* argv[]) {
     srand(time(0));
     
     // create an AgentList instance to handle communication with other agents
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, 55441);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, randIntInRange(1500, 65000));
     
     // start telling the domain server that we are alive
     agentList->startDomainServerCheckInThread();
