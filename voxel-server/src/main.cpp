@@ -48,6 +48,8 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
+bool debugViewFrustum = false;
+bool viewFrustumCulling = true; // for now
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -165,6 +167,24 @@ void *distributeVoxelsToListeners(void *args) {
             Agent *thisAgent = (Agent *)&agentList->getAgents()[i];
             VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
             
+            ViewFrustum viewFrustum;
+            // get position and orientation details from the camera
+            viewFrustum.setPosition(agentData->getCameraPosition());
+            viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
+    
+            // Also make sure it's got the correct lens details from the camera
+            viewFrustum.setFieldOfView(agentData->getCameraFov());
+            viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
+            viewFrustum.setNearClip(agentData->getCameraNearClip());
+            viewFrustum.setFarClip(agentData->getCameraFarClip());
+            
+            viewFrustum.calculate();
+
+            // debug for fun!!
+            if (::debugViewFrustum) {
+                viewFrustum.dump();
+            }
+            
             // lock this agent's delete mutex so that the delete thread doesn't
             // kill the agent while we are working with it
             pthread_mutex_lock(thisAgent->deleteMutex);
@@ -179,8 +199,10 @@ void *distributeVoxelsToListeners(void *args) {
                 stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
                                                            randomTree.rootNode,
                                                            agentData->rootMarkerNode,
-                                                           agentData->position,
+                                                           agentData->getBodyPosition(),
                                                            treeRoot,
+                                                           viewFrustum,
+                                                           ::viewFrustumCulling,
                                                            stopOctal);
                 
                 agentList->getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
@@ -249,37 +271,43 @@ int main(int argc, const char * argv[])
     agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
+
+    const char* DEBUG_VIEW_FRUSTUM = "--DebugViewFrustum";
+    ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
+	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
+
+    const char* NO_VIEW_FRUSTUM_CULLING = "--NoViewFrustumCulling";
+    ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
+	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
+	const char* WANT_COLOR_RANDOMIZER = "--WantColorRandomizer";
+    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
+	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
+
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
-	const char* WANT_COLOR_RANDOMIZER="--WantColorRandomizer";
-	const char* INPUT_FILE="-i";
-    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-
-	printf("wantColorRandomizer=%s\n",(wantColorRandomizer?"yes":"no"));
+	const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
-    
     if (voxelsFilename) {
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
 	}
     
-	const char* ADD_RANDOM_VOXELS="--AddRandomVoxels";
+	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
 	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
 		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
 		// octal codes to the tree nodes that it is creating
 	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
 	}
-
 	
-	const char* ADD_SPHERE="--AddSphere";
-	const char* ADD_RANDOM_SPHERE="--AddRandomSphere";
+	const char* ADD_SPHERE = "--AddSphere";
+	const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
 	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
 		addSphere(&randomTree,false,wantColorRandomizer);
     } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
 		addSphere(&randomTree,true,wantColorRandomizer);
     }
 
-	const char* NO_ADD_SCENE="--NoAddScene";
+	const char* NO_ADD_SCENE = "--NoAddScene";
 	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
 		addSphereScene(&randomTree,wantColorRandomizer);
     }
@@ -345,7 +373,7 @@ int main(int argc, const char * argv[])
 
             	// Now send this to the connected agents so they know to delete
 				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
+				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
             	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -373,14 +401,14 @@ int main(int argc, const char * argv[])
 
 				// Now send this to the connected agents so they can also process these messages
 				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_INTERFACE, 1);
+				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
             }
-            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_INTERFACE, and we
+            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 if (agentList->addOrUpdateAgent(&agentPublicAddress,
                                                &agentPublicAddress,
-                                               AGENT_TYPE_INTERFACE,
+                                               AGENT_TYPE_AVATAR,
                                                agentList->getLastAgentId())) {
                     agentList->increaseAgentId();
                 }

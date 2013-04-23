@@ -36,7 +36,15 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 AvatarData::AvatarData() :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
-    _bodyRoll(0.0) {
+    _bodyRoll(0.0),
+    _cameraPosition(0,0,0),
+    _cameraDirection(0,0,0),
+    _cameraUp(0,0,0),
+    _cameraRight(0,0,0),
+    _cameraFov(0.0f),
+    _cameraAspectRatio(0.0f),
+    _cameraNearClip(0.0f),
+    _cameraFarClip(0.0f) {
     
 }
 
@@ -64,16 +72,35 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
-    
-    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
-    
+
+    // camera details
+    memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
+    destinationBuffer += sizeof(_cameraPosition);
+    memcpy(destinationBuffer, &_cameraDirection, sizeof(_cameraDirection));
+    destinationBuffer += sizeof(_cameraDirection);
+    memcpy(destinationBuffer, &_cameraRight, sizeof(_cameraRight));
+    destinationBuffer += sizeof(_cameraRight);
+    memcpy(destinationBuffer, &_cameraUp, sizeof(_cameraUp));
+    destinationBuffer += sizeof(_cameraUp);
+    memcpy(destinationBuffer, &_cameraFov, sizeof(_cameraFov));
+    destinationBuffer += sizeof(_cameraFov);
+    memcpy(destinationBuffer, &_cameraAspectRatio, sizeof(_cameraAspectRatio));
+    destinationBuffer += sizeof(_cameraAspectRatio);
+    memcpy(destinationBuffer, &_cameraNearClip, sizeof(_cameraNearClip));
+    destinationBuffer += sizeof(_cameraNearClip);
+    memcpy(destinationBuffer, &_cameraFarClip, sizeof(_cameraFarClip));
+    destinationBuffer += sizeof(_cameraFarClip);
+
     return destinationBuffer - bufferStart;
 }
 
 // called on the other agents - assigns it to my views of the others
-void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
+int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
+
     // increment to push past the packet header
     sourceBuffer++;
+    
+    unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_bodyPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
@@ -85,10 +112,25 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
     
-    //printLog( "_bodyYaw = %f", _bodyYaw );
-
-    //printLog("%f, %f, %f\n", _handPosition.x,  _handPosition.y, _handPosition.z);
-    //printLog("%f, %f, %f\n", _bodyPosition.x,  _bodyPosition.y, _bodyPosition.z);
+    // camera details
+    memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
+    sourceBuffer += sizeof(_cameraPosition);
+    memcpy(&_cameraDirection, sourceBuffer, sizeof(_cameraDirection));
+    sourceBuffer += sizeof(_cameraDirection);
+    memcpy(&_cameraRight, sourceBuffer, sizeof(_cameraRight));
+    sourceBuffer += sizeof(_cameraRight);
+    memcpy(&_cameraUp, sourceBuffer, sizeof(_cameraUp));
+    sourceBuffer += sizeof(_cameraUp);
+    memcpy(&_cameraFov, sourceBuffer, sizeof(_cameraFov));
+    sourceBuffer += sizeof(_cameraFov);
+    memcpy(&_cameraAspectRatio, sourceBuffer, sizeof(_cameraAspectRatio));
+    sourceBuffer += sizeof(_cameraAspectRatio);
+    memcpy(&_cameraNearClip, sourceBuffer, sizeof(_cameraNearClip));
+    sourceBuffer += sizeof(_cameraNearClip);
+    memcpy(&_cameraFarClip, sourceBuffer, sizeof(_cameraFarClip));
+    sourceBuffer += sizeof(_cameraFarClip);
+    
+    return sourceBuffer - startPosition;
 }
 
 glm::vec3 AvatarData::getBodyPosition() {

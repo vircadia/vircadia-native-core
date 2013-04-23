@@ -85,6 +85,7 @@
 using namespace std;
 
 void reshape(int width, int height); // will be defined below
+void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
 
 pthread_t networkReceiveThread;
@@ -168,15 +169,90 @@ int displayField = 0;
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
 
-int mouseX, mouseY;				//  Where is the mouse
+int mouseX = 0;
+int mouseY = 0;
 
 //  Mouse location at start of last down click
-int mouseStartX = WIDTH	 / 2;
-int mouseStartY = HEIGHT / 2;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
-Menu menu;                          // main menu
-int menuOn = 1;					//  Whether to show onscreen menu
+Menu menu;       // main menu
+int menuOn = 1;  //  Whether to show onscreen menu
+
+struct HandController
+{
+    bool  enabled;
+    int   startX;
+    int   startY;
+    int   x; 
+    int   y;
+    int   lastX; 
+    int   lastY;
+    int   velocityX;
+    int   velocityY;
+    float rampUpRate;
+    float rampDownRate;
+    float envelope;
+};
+
+HandController handController;
+
+void initializeHandController() {
+   handController.enabled      = false;
+   handController.startX       = WIDTH  / 2;
+   handController.startY       = HEIGHT / 2;
+   handController.x            = 0; 
+   handController.y            = 0;
+   handController.lastX        = 0; 
+   handController.lastY        = 0;
+   handController.velocityX    = 0;
+   handController.velocityY    = 0;
+   handController.rampUpRate   = 0.05;
+   handController.rampDownRate = 0.02;
+   handController.envelope     = 0.0f;
+}
+
+void updateHandController( int x, int y ) {
+    handController.lastX = handController.x;
+    handController.lastY = handController.y;
+    handController.x = x;
+    handController.y = y;
+    handController.velocityX = handController.x - handController.lastX;
+    handController.velocityY = handController.y - handController.lastY;
+
+    if (( handController.velocityX != 0 )
+    ||  ( handController.velocityY != 0 )) {
+        handController.enabled = true;
+        myAvatar.startHandMovement();
+        if ( handController.envelope < 1.0 ) {
+            handController.envelope += handController.rampUpRate;
+            if ( handController.envelope >= 1.0 ) { 
+                handController.envelope = 1.0; 
+            }
+        }
+    }
+
+   if ( ! handController.enabled ) {
+        if ( handController.envelope > 0.0 ) {
+            handController.envelope -= handController.rampDownRate;
+            if ( handController.envelope <= 0.0 ) { 
+                handController.startX = WIDTH	 / 2;
+                handController.startY = HEIGHT / 2;
+                handController.envelope = 0.0; 
+//prototype                
+//myAvatar.stopHandMovement();
+            }
+        }
+    }
+    
+    if ( handController.envelope > 0.0 ) {
+        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
+        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
+        float backFront	= 0.0;			
+        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
+    }
+}
+
+
 
 //
 //  Serial USB Variables
@@ -266,11 +342,15 @@ void displayStats(void)
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
-    sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
-            roundf(avatarMixer->getAverageKilobitsPerSecond()),
-            roundf(avatarMixer->getAveragePacketsPerSecond()));
+    if (avatarMixer) {
+        sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+                roundf(avatarMixer->getAverageKilobitsPerSecond()),
+                roundf(avatarMixer->getAveragePacketsPerSecond()));
+    } else {
+        sprintf(avatarMixerStats, "No Avatar Mixer");
+    }
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
-
+    
 	if (::perfStatsOn) {
 		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
 		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
@@ -304,6 +384,8 @@ void init(void)
     voxels.init();
     voxels.setViewerHead(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
+    
+    initializeHandController();
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -368,22 +450,6 @@ void reset_sensors()
         serialPort.resetTrailingAverages();
     }
 }
-
-/*
-void updateAvatarHand(float deltaTime) {
-    //  If mouse is being dragged, send current force to the hand controller
-    if (mousePressed == 1)
-    {
-        //  NOTE--PER:  Need to re-implement when ready for new avatar hand movements
-        
-        const float MOUSE_HAND_FORCE = 1.5;
-        float dx = mouseX - mouseStartX;
-        float dy = mouseY - mouseStartY;
-        glm::vec3 vel(dx*MOUSE_HAND_FORCE, -dy*MOUSE_HAND_FORCE*(WIDTH/HEIGHT), 0);
-        //myAvatar.hand->addVelocity(vel*deltaTime);
-    }
-}
-*/
 
 //
 //  Using gyro data, update both view frustum and avatar head position
@@ -457,6 +523,22 @@ void updateAvatar(float frametime)
     myAvatar.setAverageLoudness(averageLoudness);
     #endif
 
+    // Update Avatar with latest camera and view frustum data...
+    // NOTE: we get this from the view frustum, to make it simpler, since the
+    // loadViewFrumstum() method will get the correct details from the camera
+    // We could optimize this to not actually load the viewFrustum, since we don't
+    // actually need to calculate the view frustum planes to send these details 
+    // to the server.
+    loadViewFrustum(::viewFrustum);
+    myAvatar.setCameraPosition(::viewFrustum.getPosition());
+    myAvatar.setCameraDirection(::viewFrustum.getDirection());
+    myAvatar.setCameraUp(::viewFrustum.getUp());
+    myAvatar.setCameraRight(::viewFrustum.getRight());
+    myAvatar.setCameraFov(::viewFrustum.getFieldOfView());
+    myAvatar.setCameraAspectRatio(::viewFrustum.getAspectRatio());
+    myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
+    myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
+
     //  Send my stream of head/hand data to the avatar mixer and voxel server
     unsigned char broadcastString[200];
     *broadcastString = PACKET_HEADER_HEAD_DATA;
@@ -494,34 +576,14 @@ void updateAvatar(float frametime)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-// render_view_frustum()
+// loadViewFrustum()
 //
-// Description: this will render the view frustum bounds for EITHER the head
+// Description: this will load the view frustum bounds for EITHER the head
 // 				or the "myCamera". 
 //
-// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
-// We can draw it with each of these parts:
-//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
-//    * Near plane - this plane is drawn very close to the origin point.
-//    * Right/Left planes - these two planes are drawn between the near and far planes.
-//    * Far plane - the plane is drawn in the distance.
-// Modes - the following modes, will draw the following parts.
-//    * All - draws all the parts listed above
-//    * Planes - draws the planes but not the origin vectors
-//    * Origin Vectors - draws the origin vectors ONLY
-//    * Near Plane - draws only the near plane
-//    * Far Plane - draws only the far plane
-#define FRUSTUM_DRAW_MODE_ALL        0
-#define FRUSTUM_DRAW_MODE_VECTORS    1
-#define FRUSTUM_DRAW_MODE_PLANES     2
-#define FRUSTUM_DRAW_MODE_NEAR_PLANE 3
-#define FRUSTUM_DRAW_MODE_FAR_PLANE  4
-#define FRUSTUM_DRAW_MODE_COUNT      5
 
-// These global scoped variables are used by our render_view_frustum() function below, but are also available as globals
-// so that the keyboard and menu can manipulate them.
-
-int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the frustum in, see notes above
+// These global scoped variables are used by our loadViewFrustum() and renderViewFrustum functions below, but are also
+//  available as globals so that the keyboard and menu can manipulate them.
 
 bool  frustumOn = false;                  // Whether or not to display the debug view frustum
 bool  cameraFrustum = true;               // which frustum to look at
@@ -533,8 +595,7 @@ float viewFrustumOffsetRoll     = 0.0;
 float viewFrustumOffsetDistance = 25.0;
 float viewFrustumOffsetUp       = 0.0;
 
-void render_view_frustum() {
-	
+void loadViewFrustum(ViewFrustum& viewFrustum) {
 	// We will use these below, from either the camera or head vectors calculated above	
 	glm::vec3 position;
 	glm::vec3 direction;
@@ -593,8 +654,44 @@ void render_view_frustum() {
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
-    
-    //viewFrustum.dump();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// renderViewFrustum()
+//
+// Description: this will render the view frustum bounds for EITHER the head
+// 				or the "myCamera". 
+//
+// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
+// We can draw it with each of these parts:
+//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
+//    * Near plane - this plane is drawn very close to the origin point.
+//    * Right/Left planes - these two planes are drawn between the near and far planes.
+//    * Far plane - the plane is drawn in the distance.
+// Modes - the following modes, will draw the following parts.
+//    * All - draws all the parts listed above
+//    * Planes - draws the planes but not the origin vectors
+//    * Origin Vectors - draws the origin vectors ONLY
+//    * Near Plane - draws only the near plane
+//    * Far Plane - draws only the far plane
+#define FRUSTUM_DRAW_MODE_ALL        0
+#define FRUSTUM_DRAW_MODE_VECTORS    1
+#define FRUSTUM_DRAW_MODE_PLANES     2
+#define FRUSTUM_DRAW_MODE_NEAR_PLANE 3
+#define FRUSTUM_DRAW_MODE_FAR_PLANE  4
+#define FRUSTUM_DRAW_MODE_COUNT      5
+
+int   frustumDrawingMode = FRUSTUM_DRAW_MODE_ALL; // the mode we're drawing the frustum in, see notes above
+
+void renderViewFrustum(ViewFrustum& viewFrustum) {
+
+    // Load it with the latest details!
+    loadViewFrustum(viewFrustum);
+	
+    glm::vec3 position  = viewFrustum.getPosition();
+    glm::vec3 direction = viewFrustum.getDirection();
+    glm::vec3 up        = viewFrustum.getUp();
+    glm::vec3 right     = viewFrustum.getRight();
 	
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
@@ -722,18 +819,16 @@ void display(void)
 		//--------------------------------------------------------
 		// camera settings
 		//--------------------------------------------------------		
-		myCamera.setTargetPosition( myAvatar.getBodyPosition() );
-
 		if ( displayHead ) {
 			//-----------------------------------------------
 			// set the camera to looking at my own face
 			//-----------------------------------------------
-			myCamera.setTargetPosition	( myAvatar.getBodyPosition() ); // XXXBHG - Shouldn't we use Head position here?
+			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
 			myCamera.setYaw				( - myAvatar.getBodyYaw() );
-			myCamera.setPitch			( 0.0  );
-			myCamera.setRoll			( 0.0  );
-			myCamera.setUp				( 0.6 );	
-			myCamera.setDistance		( 0.3  );
+			myCamera.setPitch			( 0.0 );
+			myCamera.setRoll			( 0.0 );
+			myCamera.setUp				( 0.0 );	
+			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
 			myCamera.update				( 1.f/FPS );
 		} else {
@@ -742,12 +837,12 @@ void display(void)
 			//----------------------------------------------------		
 			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0 );  // temporarily, this must be 0.0 or else bad juju
-			myCamera.setRoll			(   0.0 );
-			myCamera.setUp				(   0.45);
-			myCamera.setDistance		(   1.0 );
-			myCamera.setTightness		( 10.0f );
-			myCamera.update				( 1.f/FPS );
+			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
+			myCamera.setRoll			(   0.0  );
+			myCamera.setUp				(   0.45 );
+			myCamera.setDistance		(   1.0  );
+			myCamera.setTightness		(   8.0f );
+			myCamera.update				( 1.f/FPS);
 		}
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -755,7 +850,7 @@ void display(void)
 		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
 		// to add other cameras.
 		//
-		// Why have two cameras? Well, one reason is that because in the case of the render_view_frustum()
+		// Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
 		// code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
 		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
 		Camera whichCamera = myCamera;
@@ -811,13 +906,11 @@ void display(void)
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
 		glPushMatrix();
-			//glTranslatef( 0.0f, sphereRadius, 0.0f );
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
 		//draw a grid gound plane....
 		drawGroundPlaneGrid( 5.0f, 9 );
-		
 		
         //  Draw cloud of dots
         if (!displayHead) cloud.render();
@@ -836,11 +929,9 @@ void display(void)
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
             agent++) {
-            if (agent->getLinkedData() != NULL) {
-                Head *agentHead = (Head *)agent->getLinkedData();
-                glPushMatrix();
-                agentHead->render(0);
-                glPopMatrix();
+            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+                Head *avatar = (Head *)agent->getLinkedData();
+                avatar->render(0);
             }
         }
     
@@ -850,7 +941,7 @@ void display(void)
         if (!displayHead && statsOn) render_world_box();
         
         // brad's frustum for debugging
-        if (::frustumOn) render_view_frustum();
+        if (::frustumOn) renderViewFrustum(::viewFrustum);
     
         //Render my own avatar
 		myAvatar.render(true);	
@@ -904,11 +995,18 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
-    //  Draw number of nearby people always
+    //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
-    sprintf(agents, "Agents: %ld\n", AgentList::getInstance()->getAgents().size());
-    drawtext(WIDTH-100,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    
+    int totalAgents = AgentList::getInstance()->getAgents().size();
+    int totalAvatars = 0, totalServers = 0;
+    for (int i = 0; i < totalAgents; i++) {
+        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
+            ? totalAvatars++ : totalServers++;
+    }
+    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
@@ -1030,6 +1128,46 @@ int setFrustumRenderMode(int state) {
     return ::frustumDrawingMode;
 }
 
+int doRandomizeVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.randomizeVoxelColors();
+    }
+    return state;
+}
+
+
+int doFalseRandomizeVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.falseColorizeRandom();
+    }
+    return state;
+}
+
+int doTrueVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.trueColorize();
+    }
+    return state;
+}
+
+int doFalseColorizeByDistance(int state) {
+    if (state == MENU_ROW_PICKED) {
+        loadViewFrustum(::viewFrustum);
+        voxels.falseColorizeDistanceFromView(&::viewFrustum);
+    }
+    return state;
+}
+
+int doFalseColorizeInView(int state) {
+    if (state == MENU_ROW_PICKED) {
+        loadViewFrustum(::viewFrustum);
+        // we probably want to make sure the viewFrustum is initialized first
+        voxels.falseColorizeInView(&::viewFrustum);
+    }
+    return state;
+}
+
+
 const char* modeAll     = " - All "; 
 const char* modeVectors = " - Vectors "; 
 const char* modePlanes  = " - Planes "; 
@@ -1084,7 +1222,11 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
-    
+    menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
+    menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
+    menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
 }
 
 void testPointToVoxel()
@@ -1248,7 +1390,7 @@ void key(unsigned char k, int x, int y)
 //	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
 
 	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
-	
+
     if (k == '&') {
     	::paintOn = !::paintOn;		// toggle paint
     	::setupPaintingVoxel();		// also randomizes colors
@@ -1267,7 +1409,6 @@ void key(unsigned char k, int x, int y)
         {
             myAvatar.setNoise(0);
         }
-
     }
     
     if (k == 'h') {
@@ -1316,8 +1457,7 @@ void *networkReceive(void *args)
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    incomingPacket,
-                                                                   bytesReceived,
-                                                                   BYTES_PER_AVATAR);
+                                                                   bytesReceived);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
@@ -1339,40 +1479,29 @@ void idle(void) {
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
 		
-		//if ( myAvatar.getMode() == AVATAR_MODE_COMMUNICATING ) {
-				float leftRight	= ( mouseX - mouseStartX ) / (float)WIDTH;
-				float downUp	= ( mouseY - mouseStartY ) / (float)HEIGHT;
-				float backFront	= 0.0;			
-				glm::vec3 handMovement( leftRight, downUp, backFront );
-				myAvatar.setHandMovement( handMovement );		
-		/*}		
-		else {
-			mouseStartX = mouseX;
-			mouseStartY = mouseY;
-			//mouseStartX = (float)WIDTH  / 2.0f;
-			//mouseStartY = (float)HEIGHT / 2.0f;
-		}
-        */
-		
-		//--------------------------------------------------------
-		// when the mouse is being pressed, an 'action' is being 
-		// triggered in the avatar. The action is context-based.
-		//--------------------------------------------------------
+        float deltaTime = 1.f/FPS;
+
+        // update behaviors for avatar hand movement 
+        updateHandController( mouseX, mouseY );
+        
+		// tell my avatar if the mouse is being pressed...
 		if ( mousePressed == 1 ) {
-			myAvatar.setTriggeringAction( true );
+			myAvatar.setMousePressed( true );
 		}
 		else {
-			myAvatar.setTriggeringAction( false );
+			myAvatar.setMousePressed( false );
 		}
         
-        float deltaTime = 1.f/FPS;
-		
+        // walking triggers the handController to stop
+        if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
+            handController.enabled = false;
+		}
+        
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
-        updateAvatar( 1.f/FPS );
+        updateAvatar(deltaTime);
 		
-        
         //loop through all the other avatars and simulate them.
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
@@ -1383,9 +1512,6 @@ void idle(void) {
                 avatar->simulate(deltaTime);
             }
         }
-        
-		
-        //updateAvatarHand(1.f/FPS);
     
         field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
@@ -1464,8 +1590,6 @@ void mouseFunc( int button, int state, int x, int y )
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
-            //mouseStartX = x;
-            //mouseStartY = y;
         }
     }
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
@@ -1485,11 +1609,14 @@ void motionFunc( int x, int y)
 void mouseoverFunc( int x, int y)
 {
     menu.mouseOver(x, y);
+
 	mouseX = x;
 	mouseY = y;
     if (mousePressed == 0)
     {}
 }
+
+
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
@@ -1515,7 +1642,7 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_INTERFACE);
+    AgentList::createInstance(AGENT_TYPE_AVATAR);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");

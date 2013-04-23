@@ -1,6 +1,12 @@
-// Plane.cpp
 //
-//////////////////////////////////////////////////////////////////////
+//  Plane.h
+//  hifi
+//
+//  Created by Brad Hefta-Gaub on 04/11/13.
+//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
+//
+//  Simple plane class.
+//
 
 #include "Plane.h"
 #include <stdio.h>
@@ -10,78 +16,55 @@
 using voxels_lib::printLog;
 
 // These are some useful utilities that vec3 is missing
-float vec3_length(const glm::vec3& v) {
-	return((float)sqrt(v.x*v.x + v.y*v.y + v.z*v.z));
+void printVec3(const char* name, const glm::vec3& v) {
+    printf("%s x=%f y=%f z=%f\n", name, v.x, v.y, v.z);
 }
-
-void vec3_normalize(glm::vec3& v) {
-
-	float len;
-
-	len = vec3_length(v);
-	if (len) {
-		v.x /= len;;
-		v.y /= len;
-		v.z /= len;
-	}
-}
-
-float vec3_innerProduct(const glm::vec3& v1,const glm::vec3& v2) {
-    
-	return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
-}
-
-
-
-Plane::Plane(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) {
-
-	set3Points(v1,v2,v3);
-}
-
-
-Plane::Plane() {}
-
-Plane::~Plane() {}
-
 
 void Plane::set3Points(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) {
+    glm::vec3 linev1v2, linev1v3;
 
+    linev1v2 = v2 - v1;
+    linev1v3 = v3 - v1;
 
-	glm::vec3 aux1, aux2;
+    // this will be perpendicular to both lines
+    _normal = glm::cross(linev1v2,linev1v3);
+    glm::normalize(_normal);
 
-	aux1 = v1 - v2;
-	aux2 = v3 - v2;
+    // this is a point on the plane
+    _point = v2;
 
-	normal = aux2 * aux1;
-
-	vec3_normalize(normal);
-	point = v2;
-	d = -(vec3_innerProduct(normal,point));
+    // the D coefficient from the form Ax+By+Cz=D
+    _dCoefficient = -(glm::dot(_normal,_point));
 }
 
 void Plane::setNormalAndPoint(const glm::vec3 &normal, const glm::vec3 &point) {
+    _point = point;
+    _normal = normal;
+    glm::normalize(_normal);
 
-	this->normal = normal;
-	vec3_normalize(this->normal);
-	d = -(vec3_innerProduct(this->normal,point));
+    // the D coefficient from the form Ax+By+Cz=D
+    _dCoefficient = -(glm::dot(_normal,_point));
 }
 
 void Plane::setCoefficients(float a, float b, float c, float d) {
+    // set the normal vector
+    _normal = glm::vec3(a,b,c);
 
-	// set the normal vector
-	normal = glm::vec3(a,b,c);
-	//compute the lenght of the vector
-	float l = normal.length();
-	// normalize the vector
-	normal = glm::vec3(a/l,b/l,c/l);
-	// and divide d by th length as well
-	this->d = d/l;
+    //compute the lenght of the vector
+    float l = glm::length(_normal);
+
+    // normalize the vector
+    _normal = glm::vec3(a/l,b/l,c/l);
+
+    // and divide d by th length as well
+    _dCoefficient = d/l;
 }
 
-float Plane::distance(const glm::vec3 &p) {
-    return (d + vec3_innerProduct(normal,p));
+float Plane::distance(const glm::vec3 &point) const {
+    return (_dCoefficient + glm::dot(_normal,point));
 }
 
-void Plane::print() {
-	//printLog("Plane(");normal.print();printLog("# %f)",d);
+void Plane::print() const {
+    printf("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f\n",
+        _point.x, _point.y, _point.z, _normal.x, _normal.y, _normal.z, _dCoefficient);
 }

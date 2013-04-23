@@ -45,14 +45,22 @@ private:
     glm::vec3   _nearTopRight;    
     glm::vec3   _nearBottomLeft;  
     glm::vec3   _nearBottomRight;
-    enum { TOPP = 0, BOTTOMP, LEFTP, RIGHTP, NEARP, FARP };
+    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     Plane _planes[6]; // How will this be used?
+    
+    const char* debugPlaneName (int plane) const;
     
 public:
     // setters for camera attributes
     void setPosition        (const glm::vec3& p) { _position = p; }
     void setOrientation     (const glm::vec3& d, const glm::vec3& u, const glm::vec3& r ) 
         { _direction = d; _up = u; _right = r; }
+
+    // getters for camera attributes
+    const glm::vec3& getPosition()  const { return _position;  };
+    const glm::vec3& getDirection() const { return _direction; };
+    const glm::vec3& getUp()        const { return _up;        };
+    const glm::vec3& getRight()     const { return _right;     };
 
     // setters for lens attributes
     void setFieldOfView     ( float f ) { _fieldOfView      = f; }
@@ -82,13 +90,13 @@ public:
 
     ViewFrustum();
 
-    void dump();
+    void dump() const;
     
     enum {OUTSIDE, INTERSECT, INSIDE};
 
-    int pointInFrustum(glm::vec3 &p);
-    int sphereInFrustum(glm::vec3 &center, float radius);
-    int boxInFrustum(AABox &b);
+    int pointInFrustum(const glm::vec3& point) const;
+    int sphereInFrustum(const glm::vec3& center, float radius) const;
+    int boxInFrustum(const AABox& box) const;
     
 };
 

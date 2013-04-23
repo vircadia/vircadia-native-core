@@ -12,7 +12,7 @@
 class AgentData {
     public:
         virtual ~AgentData() = 0;
-        virtual void parseData(unsigned char* sourceBuffer, int numBytes) = 0;
+        virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
         virtual AgentData* clone() const = 0;
 };
 
