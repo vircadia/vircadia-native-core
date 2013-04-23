@@ -13,8 +13,6 @@
 
 #include <AgentData.h>
 
-const int BYTES_PER_AVATAR = 94;
-
 class AvatarData : public AgentData {
 public:
     AvatarData();
@@ -27,7 +25,7 @@ public:
     void setHandPosition(glm::vec3 handPosition);
     
     int getBroadcastData(unsigned char* destinationBuffer);
-    void parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(unsigned char* sourceBuffer, int numBytes);
     
     float getBodyYaw();
     void  setBodyYaw(float bodyYaw);

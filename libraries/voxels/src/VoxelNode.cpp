@@ -58,6 +58,12 @@ void VoxelNode::getAABox(AABox& box) const {
 void VoxelNode::addChildAtIndex(int childIndex) {
     children[childIndex] = new VoxelNode();
     
+    // XXXBHG - When the node is constructed, it should be cleanly set up as 
+    // true colored, but for some reason, not so much. I've added a a basecamp
+    // to-do to research this. But for now we'll use belt and suspenders and set
+    // it to not-false-colored here!
+    children[childIndex]->setFalseColored(false);
+    
     // give this child its octal code
     children[childIndex]->octalCode = childOctalCode(octalCode, childIndex);
 }

@@ -95,9 +95,12 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other agents - assigns it to my views of the others
-void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
+int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
+
     // increment to push past the packet header
     sourceBuffer++;
+    
+    unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_bodyPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
@@ -126,6 +129,8 @@ void AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(_cameraNearClip);
     memcpy(&_cameraFarClip, sourceBuffer, sizeof(_cameraFarClip));
     sourceBuffer += sizeof(_cameraFarClip);
+    
+    return sourceBuffer - startPosition;
 }
 
 glm::vec3 AvatarData::getBodyPosition() {

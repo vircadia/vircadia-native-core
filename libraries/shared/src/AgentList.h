@@ -50,10 +50,10 @@ public:
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     
     void processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-    void processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes, int numBytesPerAgent);
+    void processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
    
-    void updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-    void updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
+    int updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
+    int updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
     void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     char getOwnerType();

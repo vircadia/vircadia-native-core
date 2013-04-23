@@ -23,11 +23,19 @@
 using shared_lib::printLog;
 
 Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
-    publicSocket = new sockaddr;
-    memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    if (agentPublicSocket != NULL) {
+        publicSocket = new sockaddr;
+        memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    } else {
+        publicSocket = NULL;
+    }
     
-    localSocket = new sockaddr;
-    memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    if (agentLocalSocket != NULL) {
+        localSocket = new sockaddr;
+        memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    } else {
+        localSocket = NULL;
+    }
     
     type = agentType;
     agentId = thisAgentId;
@@ -44,11 +52,19 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
 }
 
 Agent::Agent(const Agent &otherAgent) {
-    publicSocket = new sockaddr;
-    memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+    if (otherAgent.publicSocket != NULL) {
+        publicSocket = new sockaddr;
+        memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+    } else {
+        publicSocket = NULL;
+    }
     
-    localSocket = new sockaddr;
-    memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    if (otherAgent.localSocket != NULL) {
+        localSocket = new sockaddr;
+        memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    } else {
+        localSocket = NULL;
+    }
     
     agentId = otherAgent.agentId;
     
@@ -248,23 +264,27 @@ void Agent::printLog(Agent const& agent) {
 
     sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
     sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
+    
+    const char* publicAddressString = (agentPublicSocket == NULL)
+        ? "Unknown"
+        : inet_ntoa(agentPublicSocket->sin_addr);
+    unsigned short publicAddressPort = (agentPublicSocket == NULL)
+        ? 0
+        : ntohs(agentPublicSocket->sin_port);
+    
+    const char* localAddressString = (agentLocalSocket == NULL)
+        ? "Unknown"
+        : inet_ntoa(agentLocalSocket->sin_addr);
+    unsigned short localAddressPort = (agentLocalSocket == NULL)
+        ? 0
+        : ntohs(agentPublicSocket->sin_port);
 
     ::printLog("ID: %d T: %s (%c) PA: %s:%d LA: %s:%d\n",
                agent.agentId,
                agent.getTypeName(),
                agent.type,
-               inet_ntoa(agentPublicSocket->sin_addr),
-               ntohs(agentPublicSocket->sin_port),
-               inet_ntoa(agentLocalSocket->sin_addr),
-               ntohs(agentLocalSocket->sin_port));
-}
-
-std::ostream& operator<<(std::ostream& os, const Agent* agent) {
-    sockaddr_in *agentPublicSocket = (sockaddr_in *)agent->publicSocket;
-    sockaddr_in *agentLocalSocket = (sockaddr_in *)agent->localSocket;
-    
-    os << "T: " << agent->getTypeName() << " (" << agent->type << ") PA: " << inet_ntoa(agentPublicSocket->sin_addr) <<
-        ":" << ntohs(agentPublicSocket->sin_port) << " LA: " << inet_ntoa(agentLocalSocket->sin_addr) <<
-        ":" << ntohs(agentLocalSocket->sin_port);
-    return os;
+               publicAddressString,
+               publicAddressPort,
+               localAddressString,
+               localAddressPort);
 }
