@@ -1,5 +1,5 @@
 //
-//  injector.cpp
+//  main.cpp
 //  Audio Injector
 //
 //  Created by Leonardo Murillo on 3/5/13.
@@ -11,39 +11,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <vector>
-#include <fstream>
-#include <algorithm>
 #include <arpa/inet.h>
 #include <string.h>
 #include <sstream>
-#include "UDPSocket.h"
-#include "UDPSocket.cpp"
+
+
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
-
+#include <UDPSocket.h>
+#include <AudioInjector.h>
 
 char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55443;
-const int BUFFER_LENGTH_BYTES = 512;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-const float SAMPLE_RATE = 22050.0;
-const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES / SAMPLE_RATE) * 1000000;
 
 // Command line parameter defaults
 bool loopAudio = true;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
-float positionInUniverse[] = {0, 0, 0, 0};
-unsigned char attenuationModifier = 255;
-char *sourceAudioFile;
+char *sourceAudioFile = NULL;
 const char *allowedParameters = ":rb::t::c::a::f:";
-
-char *charBuffer;
-int16_t *buffer;
-long length;
-
-UDPSocket *streamSocket;
+float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+unsigned char attenuationModifier = 255;
 
 void usage(void)
 {
@@ -62,19 +50,19 @@ bool processParameters(int parameterCount, char* parameterData[])
     while ((p = getopt(parameterCount, parameterData, allowedParameters)) != -1) {
         switch (p) {
             case 'r':
-                loopAudio = false;
+                ::loopAudio = false;
                 std::cout << "[DEBUG] Random sleep mode enabled" << std::endl;
                 break;
             case 'b':
-                sleepIntervalMin = atof(optarg);
+                ::sleepIntervalMin = atof(optarg);
                 std::cout << "[DEBUG] Min delay between plays " << sleepIntervalMin << "sec" << std::endl;
                 break;
             case 't':
-                sleepIntervalMax = atof(optarg);
+                ::sleepIntervalMax = atof(optarg);
                 std::cout << "[DEBUG] Max delay between plays " << sleepIntervalMax << "sec" << std::endl;
                 break;
             case 'f':
-                sourceAudioFile = optarg;
+                ::sourceAudioFile = optarg;
                 std::cout << "[DEBUG] Opening file: " << sourceAudioFile << std::endl;
                 break;
             case 'c':
@@ -84,7 +72,7 @@ bool processParameters(int parameterCount, char* parameterData[])
                 
                 int i = 0;
                 while (std::getline(ss, token, ',')) {
-                    positionInUniverse[i] = atof(token.c_str());
+                    ::floatArguments[i] = atof(token.c_str());
                     ++i;
                     if (i == 4) {
                         break;
@@ -94,7 +82,7 @@ bool processParameters(int parameterCount, char* parameterData[])
                 break;
             }
             case 'a':
-                attenuationModifier = atoi(optarg);
+                ::attenuationModifier = atoi(optarg);
                 std::cout << "[DEBUG] Attenuation modifier: " << optarg << std::endl;
                 break;
             default:
@@ -105,77 +93,42 @@ bool processParameters(int parameterCount, char* parameterData[])
     return true;
 };
 
-void loadFile(void) {
-    std::fstream sourceFile;
-    sourceFile.open(sourceAudioFile, std::ios::in | std::ios::binary);
-    sourceFile.seekg(0, std::ios::end);
-    length = sourceFile.tellg();
-    sourceFile.seekg(0, std::ios::beg);
-    long sizeOfShortArray = length / 2;
-    buffer = new int16_t[sizeOfShortArray];
-    sourceFile.read((char *)buffer, length);
-}
-
-void stream(void)
-{
-    timeval startTime;
-    
-    int leadingBytes = 1 + (sizeof(float) * 4);
-    unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
-    
-    dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-    unsigned char *currentPacketPtr = dataPacket + 1;
-    
-    for (int p = 0; p < 4; p++) {
-        memcpy(currentPacketPtr, &positionInUniverse[p], sizeof(float));
-        currentPacketPtr += sizeof(float);
-    }
-    
-    *currentPacketPtr = attenuationModifier;
-    currentPacketPtr++;
-    
-    for (int i = 0; i < length; i += BUFFER_LENGTH_SAMPLES) {
-        gettimeofday(&startTime, NULL);
-        memcpy(currentPacketPtr, &buffer[i], BUFFER_LENGTH_BYTES);
-        streamSocket->send(EC2_WEST_AUDIO_SERVER, AUDIO_UDP_LISTEN_PORT, dataPacket, sizeof(dataPacket));
-        double usecToSleep = usecTimestamp(&startTime) + BUFFER_SEND_INTERVAL_USECS - usecTimestampNow();
-        usleep(usecToSleep);
-    }
-};
-
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 
     srand(time(0));
     int AUDIO_UDP_SEND_PORT = 1500 + (rand() % (int)(1500 - 2000 + 1));
     
-    streamSocket = new UDPSocket(AUDIO_UDP_SEND_PORT);
+    UDPSocket streamSocket = UDPSocket(AUDIO_UDP_SEND_PORT);
     
-    if (processParameters(argc, argv)) {
-        if (sourceAudioFile) {
-            loadFile();
-        } else {
+    sockaddr_in mixerSocket;
+    mixerSocket.sin_family = AF_INET;
+    mixerSocket.sin_addr.s_addr = inet_addr(EC2_WEST_AUDIO_SERVER);
+    mixerSocket.sin_port = htons((uint16_t)AUDIO_UDP_LISTEN_PORT);
+    
+    if (processParameters(argc, argv)) {        
+        if (::sourceAudioFile == NULL) {
             std::cout << "[FATAL] Source audio file not specified" << std::endl;
             exit(-1);
-        }
-        
-        for (int i = 0; i < sizeof(positionInUniverse)/sizeof(positionInUniverse[0]); ++i) {
-            std::cout << "Position " << positionInUniverse[i] << std::endl;
-        }
-
-        float delay;
-        int usecDelay;
-        while (true) {
-            stream();
+        } else {
+            AudioInjector injector = AudioInjector(sourceAudioFile);
             
-            if (loopAudio) {
-                delay = 0;
-            } else {
-                delay = randFloatInRange(sleepIntervalMin, sleepIntervalMax);
+            injector.setPosition(::floatArguments);
+            injector.setBearing(*(::floatArguments + 3));
+            injector.setAttenuationModifier(::attenuationModifier);
+        
+            float delay = 0;
+            int usecDelay = 0;
+            
+            while (true) {
+                injector.injectAudio(&streamSocket, (sockaddr*) &mixerSocket);
+                
+                if (!::loopAudio) {
+                    delay = randFloatInRange(::sleepIntervalMin, ::sleepIntervalMax);
+                    usecDelay = delay * 1000 * 1000;
+                    usleep(usecDelay);
+                }
             }
-            usecDelay = delay * 1000 * 1000;
-            usleep(usecDelay);
-        }
+        }        
     }
     return 0;
 }

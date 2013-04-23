@@ -65,19 +65,28 @@ void AudioInjector::injectAudio(UDPSocket *injectorSocket, sockaddr *destination
         currentPacketPtr += sizeof(float);
     }
     
-    memcpy(currentPacketPtr, &_bearing, sizeof(float));
-    currentPacketPtr += sizeof(float);
-        
     *currentPacketPtr = _attenuationModifier;
     currentPacketPtr++;
     
-    for (int i = 0; i < _numTotalBytesAudio; i += BUFFER_LENGTH_SAMPLES) {
+    memcpy(currentPacketPtr, &_bearing, sizeof(float));
+    currentPacketPtr += sizeof(float);
+    
+    for (int i = 0; i < _numTotalBytesAudio; i += BUFFER_LENGTH_BYTES) {
         gettimeofday(&startTime, NULL);
         
-        memcpy(currentPacketPtr, _audioSampleArray + i, BUFFER_LENGTH_BYTES);
+        int numBytesToCopy = BUFFER_LENGTH_BYTES;
+        
+        if (_numTotalBytesAudio - i < BUFFER_LENGTH_BYTES) {
+            numBytesToCopy = _numTotalBytesAudio - i;
+            memset(currentPacketPtr + numBytesToCopy, 0, BUFFER_LENGTH_BYTES - numBytesToCopy);
+        }
+        
+        memcpy(currentPacketPtr, _audioSampleArray + (i / 2), numBytesToCopy);
         injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
         
-        double usecToSleep = usecTimestamp(&startTime) + BUFFER_SEND_INTERVAL_USECS - usecTimestampNow();
-        usleep(usecToSleep);
+        double usecToSleep = BUFFER_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&startTime));
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
     }
 }
