@@ -100,9 +100,6 @@ struct AvatarBone
 
 struct AvatarHead
 {
-    float pitch;
-    float yaw;
-    float roll;
     float pitchRate;
     float yawRate;
     float rollRate;
@@ -134,7 +131,7 @@ struct AvatarHead
     eyeContactTargets eyeContactTarget;
     
     //  Sound loudness information
-    float loudness, lastLoudness;
+    float lastLoudness;
     float averageLoudness;
     float audioAttack;
 };
@@ -150,9 +147,6 @@ class Head : public AvatarData {
         void  reset();
         void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
         void  setNoise (float mag) { _head.noise = mag; }
-        void  setPitch(float p) {_head.pitch = p; }
-        void  setYaw(float y) {_head.yaw = y; }
-        void  setRoll(float r) {_head.roll = r; };
         void  setScale(float s) {_head.scale = s; };
         void  setRenderYaw(float y) {_renderYaw = y;}
         void  setRenderPitch(float p) {_renderPitch = p;}
@@ -160,13 +154,7 @@ class Head : public AvatarData {
         float getRenderPitch() {return _renderPitch;}
         void  setLeanForward(float dist);
         void  setLeanSideways(float dist);
-        void  addHeadPitch(float p) {_head.pitch -= p; }
-        void  addHeadYaw(float y){_head.yaw -= y; }
-        void  addHeadRoll(float r){_head.roll += r; }
         void  addLean(float x, float z);
-        float getHeadPitch() {return _head.pitch;}
-        float getHeadRoll() {return _head.roll;}
-        float getHeadYaw() {return _head.yaw;}
         float getLastMeasuredHeadYaw() {return _head.yawRate;}
         float getBodyYaw() {return _bodyYaw;};
         void  addBodyYaw(float y) {_bodyYaw += y;};
@@ -189,10 +177,8 @@ class Head : public AvatarData {
 		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement();
         
-        float getLoudness() {return _head.loudness;};
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
-        void setLoudness(float l) {_head.loudness = l;};
         
         void SetNewHeadTarget(float, float);
     
