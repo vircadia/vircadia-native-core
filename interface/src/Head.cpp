@@ -241,7 +241,7 @@ void Head::reset() {
 
 //this pertains to moving the head with the glasses 
 //---------------------------------------------------
-void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity)
+void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity)
 //  Using serial data, update avatar/render position and angles
 {
     const float PITCH_ACCEL_COUPLING = 0.5;
@@ -270,19 +270,14 @@ void Head::UpdateGyros(float frametime, SerialInterface * serialInterface, int h
     const float MIN_YAW = -85;
 
     if ((_head.pitch < MAX_PITCH) && (_head.pitch > MIN_PITCH))
-        addPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
+        addHeadPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
     
-    addRoll(-measured_roll_rate * HEAD_ROLL_SCALE * frametime);
+    addHeadRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
 
-    if (head_mirror) {
-        if ((_head.yaw < MAX_YAW) && (_head.yaw > MIN_YAW))
-            addYaw(-_head.yawRate * HEAD_ROTATION_SCALE * frametime);
-        addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
-    } else {
-        if ((_head.yaw < MAX_YAW) && (_head.yaw > MIN_YAW))
-            addYaw(_head.yawRate * -HEAD_ROTATION_SCALE * frametime);
-        addLean(measured_lateral_accel * frametime * -HEAD_LEAN_SCALE, measured_fwd_accel*frametime * HEAD_LEAN_SCALE);        
-    } 
+    if ((_head.yaw < MAX_YAW) && (_head.yaw > MIN_YAW))
+        addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
+    
+    addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
 }
 
 void Head::addLean(float x, float z) {
@@ -462,10 +457,6 @@ void Head::simulate(float deltaTime) {
     _bodyYaw += _bodyYawDelta * deltaTime;
     }
         
-	// we will be eventually getting head rotation from elsewhere. For now, just setting it to body rotation 
-	_head.yaw   = _bodyYaw;
-	_head.pitch = _bodyPitch;
-	_head.roll  = _bodyRoll;
 	
 	//----------------------------------------------------------
 	// decay body yaw delta
@@ -487,6 +478,15 @@ void Head::simulate(float deltaTime) {
 	//----------------------------------------------------------
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
+    //
+    //  Update Head information
+    //
+    
+    // we will be eventually getting head rotation from elsewhere. For now, just setting it to body rotation
+	//_head.yaw   = _bodyYaw;
+	//_head.pitch = _bodyPitch;
+	//_head.roll  = _bodyRoll;
+
     if (!_head.noise) {
         //  Decay back toward center 
         _head.pitch *= (1.0f - DECAY*2*deltaTime);
@@ -625,7 +625,7 @@ void Head::updateBigSphereCollisionTest( float deltaTime ) {
       
       
 	   
-void Head::render(int faceToFace) {
+void Head::render(int lookingInMirror) {
 
 	//---------------------------------------------------
 	// show avatar position
@@ -658,7 +658,7 @@ void Head::render(int faceToFace) {
 	//---------------------------------------------------
 	// render head
 	//---------------------------------------------------
-	renderHead(faceToFace);
+	renderHead(lookingInMirror);
 	
 	//---------------------------------------------------------------------------
 	// if this is my avatar, then render my interactions with the other avatars
@@ -695,9 +695,9 @@ void Head::render(int faceToFace) {
     }
 }
 
-	  
+
 	   
-void Head::renderHead(int faceToFace) {
+void Head::renderHead(int lookingInMirror) {
     int side = 0;
         
     glEnable(GL_DEPTH_TEST);
@@ -723,9 +723,13 @@ void Head::renderHead(int faceToFace) {
 	
 	glScalef( 0.03, 0.03, 0.03 );
 
-    glRotatef(_head.yaw,   0, 1, 0); 
-    glRotatef(_head.pitch, 1, 0, 0);
-    glRotatef(_head.roll,  0, 0, 1);
+    if (lookingInMirror) {
+        glRotatef(_bodyYaw - _head.yaw,   0, 1, 0);
+    } else {
+        glRotatef(_bodyYaw + _head.yaw,   0, 1, 0);
+    }
+    glRotatef(_bodyPitch + _head.pitch, 1, 0, 0);
+    glRotatef(_bodyRoll + _head.roll,  0, 0, 1);
     
     glScalef(2.0, 2.0, 2.0);
     glColor3fv(skinColor);

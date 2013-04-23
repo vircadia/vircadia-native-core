@@ -148,7 +148,7 @@ class Head : public AvatarData {
         Head* clone() const;
     
         void  reset();
-        void  UpdateGyros(float frametime, SerialInterface * serialInterface, int head_mirror, glm::vec3 * gravity);
+        void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
         void  setNoise (float mag) { _head.noise = mag; }
         void  setPitch(float p) {_head.pitch = p; }
         void  setYaw(float y) {_head.yaw = y; }
@@ -160,14 +160,14 @@ class Head : public AvatarData {
         float getRenderPitch() {return _renderPitch;}
         void  setLeanForward(float dist);
         void  setLeanSideways(float dist);
-        void  addPitch(float p) {_head.pitch -= p; }
-        void  addYaw(float y){_head.yaw -= y; }
-        void  addRoll(float r){_head.roll += r; }
+        void  addHeadPitch(float p) {_head.pitch -= p; }
+        void  addHeadYaw(float y){_head.yaw -= y; }
+        void  addHeadRoll(float r){_head.roll += r; }
         void  addLean(float x, float z);
-        float getPitch() {return _head.pitch;}
-        float getRoll() {return _head.roll;}
-        float getYaw() {return _head.yaw;}
-        float getLastMeasuredYaw() {return _head.yawRate;}
+        float getHeadPitch() {return _head.pitch;}
+        float getHeadRoll() {return _head.roll;}
+        float getHeadYaw() {return _head.yaw;}
+        float getLastMeasuredHeadYaw() {return _head.yawRate;}
         float getBodyYaw() {return _bodyYaw;};
         void  addBodyYaw(float y) {_bodyYaw += y;};
     
