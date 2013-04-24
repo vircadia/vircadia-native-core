@@ -107,6 +107,18 @@ int getLocalAddress() {
     return localAddress;
 }
 
+unsigned short loadBufferWithSocketInfo(char *addressBuffer, sockaddr *socket) {
+    if (socket != NULL) {
+        char *copyBuffer = inet_ntoa(((sockaddr_in*) socket)->sin_addr);
+        memcpy(addressBuffer, copyBuffer, strlen(copyBuffer));
+        return htons(((sockaddr_in*) socket)->sin_port);
+    } else {
+        const char* unknownAddress = "Unknown";
+        memcpy(addressBuffer, unknownAddress, strlen(unknownAddress));
+        return 0;
+    }
+}
+
 UDPSocket::UDPSocket(int listeningPort) {
     init();
     // create the socket
