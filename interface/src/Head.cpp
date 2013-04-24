@@ -1131,21 +1131,22 @@ void Head::updateHandMovement( float deltaTime ) {
     bool atLeastOneAvatarIsGrasping = false;
     
     if ( getHandState() == 1 ) { atLeastOneAvatarIsGrasping = true; }
-    if ( _isMine ) {
-        if ( _otherAvatar.handState == 1  ) {
+    
+    //if ( _isMine ) {
+        //if ( _otherAvatar.handState == 1  ) {
             if ( _nearOtherAvatar ) {
                 atLeastOneAvatarIsGrasping = true;
             }
-        }
-    }
-    
+        //}
+    //}
+
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
     //---------------------------------------------------------------------
     if ( atLeastOneAvatarIsGrasping ) {
  
         glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
-        glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position        - _handHolding.position;
+        glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
         
         _handHolding.velocity *= 0.7;
         _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
@@ -1218,7 +1219,7 @@ void Head::renderBody() {
         //renderBoneAsBlock( (AvatarBoneID)b);
         
         //render bone orientation
-        renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
+        //renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
     
 		if ( _usingBodySprings ) {
 			glColor3fv( skinColor );
