@@ -39,9 +39,9 @@ public:
     void setHeadPitch(float p) {_headPitch = p; }
     void setHeadYaw(float y) {_headYaw = y; }
     void setHeadRoll(float r) {_headRoll = r; };
-    const float getHeadPitch() const { return _headPitch; };
-    const float getHeadYaw() const { return _headYaw; };
-    const float getHeadRoll() const { return _headRoll; };
+    float getHeadPitch() const { return _headPitch; };
+    float getHeadYaw() const { return _headYaw; };
+    float getHeadRoll() const { return _headRoll; };
     void  addHeadPitch(float p) {_headPitch -= p; }
     void  addHeadYaw(float y){_headYaw -= y; }
     void  addHeadRoll(float r){_headRoll += r; }
