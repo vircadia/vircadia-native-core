@@ -42,7 +42,7 @@ void usage(void)
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
-};
+}
 
 bool processParameters(int parameterCount, char* parameterData[])
 {
@@ -91,9 +91,9 @@ bool processParameters(int parameterCount, char* parameterData[])
         }
     }
     return true;
-};_Position
+};
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
 
     srand(time(0));
     int AUDIO_UDP_SEND_PORT = 1500 + (rand() % (int)(1500 - 2000 + 1));
