@@ -48,11 +48,11 @@ public:
 
     //  Hand State
     void setHandState(char s) { _handState = s; };
-    const char getHandState() const {return _handState; };
+    char getHandState() const {return _handState; };
 
     //  Instantaneous audio loudness to drive mouth/facial animation
     void setLoudness(float l) { _audioLoudness = l; };
-    const float getLoudness() const {return _audioLoudness; };
+    float getLoudness() const {return _audioLoudness; };
 
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
