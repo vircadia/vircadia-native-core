@@ -91,7 +91,7 @@ bool processParameters(int parameterCount, char* parameterData[])
         }
     }
     return true;
-};
+};_Position
 
 int main(int argc, const char* argv[]) {
 
