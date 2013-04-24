@@ -102,10 +102,10 @@ struct AvatarHandHolding
 
 struct OtherAvatar
 {
+    bool      nearby;
     glm::vec3 handPosition;
     int       handState;
 };
-
 
 struct AvatarBone
 {
@@ -191,7 +191,6 @@ class Head : public AvatarData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBoneID b );	
         glm::vec3 getBodyUpDirection();
-        //int       getHandState();
         float getGirth();
         float getHeight();
         
@@ -233,7 +232,6 @@ class Head : public AvatarData {
         OtherAvatar       _otherAvatar;
 		bool              _mousePressed;
 		float             _bodyYawDelta;
-		bool              _nearOtherAvatar;
 		bool              _usingBodySprings;
 		glm::vec3         _movedHandOffset;
 		float             _springVelocityDecay;

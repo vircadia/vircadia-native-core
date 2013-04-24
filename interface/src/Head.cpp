@@ -48,7 +48,6 @@ Head::Head(bool isMine) {
 	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
 	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
-	_nearOtherAvatar    = false;
 	_bodyYaw            = -90.0;
 	_bodyPitch          = 0.0;
 	_bodyRoll           = 0.0;
@@ -130,6 +129,7 @@ Head::Head(bool isMine) {
         }
     }
 
+	_otherAvatar.nearby = false;
     _otherAvatar.handPosition = glm::vec3( 0.0f, 0.0f, 0.0f );
     _otherAvatar.handState = 0;
 }
@@ -141,7 +141,7 @@ Head::Head(const Head &otherAvatar) {
     _velocity               = otherAvatar._velocity;
 	_thrust                 = otherAvatar._thrust;
     _rotation               = otherAvatar._rotation;
-	_nearOtherAvatar        = otherAvatar._nearOtherAvatar;
+	_otherAvatar.nearby     = otherAvatar._otherAvatar.nearby;
 	_bodyYaw                = otherAvatar._bodyYaw;
 	_bodyPitch              = otherAvatar._bodyPitch;
 	_bodyRoll               = otherAvatar._bodyRoll;
@@ -303,7 +303,7 @@ void Head::simulate(float deltaTime) {
     //-------------------------------------------------------------
     if ( _isMine )
     {
-        _nearOtherAvatar = false;
+        _otherAvatar.nearby = false;
         float closestDistance = 10000.0f;
         
         AgentList * agentList = AgentList::getInstance();
@@ -341,7 +341,7 @@ void Head::simulate(float deltaTime) {
                     if ( distance < _maxArmLength ) {
                         if ( distance < closestDistance ) {
                             closestDistance = distance;
-                            _nearOtherAvatar = true;
+                            _otherAvatar.nearby = true;
                             _otherAvatar.handPosition = otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
                             _otherAvatar.handState = (int)otherAvatar->getHandState();
                         }
@@ -669,7 +669,7 @@ void Head::render(bool lookingInMirror) {
     if ( _isMine )
     {
         if (_usingBodySprings) {
-            if ( _nearOtherAvatar ) {					
+            if ( _otherAvatar.nearby ) {					
 
                 glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
                 glm::vec3 v2( _otherAvatar.handPosition );
@@ -1130,12 +1130,28 @@ void Head::updateHandMovement( float deltaTime ) {
     
     setHandState(_mousePressed);
     
+    if ( _otherAvatar.nearby ) {
+        if ( _otherAvatar.handState == 1 ) {
+            printf( "(1)" );
+        }
+        //else {
+        //    printf( "(0)" );        
+        //}
+
+        if ( _handState == 1 ) {
+            printf( "1" );
+        }
+        else {
+            printf( "0" );        
+        }
+    }
+    
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
     //---------------------------------------------------------------------
-    if (( getHandState() == 1 )
+    if (( _handState == 1 )
     ||  ( _otherAvatar.handState == 1 )) {
-        if ( _nearOtherAvatar ) {	            
+        if ( _otherAvatar.nearby ) {	            
              
             glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
             glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
@@ -1151,7 +1167,7 @@ void Head::updateHandMovement( float deltaTime ) {
         _handHolding.position = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
         _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
     }
-        
+    
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------

@@ -27,6 +27,7 @@ const float MAX_ITERATIONS_BETWEEN_AUDIO_SENDS = (MAX_AUDIO_SEND_INTERVAL_SECS *
 
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
+int  handStateTimer = 0;
 
 int TEMP_AUDIO_LISTEN_PORT = 55439;
 // UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
@@ -124,7 +125,19 @@ int main(int argc, const char* argv[]) {
     eve.setHandPosition(glm::vec3(eve.getPosition()[0] - 0.2,
                                   0.25,
                                   eve.getPosition()[2] + 0.1));
-    
+                                  
+    // simulate the effect of pressing and un-pressing the mouse button/pad
+    handStateTimer ++;
+    if ( handStateTimer == 100 ) { 
+        eve.setHandState(1);
+    }   
+    if ( handStateTimer == 150 ) { 
+        eve.setHandState(0);
+    }   
+    if ( handStateTimer >= 200 ) { 
+        handStateTimer = 0;
+    }   
+
     // read eve's audio data
     AudioInjector eveAudioInjector("eve.raw");
     
