@@ -567,12 +567,9 @@ void Head::simulate(float deltaTime) {
         }
     }
     
-    //
     //  Update audio trailing average for rendering facial animations
-    //
-    
     const float AUDIO_AVERAGING_SECS = 0.05;
-    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS)*_head.averageLoudness +
+    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
       
@@ -748,11 +745,9 @@ void Head::renderHead(bool lookingInMirror) {
         }
     glPopMatrix();
 
-    //
+   
     //  Update audio attack data for facial animation (eyebrows and mouth) 
-    //
-    
-    _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
+     _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
     _head.lastLoudness = _audioLoudness;
     
     

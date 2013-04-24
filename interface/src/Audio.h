@@ -25,7 +25,7 @@ public:
     bool getMixerLoopbackFlag();
     void setMixerLoopbackFlag(bool newMixerLoopbackFlag);
     
-    const float getInputLoudness();
+    float getInputLoudness() const;
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
     void setWalkingState(bool newWalkState);

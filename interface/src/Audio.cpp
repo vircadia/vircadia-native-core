@@ -510,7 +510,7 @@ error:
 }
 
 
-const float Audio::getInputLoudness() {
+float Audio::getInputLoudness() const {
     return audioData->lastInputLoudness;
 }
 

@@ -482,10 +482,8 @@ void updateAvatar(float frametime)
     const float YAW_SENSITIVITY = 1.0;
     
     //  If enabled, Update render pitch and yaw based on gyro data
-    if (::gyroLook)
-    {
+    if (::gyroLook) {
         if (fabs(gyroYawRate) > MIN_YAW_RATE) {
-        //if (fabs(myAvatar.getHeadYaw()) > MIN_YAW_ANGLE) {
             myAvatar.addBodyYaw(-gyroYawRate * YAW_SENSITIVITY * frametime);
         }
     }
