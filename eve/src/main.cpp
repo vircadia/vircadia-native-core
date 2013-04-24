@@ -137,7 +137,7 @@ int main(int argc, const char* argv[]) {
     if ( handStateTimer >= 200 ) { 
         handStateTimer = 0;
     }   
-
+    
     // read eve's audio data
     AudioInjector eveAudioInjector("eve.raw");
     
