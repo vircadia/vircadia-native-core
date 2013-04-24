@@ -29,7 +29,7 @@ const float YAW_MAG         = 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
-const float COLLISION_BODY_RADIUS = 0.3;
+const float COLLISION_BODY_RADIUS = 0.1;
 const float COLLISION_HEIGHT = 1.5;
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
@@ -92,6 +92,20 @@ struct AvatarCollisionElipsoid
     float     height;
     glm::vec3 upVector;
 };
+
+struct AvatarHandHolding
+{
+    glm::vec3 position;
+    glm::vec3 velocity;
+    float     force;
+};
+
+struct OtherAvatar
+{
+    glm::vec3 handPosition;
+    int       handState;
+};
+
 
 struct AvatarBone
 {
@@ -191,13 +205,11 @@ class Head : public AvatarData {
 		void startHandMovement();
 		void stopHandMovement();
 		void setHandMovementValues( glm::vec3 movement );
-		void updateHandMovement();
+		void updateHandMovement( float deltaTime );
         
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
-        
-        //bool testForCollision( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector );
-        
+         
         void SetNewHeadTarget(float, float);
     
         //  Set what driving keys are being pressed to control thrust levels
@@ -209,48 +221,38 @@ class Head : public AvatarData {
         void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
         glm::vec3 getThrust() { return _thrust; };
     
-        //
         //  Related to getting transmitter UDP data used to animate the avatar hand
-        //
-
         void processTransmitterData(unsigned char * packetData, int numBytes);
         float getTransmitterHz() { return _transmitterHz; };
     
     private:
-        AvatarHead  _head;    
-        bool        _isMine;
-        glm::vec3   _TEST_bigSpherePosition;
-        float       _TEST_bigSphereRadius;
-		glm::vec3	_otherAvatarHandPosition[ MAX_OTHER_AVATARS ];
-		int         _otherAvatarHandState   [ MAX_OTHER_AVATARS ];
-		bool        _mousePressed;
-		float       _bodyYawDelta;
-		int         _closestOtherAvatar;
-		bool        _usingBodySprings;
-		glm::vec3   _movedHandOffset;
-		float       _springVelocityDecay;
-		float       _springForce;
-        glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-		AvatarBone	_bone[ NUM_AVATAR_BONES ];
-		AvatarMode  _mode;
-        glm::dvec3	_velocity;
-        glm::vec3	_thrust;
-        float		_maxArmLength;
-        Orientation	_orientation;
-        int         _numOtherAvatarsInView;
-        int         _driveKeys[MAX_DRIVE_KEYS];
-        GLUquadric* _sphere;
-        float       _renderYaw;
-        float       _renderPitch; //   Pitch from view frustum when this is own head
-        
-        AvatarCollisionElipsoid _collisionElipsoid;
-    
-        //
-        //  Related to getting transmitter UDP data used to animate the avatar hand
-        //
-        timeval _transmitterTimer;
-        float   _transmitterHz;
-        int     _transmitterPackets;
+        AvatarHead        _head;    
+        bool              _isMine;
+        glm::vec3         _TEST_bigSpherePosition;
+        float             _TEST_bigSphereRadius;
+        OtherAvatar       _otherAvatar;
+		bool              _mousePressed;
+		float             _bodyYawDelta;
+		bool              _nearOtherAvatar;
+		bool              _usingBodySprings;
+		glm::vec3         _movedHandOffset;
+		float             _springVelocityDecay;
+		float             _springForce;
+        glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
+		AvatarBone	      _bone[ NUM_AVATAR_BONES ];
+		AvatarMode        _mode;
+        AvatarHandHolding _handHolding;
+        glm::dvec3        _velocity;
+        glm::vec3	      _thrust;
+        float		      _maxArmLength;
+        Orientation	      _orientation;
+        int               _driveKeys[MAX_DRIVE_KEYS];
+        GLUquadric*       _sphere;
+        float             _renderYaw;
+        float             _renderPitch; //   Pitch from view frustum when this is own head
+        timeval           _transmitterTimer;
+        float             _transmitterHz;
+        int               _transmitterPackets;
         
         //-----------------------------
         // private methods...
@@ -260,11 +262,16 @@ class Head : public AvatarData {
 		void initializeBodySprings();
 		void updateBodySprings( float deltaTime );
 		void calculateBoneLengths();
-        void updateAvatarCollisionDetectionAndResponse( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector, float deltaTime );
-        
         void readSensors();
         void renderBoneAsBlock( AvatarBoneID b );
-
+        void updateAvatarCollisionDetectionAndResponse
+        ( 
+            glm::vec3 collisionPosition, 
+            float     collisionGirth, 
+            float     collisionHeight, 
+            glm::vec3 collisionUpVector, 
+            float     deltaTime 
+        );
 };
 
 #endif
