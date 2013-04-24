@@ -1131,6 +1131,7 @@ void Head::updateHandMovement( float deltaTime ) {
     bool atLeastOneAvatarIsGrasping = false;
     
     if ( getHandState() == 1 ) { atLeastOneAvatarIsGrasping = true; }
+    
     if ( _isMine ) {
         if ( _otherAvatar.handState == 1  ) {
             if ( _nearOtherAvatar ) {
@@ -1138,7 +1139,7 @@ void Head::updateHandMovement( float deltaTime ) {
             }
         }
     }
-    
+
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
     //---------------------------------------------------------------------
