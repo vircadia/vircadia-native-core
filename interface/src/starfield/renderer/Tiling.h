@@ -1,5 +1,5 @@
 //
-// starfield/renderer/ 
+// starfield/renderer/Tiling.h 
 // interface
 //
 // Created by Tobias Schwinger on 3/22/13.
@@ -51,6 +51,7 @@ namespace starfield {
     private:
 
         unsigned discreteAngle(float unsigned_angle) const {
+
             return unsigned(floor(unsigned_angle * _valRcpSlice + 0.5f));
         }
 

@@ -100,12 +100,14 @@ struct AvatarHandHolding
     float     force;
 };
 
+/*
 struct OtherAvatar
 {
-    glm::vec3 handPosition;
-    int       handState;
+    bool      nearby;
+    //glm::vec3 handPosition;
+    //int       handState;
 };
-
+*/
 
 struct AvatarBone
 {
@@ -191,7 +193,6 @@ class Head : public AvatarData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBoneID b );	
         glm::vec3 getBodyUpDirection();
-        //int       getHandState();
         float getGirth();
         float getHeight();
         
@@ -206,6 +207,7 @@ class Head : public AvatarData {
 		void stopHandMovement();
 		void setHandMovementValues( glm::vec3 movement );
 		void updateHandMovement( float deltaTime );
+		void updateArmIKAndConstraints( float deltaTime );
         
         float getAverageLoudness() {return _head.averageLoudness;};
         void setAverageLoudness(float al) {_head.averageLoudness = al;};
@@ -230,10 +232,8 @@ class Head : public AvatarData {
         bool              _isMine;
         glm::vec3         _TEST_bigSpherePosition;
         float             _TEST_bigSphereRadius;
-        OtherAvatar       _otherAvatar;
 		bool              _mousePressed;
 		float             _bodyYawDelta;
-		bool              _nearOtherAvatar;
 		bool              _usingBodySprings;
 		glm::vec3         _movedHandOffset;
 		float             _springVelocityDecay;
@@ -253,6 +253,8 @@ class Head : public AvatarData {
         timeval           _transmitterTimer;
         float             _transmitterHz;
         int               _transmitterPackets;
+        Head*             _interactingOther;
+        bool              _interactingOtherIsNearby;
         
         //-----------------------------
         // private methods...

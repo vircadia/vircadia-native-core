@@ -48,7 +48,6 @@ Head::Head(bool isMine) {
 	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
 	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );	
-	_nearOtherAvatar    = false;
 	_bodyYaw            = -90.0;
 	_bodyPitch          = 0.0;
 	_bodyRoll           = 0.0;
@@ -60,7 +59,6 @@ Head::Head(bool isMine) {
     //_transmitterTimer   = 0;
     _transmitterHz      = 0.0;
     _transmitterPackets = 0;
-    //_numOtherAvatars    = 0;
 
     initializeSkeleton();
     
@@ -69,54 +67,51 @@ Head::Head(bool isMine) {
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false; 
     
-    _head.pupilSize          = 0.10;
-    _head.interPupilDistance = 0.6;
-    _head.interBrowDistance  = 0.75;
-    _head.nominalPupilSize   = 0.10;
-    //_head.yaw                = 0.0;
-    //_head.pitch              = 0.0;
-    //_head.roll               = 0.0;
-    _head.pitchRate          = 0.0;
-    _head.yawRate            = 0.0;
-    _head.rollRate           = 0.0;
-    _head.eyebrowPitch[0]    = -30;
-    _head.eyebrowPitch[1]    = -30;
-    _head.eyebrowRoll [0]    = 20;
-    _head.eyebrowRoll [1]    = -20;
-    _head.mouthPitch         = 0;
-    _head.mouthYaw           = 0;
-    _head.mouthWidth         = 1.0;
-    _head.mouthHeight        = 0.2;
-    _head.eyeballPitch[0]    = 0;
-    _head.eyeballPitch[1]    = 0;
-    _head.eyeballScaleX      = 1.2;  
-    _head.eyeballScaleY      = 1.5; 
-    _head.eyeballScaleZ      = 1.0;
-    _head.eyeballYaw[0]      = 0;
-    _head.eyeballYaw[1]      = 0;
-    _head.pitchTarget        = 0;
-    _head.yawTarget          = 0; 
-    _head.noiseEnvelope      = 1.0;
-    _head.pupilConverge      = 10.0;
-    _head.leanForward        = 0.0;
-    _head.leanSideways       = 0.0;
-    _head.eyeContact         = 1;
-    _head.eyeContactTarget   = LEFT_EYE;
-    _head.scale              = 1.0;
-    _head.audioAttack        = 0.0;
-    _head.averageLoudness    = 0.0;
-    _head.lastLoudness       = 0.0;
-    _head.browAudioLift      = 0.0;
-    _head.noise              = 0;
-    
-	_movedHandOffset         = glm::vec3( 0.0, 0.0, 0.0 );
-    _usingBodySprings        = true;
-	_springForce             = 6.0f;
-	_springVelocityDecay     = 16.0f;
-    _renderYaw               = 0.0;
-    _renderPitch             = 0.0;
-	
-	_sphere = NULL;
+    _head.pupilSize           = 0.10;
+    _head.interPupilDistance  = 0.6;
+    _head.interBrowDistance   = 0.75;
+    _head.nominalPupilSize    = 0.10;
+    _head.pitchRate           = 0.0;
+    _head.yawRate             = 0.0;
+    _head.rollRate            = 0.0;
+    _head.eyebrowPitch[0]     = -30;
+    _head.eyebrowPitch[1]     = -30;
+    _head.eyebrowRoll [0]     = 20;
+    _head.eyebrowRoll [1]     = -20;
+    _head.mouthPitch          = 0;
+    _head.mouthYaw            = 0;
+    _head.mouthWidth          = 1.0;
+    _head.mouthHeight         = 0.2;
+    _head.eyeballPitch[0]     = 0;
+    _head.eyeballPitch[1]     = 0;
+    _head.eyeballScaleX       = 1.2;  
+    _head.eyeballScaleY       = 1.5; 
+    _head.eyeballScaleZ       = 1.0;
+    _head.eyeballYaw[0]       = 0;
+    _head.eyeballYaw[1]       = 0;
+    _head.pitchTarget         = 0;
+    _head.yawTarget           = 0; 
+    _head.noiseEnvelope       = 1.0;
+    _head.pupilConverge       = 10.0;
+    _head.leanForward         = 0.0;
+    _head.leanSideways        = 0.0;
+    _head.eyeContact          = 1;
+    _head.eyeContactTarget    = LEFT_EYE;
+    _head.scale               = 1.0;
+    _head.audioAttack         = 0.0;
+    _head.averageLoudness     = 0.0;
+    _head.lastLoudness        = 0.0;
+    _head.browAudioLift       = 0.0;
+    _head.noise               = 0;
+	_movedHandOffset          = glm::vec3( 0.0, 0.0, 0.0 );
+    _usingBodySprings         = true;
+	_springForce              = 6.0f;
+	_springVelocityDecay      = 16.0f;
+    _renderYaw                = 0.0;
+    _renderPitch              = 0.0;
+	_sphere                   = NULL;
+    _interactingOther         = NULL;
+	_interactingOtherIsNearby = false;
     
     _handHolding.position = glm::vec3( 0.0, 0.0, 0.0 );
     _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
@@ -129,38 +124,35 @@ Head::Head(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
-
-    _otherAvatar.handPosition = glm::vec3( 0.0f, 0.0f, 0.0f );
-    _otherAvatar.handState = 0;
 }
 
 
 
 Head::Head(const Head &otherAvatar) {
  
-    _velocity               = otherAvatar._velocity;
-	_thrust                 = otherAvatar._thrust;
-    _rotation               = otherAvatar._rotation;
-	_nearOtherAvatar        = otherAvatar._nearOtherAvatar;
-	_bodyYaw                = otherAvatar._bodyYaw;
-	_bodyPitch              = otherAvatar._bodyPitch;
-	_bodyRoll               = otherAvatar._bodyRoll;
-	_bodyYawDelta           = otherAvatar._bodyYawDelta;
-	_mousePressed           = otherAvatar._mousePressed;
-	_mode                   = otherAvatar._mode;
-    _isMine                 = otherAvatar._isMine;
-    _renderYaw              = otherAvatar._renderYaw;
-    _renderPitch            = otherAvatar._renderPitch;
-    _maxArmLength           = otherAvatar._maxArmLength;
-    _transmitterTimer       = otherAvatar._transmitterTimer;
-    _transmitterHz          = otherAvatar._transmitterHz;
-    _transmitterPackets     = otherAvatar._transmitterPackets;
-    _TEST_bigSphereRadius   = otherAvatar._TEST_bigSphereRadius;
-    _TEST_bigSpherePosition = otherAvatar._TEST_bigSpherePosition;
-	_movedHandOffset        = otherAvatar._movedHandOffset;
-	_usingBodySprings       = otherAvatar._usingBodySprings;
-	_springForce            = otherAvatar._springForce;
-	_springVelocityDecay    = otherAvatar._springVelocityDecay;    
+    _velocity                 = otherAvatar._velocity;
+	_thrust                   = otherAvatar._thrust;
+    _rotation                 = otherAvatar._rotation;
+	_interactingOtherIsNearby = otherAvatar._interactingOtherIsNearby;
+	_bodyYaw                  = otherAvatar._bodyYaw;
+	_bodyPitch                = otherAvatar._bodyPitch;
+	_bodyRoll                 = otherAvatar._bodyRoll;
+	_bodyYawDelta             = otherAvatar._bodyYawDelta;
+	_mousePressed             = otherAvatar._mousePressed;
+	_mode                     = otherAvatar._mode;
+    _isMine                   = otherAvatar._isMine;
+    _renderYaw                = otherAvatar._renderYaw;
+    _renderPitch              = otherAvatar._renderPitch;
+    _maxArmLength             = otherAvatar._maxArmLength;
+    _transmitterTimer         = otherAvatar._transmitterTimer;
+    _transmitterHz            = otherAvatar._transmitterHz;
+    _transmitterPackets       = otherAvatar._transmitterPackets;
+    _TEST_bigSphereRadius     = otherAvatar._TEST_bigSphereRadius;
+    _TEST_bigSpherePosition   = otherAvatar._TEST_bigSpherePosition;
+	_movedHandOffset          = otherAvatar._movedHandOffset;
+	_usingBodySprings         = otherAvatar._usingBodySprings;
+	_springForce              = otherAvatar._springForce;
+	_springVelocityDecay      = otherAvatar._springVelocityDecay;    
 	_orientation.set( otherAvatar._orientation );
         
 	_sphere = NULL;
@@ -173,9 +165,6 @@ Head::Head(const Head &otherAvatar) {
     _head.interPupilDistance = otherAvatar._head.interPupilDistance;
     _head.interBrowDistance  = otherAvatar._head.interBrowDistance;
     _head.nominalPupilSize   = otherAvatar._head.nominalPupilSize;
-    //_head.yaw                = otherAvatar._head.yaw;
-    //_head.pitch              = otherAvatar._head.pitch;
-    //_head.roll               = otherAvatar._head.roll;
     _head.yawRate            = otherAvatar._head.yawRate;
     _head.pitchRate          = otherAvatar._head.pitchRate;
     _head.rollRate           = otherAvatar._head.rollRate;
@@ -209,7 +198,6 @@ Head::Head(const Head &otherAvatar) {
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
     
-	
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -296,19 +284,34 @@ void Head::setMousePressed( bool d ) {
 }
 
 void Head::simulate(float deltaTime) {
+
+	//------------------------
+	// update avatar skeleton
+	//------------------------ 
+	updateSkeleton();
+	
+	//------------------------------------------------------------
+	// reset hand and arm positions according to hand movement
+	//------------------------------------------------------------
+	updateHandMovement( deltaTime );
+ 
+    if ( !_interactingOtherIsNearby ) {
+        //initialize _handHolding
+        _handHolding.position = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
+        _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
+    }
+ 
+    _interactingOtherIsNearby = false;
     
     //-------------------------------------------------------------
     // if the avatar being simulated is mine, then loop through
-    // all the other avatars to get information about them...
+    // all the other avatars for potential interactions...
     //-------------------------------------------------------------
     if ( _isMine )
     {
-        _nearOtherAvatar = false;
         float closestDistance = 10000.0f;
-        
+         
         AgentList * agentList = AgentList::getInstance();
-        
-        //_numOtherAvatars = 0;
 
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
             agent != agentList->getAgents().end();
@@ -316,42 +319,64 @@ void Head::simulate(float deltaTime) {
             if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_AVATAR ) )) {
                 Head *otherAvatar = (Head *)agent->getLinkedData();
                 
-               // if ( _numOtherAvatars < MAX_OTHER_AVATARS ) 
-               {
-                 
-                    //------------------------------------------------------
-                    // check for collisions with other avatars and respond 
-                    //------------------------------------------------------
-                    updateAvatarCollisionDetectionAndResponse
-                    (
-                        otherAvatar->getPosition(), 
-                        otherAvatar->getGirth(), 
-                        otherAvatar->getHeight(), 
-                        otherAvatar->getBodyUpDirection(),
-                        deltaTime
-                    );
-                    
-                    //-------------------------------------------------
-                    // test other avatar hand position for proximity 
-                    //------------------------------------------------
-                    glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
-                    v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
-                    
-                    float distance = glm::length( v );
-                    if ( distance < _maxArmLength ) {
-                        if ( distance < closestDistance ) {
-                            closestDistance = distance;
-                            _nearOtherAvatar = true;
-                            _otherAvatar.handPosition = otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
-                            _otherAvatar.handState = (int)otherAvatar->getHandState();
-                        }
+                //------------------------------------------------------
+                // check for collisions with other avatars and respond 
+                //------------------------------------------------------
+                updateAvatarCollisionDetectionAndResponse
+                (
+                    otherAvatar->getPosition(), 
+                    otherAvatar->getGirth(), 
+                    otherAvatar->getHeight(), 
+                    otherAvatar->getBodyUpDirection(),
+                    deltaTime
+                );
+                
+                //-------------------------------------------------
+                // test other avatar hand position for proximity 
+                //------------------------------------------------
+                glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
+                v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
+                
+                float distance = glm::length( v );
+                if ( distance < _maxArmLength ) {
+                
+                    //if ( distance < closestDistance ) { // perhaps I don't need this if we want to allow multi-avatar interactions
+                    {
+                        closestDistance = distance;
+                        _interactingOther = otherAvatar;
+                        _interactingOtherIsNearby = true;
+                        
+                        //---------------------------------------------------------------------
+                        // if I am holding hands with another avatar, a force is applied 
+                        //---------------------------------------------------------------------
+                        if (( _handState == 1 )
+                        ||  ( _interactingOther->_handState == 1 )) {
+                            glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHolding.position;
+                            glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
+                            
+                            _handHolding.velocity *= 0.7;
+                            _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
+                            _handHolding.position += _handHolding.velocity;
+                            
+                            _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
+                        } 
                     }
                 }
             }
         }
         
-    }//if ( _isMine )
+        //  Set the vector we send for hand position to other people to be our right hand
+        setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
         
+    }//if ( _isMine )
+    
+    
+    updateArmIKAndConstraints( deltaTime );
+                    
+    if ( ! _interactingOtherIsNearby ) {
+        _interactingOther = NULL;
+    }
+            
     if ( usingBigSphereCollisionTest ) {
         //--------------------------------------------------------------
         // test for avatar collision response (using a big sphere :)
@@ -378,19 +403,10 @@ void Head::simulate(float deltaTime) {
         }
     }
     
-	//------------------------
-	// update avatar skeleton
-	//------------------------ 
-	updateSkeleton();
-	
-	//------------------------------------------------------------
-	// reset hand and arm positions according to hand movement
-	//------------------------------------------------------------
-	if (_usingBodySprings) {
-		updateHandMovement( deltaTime );
-		updateBodySprings( deltaTime );
-	}
-	
+	// update body springs
+    updateBodySprings( deltaTime );
+
+    
     if ( _isMine ) { // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely) 
         //-------------------------------------------------
         // this handles the avatar being driven around...
@@ -449,7 +465,6 @@ void Head::simulate(float deltaTime) {
     _bodyYaw += _bodyYawDelta * deltaTime;
     }
         
-	
 	//----------------------------------------------------------
 	// decay body yaw delta
 	//----------------------------------------------------------
@@ -632,8 +647,6 @@ void Head::updateAvatarCollisionDetectionAndResponse
 }
 
       
-      
-	   
 void Head::render(bool lookingInMirror) {
 
 	//---------------------------------------------------
@@ -658,9 +671,9 @@ void Head::render(bool lookingInMirror) {
         glPopMatrix();
      }
      	
-	//---------------------------------------------------
+	//---------------
 	// render body
-	//---------------------------------------------------
+	//---------------
 	renderBody();
 
 	//---------------------------------------------------
@@ -669,27 +682,24 @@ void Head::render(bool lookingInMirror) {
 	renderHead(lookingInMirror);
 	
 	//---------------------------------------------------------------------------
-	// if this is my avatar, then render my interactions with the other avatars
+	// if this is my avatar, then render my interactions with the other avatar
 	//---------------------------------------------------------------------------
     if ( _isMine )
     {
-        if (_usingBodySprings) {
-            if ( _nearOtherAvatar ) {					
+        if ( _interactingOtherIsNearby ) {					
 
-                glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-                glm::vec3 v2( _otherAvatar.handPosition );
-                
-                glLineWidth( 8.0 );
-                glColor4f( 0.7f, 0.4f, 0.1f, 0.6 );
-                glBegin( GL_LINE_STRIP );
-                glVertex3f( v1.x, v1.y, v1.z );
-                glVertex3f( v2.x, v2.y, v2.z );
-                glEnd();
-            }
+            glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
+            glm::vec3 v2( _interactingOther->_handPosition );
+            
+            glLineWidth( 8.0 );
+            glColor4f( 0.7f, 0.4f, 0.1f, 0.6 );
+            glBegin( GL_LINE_STRIP );
+            glVertex3f( v1.x, v1.y, v1.z );
+            glVertex3f( v2.x, v2.y, v2.z );
+            glEnd();
         }
     }
 }
-
 
 	   
 void Head::renderHead(bool lookingInMirror) {
@@ -978,9 +988,9 @@ void Head::initializeSkeleton() {
 	//----------------------------------------------------------------------------
 	calculateBoneLengths();
 
-	//----------------------------------------------------------------------------
+	//---------------------------
 	// generate world positions
-	//----------------------------------------------------------------------------
+	//---------------------------
 	updateSkeleton();
 }
 
@@ -1137,30 +1147,14 @@ void Head::updateHandMovement( float deltaTime ) {
     
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
-    setHandState(_mousePressed);
-    
-    //---------------------------------------------------------------------
-	// if holding hands with another avatar, add a force to the hand...
-    //---------------------------------------------------------------------
-    if (( getHandState() == 1 )
-    ||  ( _otherAvatar.handState == 1 )) {
-        if ( _nearOtherAvatar ) {	            
-             
-            glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
-            glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
-            
-            _handHolding.velocity *= 0.7;
-            _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
-            _handHolding.position += _handHolding.velocity;
-            
-            _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
-        } 
+    if (_isMine) {
+        _handState = _mousePressed;
     }
-    else {
-        _handHolding.position = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
-        _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
-    }
-        
+}
+
+
+void Head::updateArmIKAndConstraints( float deltaTime ) {
+
 	//-------------------------------------------------------------------------------
 	// determine the arm vector
 	//-------------------------------------------------------------------------------
@@ -1205,11 +1199,8 @@ void Head::updateHandMovement( float deltaTime ) {
 	glm::vec3 newWristPosition = _bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].position;
 	newWristPosition += vv * 0.7f;
 	_bone[ AVATAR_BONE_RIGHT_FOREARM ].position = newWristPosition;
-    
-    //  Set the vector we send for hand position to other people to be our right hand
-    setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
-
 }
+
 
 
 
