@@ -503,11 +503,8 @@ void updateAvatar(float frametime)
     myAvatar.setRenderPitch(renderPitch + renderPitchRate);
     
     //  Get audio loudness data from audio input device
-    float loudness, averageLoudness;
     #ifndef _WIN32
-    audio.getInputLoudness(&loudness, &averageLoudness);
-    myAvatar.setLoudness(loudness);
-    myAvatar.setAverageLoudness(averageLoudness);
+        myAvatar.setLoudness(audio.getInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -1063,7 +1060,6 @@ int setNoise(int state) {
 
 int setGyroLook(int state) {
     int iRet = setValue(state, &::gyroLook);
-    std::cout << "gyro look" << ::gyroLook << "\n";
     return iRet;
 }
 

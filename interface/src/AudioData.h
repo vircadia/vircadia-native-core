@@ -36,7 +36,6 @@ class AudioData {
         int wasStarved;
         
         float lastInputLoudness;
-        float averagedInputLoudness;
     
         bool mixerLoopbackFlag;
         bool playWalkSound;

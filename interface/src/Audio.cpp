@@ -130,7 +130,7 @@ int audioCallback (const void *inputBuffer,
         
         loudness /= BUFFER_LENGTH_SAMPLES;
         data->lastInputLoudness = loudness;
-        data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
+        
         //
         //  If scope is turned on, copy input buffer to scope
         //
@@ -510,9 +510,8 @@ error:
 }
 
 
-void Audio::getInputLoudness(float * lastLoudness, float * averageLoudness) {
-    *lastLoudness = audioData->lastInputLoudness;
-    *averageLoudness = audioData->averagedInputLoudness;
+const float Audio::getInputLoudness() {
+    return audioData->lastInputLoudness;
 }
 
 void Audio::render(int screenWidth, int screenHeight)

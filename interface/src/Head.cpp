@@ -566,6 +566,14 @@ void Head::simulate(float deltaTime) {
             _head.eyebrowRoll [1] *=-1;
         }
     }
+    
+    //
+    //  Update audio trailing average for rendering facial animations
+    //
+    
+    const float AUDIO_AVERAGING_SECS = 0.05;
+    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS)*_head.averageLoudness +
+                            (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
       
       
@@ -740,16 +748,22 @@ void Head::renderHead(bool lookingInMirror) {
         }
     glPopMatrix();
 
-    // _eyebrows
+    //
+    //  Update audio attack data for facial animation (eyebrows and mouth) 
+    //
+    
     _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
     _head.lastLoudness = _audioLoudness;
-
+    
+    
     const float BROW_LIFT_THRESHOLD = 100;
     if (_head.audioAttack > BROW_LIFT_THRESHOLD)
         _head.browAudioLift += sqrt(_head.audioAttack) / 1000.0;
     
     _head.browAudioLift *= .90;
+
     
+    //  Render Eyebrows
     glPushMatrix();
         glTranslatef(-_head.interBrowDistance / 2.0,0.4,0.45);
         for(side = 0; side < 2; side++) {
