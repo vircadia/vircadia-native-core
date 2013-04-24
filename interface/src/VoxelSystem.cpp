@@ -60,8 +60,8 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&bufferWriteLock);
 }
 
-void VoxelSystem::setViewerHead(Head *newViewerHead) {
-    viewerHead = newViewerHead;
+void VoxelSystem::setViewerAvatar(Avatar *newViewerAvatar) {
+    viewerAvatar = newViewerAvatar;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +187,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
     int voxelsAdded = 0;
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerHead->getPosition();
+    glm::vec3 viewerPosition = viewerAvatar->getPosition();
 
     // debug LOD code
     glm::vec3 debugNodePosition;
