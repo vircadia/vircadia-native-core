@@ -566,6 +566,11 @@ void Head::simulate(float deltaTime) {
             _head.eyebrowRoll [1] *=-1;
         }
     }
+    
+    //  Update audio trailing average for rendering facial animations
+    const float AUDIO_AVERAGING_SECS = 0.05;
+    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
+                            (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
       
       
@@ -740,16 +745,20 @@ void Head::renderHead(bool lookingInMirror) {
         }
     glPopMatrix();
 
-    // _eyebrows
-    _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
+   
+    //  Update audio attack data for facial animation (eyebrows and mouth) 
+     _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
     _head.lastLoudness = _audioLoudness;
-
+    
+    
     const float BROW_LIFT_THRESHOLD = 100;
     if (_head.audioAttack > BROW_LIFT_THRESHOLD)
         _head.browAudioLift += sqrt(_head.audioAttack) / 1000.0;
     
     _head.browAudioLift *= .90;
+
     
+    //  Render Eyebrows
     glPushMatrix();
         glTranslatef(-_head.interBrowDistance / 2.0,0.4,0.45);
         for(side = 0; side < 2; side++) {
@@ -1128,7 +1137,9 @@ void Head::updateHandMovement( float deltaTime ) {
     
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
-    setHandState(_mousePressed);
+    if (_isMine) {
+        _handState = _mousePressed;
+    }
     
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
@@ -1263,7 +1274,7 @@ void Head::renderBody() {
     //---------------------------------------------------------
     // if the hand is grasping, show it...
     //---------------------------------------------------------
-	if (( _usingBodySprings ) && ( getHandState() == 1 )) {
+	if (( _usingBodySprings ) && ( _handState == 1 )) {
 		glPushMatrix();
 			glTranslatef
 			( 
