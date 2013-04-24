@@ -185,7 +185,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
     int voxelsAdded = 0;
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerHead->getBodyPosition();
+    glm::vec3 viewerPosition = viewerHead->getPosition();
 
     // debug LOD code
     glm::vec3 debugNodePosition;
