@@ -113,7 +113,7 @@ int main(int argc, const char* argv[]) {
     // move eve away from the origin
     // pick a random point inside a 10x10 grid
     
-    eve.setBodyPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION),
+    eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION),
                                   0,
                                   randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
     
@@ -121,9 +121,9 @@ int main(int argc, const char* argv[]) {
     eve.setBodyYaw(0);
     
     // put her hand out so somebody can shake it
-    eve.setHandPosition(glm::vec3(eve.getBodyPosition()[0] - 0.2,
+    eve.setHandPosition(glm::vec3(eve.getPosition()[0] - 0.2,
                                   0.25,
-                                  eve.getBodyPosition()[2] + 0.1));
+                                  eve.getPosition()[2] + 0.1));
     
     // read eve's audio data
     AudioInjector eveAudioInjector("eve.raw");

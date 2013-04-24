@@ -1128,24 +1128,29 @@ void Head::updateHandMovement( float deltaTime ) {
     
     setHandState(_mousePressed);
     
+    bool atLeastOneAvatarIsGrasping = false;
+    
+    if ( getHandState() == 1 ) { atLeastOneAvatarIsGrasping = true; }
+    if ( _isMine ) {
+        if ( _otherAvatar.handState == 1  ) {
+            atLeastOneAvatarIsGrasping = true;
+        }
+    }
+    
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
     //---------------------------------------------------------------------
-    if (( getHandState() == 1 )
-    ||  ( _otherAvatar.handState == 1 )) {
-        //if ( _usingBodySprings ) 
-        {
-            if ( _nearOtherAvatar ) {	            
-                 
-                glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
-                glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position        - _handHolding.position;
-				
-                _handHolding.velocity *= 0.7;
-				_handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
-                _handHolding.position += _handHolding.velocity;
-                
-                _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
-			} 
+    if ( atLeastOneAvatarIsGrasping ) {
+        if ( _nearOtherAvatar ) {	            
+             
+            glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
+            glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position        - _handHolding.position;
+            
+            _handHolding.velocity *= 0.7;
+            _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
+            _handHolding.position += _handHolding.velocity;
+            
+            _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
 		}
     }
     else {
