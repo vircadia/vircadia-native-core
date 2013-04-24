@@ -20,23 +20,41 @@ public:
     
     AvatarData* clone() const;
     
-    glm::vec3 getBodyPosition();
-    void setBodyPosition(glm::vec3 bodyPosition);
+    glm::vec3 getPosition();
+    void setPosition(glm::vec3 position);
     void setHandPosition(glm::vec3 handPosition);
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
+    //  Body Rotation
     float getBodyYaw();
-    void  setBodyYaw(float bodyYaw);
-    
     float getBodyPitch();
-    void  setBodyPitch(float bodyPitch);
-    
     float getBodyRoll();
+    void  setBodyYaw(float bodyYaw);
+    void  setBodyPitch(float bodyPitch);
     void  setBodyRoll(float bodyRoll);
 
-    // getters for camera details    
+    // Head Rotation
+    void setHeadPitch(float p) {_headPitch = p; }
+    void setHeadYaw(float y) {_headYaw = y; }
+    void setHeadRoll(float r) {_headRoll = r; };
+    const float getHeadPitch() const { return _headPitch; };
+    const float getHeadYaw() const { return _headYaw; };
+    const float getHeadRoll() const { return _headRoll; };
+    void  addHeadPitch(float p) {_headPitch -= p; }
+    void  addHeadYaw(float y){_headYaw -= y; }
+    void  addHeadRoll(float r){_headRoll += r; }
+
+    //  Hand State
+    void setHandState(char s) { _handState = s; };
+    const float getHandState() const {return _handState; }; //@Philip - shouldn't this be an int or a char?
+
+    //  Instantaneous audio loudness to drive mouth/facial animation
+    void setLoudness(float l) { _audioLoudness = l; };
+    const float getLoudness() const {return _audioLoudness; };
+
+    // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
     const glm::vec3& getCameraDirection()   const { return _cameraDirection; }
     const glm::vec3& getCameraUp()          const { return _cameraUp; }
@@ -57,13 +75,25 @@ public:
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
 protected:
-    glm::vec3 _bodyPosition;
+    glm::vec3 _position;
     glm::vec3 _handPosition;
     
+    //  Body rotation
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
+    
+    //  Head rotation (relative to body) 
+    float _headYaw;
+    float _headPitch;
+    float _headRoll;
 
+    //  Audio loudness (used to drive facial animation)
+    float _audioLoudness;
+    
+    //  Hand state (are we grabbing something or not)
+    char _handState;
+    
     // camera details for the avatar
     glm::vec3 _cameraPosition;
 

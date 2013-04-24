@@ -157,7 +157,7 @@ int audioCallback (const void *inputBuffer,
             
             // memcpy the three float positions
             for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedHead->getBodyPosition()[p], sizeof(float));
+                memcpy(currentPacketPtr, &data->linkedHead->getPosition()[p], sizeof(float));
                 currentPacketPtr += sizeof(float);
             }
             
@@ -250,8 +250,16 @@ int audioCallback (const void *inputBuffer,
             }
             // play whatever we have in the audio buffer
             
+            //
             // if we haven't fired off the flange effect, check if we should
-            int lastYawMeasured = fabsf(data->linkedHead->getLastMeasuredYaw());
+            //
+            
+            //
+            // NOTE:  PER - LastMeasuredHeadYaw is now relative to body position, represents the local
+            //        rotation of the head relative to body, this may effect flange effect!
+            // 
+            //
+            int lastYawMeasured = fabsf(data->linkedHead->getLastMeasuredHeadYaw());
             
             if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second

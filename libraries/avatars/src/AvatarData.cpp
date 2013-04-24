@@ -34,9 +34,14 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 }
 
 AvatarData::AvatarData() :
+    _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
+    _headYaw(0),
+    _headPitch(0),
+    _headRoll(0),
+    _handState(0),
     _cameraPosition(0,0,0),
     _cameraDirection(0,0,0),
     _cameraUp(0,0,0),
@@ -63,15 +68,31 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
     
-    memcpy(destinationBuffer, &_bodyPosition, sizeof(float) * 3);
+    // Body world position
+    memcpy(destinationBuffer, &_position, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
+    // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
+    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headYaw);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headPitch);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headRoll);
+    
+    // Hand Position 
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
+    
+    // Hand State (0 = not grabbing, 1 = grabbing)
+    memcpy(destinationBuffer, &_handState, sizeof(char));
+    destinationBuffer += sizeof(char);
+    
+    // Instantaneous audio loudness (used to drive facial animation)
+    memcpy(destinationBuffer, &_audioLoudness, sizeof(float));
+    destinationBuffer += sizeof(float); 
 
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -91,6 +112,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_cameraFarClip, sizeof(_cameraFarClip));
     destinationBuffer += sizeof(_cameraFarClip);
 
+
     return destinationBuffer - bufferStart;
 }
 
@@ -102,15 +124,31 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* startPosition = sourceBuffer;
     
-    memcpy(&_bodyPosition, sourceBuffer, sizeof(float) * 3);
+    // Body world position
+    memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
    
+    // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
+    
+    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headRoll);
 
+    // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
+    
+    // Hand State
+    memcpy(&_handState, sourceBuffer, sizeof(char));
+    sourceBuffer += sizeof(char);
+    
+    // Instantaneous audio loudness (used to drive facial animation)
+    memcpy(&_audioLoudness, sourceBuffer, sizeof(float));
+    sourceBuffer += sizeof(float);
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
@@ -133,14 +171,14 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-glm::vec3 AvatarData::getBodyPosition() {
-    return glm::vec3(_bodyPosition.x,
-                     _bodyPosition.y,
-                     _bodyPosition.z);
+glm::vec3 AvatarData::getPosition() {
+    return glm::vec3(_position.x,
+                     _position.y,
+                     _position.z);
 }
 
-void AvatarData::setBodyPosition(glm::vec3 bodyPosition) {
-    _bodyPosition = bodyPosition;
+void AvatarData::setPosition(glm::vec3 position) {
+    _position = position;
 }
 
 void AvatarData::setHandPosition(glm::vec3 handPosition) {
