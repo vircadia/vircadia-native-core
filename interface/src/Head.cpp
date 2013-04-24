@@ -1148,7 +1148,8 @@ void Head::updateHandMovement( float deltaTime ) {
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
     if (_isMine) {
-        setHandState(_mousePressed);
+        //setHandState(_mousePressed);
+        _handState = _mousePressed;
     }
 }
 
