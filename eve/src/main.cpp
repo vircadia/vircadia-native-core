@@ -15,6 +15,8 @@
 #include <AvatarData.h>
 #include <AudioInjector.h>
 
+const int EVE_AGENT_LISTEN_PORT = 55441;
+
 const float RANDOM_POSITION_MAX_DIMENSION = 5.0f;
 
 const float DATA_SEND_INTERVAL_MSECS = 15;
@@ -91,7 +93,7 @@ int main(int argc, const char* argv[]) {
     srand(time(0));
     
     // create an AgentList instance to handle communication with other agents
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, randIntInRange(1500, 65000));
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LISTEN_PORT);
     
     // start telling the domain server that we are alive
     agentList->startDomainServerCheckInThread();
