@@ -349,7 +349,7 @@ void Head::simulate(float deltaTime) {
                         //---------------------------------------------------------------------
                         // if I am holding hands with another avatar, a force is applied 
                         //---------------------------------------------------------------------
-                        if (( getHandState() == 1 )
+                        if (( _handState == 1 )
                         ||  ( _interactingOther->_handState == 1 )) {
                             glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHolding.position;
                             glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
@@ -1148,7 +1148,6 @@ void Head::updateHandMovement( float deltaTime ) {
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
     if (_isMine) {
-        //setHandState(_mousePressed);
         _handState = _mousePressed;
     }
 }
