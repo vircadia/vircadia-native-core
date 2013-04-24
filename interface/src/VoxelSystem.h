@@ -25,10 +25,10 @@ class VoxelSystem : public AgentData {
 public:
     VoxelSystem();
     ~VoxelSystem();
-    
+
     int parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelSystem* clone() const;
-    
+
     void init();
     void simulate(float deltaTime);
     void render();
@@ -76,6 +76,7 @@ private:
     GLubyte *writeColorsArray;
     GLfloat *writeVerticesEndPointer;
     GLuint vboVerticesID;
+    GLuint vboNormalsID;
     GLuint vboColorsID;
     GLuint vboIndicesID;
     pthread_mutex_t bufferWriteLock;
