@@ -48,7 +48,7 @@ public:
 
     //  Hand State
     void setHandState(char s) { _handState = s; };
-    const float getHandState() const {return _handState; }; //@Philip - shouldn't this be an int or a char?
+    const char getHandState() const {return _handState; };
 
     //  Instantaneous audio loudness to drive mouth/facial animation
     void setLoudness(float l) { _audioLoudness = l; };
