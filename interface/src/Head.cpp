@@ -35,8 +35,6 @@ float browThickness = 0.16;
 
 bool usingBigSphereCollisionTest = true;
 
-
-
 char iris_texture_file[] = "resources/images/green_eye.png";
 
 vector<unsigned char> iris_texture;
