@@ -39,9 +39,9 @@ public:
     void setHeadPitch(float p) {_headPitch = p; }
     void setHeadYaw(float y) {_headYaw = y; }
     void setHeadRoll(float r) {_headRoll = r; };
-    const float getHeadPitch() const { return _headPitch; };
-    const float getHeadYaw() const { return _headYaw; };
-    const float getHeadRoll() const { return _headRoll; };
+    float getHeadPitch() const { return _headPitch; };
+    float getHeadYaw() const { return _headYaw; };
+    float getHeadRoll() const { return _headRoll; };
     void  addHeadPitch(float p) {_headPitch -= p; }
     void  addHeadYaw(float y){_headYaw -= y; }
     void  addHeadRoll(float r){_headRoll += r; }
@@ -55,14 +55,14 @@ public:
     float getLoudness() const {return _audioLoudness; };
 
     // getters for camera details
-    const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
-    const glm::vec3& getCameraDirection()   const { return _cameraDirection; }
-    const glm::vec3& getCameraUp()          const { return _cameraUp; }
-    const glm::vec3& getCameraRight()       const { return _cameraRight; }
-    float getCameraFov()                    const { return _cameraFov; }
-    float getCameraAspectRatio()            const { return _cameraAspectRatio; }
-    float getCameraNearClip()               const { return _cameraNearClip; }
-    float getCameraFarClip()                const { return _cameraFarClip; }
+    glm::vec3 getCameraPosition()    const { return _cameraPosition; };
+    glm::vec3 getCameraDirection()   const { return _cameraDirection; }
+    glm::vec3 getCameraUp()          const { return _cameraUp; }
+    glm::vec3 getCameraRight()       const { return _cameraRight; }
+    float getCameraFov()             const { return _cameraFov; }
+    float getCameraAspectRatio()     const { return _cameraAspectRatio; }
+    float getCameraNearClip()        const { return _cameraNearClip; }
+    float getCameraFarClip()         const { return _cameraFarClip; }
 
     // setters for camera details    
     void setCameraPosition(const glm::vec3& position)   { _cameraPosition    = position; };
