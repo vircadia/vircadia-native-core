@@ -55,10 +55,10 @@ public:
     float getLoudness() const {return _audioLoudness; };
 
     // getters for camera details
-    glm::vec3 getCameraPosition()    const { return _cameraPosition; };
-    glm::vec3 getCameraDirection()   const { return _cameraDirection; }
-    glm::vec3 getCameraUp()          const { return _cameraUp; }
-    glm::vec3 getCameraRight()       const { return _cameraRight; }
+    const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
+    const glm::vec3& getCameraDirection()   const { return _cameraDirection; }
+    const glm::vec3& getCameraUp()          const { return _cameraUp; }
+    const glm::vec3& getCameraRight()       const { return _cameraRight; }
     float getCameraFov()             const { return _cameraFov; }
     float getCameraAspectRatio()     const { return _cameraAspectRatio; }
     float getCameraNearClip()        const { return _cameraNearClip; }
