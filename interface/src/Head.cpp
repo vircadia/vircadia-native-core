@@ -1137,7 +1137,9 @@ void Head::updateHandMovement( float deltaTime ) {
     
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     
-    setHandState(_mousePressed);
+    if (_isMine) {
+        _handState = _mousePressed;
+    }
     
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
