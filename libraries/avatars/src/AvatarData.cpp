@@ -69,7 +69,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // and return the number of bytes to push the pointer
     
     // Body world position
-    memcpy(destinationBuffer, &_bodyPosition, sizeof(float) * 3);
+    memcpy(destinationBuffer, &_position, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
@@ -125,7 +125,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* startPosition = sourceBuffer;
     
     // Body world position
-    memcpy(&_bodyPosition, sourceBuffer, sizeof(float) * 3);
+    memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
    
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
@@ -171,14 +171,14 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-glm::vec3 AvatarData::getBodyPosition() {
-    return glm::vec3(_bodyPosition.x,
-                     _bodyPosition.y,
-                     _bodyPosition.z);
+glm::vec3 AvatarData::getPosition() {
+    return glm::vec3(_position.x,
+                     _position.y,
+                     _position.z);
 }
 
-void AvatarData::setBodyPosition(glm::vec3 bodyPosition) {
-    _bodyPosition = bodyPosition;
+void AvatarData::setPosition(glm::vec3 position) {
+    _position = position;
 }
 
 void AvatarData::setHandPosition(glm::vec3 handPosition) {
