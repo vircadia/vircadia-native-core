@@ -261,30 +261,19 @@ float Agent::getAverageKilobitsPerSecond() {
 }
 
 void Agent::printLog(Agent const& agent) {
-
-    sockaddr_in *agentPublicSocket = (sockaddr_in *) agent.publicSocket;
-    sockaddr_in *agentLocalSocket = (sockaddr_in *) agent.localSocket;
     
-    const char* publicAddressString = (agentPublicSocket == NULL)
-        ? "Unknown"
-        : inet_ntoa(agentPublicSocket->sin_addr);
-    unsigned short publicAddressPort = (agentPublicSocket == NULL)
-        ? 0
-        : ntohs(agentPublicSocket->sin_port);
+    char publicAddressBuffer[16] = {'\0'};
+    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, agent.publicSocket);
     
-    const char* localAddressString = (agentLocalSocket == NULL)
-        ? "Unknown"
-        : inet_ntoa(agentLocalSocket->sin_addr);
-    unsigned short localAddressPort = (agentLocalSocket == NULL)
-        ? 0
-        : ntohs(agentPublicSocket->sin_port);
-
+    char localAddressBuffer[16] = {'\0'};
+    unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, agent.localSocket);
+    
     ::printLog("ID: %d T: %s (%c) PA: %s:%d LA: %s:%d\n",
                agent.agentId,
                agent.getTypeName(),
                agent.type,
-               publicAddressString,
+               publicAddressBuffer,
                publicAddressPort,
-               localAddressString,
+               localAddressBuffer,
                localAddressPort);
 }
