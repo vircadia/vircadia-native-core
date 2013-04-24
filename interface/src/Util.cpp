@@ -90,6 +90,7 @@ void render_vector(glm::vec3 * vec)
     // Draw marker dots for magnitude    
     glEnd();
     float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
+    float particleAttenuationConstant[] = { 1.0f, 0.0f, 0.0f };
 
     glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
     
@@ -104,6 +105,7 @@ void render_vector(glm::vec3 * vec)
     glVertex3f(0,0,vec->z);
     glEnd();
 
+    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationConstant );
 }
 
 void render_world_box()
