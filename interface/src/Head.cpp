@@ -1272,7 +1272,7 @@ void Head::renderBody() {
     //---------------------------------------------------------
     // if the hand is grasping, show it...
     //---------------------------------------------------------
-	if (( _usingBodySprings ) && ( getHandState() == 1 )) {
+	if (( _usingBodySprings ) && ( _handState == 1 )) {
 		glPushMatrix();
 			glTranslatef
 			( 
