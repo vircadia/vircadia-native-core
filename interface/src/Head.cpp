@@ -1006,11 +1006,14 @@ void Head::updateSkeleton() {
 			_bone[b].position = _bone[ _bone[b].parent ].position;
 		}
         
-        ///TEST! - get this working and then add a comment; JJV
+        //-------------------------------------------------------------------------------------
+        // if this is not my avatar, then hand position comes from transmitted data
+        //-------------------------------------------------------------------------------------
         if ( ! _isMine ) {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
 
+        // the following will be replaced by a proper rotation...
 		float xx = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight() );
 		float yy = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
 		float zz = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront() );
@@ -1023,7 +1026,6 @@ void Head::updateSkeleton() {
 		_bone[b].position += rotatedBoneVector;
 	}	
 }
-
 
 void Head::initializeBodySprings() {
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
@@ -1128,30 +1130,22 @@ void Head::updateHandMovement( float deltaTime ) {
     
     setHandState(_mousePressed);
     
-    bool atLeastOneAvatarIsGrasping = false;
-    
-    if ( getHandState() == 1 ) { atLeastOneAvatarIsGrasping = true; }
-    if ( _isMine ) {
-        if ( _otherAvatar.handState == 1  ) {
-            atLeastOneAvatarIsGrasping = true;
-        }
-    }
-    
     //---------------------------------------------------------------------
 	// if holding hands with another avatar, add a force to the hand...
     //---------------------------------------------------------------------
-    if ( atLeastOneAvatarIsGrasping ) {
+    if (( getHandState() == 1 )
+    ||  ( _otherAvatar.handState == 1 )) {
         if ( _nearOtherAvatar ) {	            
              
             glm::vec3 vectorToOtherHand = _otherAvatar.handPosition - _handHolding.position;
-            glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position        - _handHolding.position;
+            glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
             
             _handHolding.velocity *= 0.7;
             _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
             _handHolding.position += _handHolding.velocity;
             
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
-		}
+        } 
     }
     else {
         _handHolding.position = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
@@ -1218,7 +1212,7 @@ void Head::renderBody() {
         //renderBoneAsBlock( (AvatarBoneID)b);
         
         //render bone orientation
-        renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
+        //renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
     
 		if ( _usingBodySprings ) {
 			glColor3fv( skinColor );

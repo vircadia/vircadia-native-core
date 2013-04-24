@@ -19,7 +19,7 @@ VoxelAgentData::~VoxelAgentData() {
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    memcpy(&_Position, &otherAgentData._Position, sizeof(_Position));
+    memcpy(&_position, &otherAgentData._position, sizeof(_position));
     rootMarkerNode = new MarkerNode();
 }
 
