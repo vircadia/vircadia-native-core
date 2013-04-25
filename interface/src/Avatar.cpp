@@ -297,7 +297,7 @@ void Avatar::simulate(float deltaTime) {
     }
  
     _interactingOtherIsNearby = false;
-    
+
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
     if ( _isMine )
