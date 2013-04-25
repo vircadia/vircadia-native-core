@@ -914,7 +914,7 @@ void display(void)
             agent != agentList->end();
             agent++) {
             if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
-                Head *avatar = (Head *)(*agent).getLinkedData();
+                Avatar *avatar = (Avatar *)(*agent).getLinkedData();
                 avatar->render(0);
             }
         }
@@ -1500,7 +1500,7 @@ void idle(void) {
         AgentList * agentList = AgentList::getInstance();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if ((*agent).getLinkedData() != NULL) {
-                Head *avatar = (Head *)(*agent).getLinkedData();
+                Avatar *avatar = (Avatar *)(*agent).getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }
