@@ -563,26 +563,26 @@ glm::vec3 Avatar::getBodyUpDirection() {
 }
 
 // This is a workspace for testing avatar body collision detection and response
-void Avatar::updateAvatarCollisionDetectionAndResponse
-( glm::vec3 collisionPosition, float collisionGirth, float collisionHeight, glm::vec3 collisionUpVector, float deltaTime ) {
+void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
+                                                       float collisionGirth,
+                                                       float collisionHeight,
+                                                       glm::vec3 collisionUpVector,
+                                                       float deltaTime) {
     
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_position - collisionPosition);
     bool jointCollision = false;
     
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionGirth )
-    {
-        for (int b=0; b<NUM_AVATAR_BONES; b++)
-        {
+    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionGirth ) {
+        for (int b = 0; b < NUM_AVATAR_BONES; b++) {
             glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - collisionPosition);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _bone[b].radius + collisionGirth;
-            if ( distanceToBigSphereCenter < combinedRadius )
-            {
+            
+            if ( distanceToBigSphereCenter < combinedRadius )  {
                 jointCollision = true;
-                if (distanceToBigSphereCenter > 0.0)
-                {
+                if (distanceToBigSphereCenter > 0.0) {
                     glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
                     
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
@@ -935,7 +935,7 @@ void Avatar::initializeSkeleton() {
 }
 
 void Avatar::calculateBoneLengths() {
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
 		_bone[b].length = glm::length( _bone[b].defaultPosePosition );
 	}
     
@@ -951,7 +951,7 @@ void Avatar::updateSkeleton() {
 	_orientation.yaw( _bodyYaw );
     
 	// calculate positions of all bones by traversing the skeleton tree:
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
             _bone[b].orientation.set( _orientation );
 			_bone[b].position = _position;
@@ -981,7 +981,7 @@ void Avatar::updateSkeleton() {
 }
 
 void Avatar::initializeBodySprings() {
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
 		_bone[b].springyPosition = _bone[b].position;
 		_bone[b].springyVelocity = glm::vec3( 0.0f, 0.0f, 0.0f );
 	}
@@ -989,7 +989,7 @@ void Avatar::initializeBodySprings() {
 
 
 void Avatar::updateBodySprings( float deltaTime ) {
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
 		glm::vec3 springVector( _bone[b].springyPosition );
         
 		if ( _bone[b].parent == AVATAR_BONE_NULL ) {
@@ -1129,7 +1129,7 @@ void Avatar::updateArmIKAndConstraints( float deltaTime ) {
 void Avatar::renderBody() {
     
     //  Render bone positions as spheres
-	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
         //renderBoneAsBlock( (AvatarBoneID)b);
         
         //render bone orientation
@@ -1156,7 +1156,7 @@ void Avatar::renderBody() {
 		glColor3f( 0.4f, 0.5f, 0.6f );
 		glLineWidth(3.0);
         
-		for (int b=1; b<NUM_AVATAR_BONES; b++) {
+		for (int b = 1; b < NUM_AVATAR_BONES; b++) {
             if ( _bone[b].parent != AVATAR_BONE_NULL ) {
                 glBegin( GL_LINE_STRIP );
                 glVertex3fv( &_bone[ _bone[ b ].parent ].springyPosition.x );
@@ -1169,7 +1169,7 @@ void Avatar::renderBody() {
 		glColor3fv( skinColor );
 		glLineWidth(3.0);
         
-		for (int b=1; b<NUM_AVATAR_BONES; b++) {
+		for (int b = 1; b < NUM_AVATAR_BONES; b++) {
             if ( _bone[b].parent != AVATAR_BONE_NULL ) {
                 glBegin( GL_LINE_STRIP );
                 glVertex3fv( &_bone[ _bone[ b ].parent ].position.x );
@@ -1182,12 +1182,9 @@ void Avatar::renderBody() {
     // if the hand is grasping, show it...
 	if (( _usingBodySprings ) && ( _handState == 1 )) {
 		glPushMatrix();
-        glTranslatef
-        (
-         _bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.x,
-         _bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.y,
-         _bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.z
-         );
+        glTranslatef(_bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.x,
+                     _bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.y,
+                     _bone[ AVATAR_BONE_RIGHT_HAND ].springyPosition.z);
         glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
         glColor4f( 1.0, 1.0, 0.4, 0.2 ); glutSolidSphere( 0.025f, 10.0f, 10.0f );
         glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
