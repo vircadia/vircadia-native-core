@@ -442,10 +442,10 @@ void Avatar::simulate(float deltaTime) {
     _bodyYawDelta *= (1.0 - TEST_YAW_DECAY * deltaTime);
 
 	// add thrust to velocity
-	_velocity += glm::dvec3(_thrust * deltaTime);
+	_velocity += _thrust * deltaTime;
 
     // update position by velocity
-    _position += (glm::vec3)_velocity * deltaTime;
+    _position += _velocity * deltaTime;
 
 	// decay velocity
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );

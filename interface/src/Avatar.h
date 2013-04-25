@@ -236,7 +236,7 @@ class Avatar : public AvatarData {
 		AvatarBone	      _bone[ NUM_AVATAR_BONES ];
 		AvatarMode        _mode;
         AvatarHandHolding _handHolding;
-        glm::dvec3        _velocity;
+        glm::vec3         _velocity;
         glm::vec3	      _thrust;
         float		      _maxArmLength;
         Orientation	      _orientation;
