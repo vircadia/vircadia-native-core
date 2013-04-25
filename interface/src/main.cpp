@@ -907,7 +907,7 @@ void display(void)
             
         //  Render avatars of other agents
         AgentList *agentList = AgentList::getInstance();
-        for(AgentListIterator agent = agentList->begin();
+        for(AgentList::iterator agent = agentList->begin();
             agent != agentList->end();
             agent++) {
             if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
@@ -983,7 +983,7 @@ void display(void)
     AgentList *agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
     
-    for (AgentListIterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         (*agent).getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
     
@@ -1490,7 +1490,7 @@ void idle(void) {
 		
         //loop through all the other avatars and simulate them...
         AgentList * agentList = AgentList::getInstance();
-        for(AgentListIterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if ((*agent).getLinkedData() != NULL) {
                 Head *avatar = (Head *)(*agent).getLinkedData();
                 avatar->simulate(deltaTime);

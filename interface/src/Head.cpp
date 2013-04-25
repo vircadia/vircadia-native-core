@@ -309,7 +309,7 @@ void Head::simulate(float deltaTime) {
         
         //_numOtherAvatars = 0;
 
-        for(AgentListIterator agent = agentList->begin();
+        for(AgentList::iterator agent = agentList->begin();
             agent != agentList->end();
             agent++) {
             if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {

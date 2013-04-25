@@ -37,6 +37,13 @@ class AgentList {
 public:
     static AgentList* createInstance(char ownerType, unsigned int socketListenPort = AGENT_SOCKET_LISTEN_PORT);
     static AgentList* getInstance();
+    
+    typedef AgentListIterator iterator;
+    typedef ptrdiff_t difference_type;
+    typedef size_t size_type;
+    typedef Agent value_type;
+    typedef Agent * pointer;
+    typedef Agent & reference;
   
     AgentListIterator begin() const;
     AgentListIterator end() const;
@@ -114,8 +121,10 @@ public:
     Agent& operator*();
     
 	AgentListIterator& operator++();
-    AgentListIterator& operator++(int);
+    AgentListIterator operator++(int);
 private:
+    void skipDeadAndStopIncrement();
+    
     const AgentList* _agentList;
     int _agentIndex;
 };
