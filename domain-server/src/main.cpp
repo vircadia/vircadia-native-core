@@ -127,10 +127,7 @@ int main(int argc, const char * argv[])
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
-            for(AgentList::iterator agent = agentList->begin();
-                agent != agentList->end();
-                agent++) {
-                
+            for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                 if (DEBUG_TO_SELF ||
                     !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
                     if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
