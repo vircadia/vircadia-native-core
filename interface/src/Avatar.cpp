@@ -653,6 +653,35 @@ void Avatar::render(bool lookingInMirror) {
             glEnd();
         }
     }
+    
+    if (!_chatMessage.empty()) {
+        float width = 0;
+        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
+            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*0.0005;
+        }
+        glPushMatrix();
+        
+        // extract the view direction from the modelview matrix: transform (0, 0, 1) by the
+        // transpose of the modelview to get its direction in world space, then use the X/Z
+        // components to determine the angle
+        float modelview[16];
+        glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
+        
+        glTranslatef(_position.x, _position.y + 0.7, _position.z);
+        glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
+        glTranslatef(width * 0.5, 0, 0);
+        
+        // TODO: For no apparent reason, OpenGL is hiding the first character.  This fixes it (it
+        // gets hidden instead), but we should find and fix the underlying problem. 
+        glBegin(GL_LINE_STRIP);
+        glVertex2f(0, 0);
+        glVertex2f(0, 0);
+        glEnd();
+        
+        drawtext(0, 0, 0.0005, 180, 1.0, 0, _chatMessage.c_str(), 1, 1, 1);
+        
+        glPopMatrix();
+    }
 }
 
 	   

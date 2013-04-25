@@ -16,6 +16,7 @@
 #include "AvatarData.h"
 #include "avatars_Log.h"
 
+using namespace std;
 using avatars_lib::printLog;
 
 
@@ -112,10 +113,14 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_cameraFarClip, sizeof(_cameraFarClip));
     destinationBuffer += sizeof(_cameraFarClip);
 
-    // Key State
-    memcpy(destinationBuffer, &_keyState, sizeof(char));
-    destinationBuffer += sizeof(char);
+    // key state
+    *destinationBuffer++ = _keyState;
 
+    // chat message
+    *destinationBuffer++ = _chatMessage.size();
+    memcpy(destinationBuffer, _chatMessage.data(), _chatMessage.size() * sizeof(char));
+    destinationBuffer += _chatMessage.size() * sizeof(char);
+    
     return destinationBuffer - bufferStart;
 }
 
@@ -171,9 +176,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_cameraFarClip, sourceBuffer, sizeof(_cameraFarClip));
     sourceBuffer += sizeof(_cameraFarClip);
     
-    // Key State
-    memcpy(&_keyState, sourceBuffer, sizeof(char));
-    sourceBuffer += sizeof(char);
+    // key state
+    _keyState = (KeyState)*sourceBuffer++;
+    
+    // the rest is a chat message
+    int chatMessageSize = *sourceBuffer++;
+    _chatMessage = string((char*)sourceBuffer, chatMessageSize);
+    sourceBuffer += chatMessageSize * sizeof(char);
     
     return sourceBuffer - startPosition;
 }

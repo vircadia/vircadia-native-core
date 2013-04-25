@@ -16,6 +16,8 @@ public:
 
     const std::string& getContents () const { return contents; }
     
+    void clear ();
+    
     bool key(unsigned char k);
     
     void specialKey(unsigned char k);

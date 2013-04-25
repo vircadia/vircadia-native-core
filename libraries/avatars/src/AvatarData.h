@@ -9,6 +9,8 @@
 #ifndef __hifi__AvatarData__
 #define __hifi__AvatarData__
 
+#include <string>
+
 #include <glm/glm.hpp>
 
 #include <AgentData.h>
@@ -74,9 +76,15 @@ public:
     void setCameraNearClip(float nearClip)              { _cameraNearClip    = nearClip; }
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
-    // Key state
-    void setKeyState(char s) { _keyState = s; }
-    char keyState() const { return _keyState; }
+    enum KeyState { NoKey, KeyDown, KeyUp, DeleteKey };
+    
+    // key state
+    void setKeyState(KeyState s) { _keyState = s; }
+    KeyState keyState() const { return _keyState; }
+    
+    // chat message
+    void setChatMessage(const std::string& msg) { _chatMessage = msg; }
+    const std::string& chatMessage () const { return _chatMessage; }
     
 protected:
     glm::vec3 _position;
@@ -110,8 +118,11 @@ protected:
     float _cameraNearClip;
     float _cameraFarClip;
     
-    // Key state (nothing, down, up, backspace)
-    char _keyState;
+    // key state (nothing, down, up, backspace)
+    KeyState _keyState;
+    
+    // chat message
+    std::string _chatMessage;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

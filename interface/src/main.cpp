@@ -1373,8 +1373,9 @@ void keyUp(unsigned char k, int x, int y) {
 void key(unsigned char k, int x, int y)
 {
     if (::chatEntryOn) {
-        if (!chatEntry.key()) {
-            
+        if (!chatEntry.key(k)) {
+            myAvatar.setChatMessage(chatEntry.getContents());
+            chatEntry.clear();
             ::chatEntryOn = false;
         }
         return;
@@ -1656,7 +1657,12 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_AVATAR);
+    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    const char* portStr = getCmdOption(argc, argv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");

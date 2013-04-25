@@ -12,6 +12,13 @@
 
 using namespace std;
 
+const int MAX_CONTENT_LENGTH = 140;
+
+void ChatEntry::clear () {
+    contents.clear();
+    cursorPos = 0;
+}
+
 bool ChatEntry::key(unsigned char k) {
     switch (k) {
         case '\r':
@@ -25,8 +32,10 @@ bool ChatEntry::key(unsigned char k) {
             return true;
             
         default:
-            contents.insert(cursorPos, 1, k);
-            cursorPos++;
+            if (contents.size() != MAX_CONTENT_LENGTH) {
+                contents.insert(cursorPos, 1, k);
+                cursorPos++;
+            }
             return true;
     }
 }
