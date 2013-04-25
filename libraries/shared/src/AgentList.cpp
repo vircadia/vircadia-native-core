@@ -37,7 +37,6 @@ const int DOMAINSERVER_PORT = 40102;
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
 bool pingUnknownAgentThreadStopFlag = false;
-pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 AgentList* AgentList::_sharedInstance = NULL;
 
@@ -374,7 +373,7 @@ void *removeSilentAgents(void *args) {
     while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
         
-        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
             if ((checkTimeUSecs - (*agent).getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS
             	&& (*agent).getType() != AGENT_TYPE_VOXEL) {
@@ -383,8 +382,6 @@ void *removeSilentAgents(void *args) {
                 Agent::printLog(*agent);
                 
                 (*agent).setAlive(false);
-            } else {
-                agent++;
             }
         }
         
@@ -480,30 +477,18 @@ AgentList::iterator AgentList::begin() const {
 }
 
 AgentList::iterator AgentList::end() const {
-    Agent** agentBucket = _agentBuckets[(_numAgents - 1) / AGENTS_PER_BUCKET];
-    
-    for (int i = _numAgents - 1; i >= 0; i--) {
-        if (i % AGENTS_PER_BUCKET == 0) {
-            agentBucket = _agentBuckets[i / AGENTS_PER_BUCKET];
-        }
-        
-        if (agentBucket[i % AGENTS_PER_BUCKET]->isAlive()) {
-            return AgentListIterator(this, i + 1);
-        }
-    }
-    
-    return AgentListIterator(this, 0);
+    return AgentListIterator(this, _numAgents);
 }
 
 AgentListIterator::AgentListIterator(const AgentList* agentList, int agentIndex) :
-_agentIndex(agentIndex) {
+    _agentIndex(agentIndex) {
     _agentList = agentList;
 }
 
 AgentListIterator& AgentListIterator::operator=(const AgentListIterator& otherValue) {
     _agentList = otherValue._agentList;
     _agentIndex = otherValue._agentIndex;
-    return (*this);
+    return *this;
 }
 
 bool AgentListIterator::operator==(const AgentListIterator &otherValue) {
@@ -531,10 +516,10 @@ AgentList::iterator AgentListIterator::operator++(int) {
 }
 
 void AgentListIterator::skipDeadAndStopIncrement() {
-    while (*this != _agentList->end()) {
+    while (_agentIndex != _agentList->_numAgents) {
         ++_agentIndex;
         
-        if (*this == _agentList->end()) {
+        if (_agentIndex == _agentList->_numAgents) {
             break;
         } else if ((*(*this)).isAlive()) {
             // skip over the dead agents
