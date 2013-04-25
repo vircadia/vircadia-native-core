@@ -545,7 +545,7 @@ void Avatar::simulate(float deltaTime) {
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05;
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
-    (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+                            (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
 
 
