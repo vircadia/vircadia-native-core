@@ -157,6 +157,8 @@ VoxelDetail paintingVoxel;          //	The voxel we're painting if we're paintin
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 
+bool logOn = true;                  //  Whether to show on-screen log
+
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
@@ -920,7 +922,7 @@ void display(void)
         if ( !::lookingInMirror ) balls.render();
     
         //  Render the world box
-        if (!::lookingInMirror && statsOn) render_world_box();
+        if (!::lookingInMirror && ::statsOn) { render_world_box(); }
         
         // brad's frustum for debugging
         if (::frustumOn) renderViewFrustum(::viewFrustum);
@@ -962,13 +964,12 @@ void display(void)
     //  Show detected levels from the serial I/O ADC channel sensors
     if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
     
-    //  Display miscellaneous text stats onscreen
-    if (statsOn) {
-        glLineWidth(1.0f);
-        glPointSize(1.0f);
-        displayStats();
-        logger.render(WIDTH, HEIGHT);
-    }
+    //  Display stats and log text onscreen
+    glLineWidth(1.0f);
+    glPointSize(1.0f);
+    
+    if (::statsOn) { displayStats(); }
+    if (::logOn) { logger.render(WIDTH, HEIGHT); }
         
     //  Show menu
     if (::menuOn) {
@@ -1057,6 +1058,11 @@ int setNoise(int state) {
     return iRet;
 }
 
+int setLog(int state) {
+    int iRet = setValue(state, &::logOn);
+    return iRet;
+}
+
 int setGyroLook(int state) {
     int iRet = setValue(state, &::gyroLook);
     return iRet;
@@ -1071,7 +1077,7 @@ int setStars(int state) {
 }
 
 int setStats(int state) {
-    return setValue(state, &statsOn);
+    return setValue(state, &::statsOn);
 }
 
 int setMenu(int state) {
@@ -1196,7 +1202,8 @@ void initMenu() {
     
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
-    menuColumnTools->addRow("Stats (/)", setStats); 
+    menuColumnTools->addRow("Stats (/)", setStats);
+    menuColumnTools->addRow("Log ", setLog);
     menuColumnTools->addRow("(M)enu", setMenu);
 
     // Frustum Options
@@ -1354,7 +1361,7 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
-    if (k == '/')  statsOn = !statsOn;		// toggle stats
+    if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
