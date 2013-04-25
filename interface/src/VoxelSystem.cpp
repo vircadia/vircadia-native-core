@@ -547,24 +547,14 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
         return true;
     }
 
-    ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
+    const ViewFrustum* viewFrustum = (const ViewFrustum*) extraData;
 
     _nodeCount++;
 
     // only do this for truely colored voxels...
     if (node->isColored()) {
-        // first calculate the AAbox for the voxel
-        AABox voxelBox;
-        node->getAABox(voxelBox);
-
-        voxelBox.scale(TREE_SCALE);
-
-        printf("voxelBox corner=(%f,%f,%f) x=%f\n",
-            voxelBox.getCorner().x, voxelBox.getCorner().y, voxelBox.getCorner().z,
-            voxelBox.getSize().x);
-
         // If the voxel is outside of the view frustum, then false color it red
-        if (ViewFrustum::OUTSIDE == viewFrustum->boxInFrustum(voxelBox)) {
+        if (!node->isInView(*viewFrustum)) {
             // Out of view voxels are colored RED
             unsigned char newR = 255;
             unsigned char newG = 0;
@@ -573,11 +563,7 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
             //printf("voxel OUTSIDE view - FALSE colorizing node %d TRUE color is %x,%x,%x  \n",
             //     _nodeCount,node->getTrueColor()[0],node->getTrueColor()[1],node->getTrueColor()[2]);
             node->setFalseColor(newR,newG,newB);
-        } else {
-            printf("voxel NOT OUTSIDE view\n");
         }
-    } else {
-        printf("voxel not colored, don't consider it\n");
     }
 
     return true; // keep going!
