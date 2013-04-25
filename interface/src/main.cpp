@@ -980,7 +980,7 @@ void display(void)
     glPointSize(1.0f);
     char agents[100];
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
     
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -1495,7 +1495,7 @@ void idle(void) {
         updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them...
-        AgentList * agentList = AgentList::getInstance();
+        AgentList* agentList = AgentList::getInstance();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();

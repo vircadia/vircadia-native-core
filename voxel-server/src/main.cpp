@@ -137,7 +137,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 void *distributeVoxelsToListeners(void *args) {
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     unsigned char *stopOctal;
@@ -236,7 +236,7 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line

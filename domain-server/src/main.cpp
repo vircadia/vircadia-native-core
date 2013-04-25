@@ -62,7 +62,7 @@ unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* 
 
 int main(int argc, const char * argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the

@@ -327,7 +327,7 @@ Agent* AgentList::soloAgentOfType(char agentType) {
 
 void *pingUnknownAgents(void *args) {
     
-    AgentList *agentList = (AgentList *)args;
+    AgentList* agentList = (AgentList*) args;
     const int PING_INTERVAL_USECS = 1 * 1000000;
     
     timeval lastSend;
@@ -410,7 +410,7 @@ void *checkInWithDomainServer(void *args) {
     
     const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
     
-    AgentList *parentAgentList = (AgentList *)args;
+    AgentList* parentAgentList = (AgentList*) args;
     
     timeval lastSend;
     unsigned char output[7];

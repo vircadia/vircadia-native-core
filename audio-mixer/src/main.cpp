@@ -78,7 +78,7 @@ void *sendBuffer(void *args)
     int nextFrame = 0;
     timeval startTime;
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     
     gettimeofday(&startTime, NULL);
 
@@ -254,7 +254,7 @@ void attachNewBufferToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     ssize_t receivedBytes = 0;
