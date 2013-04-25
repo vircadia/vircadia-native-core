@@ -910,9 +910,7 @@ void display(void)
             
         //  Render avatars of other agents
         AgentList *agentList = AgentList::getInstance();
-        for(AgentList::iterator agent = agentList->begin();
-            agent != agentList->end();
-            agent++) {
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
