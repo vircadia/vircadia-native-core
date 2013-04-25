@@ -14,11 +14,13 @@
 enum CameraMode
 {
     CAMERA_MODE_NULL = -1,
-    CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_THIRD_PERSON,
+    CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_MY_OWN_FACE,
     NUM_CAMERA_MODES
 };
+
+const float MODE_SHIFT_RATE = 2.0f;
 
 class Camera
 {
@@ -27,7 +29,7 @@ public:
 
 	void update( float deltaTime );
 	
-    void setMode          ( CameraMode  m ) { _mode           = m; }
+    void setMode          ( CameraMode  m ) { _mode = m;   _modeShift = 0.0f; }
     void setYaw           ( float       y ) { _yaw            = y; }
     void setPitch         ( float       p ) { _pitch          = p; }
     void setRoll          ( float       r ) { _roll           = r; }
@@ -50,6 +52,7 @@ public:
     glm::vec3   getPosition   () { return _position;    }
     Orientation getOrientation() { return _orientation; }
     CameraMode  getMode       () { return _mode;        }
+    float       getModeShift  () { return _modeShift;   }
     float       getFieldOfView() { return _fieldOfView; }
     float       getAspectRatio() { return _aspectRatio; }
     float       getNearClip   () { return _nearClip;    }
@@ -59,8 +62,9 @@ public:
 
 private:
 
+	CameraMode  _mode;
+    float       _modeShift; // 0.0 to 1.0
     bool        _frustumNeedsReshape;
-	CameraMode	_mode;
 	glm::vec3	_position;
 	glm::vec3	_idealPosition;
 	glm::vec3	_targetPosition;
@@ -77,6 +81,8 @@ private:
 	float		_distance;
 	float		_tightness;
 	Orientation	_orientation;
+    
+    void updateFollowMode( float deltaTime );
 };
 
 #endif

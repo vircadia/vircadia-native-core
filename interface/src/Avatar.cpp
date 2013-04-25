@@ -59,6 +59,7 @@ Avatar::Avatar(bool isMine) {
     //_transmitterTimer   = 0;
     _transmitterHz      = 0.0;
     _transmitterPackets = 0;
+    _speed              = 0.0;
     _pelvisStandingHeight = 0.0f;
     
     _TEST_bigSphereRadius = 0.3f;
@@ -444,18 +445,7 @@ void Avatar::simulate(float deltaTime) {
         }
 	}
         
-	float translationalSpeed = glm::length( _velocity );
-	float rotationalSpeed = fabs( _bodyYawDelta );
-	if ( translationalSpeed + rotationalSpeed > 0.2 )
-	{
-		_mode = AVATAR_MODE_WALKING;
-	}
-	else
-	{
-		_mode = AVATAR_MODE_INTERACTING;
-	}
-		
-	// update body yaw by body yaw delta
+    // update body yaw by body yaw delta
     if (_isMine) {
     _bodyYaw += _bodyYawDelta * deltaTime;
     }
@@ -568,6 +558,22 @@ void Avatar::simulate(float deltaTime) {
     const float AUDIO_AVERAGING_SECS = 0.05;
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+                            
+	_speed = glm::length( _velocity );
+	float rotationalSpeed = fabs( _bodyYawDelta );
+	if ( _speed + rotationalSpeed > 0.2 )
+	{
+		_mode = AVATAR_MODE_WALKING;
+	}
+	else
+	{
+		_mode = AVATAR_MODE_INTERACTING;
+	}
+}
+      
+      
+float Avatar::getSpeed() {
+    return _speed;
 }
       
       
@@ -1103,11 +1109,11 @@ glm::vec3 Avatar::getBonePosition( AvatarBoneID b ) {
 
 void Avatar::updateHandMovement( float deltaTime ) {
 	glm::vec3 transformedHandMovement;
-	    
+        
 	transformedHandMovement 
-	= _orientation.getRight() *  _movedHandOffset.x
-	+ _orientation.getUp()	  * -_movedHandOffset.y * 0.5f
-	+ _orientation.getFront() * -_movedHandOffset.y;
+	= _orientation.getRight() * _movedHandOffset.x *  1.6f
+	+ _orientation.getUp()	  * _movedHandOffset.y * -0.9f
+	+ _orientation.getFront() * _movedHandOffset.y * -1.5f;
     
 	_bone[ AVATAR_BONE_RIGHT_HAND ].position += transformedHandMovement;
     

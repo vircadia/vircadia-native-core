@@ -184,6 +184,7 @@ class Avatar : public AvatarData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBoneID b );	
         glm::vec3 getBodyUpDirection();
+        float getSpeed();
         float getGirth();
         float getHeight();
         
@@ -235,6 +236,7 @@ class Avatar : public AvatarData {
         AvatarHandHolding _handHolding;
         glm::dvec3        _velocity;
         glm::vec3	      _thrust;
+        float             _speed;
         float		      _maxArmLength;
         Orientation	      _orientation;
         int               _driveKeys[MAX_DRIVE_KEYS];

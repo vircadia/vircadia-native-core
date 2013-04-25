@@ -808,32 +808,56 @@ void display(void)
 			myCamera.setUpShift         ( 0.0 );	
 			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
-			myCamera.setFieldOfView     ( 60.0f );   //this doesn't seem to be doing anything?
-			myCamera.update				( 1.f/FPS );
 		} else {
-            
-            //this is in the prototyping stages..keep firstPerson false for now. 
-            bool firstPerson = false;
-            
-            if ( firstPerson ) {
-                myCamera.setPitch	   (15.0f );  // temporarily, this must be 0.0 or else bad juju
-                myCamera.setUpShift    (0.0f  );
-                myCamera.setDistance   (0.0f  );
-                myCamera.setTightness  (100.0f);
-                myCamera.setFieldOfView(60.0f );   //this doesn't seem to be doing anything?
+
+            float firstPersonPitch     =  20.0f;
+            float firstPersonUpShift   =   0.1f;
+            float firstPersonDistance  =   0.0f;
+            float firstPersonTightness = 100.0f;
+
+            float thirdPersonPitch     =   0.0f;
+            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonDistance  =   1.f;
+            float thirdPersonTightness =   8.0f;
+                        
+            myCamera.setPitch	 (thirdPersonPitch    );
+            myCamera.setUpShift  (thirdPersonUpShift  );
+            myCamera.setDistance (thirdPersonDistance );
+            myCamera.setTightness(thirdPersonTightness);
+                        
+            /*
+            if ( myAvatar.getSpeed() < 0.02 ) {       
+                if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                }
+                
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
+                myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
+                myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
+                myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
             } else {
-                myCamera.setPitch	   (0.0f );  // temporarily, this must be 0.0 or else bad juju
-                myCamera.setUpShift	   (-0.1f);
-                myCamera.setDistance   (1.0f );
-                myCamera.setTightness  (8.0f );
-                myCamera.setFieldOfView(60.0f);   //this doesn't seem to be doing anything?
+                if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                }
+            
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
+                myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
+                myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
+                myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
             }
+            */
 
 			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
 			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setRoll		  (   0.0  );
-            myCamera.update			  ( 1.f/FPS);
 		}
+        
+        // important...
+        myCamera.update( 1.f/FPS );
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
