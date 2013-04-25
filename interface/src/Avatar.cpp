@@ -37,6 +37,8 @@ bool usingBigSphereCollisionTest = true;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
+float chatMessageScale = 0.00025;
+
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
@@ -657,7 +659,7 @@ void Avatar::render(bool lookingInMirror) {
     if (!_chatMessage.empty()) {
         float width = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*0.00025;
+            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*chatMessageScale;
         }
         glPushMatrix();
         
@@ -671,14 +673,9 @@ void Avatar::render(bool lookingInMirror) {
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         glTranslatef(width * 0.5, 0, 0);
         
-        // TODO: For no apparent reason, OpenGL is hiding the first character.  This fixes it (it
-        // gets hidden instead), but we should find and fix the underlying problem. 
-        glBegin(GL_LINE_STRIP);
-        glVertex2f(0, 0);
-        glVertex2f(0, 0);
-        glEnd();
-        
-        drawtext(0, 0, 0.00025, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+        glDisable(GL_LIGHTING);
+        drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+        glEnable(GL_LIGHTING);
         
         glPopMatrix();
     }

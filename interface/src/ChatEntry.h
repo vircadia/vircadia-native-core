@@ -19,7 +19,6 @@ public:
     void clear ();
     
     bool key(unsigned char k);
-    
     void specialKey(unsigned char k);
     
     void render(int screenWidth, int screenHeight);

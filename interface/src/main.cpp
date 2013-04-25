@@ -1455,7 +1455,12 @@ void key(unsigned char k, int x, int y)
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
-    if (k == '\r') ::chatEntryOn = true;
+    
+    if (k == '\r') {
+        ::chatEntryOn = true;
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setChatMessage(string());
+    }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
