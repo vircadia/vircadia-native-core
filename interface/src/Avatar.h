@@ -178,12 +178,12 @@ class Avatar : public AvatarData {
         float getBodyYaw() {return _bodyYaw;};
         void  addBodyYaw(float y) {_bodyYaw += y;};
     
-		glm::vec3 getHeadLookatDirection();
-		glm::vec3 getHeadLookatDirectionUp();
-		glm::vec3 getHeadLookatDirectionRight();
-		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBoneID b );	
-        glm::vec3 getBodyUpDirection();
+        const glm::vec3& getHeadLookatDirection() const { return _orientation.getFront(); };
+        const glm::vec3& getHeadLookatDirectionUp() const { return _orientation.getUp(); };
+        const glm::vec3& getHeadLookatDirectionRight() const { return _orientation.getRight(); };
+		const glm::vec3& getHeadPosition() const ;
+        const glm::vec3& getBonePosition(AvatarBoneID b) const { return _bone[b].position; };
+        const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
         float getGirth();
         float getHeight();
         

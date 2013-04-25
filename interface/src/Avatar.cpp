@@ -557,11 +557,6 @@ float Avatar::getHeight() {
     return COLLISION_HEIGHT;
 }
 
-
-glm::vec3 Avatar::getBodyUpDirection() {
-    return _orientation.getUp();
-}
-
 // This is a workspace for testing avatar body collision detection and response
 void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
                                                        float collisionGirth,
@@ -1028,48 +1023,14 @@ void Avatar::updateBodySprings( float deltaTime ) {
 	}
 }
 
-glm::vec3 Avatar::getHeadLookatDirection() {
-	return glm::vec3
-	(
-     _orientation.getFront().x,
-     _orientation.getFront().y,
-     _orientation.getFront().z
-     );
-}
-
-glm::vec3 Avatar::getHeadLookatDirectionUp() {
-	return glm::vec3
-	(
-     _orientation.getUp().x,
-     _orientation.getUp().y,
-     _orientation.getUp().z
-     );
-}
-
-glm::vec3 Avatar::getHeadLookatDirectionRight() {
-	return glm::vec3
-	(
-     _orientation.getRight().x,
-     _orientation.getRight().y,
-     _orientation.getRight().z
-     );
-}
-
-glm::vec3 Avatar::getHeadPosition() {
+const glm::vec3& Avatar::getHeadPosition() const {
     
-    if ( _usingBodySprings ) {
+    if (_usingBodySprings) {
         return _bone[ AVATAR_BONE_HEAD ].springyPosition;
     }
     
     return _bone[ AVATAR_BONE_HEAD ].position;
 }
-
-
-glm::vec3 Avatar::getBonePosition( AvatarBoneID b ) {
-    return _bone[b].position;
-}
-
-
 
 void Avatar::updateHandMovement( float deltaTime ) {
 	glm::vec3 transformedHandMovement;
