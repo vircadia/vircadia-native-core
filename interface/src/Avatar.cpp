@@ -357,28 +357,21 @@ void Avatar::simulate(float deltaTime) {
         _interactingOther = NULL;
     }
     
-    if ( usingBigSphereCollisionTest ) {
-        
+    if (usingBigSphereCollisionTest) {
         // test for avatar collision response (using a big sphere :)
-        updateAvatarCollisionDetectionAndResponse
-        (
-         _TEST_bigSpherePosition,
-         _TEST_bigSphereRadius,
-         _TEST_bigSphereRadius,
-         glm::vec3( 0.0, 1.0, 0.0 ),
-         deltaTime
-         );
+        updateAvatarCollisionDetectionAndResponse(_TEST_bigSpherePosition,
+                                                  _TEST_bigSphereRadius,
+                                                  _TEST_bigSphereRadius,
+                                                  glm::vec3( 0.0, 1.0, 0.0 ),
+                                                  deltaTime);
     }
     
     if ( AVATAR_GRAVITY ) {
         if ( _position.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
             _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
-        }
-        else {
-            if ( _position.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
-                _position.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
-                _velocity.y = 0.0;
-            }
+        } else if ( _position.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
+            _position.y = _bone[ AVATAR_BONE_RIGHT_FOOT ].radius;
+            _velocity.y = 0.0;
         }
     }
     
