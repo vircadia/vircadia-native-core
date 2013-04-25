@@ -810,6 +810,7 @@ void display(void)
 			myCamera.setUpShift         ( 0.0 );	
 			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
+			myCamera.setFieldOfView     ( 60.0f );   //this doesn't seem to be doing anything?
 			myCamera.update				( 1.f/FPS );
 		} else {
             
@@ -817,15 +818,17 @@ void display(void)
             bool firstPerson = false;
             
             if ( firstPerson ) {
-                myCamera.setPitch	  (15.0f );  // temporarily, this must be 0.0 or else bad juju
-                myCamera.setUpShift   (0.0f  );
-                myCamera.setDistance  (0.0f  );
-                myCamera.setTightness (100.0f);
+                myCamera.setPitch	   (15.0f );  // temporarily, this must be 0.0 or else bad juju
+                myCamera.setUpShift    (0.0f  );
+                myCamera.setDistance   (0.0f  );
+                myCamera.setTightness  (100.0f);
+                myCamera.setFieldOfView(60.0f );   //this doesn't seem to be doing anything?
             } else {
-                myCamera.setPitch	  (0.0f );  // temporarily, this must be 0.0 or else bad juju
-                myCamera.setUpShift	  (-0.1f);
-                myCamera.setDistance  (1.0f );
-                myCamera.setTightness (8.0f );
+                myCamera.setPitch	   (0.0f );  // temporarily, this must be 0.0 or else bad juju
+                myCamera.setUpShift	   (-0.1f);
+                myCamera.setDistance   (1.0f );
+                myCamera.setTightness  (8.0f );
+                myCamera.setFieldOfView(60.0f);   //this doesn't seem to be doing anything?
             }
 
 			myCamera.setTargetPosition( myAvatar.getHeadPosition() );

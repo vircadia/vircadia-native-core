@@ -39,10 +39,10 @@ public:
     void setPosition      ( glm::vec3   p ) { _position       = p; }
     void setOrientation   ( Orientation o ) { _orientation.set(o); }
     void setTightness     ( float       t ) { _tightness      = t; }
-    void setFieldOfView   ( float       f ) { _fieldOfView    = f; }
-    void setAspectRatio   ( float       a ) { _aspectRatio    = a; }
-    void setNearClip      ( float       n ) { _nearClip       = n; }
-    void setFarClip       ( float       f ) { _farClip        = f; }
+    void setFieldOfView   ( float       f ) { _fieldOfView    = f; _frustumNeedsReshape = true; }
+    void setAspectRatio   ( float       a ) { _aspectRatio    = a; _frustumNeedsReshape = true; }
+    void setNearClip      ( float       n ) { _nearClip       = n; _frustumNeedsReshape = true; }
+    void setFarClip       ( float       f ) { _farClip        = f; _frustumNeedsReshape = true; }
 
     float       getYaw        () { return _yaw;         }
     float       getPitch      () { return _pitch;       }
@@ -57,6 +57,7 @@ public:
 
 private:
 
+    bool        _frustumNeedsReshape;
 	CameraMode	_mode;
 	glm::vec3	_position;
 	glm::vec3	_idealPosition;

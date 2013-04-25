@@ -59,8 +59,7 @@ Avatar::Avatar(bool isMine) {
     //_transmitterTimer   = 0;
     _transmitterHz      = 0.0;
     _transmitterPackets = 0;
-
-    initializeSkeleton();
+    _pelvisStandingHeight = 0.0f;
     
     _TEST_bigSphereRadius = 0.3f;
     _TEST_bigSpherePosition = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
@@ -117,6 +116,8 @@ Avatar::Avatar(bool isMine) {
     _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
     _handHolding.force    = 10.0f;
     
+    initializeSkeleton();
+    
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -125,7 +126,6 @@ Avatar::Avatar(bool isMine) {
         }
     }
 }
-
 
 
 Avatar::Avatar(const Avatar &otherAvatar) {
@@ -156,8 +156,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
 	_orientation.set( otherAvatar._orientation );
         
 	_sphere = NULL;
-
-    initializeSkeleton();
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
 
@@ -197,6 +195,9 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.lastLoudness       = otherAvatar._head.lastLoudness;
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
+    
+
+    initializeSkeleton();
     
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
@@ -315,7 +316,7 @@ void Avatar::simulate(float deltaTime) {
                 // check for collisions with other avatars and respond 
                 updateAvatarCollisionDetectionAndResponse
                 (
-                    otherAvatar->getBonePosition( AVATAR_BONE_PELVIS_SPINE ), 
+                    otherAvatar->getPosition(), 
                     0.1, 
                     0.1, 
                     otherAvatar->getBodyUpDirection(),
@@ -327,7 +328,7 @@ void Avatar::simulate(float deltaTime) {
                 v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
                 
                 float distance = glm::length( v );
-                if ( distance < _maxArmLength ) {
+                if ( distance < _maxArmLength + _maxArmLength ) {
                 
                     //if ( distance < closestDistance ) { // perhaps I don't need this if we want to allow multi-avatar interactions
                     {
@@ -377,6 +378,19 @@ void Avatar::simulate(float deltaTime) {
     }
     
     if ( AVATAR_GRAVITY ) {
+        if ( _position.y > _pelvisStandingHeight + 0.01 ) {
+            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
+        }
+        else {
+            if ( _position.y < _pelvisStandingHeight ) {
+                 _position.y = _pelvisStandingHeight;
+                _velocity.y = 0.0;
+            }       
+        }
+    }
+
+    /*
+    if ( AVATAR_GRAVITY ) {
         if ( _position.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
             _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
         }
@@ -387,6 +401,8 @@ void Avatar::simulate(float deltaTime) {
             }       
         }
     }
+    */
+    
     
 	// update body springs
     updateBodySprings( deltaTime );
@@ -612,6 +628,7 @@ void Avatar::updateAvatarCollisionDetectionAndResponse
 
 void Avatar::render(bool lookingInMirror) {
 
+    /*
 	// show avatar position
     glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
 	glPushMatrix();
@@ -619,6 +636,7 @@ void Avatar::render(bool lookingInMirror) {
 		glScalef( 0.03, 0.03, 0.03 );
         glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
+    */
     
     if ( usingBigSphereCollisionTest ) {
 
@@ -884,7 +902,7 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].parent = AVATAR_BONE_RIGHT_SHIN;
 
 	// specify the default pose position
-	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.3,   0.0  );
+	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0  );
 	_bone[ AVATAR_BONE_MID_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
 	_bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
 	_bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
@@ -907,8 +925,7 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_THIGH		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
 	_bone[ AVATAR_BONE_RIGHT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
-
-
+        
 	_bone[ AVATAR_BONE_PELVIS_SPINE		].radius = 0.05;
 	_bone[ AVATAR_BONE_MID_SPINE		].radius = 0.06;
 	_bone[ AVATAR_BONE_CHEST_SPINE		].radius = 0.03;
@@ -935,6 +952,13 @@ void Avatar::initializeSkeleton() {
 
 	// calculate bone length
 	calculateBoneLengths();
+    
+    _pelvisStandingHeight = 
+	_bone[ AVATAR_BONE_PELVIS_SPINE		].length +
+	_bone[ AVATAR_BONE_LEFT_THIGH		].length +
+	_bone[ AVATAR_BONE_LEFT_SHIN		].length +
+	_bone[ AVATAR_BONE_LEFT_FOOT		].length +
+	_bone[ AVATAR_BONE_RIGHT_FOOT       ].radius;
 
 	// generate world positions
 	updateSkeleton();
