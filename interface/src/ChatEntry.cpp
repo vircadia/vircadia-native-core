@@ -30,6 +30,12 @@ bool ChatEntry::key(unsigned char k) {
                 cursorPos--;
             }
             return true;
+        
+        case 127: // delete
+            if (cursorPos < contents.size()) {
+                contents.erase(cursorPos, 1);
+            }
+            return true;
             
         default:
             if (contents.size() != MAX_CONTENT_LENGTH) {

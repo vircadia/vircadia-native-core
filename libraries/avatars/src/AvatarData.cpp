@@ -50,7 +50,8 @@ AvatarData::AvatarData() :
     _cameraFov(0.0f),
     _cameraAspectRatio(0.0f),
     _cameraNearClip(0.0f),
-    _cameraFarClip(0.0f) {
+    _cameraFarClip(0.0f),
+    _keyState(NoKeyDown) {
     
 }
 

@@ -76,7 +76,7 @@ public:
     void setCameraNearClip(float nearClip)              { _cameraNearClip    = nearClip; }
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
-    enum KeyState { NoKey, KeyDown, KeyUp, DeleteKey };
+    enum KeyState { NoKeyDown, InsertKeyDown, DeleteKeyDown };
     
     // key state
     void setKeyState(KeyState s) { _keyState = s; }

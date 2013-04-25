@@ -657,7 +657,7 @@ void Avatar::render(bool lookingInMirror) {
     if (!_chatMessage.empty()) {
         float width = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*0.0005;
+            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*0.00025;
         }
         glPushMatrix();
         
@@ -678,7 +678,7 @@ void Avatar::render(bool lookingInMirror) {
         glVertex2f(0, 0);
         glEnd();
         
-        drawtext(0, 0, 0.0005, 180, 1.0, 0, _chatMessage.c_str(), 1, 1, 1);
+        drawtext(0, 0, 0.00025, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
         
         glPopMatrix();
     }

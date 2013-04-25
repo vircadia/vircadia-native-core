@@ -1361,6 +1361,11 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
+    if (::chatEntryOn) {
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        return;
+    }
+
     if (k == 'e') myAvatar.setDriveKeys(UP, 0);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
@@ -1373,7 +1378,11 @@ void keyUp(unsigned char k, int x, int y) {
 void key(unsigned char k, int x, int y)
 {
     if (::chatEntryOn) {
-        if (!chatEntry.key(k)) {
+        if (chatEntry.key(k)) {
+            myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
+                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+            
+        } else {
             myAvatar.setChatMessage(chatEntry.getContents());
             chatEntry.clear();
             ::chatEntryOn = false;
