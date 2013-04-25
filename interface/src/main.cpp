@@ -240,8 +240,6 @@ void updateHandController( int x, int y ) {
                 handController.startX = WIDTH	 / 2;
                 handController.startY = HEIGHT / 2;
                 handController.envelope = 0.0; 
-//prototype                
-//myAvatar.stopHandMovement();
             }
         }
     }

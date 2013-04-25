@@ -63,3 +63,15 @@ void Camera::update( float deltaTime )  {
 	_position += ( _idealPosition - _position ) * t; 
 }
 
+// call to find out if the view frustum needs to be reshaped
+bool Camera::getFrustumNeedsReshape() {
+    return _frustumNeedsReshape;
+}
+
+// call this after reshaping the view frustum
+void Camera::setFrustumWasReshaped() {
+    _frustumNeedsReshape = false;
+}
+
+
+

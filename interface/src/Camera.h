@@ -54,6 +54,8 @@ public:
     float       getAspectRatio() { return _aspectRatio; }
     float       getNearClip   () { return _nearClip;    }
     float       getFarClip    () { return _farClip;     }
+    bool        getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
+    void        setFrustumWasReshaped();  // call this after reshaping the view frustum.
 
 private:
 
