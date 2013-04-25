@@ -25,7 +25,7 @@
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
 const float THRUST_MAG      = 10.0;
-const float YAW_MAG         = 300.0;
+const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
@@ -184,6 +184,7 @@ class Avatar : public AvatarData {
 		glm::vec3 getHeadPosition();
 		glm::vec3 getBonePosition( AvatarBoneID b );	
         glm::vec3 getBodyUpDirection();
+        float getSpeed();
         float getGirth();
         float getHeight();
         
@@ -238,6 +239,7 @@ class Avatar : public AvatarData {
         AvatarHandHolding _handHolding;
         glm::vec3         _velocity;
         glm::vec3	      _thrust;
+        float             _speed;
         float		      _maxArmLength;
         Orientation	      _orientation;
         int               _driveKeys[MAX_DRIVE_KEYS];
@@ -249,6 +251,7 @@ class Avatar : public AvatarData {
         int               _transmitterPackets;
         Avatar*           _interactingOther;
         bool              _interactingOtherIsNearby;
+        float             _pelvisStandingHeight;
         
         // private methods...
 		void initializeSkeleton();
