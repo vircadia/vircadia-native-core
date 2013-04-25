@@ -83,11 +83,11 @@ int main(int argc, char* argv[])
                     agentIndex = 0;
                     
                     // send back a packet with other active agent data to this agent
-                    for (std::vector<Agent>::iterator avatarAgent = agentList->getAgents().begin();
-                         avatarAgent != agentList->getAgents().end();
+                    for (AgentList::iterator avatarAgent = agentList->begin();
+                         avatarAgent != agentList->end();
                          avatarAgent++) {
-                        if (avatarAgent->getLinkedData() != NULL
-                            && agentIndex != agentList->indexOfMatchingAgent(agentAddress)) {
+                        if ((*avatarAgent).getLinkedData() != NULL
+                            && !socketMatch(agentAddress, (*avatarAgent).getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
                         }
                         
