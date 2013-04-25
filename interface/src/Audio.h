@@ -12,12 +12,12 @@
 #include <portaudio.h>
 #include "AudioData.h"
 #include "Oscilloscope.h"
-#include "Head.h"
+#include "Avatar.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope *s, Head *linkedHead);
+    Audio(Oscilloscope *s, Avatar *linkedAvatar);
     
     void render();
     void render(int screenWidth, int screenHeight);

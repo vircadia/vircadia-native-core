@@ -64,7 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
-#include "Head.h"
+#include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -107,7 +107,7 @@ Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-Head myAvatar(true);                // The rendered avatar of oneself
+Avatar myAvatar(true);              // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
 
@@ -382,7 +382,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    voxels.setViewerHead(&myAvatar);
+    voxels.setViewerAvatar(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
     
     initializeHandController();
@@ -912,7 +912,7 @@ void display(void)
             agent != agentList->getAgents().end();
             agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
             }
         }
@@ -1494,7 +1494,7 @@ void idle(void) {
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }
@@ -1605,7 +1605,7 @@ void mouseoverFunc( int x, int y)
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Head(false));
+        newAgent->setLinkedData(new Avatar(false));
     }
 }
 
