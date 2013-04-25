@@ -239,7 +239,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (agent == end()) {
         // we didn't have this agent, so add them
-        Agent *newAgent = new Agent(publicSocket, localSocket, agentType, agentId);
+        Agent* newAgent = new Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with two agents on local network
@@ -367,7 +367,7 @@ void AgentList::stopPingUnknownAgentsThread() {
 }
 
 void *removeSilentAgents(void *args) {
-    AgentList *agentList = (AgentList *)args;
+    AgentList* agentList = (AgentList*) args;
     double checkTimeUSecs, sleepTime;
     
     while (!silentAgentThreadStopFlag) {
@@ -398,7 +398,7 @@ void *removeSilentAgents(void *args) {
 }
 
 void AgentList::startSilentAgentRemovalThread() {
-    pthread_create(&removeSilentAgentsThread, NULL, removeSilentAgents, (void *)this);
+    pthread_create(&removeSilentAgentsThread, NULL, removeSilentAgents, (void*) this);
 }
 
 void AgentList::stopSilentAgentRemovalThread() {
@@ -452,7 +452,7 @@ void *checkInWithDomainServer(void *args) {
 }
 
 void AgentList::startDomainServerCheckInThread() {
-    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void *)this);
+    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void*) this);
 }
 
 void AgentList::stopDomainServerCheckInThread() {
