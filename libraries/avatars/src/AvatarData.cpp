@@ -112,6 +112,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_cameraFarClip, sizeof(_cameraFarClip));
     destinationBuffer += sizeof(_cameraFarClip);
 
+    // Key State
+    memcpy(destinationBuffer, &_keyState, sizeof(char));
+    destinationBuffer += sizeof(char);
 
     return destinationBuffer - bufferStart;
 }
@@ -167,6 +170,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(_cameraNearClip);
     memcpy(&_cameraFarClip, sourceBuffer, sizeof(_cameraFarClip));
     sourceBuffer += sizeof(_cameraFarClip);
+    
+    // Key State
+    memcpy(&_keyState, sourceBuffer, sizeof(char));
+    sourceBuffer += sizeof(char);
     
     return sourceBuffer - startPosition;
 }

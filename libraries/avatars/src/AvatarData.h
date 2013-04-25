@@ -74,6 +74,10 @@ public:
     void setCameraNearClip(float nearClip)              { _cameraNearClip    = nearClip; }
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
+    // Key state
+    void setKeyState(char s) { _keyState = s; }
+    char keyState() const { return _keyState; }
+    
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -105,6 +109,9 @@ protected:
     float _cameraAspectRatio;
     float _cameraNearClip;
     float _cameraFarClip;
+    
+    // Key state (nothing, down, up, backspace)
+    char _keyState;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

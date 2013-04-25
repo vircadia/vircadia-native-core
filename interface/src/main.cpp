@@ -64,6 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
+#include "ChatEntry.h"
 #include "Head.h"
 #include "Particle.h"
 #include "Texture.h"
@@ -177,6 +178,9 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
+
+ChatEntry chatEntry;       // chat entry field
+bool chatEntryOn = false;  //  Whether to show the chat entry
 
 struct HandController
 {
@@ -976,6 +980,11 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
+    //  Show chat entry field
+    if (::chatEntryOn) {
+        chatEntry.render(WIDTH, HEIGHT);
+    }
+
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
@@ -1350,6 +1359,10 @@ void keyUp(unsigned char k, int x, int y) {
 
 void key(unsigned char k, int x, int y)
 {
+    if (::chatEntryOn) {
+        
+        return;
+    }
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
@@ -1416,6 +1429,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
+    if (k == '\r') ::chatEntryOn = true;
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
