@@ -12,12 +12,12 @@
 #include <portaudio.h>
 #include "AudioData.h"
 #include "Oscilloscope.h"
-#include "Head.h"
+#include "Avatar.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope *s, Head *linkedHead);
+    Audio(Oscilloscope *s, Avatar *linkedAvatar);
     
     void render();
     void render(int screenWidth, int screenHeight);
@@ -25,7 +25,7 @@ public:
     bool getMixerLoopbackFlag();
     void setMixerLoopbackFlag(bool newMixerLoopbackFlag);
     
-    void getInputLoudness(float * lastLoudness, float * averageLoudness);
+    float getInputLoudness() const;
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
     void setWalkingState(bool newWalkState);

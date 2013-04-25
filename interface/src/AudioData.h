@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include "AudioRingBuffer.h"
 #include "UDPSocket.h"
-#include "Head.h"
+#include "Avatar.h"
 
 class AudioData {
     public:
@@ -23,7 +23,7 @@ class AudioData {
 
         UDPSocket *audioSocket;
     
-        Head *linkedHead;
+        Avatar *linkedAvatar;
     
         // store current mixer address and port
         in_addr_t mixerAddress;
@@ -36,7 +36,6 @@ class AudioData {
         int wasStarved;
         
         float lastInputLoudness;
-        float averagedInputLoudness;
     
         bool mixerLoopbackFlag;
         bool playWalkSound;

@@ -23,25 +23,27 @@
 
 const int MAX_VOXELS_PER_SYSTEM = 250000;
 
-const int VERTICES_PER_VOXEL = 8;
+const int VERTICES_PER_VOXEL = 24;
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 const int INDICES_PER_VOXEL = 3 * 12;
 
-float identityVertices[] = { 0, 0, 0,
-                            1, 0, 0,
-                            1, 1, 0,
-                            0, 1, 0,
-                            0, 0, 1,
-                            1, 0, 1,
-                            1, 1, 1,
-                            0, 1, 1 };
+float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
+                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
+                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
-GLubyte identityIndices[] = { 0,1,2, 0,2,3,
-                              0,1,5, 0,4,5,
-                              0,3,7, 0,4,7,
-                              1,2,6, 1,5,6,
-                              2,3,7, 2,6,7,
-                              4,5,6, 4,6,7 };
+GLfloat identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+                              0,0,+1, 0,0,+1, 0,0,+1, 0,0,+1,
+                              0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
+                              0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
+                              -1,0,0, +1,0,0, +1,0,0, -1,0,0,
+                              -1,0,0, +1,0,0, +1,0,0, -1,0,0 };
+
+GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z- .
+                              8,9,13,   8,13,12,  // Y-
+                              16,23,19, 16,20,23, // X-
+                              17,18,22, 17,22,21, // X+
+                              10,11,15, 10,15,14, // Y+
+                              4,5,6,    4,6,7 };  // Z+ .
 
 VoxelSystem::VoxelSystem() {
     voxelsRendered = 0;
@@ -49,7 +51,7 @@ VoxelSystem::VoxelSystem() {
     pthread_mutex_init(&bufferWriteLock, NULL);
 }
 
-VoxelSystem::~VoxelSystem() {    
+VoxelSystem::~VoxelSystem() {
     delete[] readVerticesArray;
     delete[] writeVerticesArray;
     delete[] readColorsArray;
@@ -58,8 +60,8 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&bufferWriteLock);
 }
 
-void VoxelSystem::setViewerHead(Head *newViewerHead) {
-    viewerHead = newViewerHead;
+void VoxelSystem::setViewerAvatar(Avatar *newViewerAvatar) {
+    viewerAvatar = newViewerAvatar;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -70,9 +72,9 @@ void VoxelSystem::setViewerHead(Head *newViewerHead) {
 // Complaints:  Brad :)
 // To Do:       Need to add color data to the file.
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
-    
+
     tree->loadVoxelsFile(fileName,wantColorRandomizer);
-    
+
     copyWrittenDataToReadArrays();
 }
 
@@ -119,7 +121,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     unsigned char *voxelData = sourceBuffer + 1;
-    
+
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
         {
@@ -204,7 +206,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         case PACKET_HEADER_Z_COMMAND:
 
             // the Z command is a special command that allows the sender to send high level semantic
-            // requests, like erase all, or add sphere scene, different receivers may handle these 
+            // requests, like erase all, or add sphere scene, different receivers may handle these
             // messages differently
             char* packetData = (char *)sourceBuffer;
             char* command = &packetData[1]; // start of the command
@@ -225,7 +227,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             }
         break;
     }
-    
+
     setupNewVoxelsForDrawing();
     return numBytes;
 }
@@ -258,7 +260,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
     int voxelsAdded = 0;
 
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerHead->getBodyPosition();
+    glm::vec3 viewerPosition = viewerAvatar->getPosition();
 
     // debug LOD code
     glm::vec3 debugNodePosition;
@@ -285,11 +287,11 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
         for (int i = 0; i < 8; i++) {
             // check if there is a child here
             if (currentNode->children[i] != NULL) {
-                
+
                 glm::vec3 childNodePosition;
                 copyFirstVertexForCode(currentNode->children[i]->octalCode,(float*)&childNodePosition);
                 childNodePosition *= (float)TREE_SCALE; // scale it up
-                
+
                 /**** disabled ************************************************************************************************
                 // Note: Stephen, I intentionally left this in so you would talk to me about it. Here's the deal, this code
                 // doesn't seem to work correctly. It returns X and Z flipped and the values are negative. Since we use the
@@ -299,7 +301,7 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
                 // calculate the child's position based on the parent position
                 for (int j = 0; j < 3; j++) {
                     childNodePosition[j] = nodePosition[j];
-                    
+
                     if (oneAtBit(branchIndexWithDescendant(currentNode->octalCode,currentNode->children[i]->octalCode),(7 - j))) {
                         childNodePosition[j] -= (powf(0.5, *currentNode->children[i]->octalCode) * TREE_SCALE);
                     }
@@ -316,13 +318,13 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
         float startVertex[3];
         copyFirstVertexForCode(currentNode->octalCode,(float*)&startVertex);
         float voxelScale = 1 / powf(2, *currentNode->octalCode);
-        
+
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
         for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
             *writeVerticesEndPointer = startVertex[j % 3] + (identityVertices[j] * voxelScale);
             *(writeColorsArray + (writeVerticesEndPointer - writeVerticesArray)) = currentNode->getColor()[j % 3];
-            
+
             writeVerticesEndPointer++;
         }
         voxelsAdded++;
@@ -344,7 +346,7 @@ void VoxelSystem::init() {
     readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
 
     GLuint *indicesArray = new GLuint[INDICES_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
-    
+
     // populate the indicesArray
     // this will not change given new voxels, so we can set it all up now
     for (int n = 0; n < MAX_VOXELS_PER_SYSTEM; n++) {
@@ -352,84 +354,107 @@ void VoxelSystem::init() {
         int voxelIndexOffset = n * INDICES_PER_VOXEL;
         GLuint *currentIndicesPos = indicesArray + voxelIndexOffset;
         int startIndex = (n * VERTICES_PER_VOXEL);
-        
+
         for (int i = 0; i < INDICES_PER_VOXEL; i++) {
             // add indices for this side of the cube
             currentIndicesPos[i] = startIndex + identityIndices[i];
         }
     }
-    
+
+    GLfloat *normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
+    GLfloat *normalsArrayEndPointer = normalsArray;
+
+    // populate the normalsArray
+    for (int n = 0; n < MAX_VOXELS_PER_SYSTEM; n++) {
+        for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
+            *(normalsArrayEndPointer++) = identityNormals[i];
+        }
+    }
+
     // VBO for the verticesArray
     glGenBuffers(1, &vboVerticesID);
     glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
     glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-    
+
+    // VBO for the normalsArray
+    glGenBuffers(1, &vboNormalsID);
+    glBindBuffer(GL_ARRAY_BUFFER, vboNormalsID);
+    glBufferData(GL_ARRAY_BUFFER,
+                 VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * MAX_VOXELS_PER_SYSTEM,
+                 normalsArray, GL_STATIC_DRAW);
+
     // VBO for colorsArray
     glGenBuffers(1, &vboColorsID);
     glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
     glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * MAX_VOXELS_PER_SYSTEM, NULL, GL_DYNAMIC_DRAW);
-    
+
     // VBO for the indicesArray
     glGenBuffers(1, &vboIndicesID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  INDICES_PER_VOXEL * sizeof(GLuint) * MAX_VOXELS_PER_SYSTEM,
                  indicesArray, GL_STATIC_DRAW);
-    
-    // delete the indices array that is no longer needed
+
+    // delete the indices and normals arrays that are no longer needed
     delete[] indicesArray;
+    delete[] normalsArray;
 }
 
 void VoxelSystem::render() {
 
     glPushMatrix();
-    
+
     if (readVerticesEndPointer != readVerticesArray) {
         // try to lock on the buffer write
         // just avoid pulling new data if it is currently being written
         if (pthread_mutex_trylock(&bufferWriteLock) == 0) {
-            
+
             glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
             glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLfloat), readVerticesArray);
-            
+
             glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
             glBufferSubData(GL_ARRAY_BUFFER, 0, (readVerticesEndPointer - readVerticesArray) * sizeof(GLubyte), readColorsArray);
-            
+
             readVerticesEndPointer = readVerticesArray;
-            
+
             pthread_mutex_unlock(&bufferWriteLock);
         }
     }
 
     // tell OpenGL where to find vertex and color information
     glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
     glVertexPointer(3, GL_FLOAT, 0, 0);
-    
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboNormalsID);
+    glNormalPointer(GL_FLOAT, 0, 0);
+
     glBindBuffer(GL_ARRAY_BUFFER, vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-   
+
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
     glScalef(10, 10, 10);
     glDrawElements(GL_TRIANGLES, 36 * voxelsRendered, GL_UNSIGNED_INT, 0);
-    
+
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
-    
+
     // bind with 0 to switch back to normal operation
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    
+
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
 }
 
 void VoxelSystem::simulate(float deltaTime) {
-    
+
 }
 
 int VoxelSystem::_nodeCount = 0;
@@ -440,7 +465,7 @@ bool VoxelSystem::randomColorOperation(VoxelNode* node, bool down, void* extraDa
     if (down) {
         return true;
     }
-    
+
     _nodeCount++;
     if (node->isColored()) {
         nodeColor newColor = { 0,0,0,1 };
@@ -471,9 +496,9 @@ bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, bool down, void*
     if (down) {
         return true;
     }
-    
+
     _nodeCount++;
-    
+
     // always false colorize
     unsigned char newR = randomColorValue(150);
     unsigned char newG = randomColorValue(150);
@@ -500,7 +525,7 @@ bool VoxelSystem::trueColorizeOperation(VoxelNode* node, bool down, void* extraD
     if (down) {
         return true;
     }
-    
+
     _nodeCount++;
     node->setFalseColored(false);
     //printf("setting true color for node %d\n",_nodeCount);
@@ -521,23 +546,23 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
     if (down) {
         return true;
     }
-    
+
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
-    
+
     _nodeCount++;
-    
+
     // only do this for truely colored voxels...
     if (node->isColored()) {
         // first calculate the AAbox for the voxel
         AABox voxelBox;
         node->getAABox(voxelBox);
-    
+
         voxelBox.scale(TREE_SCALE);
-    
+
         printf("voxelBox corner=(%f,%f,%f) x=%f\n",
             voxelBox.getCorner().x, voxelBox.getCorner().y, voxelBox.getCorner().z,
             voxelBox.getSize().x);
-    
+
         // If the voxel is outside of the view frustum, then false color it red
         if (ViewFrustum::OUTSIDE == viewFrustum->boxInFrustum(voxelBox)) {
             // Out of view voxels are colored RED
@@ -554,7 +579,7 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
     } else {
         printf("voxel not colored, don't consider it\n");
     }
-    
+
     return true; // keep going!
 }
 
@@ -576,7 +601,7 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
     }
 
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
-    
+
     // only do this for truly colored voxels...
     if (node->isColored()) {
 
@@ -590,10 +615,10 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
 
         // scale up the node position
         nodePosition = nodePosition*(float)TREE_SCALE;
-        
+
         float halfUnitForVoxel = powf(0.5, *node->octalCode) * (0.5 * TREE_SCALE);
         glm::vec3 viewerPosition = viewFrustum->getPosition();
-        
+
         //printf("halfUnitForVoxel=%f\n",halfUnitForVoxel);
         //printf("viewer.x=%f y=%f z=%f \n", viewerPosition.x, viewerPosition.y, viewerPosition.z);
         //printf("node.x=%f y=%f z=%f \n", nodePosition.x, nodePosition.y, nodePosition.z);
@@ -606,7 +631,7 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
         _nodeCount++;
 
         float distanceRatio = (_minDistance==_maxDistance) ? 1 : (distance - _minDistance)/(_maxDistance - _minDistance);
-        
+
         // We want to colorize this in 16 bug chunks of color
         const unsigned char maxColor = 255;
         const unsigned char colorBands = 16;
@@ -615,7 +640,7 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
         unsigned char newR = (colorBand*(gradientOver/colorBands))+(maxColor-gradientOver);
         unsigned char newG = 0;
         unsigned char newB = 0;
-        //printf("Setting color down=%s distance=%f min=%f max=%f distanceRatio=%f color=%d \n", 
+        //printf("Setting color down=%s distance=%f min=%f max=%f distanceRatio=%f color=%d \n",
         //    (down ? "TRUE" : "FALSE"), distance, _minDistance, _maxDistance, distanceRatio, (int)newR);
 
         node->setFalseColor(newR,newG,newB);
@@ -641,7 +666,7 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, bool down, 
     //printf("getDistanceFromViewRangeOperation() down=%s\n",(down ? "TRUE" : "FALSE"));
 
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
-    
+
     // only do this for truly colored voxels...
     if (node->isColored()) {
 
@@ -687,7 +712,7 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     printf("determining distance range for %d nodes\n",_nodeCount);
 
     _nodeCount = 0;
-    
+
     tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
     printf("setting in distance false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();

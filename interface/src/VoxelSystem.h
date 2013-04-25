@@ -15,7 +15,7 @@
 #include <AgentData.h>
 #include <VoxelTree.h>
 #include <ViewFrustum.h>
-#include "Head.h"
+#include "Avatar.h"
 #include "Util.h"
 #include "world.h"
 
@@ -25,16 +25,16 @@ class VoxelSystem : public AgentData {
 public:
     VoxelSystem();
     ~VoxelSystem();
-    
+
     int parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelSystem* clone() const;
-    
+
     void init();
     void simulate(float deltaTime);
     void render();
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
-    void setViewerHead(Head *newViewerHead);
+    void setViewerAvatar(Avatar *newViewerAvatar);
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 
@@ -67,7 +67,7 @@ private:
     static float _minDistance;
 
     int voxelsRendered;
-    Head *viewerHead;
+    Avatar *viewerAvatar;
     VoxelTree *tree;
     GLfloat *readVerticesArray;
     GLubyte *readColorsArray;
@@ -76,6 +76,7 @@ private:
     GLubyte *writeColorsArray;
     GLfloat *writeVerticesEndPointer;
     GLuint vboVerticesID;
+    GLuint vboNormalsID;
     GLuint vboColorsID;
     GLuint vboIndicesID;
     pthread_mutex_t bufferWriteLock;

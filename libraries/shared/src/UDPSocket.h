@@ -36,5 +36,6 @@ int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkO
 int packSocket(unsigned char *packStore, sockaddr *socketToPack);
 int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket);
 int getLocalAddress();
+unsigned short loadBufferWithSocketInfo(char *addressBuffer, sockaddr *socket);
 
 #endif /* defined(__interface__UDPSocket__) */

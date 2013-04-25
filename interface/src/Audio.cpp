@@ -130,7 +130,7 @@ int audioCallback (const void *inputBuffer,
         
         loudness /= BUFFER_LENGTH_SAMPLES;
         data->lastInputLoudness = loudness;
-        data->averagedInputLoudness = 0.66*data->averagedInputLoudness + 0.33*loudness;
+        
         //
         //  If scope is turned on, copy input buffer to scope
         //
@@ -157,7 +157,7 @@ int audioCallback (const void *inputBuffer,
             
             // memcpy the three float positions
             for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedHead->getBodyPosition()[p], sizeof(float));
+                memcpy(currentPacketPtr, &data->linkedAvatar->getPosition()[p], sizeof(float));
                 currentPacketPtr += sizeof(float);
             }
             
@@ -165,7 +165,7 @@ int audioCallback (const void *inputBuffer,
             *(currentPacketPtr++) = 255;
             
             // memcpy the corrected render yaw
-            float correctedYaw = fmodf(data->linkedHead->getRenderYaw(), 360);
+            float correctedYaw = fmodf(data->linkedAvatar->getRenderYaw(), 360);
             
             if (correctedYaw > 180) {
                 correctedYaw -= 360;
@@ -259,7 +259,7 @@ int audioCallback (const void *inputBuffer,
             //        rotation of the head relative to body, this may effect flange effect!
             // 
             //
-            int lastYawMeasured = fabsf(data->linkedHead->getLastMeasuredHeadYaw());
+            int lastYawMeasured = fabsf(data->linkedAvatar->getLastMeasuredHeadYaw());
             
             if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second
@@ -448,7 +448,7 @@ void Audio::setWalkingState(bool newWalkState) {
  * @return  Returns true if successful or false if an error occurred.
 Use Audio::getError() to retrieve the error code.
  */
-Audio::Audio(Oscilloscope *s, Head *linkedHead)
+Audio::Audio(Oscilloscope *s, Avatar *linkedAvatar)
 {
     // read the walking sound from the raw file and store it
     // in the in memory array
@@ -472,7 +472,7 @@ Audio::Audio(Oscilloscope *s, Head *linkedHead)
     
     audioData = new AudioData();
     
-    audioData->linkedHead = linkedHead;
+    audioData->linkedAvatar = linkedAvatar;
     
     // setup a UDPSocket
     audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
@@ -510,9 +510,8 @@ error:
 }
 
 
-void Audio::getInputLoudness(float * lastLoudness, float * averageLoudness) {
-    *lastLoudness = audioData->lastInputLoudness;
-    *averageLoudness = audioData->averagedInputLoudness;
+float Audio::getInputLoudness() const {
+    return audioData->lastInputLoudness;
 }
 
 void Audio::render(int screenWidth, int screenHeight)

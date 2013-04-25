@@ -64,7 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
-#include "Head.h"
+#include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -107,7 +107,7 @@ Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-Head myAvatar(true);                // The rendered avatar of oneself
+Avatar myAvatar(true);              // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
 
@@ -157,11 +157,15 @@ VoxelDetail paintingVoxel;          //	The voxel we're painting if we're paintin
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 
+bool logOn = true;                  //  Whether to show on-screen log
+
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
+bool gyroLook = false;               //  Whether to allow the gyro data from head to move your view
+
 int displayLevels = 0;
-bool lookingInMirror = 0;            //  Are we currently rendering one's own head as if in mirror?
+bool lookingInMirror = 0;           //  Are we currently rendering one's own head as if in mirror?
 int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
@@ -304,7 +308,7 @@ void displayStats(void)
     char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
     drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
 
-	glm::vec3 avatarPos = myAvatar.getBodyPosition();
+	glm::vec3 avatarPos = myAvatar.getPosition();
     
     char stats[200];
     sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
@@ -380,7 +384,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    voxels.setViewerHead(&myAvatar);
+    voxels.setViewerAvatar(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
     
     initializeHandController();
@@ -396,8 +400,8 @@ void init(void)
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
-    myAvatar.setBodyPosition(start_location);
-	myCamera.setPosition( start_location );
+    myAvatar.setPosition(start_location);
+	myCamera.setPosition(start_location);
     
 	
 #ifdef MARKER_CAPTURE
@@ -438,7 +442,7 @@ void reset_sensors()
     
     renderYawRate = 0; 
     renderPitchRate = 0;
-    myAvatar.setBodyPosition(start_location);
+    myAvatar.setPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
     
@@ -476,31 +480,16 @@ void updateAvatar(float frametime)
     headMouseY = min(headMouseY, HEIGHT);
     
     //  Update render direction (pitch/yaw) based on measured gyro rates
-    const int MIN_YAW_RATE = 100;
-    const int MIN_PITCH_RATE = 100;
-    const float YAW_SENSITIVITY = 0.02;
-    const float PITCH_SENSITIVITY = 0.05;
+    const float MIN_YAW_RATE = 5;
+    const float YAW_SENSITIVITY = 1.0;
     
-    //  Update render pitch and yaw rates based on keyPositions
-    const float KEY_YAW_SENSITIVITY = 2.0;
-    if (myAvatar.getDriveKeys(ROT_LEFT)) renderYawRate -= KEY_YAW_SENSITIVITY*frametime;
-    if (myAvatar.getDriveKeys(ROT_RIGHT)) renderYawRate += KEY_YAW_SENSITIVITY*frametime;
+    //  If enabled, Update render pitch and yaw based on gyro data
+    if (::gyroLook) {
+        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
+            myAvatar.addBodyYaw(-gyroYawRate * YAW_SENSITIVITY * frametime);
+        }
+    }
     
-    if (fabs(gyroYawRate) > MIN_YAW_RATE)  
-    {   
-        if (gyroYawRate > 0)
-            renderYawRate += (gyroYawRate - MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
-        else 
-            renderYawRate += (gyroYawRate + MIN_YAW_RATE) * YAW_SENSITIVITY * frametime;
-    }
-    if (fabs(gyroPitchRate) > MIN_PITCH_RATE) 
-    {
-        if (gyroPitchRate > 0)
-            renderPitchRate += (gyroPitchRate - MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
-        else 
-            renderPitchRate += (gyroPitchRate + MIN_PITCH_RATE) * PITCH_SENSITIVITY * frametime;
-    }
-         
     float renderPitch = myAvatar.getRenderPitch();
     // Decay renderPitch toward zero because we never look constantly up/down 
     renderPitch *= (1.f - 2.0*frametime);
@@ -514,11 +503,8 @@ void updateAvatar(float frametime)
     myAvatar.setRenderPitch(renderPitch + renderPitchRate);
     
     //  Get audio loudness data from audio input device
-    float loudness, averageLoudness;
     #ifndef _WIN32
-    audio.getInputLoudness(&loudness, &averageLoudness);
-    myAvatar.setLoudness(loudness);
-    myAvatar.setAverageLoudness(averageLoudness);
+        myAvatar.setLoudness(audio.getInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -551,7 +537,7 @@ void updateAvatar(float frametime)
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 avatarPos = myAvatar.getBodyPosition();
+    	glm::vec3 avatarPos = myAvatar.getPosition();
 
 		// For some reason, we don't want to flip X and Z here.
 		::paintingVoxel.x = avatarPos.x/10.0;  
@@ -833,7 +819,7 @@ void display(void)
 			//----------------------------------------------------
 			// set the camera to third-person view behind my av
 			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getBodyPosition() );
+			myCamera.setTargetPosition	( myAvatar.getPosition() );
 			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
 			myCamera.setRoll			(   0.0  );
@@ -878,9 +864,10 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-            glm::mat4 view;
-            glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
-        	stars.render(angleConvert<Degrees,Radians>(whichCamera.getFieldOfView()),  aspectRatio, view);
+
+            // finally render the starfield
+        	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+            
         }
 
         glEnable(GL_LIGHTING);
@@ -927,7 +914,7 @@ void display(void)
             agent != agentList->getAgents().end();
             agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
             }
         }
@@ -935,7 +922,7 @@ void display(void)
         if ( !::lookingInMirror ) balls.render();
     
         //  Render the world box
-        if (!::lookingInMirror && statsOn) render_world_box();
+        if (!::lookingInMirror && ::statsOn) { render_world_box(); }
         
         // brad's frustum for debugging
         if (::frustumOn) renderViewFrustum(::viewFrustum);
@@ -977,13 +964,12 @@ void display(void)
     //  Show detected levels from the serial I/O ADC channel sensors
     if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
     
-    //  Display miscellaneous text stats onscreen
-    if (statsOn) {
-        glLineWidth(1.0f);
-        glPointSize(1.0f);
-        displayStats();
-        logger.render(WIDTH, HEIGHT);
-    }
+    //  Display stats and log text onscreen
+    glLineWidth(1.0f);
+    glPointSize(1.0f);
+    
+    if (::statsOn) { displayStats(); }
+    if (::logOn) { logger.render(WIDTH, HEIGHT); }
         
     //  Show menu
     if (::menuOn) {
@@ -1072,6 +1058,16 @@ int setNoise(int state) {
     return iRet;
 }
 
+int setLog(int state) {
+    int iRet = setValue(state, &::logOn);
+    return iRet;
+}
+
+int setGyroLook(int state) {
+    int iRet = setValue(state, &::gyroLook);
+    return iRet;
+}
+
 int setVoxels(int state) {
     return setValue(state, &::showingVoxels);
 }
@@ -1081,7 +1077,7 @@ int setStars(int state) {
 }
 
 int setStats(int state) {
-    return setValue(state, &statsOn);
+    return setValue(state, &::statsOn);
 }
 
 int setMenu(int state) {
@@ -1190,19 +1186,24 @@ const char* getFrustumRenderModeName(int state) {
 }
 
 void initMenu() {
-    MenuColumn *menuColumnOptions, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
+    MenuColumn *menuColumnOptions, *menuColumnRender, *menuColumnTools, *menuColumnDebug, *menuColumnFrustum;
     //  Options
     menuColumnOptions = menu.addColumn("Options");
     menuColumnOptions->addRow("Mirror (h)", setHead); 
-    menuColumnOptions->addRow("Field (f)", setField); 
-    menuColumnOptions->addRow("(N)oise", setNoise); 
-    menuColumnOptions->addRow("(V)oxels", setVoxels);
-    menuColumnOptions->addRow("Stars (*)", setStars);
-    menuColumnOptions->addRow("(Q)uit", quitApp);
+    menuColumnOptions->addRow("Noise (n)", setNoise);
+    menuColumnOptions->addRow("Gyro Look", setGyroLook);
+    menuColumnOptions->addRow("Quit (q)", quitApp);
 
+    //  Render
+    menuColumnRender = menu.addColumn("Render");
+    menuColumnRender->addRow("Voxels (V)", setVoxels);
+    menuColumnRender->addRow("Stars (*)", setStars);
+    menuColumnRender->addRow("Field (f)", setField);
+    
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
-    menuColumnTools->addRow("Stats (/)", setStats); 
+    menuColumnTools->addRow("Stats (/)", setStats);
+    menuColumnTools->addRow("Log ", setLog);
     menuColumnTools->addRow("(M)enu", setMenu);
 
     // Frustum Options
@@ -1265,7 +1266,7 @@ void shiftPaintingColor()
 }
 
 void setupPaintingVoxel() {
-	glm::vec3 avatarPos = myAvatar.getBodyPosition();
+	glm::vec3 avatarPos = myAvatar.getPosition();
 
 	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
 	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
@@ -1360,7 +1361,7 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
-    if (k == '/')  statsOn = !statsOn;		// toggle stats
+    if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
@@ -1494,13 +1495,13 @@ void idle(void) {
         //
         updateAvatar(deltaTime);
 		
-        //loop through all the other avatars and simulate them.
+        //loop through all the other avatars and simulate them...
         AgentList * agentList = AgentList::getInstance();
         for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }
@@ -1512,7 +1513,6 @@ void idle(void) {
 
         glutPostRedisplay();
         lastTimeIdle = check;
-        
     }
     
     //  Read serial data 
@@ -1612,7 +1612,7 @@ void mouseoverFunc( int x, int y)
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Head(false));
+        newAgent->setLinkedData(new Avatar(false));
     }
 }
 

@@ -20,8 +20,8 @@ public:
     
     AvatarData* clone() const;
     
-    glm::vec3 getBodyPosition();
-    void setBodyPosition(glm::vec3 bodyPosition);
+    glm::vec3 getPosition();
+    void setPosition(glm::vec3 position);
     void setHandPosition(glm::vec3 handPosition);
     
     int getBroadcastData(unsigned char* destinationBuffer);
@@ -39,20 +39,20 @@ public:
     void setHeadPitch(float p) {_headPitch = p; }
     void setHeadYaw(float y) {_headYaw = y; }
     void setHeadRoll(float r) {_headRoll = r; };
-    const float getHeadPitch() const { return _headPitch; };
-    const float getHeadYaw() const { return _headYaw; };
-    const float getHeadRoll() const { return _headRoll; };
+    float getHeadPitch() const { return _headPitch; };
+    float getHeadYaw() const { return _headYaw; };
+    float getHeadRoll() const { return _headRoll; };
     void  addHeadPitch(float p) {_headPitch -= p; }
     void  addHeadYaw(float y){_headYaw -= y; }
     void  addHeadRoll(float r){_headRoll += r; }
 
     //  Hand State
     void setHandState(char s) { _handState = s; };
-    const float getHandState() const {return _handState; };
+    char getHandState() const {return _handState; };
 
     //  Instantaneous audio loudness to drive mouth/facial animation
     void setLoudness(float l) { _audioLoudness = l; };
-    const float getLoudness() const {return _audioLoudness; };
+    float getLoudness() const {return _audioLoudness; };
 
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
@@ -75,7 +75,7 @@ public:
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
 protected:
-    glm::vec3 _bodyPosition;
+    glm::vec3 _position;
     glm::vec3 _handPosition;
     
     //  Body rotation
