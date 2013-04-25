@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#include <cmath>
 #include <cstring>
 #include "SharedUtil.h"
 //#include "voxels_Log.h"
@@ -178,4 +179,32 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
     
     newColor[3] = 1;
     setColor(newColor);
+}
+
+bool VoxelNode::isLeaf() const {
+    int childCount = 0;
+    for (int i = 0; i < 8; i++) {
+        if (NULL != children[i]) {
+            childCount++;
+        }
+    }
+    return (0 == childCount);
+}
+
+
+bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
+    AABox box;
+    getAABox(box);
+    box.scale(TREE_SCALE);
+    bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
+    return inView;
+}
+
+float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
+    AABox box;
+    getAABox(box);
+    float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - (box.getCorner().x + box.getSize().x), 2) +
+                                        powf(viewFrustum.getPosition().y - (box.getCorner().y + box.getSize().y), 2) +
+                                        powf(viewFrustum.getPosition().z - (box.getCorner().z + box.getSize().z), 2));
+    return distanceToVoxelCenter;
 }

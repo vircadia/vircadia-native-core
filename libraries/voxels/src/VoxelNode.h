@@ -10,9 +10,13 @@
 #define __hifi__VoxelNode__
 
 #include "AABox.h"
+#include "ViewFrustum.h"
 
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
+
+const int TREE_SCALE = 10;
+
 
 class VoxelNode {
 private:
@@ -34,6 +38,8 @@ public:
     VoxelNode *children[8];
     
     bool isColored() const { return (_trueColor[3]==1); }; 
+    bool isInView(const ViewFrustum& viewFrustum) const; 
+    float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
@@ -50,6 +56,8 @@ public:
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _trueColor; };
 #endif
+
+    bool isLeaf() const;
     
     void getAABox(AABox& box) const;
 };
