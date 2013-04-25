@@ -86,8 +86,8 @@ int main(int argc, char* argv[])
                     for (AgentList::iterator avatarAgent = agentList->begin();
                          avatarAgent != agentList->end();
                          avatarAgent++) {
-                        if ((*avatarAgent).getLinkedData() != NULL
-                            && !socketMatch(agentAddress, (*avatarAgent).getActiveSocket())) {
+                        if (avatarAgent->getLinkedData() != NULL
+                            && !socketMatch(agentAddress, avatarAgent->getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
                         }
                         
