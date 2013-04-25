@@ -9,12 +9,24 @@
 #ifndef __interface__ChatEntry__
 #define __interface__ChatEntry__
 
+#include <string>
+
 class ChatEntry {
 public:
 
+    const std::string& getContents () const { return contents; }
+    
+    bool key(unsigned char k);
+    
+    void specialKey(unsigned char k);
+    
     void render(int screenWidth, int screenHeight);
     
 private:
+
+    std::string contents;
+    
+    int cursorPos;
 };
 
 #endif /* defined(__interface__ChatEntry__) */

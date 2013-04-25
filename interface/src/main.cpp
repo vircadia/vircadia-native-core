@@ -1331,6 +1331,11 @@ void specialkeyUp(int k, int x, int y) {
 
 void specialkey(int k, int x, int y)
 {
+    if (::chatEntryOn) {
+        chatEntry.specialKey(k);
+        return;
+    }
+    
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
@@ -1368,7 +1373,10 @@ void keyUp(unsigned char k, int x, int y) {
 void key(unsigned char k, int x, int y)
 {
     if (::chatEntryOn) {
-        
+        if (!chatEntry.key()) {
+            
+            ::chatEntryOn = false;
+        }
         return;
     }
     
