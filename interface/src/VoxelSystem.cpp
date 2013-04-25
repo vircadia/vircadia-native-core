@@ -113,6 +113,7 @@ float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
     return tree->voxelsBytesReadStats.getAverageSampleValuePerSecond();
 }
 
+bool pickAorB = false;
 
 int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
@@ -121,8 +122,80 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
+        {
+            /***************** TEMPORARY CODE *********************************************************************************
+            // YES! Stephen - I have intentionally placed this horrible UGLY  LINE across your screen! I did it so you and I 
+            // would make a point of removing this code when all this work is done. But in the mean time, I need it here for
+            // debugging purposes... When you do the code review... DO NOT tell me to remove it. :) Thank you!
+            //
+            unsigned char fakeBuffer[18] = {
+                86, // V
+                2,0, // octcode for root
+                136, // child color bits
+                0,0,255, // child 128 color
+                0,255,0, // child 8 color
+                0, // child tree bits - none
+                
+                // now some extra bits, what happens???
+                2,252, // octcode for root
+                1, // child color bits
+                255,0,0, // child 1 color
+                0 // child tree bits
+            };
+
+            //printf("loading fake data! fakeBuffer \n");
+            tree->readBitstreamToTree((unsigned char*)&fakeBuffer[1], sizeof(fakeBuffer)-1);
+
+            unsigned char fakeBuffer[11] = {
+                86, // V
+                2,0, // octcode for root
+                136, // child color bits
+                0,0,255, // child 128 color
+                0,255,0, // child 8 color
+                0 // child tree bits - none
+            };
+
+            printf("loading fake data! fakeBuffer \n");
+            tree->readBitstreamToTree((unsigned char*)&fakeBuffer[1], sizeof(fakeBuffer)-1);
+
+            unsigned char fakeBufferA[11] = {
+                    86, // V
+                    0, // octcode for root
+                    0, // child color bits?
+                    128, // child exists bits 
+                    0, // child color bits
+                    128, // child exists
+                    128, // child color bits
+                    0,0,255, // child color
+                    0 // child exists bits
+                    };
+
+            unsigned char fakeBufferB[11] = { 
+                    86, // V
+                    0, // octcode for root
+                    0, // child color bits?
+                    128, // child exists bits 
+                    0, // child color bits
+                    128, // child exists
+                    16, // child color bits
+                    0,255,0, // child color??
+                    0 // child exists bits
+                    };
+
+            // trim off the "V"
+            printf("loading fake data! pickAorB=%s\n", (pickAorB ? "A" : "B") );
+            if (pickAorB) {
+                tree->readBitstreamToTree((unsigned char*)&fakeBufferA[1], sizeof(fakeBufferA)-1);
+            } else {
+                tree->readBitstreamToTree((unsigned char*)&fakeBufferB[1], sizeof(fakeBufferB)-1);
+            }
+            pickAorB = !pickAorB;
+            
+            ***** END OF TEMPORARY CODE ***************************************************************************************/
+            
             // ask the VoxelTree to read the bitstream into the tree
             tree->readBitstreamToTree(voxelData, numBytes - 1);
+        }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
@@ -618,4 +691,19 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
     printf("setting in distance false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
+    
+    
+    printf("--------- DEBUG TESTING ------------\n");
+    unsigned char* lastOctalCode = tree->rootNode->octalCode;
+    unsigned char* fullOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    unsigned char* outputBuffer = fullOutputBuffer;
+    bool startedWriting = false;
+    int bytesWritten = 0;
+    
+    bytesWritten = tree->bhgLoadBitstream(tree->rootNode, *viewFrustum, lastOctalCode, startedWriting, 
+        outputBuffer,MAX_VOXEL_PACKET_SIZE);
+    
+    printf("--------- results ------------\n");
+    outputBufferBits(fullOutputBuffer, bytesWritten, true);
+    printf("--------- DONE DEBUG TESTING ------------\n");
 }
