@@ -42,7 +42,8 @@ float randFloatInRange (float min,float max);
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
-void outputBits(unsigned char byte);
+void outputBufferBits(unsigned char* buffer, int length, bool withNewLine = true);
+void outputBits(unsigned char byte, bool withNewLine = true);
 void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
@@ -70,5 +71,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
 void usleep(int waitTime);
 #endif
 
+int insertIntoSortedArrays(void* value, float key, int originalIndex, 
+            void** valueArray, float* keyArray, int* originalIndexArray, int currentCount, int maxCount);
 
 #endif /* defined(__hifi__SharedUtil__) */
