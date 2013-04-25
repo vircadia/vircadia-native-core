@@ -909,7 +909,7 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        AgentList *agentList = AgentList::getInstance();
+        AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
