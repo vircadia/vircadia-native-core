@@ -1,13 +1,13 @@
 //
-//  Head.h
+//  Avatar.h
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__head__
-#define __interface__head__
+#ifndef __interface__avatar__
+#define __interface__avatar__
 
 #include <AvatarData.h>
 #include <Orientation.h>
@@ -100,15 +100,6 @@ struct AvatarHandHolding
     float     force;
 };
 
-/*
-struct OtherAvatar
-{
-    bool      nearby;
-    //glm::vec3 handPosition;
-    //int       handState;
-};
-*/
-
 struct AvatarBone
 {
 	AvatarBoneID parent;				// which bone is this bone connected to?
@@ -165,12 +156,12 @@ struct AvatarHead
 };
 
 
-class Head : public AvatarData {
+class Avatar : public AvatarData {
     public:
-        Head(bool isMine);
-        ~Head();
-        Head(const Head &otherHead);
-        Head* clone() const;
+        Avatar(bool isMine);
+        ~Avatar();
+        Avatar(const Avatar &otherAvatar);
+        Avatar* clone() const;
     
         void  reset();
         void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
@@ -253,12 +244,10 @@ class Head : public AvatarData {
         timeval           _transmitterTimer;
         float             _transmitterHz;
         int               _transmitterPackets;
-        Head*             _interactingOther;
+        Avatar*           _interactingOther;
         bool              _interactingOtherIsNearby;
         
-        //-----------------------------
         // private methods...
-        //-----------------------------
 		void initializeSkeleton();
 		void updateSkeleton();
 		void initializeBodySprings();
