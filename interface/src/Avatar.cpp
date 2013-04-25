@@ -378,7 +378,7 @@ void Avatar::simulate(float deltaTime) {
     
     if ( AVATAR_GRAVITY ) {
         if ( _position.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
-            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
+            _velocity += glm::dvec3(getGravity(getPosition())) * ( 6.0 * deltaTime );
         }
         else {
             if ( _position.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
@@ -1265,5 +1265,20 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     addVelocity(linVel);
     */
     
+}
+
+//  Find and return the gravity vector at my location 
+glm::vec3 Avatar::getGravity(glm::vec3 pos) {
+    //
+    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
+    //  from the domain/voxelserver (or something similar)
+    //
+    if (glm::length(pos) < 5.f)  {
+        //  If near the origin sphere, turn gravity ON
+        return glm::vec3(0.f, -1.f, 0.f);
+    } else {
+        //  If flying in space, turn gravity OFF
+        return glm::vec3(0.f, 0.f, 0.f);
+    }
 }
 

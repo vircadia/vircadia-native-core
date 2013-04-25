@@ -218,6 +218,9 @@ class Avatar : public AvatarData {
         void processTransmitterData(unsigned char * packetData, int numBytes);
         float getTransmitterHz() { return _transmitterHz; };
     
+        //  Find out what the local gravity vector is at this location
+        glm::vec3 getGravity(glm::vec3 pos);
+    
     private:
         AvatarHead        _head;    
         bool              _isMine;
