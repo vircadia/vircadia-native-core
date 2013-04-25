@@ -134,7 +134,7 @@ int main(int argc, const char * argv[])
                         // this is an agent of which there can be multiple, just add them to the packet
                         // don't send avatar agents to other avatars, that will come from avatar mixer
                         if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
-                            currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &*agent);
+                            currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
                         }
                         
                     } else {
@@ -142,7 +142,7 @@ int main(int argc, const char * argv[])
                         if (newestSoloAgents[agent->getType()] == NULL ||
                             newestSoloAgents[agent->getType()]->getFirstRecvTimeUsecs() < agent->getFirstRecvTimeUsecs()) {
                             // we have to set the newer solo agent to add it to the broadcast later
-                            newestSoloAgents[agent->getType()] = &*agent;
+                            newestSoloAgents[agent->getType()] = &(*agent);
                         }
                     }
                 } else {

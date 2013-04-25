@@ -173,7 +173,7 @@ int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int 
 Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (agent->getActiveSocket() != NULL && socketMatch(agent->getActiveSocket(), senderAddress)) {
-            return &*agent;
+            return &(*agent);
         }
     }
     
@@ -183,7 +183,7 @@ Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
 Agent* AgentList::agentWithID(uint16_t agentID) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (agent->getAgentId() == agentID) {
-            return &*agent;
+            return &(*agent);
         }
     }
 
@@ -317,7 +317,7 @@ Agent* AgentList::soloAgentOfType(char agentType) {
     if (memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES)) != NULL) {
         for(AgentList::iterator agent = begin(); agent != end(); agent++) {
             if (agent->getType() == agentType) {
-                return &*agent;
+                return &(*agent);
             }
         }
     }
