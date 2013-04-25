@@ -301,20 +301,19 @@ void Head::simulate(float deltaTime) {
     // if the avatar being simulated is mine, then loop through
     // all the other avatars to get information about them...
     //-------------------------------------------------------------
-    if ( _isMine )
-    {
+    if ( _isMine ) {
         _nearOtherAvatar = false;
         float closestDistance = 10000.0f;
         
-        AgentList * agentList = AgentList::getInstance();
+        AgentList* agentList = AgentList::getInstance();
         
         //_numOtherAvatars = 0;
 
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
+        for(AgentListIterator agent = agentList->begin();
+            agent != agentList->end();
             agent++) {
-            if (( agent->getLinkedData() != NULL && ( agent->getType() == AGENT_TYPE_AVATAR ) )) {
-                Head *otherAvatar = (Head *)agent->getLinkedData();
+            if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
+                Head *otherAvatar = (Head *)(*agent).getLinkedData();
                 
                // if ( _numOtherAvatars < MAX_OTHER_AVATARS ) 
                {

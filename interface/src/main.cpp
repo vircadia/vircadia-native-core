@@ -907,11 +907,11 @@ void display(void)
             
         //  Render avatars of other agents
         AgentList *agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
+        for(AgentListIterator agent = agentList->begin();
+            agent != agentList->end();
             agent++) {
-            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Head *avatar = (Head *)agent->getLinkedData();
+            if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
+                Head *avatar = (Head *)(*agent).getLinkedData();
                 avatar->render(0);
             }
         }
@@ -980,12 +980,13 @@ void display(void)
     glPointSize(1.0f);
     char agents[100];
     
-    int totalAgents = AgentList::getInstance()->getAgents().size();
+    AgentList *agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
-    for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
-            ? totalAvatars++ : totalServers++;
+    
+    for (AgentListIterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        (*agent).getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
+    
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
@@ -1489,11 +1490,9 @@ void idle(void) {
 		
         //loop through all the other avatars and simulate them...
         AgentList * agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
-                Head *avatar = (Head *)agent->getLinkedData();
+        for(AgentListIterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if ((*agent).getLinkedData() != NULL) {
+                Head *avatar = (Head *)(*agent).getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }

@@ -31,8 +31,6 @@ public:
     
     bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
     
-    pthread_mutex_t *deleteMutex;
-    
     char getType() const;
     const char* getTypeName() const;
     void setType(char newType);
@@ -58,6 +56,9 @@ public:
     AgentData* getLinkedData();
     void setLinkedData(AgentData *newData);
     
+    bool isAlive() const { return _isAlive; };
+    void setAlive(bool isAlive) { _isAlive = isAlive; };
+    
     void  recordBytesReceived(int bytesReceived);
     float getAverageKilobitsPerSecond();
     float getAveragePacketsPerSecond();
@@ -73,9 +74,11 @@ private:
     double lastRecvTimeUsecs;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     AgentData* linkedData;
-    
+    bool _isAlive;
 };
 
-std::ostream& operator<<(std::ostream& os, const Agent* agent);
+
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
+int packAgentId(unsigned char *packStore, uint16_t agentId);
 
 #endif /* defined(__hifi__Agent__) */

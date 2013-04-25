@@ -9,8 +9,8 @@
 #ifndef __hifi__AgentList__
 #define __hifi__AgentList__
 
-#include <vector>
 #include <stdint.h>
+#include <iterator>
 
 #include "Agent.h"
 #include "UDPSocket.h"
@@ -18,6 +18,9 @@
 #ifdef _WIN32
 #include "pthread.h"
 #endif
+
+const int MAX_NUM_AGENTS = 10000;
+const int AGENTS_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
 const unsigned int AGENT_SOCKET_LISTEN_PORT = 40103;
@@ -28,15 +31,21 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
+class AgentListIterator;
+
 class AgentList {
 public:
     static AgentList* createInstance(char ownerType, unsigned int socketListenPort = AGENT_SOCKET_LISTEN_PORT);
     static AgentList* getInstance();
+  
+    AgentListIterator begin() const;
+    AgentListIterator end() const;
     
     void(*linkedDataCreateCallback)(Agent *);
     void(*audioMixerSocketUpdate)(in_addr_t, in_port_t);
     
-    std::vector<Agent>& getAgents();
+    int size() { return _numAgents; }
+    
     UDPSocket& getAgentSocket();
     
     uint16_t getLastAgentId();
@@ -44,8 +53,8 @@ public:
     
     int updateList(unsigned char *packetData, size_t dataBytes);
     
-    int indexOfMatchingAgent(sockaddr *senderAddress);
-    int indexOfMatchingAgent(uint16_t agentID);
+    Agent* agentWithAddress(sockaddr *senderAddress);
+    Agent* agentWithID(uint16_t agentID);
     
     bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
     
@@ -67,6 +76,8 @@ public:
     void stopDomainServerCheckInThread();
     void startPingUnknownAgentsThread();
     void stopPingUnknownAgentsThread();
+    
+    friend AgentListIterator;
 private:
     static AgentList* _sharedInstance;
     
@@ -75,10 +86,13 @@ private:
     AgentList(AgentList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(AgentList const&); // Don't implement, needed to avoid copies of singleton
     
+    void addAgentToList(Agent* newAgent);
+    
+    Agent** _agentBuckets[MAX_NUM_AGENTS / AGENTS_PER_BUCKET];
+    int _numAgents;
     UDPSocket agentSocket;
     char ownerType;
     unsigned int socketListenPort;
-    std::vector<Agent> agents;
     uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
@@ -87,7 +101,23 @@ private:
     void handlePingReply(sockaddr *agentAddress);
 };
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
-int packAgentId(unsigned char *packStore, uint16_t agentId);
+class AgentListIterator : public std::iterator<std::input_iterator_tag, Agent> {
+public:
+    AgentListIterator(const AgentList* agentList, int agentIndex);
+    ~AgentListIterator() {};
+    
+	AgentListIterator& operator=(const AgentListIterator& otherValue);
+    
+    bool operator==(const AgentListIterator& otherValue);
+	bool operator!= (const AgentListIterator& otherValue);
+    
+    Agent& operator*();
+    
+	AgentListIterator& operator++();
+    AgentListIterator& operator++(int);
+private:
+    const AgentList* _agentList;
+    int _agentIndex;
+};
 
 #endif /* defined(__hifi__AgentList__) */

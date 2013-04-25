@@ -129,17 +129,9 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 		Agent *thisAgent = (Agent *)&AgentList::getInstance()->getAgents()[i];
 		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
 
-		// lock this agent's delete mutex so that the delete thread doesn't
-		// kill the agent while we are working with it
-		pthread_mutex_lock(thisAgent->deleteMutex);
-
 		// clean up the agent visit data
 		delete agentData->rootMarkerNode;
 		agentData->rootMarkerNode = new MarkerNode();
-		
-		// unlock the delete mutex so the other thread can
-		// kill the agent if it has dissapeared
-		pthread_mutex_unlock(thisAgent->deleteMutex);
 	}
 }
 
@@ -185,10 +177,6 @@ void *distributeVoxelsToListeners(void *args) {
                 viewFrustum.dump();
             }
             
-            // lock this agent's delete mutex so that the delete thread doesn't
-            // kill the agent while we are working with it
-            pthread_mutex_lock(thisAgent->deleteMutex);
-            
             stopOctal = NULL;
             packetCount = 0;
             totalBytesSent = 0;
@@ -226,10 +214,6 @@ void *distributeVoxelsToListeners(void *args) {
                 delete agentData->rootMarkerNode;
                 agentData->rootMarkerNode = new MarkerNode();
             }
-            
-            // unlock the delete mutex so the other thread can
-            // kill the agent if it has dissapeared
-            pthread_mutex_unlock(thisAgent->deleteMutex);
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
