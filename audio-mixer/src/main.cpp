@@ -86,7 +86,7 @@ void *sendBuffer(void *args)
         sentBytes = 0;
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agent->getLinkedData();
+            AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
             
             if (agentBuffer != NULL && agentBuffer->getEndOfLastWrite() != NULL) {
                 
@@ -109,7 +109,7 @@ void *sendBuffer(void *args)
         memset(distanceCoeffs, 0, sizeof(distanceCoeffs));
 
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *)agent->getLinkedData();
+            AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
             float agentBearing = agentRingBuffer->getBearing();
             bool agentWantsLoopback = false;
             
@@ -128,7 +128,7 @@ void *sendBuffer(void *args)
             
             for (AgentList::iterator otherAgent = agentList->begin(); agent != agentList->end(); agent++) {
                 if (otherAgent != agent || ( otherAgent == agent && agentWantsLoopback)) {
-                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)(*otherAgent).getLinkedData();
+                    AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
                     float *otherAgentPosition = otherAgentBuffer->getPosition();
@@ -222,7 +222,7 @@ void *sendBuffer(void *args)
         }
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agent->getLinkedData();
+            AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
             if (agentBuffer->wasAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
