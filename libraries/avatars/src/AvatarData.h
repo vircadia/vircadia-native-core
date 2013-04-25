@@ -20,7 +20,7 @@ public:
     
     AvatarData* clone() const;
     
-    glm::vec3 getPosition();
+    const glm::vec3& getPosition() const;
     void setPosition(glm::vec3 position);
     void setHandPosition(glm::vec3 handPosition);
     
