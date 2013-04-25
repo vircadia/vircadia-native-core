@@ -304,24 +304,18 @@ void Avatar::simulate(float deltaTime) {
     {
         float closestDistance = 10000.0f;
         
-        AgentList * agentList = AgentList::getInstance();
+        AgentList* agentList = AgentList::getInstance();
         
-        for(AgentList::iterator agent = agentList->begin();
-            agent != agentList->end();
-            agent++) {
-            
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // check for collisions with other avatars and respond
-                updateAvatarCollisionDetectionAndResponse
-                (
-                 otherAvatar->getBonePosition( AVATAR_BONE_PELVIS_SPINE ),
-                 0.2,
-                 0.2,
-                 otherAvatar->getBodyUpDirection(),
-                 deltaTime
-                 );
+                updateAvatarCollisionDetectionAndResponse(otherAvatar->getBonePosition(AVATAR_BONE_PELVIS_SPINE),
+                                                          0.2,
+                                                          0.2,
+                                                          otherAvatar->getBodyUpDirection(),
+                                                          deltaTime);
                 
                 // test other avatar hand position for proximity
                 glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
@@ -355,8 +349,7 @@ void Avatar::simulate(float deltaTime) {
         //  Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
         
-    }//if ( _isMine )
-    
+    }
     
     updateArmIKAndConstraints( deltaTime );
     
