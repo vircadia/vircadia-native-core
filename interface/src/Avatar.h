@@ -217,9 +217,12 @@ public:
     //  Related to getting transmitter UDP data used to animate the avatar hand
     void processTransmitterData(unsigned char * packetData, int numBytes);
     float getTransmitterHz() { return _transmitterHz; };
+    
+    //  Find out what the local gravity vector is at this location
+    glm::vec3 getGravity(glm::vec3 pos);
 
 private:
-    AvatarHead        _head;    
+    AvatarHead        _head;
     bool              _isMine;
     glm::vec3         _TEST_bigSpherePosition;
     float             _TEST_bigSphereRadius;
@@ -233,7 +236,7 @@ private:
     AvatarBone	      _bone[ NUM_AVATAR_BONES ];
     AvatarMode        _mode;
     AvatarHandHolding _handHolding;
-    glm::dvec3        _velocity;
+    glm::vec3         _velocity;
     glm::vec3	      _thrust;
     float		      _maxArmLength;
     Orientation	      _orientation;
