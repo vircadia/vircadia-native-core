@@ -315,9 +315,9 @@ void Avatar::simulate(float deltaTime) {
                 // check for collisions with other avatars and respond 
                 updateAvatarCollisionDetectionAndResponse
                 (
-                    otherAvatar->getPosition(), 
-                    otherAvatar->getGirth(), 
-                    otherAvatar->getHeight(), 
+                    otherAvatar->getBonePosition( AVATAR_BONE_PELVIS_SPINE ), 
+                    0.2, 
+                    0.2, 
                     otherAvatar->getBodyUpDirection(),
                     deltaTime
                 );
@@ -610,7 +610,6 @@ void Avatar::updateAvatarCollisionDetectionAndResponse
     }
 }
 
-      
 void Avatar::render(bool lookingInMirror) {
 
 	// show avatar position
