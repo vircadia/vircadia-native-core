@@ -397,28 +397,22 @@ void Avatar::simulate(float deltaTime) {
         _thrust = glm::vec3( 0.0, 0.0, 0.0 );
              
         if (_driveKeys[FWD]) {
-            glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
-            _thrust += front * THRUST_MAG;
+            _thrust += _orientation.getFront() * THRUST_MAG;
         }
         if (_driveKeys[BACK]) {
-            glm::vec3 front( _orientation.getFront().x, _orientation.getFront().y, _orientation.getFront().z );
-            _thrust -= front * THRUST_MAG;
+            _thrust -= _orientation.getFront() * THRUST_MAG;
         }
         if (_driveKeys[RIGHT]) {
-            glm::vec3 right( _orientation.getRight().x, _orientation.getRight().y, _orientation.getRight().z );
-            _thrust += right * THRUST_MAG;
+            _thrust += _orientation.getRight() * THRUST_MAG;
         }
         if (_driveKeys[LEFT]) {
-            glm::vec3 right( _orientation.getRight().x, _orientation.getRight().y, _orientation.getRight().z );
-            _thrust -= right * THRUST_MAG;
+            _thrust -= _orientation.getRight() * THRUST_MAG;
         }
         if (_driveKeys[UP]) {
-            glm::vec3 up( _orientation.getUp().x, _orientation.getUp().y, _orientation.getUp().z );
-            _thrust += up * THRUST_MAG;
+            _thrust += _orientation.getUp() * THRUST_MAG;
         }
         if (_driveKeys[DOWN]) {
-            glm::vec3 up( _orientation.getUp().x, _orientation.getUp().y, _orientation.getUp().z );
-            _thrust -= up * THRUST_MAG;
+            _thrust -= _orientation.getUp() * THRUST_MAG;
         }
         if (_driveKeys[ROT_RIGHT]) {	
             _bodyYawDelta -= YAW_MAG * deltaTime;
