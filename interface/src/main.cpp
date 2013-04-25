@@ -65,7 +65,7 @@
 #include "Menu.h"
 #include "Camera.h"
 #include "ChatEntry.h"
-#include "Head.h"
+#include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
@@ -108,7 +108,7 @@ Oscilloscope audioScope(256,200,true);
 
 ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
 
-Head myAvatar(true);                // The rendered avatar of oneself
+Avatar myAvatar(true);              // The rendered avatar of oneself
 Camera myCamera;                    // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
 
@@ -157,6 +157,8 @@ bool paintOn = false;               //  Whether to paint voxels as you fly aroun
 VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
 bool perfStatsOn = false;			//  Do we want to display perfStats?
+
+bool logOn = true;                  //  Whether to show on-screen log
 
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -386,7 +388,7 @@ void initDisplay(void)
 void init(void)
 {
     voxels.init();
-    voxels.setViewerHead(&myAvatar);
+    voxels.setViewerAvatar(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
     
     initializeHandController();
@@ -866,9 +868,10 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-            glm::mat4 view;
-            glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
-        	stars.render(angleConvert<Degrees,Radians>(whichCamera.getFieldOfView()),  aspectRatio, view);
+
+            // finally render the starfield
+        	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+            
         }
 
         glEnable(GL_LIGHTING);
@@ -915,7 +918,7 @@ void display(void)
             agent != agentList->getAgents().end();
             agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
             }
         }
@@ -923,7 +926,7 @@ void display(void)
         if ( !::lookingInMirror ) balls.render();
     
         //  Render the world box
-        if (!::lookingInMirror && statsOn) render_world_box();
+        if (!::lookingInMirror && ::statsOn) { render_world_box(); }
         
         // brad's frustum for debugging
         if (::frustumOn) renderViewFrustum(::viewFrustum);
@@ -965,13 +968,12 @@ void display(void)
     //  Show detected levels from the serial I/O ADC channel sensors
     if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
     
-    //  Display miscellaneous text stats onscreen
-    if (statsOn) {
-        glLineWidth(1.0f);
-        glPointSize(1.0f);
-        displayStats();
-        logger.render(WIDTH, HEIGHT);
-    }
+    //  Display stats and log text onscreen
+    glLineWidth(1.0f);
+    glPointSize(1.0f);
+    
+    if (::statsOn) { displayStats(); }
+    if (::logOn) { logger.render(WIDTH, HEIGHT); }
         
     //  Show menu
     if (::menuOn) {
@@ -1065,6 +1067,11 @@ int setNoise(int state) {
     return iRet;
 }
 
+int setLog(int state) {
+    int iRet = setValue(state, &::logOn);
+    return iRet;
+}
+
 int setGyroLook(int state) {
     int iRet = setValue(state, &::gyroLook);
     return iRet;
@@ -1079,7 +1086,7 @@ int setStars(int state) {
 }
 
 int setStats(int state) {
-    return setValue(state, &statsOn);
+    return setValue(state, &::statsOn);
 }
 
 int setMenu(int state) {
@@ -1204,7 +1211,8 @@ void initMenu() {
     
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
-    menuColumnTools->addRow("Stats (/)", setStats); 
+    menuColumnTools->addRow("Stats (/)", setStats);
+    menuColumnTools->addRow("Log ", setLog);
     menuColumnTools->addRow("(M)enu", setMenu);
 
     // Frustum Options
@@ -1366,7 +1374,7 @@ void key(unsigned char k, int x, int y)
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
-    if (k == '/')  statsOn = !statsOn;		// toggle stats
+    if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
@@ -1507,7 +1515,7 @@ void idle(void) {
 		{
             if (agent->getLinkedData() != NULL) 
 			{
-                Head *avatar = (Head *)agent->getLinkedData();
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }
@@ -1618,7 +1626,7 @@ void mouseoverFunc( int x, int y)
 
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Head(false));
+        newAgent->setLinkedData(new Avatar(false));
     }
 }
 

@@ -123,8 +123,7 @@ int main(int argc, const char* argv[]) {
     // put her hand out so somebody can shake it
     eve.setHandPosition(glm::vec3(eve.getPosition()[0] - 0.2,
                                   0.25,
-                                  eve.getPosition()[2] + 0.1));
-    
+                                  eve.getPosition()[2] + 0.1));    
     // read eve's audio data
     AudioInjector eveAudioInjector("eve.raw");
     
@@ -139,6 +138,8 @@ int main(int argc, const char* argv[]) {
 //    int numIterationsLeftBeforeAudioSend = 0;
 //    pthread_t injectAudioThread;
     
+    int handStateTimer = 0;
+
     while (true) {
         // update the thisSend timeval to the current time
         gettimeofday(&thisSend, NULL);
@@ -170,7 +171,19 @@ int main(int argc, const char* argv[]) {
         // sleep for the correct amount of time to have data send be consistently timed
         if ((numMicrosecondsSleep = (DATA_SEND_INTERVAL_MSECS * 1000) - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
             usleep(numMicrosecondsSleep);
-        }        
+        }   
+                                    
+        // simulate the effect of pressing and un-pressing the mouse button/pad
+        handStateTimer++;
+        if ( handStateTimer == 100 ) { 
+            eve.setHandState(1);
+        }   
+        if ( handStateTimer == 150 ) { 
+            eve.setHandState(0);
+        }   
+        if ( handStateTimer >= 200 ) { 
+            handStateTimer = 0;
+        }   
     }
     
     // stop the receive agent data thread
