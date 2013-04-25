@@ -913,8 +913,8 @@ void display(void)
         for(AgentList::iterator agent = agentList->begin();
             agent != agentList->end();
             agent++) {
-            if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
-                Avatar *avatar = (Avatar *)(*agent).getLinkedData();
+            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
             }
         }
@@ -986,7 +986,7 @@ void display(void)
     int totalAvatars = 0, totalServers = 0;
     
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        (*agent).getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
     
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
@@ -1499,8 +1499,8 @@ void idle(void) {
         //loop through all the other avatars and simulate them...
         AgentList * agentList = AgentList::getInstance();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if ((*agent).getLinkedData() != NULL) {
-                Avatar *avatar = (Avatar *)(*agent).getLinkedData();
+            if (agent->getLinkedData() != NULL) {
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }

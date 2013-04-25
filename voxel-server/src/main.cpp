@@ -127,7 +127,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
         
-		VoxelAgentData *agentData = (VoxelAgentData *)(*agent).getLinkedData();
+		VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
 
 		// clean up the agent visit data
 		delete agentData->rootMarkerNode;
@@ -155,7 +155,7 @@ void *distributeVoxelsToListeners(void *args) {
         
         // enumerate the agents to send 3 packets to each
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            VoxelAgentData *agentData = (VoxelAgentData *)(*agent).getLinkedData();
+            VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
             
             ViewFrustum viewFrustum;
             // get position and orientation details from the camera
@@ -191,7 +191,7 @@ void *distributeVoxelsToListeners(void *args) {
                                                            ::viewFrustumCulling,
                                                            stopOctal);
                 
-                agentList->getAgentSocket().send((*agent).getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
+                agentList->getAgentSocket().send(agent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
                 
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;

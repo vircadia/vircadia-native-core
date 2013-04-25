@@ -172,7 +172,7 @@ int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int 
 
 Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-        if ((*agent).getActiveSocket() != NULL && socketMatch((*agent).getActiveSocket(), senderAddress)) {
+        if (agent->getActiveSocket() != NULL && socketMatch(agent->getActiveSocket(), senderAddress)) {
             return &*agent;
         }
     }
@@ -182,7 +182,7 @@ Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
 
 Agent* AgentList::agentWithID(uint16_t agentID) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-        if ((*agent).getAgentId() == agentID) {
+        if (agent->getAgentId() == agentID) {
             return &*agent;
         }
     }
@@ -230,7 +230,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     
     if (publicSocket != NULL) {
         for (agent = begin(); agent != end(); agent++) {
-            if ((*agent).matches(publicSocket, localSocket, agentType)) {
+            if (agent->matches(publicSocket, localSocket, agentType)) {
                 // we already have this agent, stop checking
                 break;
             }
@@ -262,10 +262,10 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         return true;
     } else {
         
-        if ((*agent).getType() == AGENT_TYPE_AUDIO_MIXER || (*agent).getType() == AGENT_TYPE_VOXEL) {
+        if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            (*agent).setLastRecvTimeUsecs(usecTimestampNow());
+            agent->setLastRecvTimeUsecs(usecTimestampNow());
         }
         
         // we had this agent already, do nothing for now
@@ -292,9 +292,9 @@ void AgentList::addAgentToList(Agent* newAgent) {
 void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
-        if ((*agent).getActiveSocket() != NULL && memchr(agentTypes, (*agent).getType(), numAgentTypes)) {
+        if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
-            agentSocket.send((*agent).getActiveSocket(), broadcastData, dataBytes);
+            agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
     }
 }
@@ -303,11 +303,11 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         // check both the public and local addresses for each agent to see if we find a match
         // prioritize the private address so that we prune erroneous local matches
-        if (socketMatch((*agent).getPublicSocket(), agentAddress)) {
-            (*agent).activatePublicSocket();
+        if (socketMatch(agent->getPublicSocket(), agentAddress)) {
+            agent->activatePublicSocket();
             break;
-        } else if (socketMatch((*agent).getLocalSocket(), agentAddress)) {
-            (*agent).activateLocalSocket();
+        } else if (socketMatch(agent->getLocalSocket(), agentAddress)) {
+            agent->activateLocalSocket();
             break;
         }
     }
@@ -316,7 +316,7 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
 Agent* AgentList::soloAgentOfType(char agentType) {
     if (memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES)) != NULL) {
         for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-            if ((*agent).getType() == agentType) {
+            if (agent->getType() == agentType) {
                 return &*agent;
             }
         }
@@ -338,12 +338,12 @@ void *pingUnknownAgents(void *args) {
         for(AgentList::iterator agent = agentList->begin();
             agent != agentList->end();
             agent++) {
-            if ((*agent).getActiveSocket() == NULL
-                && ((*agent).getPublicSocket() != NULL && (*agent).getLocalSocket() != NULL)) {
+            if (agent->getActiveSocket() == NULL
+                && (agent->getPublicSocket() != NULL && agent->getLocalSocket() != NULL)) {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
-                agentList->getAgentSocket().send((*agent).getPublicSocket(), &PACKET_HEADER_PING, 1);
-                agentList->getAgentSocket().send((*agent).getLocalSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
             }
         }
         
@@ -375,13 +375,13 @@ void *removeSilentAgents(void *args) {
         
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
-            if ((checkTimeUSecs - (*agent).getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS
-            	&& (*agent).getType() != AGENT_TYPE_VOXEL) {
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS
+            	&& agent->getType() != AGENT_TYPE_VOXEL) {
                 
                 printLog("Killing agent - ");
                 Agent::printLog(*agent);
                 
-                (*agent).setAlive(false);
+                agent->setAlive(false);
             }
         }
         
@@ -502,6 +502,11 @@ bool AgentListIterator::operator!=(const AgentListIterator &otherValue) {
 Agent& AgentListIterator::operator*() {
     Agent** agentBucket = _agentList->_agentBuckets[_agentIndex / AGENTS_PER_BUCKET];
     return *agentBucket[_agentIndex % AGENTS_PER_BUCKET];
+}
+
+Agent* AgentListIterator::operator->() {
+    Agent** agentBucket = _agentList->_agentBuckets[_agentIndex / AGENTS_PER_BUCKET];
+    return agentBucket[_agentIndex % AGENTS_PER_BUCKET];
 }
 
 AgentListIterator& AgentListIterator::operator++() {

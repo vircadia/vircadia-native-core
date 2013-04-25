@@ -121,6 +121,7 @@ public:
 	bool operator!= (const AgentListIterator& otherValue);
     
     Agent& operator*();
+    Agent* operator->();
     
 	AgentListIterator& operator++();
     AgentListIterator operator++(int);

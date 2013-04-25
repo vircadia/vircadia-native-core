@@ -310,8 +310,8 @@ void Avatar::simulate(float deltaTime) {
             agent != agentList->end();
             agent++) {
             
-            if ((*agent).getLinkedData() != NULL && (*agent).getType() == AGENT_TYPE_AVATAR) {
-                Avatar *otherAvatar = (Avatar *)(*agent).getLinkedData();
+            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+                Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // check for collisions with other avatars and respond
                 updateAvatarCollisionDetectionAndResponse
