@@ -800,33 +800,38 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		//--------------------------------------------------------
 		// camera settings
-		//--------------------------------------------------------		
 		if ( ::lookingInMirror ) {
-			//-----------------------------------------------
 			// set the camera to looking at my own face
-			//-----------------------------------------------
 			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
-			myCamera.setYaw				( - myAvatar.getBodyYaw() );
+			myCamera.setTargetYaw       ( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0 );
 			myCamera.setRoll			( 0.0 );
-			myCamera.setUp				( 0.0 );	
+			myCamera.setUpShift         ( 0.0 );	
 			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
 			myCamera.update				( 1.f/FPS );
 		} else {
-			//----------------------------------------------------
-			// set the camera to third-person view behind my av
-			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPosition() );
-			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
-			myCamera.setRoll			(   0.0  );
-			myCamera.setUp				(   0.45 );
-			myCamera.setDistance		(   1.0  );
-			myCamera.setTightness		(   8.0f );
-			myCamera.update				( 1.f/FPS);
+            
+            //this is in the prototyping stages..keep firstPerson false for now. 
+            bool firstPerson = false;
+            
+            if ( firstPerson ) {
+                myCamera.setPitch	  (15.0f );  // temporarily, this must be 0.0 or else bad juju
+                myCamera.setUpShift   (0.0f  );
+                myCamera.setDistance  (0.0f  );
+                myCamera.setTightness (100.0f);
+            } else {
+                myCamera.setPitch	  (0.0f );  // temporarily, this must be 0.0 or else bad juju
+                myCamera.setUpShift	  (-0.1f);
+                myCamera.setDistance  (1.0f );
+                myCamera.setTightness (8.0f );
+            }
+
+			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
+			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setRoll		  (   0.0  );
+            myCamera.update			  ( 1.f/FPS);
 		}
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -843,10 +848,10 @@ void display(void)
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
 			// set the camera to third-person view but offset so we can see the frustum
-			viewFrustumOffsetCamera.setYaw		(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+			viewFrustumOffsetCamera.setTargetYaw(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
 			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
 			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(  ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
 			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update(1.f/FPS);
 			whichCamera = viewFrustumOffsetCamera;
@@ -864,10 +869,8 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-
             // finally render the starfield
         	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
-            
         }
 
         glEnable(GL_LIGHTING);

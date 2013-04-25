@@ -316,8 +316,8 @@ void Avatar::simulate(float deltaTime) {
                 updateAvatarCollisionDetectionAndResponse
                 (
                     otherAvatar->getBonePosition( AVATAR_BONE_PELVIS_SPINE ), 
-                    0.2, 
-                    0.2, 
+                    0.1, 
+                    0.1, 
                     otherAvatar->getBodyUpDirection(),
                     deltaTime
                 );
