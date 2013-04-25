@@ -85,16 +85,16 @@ void *sendBuffer(void *args)
     while (true) {
         sentBytes = 0;
         
-        for (int i = 0; i < agentList->getAgents().size(); i++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *) agentList->getAgents()[i].getLinkedData();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)(*agent).getLinkedData();
             
             if (agentBuffer != NULL && agentBuffer->getEndOfLastWrite() != NULL) {
                 
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer %d.\n", i);
+                    printf("Held back buffer for agent with ID %d.\n", (*agent).getAgentId());
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    printf("Buffer %d starved.\n", i);
+                    printf("Buffer from agent with ID %d starved.\n", (*agent).getAgentId());
                     agentBuffer->setStarted(false);
                 } else {
                     // good buffer, add this to the mix
@@ -104,14 +104,12 @@ void *sendBuffer(void *args)
             }
         }
         
-        int numAgents = agentList->getAgents().size();
+        int numAgents = agentList->size();
         float distanceCoeffs[numAgents][numAgents];
         memset(distanceCoeffs, 0, sizeof(distanceCoeffs));
 
-        for (int i = 0; i < agentList->getAgents().size(); i++) {
-            Agent *agent = &agentList->getAgents()[i];
-            
-            AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *) agent->getLinkedData();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            AudioRingBuffer *agentRingBuffer = (AudioRingBuffer *)(*agent).getLinkedData();
             float agentBearing = agentRingBuffer->getBearing();
             bool agentWantsLoopback = false;
             
@@ -128,9 +126,9 @@ void *sendBuffer(void *args)
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
             
-            for (int j = 0; j < agentList->getAgents().size(); j++) {
-                if (i != j || ( i == j && agentWantsLoopback)) {
-                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)agentList->getAgents()[j].getLinkedData();
+            for (AgentList::iterator otherAgent = agentList->begin(); agent != agentList->end(); agent++) {
+                if (otherAgent != agent || ( otherAgent == agent && agentWantsLoopback)) {
+                    AudioRingBuffer *otherAgentBuffer = (AudioRingBuffer *)(*otherAgent).getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
                     float *otherAgentPosition = otherAgentBuffer->getPosition();
@@ -138,8 +136,8 @@ void *sendBuffer(void *args)
                     // calculate the distance to the other agent
                     
                     // use the distance to the other agent to calculate the change in volume for this frame
-                    int lowAgentIndex = std::min(i, j);
-                    int highAgentIndex = std::max(i, j);
+                    int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                    int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
                     
                     if (distanceCoeffs[lowAgentIndex][highAgentIndex] == 0) {
                         float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
@@ -220,11 +218,11 @@ void *sendBuffer(void *args)
                 }
             }
             
-            agentList->getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
+            agentList->getAgentSocket().send((*agent).getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
         }
         
-        for (int i = 0; i < agentList->getAgents().size(); i++) {
-            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)agentList->getAgents()[i].getLinkedData();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            AudioRingBuffer *agentBuffer = (AudioRingBuffer *)(*agent).getLinkedData();
             if (agentBuffer->wasAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 

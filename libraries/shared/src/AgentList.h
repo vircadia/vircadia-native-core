@@ -113,6 +113,8 @@ public:
     AgentListIterator(const AgentList* agentList, int agentIndex);
     ~AgentListIterator() {};
     
+    int getAgentIndex() { return _agentIndex; };
+    
 	AgentListIterator& operator=(const AgentListIterator& otherValue);
     
     bool operator==(const AgentListIterator& otherValue);
