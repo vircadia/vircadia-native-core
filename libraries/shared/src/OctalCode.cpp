@@ -10,6 +10,9 @@
 #include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
+#include "shared_Log.h"
+
+using shared_lib::printLog;
 
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
     if (*octalCode == 255) {
@@ -20,8 +23,13 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
 }
 
 void printOctalCode(unsigned char * octalCode) {
-    for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
-        outputBits(octalCode[i]);
+    if (!octalCode) {
+        printLog("NULL\n");
+    } else {
+        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+            outputBits(octalCode[i],false);
+        }
+        printLog("\n");
     }
 }
 
@@ -124,5 +132,27 @@ float * firstVertexForCode(unsigned char * octalCode) {
     float * firstVertex = new float[3];
     copyFirstVertexForCode(octalCode, firstVertex);
     return firstVertex;
+}
+
+OctalTreeDepth compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
+    if (!codeA || !codeB) {
+        return ILLEGAL_CODE;
+    }
+
+    OctalTreeDepth result = SHALLOWER; // assume it's shallower
+    int codeLenthA = numberOfThreeBitSectionsInCode(codeA);
+    int codeLenthB = numberOfThreeBitSectionsInCode(codeB);
+    
+    if (codeLenthA > codeLenthB) {
+        result = DEEPER;
+    } else if (codeLenthA == codeLenthB) {
+        int numberOfBytes = bytesRequiredForCodeLength(*codeA); // they are the same!!
+        if (0 == memcmp(codeA,codeB,numberOfBytes)) {
+            result = EXACT_MATCH;
+        } else {
+            result = EQUAL_DEPTH;
+        }
+    }
+    return result;
 }
 

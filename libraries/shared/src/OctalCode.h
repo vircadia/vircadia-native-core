@@ -23,4 +23,13 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
 float * firstVertexForCode(unsigned char * octalCode);
 void copyFirstVertexForCode(unsigned char * octalCode, float* output);
 
+typedef enum {
+    SHALLOWER,
+    EQUAL_DEPTH,
+    EXACT_MATCH,
+    DEEPER,
+    ILLEGAL_CODE
+} OctalTreeDepth;
+
+OctalTreeDepth compareOctalCodes(unsigned char* code1, unsigned char* code2);
 #endif /* defined(__hifi__OctalCode__) */
