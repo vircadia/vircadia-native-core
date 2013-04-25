@@ -188,10 +188,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-glm::vec3 AvatarData::getPosition() {
-    return glm::vec3(_position.x,
-                     _position.y,
-                     _position.z);
+const glm::vec3& AvatarData::getPosition() const {
+    return _position;
 }
 
 void AvatarData::setPosition(glm::vec3 position) {

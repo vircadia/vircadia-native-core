@@ -161,10 +161,6 @@ namespace starfield {
 #if STARFIELD_HEMISPHERE_ONLY
             altitude = std::max(0.0f, altitude);
 #endif
-            unsigned tileIndex = 
-                    _objTiling.getTileIndex(azimuth, altitude);
-
-// printLog("Stars.cpp: starting on tile #%d\n", tileIndex);
 
 #if STARFIELD_DEBUG_CULLING
             mat4 matrix_debug = glm::translate(glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
