@@ -37,7 +37,6 @@ const int DOMAINSERVER_PORT = 40102;
 bool silentAgentThreadStopFlag = false;
 bool domainServerCheckinStopFlag = false;
 bool pingUnknownAgentThreadStopFlag = false;
-pthread_mutex_t vectorChangeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 AgentList* AgentList::_sharedInstance = NULL;
 
@@ -59,11 +58,15 @@ AgentList* AgentList::getInstance() {
     return _sharedInstance;
 }
 
+AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
+    _agentBuckets(),
+    _numAgents(0),
+    agentSocket(newSocketListenPort),
+    ownerType(newOwnerType),
+    socketListenPort(newSocketListenPort),
+    lastAgentId(0)
+{
 
-AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) : agentSocket(newSocketListenPort) {
-    ownerType = newOwnerType;
-    socketListenPort = newSocketListenPort;
-    lastAgentId = 0;
 }
 
 AgentList::~AgentList() {
@@ -71,10 +74,6 @@ AgentList::~AgentList() {
     stopSilentAgentRemovalThread();
     stopDomainServerCheckInThread();
     stopPingUnknownAgentsThread();
-}
-
-std::vector<Agent>& AgentList::getAgents() {
-    return agents;
 }
 
 UDPSocket& AgentList::getAgentSocket() {
@@ -108,10 +107,9 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
 
 void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
     // find the avatar mixer in our agent list and update the lastRecvTime from it
-    int bulkSendAgentIndex = indexOfMatchingAgent(senderAddress);
+    Agent* bulkSendAgent = agentWithAddress(senderAddress);
 
-    if (bulkSendAgentIndex >= 0) {
-        Agent *bulkSendAgent = &agents[bulkSendAgentIndex];
+    if (bulkSendAgent) {
         bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
         bulkSendAgent->recordBytesReceived(numTotalBytes);
     }
@@ -128,17 +126,18 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         currentPosition += unpackAgentId(currentPosition, &agentID);
         memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
         
-        int matchingAgentIndex = indexOfMatchingAgent(agentID);
+        Agent* matchingAgent = agentWithID(agentID);
         
-        if (matchingAgentIndex < 0) {
+        if (!matchingAgent) {
             // we're missing this agent, we need to add it to the list
             addOrUpdateAgent(NULL, NULL, AGENT_TYPE_AVATAR, agentID);
             
-            // theoretically if we can lock the vector we could assume this is size - 1
-            matchingAgentIndex = indexOfMatchingAgent(agentID);
+            // TODO: this is a really stupid way to do this
+            // Add a reverse iterator and go from the end of the list
+            matchingAgent = agentWithID(agentID);
         }
         
-        currentPosition += updateAgentWithData(&agents[matchingAgentIndex],
+        currentPosition += updateAgentWithData(matchingAgent,
                                                packetHolder,
                                                numTotalBytes - (currentPosition - startPosition));
     }
@@ -146,10 +145,10 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
 
 int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     // find the agent by the sockaddr
-    int agentIndex = indexOfMatchingAgent(senderAddress);
+    Agent* matchingAgent = agentWithAddress(senderAddress);
     
-    if (agentIndex != -1) {
-        return updateAgentWithData(&agents[agentIndex], packetData, dataBytes);
+    if (matchingAgent) {
+        return updateAgentWithData(matchingAgent, packetData, dataBytes);
     } else {
         return 0;
     }
@@ -171,24 +170,24 @@ int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int 
     return agent->getLinkedData()->parseData(packetData, dataBytes);
 }
 
-int AgentList::indexOfMatchingAgent(sockaddr *senderAddress) {
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
+    for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (agent->getActiveSocket() != NULL && socketMatch(agent->getActiveSocket(), senderAddress)) {
-            return agent - agents.begin();
+            return &(*agent);
         }
     }
     
-    return -1;
+    return NULL;
 }
 
-int AgentList::indexOfMatchingAgent(uint16_t agentID) {
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+Agent* AgentList::agentWithID(uint16_t agentID) {
+    for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (agent->getAgentId() == agentID) {
-            return agent - agents.begin();
+            return &(*agent);
         }
     }
 
-    return -1;
+    return NULL;
 }
 
 uint16_t AgentList::getLastAgentId() {
@@ -227,45 +226,38 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
 }
 
 bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
-    std::vector<Agent>::iterator agent;
+    AgentList::iterator agent = end();
     
     if (publicSocket != NULL) {
-        for (agent = agents.begin(); agent != agents.end(); agent++) {
+        for (agent = begin(); agent != end(); agent++) {
             if (agent->matches(publicSocket, localSocket, agentType)) {
                 // we already have this agent, stop checking
                 break;
             }
         }
-    } else {
-        agent = agents.end();
-    }
+    } 
     
-    if (agent == agents.end()) {
+    if (agent == end()) {
         // we didn't have this agent, so add them
-        Agent newAgent = Agent(publicSocket, localSocket, agentType, agentId);
+        Agent* newAgent = new Agent(publicSocket, localSocket, agentType, agentId);
         
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with two agents on local network
             // set the agent active right away
-            newAgent.activatePublicSocket();
+            newAgent->activatePublicSocket();
         }
         
-        if (newAgent.getType() == AGENT_TYPE_AUDIO_MIXER && audioMixerSocketUpdate != NULL) {
+        if (newAgent->getType() == AGENT_TYPE_AUDIO_MIXER && audioMixerSocketUpdate != NULL) {
             // this is an audio mixer
             // for now that means we need to tell the audio class
             // to use the local socket information the domain server gave us
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
-        } else if (newAgent.getType() == AGENT_TYPE_VOXEL) {
-            newAgent.activatePublicSocket();
+        } else if (newAgent->getType() == AGENT_TYPE_VOXEL) {
+            newAgent->activatePublicSocket();
         }
         
-        printLog("Added agent - ");
-        Agent::printLog(newAgent);
-        
-        pthread_mutex_lock(&vectorChangeMutex);
-        agents.push_back(newAgent);
-        pthread_mutex_unlock(&vectorChangeMutex);
+        addAgentToList(newAgent);
         
         return true;
     } else {
@@ -281,8 +273,24 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
     }    
 }
 
+void AgentList::addAgentToList(Agent* newAgent) {
+    // find the correct array to add this agent to
+    int bucketIndex = _numAgents / AGENTS_PER_BUCKET;
+    
+    if (!_agentBuckets[bucketIndex]) {
+        _agentBuckets[bucketIndex] = new Agent*[AGENTS_PER_BUCKET]();
+    }
+    
+    _agentBuckets[bucketIndex][_numAgents % AGENTS_PER_BUCKET] = newAgent;
+    
+    ++_numAgents;
+    
+    printLog("Added agent - ");
+    Agent::printLog(*newAgent);
+}
+
 void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes) {
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+    for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
         if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
@@ -292,7 +300,7 @@ void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes
 }
 
 void AgentList::handlePingReply(sockaddr *agentAddress) {
-    for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+    for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         // check both the public and local addresses for each agent to see if we find a match
         // prioritize the private address so that we prune erroneous local matches
         if (socketMatch(agent->getPublicSocket(), agentAddress)) {
@@ -307,9 +315,9 @@ void AgentList::handlePingReply(sockaddr *agentAddress) {
 
 Agent* AgentList::soloAgentOfType(char agentType) {
     if (memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES)) != NULL) {
-        for(std::vector<Agent>::iterator agent = agents.begin(); agent != agents.end(); agent++) {
+        for(AgentList::iterator agent = begin(); agent != end(); agent++) {
             if (agent->getType() == agentType) {
-                return &*agent;
+                return &(*agent);
             }
         }
     }
@@ -319,7 +327,7 @@ Agent* AgentList::soloAgentOfType(char agentType) {
 
 void *pingUnknownAgents(void *args) {
     
-    AgentList *agentList = (AgentList *)args;
+    AgentList* agentList = (AgentList*) args;
     const int PING_INTERVAL_USECS = 1 * 1000000;
     
     timeval lastSend;
@@ -327,8 +335,8 @@ void *pingUnknownAgents(void *args) {
     while (!pingUnknownAgentThreadStopFlag) {
         gettimeofday(&lastSend, NULL);
         
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
+        for(AgentList::iterator agent = agentList->begin();
+            agent != agentList->end();
             agent++) {
             if (agent->getActiveSocket() == NULL
                 && (agent->getPublicSocket() != NULL && agent->getLocalSocket() != NULL)) {
@@ -359,33 +367,21 @@ void AgentList::stopPingUnknownAgentsThread() {
 }
 
 void *removeSilentAgents(void *args) {
-    std::vector<Agent> *agents = (std::vector<Agent> *)args;
+    AgentList* agentList = (AgentList*) args;
     double checkTimeUSecs, sleepTime;
     
     while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
         
-        for(std::vector<Agent>::iterator agent = agents->begin(); agent != agents->end();) {
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
-            pthread_mutex_t* agentDeleteMutex = agent->deleteMutex;
-            
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS 
-            	&& agent->getType() != AGENT_TYPE_VOXEL
-                && pthread_mutex_trylock(agentDeleteMutex) == 0) {
+            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS
+            	&& agent->getType() != AGENT_TYPE_VOXEL) {
                 
                 printLog("Killing agent - ");
                 Agent::printLog(*agent);
                 
-                // make sure the vector isn't currently adding an agent
-                pthread_mutex_lock(&vectorChangeMutex);
-                agent = agents->erase(agent);
-                pthread_mutex_unlock(&vectorChangeMutex);
-                
-                // release the delete mutex and destroy it
-                pthread_mutex_unlock(agentDeleteMutex);
-                pthread_mutex_destroy(agentDeleteMutex);
-            } else {
-                agent++;
+                agent->setAlive(false);
             }
         }
         
@@ -402,7 +398,7 @@ void *removeSilentAgents(void *args) {
 }
 
 void AgentList::startSilentAgentRemovalThread() {
-    pthread_create(&removeSilentAgentsThread, NULL, removeSilentAgents, (void *)&agents);
+    pthread_create(&removeSilentAgentsThread, NULL, removeSilentAgents, (void*) this);
 }
 
 void AgentList::stopSilentAgentRemovalThread() {
@@ -414,7 +410,7 @@ void *checkInWithDomainServer(void *args) {
     
     const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
     
-    AgentList *parentAgentList = (AgentList *)args;
+    AgentList* parentAgentList = (AgentList*) args;
     
     timeval lastSend;
     unsigned char output[7];
@@ -456,7 +452,7 @@ void *checkInWithDomainServer(void *args) {
 }
 
 void AgentList::startDomainServerCheckInThread() {
-    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void *)this);
+    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void*) this);
 }
 
 void AgentList::stopDomainServerCheckInThread() {
@@ -464,12 +460,75 @@ void AgentList::stopDomainServerCheckInThread() {
     pthread_join(checkInWithDomainServerThread, NULL);
 }
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
-    memcpy(agentId, packedData, sizeof(uint16_t));
-    return sizeof(uint16_t);
+AgentList::iterator AgentList::begin() const {
+    Agent** agentBucket = NULL;
+    
+    for (int i = 0; i < _numAgents; i++) {
+        if (i % AGENTS_PER_BUCKET == 0) {
+            agentBucket =  _agentBuckets[i / AGENTS_PER_BUCKET];
+        }
+        
+        if (agentBucket[i % AGENTS_PER_BUCKET]->isAlive()) {
+            return AgentListIterator(this, i);
+        }
+    }
+    
+    return AgentListIterator(this, 0);
 }
 
-int packAgentId(unsigned char *packStore, uint16_t agentId) {
-    memcpy(packStore, &agentId, sizeof(uint16_t));
-    return sizeof(uint16_t);
+AgentList::iterator AgentList::end() const {
+    return AgentListIterator(this, _numAgents);
+}
+
+AgentListIterator::AgentListIterator(const AgentList* agentList, int agentIndex) :
+    _agentIndex(agentIndex) {
+    _agentList = agentList;
+}
+
+AgentListIterator& AgentListIterator::operator=(const AgentListIterator& otherValue) {
+    _agentList = otherValue._agentList;
+    _agentIndex = otherValue._agentIndex;
+    return *this;
+}
+
+bool AgentListIterator::operator==(const AgentListIterator &otherValue) {
+    return _agentIndex == otherValue._agentIndex;
+}
+
+bool AgentListIterator::operator!=(const AgentListIterator &otherValue) {
+    return !(*this == otherValue);
+}
+
+Agent& AgentListIterator::operator*() {
+    Agent** agentBucket = _agentList->_agentBuckets[_agentIndex / AGENTS_PER_BUCKET];
+    return *agentBucket[_agentIndex % AGENTS_PER_BUCKET];
+}
+
+Agent* AgentListIterator::operator->() {
+    Agent** agentBucket = _agentList->_agentBuckets[_agentIndex / AGENTS_PER_BUCKET];
+    return agentBucket[_agentIndex % AGENTS_PER_BUCKET];
+}
+
+AgentListIterator& AgentListIterator::operator++() {
+    skipDeadAndStopIncrement();
+    return *this;
+}
+
+AgentList::iterator AgentListIterator::operator++(int) {
+    AgentListIterator newIterator = AgentListIterator(*this);
+    skipDeadAndStopIncrement();
+    return newIterator;
+}
+
+void AgentListIterator::skipDeadAndStopIncrement() {
+    while (_agentIndex != _agentList->_numAgents) {
+        ++_agentIndex;
+        
+        if (_agentIndex == _agentList->_numAgents) {
+            break;
+        } else if ((*(*this)).isAlive()) {
+            // skip over the dead agents
+            break;
+        }
+    }
 }
