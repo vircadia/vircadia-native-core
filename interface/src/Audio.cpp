@@ -117,7 +117,7 @@ int audioCallback (const void *inputBuffer,
 //    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
     //printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
-    
+
     if (inputLeft != NULL) {
         
         //
@@ -132,13 +132,9 @@ int audioCallback (const void *inputBuffer,
         data->lastInputLoudness = loudness;
         
         //
-        //  If scope is turned on, copy input buffer to scope
+        //  Add data to the scope
         //
-        if (scope->getState()) {
-            for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-                scope->addData((float)inputLeft[i]/32767.0, 1, i);
-            }
-        }
+        scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
         
         if (data->mixerAddress != 0) {
             sockaddr_in audioMixerSocket;
@@ -334,6 +330,12 @@ int audioCallback (const void *inputBuffer,
                 outputRight[s] = rightSample;
             }
             
+            //
+            //  Add data to the scope
+            //
+            scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+            scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+            
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
             if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
@@ -386,8 +388,9 @@ void *receiveAudioViaUDP(void *args) {
         delete[] directory;
         delete[] filename;
     }
-        
+    
     while (!stopAudioReceiveThread) {
+
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
             
             gettimeofday(&currentReceiveTime, NULL);
