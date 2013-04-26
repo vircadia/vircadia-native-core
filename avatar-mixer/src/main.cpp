@@ -51,9 +51,9 @@ void attachAvatarDataToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
@@ -83,11 +83,11 @@ int main(int argc, char* argv[])
                     agentIndex = 0;
                     
                     // send back a packet with other active agent data to this agent
-                    for (std::vector<Agent>::iterator avatarAgent = agentList->getAgents().begin();
-                         avatarAgent != agentList->getAgents().end();
+                    for (AgentList::iterator avatarAgent = agentList->begin();
+                         avatarAgent != agentList->end();
                          avatarAgent++) {
                         if (avatarAgent->getLinkedData() != NULL
-                            && agentIndex != agentList->indexOfMatchingAgent(agentAddress)) {
+                            && !socketMatch(agentAddress, avatarAgent->getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
                         }
                         

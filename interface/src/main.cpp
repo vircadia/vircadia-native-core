@@ -64,6 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
+#include "ChatEntry.h"
 #include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
@@ -180,6 +181,9 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
 
+ChatEntry chatEntry;       // chat entry field
+bool chatEntryOn = false;  //  Whether to show the chat entry
+
 struct HandController
 {
     bool  enabled;
@@ -240,8 +244,6 @@ void updateHandController( int x, int y ) {
                 handController.startX = WIDTH	 / 2;
                 handController.startY = HEIGHT / 2;
                 handController.envelope = 0.0; 
-//prototype                
-//myAvatar.stopHandMovement();
             }
         }
     }
@@ -800,34 +802,66 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		//--------------------------------------------------------
 		// camera settings
-		//--------------------------------------------------------		
 		if ( ::lookingInMirror ) {
-			//-----------------------------------------------
 			// set the camera to looking at my own face
-			//-----------------------------------------------
 			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
-			myCamera.setYaw				( - myAvatar.getBodyYaw() );
+			myCamera.setTargetYaw       ( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0 );
 			myCamera.setRoll			( 0.0 );
-			myCamera.setUp				( 0.0 );	
+			myCamera.setUpShift         ( 0.0 );	
 			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
-			myCamera.update				( 1.f/FPS );
 		} else {
-			//----------------------------------------------------
-			// set the camera to third-person view behind my av
-			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPosition() );
-			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
-			myCamera.setRoll			(   0.0  );
-			myCamera.setUp				(   0.45 );
-			myCamera.setDistance		(   1.0  );
-			myCamera.setTightness		(   8.0f );
-			myCamera.update				( 1.f/FPS);
+
+//            float firstPersonPitch     =  20.0f;
+//            float firstPersonUpShift   =   0.1f;
+//            float firstPersonDistance  =   0.0f;
+//            float firstPersonT ightness = 100.0f;
+
+            float thirdPersonPitch     =   0.0f;
+            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonDistance  =   1.f;
+            float thirdPersonTightness =   8.0f;
+                        
+            myCamera.setPitch	 (thirdPersonPitch    );
+            myCamera.setUpShift  (thirdPersonUpShift  );
+            myCamera.setDistance (thirdPersonDistance );
+            myCamera.setTightness(thirdPersonTightness);
+                        
+            /*
+            if ( myAvatar.getSpeed() < 0.02 ) {       
+                if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                }
+                
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
+                myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
+                myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
+                myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
+            } else {
+                if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                }
+            
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
+                myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
+                myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
+                myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
+            }
+            */
+
+			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
+			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setRoll		  (   0.0  );
 		}
+        
+        // important...
+        myCamera.update( 1.f/FPS );
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
@@ -843,10 +877,10 @@ void display(void)
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
 			// set the camera to third-person view but offset so we can see the frustum
-			viewFrustumOffsetCamera.setYaw		(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+			viewFrustumOffsetCamera.setTargetYaw(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
 			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
 			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(  ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
 			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update(1.f/FPS);
 			whichCamera = viewFrustumOffsetCamera;
@@ -864,10 +898,8 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-
             // finally render the starfield
         	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
-            
         }
 
         glEnable(GL_LIGHTING);
@@ -909,10 +941,8 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        AgentList *agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
-            agent++) {
+        AgentList* agentList = AgentList::getInstance();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
@@ -978,16 +1008,22 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
+    //  Show chat entry field
+    if (::chatEntryOn) {
+        chatEntry.render(WIDTH, HEIGHT);
+    }
+
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
     
-    int totalAgents = AgentList::getInstance()->getAgents().size();
+    AgentList* agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
-    for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
-            ? totalAvatars++ : totalServers++;
+    
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
+    
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
@@ -1322,6 +1358,11 @@ void specialkeyUp(int k, int x, int y) {
 
 void specialkey(int k, int x, int y)
 {
+    if (::chatEntryOn) {
+        chatEntry.specialKey(k);
+        return;
+    }
+    
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
@@ -1347,6 +1388,11 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
+    if (::chatEntryOn) {
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        return;
+    }
+
     if (k == 'e') myAvatar.setDriveKeys(UP, 0);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
@@ -1358,6 +1404,19 @@ void keyUp(unsigned char k, int x, int y) {
 
 void key(unsigned char k, int x, int y)
 {
+    if (::chatEntryOn) {
+        if (chatEntry.key(k)) {
+            myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
+                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
+            
+        } else {
+            myAvatar.setChatMessage(chatEntry.getContents());
+            chatEntry.clear();
+            ::chatEntryOn = false;
+        }
+        return;
+    }
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
@@ -1424,6 +1483,12 @@ void key(unsigned char k, int x, int y)
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
+    
+    if (k == '\r') {
+        ::chatEntryOn = true;
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setChatMessage(string());
+    }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
@@ -1496,11 +1561,9 @@ void idle(void) {
         updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them...
-        AgentList * agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+        AgentList* agentList = AgentList::getInstance();
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
@@ -1634,7 +1697,12 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_AVATAR);
+    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    const char* portStr = getCmdOption(argc, argv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
