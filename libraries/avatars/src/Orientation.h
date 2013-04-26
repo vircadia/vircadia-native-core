@@ -25,6 +25,10 @@ private:
     float   _pitch;
     float   _roll;
     
+    glm::vec3 right;
+	glm::vec3 up;
+	glm::vec3 front;
+    
     void update(); // actually updates the vectors from yaw, pitch, roll
 
 public:
@@ -41,13 +45,9 @@ public:
 	void set( Orientation );
 	void setToIdentity();
 
-	glm::vec3 right;
-	glm::vec3 up;
-	glm::vec3 front;
-
-	glm::vec3 getRight()	{ return right;	}
-	glm::vec3 getUp()		{ return up;	}
-	glm::vec3 getFront()	{ return front;	}
+	const glm::vec3& getRight()	const { return right; }
+	const glm::vec3& getUp() const { return up;	}
+	const glm::vec3& getFront()	const { return front; }
 	
 	void setRightUpFront( const glm::vec3 &, const glm::vec3 &, const glm::vec3 & );
 	

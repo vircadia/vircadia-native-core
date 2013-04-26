@@ -49,7 +49,7 @@ const int LOGOFF_CHECK_INTERVAL = 5000;
 
 int lastActiveCount = 0;
 
-unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
+unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
     
     currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
@@ -62,7 +62,7 @@ unsigned char * addAgentToBroadcastPacket(unsigned char *currentPosition, Agent 
 
 int main(int argc, const char * argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the
@@ -127,10 +127,7 @@ int main(int argc, const char * argv[])
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
-            for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-                agent != agentList->getAgents().end();
-                agent++) {
-                
+            for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                 if (DEBUG_TO_SELF ||
                     !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
                     if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {

@@ -64,6 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
+#include "ChatEntry.h"
 #include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
@@ -184,6 +185,85 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
+
+ChatEntry chatEntry;       // chat entry field
+bool chatEntryOn = false;  //  Whether to show the chat entry
+
+/*
+struct HandController
+{
+    bool  enabled;
+    int   startX;
+    int   startY;
+    int   x; 
+    int   y;
+    int   lastX; 
+    int   lastY;
+    int   velocityX;
+    int   velocityY;
+    float rampUpRate;
+    float rampDownRate;
+    float envelope;
+};
+
+HandController handController;
+
+void initializeHandController() {
+   handController.enabled      = false;
+   handController.startX       = WIDTH  / 2;
+   handController.startY       = HEIGHT / 2;
+   handController.x            = 0; 
+   handController.y            = 0;
+   handController.lastX        = 0; 
+   handController.lastY        = 0;
+   handController.velocityX    = 0;
+   handController.velocityY    = 0;
+   handController.rampUpRate   = 0.05;
+   handController.rampDownRate = 0.02;
+   handController.envelope     = 0.0f;
+}
+
+void updateHandController( int x, int y ) {
+    handController.lastX = handController.x;
+    handController.lastY = handController.y;
+    handController.x = x;
+    handController.y = y;
+    handController.velocityX = handController.x - handController.lastX;
+    handController.velocityY = handController.y - handController.lastY;
+
+    if (( handController.velocityX != 0 )
+    ||  ( handController.velocityY != 0 )) {
+        handController.enabled = true;
+        myAvatar.startHandMovement();
+        if ( handController.envelope < 1.0 ) {
+            handController.envelope += handController.rampUpRate;
+            if ( handController.envelope >= 1.0 ) { 
+                handController.envelope = 1.0; 
+            }
+        }
+    }
+
+   if ( ! handController.enabled ) {
+        if ( handController.envelope > 0.0 ) {
+            handController.envelope -= handController.rampDownRate;
+            if ( handController.envelope <= 0.0 ) { 
+                handController.startX = WIDTH	 / 2;
+                handController.startY = HEIGHT / 2;
+                handController.envelope = 0.0; 
+            }
+        }
+    }
+    
+    if ( handController.envelope > 0.0 ) {
+        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
+        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
+        float backFront	= 0.0;			
+        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
+    }
+}
+
+*/
+
 
 //
 //  Serial USB Variables
@@ -869,10 +949,8 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        AgentList *agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
-            agent++) {
+        AgentList* agentList = AgentList::getInstance();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
@@ -938,16 +1016,22 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
+    //  Show chat entry field
+    if (::chatEntryOn) {
+        chatEntry.render(WIDTH, HEIGHT);
+    }
+
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
     
-    int totalAgents = AgentList::getInstance()->getAgents().size();
+    AgentList* agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
-    for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
-            ? totalAvatars++ : totalServers++;
+    
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
+    
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
@@ -1282,6 +1366,11 @@ void specialkeyUp(int k, int x, int y) {
 
 void specialkey(int k, int x, int y)
 {
+    if (::chatEntryOn) {
+        chatEntry.specialKey(k);
+        return;
+    }
+    
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
@@ -1307,6 +1396,11 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
+    if (::chatEntryOn) {
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        return;
+    }
+
     if (k == 'e') myAvatar.setDriveKeys(UP, 0);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
@@ -1318,6 +1412,19 @@ void keyUp(unsigned char k, int x, int y) {
 
 void key(unsigned char k, int x, int y)
 {
+    if (::chatEntryOn) {
+        if (chatEntry.key(k)) {
+            myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
+                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
+            
+        } else {
+            myAvatar.setChatMessage(chatEntry.getContents());
+            chatEntry.clear();
+            ::chatEntryOn = false;
+        }
+        return;
+    }
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
@@ -1384,6 +1491,12 @@ void key(unsigned char k, int x, int y)
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
+    
+    if (k == '\r') {
+        ::chatEntryOn = true;
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setChatMessage(string());
+    }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
@@ -1457,11 +1570,9 @@ void idle(void) {
         updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them...
-        AgentList * agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+        AgentList* agentList = AgentList::getInstance();
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
@@ -1595,7 +1706,12 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_AVATAR);
+    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    const char* portStr = getCmdOption(argc, argv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
