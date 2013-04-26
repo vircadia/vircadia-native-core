@@ -27,7 +27,7 @@
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
 const float THRUST_MAG      = 10.0;
-const float YAW_MAG         = 300.0;
+const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
@@ -159,116 +159,117 @@ struct AvatarHead
 
 
 class Avatar : public AvatarData {
-    public:
-        Avatar(bool isMine);
-        ~Avatar();
-        Avatar(const Avatar &otherAvatar);
-        Avatar* clone() const;
+public:
+    Avatar(bool isMine);
+    ~Avatar();
+    Avatar(const Avatar &otherAvatar);
+    Avatar* clone() const;
+
+    void  reset();
+    void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+    void  setNoise (float mag) { _head.noise = mag; }
+    void  setScale(float s) {_head.scale = s; };
+    void  setRenderYaw(float y) {_renderYaw = y;}
+    void  setRenderPitch(float p) {_renderPitch = p;}
+    float getRenderYaw() {return _renderYaw;}
+    float getRenderPitch() {return _renderPitch;}
+    void  setLeanForward(float dist);
+    void  setLeanSideways(float dist);
+    void  addLean(float x, float z);
+    float getLastMeasuredHeadYaw() const {return _head.yawRate;}
+    float getBodyYaw() {return _bodyYaw;};
+    void  addBodyYaw(float y) {_bodyYaw += y;};
+
+    const glm::vec3& getHeadLookatDirection() const { return _orientation.getFront(); };
+    const glm::vec3& getHeadLookatDirectionUp() const { return _orientation.getUp(); };
+    const glm::vec3& getHeadLookatDirectionRight() const { return _orientation.getRight(); };
+    const glm::vec3& getHeadPosition() const ;
+    const glm::vec3& getBonePosition(AvatarBoneID b) const { return _bone[b].position; };
+    const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
+    float getSpeed() const { return _speed; };
+    float getGirth();
+    float getHeight();
     
-        void  reset();
-        void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
-        void  setNoise (float mag) { _head.noise = mag; }
-        void  setScale(float s) {_head.scale = s; };
-        void  setRenderYaw(float y) {_renderYaw = y;}
-        void  setRenderPitch(float p) {_renderPitch = p;}
-        float getRenderYaw() {return _renderYaw;}
-        float getRenderPitch() {return _renderPitch;}
-        void  setLeanForward(float dist);
-        void  setLeanSideways(float dist);
-        void  addLean(float x, float z);
-        float getLastMeasuredHeadYaw() const {return _head.yawRate;}
-        float getBodyYaw() {return _bodyYaw;};
-        void  addBodyYaw(float y) {_bodyYaw += y;};
+    AvatarMode getMode();
     
-		glm::vec3 getHeadLookatDirection();
-		glm::vec3 getHeadLookatDirectionUp();
-		glm::vec3 getHeadLookatDirectionRight();
-		glm::vec3 getHeadPosition();
-		glm::vec3 getBonePosition( AvatarBoneID b );	
-        glm::vec3 getBodyUpDirection();
-        float getGirth();
-        float getHeight();
-        
-		AvatarMode getMode();
-		
-		void setMousePressed( bool pressed ); 
-        void render(bool lookingInMirror);
-		void renderBody();
-		void renderHead(bool lookingInMirror);
-        void simulate(float);
-		void startHandMovement();
-		void stopHandMovement();
-		void setHandMovementValues( glm::vec3 movement );
-		void updateHandMovement( float deltaTime );
-		void updateArmIKAndConstraints( float deltaTime );
-        
-        float getAverageLoudness() {return _head.averageLoudness;};
-        void setAverageLoudness(float al) {_head.averageLoudness = al;};
-         
-        void SetNewHeadTarget(float, float);
+    void setMousePressed( bool pressed ); 
+    void render(bool lookingInMirror);
+    void renderBody();
+    void renderHead(bool lookingInMirror);
+    void simulate(float);
+    void startHandMovement();
+    void stopHandMovement();
+    void setHandMovementValues( glm::vec3 movement );
+    void updateHandMovement( float deltaTime );
+    void updateArmIKAndConstraints( float deltaTime );
     
-        //  Set what driving keys are being pressed to control thrust levels
-        void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
-        bool getDriveKeys(int key) { return _driveKeys[key]; };
+    float getAverageLoudness() {return _head.averageLoudness;};
+    void setAverageLoudness(float al) {_head.averageLoudness = al;};
+     
+    void SetNewHeadTarget(float, float);
+
+    //  Set what driving keys are being pressed to control thrust levels
+    void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
+    bool getDriveKeys(int key) { return _driveKeys[key]; };
+
+    //  Set/Get update the thrust that will move the avatar around
+    void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
+    void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
+    glm::vec3 getThrust() { return _thrust; };
+
+    //  Related to getting transmitter UDP data used to animate the avatar hand
+    void processTransmitterData(unsigned char * packetData, int numBytes);
+    float getTransmitterHz() { return _transmitterHz; };
     
-        //  Set/Get update the thrust that will move the avatar around
-        void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
-        void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
-        glm::vec3 getThrust() { return _thrust; };
+    //  Find out what the local gravity vector is at this location
+    glm::vec3 getGravity(glm::vec3 pos);
+
+private:
+    AvatarHead        _head;
+    bool              _isMine;
+    glm::vec3         _TEST_bigSpherePosition;
+    float             _TEST_bigSphereRadius;
+    bool              _mousePressed;
+    float             _bodyYawDelta;
+    bool              _usingBodySprings;
+    glm::vec3         _movedHandOffset;
+    float             _springVelocityDecay;
+    float             _springForce;
+    glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
+    AvatarBone	      _bone[ NUM_AVATAR_BONES ];
+    AvatarMode        _mode;
+    AvatarHandHolding _handHolding;
+    glm::vec3         _velocity;
+    glm::vec3	      _thrust;
+    float             _speed;
+    float		      _maxArmLength;
+    Orientation	      _orientation;
+    int               _driveKeys[MAX_DRIVE_KEYS];
+    GLUquadric*       _sphere;
+    float             _renderYaw;
+    float             _renderPitch; //   Pitch from view frustum when this is own head
+    timeval           _transmitterTimer;
+    float             _transmitterHz;
+    int               _transmitterPackets;
+    Avatar*           _interactingOther;
+    bool              _interactingOtherIsNearby;
+    float             _pelvisStandingHeight;
     
-        //  Related to getting transmitter UDP data used to animate the avatar hand
-        void processTransmitterData(unsigned char * packetData, int numBytes);
-        float getTransmitterHz() { return _transmitterHz; };
+    Balls*            _balls;
     
-        //  Find out what the local gravity vector is at this location
-        glm::vec3 getGravity(glm::vec3 pos);
-    
-    private:
-        AvatarHead        _head;    
-        bool              _isMine;
-        glm::vec3         _TEST_bigSpherePosition;
-        float             _TEST_bigSphereRadius;
-		bool              _mousePressed;
-		float             _bodyYawDelta;
-		bool              _usingBodySprings;
-		glm::vec3         _movedHandOffset;
-		float             _springVelocityDecay;
-		float             _springForce;
-        glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-		AvatarBone	      _bone[ NUM_AVATAR_BONES ];
-		AvatarMode        _mode;
-        AvatarHandHolding _handHolding;
-        glm::vec3         _velocity;
-        glm::vec3	      _thrust;
-        float		      _maxArmLength;
-        Orientation	      _orientation;
-        int               _driveKeys[MAX_DRIVE_KEYS];
-        GLUquadric*       _sphere;
-        float             _renderYaw;
-        float             _renderPitch; //   Pitch from view frustum when this is own head
-        timeval           _transmitterTimer;
-        float             _transmitterHz;
-        int               _transmitterPackets;
-        Avatar*           _interactingOther;
-        bool              _interactingOtherIsNearby;
-        Balls*            _balls;
-    
-        // private methods...
-		void initializeSkeleton();
-		void updateSkeleton();
-		void initializeBodySprings();
-		void updateBodySprings( float deltaTime );
-		void calculateBoneLengths();
-        void readSensors();
-        void renderBoneAsBlock( AvatarBoneID b );
-        void updateAvatarCollisionDetectionAndResponse
-        ( 
-            glm::vec3 collisionPosition, 
-            float     collisionGirth, 
-            float     collisionHeight, 
-            glm::vec3 collisionUpVector, 
-            float     deltaTime 
-        );
+     void initializeSkeleton();
+    void updateSkeleton();
+    void initializeBodySprings();
+    void updateBodySprings( float deltaTime );
+    void calculateBoneLengths();
+    void readSensors();
+    void renderBoneAsBlock( AvatarBoneID b );
+    void updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
+                                                   float     collisionGirth,
+                                                   float     collisionHeight,
+                                                   glm::vec3 collisionUpVector,
+                                                   float     deltaTime);
+
 };
 
 #endif

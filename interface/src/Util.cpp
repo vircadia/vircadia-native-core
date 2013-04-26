@@ -278,9 +278,9 @@ void drawGroundPlaneGrid( float size, int resolution )
 
 
 void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
-	glm::vec3 pRight	= position + orientation.right	* size;
-	glm::vec3 pUp		= position + orientation.up		* size;
-	glm::vec3 pFront	= position + orientation.front	* size;
+	glm::vec3 pRight	= position + orientation.getRight() * size;
+	glm::vec3 pUp		= position + orientation.getUp() * size;
+	glm::vec3 pFront	= position + orientation.getFront() * size;
 		
 	glColor3f( 1.0f, 0.0f, 0.0f );
 	glBegin( GL_LINE_STRIP );

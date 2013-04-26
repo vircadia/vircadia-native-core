@@ -517,6 +517,7 @@ float Audio::getInputLoudness() const {
 void Audio::render(int screenWidth, int screenHeight)
 {
     if (initialized) {
+        glLineWidth(3);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
         
