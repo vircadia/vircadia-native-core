@@ -50,7 +50,6 @@
 #include "voxels_Log.h"
 #include "avatars_Log.h"
 
-#include "Field.h"
 #include "world.h"
 #include "Util.h"
 #ifndef _WIN32
@@ -67,7 +66,6 @@
 #include "ChatEntry.h"
 #include "Avatar.h"
 #include "Texture.h"
-#include "Cloud.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
@@ -120,13 +118,7 @@ bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
-Cloud cloud(0,                             //  Particles
-            box,                           //  Bounding Box
-            false                          //  Wrap
-            );
-
 VoxelSystem voxels;
-Field field;
 
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
@@ -154,7 +146,6 @@ bool gyroLook = true;               //  Whether to allow the gyro data from head
 
 int displayLevels = 0;
 bool lookingInMirror = 0;           //  Are we currently rendering one's own head as if in mirror?
-int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
@@ -381,10 +372,7 @@ void init(void)
     headMouseY = HEIGHT/2; 
 
     stars.readInput(starFile, starCacheFile, 0);
- 
-    //  Initialize Field values
-    field = Field();
- 
+  
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
@@ -887,19 +875,6 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
-        
-        /*
-        // Test - Draw a blue sphere around a body part of mine!
-        
-        glPushMatrix();
-        glColor4f(0,0,1, 0.7);
-        glTranslatef(myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).x,
-                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).y,
-                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).z);
-        glutSolidSphere(0.03, 10, 10);
-        glPopMatrix();
-        */
-		
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
@@ -907,21 +882,15 @@ void display(void)
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
-		//draw a grid gound plane....
+		//draw a grid ground plane....
 		drawGroundPlaneGrid( 5.0f, 9 );
 		
-        //  Draw cloud of dots
-        if (!::lookingInMirror) cloud.render();
-    
         //  Draw voxels
 		if ( showingVoxels )
 		{
 			voxels.render();
 		}
 		
-        //  Draw field vectors
-        if (displayField) field.render();
-            
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -1058,10 +1027,6 @@ int setValue(int state, bool *value) {
 
 int setHead(int state) {
     return setValue(state, &::lookingInMirror);
-}
-
-int setField(int state) {
-    return setValue(state, &displayField);
 }
 
 int setNoise(int state) {
@@ -1214,7 +1179,6 @@ void initMenu() {
     menuColumnRender = menu.addColumn("Render");
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
-    menuColumnRender->addRow("Field (f)", setField);
     
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
@@ -1452,7 +1416,6 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'm' || k == 'M') setMenu(MENU_ROW_PICKED);
     
-    if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
     if (k == 'e') myAvatar.setDriveKeys(UP, 1);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
@@ -1547,9 +1510,7 @@ void idle(void) {
             }
         }
     
-        field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
-        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;
