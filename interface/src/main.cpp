@@ -81,6 +81,7 @@
 #include <SimpleMovingAverage.h>
 
 #include "ViewFrustum.h"
+#include "HandControl.h"
 
 using namespace std;
 
@@ -100,6 +101,8 @@ int WIDTH = 1200;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
+
+bool USING_FIRST_PERSON_EFFECT = false;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
@@ -171,6 +174,8 @@ int displayField = 0;
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
 
+HandControl handControl;
+
 int mouseX = 0;
 int mouseY = 0;
 
@@ -179,80 +184,6 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
-
-struct HandController
-{
-    bool  enabled;
-    int   startX;
-    int   startY;
-    int   x; 
-    int   y;
-    int   lastX; 
-    int   lastY;
-    int   velocityX;
-    int   velocityY;
-    float rampUpRate;
-    float rampDownRate;
-    float envelope;
-};
-
-HandController handController;
-
-void initializeHandController() {
-   handController.enabled      = false;
-   handController.startX       = WIDTH  / 2;
-   handController.startY       = HEIGHT / 2;
-   handController.x            = 0; 
-   handController.y            = 0;
-   handController.lastX        = 0; 
-   handController.lastY        = 0;
-   handController.velocityX    = 0;
-   handController.velocityY    = 0;
-   handController.rampUpRate   = 0.05;
-   handController.rampDownRate = 0.02;
-   handController.envelope     = 0.0f;
-}
-
-void updateHandController( int x, int y ) {
-    handController.lastX = handController.x;
-    handController.lastY = handController.y;
-    handController.x = x;
-    handController.y = y;
-    handController.velocityX = handController.x - handController.lastX;
-    handController.velocityY = handController.y - handController.lastY;
-
-    if (( handController.velocityX != 0 )
-    ||  ( handController.velocityY != 0 )) {
-        handController.enabled = true;
-        myAvatar.startHandMovement();
-        if ( handController.envelope < 1.0 ) {
-            handController.envelope += handController.rampUpRate;
-            if ( handController.envelope >= 1.0 ) { 
-                handController.envelope = 1.0; 
-            }
-        }
-    }
-
-   if ( ! handController.enabled ) {
-        if ( handController.envelope > 0.0 ) {
-            handController.envelope -= handController.rampDownRate;
-            if ( handController.envelope <= 0.0 ) { 
-                handController.startX = WIDTH	 / 2;
-                handController.startY = HEIGHT / 2;
-                handController.envelope = 0.0; 
-            }
-        }
-    }
-    
-    if ( handController.envelope > 0.0 ) {
-        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
-        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
-        float backFront	= 0.0;			
-        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
-    }
-}
-
-
 
 //
 //  Serial USB Variables
@@ -385,7 +316,7 @@ void init(void)
     voxels.setViewerAvatar(&myAvatar);
     myAvatar.setRenderYaw(startYaw);
     
-    initializeHandController();
+    handControl.setScreenDimensions(WIDTH, HEIGHT);
 
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2; 
@@ -820,37 +751,38 @@ void display(void)
             float thirdPersonDistance  =   1.f;
             float thirdPersonTightness =   8.0f;
                         
-            myCamera.setPitch	 (thirdPersonPitch    );
-            myCamera.setUpShift  (thirdPersonUpShift  );
-            myCamera.setDistance (thirdPersonDistance );
-            myCamera.setTightness(thirdPersonTightness);
-                        
-            /*
-            if ( myAvatar.getSpeed() < 0.02 ) {       
-                if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                    myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                }
+            if ( USING_FIRST_PERSON_EFFECT ) {
+                if ( myAvatar.getSpeed() < 0.02 ) {   
                 
-                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+                    if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                        myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    }
+                    
+                    printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
 
-                myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
-                myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
-                myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
-                myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
-            } else {
-                if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
-                    myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                    myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
+                    myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
+                    myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
+                    myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
+                } else {
+                    if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
+                        myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                    }
+                
+                    printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                    myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
+                    myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
+                    myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
+                    myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
                 }
-            
-                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-
-                myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
-                myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
-                myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
-                myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
+            } else {
+                myCamera.setPitch	 (thirdPersonPitch    );
+                myCamera.setUpShift  (thirdPersonUpShift  );
+                myCamera.setDistance (thirdPersonDistance );
+                myCamera.setTightness(thirdPersonTightness);
             }
-            */
-
+                
 			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
 			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
 			myCamera.setRoll		  (   0.0  );
@@ -1503,7 +1435,8 @@ void idle(void) {
         float deltaTime = 1.f/FPS;
 
         // update behaviors for avatar hand movement 
-        updateHandController( mouseX, mouseY );
+        handControl.update( mouseX, mouseY );
+        myAvatar.setHandMovementValues( handControl.getValues() );		
         
 		// tell my avatar if the mouse is being pressed...
 		if ( mousePressed == 1 ) {
@@ -1513,9 +1446,9 @@ void idle(void) {
 			myAvatar.setMousePressed( false );
 		}
         
-        // walking triggers the handController to stop
+        // walking triggers the handControl to stop
         if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
-            handController.enabled = false;
+            handControl.stop();
 		}
         
         //

@@ -14,6 +14,7 @@
 
 #include "Field.h"
 #include "world.h"
+#include "AvatarTouch.h"
 
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
@@ -24,7 +25,7 @@
 
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
-const float THRUST_MAG      = 10.0;
+const float THRUST_MAG      = 1200.0;
 const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
@@ -45,6 +46,8 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define MAX_DRIVE_KEYS 8
 
 #define MAX_OTHER_AVATARS 10 // temporary - for testing purposes!
+
+
 
 enum AvatarMode
 {
@@ -83,6 +86,16 @@ enum AvatarBoneID
     
 	NUM_AVATAR_BONES
 };
+
+
+/*
+static glm::vec3 avatarDefaultPose[NUM_AVATAR_BONES] = 
+{ 
+    glm::vec3( 0.0f, 0.0f, 0.0f ),
+    glm::vec3( 0.0f, 0.0f, 0.0f )
+};
+*/
+
 
 struct AvatarCollisionElipsoid
 {
@@ -252,6 +265,7 @@ class Avatar : public AvatarData {
         Avatar*           _interactingOther;
         bool              _interactingOtherIsNearby;
         float             _pelvisStandingHeight;
+        AvatarTouch       _avatarTouch;
         
         // private methods...
 		void initializeSkeleton();

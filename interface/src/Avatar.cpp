@@ -303,7 +303,7 @@ void Avatar::simulate(float deltaTime) {
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
     if ( _isMine )
-    {
+    {    
         float closestDistance = 10000.0f;
          
         AgentList * agentList = AgentList::getInstance();
@@ -330,7 +330,7 @@ void Avatar::simulate(float deltaTime) {
                 
                 float distance = glm::length( v );
                 if ( distance < _maxArmLength + _maxArmLength ) {
-                
+                                
                     //if ( distance < closestDistance ) { // perhaps I don't need this if we want to allow multi-avatar interactions
                     {
                         closestDistance = distance;
@@ -341,14 +341,18 @@ void Avatar::simulate(float deltaTime) {
                         if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
                             glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHolding.position;
                             glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
-                            
+                                                       
                             _handHolding.velocity *= 0.7;
                             _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;	
                             _handHolding.position += _handHolding.velocity;
                             
                             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;		
+                            
                         } 
                     }
+                    
+                    _avatarTouch.setMyHandPosition( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
+                    _avatarTouch.setYourPosition( otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND ) );
                 }
             }
         }
@@ -356,8 +360,10 @@ void Avatar::simulate(float deltaTime) {
         //  Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
         
+        //update the effects of touching another avatar
+        _avatarTouch.simulate(deltaTime);
+        
     }//if ( _isMine )
-    
     
     updateArmIKAndConstraints( deltaTime );
                     
@@ -413,30 +419,14 @@ void Avatar::simulate(float deltaTime) {
 
         _thrust = glm::vec3( 0.0, 0.0, 0.0 );
              
-        if (_driveKeys[FWD]) {
-            _thrust += _orientation.getFront() * THRUST_MAG;
-        }
-        if (_driveKeys[BACK]) {
-            _thrust -= _orientation.getFront() * THRUST_MAG;
-        }
-        if (_driveKeys[RIGHT]) {
-            _thrust += _orientation.getRight() * THRUST_MAG;
-        }
-        if (_driveKeys[LEFT]) {
-            _thrust -= _orientation.getRight() * THRUST_MAG;
-        }
-        if (_driveKeys[UP]) {
-            _thrust += _orientation.getUp() * THRUST_MAG;
-        }
-        if (_driveKeys[DOWN]) {
-            _thrust -= _orientation.getUp() * THRUST_MAG;
-        }
-        if (_driveKeys[ROT_RIGHT]) {	
-            _bodyYawDelta -= YAW_MAG * deltaTime;
-        }
-        if (_driveKeys[ROT_LEFT]) {	
-            _bodyYawDelta += YAW_MAG * deltaTime;
-        }
+        if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getFront();}
+        if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getFront();}
+        if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getRight();}
+        if (_driveKeys[LEFT     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getRight();}
+        if (_driveKeys[UP       ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getUp();}
+        if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getUp();}
+        if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG    * deltaTime;}
+        if (_driveKeys[ROT_LEFT ]) {_bodyYawDelta += YAW_MAG    * deltaTime;}
 	}
         
     // update body yaw by body yaw delta
@@ -658,21 +648,12 @@ void Avatar::render(bool lookingInMirror) {
 	// if this is my avatar, then render my interactions with the other avatar
     if ( _isMine )
     {
+    
         if ( _interactingOtherIsNearby ) {					
-
-            glm::vec3 v1( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-            glm::vec3 v2( _interactingOther->_handPosition );
-            
-            glLineWidth( 8.0 );
-            glColor4f( 0.7f, 0.4f, 0.1f, 0.6 );
-            glBegin( GL_LINE_STRIP );
-            glVertex3f( v1.x, v1.y, v1.z );
-            glVertex3f( v2.x, v2.y, v2.z );
-            glEnd();
+            _avatarTouch.render();
         }
     }
 }
-
 	   
 void Avatar::renderHead(bool lookingInMirror) {
     int side = 0;
@@ -835,7 +816,7 @@ void Avatar::renderHead(bool lookingInMirror) {
 
     glPopMatrix();
  }
- 
+
 void Avatar::startHandMovement() {
 
     if (!_usingBodySprings) {
