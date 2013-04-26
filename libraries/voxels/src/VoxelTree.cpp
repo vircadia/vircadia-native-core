@@ -141,7 +141,7 @@ VoxelTree::VoxelTree() :
     //pthread_mutexattr_t mta;
     //pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
     int res = pthread_mutex_init(&_treeNodeDelete, NULL);
-    debugThreadError("pthread_mutex_init(&_treeNodeDelete, &mta);", res);
+    //debugThreadError("pthread_mutex_init(&_treeNodeDelete, &mta);", res);
 }
 
 VoxelTree::~VoxelTree() {
@@ -288,7 +288,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 
     int mutexLock;
     mutexLock = pthread_mutex_lock(&_treeNodeDelete);
-    debugThreadError("pthread_mutex_lock(&_treeNodeDelete)", mutexLock);
+    //debugThreadError("pthread_mutex_lock(&_treeNodeDelete)", mutexLock);
     
     int bytesRead = 0;
 
@@ -1356,7 +1356,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
         //printf("actually write our local bytes to the outputBuffer bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
     } else {
         // we've run out of room!!! What do we do!!!
-        printf("we don't have room to write bytes bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
+        //printf("we don't have room to write bytes bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
         
         // 1) return 0 for bytes written so upper levels do the right thing, namely prune us from their trees
         // 2) add our node to the list of extra nodes for later output...
