@@ -113,9 +113,8 @@ int main(int argc, const char* argv[]) {
     // move eve away from the origin
     // pick a random point inside a 10x10 grid
     
-    eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION),
-                                  0,
-                                  randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
+    eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION), 0.4,
+                              randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
     
     // face any instance of eve down the z-axis
     eve.setBodyYaw(0);

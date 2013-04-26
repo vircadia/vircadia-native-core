@@ -117,6 +117,8 @@ Avatar::Avatar(bool isMine) {
     _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
     _handHolding.force    = 10.0f;
     
+    initializeSkeleton();
+    
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -125,7 +127,6 @@ Avatar::Avatar(bool isMine) {
         }
     }
 }
-
 
 
 Avatar::Avatar(const Avatar &otherAvatar) {
@@ -197,6 +198,9 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.lastLoudness       = otherAvatar._head.lastLoudness;
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
+    
+
+    initializeSkeleton();
     
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
@@ -297,7 +301,7 @@ void Avatar::simulate(float deltaTime) {
     }
     
     _interactingOtherIsNearby = false;
-    
+
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
     if ( _isMine )
@@ -367,6 +371,19 @@ void Avatar::simulate(float deltaTime) {
     }
     
     if ( AVATAR_GRAVITY ) {
+        if ( _position.y > _pelvisStandingHeight + 0.01 ) {
+            _velocity += glm::dvec3( 0.0, -1.0, 0.0 ) * ( 6.0 * deltaTime );
+        }
+        else {
+            if ( _position.y < _pelvisStandingHeight ) {
+                 _position.y = _pelvisStandingHeight;
+                _velocity.y = 0.0;
+            }       
+        }
+    }
+
+    /*
+    if ( AVATAR_GRAVITY ) {
         if ( _position.y > _bone[ AVATAR_BONE_RIGHT_FOOT ].radius * 2.0 ) {
             _velocity += glm::dvec3(getGravity(getPosition())) * ( 6.0 * deltaTime );
         } else if ( _position.y < _bone[ AVATAR_BONE_RIGHT_FOOT ].radius ) {
@@ -374,6 +391,8 @@ void Avatar::simulate(float deltaTime) {
             _velocity.y = 0.0;
         }
     }
+    */
+    
     
 	// update body springs
     updateBodySprings( deltaTime );
@@ -533,6 +552,22 @@ void Avatar::simulate(float deltaTime) {
     const float AUDIO_AVERAGING_SECS = 0.05;
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+                            
+	_speed = glm::length( _velocity );
+	float rotationalSpeed = fabs( _bodyYawDelta );
+	if ( _speed + rotationalSpeed > 0.2 )
+	{
+		_mode = AVATAR_MODE_WALKING;
+	}
+	else
+	{
+		_mode = AVATAR_MODE_INTERACTING;
+	}
+}
+      
+      
+float Avatar::getSpeed() {
+    return _speed;
 }
 
 
@@ -595,6 +630,7 @@ void Avatar::render(bool lookingInMirror) {
     glScalef( 0.03, 0.03, 0.03 );
     glutSolidSphere( 1, 10, 10 );
 	glPopMatrix();
+    */
     
     if ( usingBigSphereCollisionTest ) {
         
@@ -860,7 +896,7 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].parent = AVATAR_BONE_RIGHT_SHIN;
     
 	// specify the default pose position
-	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.3,   0.0  );
+	_bone[ AVATAR_BONE_PELVIS_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0  );
 	_bone[ AVATAR_BONE_MID_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
 	_bone[ AVATAR_BONE_CHEST_SPINE		].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
 	_bone[ AVATAR_BONE_NECK				].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
