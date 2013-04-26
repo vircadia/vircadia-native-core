@@ -810,10 +810,10 @@ void display(void)
 			myCamera.setTightness		( 100.0f );
 		} else {
 
-            float firstPersonPitch     =  20.0f;
-            float firstPersonUpShift   =   0.1f;
-            float firstPersonDistance  =   0.0f;
-            float firstPersonTightness = 100.0f;
+//            float firstPersonPitch     =  20.0f;
+//            float firstPersonUpShift   =   0.1f;
+//            float firstPersonDistance  =   0.0f;
+//            float firstPersonTightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
             float thirdPersonUpShift   =  -0.1f;
@@ -937,10 +937,8 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        AgentList *agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
-            agent++) {
+        AgentList* agentList = AgentList::getInstance();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
@@ -1010,12 +1008,13 @@ void display(void)
     glPointSize(1.0f);
     char agents[100];
     
-    int totalAgents = AgentList::getInstance()->getAgents().size();
+    AgentList* agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
-    for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
-            ? totalAvatars++ : totalServers++;
+    
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
+    
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
@@ -1524,11 +1523,9 @@ void idle(void) {
         updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them...
-        AgentList * agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+        AgentList* agentList = AgentList::getInstance();
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
