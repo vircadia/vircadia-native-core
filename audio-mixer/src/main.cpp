@@ -127,7 +127,7 @@ void *sendBuffer(void *args)
             
             
             for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                if (otherAgent != agent || ( otherAgent == agent && agentWantsLoopback)) {
+                if (otherAgent != agent || (otherAgent == agent && agentWantsLoopback)) {
                     AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
@@ -146,6 +146,7 @@ void *sendBuffer(void *args)
                         
                         float minCoefficient = std::min(1.0f,
                                                         powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                        printf("The DC between agent %d and %d is %f\n", agent->getAgentId(), otherAgent->getAgentId(), minCoefficient);
                         distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
                     }
                     
