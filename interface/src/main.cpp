@@ -1534,9 +1534,9 @@ void idle(void) {
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar(deltaTime);
-		
-		// read incoming packets from network
-		networkReceive();
+
+        // read incoming packets from network
+        networkReceive();
 		
         //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
