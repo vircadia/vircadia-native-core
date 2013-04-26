@@ -160,7 +160,7 @@ int audioCallback (const void *inputBuffer,
             *(currentPacketPtr++) = 255;
             
             // memcpy the corrected render yaw
-            float correctedYaw = fmodf(data->linkedAvatar->getAbsoluteHeadYaw(), 360);
+            float correctedYaw = fmodf(-1 * data->linkedAvatar->getAbsoluteHeadYaw(), 360);
             
             if (correctedYaw > 180) {
                 correctedYaw -= 360;
