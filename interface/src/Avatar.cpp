@@ -654,7 +654,7 @@ void Avatar::render(bool lookingInMirror) {
         glTranslatef(width * 0.5, 0, 0);
         
         glDisable(GL_LIGHTING);
-        if (_keyState == NoKeyDown) {
+        if (_keyState == NO_KEY_DOWN) {
             drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
             
         } else {

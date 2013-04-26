@@ -15,6 +15,13 @@
 
 #include <AgentData.h>
 
+enum KeyState
+{
+    NO_KEY_DOWN, 
+    INSERT_KEY_DOWN,
+    DELETE_KEY_DOWN
+};
+
 class AvatarData : public AgentData {
 public:
     AvatarData();
@@ -76,8 +83,6 @@ public:
     void setCameraNearClip(float nearClip)              { _cameraNearClip    = nearClip; }
     void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
     
-    enum KeyState { NoKeyDown, InsertKeyDown, DeleteKeyDown };
-    
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
@@ -118,7 +123,7 @@ protected:
     float _cameraNearClip;
     float _cameraFarClip;
     
-    // key state (nothing, down, up, backspace)
+    // key state
     KeyState _keyState;
     
     // chat message
