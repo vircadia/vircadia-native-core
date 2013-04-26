@@ -592,6 +592,7 @@ void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPositi
 }
 
 void Avatar::render(bool lookingInMirror) {
+    
     /*
 	// show avatar position
     glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
@@ -958,11 +959,11 @@ void Avatar::initializeSkeleton() {
 	calculateBoneLengths();
     
     _pelvisStandingHeight = 
-	_bone[ AVATAR_BONE_PELVIS_SPINE		].length +
-	_bone[ AVATAR_BONE_LEFT_THIGH		].length +
-	_bone[ AVATAR_BONE_LEFT_SHIN		].length +
-	_bone[ AVATAR_BONE_LEFT_FOOT		].length +
-	_bone[ AVATAR_BONE_RIGHT_FOOT       ].radius;
+    _bone[ AVATAR_BONE_PELVIS_SPINE ].length +
+	_bone[ AVATAR_BONE_LEFT_THIGH   ].length +
+	_bone[ AVATAR_BONE_LEFT_SHIN    ].length +
+	_bone[ AVATAR_BONE_LEFT_FOOT    ].length +
+	_bone[ AVATAR_BONE_RIGHT_FOOT   ].radius;
 
 	// generate world positions
 	updateSkeleton();

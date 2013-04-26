@@ -89,16 +89,6 @@ enum AvatarBoneID
 	NUM_AVATAR_BONES
 };
 
-
-/*
-static glm::vec3 avatarDefaultPose[NUM_AVATAR_BONES] = 
-{ 
-    glm::vec3( 0.0f, 0.0f, 0.0f ),
-    glm::vec3( 0.0f, 0.0f, 0.0f )
-};
-*/
-
-
 struct AvatarCollisionElipsoid
 {
     bool      colliding;
