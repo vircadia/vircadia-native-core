@@ -28,7 +28,9 @@ typedef enum {
     EQUAL_DEPTH,
     EXACT_MATCH,
     DEEPER,
-    ILLEGAL_CODE
+    ILLEGAL_CODE,
+    GREATER_THAN,
+    LESS_THAN
 } OctalTreeDepth;
 
 OctalTreeDepth compareOctalCodes(unsigned char* code1, unsigned char* code2);

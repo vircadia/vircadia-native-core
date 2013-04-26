@@ -7,6 +7,7 @@
 //
 
 #include <cmath>
+#include <algorithm> // std:min
 #include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
@@ -134,7 +135,7 @@ float * firstVertexForCode(unsigned char * octalCode) {
     return firstVertex;
 }
 
-OctalTreeDepth compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
+OctalTreeDepth compareOctalCodesDepth(unsigned char* codeA, unsigned char* codeB) {
     if (!codeA || !codeB) {
         return ILLEGAL_CODE;
     }
@@ -151,6 +152,41 @@ OctalTreeDepth compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
             result = EXACT_MATCH;
         } else {
             result = EQUAL_DEPTH;
+        }
+    }
+    return result;
+}
+
+OctalTreeDepth compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
+    if (!codeA || !codeB) {
+        return ILLEGAL_CODE;
+    }
+
+    OctalTreeDepth result = LESS_THAN; // assume it's shallower
+    
+    int numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA),bytesRequiredForCodeLength(*codeB));
+    int compare = memcmp(codeA,codeB,numberOfBytes);
+
+    if (compare < 0) {
+        result = LESS_THAN;
+    } else if (compare > 0) {
+        result = GREATER_THAN;
+    } else {
+        int codeLenthA = numberOfThreeBitSectionsInCode(codeA);
+        int codeLenthB = numberOfThreeBitSectionsInCode(codeB);
+
+        if (codeLenthA == codeLenthB) {
+            // if the memcmp matched exactly, and they were the same length,
+            // then these must be the same code!
+            result = EXACT_MATCH;
+        } else {
+            // if the memcmp matched exactly, but they aren't the same length,
+            // then they have a matching common parent, but they aren't the same
+            if (codeLenthA < codeLenthB) {
+                result = LESS_THAN;
+            } else {
+                result = GREATER_THAN;
+            }
         }
     }
     return result;
