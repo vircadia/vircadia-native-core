@@ -240,8 +240,6 @@ void updateHandController( int x, int y ) {
                 handController.startX = WIDTH	 / 2;
                 handController.startY = HEIGHT / 2;
                 handController.envelope = 0.0; 
-//prototype                
-//myAvatar.stopHandMovement();
             }
         }
     }
@@ -800,34 +798,66 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		//--------------------------------------------------------
 		// camera settings
-		//--------------------------------------------------------		
 		if ( ::lookingInMirror ) {
-			//-----------------------------------------------
 			// set the camera to looking at my own face
-			//-----------------------------------------------
 			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
-			myCamera.setYaw				( - myAvatar.getBodyYaw() );
+			myCamera.setTargetYaw       ( - myAvatar.getBodyYaw() );
 			myCamera.setPitch			( 0.0 );
 			myCamera.setRoll			( 0.0 );
-			myCamera.setUp				( 0.0 );	
+			myCamera.setUpShift         ( 0.0 );	
 			myCamera.setDistance		( 0.2 );
 			myCamera.setTightness		( 100.0f );
-			myCamera.update				( 1.f/FPS );
 		} else {
-			//----------------------------------------------------
-			// set the camera to third-person view behind my av
-			//----------------------------------------------------		
-			myCamera.setTargetPosition	( myAvatar.getPosition() );
-			myCamera.setYaw				( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setPitch			(   0.0  );  // temporarily, this must be 0.0 or else bad juju
-			myCamera.setRoll			(   0.0  );
-			myCamera.setUp				(   0.45 );
-			myCamera.setDistance		(   1.0  );
-			myCamera.setTightness		(   8.0f );
-			myCamera.update				( 1.f/FPS);
+
+//            float firstPersonPitch     =  20.0f;
+//            float firstPersonUpShift   =   0.1f;
+//            float firstPersonDistance  =   0.0f;
+//            float firstPersonT ightness = 100.0f;
+
+            float thirdPersonPitch     =   0.0f;
+            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonDistance  =   1.f;
+            float thirdPersonTightness =   8.0f;
+                        
+            myCamera.setPitch	 (thirdPersonPitch    );
+            myCamera.setUpShift  (thirdPersonUpShift  );
+            myCamera.setDistance (thirdPersonDistance );
+            myCamera.setTightness(thirdPersonTightness);
+                        
+            /*
+            if ( myAvatar.getSpeed() < 0.02 ) {       
+                if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                }
+                
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
+                myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
+                myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
+                myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
+            } else {
+                if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
+                    myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                }
+            
+                printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+
+                myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
+                myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
+                myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
+                myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
+            }
+            */
+
+			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
+			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
+			myCamera.setRoll		  (   0.0  );
 		}
+        
+        // important...
+        myCamera.update( 1.f/FPS );
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
@@ -843,10 +873,10 @@ void display(void)
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
 			// set the camera to third-person view but offset so we can see the frustum
-			viewFrustumOffsetCamera.setYaw		(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
+			viewFrustumOffsetCamera.setTargetYaw(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
 			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
 			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUp		(  ::viewFrustumOffsetUp       );
+			viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
 			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
 			viewFrustumOffsetCamera.update(1.f/FPS);
 			whichCamera = viewFrustumOffsetCamera;
@@ -864,10 +894,8 @@ void display(void)
         if (::starsOn) {
             // should be the first rendering pass - w/o depth buffer / lighting
 
-
             // finally render the starfield
         	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
-            
         }
 
         glEnable(GL_LIGHTING);
@@ -909,10 +937,8 @@ void display(void)
         if (displayField) field.render();
             
         //  Render avatars of other agents
-        AgentList *agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin();
-            agent != agentList->getAgents().end();
-            agent++) {
+        AgentList* agentList = AgentList::getInstance();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
@@ -982,12 +1008,13 @@ void display(void)
     glPointSize(1.0f);
     char agents[100];
     
-    int totalAgents = AgentList::getInstance()->getAgents().size();
+    AgentList* agentList = AgentList::getInstance();
     int totalAvatars = 0, totalServers = 0;
-    for (int i = 0; i < totalAgents; i++) {
-        (AgentList::getInstance()->getAgents()[i].getType() == AGENT_TYPE_AVATAR)
-            ? totalAvatars++ : totalServers++;
+    
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
     }
+    
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
@@ -1496,11 +1523,9 @@ void idle(void) {
         updateAvatar(deltaTime);
 		
         //loop through all the other avatars and simulate them...
-        AgentList * agentList = AgentList::getInstance();
-        for(std::vector<Agent>::iterator agent = agentList->getAgents().begin(); agent != agentList->getAgents().end(); agent++) 
-		{
-            if (agent->getLinkedData() != NULL) 
-			{
+        AgentList* agentList = AgentList::getInstance();
+        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }

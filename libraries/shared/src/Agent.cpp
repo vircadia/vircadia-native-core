@@ -22,7 +22,19 @@
 
 using shared_lib::printLog;
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) {
+int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+    memcpy(agentId, packedData, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int packAgentId(unsigned char *packStore, uint16_t agentId) {
+    memcpy(packStore, &agentId, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) :
+    _isAlive(true)
+{
     if (agentPublicSocket != NULL) {
         publicSocket = new sockaddr;
         memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
@@ -46,12 +58,11 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     activeSocket = NULL;
     linkedData = NULL;
     _bytesReceivedMovingAverage = NULL;
-    
-    deleteMutex = new pthread_mutex_t;
-    pthread_mutex_init(deleteMutex, NULL);
 }
 
 Agent::Agent(const Agent &otherAgent) {
+    _isAlive = otherAgent._isAlive;
+    
     if (otherAgent.publicSocket != NULL) {
         publicSocket = new sockaddr;
         memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
@@ -92,9 +103,6 @@ Agent::Agent(const Agent &otherAgent) {
     } else {
         _bytesReceivedMovingAverage = NULL;
     }
-    
-    deleteMutex = new pthread_mutex_t;
-    pthread_mutex_init(deleteMutex, NULL);
 }
 
 Agent& Agent::operator=(Agent otherAgent) {
@@ -105,6 +113,7 @@ Agent& Agent::operator=(Agent otherAgent) {
 void Agent::swap(Agent &first, Agent &second) {
     using std::swap;
     
+    swap(first._isAlive, second._isAlive);
     swap(first.publicSocket, second.publicSocket);
     swap(first.localSocket, second.localSocket);
     swap(first.activeSocket, second.activeSocket);
@@ -114,13 +123,9 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.firstRecvTimeUsecs, second.firstRecvTimeUsecs);
     swap(first.lastRecvTimeUsecs, second.lastRecvTimeUsecs);
     swap(first._bytesReceivedMovingAverage, second._bytesReceivedMovingAverage);
-    swap(first.deleteMutex, second.deleteMutex);
 }
 
 Agent::~Agent() {
-    // the deleteMutex isn't destroyed here
-    // that's handled by the agent list silent agent removal thread
-
     delete publicSocket;
     delete localSocket;
     delete linkedData;
