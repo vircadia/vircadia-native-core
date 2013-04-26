@@ -706,15 +706,39 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     
     printf("--------- DEBUG TESTING ------------\n");
     unsigned char* lastOctalCode = tree->rootNode->octalCode;
+    const int MAX_VOXEL_PACKET_SIZE=13; // nothing should fit...
     unsigned char* fullOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     unsigned char* outputBuffer = fullOutputBuffer;
     bool startedWriting = false;
     int bytesWritten = 0;
+
+    const int LIKELY_EXTRA_TREES = 10;
+    int sizeExtraTrees = LIKELY_EXTRA_TREES;
+    int countExtraTrees = 0;
+    VoxelNode** extraTrees = new VoxelNode*[sizeExtraTrees];
     
-    bytesWritten = tree->bhgLoadBitstream(tree->rootNode, *viewFrustum, lastOctalCode, startedWriting, 
-        outputBuffer,MAX_VOXEL_PACKET_SIZE);
+    bytesWritten = tree->encodeTreeBitstream(tree->rootNode, *viewFrustum, 
+                                    outputBuffer, MAX_VOXEL_PACKET_SIZE, extraTrees, sizeExtraTrees, countExtraTrees);
     
-    printf("--------- results ------------\n");
+    printf("--------- initial results ------------\n");
     outputBufferBits(fullOutputBuffer, bytesWritten, true);
+    printf("--------- DONE initial results ------------\n");
+    
+    printf("--------- extra trees ------------\n");
+    printf("countExtraTrees=%d\n",countExtraTrees);
+
+    for(int i=0; i < countExtraTrees; i++) {
+        printf("processing extraTree[%d] countExtraTrees=%d\n", i, countExtraTrees);
+        VoxelNode* extraTree = extraTrees[i];
+        bytesWritten = tree->encodeTreeBitstream(extraTree, *viewFrustum, 
+                                        outputBuffer, MAX_VOXEL_PACKET_SIZE, extraTrees, sizeExtraTrees, countExtraTrees);
+        printf("--------- extra results ------------\n");
+        outputBufferBits(fullOutputBuffer, bytesWritten, true);
+        printf("--------- DONE extra results ------------\n");
+        
+    }
+    
+    
+    
     printf("--------- DONE DEBUG TESTING ------------\n");
 }
