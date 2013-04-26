@@ -705,40 +705,88 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     
     
     printf("--------- DEBUG TESTING ------------\n");
-    unsigned char* lastOctalCode = tree->rootNode->octalCode;
     //const int MAX_VOXEL_PACKET_SIZE=13; // test tight fit...
-    unsigned char* fullOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    unsigned char* outputBuffer = fullOutputBuffer;
-    bool startedWriting = false;
+    unsigned char* tempOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    unsigned char* finalOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    unsigned char* finalOutputBufferAt = finalOutputBuffer;
+    int availableInFinal = MAX_VOXEL_PACKET_SIZE;
     int bytesWritten = 0;
+    int totalBytesWritten = 0;
+    int totalPackets = 0;
 
     VoxelNodeBag bagOfTrees;
     
-    bytesWritten = tree->encodeTreeBitstream(tree->rootNode, *viewFrustum,  outputBuffer, MAX_VOXEL_PACKET_SIZE, bagOfTrees);
+    // stick a "V" in the finalOutputBuffer
+    finalOutputBuffer[0] = 'V';
+    finalOutputBufferAt++;
+    availableInFinal = MAX_VOXEL_PACKET_SIZE-1;
     
-    printf("--------- initial results ---- bytesWritten=%d ------------\n",bytesWritten);
-    outputBufferBits(fullOutputBuffer, bytesWritten, true);
-    printf("--------- DONE initial results ------------\n");
+    //bytesWritten = tree->encodeTreeBitstream(tree->rootNode, *viewFrustum,  outputBuffer, MAX_VOXEL_PACKET_SIZE, bagOfTrees);
+    //totalBytesWritten += bytesWritten;
+    //printf("--------- initial results ---- bytesWritten=%d ------------\n",bytesWritten);
+    //outputBufferBits(finalOutputBuffer, bytesWritten, true);
+    //printf("--------- DONE initial results ------------\n");
+
+    printf("--------- searchForColoredNodes() ------------\n");
+    tree->searchForColoredNodes(tree->rootNode, *viewFrustum, bagOfTrees);
+    printf("--------- DONE searchForColoredNodes() ------------\n");
     
-    printf("--------- extra trees ------------\n");
+    printf("--------- bag of trees ------------\n");
     printf("bagOfTrees.count()=%d\n",bagOfTrees.count());
 
-    int countOfExtra = 0;
+    int countOfTrees = 0;
+    bool finalOutputBufferWaiting = false;
     while (!bagOfTrees.isEmpty()) {
-        countOfExtra++;
+        countOfTrees++;
         VoxelNode* extraTree = bagOfTrees.extract();
-        printf("processing countOfExtra=%d\n", countOfExtra);
+        printf("processing countOfTrees=%d\n", countOfTrees);
 
-        bytesWritten = tree->encodeTreeBitstream(extraTree, *viewFrustum, outputBuffer, MAX_VOXEL_PACKET_SIZE, bagOfTrees);
+        // Only let this guy create at largest packets equal to the amount of space we have left in our final???
+        // Or let it create the largest possible size (minus 1 for the "V")
+        bytesWritten = tree->encodeTreeBitstream(extraTree, *viewFrustum, tempOutputBuffer, MAX_VOXEL_PACKET_SIZE-1, bagOfTrees);
 
-
-        printf("--------- extra results ---- bytesWritten=%d ------------\n",bytesWritten);
-        outputBufferBits(fullOutputBuffer, bytesWritten, true);
-        printf("--------- DONE extra results ------------\n");
+        printf("this tree size=%d\n", bytesWritten);
         
+        // if we have room in our final packet, add this buffer to the final packet
+        if (availableInFinal >= bytesWritten) {
+            memcpy(finalOutputBufferAt, tempOutputBuffer, bytesWritten);
+            availableInFinal -= bytesWritten;
+            finalOutputBufferAt += bytesWritten;
+            finalOutputBufferWaiting = true;
+        } else {
+            // otherwise "send" the packet!
+            int sizeOfFinal = MAX_VOXEL_PACKET_SIZE - availableInFinal;
+
+            totalBytesWritten += sizeOfFinal;
+            totalPackets++;
+            printf("---- voxel packet ---- sizeOfFinal=%d totalPackets=%d ----\n",sizeOfFinal,totalPackets);
+            //outputBufferBits(finalOutputBuffer, sizeOfFinal, true);
+            printf("---- DONE voxel packet ------------\n");
+
+            // reset our finalOutputBuffer (keep the 'V')
+            finalOutputBufferAt = &finalOutputBuffer[1];
+            availableInFinal = MAX_VOXEL_PACKET_SIZE - 1;
+            finalOutputBufferWaiting = false;
+            
+            // we also need to stick the last created packet in here!!
+            memcpy(finalOutputBufferAt, tempOutputBuffer, bytesWritten);
+            availableInFinal -= bytesWritten;
+            finalOutputBufferAt += bytesWritten;
+            finalOutputBufferWaiting = true;
+        }
     }
     
+    if (finalOutputBufferWaiting) {
+        // otherwise "send" the packet!
+        int sizeOfFinal = MAX_VOXEL_PACKET_SIZE - availableInFinal;
+
+        totalBytesWritten += sizeOfFinal;
+        totalPackets++;
+        printf("---- voxel packet ---- sizeOfFinal=%d totalPackets=%d ----\n",sizeOfFinal,totalPackets);
+        //outputBufferBits(finalOutputBuffer, sizeOfFinal, true);
+        printf("---- DONE voxel packet ------------\n");
+    }
     
-    
-    printf("--------- DONE DEBUG TESTING ------------\n");
+    printf("--- DONE DEBUG TESTING --- countOfTrees=%d totalBytesWritten=%d totalPackets=%d ------\n", 
+        countOfTrees, totalBytesWritten,totalPackets);
 }
