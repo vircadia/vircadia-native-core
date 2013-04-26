@@ -124,6 +124,8 @@ Avatar::Avatar(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
+    
+    _balls = new Balls(10);
 }
 
 
@@ -284,6 +286,9 @@ void Avatar::setMousePressed( bool d ) {
 
 void Avatar::simulate(float deltaTime) {
 
+    // update balls
+    if (_balls) { _balls->simulate(deltaTime); }
+    
 	// update avatar skeleton
 	updateSkeleton();
 	
@@ -647,9 +652,18 @@ void Avatar::render(bool lookingInMirror) {
             glEnd();
         }
     }
+    
+    //  Render the balls
+    
+    if (_balls) {
+        glPushMatrix();
+        glTranslatef(_position.x, _position.y, _position.z);
+        _balls->render();
+        glPopMatrix();
+    }
+
 }
 
-	   
 void Avatar::renderHead(bool lookingInMirror) {
     int side = 0;
         

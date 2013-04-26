@@ -65,7 +65,6 @@
 #include "Menu.h"
 #include "Camera.h"
 #include "Avatar.h"
-#include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
 #include <AgentList.h>
@@ -119,14 +118,6 @@ Stars stars;
 bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-
-ParticleSystem balls(0,
-                     box, 
-                     false,                //  Wrap?
-                     0.02f,                //  Noise
-                     0.3f,                 //  Size scale 
-                     0.0                   //  Gravity
-                     );
 
 Cloud cloud(0,                             //  Particles
             box,                           //  Bounding Box
@@ -918,9 +909,7 @@ void display(void)
                 avatar->render(0);
             }
         }
-    
-        if ( !::lookingInMirror ) balls.render();
-    
+        
         //  Render the world box
         if (!::lookingInMirror && ::statsOn) { render_world_box(); }
         
@@ -1508,7 +1497,6 @@ void idle(void) {
     
         field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
-        balls.simulate   (deltaTime);
         cloud.simulate   (deltaTime);
 
         glutPostRedisplay();

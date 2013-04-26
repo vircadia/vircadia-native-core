@@ -22,6 +22,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+#include "Balls.h"
+
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
 const float THRUST_MAG      = 10.0;
@@ -249,7 +251,8 @@ class Avatar : public AvatarData {
         int               _transmitterPackets;
         Avatar*           _interactingOther;
         bool              _interactingOtherIsNearby;
-        
+        Balls*            _balls;
+    
         // private methods...
 		void initializeSkeleton();
 		void updateSkeleton();
