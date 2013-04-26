@@ -38,6 +38,7 @@ bool usingBigSphereCollisionTest = true;
 char iris_texture_file[] = "resources/images/green_eye.png";
 
 float chatMessageScale = 0.00025;
+float chatMessageHeight = 0.4;
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
@@ -648,7 +649,7 @@ void Avatar::render(bool lookingInMirror) {
         float modelview[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
         
-        glTranslatef(_position.x, _position.y + 0.7, _position.z);
+        glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         glTranslatef(width * 0.5, 0, 0);
         
