@@ -1381,6 +1381,7 @@ void key(unsigned char k, int x, int y)
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
                 AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
             
         } else {
             myAvatar.setChatMessage(chatEntry.getContents());

@@ -652,8 +652,9 @@ void Avatar::render(bool lookingInMirror) {
     
     if (!_chatMessage.empty()) {
         float width = 0;
+        float lastWidth;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*chatMessageScale;
+            width += (lastWidth = glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*chatMessageScale);
         }
         glPushMatrix();
         
@@ -668,7 +669,21 @@ void Avatar::render(bool lookingInMirror) {
         glTranslatef(width * 0.5, 0, 0);
         
         glDisable(GL_LIGHTING);
-        drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+        if (_keyState == NoKeyDown) {
+            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            
+        } else {
+            // rather than using substr and allocating a new string, just replace the last
+            // character with a null, then restore it
+            int lastIndex = _chatMessage.size() - 1;
+            char lastChar = _chatMessage[lastIndex];
+            _chatMessage[lastIndex] = '\0';
+            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            _chatMessage[lastIndex] = lastChar;
+            glTranslatef(lastWidth - width, 0, 0);
+            drawtext(0, 0, chatMessageScale, 180, 3.0,
+                0, _chatMessage.c_str() + lastIndex, 0, 1, 0);                        
+        }
         glEnable(GL_LIGHTING);
         
         glPopMatrix();
