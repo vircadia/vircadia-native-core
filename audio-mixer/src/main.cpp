@@ -146,7 +146,7 @@ void *sendBuffer(void *args)
                         
                         float minCoefficient = std::min(1.0f,
                                                         powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
-                        printf("The distance between the two agents is %d\n", distanceToAgent);
+                        printf("The distance between the two agents is %f\n", distanceToAgent);
                         printf("The DC between agent %d and %d is %f\n", agent->getAgentId(), otherAgent->getAgentId(), minCoefficient);
                         distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
                     }
