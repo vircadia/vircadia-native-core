@@ -19,6 +19,8 @@
 
 using namespace std;
 
+const bool BALLS_ON = false; 
+
 float skinColor[] = {1.0, 0.84, 0.66};
 float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -129,6 +131,9 @@ Avatar::Avatar(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
+    
+    if (BALLS_ON)   { _balls = new Balls(100); }
+    else            { _balls = NULL; }
 }
 
 
@@ -270,12 +275,15 @@ void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm
     addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
 }
 
+float Avatar::getAbsoluteHeadYaw() const {
+    return _bodyYaw + _headYaw;
+}
+
 void Avatar::addLean(float x, float z) {
     //  Add Body lean as impulse
     _head.leanSideways += x;
     _head.leanForward  += z;
 }
-
 
 void Avatar::setLeanForward(float dist){
     _head.leanForward = dist;
@@ -290,6 +298,9 @@ void Avatar::setMousePressed( bool d ) {
 }
 
 void Avatar::simulate(float deltaTime) {
+    
+    // update balls
+    if (_balls) { _balls->simulate(deltaTime); }
     
 	// update avatar skeleton
 	updateSkeleton();
@@ -635,6 +646,15 @@ void Avatar::render(bool lookingInMirror) {
         }
     }
     
+    //  Render the balls
+    
+    if (_balls) {
+        glPushMatrix();
+        glTranslatef(_position.x, _position.y, _position.z);
+        _balls->render();
+        glPopMatrix();
+    }
+
     if (!_chatMessage.empty()) {
         float width = 0;
         float lastWidth;
@@ -674,7 +694,6 @@ void Avatar::render(bool lookingInMirror) {
         glPopMatrix();
     }
 }
-
 
 void Avatar::renderHead(bool lookingInMirror) {
     int side = 0;

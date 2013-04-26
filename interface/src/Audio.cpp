@@ -114,15 +114,12 @@ int audioCallback (const void *inputBuffer,
     AudioData *data = (AudioData *) userData;
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
-//    int16_t *inputRight = ((int16_t **) inputBuffer)[1];
     
-    //printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
+    // printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
     
     if (inputLeft != NULL) {
         
-        //
         //  Measure the loudness of the signal from the microphone and store in audio object
-        //
         float loudness = 0;
         for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
             loudness += abs(inputLeft[i]);
@@ -130,10 +127,8 @@ int audioCallback (const void *inputBuffer,
         
         loudness /= BUFFER_LENGTH_SAMPLES;
         data->lastInputLoudness = loudness;
-        
-        //
+    
         //  If scope is turned on, copy input buffer to scope
-        //
         if (scope->getState()) {
             for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
                 scope->addData((float)inputLeft[i]/32767.0, 1, i);
@@ -165,7 +160,7 @@ int audioCallback (const void *inputBuffer,
             *(currentPacketPtr++) = 255;
             
             // memcpy the corrected render yaw
-            float correctedYaw = fmodf(data->linkedAvatar->getRenderYaw(), 360);
+            float correctedYaw = fmodf(-1 * data->linkedAvatar->getAbsoluteHeadYaw(), 360);
             
             if (correctedYaw > 180) {
                 correctedYaw -= 360;
@@ -174,42 +169,13 @@ int audioCallback (const void *inputBuffer,
             }
             
             if (data->mixerLoopbackFlag) {
-                correctedYaw = correctedYaw > 0 ? correctedYaw + AGENT_LOOPBACK_MODIFIER : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+                correctedYaw = correctedYaw > 0
+                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
+                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
-            currentPacketPtr += sizeof(float);
-            
-//            if (samplesLeftForWalk == 0) {
-//                sampleWalkPointer = walkingSoundArray;
-//            }
-//            
-//            if (data->playWalkSound) {
-//                // if this boolean is true and we aren't currently playing the walk sound
-//                // set the number of samples left for walk
-//                samplesLeftForWalk = walkingSoundSamples;
-//                data->playWalkSound = false;
-//            }
-//            
-//            if (samplesLeftForWalk > 0) {
-//                // we need to play part of the walking sound
-//                // so add it in
-//                int affectedSamples = std::min(samplesLeftForWalk, BUFFER_LENGTH_SAMPLES);
-//                for (int i = 0; i < affectedSamples; i++) {
-//                    inputLeft[i] += *sampleWalkPointer;
-//                    inputLeft[i] = std::max(inputLeft[i], std::numeric_limits<int16_t>::min());
-//                    inputLeft[i] = std::min(inputLeft[i], std::numeric_limits<int16_t>::max());
-//                    
-//                    sampleWalkPointer++;
-//                    samplesLeftForWalk--;
-//                    
-//                    if (sampleWalkPointer - walkingSoundArray > walkingSoundSamples) {
-//                        sampleWalkPointer = walkingSoundArray;
-//                    };
-//                }
-//            }
-//            
-            
+            currentPacketPtr += sizeof(float);            
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
@@ -239,26 +205,21 @@ int audioCallback (const void *inputBuffer,
             starve_counter++;
             packetsReceivedThisPlayback = 0;
 
-            //printLog("Starved #%d\n", starve_counter);
+            // printLog("Starved #%d\n", starve_counter);
             data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                //printLog("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
+                // printLog("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
             } else {
-                //printLog("pushing buffer\n");
+                // printLog("pushing buffer\n");
             }
             // play whatever we have in the audio buffer
             
-            //
-            // if we haven't fired off the flange effect, check if we should
-            //
             
-            //
-            // NOTE:  PER - LastMeasuredHeadYaw is now relative to body position, represents the local
-            //        rotation of the head relative to body, this may effect flange effect!
-            // 
-            //
+            // if we haven't fired off the flange effect, check if we should
+            // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
+            
             int lastYawMeasured = fabsf(data->linkedAvatar->getLastMeasuredHeadYaw());
             
             if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
@@ -276,21 +237,6 @@ int audioCallback (const void *inputBuffer,
                     flangeWeight = MAX_FLANGE_SAMPLE_WEIGHT * flangeIntensity;
                 }
             }
-            
-            // check if we have more than we need to play out
-//            int thresholdFrames = ceilf((PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) / (float)PACKET_LENGTH_SAMPLES);
-//            int thresholdSamples = thresholdFrames * PACKET_LENGTH_SAMPLES;
-//            
-//            if (ringBuffer->diffLastWriteNextOutput() > thresholdSamples) {
-//                // we need to push the next output forwards
-//                int samplesToPush = ringBuffer->diffLastWriteNextOutput() - thresholdSamples;
-//                
-//                if (ringBuffer->getNextOutput() + samplesToPush > ringBuffer->getBuffer()) {
-//                    ringBuffer->setNextOutput(ringBuffer->getBuffer() + (samplesToPush - (ringBuffer->getBuffer() + RING_BUFFER_SAMPLES - ringBuffer->getNextOutput())));
-//                } else {
-//                    ringBuffer->setNextOutput(ringBuffer->getNextOutput() + samplesToPush);
-//                }
-//            }
             
             for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                 
