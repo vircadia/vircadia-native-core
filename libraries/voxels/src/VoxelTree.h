@@ -9,10 +9,13 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
+#include <pthread.h>
+
 #include "SimpleMovingAverage.h"
 
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
+#include "VoxelNodeBag.h"
 #include "MarkerNode.h"
 
 const int MAX_VOXEL_PACKET_SIZE = 1492;
@@ -63,7 +66,7 @@ public:
 
     int encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes,
-                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const;
+                                    VoxelNodeBag& bag);
 
     int searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
                                         unsigned char*& lastOctalCode, bool& startedWriting, 
@@ -72,12 +75,14 @@ public:
 private:
     int encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes,
-                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const;
+                                    VoxelNodeBag& bag) const;
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
+    
+    pthread_mutex_t _treeNodeDelete;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);
