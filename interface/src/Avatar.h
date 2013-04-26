@@ -184,6 +184,7 @@ public:
     const glm::vec3& getHeadPosition() const ;
     const glm::vec3& getBonePosition(AvatarBoneID b) const { return _bone[b].position; };
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
+    float getSpeed() const { return _speed; };
     float getGirth();
     float getHeight();
     
@@ -238,6 +239,7 @@ private:
     AvatarHandHolding _handHolding;
     glm::vec3         _velocity;
     glm::vec3	      _thrust;
+    float             _speed;
     float		      _maxArmLength;
     Orientation	      _orientation;
     int               _driveKeys[MAX_DRIVE_KEYS];
@@ -249,6 +251,7 @@ private:
     int               _transmitterPackets;
     Avatar*           _interactingOther;
     bool              _interactingOtherIsNearby;
+    float             _pelvisStandingHeight;
     
     void initializeSkeleton();
     void updateSkeleton();
