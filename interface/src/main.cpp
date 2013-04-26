@@ -135,10 +135,6 @@ Audio audio(&audioScope, &myAvatar);
 #define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
                                          //  in the idle loop?
 
-float startYaw = 122.f;
-float renderYawRate = 0.f;
-float renderPitchRate = 0.f; 
-
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
@@ -154,7 +150,7 @@ bool logOn = true;                  //  Whether to show on-screen log
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
-bool gyroLook = false;               //  Whether to allow the gyro data from head to move your view
+bool gyroLook = true;               //  Whether to allow the gyro data from head to move your view
 
 int displayLevels = 0;
 bool lookingInMirror = 0;           //  Are we currently rendering one's own head as if in mirror?
@@ -378,7 +374,6 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
-    myAvatar.setRenderYaw(startYaw);
     
     initializeHandController();
 
@@ -428,13 +423,7 @@ void terminate () {
 
 void reset_sensors()
 {
-    //  
-    //   Reset serial I/O sensors 
-    // 
-    myAvatar.setRenderYaw(startYaw);
     
-    renderYawRate = 0; 
-    renderPitchRate = 0;
     myAvatar.setPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
@@ -472,28 +461,30 @@ void updateAvatar(float frametime)
     headMouseY = max(headMouseY, 0);
     headMouseY = min(headMouseY, HEIGHT);
     
-    //  Update render direction (pitch/yaw) based on measured gyro rates
-    const float MIN_YAW_RATE = 5;
-    const float YAW_SENSITIVITY = 1.0;
-    
-    //  If enabled, Update render pitch and yaw based on gyro data
-    if (::gyroLook) {
-        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
-            myAvatar.addBodyYaw(-gyroYawRate * YAW_SENSITIVITY * frametime);
-        }
-    }
-    
-    float renderPitch = myAvatar.getRenderPitch();
-    // Decay renderPitch toward zero because we never look constantly up/down 
-    renderPitch *= (1.f - 2.0*frametime);
+    //  Update head and body pitch and yaw based on measured gyro rates
+        if (::gyroLook) {
+        // Yaw
+        const float MIN_YAW_RATE = 50;
+        const float YAW_SENSITIVITY = 1.0;
 
-    //  Decay angular rates toward zero 
-    renderPitchRate *= (1.f - 5.0*frametime);
-    renderYawRate *= (1.f - 7.0*frametime);
-    
-    //  Update own avatar data
-    myAvatar.setRenderYaw(myAvatar.getRenderYaw() + renderYawRate);
-    myAvatar.setRenderPitch(renderPitch + renderPitchRate);
+        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
+            float addToBodyYaw = (gyroYawRate > 0.f) ?
+                                gyroYawRate - MIN_YAW_RATE : gyroYawRate + MIN_YAW_RATE;
+            
+            myAvatar.addBodyYaw(-addToBodyYaw * YAW_SENSITIVITY * frametime);
+        }
+        // Pitch   NOTE: PER - Need to make camera able to pitch first!
+        /*
+        const float MIN_PITCH_RATE = 50;
+        const float PITCH_SENSITIVITY = 1.0;
+
+        if (fabs(gyroPitchRate) > MIN_PITCH_RATE) {
+            float addToBodyPitch = (gyroPitchRate > 0.f) ?
+            gyroPitchRate - MIN_PITCH_RATE : gyroPitchRate + MIN_PITCH_RATE;
+            
+            myAvatar.addBodyPitch(addToBodyPitch * PITCH_SENSITIVITY * frametime);
+        */
+    }
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
@@ -783,9 +774,9 @@ void display(void)
         
         GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };  //{ 0.125, 0.305, 0.5 };  
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  //{ 0.5, 0.42, 0.33 }; 
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
@@ -1468,9 +1459,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
     if (k == 's') myAvatar.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
-    if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
-    if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
-    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1);
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
     
     if (k == '\r') {
