@@ -51,7 +51,7 @@ void attachAvatarDataToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);

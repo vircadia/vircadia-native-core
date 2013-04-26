@@ -37,6 +37,9 @@ bool usingBigSphereCollisionTest = true;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
+float chatMessageScale = 0.00025;
+float chatMessageHeight = 0.4;
+
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
@@ -630,6 +633,45 @@ void Avatar::render(bool lookingInMirror) {
             glVertex3f( v2.x, v2.y, v2.z );
             glEnd();
         }
+    }
+    
+    if (!_chatMessage.empty()) {
+        float width = 0;
+        float lastWidth;
+        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
+            width += (lastWidth = glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*chatMessageScale);
+        }
+        glPushMatrix();
+        
+        // extract the view direction from the modelview matrix: transform (0, 0, 1) by the
+        // transpose of the modelview to get its direction in world space, then use the X/Z
+        // components to determine the angle
+        float modelview[16];
+        glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
+        
+        glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
+        glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
+        glTranslatef(width * 0.5, 0, 0);
+        
+        glDisable(GL_LIGHTING);
+        if (_keyState == NoKeyDown) {
+            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            
+        } else {
+            // rather than using substr and allocating a new string, just replace the last
+            // character with a null, then restore it
+            int lastIndex = _chatMessage.size() - 1;
+            char lastChar = _chatMessage[lastIndex];
+            _chatMessage[lastIndex] = '\0';
+            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            _chatMessage[lastIndex] = lastChar;
+            glTranslatef(lastWidth - width, 0, 0);
+            drawtext(0, 0, chatMessageScale, 180, 3.0,
+                0, _chatMessage.c_str() + lastIndex, 0, 1, 0);                        
+        }
+        glEnable(GL_LIGHTING);
+        
+        glPopMatrix();
     }
 }
 

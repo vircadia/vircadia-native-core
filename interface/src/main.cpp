@@ -64,6 +64,7 @@
 #include "MenuColumn.h"
 #include "Menu.h"
 #include "Camera.h"
+#include "ChatEntry.h"
 #include "Avatar.h"
 #include "Particle.h"
 #include "Texture.h"
@@ -179,6 +180,9 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
+
+ChatEntry chatEntry;       // chat entry field
+bool chatEntryOn = false;  //  Whether to show the chat entry
 
 struct HandController
 {
@@ -1004,6 +1008,11 @@ void display(void)
         menu.render(WIDTH,HEIGHT);
     }
 
+    //  Show chat entry field
+    if (::chatEntryOn) {
+        chatEntry.render(WIDTH, HEIGHT);
+    }
+
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
     char agents[100];
@@ -1349,6 +1358,11 @@ void specialkeyUp(int k, int x, int y) {
 
 void specialkey(int k, int x, int y)
 {
+    if (::chatEntryOn) {
+        chatEntry.specialKey(k);
+        return;
+    }
+    
     if (k == GLUT_KEY_UP || k == GLUT_KEY_DOWN || k == GLUT_KEY_LEFT || k == GLUT_KEY_RIGHT) {
         if (k == GLUT_KEY_UP) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(UP, 1);
@@ -1374,6 +1388,11 @@ void specialkey(int k, int x, int y)
 
 
 void keyUp(unsigned char k, int x, int y) {
+    if (::chatEntryOn) {
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        return;
+    }
+
     if (k == 'e') myAvatar.setDriveKeys(UP, 0);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 0);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 0);
@@ -1385,6 +1404,19 @@ void keyUp(unsigned char k, int x, int y) {
 
 void key(unsigned char k, int x, int y)
 {
+    if (::chatEntryOn) {
+        if (chatEntry.key(k)) {
+            myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
+                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
+            
+        } else {
+            myAvatar.setChatMessage(chatEntry.getContents());
+            chatEntry.clear();
+            ::chatEntryOn = false;
+        }
+        return;
+    }
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
@@ -1451,6 +1483,12 @@ void key(unsigned char k, int x, int y)
     if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
+    
+    if (k == '\r') {
+        ::chatEntryOn = true;
+        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setChatMessage(string());
+    }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
@@ -1659,7 +1697,12 @@ int main(int argc, const char * argv[])
         return EXIT_SUCCESS;
     }
 
-    AgentList::createInstance(AGENT_TYPE_AVATAR);
+    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    const char* portStr = getCmdOption(argc, argv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
