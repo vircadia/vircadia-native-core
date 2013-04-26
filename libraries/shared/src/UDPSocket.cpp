@@ -119,7 +119,7 @@ unsigned short loadBufferWithSocketInfo(char *addressBuffer, sockaddr *socket) {
     }
 }
 
-UDPSocket::UDPSocket(int listeningPort) {
+UDPSocket::UDPSocket(int listeningPort) : blocking(true) {
     init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -189,6 +189,18 @@ bool UDPSocket::init() {
     }
 #endif
     return true;
+}
+
+void UDPSocket::setBlocking(bool blocking) {
+    this->blocking = blocking;
+
+#ifdef _WIN32
+    u_long mode = blocking ? 0 : 1;
+    ioctlsocket(handle, FIONBIO, &mode);
+#else
+    int flags = fcntl(handle, F_GETFL, 0);
+    fcntl(handle, F_SETFL, blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK));
+#endif
 }
 
 //  Receive data on this socket with retrieving address of sender

@@ -275,12 +275,15 @@ void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm
     addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
 }
 
+float Avatar::getAbsoluteHeadYaw() const {
+    return _bodyYaw + _headYaw;
+}
+
 void Avatar::addLean(float x, float z) {
     //  Add Body lean as impulse
     _head.leanSideways += x;
     _head.leanForward  += z;
 }
-
 
 void Avatar::setLeanForward(float dist){
     _head.leanForward = dist;
@@ -671,7 +674,7 @@ void Avatar::render(bool lookingInMirror) {
         glTranslatef(width * 0.5, 0, 0);
         
         glDisable(GL_LIGHTING);
-        if (_keyState == NoKeyDown) {
+        if (_keyState == NO_KEY_DOWN) {
             drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
             
         } else {

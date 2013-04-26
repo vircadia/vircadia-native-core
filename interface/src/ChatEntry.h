@@ -14,7 +14,7 @@
 class ChatEntry {
 public:
 
-    const std::string& getContents () const { return contents; }
+    const std::string& getContents () const { return _contents; }
     
     void clear ();
     
@@ -25,9 +25,8 @@ public:
     
 private:
 
-    std::string contents;
-    
-    int cursorPos;
+    std::string _contents;
+    int _cursorPos;
 };
 
 #endif /* defined(__interface__ChatEntry__) */
