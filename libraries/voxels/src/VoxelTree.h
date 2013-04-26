@@ -68,14 +68,14 @@ public:
                                     unsigned char* outputBuffer, int availableBytes,
                                     VoxelNodeBag& bag);
 
-    int searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
-                                        unsigned char*& lastOctalCode, bool& startedWriting, 
-                                        unsigned char*& outputBuffer, int availableBytes) const;
-	
+    void searchForColoredNodes(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+    
 private:
     int encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes,
                                     VoxelNodeBag& bag) const;
+
+    void searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);

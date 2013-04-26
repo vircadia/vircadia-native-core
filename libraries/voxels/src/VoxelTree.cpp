@@ -879,59 +879,26 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 }
 
 // This will encode a larger tree into multiple subtree bitstreams. Given a node it will search for deeper subtrees that 
-// have color. It will search for sub trees, and upon finding a subTree, it will call encodeTreeBitstream() to encode that
-// tree. Once the subtree is encoded, it will keep searching for additional subtrees.
-int VoxelTree::searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
-                                    unsigned char*& lastOctalCode, bool& startedWriting, 
-                                    unsigned char*& outputBuffer, int availableBytes) const {
+// have color. It will search for sub trees, and upon finding a subTree, it will stick the node in the bag to for later
+// endcoding.
+void VoxelTree::searchForColoredNodes(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+
+    // call the recursive version, this will add all found colored node roots to the bag
+    searchForColoredNodesRecursion(rootNode, viewFrustum, bag);
+}
 
 
-    // Some debugging code... where are we in the tree..
-    node->printDebugDetails("encodeTreeBitstream() node=");
-    
-    // How many bytes have we written so far at this level;
-    int bytesAtThisLevel = 0;
 
-    // remember our prior writing state, because we might need to do something special with this information below
-    bool priorWritingState = startedWriting;
+void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {
-        printf("bhgLoadBitstream() node NOT IN VIEW\n");
-        return bytesAtThisLevel;
+        return;
     }
     
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
 
-    // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
-    // is 1 byte for child colors + 3*8 bytes for the actual colors + 1 byte for child trees. There could be sub trees
-    // below this point, which might take many more bytes, but that's ok, because we can always mark our subtrees as
-    // not existing and stop the packet at this point, then start up with a new packet for the remaining sub trees.
-    const int CHILD_COLOR_MASK_BYTES = 1;
-    const int MAX_CHILDREN = 8;
-    const int BYTES_PER_COLOR = 3;
-    const int CHILD_TREE_EXISTS_BYTES = 1;
-    const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + MAX_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
-    
-    // If we haven't yet started writing we may also need to write an octcode for this level. Which we can determine
-    // the size of by looking at this node's octcode.
-    int thisLevelOctcodeSize = startedWriting ? 0 : bytesRequiredForCodeLength(*node->octalCode);
-
-    // Some degenerate cases... If for some reason, we haven't started writing, and the available bytes left are less
-    // than what it would take to even write our octcode, we need to bail at this point
-    if (!startedWriting && (availableBytes < thisLevelOctcodeSize)) {
-        return bytesAtThisLevel;
-    }
-    
-    // Make our local buffer large enough to handle writing at this level in case we need to.
-    unsigned char thisLevelBuffer[thisLevelOctcodeSize+MAX_LEVEL_BYTES];
-    unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
-
-    // XXXBHG - We are not yet using this. But we plan to soon... this is how we determine if we've previously sent out
-    // content at this level or not. In theory, if we're more shallow than where we left off, then we don't actually want
-    // to send data. If we're deeper than where we left off, then we want to be prepared to send data
-    bool sendData = compareOctalCodes(node->octalCode,lastOctalCode);
-
+    const int  MAX_CHILDREN = 8;
     VoxelNode* inViewChildren[MAX_CHILDREN];
     float      distancesToChildren[MAX_CHILDREN];
     int        positionOfChildren[MAX_CHILDREN];
@@ -939,223 +906,58 @@ int VoxelTree::searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrus
     int        inViewNotLeafCount = 0;
     int        inViewWithColorCount = 0;
     
-    unsigned char childrenExistBits = 0;
-    unsigned char childrenColoredBits = 0;
-
     // for each child node, check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
     for (int i = 0; i < MAX_CHILDREN; i++) {
         VoxelNode* childNode = node->children[i];
         bool childExists = (childNode != NULL);
-        
-        if (childExists) {       
-            AABox childBox;
-            childNode->getAABox(childBox);
-            printf("child[%d] childBox.corner=(%f,%f,%f) size=%f \n", i ,
-                childBox.getCorner().x, childBox.getCorner().y, childBox.getCorner().z, childBox.getSize().x);
-        }
-        
         bool childIsColored = (childExists && childNode->isColored());
         bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
         bool childIsLeaf    = (childExists && childNode->isLeaf());
         
-        printf("childExists=%s childIsColored=%s childIsInView=%s childIsLeaf=%s \n",
-            (childExists ? "yes" : "no"), (childIsColored ? "yes" : "no"), 
-            (childIsInView ? "yes" : "no"), (childIsLeaf ? "yes" : "no") );
+        //printf("childExists=%s childIsColored=%s childIsInView=%s childIsLeaf=%s \n",
+        //    (childExists ? "yes" : "no"), (childIsColored ? "yes" : "no"), 
+        //    (childIsInView ? "yes" : "no"), (childIsLeaf ? "yes" : "no") );
         
-        // colored not important??
-        if (childExists && childIsInView) {
+        if (childIsInView) {
             
             // track children in view as existing and not a leaf
             if (!childIsLeaf) {
-                childrenExistBits += (1 << (7 - i));
                 inViewNotLeafCount++;
             }
             
             // track children with actual color
             if (childIsColored) {
-                childrenColoredBits += (1 << (7 - i));
                 inViewWithColorCount++;
             }
         
             float distance = childNode->distanceToCamera(viewFrustum);
 
-            printf("child[%d] distance=%f\n",i,distance);
+            //printf("child[%d] distance=%f\n",i,distance);
 
             inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
                                 (void**)&inViewChildren, (float*)&distancesToChildren, (int*)&positionOfChildren,
                                 inViewCount, MAX_CHILDREN);
         }
     }
-    printf("bhgLoadBitstream() child nodes in view... inViewCount=%d\n",inViewCount);
-    printf("bhgLoadBitstream() child nodes in view with color... inViewWithColorCount=%d\n",inViewWithColorCount);
-    printf("bhgLoadBitstream() child nodes in view NOT LEAF... inViewNotLeafCount=%d\n",inViewNotLeafCount);
-    
-    // If we have children with color, then we must go ahead and start writing codes, 
-    // we can't dig deeper before starting to write.
-    bool wroteOctcodeAtThisLevel = false;
-    if (inViewWithColorCount && !startedWriting) {
-    
-        // keep track that we've started writing
-        startedWriting = true;
-        
-        // write the octal code
-        int codeLength = bytesRequiredForCodeLength(*node->octalCode);
 
-        printf("bhgLoadBitstream() writing my octal code\n");
-        memcpy(writeToThisLevelBuffer,node->octalCode,codeLength);
-
-        writeToThisLevelBuffer += codeLength; // move the pointer
-        bytesAtThisLevel += codeLength; // keep track of byte count
-        
-        // remember we wrote our octcode here
-        wroteOctcodeAtThisLevel = true;
-    }
-    
-    // Ok, no matter when we started writing (at this level, or above) if we've got children with color
-    // we need to write them here.
-    if (inViewWithColorCount && startedWriting) {
-        // write the child color bits
-        printf("bhgLoadBitstream() writing child color bits\n");
-        *writeToThisLevelBuffer = childrenColoredBits;
-
-        writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
-        bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
-        
-        // write the color data...
-        for (int i = 0; i < MAX_CHILDREN; i++) {
-            if (oneAtBit(childrenColoredBits, i)) {
-                printf("bhgLoadBitstream() writing color for child %d\n",i);
-                memcpy(writeToThisLevelBuffer,&node->children[i]->getColor(),BYTES_PER_COLOR);
-                writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
-                bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
-            }
-        }
-    }
-
-    printf("startedWriting=%s inViewNotLeafCount=%d \n", (startedWriting ? "yes" : "no"), inViewNotLeafCount );
-
-    // If all of our IN VIEW children are LEAVES, then we're done
-    if (startedWriting && (0 == inViewNotLeafCount)) {
-
-        printf("bhgLoadBitstream() writing child trees exist bits of 0\n");
-
-        // write the child color bits
-        *writeToThisLevelBuffer = childrenExistBits;
-
-        writeToThisLevelBuffer += sizeof(childrenExistBits); // move the pointer
-        bytesAtThisLevel += sizeof(childrenExistBits); // keep track of byte count
-        
-        keepDiggingDeeper = false;
-    }
-    
-    // at this point we need to do a gut check. If we're writing, then we need to check how many bytes we've
-    // written at this level, and how many bytes we have available in the outputBuffer. If we can fit what we've got so far
-    // and room for the no more children terminator, then let's write what we got so far.
-
-    // If we plan to keep digging deeper, we will need at least one more byte. Otherwise, we've got all the bytes we
-    // need to write already written in our thisLevelBuffer. If we have room for this in our outputBuffer, then copy
-    // it and proceed as expected.
-    int potentiallyMoreBytes = keepDiggingDeeper ? CHILD_TREE_EXISTS_BYTES : 0;
-
-    printf("startedWriting=%s availableBytes=%d bytesAtThisLevel=%d keepDiggingDeeper=%s potentiallyMoreBytes=%d\n", 
-        (startedWriting ? "yes" : "no"), availableBytes, bytesAtThisLevel, 
-        (keepDiggingDeeper ? "yes" : "no"), potentiallyMoreBytes );
-        
-    if (startedWriting && (availableBytes > (bytesAtThisLevel + potentiallyMoreBytes))) {
-        memcpy(outputBuffer,&thisLevelBuffer[0],bytesAtThisLevel);
-        availableBytes -= bytesAtThisLevel;
-
-        printf("actually write our local bytes to the outputBuffer bytesAtThisLevel=%d availableBytes=%d\n",
-            bytesAtThisLevel, availableBytes);
-    }
-    
-    if (keepDiggingDeeper) {
-    
-        printf("keepDiggingDeeper == TRUE... dig deeper!\n");
-        
+    // If we have children with color, then we do want to add this node (and it's descendants) to the bag to be written
+    // we don't need to dig deeper.
+    //
+    // XXXBHG - this might be a good time to look at colors and add them to a dictionary? But we're not planning
+    // on scanning the whole tree, so we won't actually see all the colors, so maybe no point in that.
+    if (inViewWithColorCount) {
+        bag.insert(node);
+    } else {
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about. We will iterate
         // these based on which tree is closer. 
         //
-        // We have potentially a couple of states here, it's possible we haven't started writing at all. In
-        // which case, the lower level trees may start writing. And so when we get back here, we need to check
-        // our writing state, if we had not been writing, and we started writing below, then we basically want
-        // to start a new top level tree. We do that by simply toggling our startedWriting flag, and then call
-        // the child node.
-        //
-        // It's also possible that we did start writing, but we have NOT yet written our childrenExistBits. This
-        // is because we don't really know how big the child tree will be. What we kinda would like to do is
-        // write our childExistsBits as a place holder. Then let each potential tree have a go at it. If they 
-        // write something, we keep them in the bits, if they don't, we take them out.
-        //
-        unsigned char* childExistsPlaceHolder = NULL;
-        bool havePlaceHolderChildBits = false;
-        if (startedWriting) {
-            // write the child tree exists "placeholder" bits.
-            childExistsPlaceHolder = outputBuffer;
-            *outputBuffer = childrenExistBits;
-
-            outputBuffer += sizeof(childrenExistBits); // move the pointer
-            bytesAtThisLevel += sizeof(childrenExistBits); // keep track of byte count
-            
-            havePlaceHolderChildBits = true;
-        }
         for (int i = 0; i < inViewCount; i++) {
             VoxelNode* childNode = inViewChildren[i];
-            int childNodePosition = positionOfChildren[i];
-        
-            printf("bhgLoadBitstream() calling inViewChildren[%d] startedWriting=%s\n",i, (startedWriting ? "yes" : "no") );
-            
-            printf("about to dig deeper, priorWritingState=%s\n",(priorWritingState ? "yes" : "no"));
-            
-            int childTreeBytesOut = searchAndEncodeMultiTreeBitstream(childNode,viewFrustum,lastOctalCode,startedWriting,
-                                                    outputBuffer,availableBytes);
-
-            printf("back from dig deeper, priorWritingState=%s startedWriting=%s childTreeBytesOut=%d\n",
-                (priorWritingState ? "yes" : "no"), (startedWriting ? "yes" : "no"), childTreeBytesOut);
-
-            bytesAtThisLevel += childTreeBytesOut;
-            
-            // If we had previously started writing, and if the child DIDN'T write any bytes,
-            // then we want to remove their bit from the childExistsPlaceHolder bitmask
-            if (havePlaceHolderChildBits && (0 == childTreeBytesOut)) {
-
-                printf("bhgLoadBitstream() child %d orig %d didn't write bytes, removing from bitmask\n",i, childNodePosition );
-
-                // remove this child's bit...
-                childrenExistBits -= (1 << (7 - childNodePosition));
-                
-                // repair the child exists mask
-                *childExistsPlaceHolder = childrenExistBits;
-                
-                // Note: no need to move the pointer, cause we already stored this
-            }
+            searchForColoredNodesRecursion(childNode, viewFrustum, bag);
         }
     }
-    
-    
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// THIS IS NOT WORKING!!!!
-//
-// Second trees are basically blowing up like crazy... not even sure what is going on...
-//  
-////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    printf("bhgLoadBitstream() at bottom, returning... bytesAtThisLevel=%d\n",bytesAtThisLevel );
-    
-    // If this was the level that we wrote our octcode at.. AND our prior state was not writing, THEN THIS
-    // is the level we want to switch back to not writing...
-    
-    // If before we started this tree, we WEREN'T writing, but after iterating this tree we ARE writing
-    // then we need to reset writing state, so we'll start a new tree when appropriate.
-    if (!priorWritingState && startedWriting) {
-        printf("bhgLoadBitstream() at bottom and returning prior writing state was FALSE, but we did write, so... we want a new tree!\n");
-        startedWriting = false;
-    }
-    return bytesAtThisLevel;
-                                    
-                                    
 }
 
 // This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
