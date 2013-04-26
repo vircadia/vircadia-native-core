@@ -191,6 +191,14 @@ bool VoxelNode::isLeaf() const {
     return (0 == childCount);
 }
 
+void VoxelNode::printDebugDetails(const char* label) const {
+    AABox box;
+    getAABox(box);
+    printf("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=",label,
+        box.getCorner().x, box.getCorner().y, box.getCorner().z,box.getSize().x);
+    printOctalCode(octalCode);
+}
+
 
 bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
     AABox box;

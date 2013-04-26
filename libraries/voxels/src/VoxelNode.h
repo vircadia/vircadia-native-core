@@ -60,6 +60,8 @@ public:
     bool isLeaf() const;
     
     void getAABox(AABox& box) const;
+    
+    void printDebugDetails(const char* label) const;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */
