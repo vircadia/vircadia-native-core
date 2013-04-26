@@ -25,14 +25,11 @@ const int GROW_BAG_BY = 500;
 // put a node into the bag
 void VoxelNodeBag::insert(VoxelNode* node) {
 
-printf("VoxelNodeBag::insert(node) node=");
-node->printDebugDetails("");
-
     // Search for where we should live in the bag (sorted)
     // Note: change this to binary search... instead of linear!
     int insertAt = _elementsInUse;
     for (int i = 0; i < _elementsInUse; i++) {
-    
+
         // compare the newNode to the elements already in the bag
         OctalTreeDepth comparison = compareOctalCodes(_bagElements[i]->octalCode,node->octalCode);
         
@@ -60,13 +57,13 @@ node->printDebugDetails("");
         if (oldBag) {
             // copy old elements into the new bag, but leave a space where we need to
             // insert the new node
-            memcpy(_bagElements, oldBag, insertAt);
-            memcpy(&_bagElements[insertAt+1], &oldBag[insertAt], (_elementsInUse-insertAt));
+            memcpy(_bagElements, oldBag, insertAt*sizeof(VoxelNode*));
+            memcpy(&_bagElements[insertAt+1], &oldBag[insertAt], (_elementsInUse-insertAt)*sizeof(VoxelNode*));
         }
     } else {
         // move existing elements further back in the bag array, leave a space where we need to
         // insert the new node
-        memcpy(&_bagElements[insertAt+1], &_bagElements[insertAt], (_elementsInUse-insertAt));
+        memmove(&_bagElements[insertAt+1], &_bagElements[insertAt], (_elementsInUse-insertAt)*sizeof(VoxelNode*));
     }
     _bagElements[insertAt] = node;
     _elementsInUse++;
