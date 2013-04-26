@@ -126,7 +126,7 @@ void *sendBuffer(void *args)
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
             
-            for (AgentList::iterator otherAgent = agentList->begin(); agent != agentList->end(); agent++) {
+            for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
                 if (otherAgent != agent || ( otherAgent == agent && agentWantsLoopback)) {
                     AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
