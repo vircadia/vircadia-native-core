@@ -122,22 +122,30 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 	::randomTree.eraseAllVoxels();
 
 	// enumerate the agents clean up their marker nodes
-    
-	for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
+	for (int i = 0; i < AgentList::getInstance()->getAgents().size(); i++) {
 
 		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
         
-		VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
+		Agent *thisAgent = (Agent *)&AgentList::getInstance()->getAgents()[i];
+		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+
+		// lock this agent's delete mutex so that the delete thread doesn't
+		// kill the agent while we are working with it
+		pthread_mutex_lock(thisAgent->deleteMutex);
 
 		// clean up the agent visit data
 		delete agentData->rootMarkerNode;
 		agentData->rootMarkerNode = new MarkerNode();
+		
+		// unlock the delete mutex so the other thread can
+		// kill the agent if it has dissapeared
+		pthread_mutex_unlock(thisAgent->deleteMutex);
 	}
 }
 
 void *distributeVoxelsToListeners(void *args) {
     
-    AgentList* agentList = AgentList::getInstance();
+    AgentList *agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     unsigned char *stopOctal;
@@ -145,36 +153,107 @@ void *distributeVoxelsToListeners(void *args) {
     
     int totalBytesSent;
     
-    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    unsigned char *voxelPacketEnd;
-    
     float treeRoot[3] = {0, 0, 0};
     
     while (true) {
         gettimeofday(&lastSendTime, NULL);
         
         // enumerate the agents to send 3 packets to each
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
-            
-            ViewFrustum viewFrustum;
-            // get position and orientation details from the camera
-            viewFrustum.setPosition(agentData->getCameraPosition());
-            viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
-    
-            // Also make sure it's got the correct lens details from the camera
-            viewFrustum.setFieldOfView(agentData->getCameraFov());
-            viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
-            viewFrustum.setNearClip(agentData->getCameraNearClip());
-            viewFrustum.setFarClip(agentData->getCameraFarClip());
-            
-            viewFrustum.calculate();
+        for (int i = 0; i < agentList->getAgents().size(); i++) {
 
-            // debug for fun!!
-            if (::debugViewFrustum) {
-                viewFrustum.dump();
+            Agent* thisAgent = (Agent *)&agentList->getAgents()[i];
+
+            // lock this agent's delete mutex so that the delete thread doesn't
+            // kill the agent while we are working with it
+            pthread_mutex_lock(thisAgent->deleteMutex);
+
+            VoxelAgentData* agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+            
+            // If we don't have nodes already in our agent's node bag, then fill the node bag
+            if (agentData->nodeBag.isEmpty()) {
+                ViewFrustum viewFrustum;
+                // get position and orientation details from the camera
+                viewFrustum.setPosition(agentData->getCameraPosition());
+                viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
+    
+                // Also make sure it's got the correct lens details from the camera
+                viewFrustum.setFieldOfView(agentData->getCameraFov());
+                viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
+                viewFrustum.setNearClip(agentData->getCameraNearClip());
+                viewFrustum.setFarClip(agentData->getCameraFarClip());
+            
+                viewFrustum.calculate();
+
+                randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
             }
             
+            // If we have something in our nodeBag, then turn them into packets and send them out...
+            if (!agentData->nodeBag.isEmpty()) {
+            
+                unsigned char* tempOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE-1]; // save 1 for "V" in final
+                int bytesWritten = 0;
+
+                // NOTE: we can assume the voxelPacket has already been set up with a "V"
+
+                int packetsSentThisInterval = 0;
+            
+                while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
+
+                    if (!agentData->nodeBag.isEmpty()) {
+
+                        VoxelNode* subTree = agentData->nodeBag.extract();
+
+                        // Only let this guy create at largest packets equal to the amount of space we have left in our final???
+                        // Or let it create the largest possible size (minus 1 for the "V")
+                        bytesWritten = randomTree.encodeTreeBitstream(subTree, viewFrustum, 
+                                tempOutputBuffer, MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
+
+                        //printf("this tree size=%d\n", bytesWritten);
+        
+                        // if we have room in our final packet, add this buffer to the final packet
+                        if (agentData->getAvailable() >= bytesWritten) {
+                            agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                        } else {
+                            // otherwise "send" the packet because it's as full as we can make it for now
+
+                            //outputBufferBits(agentData->getPacket(), agentData->getPacketLength(), true);
+                            agentList->getAgentSocket().send(thisAgent->getActiveSocket(), 
+                                            agentData->getPacket(), agentData->getPacketLength());
+
+                            // keep track that we sent it
+                            packetsSentThisInterval++;
+
+                            // reset our finalOutputBuffer (keep the 'V')
+                            agentData->resetVoxelPacket();
+            
+                            // we also need to stick the last created partial packet in here!!
+                            agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                        }
+                    } else {
+                        // we're here, if there are no more nodes in our bag waiting to be sent.
+                        
+                        // If we have a partial packet ready, then send it...
+                        if (agentData->isPacketWaiting()) {
+                            //outputBufferBits(agentData->getPacket(), agentData->getPacketLength(), true);
+                            agentList->getAgentSocket().send(thisAgent->getActiveSocket(), 
+                                            agentData->getPacket(), agentData->getPacketLength());
+                        }
+
+                        // and we're done now for this interval, because we know we have not nodes in our
+                        // bag, and we just sent the last waiting packet if we had one, so tell ourselves
+                        // we done for the interval
+                        packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
+                    }
+                }
+                
+                // end
+                delete[] tempOutputBuffer;
+            }
+/***            
+
+            unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+            unsigned char *voxelPacketEnd;
+
             stopOctal = NULL;
             packetCount = 0;
             totalBytesSent = 0;
@@ -191,7 +270,7 @@ void *distributeVoxelsToListeners(void *args) {
                                                            ::viewFrustumCulling,
                                                            stopOctal);
                 
-                agentList->getAgentSocket().send(agent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
+                agentList->getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
                 
                 packetCount++;
                 totalBytesSent += voxelPacketEnd - voxelPacket;
@@ -212,6 +291,11 @@ void *distributeVoxelsToListeners(void *args) {
                 delete agentData->rootMarkerNode;
                 agentData->rootMarkerNode = new MarkerNode();
             }
+***/
+            
+            // unlock the delete mutex so the other thread can
+            // kill the agent if it has dissapeared
+            pthread_mutex_unlock(thisAgent->deleteMutex);
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
@@ -236,7 +320,7 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
+    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
