@@ -813,7 +813,7 @@ void display(void)
 //            float firstPersonPitch     =  20.0f;
 //            float firstPersonUpShift   =   0.1f;
 //            float firstPersonDistance  =   0.0f;
-//            float firstPersonTightness = 100.0f;
+//            float firstPersonT ightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
             float thirdPersonUpShift   =  -0.1f;

@@ -39,11 +39,6 @@ public:
     static AgentList* getInstance();
     
     typedef AgentListIterator iterator;
-    typedef ptrdiff_t difference_type;
-    typedef size_t size_type;
-    typedef Agent value_type;
-    typedef Agent * pointer;
-    typedef Agent & reference;
   
     AgentListIterator begin() const;
     AgentListIterator end() const;
@@ -84,7 +79,7 @@ public:
     void startPingUnknownAgentsThread();
     void stopPingUnknownAgentsThread();
     
-    friend AgentListIterator;
+    friend ::AgentListIterator;
 private:
     static AgentList* _sharedInstance;
     
