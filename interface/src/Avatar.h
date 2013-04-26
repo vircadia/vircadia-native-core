@@ -22,6 +22,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+#include "Balls.h"
+
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
 const float THRUST_MAG      = 10.0;
@@ -165,18 +167,21 @@ public:
 
     void  reset();
     void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+   
     void  setNoise (float mag) { _head.noise = mag; }
     void  setScale(float s) {_head.scale = s; };
     void  setRenderYaw(float y) {_renderYaw = y;}
     void  setRenderPitch(float p) {_renderPitch = p;}
     float getRenderYaw() {return _renderYaw;}
     float getRenderPitch() {return _renderPitch;}
-    void  setLeanForward(float dist);
-    void  setLeanSideways(float dist);
-    void  addLean(float x, float z);
     float getLastMeasuredHeadYaw() const {return _head.yawRate;}
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
+    
+    float getAbsoluteHeadYaw() const;
+    void  setLeanForward(float dist);
+    void  setLeanSideways(float dist);
+    void  addLean(float x, float z);
 
     const glm::vec3& getHeadLookatDirection() const { return _orientation.getFront(); };
     const glm::vec3& getHeadLookatDirectionUp() const { return _orientation.getUp(); };
@@ -253,7 +258,9 @@ private:
     bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
     
-    void initializeSkeleton();
+    Balls*            _balls;
+    
+     void initializeSkeleton();
     void updateSkeleton();
     void initializeBodySprings();
     void updateBodySprings( float deltaTime );
@@ -265,6 +272,7 @@ private:
                                                    float     collisionHeight,
                                                    glm::vec3 collisionUpVector,
                                                    float     deltaTime);
+
 };
 
 #endif

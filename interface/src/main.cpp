@@ -39,8 +39,6 @@
 #include <ifaddrs.h>
 #endif
 
-#include <pthread.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -66,7 +64,6 @@
 #include "Camera.h"
 #include "ChatEntry.h"
 #include "Avatar.h"
-#include "Particle.h"
 #include "Texture.h"
 #include "Cloud.h"
 #include <AgentList.h>
@@ -88,10 +85,7 @@ using namespace std;
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
-
-pthread_t networkReceiveThread;
-bool stopNetworkReceiveThread = false;
-
+unsigned char incomingPacket[MAX_PACKET_SIZE];
 int packetCount = 0;
 int packetsPerSecond = 0; 
 int bytesPerSecond = 0;
@@ -120,14 +114,6 @@ Stars stars;
 bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
-
-ParticleSystem balls(0,
-                     box, 
-                     false,                //  Wrap?
-                     0.02f,                //  Noise
-                     0.3f,                 //  Size scale 
-                     0.0                   //  Gravity
-                     );
 
 Cloud cloud(0,                             //  Particles
             box,                           //  Bounding Box
@@ -429,8 +415,6 @@ void terminate () {
     #ifndef _WIN32
     audio.terminate();
     #endif
-    stopNetworkReceiveThread = true;
-    pthread_join(networkReceiveThread, NULL);
     
     exit(EXIT_SUCCESS);
 }
@@ -948,9 +932,7 @@ void display(void)
                 avatar->render(0);
             }
         }
-    
-        if ( !::lookingInMirror ) balls.render();
-    
+        
         //  Render the world box
         if (!::lookingInMirror && ::statsOn) { render_world_box(); }
         
@@ -1389,7 +1371,7 @@ void specialkey(int k, int x, int y)
 
 void keyUp(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
-        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setKeyState(NO_KEY_DOWN);
         return;
     }
 
@@ -1407,7 +1389,7 @@ void key(unsigned char k, int x, int y)
     if (::chatEntryOn) {
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
-                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+                DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
             myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
             
         } else {
@@ -1486,47 +1468,40 @@ void key(unsigned char k, int x, int y)
     
     if (k == '\r') {
         ::chatEntryOn = true;
-        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setKeyState(NO_KEY_DOWN);
         myAvatar.setChatMessage(string());
     }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
-void *networkReceive(void *args)
+void networkReceive()
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
 
-    while (!stopNetworkReceiveThread) {
-        if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
-            packetCount++;
-            bytesCount += bytesReceived;
-            
-            switch (incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA:
-                    myAvatar.processTransmitterData(incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_VOXEL_DATA:
-                case PACKET_HEADER_Z_COMMAND:
-                case PACKET_HEADER_ERASE_VOXEL:
-                    voxels.parseData(incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
-                                                                   incomingPacket,
-                                                                   bytesReceived);
-                    break;
-                default:
-                    AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
-                    break;
-            }
+    while (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
+        packetCount++;
+        bytesCount += bytesReceived;
+        
+        switch (incomingPacket[0]) {
+            case PACKET_HEADER_TRANSMITTER_DATA:
+                myAvatar.processTransmitterData(incomingPacket, bytesReceived);
+                break;
+            case PACKET_HEADER_VOXEL_DATA:
+            case PACKET_HEADER_Z_COMMAND:
+            case PACKET_HEADER_ERASE_VOXEL:
+                voxels.parseData(incomingPacket, bytesReceived);
+                break;
+            case PACKET_HEADER_BULK_AVATAR_DATA:
+                AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                                                               incomingPacket,
+                                                               bytesReceived);
+                break;
+            default:
+                AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                break;
         }
     }
-    
-    delete[] incomingPacket;
-    pthread_exit(0); 
-    return NULL;
 }
 
 void idle(void) {
@@ -1559,6 +1534,9 @@ void idle(void) {
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar(deltaTime);
+
+        // read incoming packets from network
+        networkReceive();
 		
         //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
@@ -1571,7 +1549,6 @@ void idle(void) {
     
         field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
-        balls.simulate   (deltaTime);
         cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
@@ -1703,6 +1680,7 @@ int main(int argc, const char * argv[])
         listenPort = atoi(portStr);
     }
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    AgentList::getInstance()->getAgentSocket().setBlocking(false);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
@@ -1784,10 +1762,6 @@ int main(int argc, const char * argv[])
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
         printLog("Local Voxel File loaded.\n");
 	}
-    
-    // create thread for receipt of data via UDP
-    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printLog("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
