@@ -178,7 +178,7 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     
-    float getAbsoluteHeadYaw();
+    float getAbsoluteHeadYaw() const;
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);

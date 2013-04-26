@@ -275,7 +275,7 @@ void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm
     addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
 }
 
-float Avatar::getAbsoluteHeadYaw() {
+float Avatar::getAbsoluteHeadYaw() const {
     return _bodyYaw + _headYaw;
 }
 
