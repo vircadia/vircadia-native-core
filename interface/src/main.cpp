@@ -180,80 +180,6 @@ int menuOn = 1;  //  Whether to show onscreen menu
 ChatEntry chatEntry;       // chat entry field
 bool chatEntryOn = false;  //  Whether to show the chat entry
 
-/*
-struct HandController
-{
-    bool  enabled;
-    int   startX;
-    int   startY;
-    int   x; 
-    int   y;
-    int   lastX; 
-    int   lastY;
-    int   velocityX;
-    int   velocityY;
-    float rampUpRate;
-    float rampDownRate;
-    float envelope;
-};
-
-HandController handController;
-
-void initializeHandController() {
-   handController.enabled      = false;
-   handController.startX       = WIDTH  / 2;
-   handController.startY       = HEIGHT / 2;
-   handController.x            = 0; 
-   handController.y            = 0;
-   handController.lastX        = 0; 
-   handController.lastY        = 0;
-   handController.velocityX    = 0;
-   handController.velocityY    = 0;
-   handController.rampUpRate   = 0.05;
-   handController.rampDownRate = 0.02;
-   handController.envelope     = 0.0f;
-}
-
-void updateHandController( int x, int y ) {
-    handController.lastX = handController.x;
-    handController.lastY = handController.y;
-    handController.x = x;
-    handController.y = y;
-    handController.velocityX = handController.x - handController.lastX;
-    handController.velocityY = handController.y - handController.lastY;
-
-    if (( handController.velocityX != 0 )
-    ||  ( handController.velocityY != 0 )) {
-        handController.enabled = true;
-        myAvatar.startHandMovement();
-        if ( handController.envelope < 1.0 ) {
-            handController.envelope += handController.rampUpRate;
-            if ( handController.envelope >= 1.0 ) { 
-                handController.envelope = 1.0; 
-            }
-        }
-    }
-
-   if ( ! handController.enabled ) {
-        if ( handController.envelope > 0.0 ) {
-            handController.envelope -= handController.rampDownRate;
-            if ( handController.envelope <= 0.0 ) { 
-                handController.startX = WIDTH	 / 2;
-                handController.startY = HEIGHT / 2;
-                handController.envelope = 0.0; 
-            }
-        }
-    }
-    
-    if ( handController.envelope > 0.0 ) {
-        float leftRight	= ( ( handController.x - handController.startX ) / (float)WIDTH  ) * handController.envelope;
-        float downUp	= ( ( handController.y - handController.startY ) / (float)HEIGHT ) * handController.envelope;
-        float backFront	= 0.0;			
-        myAvatar.setHandMovementValues( glm::vec3( leftRight, downUp, backFront ) );		
-    }
-}
-
-*/
 
 
 //
@@ -1536,7 +1462,8 @@ void idle(void) {
 		
         float deltaTime = 1.f/FPS;
 
-        // update behaviors for avatar hand movement 
+        // update behaviors for avatar hand movement: handControl takes mouse values as input, 
+        // and gives back 3D values modulated for smooth transitioning between interaction modes.
         handControl.update( mouseX, mouseY );
         myAvatar.setHandMovementValues( handControl.getValues() );		
         
