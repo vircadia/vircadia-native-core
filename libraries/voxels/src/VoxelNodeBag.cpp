@@ -20,7 +20,7 @@ VoxelNodeBag::~VoxelNodeBag() {
     }
 }
 
-const int GROW_BAG_BY = 500;
+const int GROW_BAG_BY = 100;
 
 // put a node into the bag
 void VoxelNodeBag::insert(VoxelNode* node) {
