@@ -81,8 +81,8 @@ VoxelNode* VoxelNodeBag::extract() {
         _elementsInUse--;
 
         // debug!!
-        printf("VoxelNodeBag::extract() node=");
-        node->printDebugDetails("");
+        //printf("VoxelNodeBag::extract() node=");
+        //node->printDebugDetails("");
 
         return node;
     }
