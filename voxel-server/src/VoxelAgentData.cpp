@@ -11,16 +11,39 @@
 #include <cstdio>
 
 VoxelAgentData::VoxelAgentData() {
+    init();
+}
+
+void VoxelAgentData::init() {
     rootMarkerNode = new MarkerNode();
+    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
+
+    resetVoxelPacket();
+}
+
+void VoxelAgentData::resetVoxelPacket() {
+    _voxelPacket[0] = 'V';
+    _voxelPacketAt = &voxelPacket[1];
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE-1;
+    _voxelPacketWaiting = false;
+}
+
+void VoxelAgentData::writeToPacket(unsigned char* buffer, int bytes) {
+    memcpy(_voxelPacketAt, buffer, bytes);
+    _voxelPacketAvailableBytes -= bytes;
+    _voxelPacketAt += bytes;
+    _voxelPacketWaiting = true;
 }
 
 VoxelAgentData::~VoxelAgentData() {
     delete rootMarkerNode;
+    delete[] _voxelPacket;
 }
 
 VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
     memcpy(&_position, &otherAgentData._position, sizeof(_position));
-    rootMarkerNode = new MarkerNode();
+    init();
 }
 
 VoxelAgentData* VoxelAgentData::clone() const {
