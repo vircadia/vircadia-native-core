@@ -23,6 +23,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp> //looks like we might not need this
 
+#include "Balls.h"
+
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
 const float THRUST_MAG      = 1200.0;
@@ -265,41 +267,8 @@ private:
     Avatar*           _interactingOther;
     bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
-    
-    /*
-    private:
-        AvatarHead        _head;    
-        bool              _isMine;
-        glm::vec3         _TEST_bigSpherePosition;
-        float             _TEST_bigSphereRadius;
-		bool              _mousePressed;
-		float             _bodyYawDelta;
-		bool              _usingBodySprings;
-		glm::vec3         _movedHandOffset;
-		float             _springVelocityDecay;
-		float             _springForce;
-        glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-		AvatarBone	      _bone[ NUM_AVATAR_BONES ];
-		AvatarMode        _mode;
-        AvatarHandHolding _handHolding;
-        glm::vec3         _velocity;
-        glm::vec3	      _thrust;
-        float             _speed;
-        float		      _maxArmLength;
-        Orientation	      _orientation;
-        int               _driveKeys[MAX_DRIVE_KEYS];
-        GLUquadric*       _sphere;
-        float             _renderYaw;
-        float             _renderPitch; //   Pitch from view frustum when this is own head
-        timeval           _transmitterTimer;
-        float             _transmitterHz;
-        int               _transmitterPackets;
-        Avatar*           _interactingOther;
-        bool              _interactingOtherIsNearby;
-        float             _pelvisStandingHeight;
-*/
-        
-        AvatarTouch       _avatarTouch;
+    Balls*            _balls;
+    AvatarTouch       _avatarTouch;
         
         // private methods...
 		void initializeSkeleton();
@@ -317,22 +286,6 @@ private:
             glm::vec3 collisionUpVector, 
             float     deltaTime 
         );
-
-/*
-
-    void initializeSkeleton();
-    void updateSkeleton();
-    void initializeBodySprings();
-    void updateBodySprings( float deltaTime );
-    void calculateBoneLengths();
-    void readSensors();
-    void renderBoneAsBlock( AvatarBoneID b );
-    void updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
-                                                   float     collisionGirth,
-                                                   float     collisionHeight,
-                                                   glm::vec3 collisionUpVector,
-                                                   float     deltaTime);
-*/
 };
 
 #endif
