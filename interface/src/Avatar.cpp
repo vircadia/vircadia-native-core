@@ -19,6 +19,8 @@
 
 using namespace std;
 
+const bool BALLS_ON = false; 
+
 float skinColor[] = {1.0, 0.84, 0.66};
 float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -130,7 +132,8 @@ Avatar::Avatar(bool isMine) {
         }
     }
     
-    _balls = new Balls(10);
+    if (BALLS_ON)   { _balls = new Balls(100); }
+    else            { _balls = NULL; }
 }
 
 
