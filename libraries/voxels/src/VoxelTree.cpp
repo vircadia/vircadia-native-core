@@ -804,18 +804,17 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	this->reaverageVoxelColors(this->rootNode);
 }
 
-
-int VoxelTree::bhgLoadBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
+// This will encode a larger tree into multiple subtree bitstreams. Given a node it will search for deeper subtrees that 
+// have color. It will search for sub trees, and upon finding a subTree, it will call encodeTreeBitstream() to encode that
+// tree. Once the subtree is encoded, it will keep searching for additional subtrees.
+int VoxelTree::searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char*& lastOctalCode, bool& startedWriting, 
                                     unsigned char*& outputBuffer, int availableBytes) const {
 
-    // Some debugging code... where are we in the tree..
-    AABox box;
-    node->getAABox(box);
-    printf("bhgLoadBitstream() box.corner=(%f,%f,%f) size=%f node=", 
-        box.getCorner().x, box.getCorner().y, box.getCorner().z,box.getSize().x);
-    printOctalCode(node->octalCode);
 
+    // Some debugging code... where are we in the tree..
+    node->printDebugDetails("encodeTreeBitstream() node=");
+    
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -1036,7 +1035,7 @@ int VoxelTree::bhgLoadBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
             
             printf("about to dig deeper, priorWritingState=%s\n",(priorWritingState ? "yes" : "no"));
             
-            int childTreeBytesOut = bhgLoadBitstream(childNode,viewFrustum,lastOctalCode,startedWriting,
+            int childTreeBytesOut = searchAndEncodeMultiTreeBitstream(childNode,viewFrustum,lastOctalCode,startedWriting,
                                                     outputBuffer,availableBytes);
 
             printf("back from dig deeper, priorWritingState=%s startedWriting=%s childTreeBytesOut=%d\n",
@@ -1060,6 +1059,15 @@ int VoxelTree::bhgLoadBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
             }
         }
     }
+    
+    
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// THIS IS NOT WORKING!!!!
+//
+// Second trees are basically blowing up like crazy... not even sure what is going on...
+//  
+////////////////////////////////////////////////////////////////////////////////////////////////////
+    
     printf("bhgLoadBitstream() at bottom, returning... bytesAtThisLevel=%d\n",bytesAtThisLevel );
     
     // If this was the level that we wrote our octcode at.. AND our prior state was not writing, THEN THIS
@@ -1071,6 +1079,305 @@ int VoxelTree::bhgLoadBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
         printf("bhgLoadBitstream() at bottom and returning prior writing state was FALSE, but we did write, so... we want a new tree!\n");
         startedWriting = false;
     }
+    return bytesAtThisLevel;
+                                    
+                                    
+}
+
+// This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
+// It will ignore any branches that are not in view. But other than that, it will not (can not) do any
+// prioritization of branches or deeper searching of the branches for optimization.
+//
+// NOTE: This STUB function DOES add the octcode to the buffer, then it calls the recursive helper to
+// actually encode the tree
+//
+// extraTrees is assumed to me an allocated array of VoxelNode*, if we're unable to fully encode the tree
+// because we run out of room on the outputBuffer, then we will add VoxelNode*'s of the trees that need
+// to be encoded to that array. If the array
+int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
+                                    unsigned char* outputBuffer, int availableBytes, 
+                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const {
+
+    // Some debugging code... where are we in the tree..
+    node->printDebugDetails("encodeTreeBitstream() node=");
+
+    // How many bytes have we written so far at this level;
+    int bytesWritten = 0;
+
+    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
+    if (!node->isInView(viewFrustum)) {
+        printf("encodeTreeBitstream() node NOT IN VIEW\n");
+        return bytesWritten;
+    }
+
+    // write the octal code
+    int codeLength = bytesRequiredForCodeLength(*node->octalCode);
+    memcpy(outputBuffer,node->octalCode,codeLength);
+
+    outputBuffer += codeLength; // move the pointer
+    bytesWritten += codeLength; // keep track of byte count
+    availableBytes -= codeLength; // keep track or remaining space 
+
+    int childBytesWritten = encodeTreeBitstreamRecursion(node, viewFrustum, 
+                                    outputBuffer, availableBytes, extraTrees, sizeExtraTrees, countExtraTrees);
+    
+    // if childBytesWritten == 1 then something went wrong... that's not possible
+    assert(childBytesWritten != 1);
+    
+    // if childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some reason
+    // couldn't be written... so reset them here...
+    if (childBytesWritten == 2) {
+        childBytesWritten = 0;
+    }
+    
+    // if we wrote child bytes, then return our result of all bytes written
+    if (childBytesWritten) {
+        bytesWritten += childBytesWritten; 
+    } else {
+        // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
+        printf("encodeTreeBitstreamRecursion() no bytes below...\n");
+        bytesWritten = 0;
+    }
+    
+    return bytesWritten;
+}
+
+// This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
+// It will ignore any branches that are not in view. But other than that, it will not (can not) do any
+// prioritization of branches or deeper searching of the branches for optimization.
+//
+// NOTE: This recursive function DOES NOT add the octcode to the buffer. It's assumed that the caller has
+// already done that.
+int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
+                                    unsigned char* outputBuffer, int availableBytes,
+                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const {
+
+    // Some debugging code... where are we in the tree..
+    node->printDebugDetails("encodeTreeBitstreamRecursion() node=");
+    
+    // How many bytes have we written so far at this level;
+    int bytesAtThisLevel = 0;
+
+    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
+    // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
+    // we're out of view
+    if (!node->isInView(viewFrustum)) {
+        printf("encodeTreeBitstreamRecursion() node NOT IN VIEW\n");
+        return bytesAtThisLevel;
+    }
+    
+    bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
+
+    // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
+    // is 1 byte for child colors + 3*8 bytes for the actual colors + 1 byte for child trees. There could be sub trees
+    // below this point, which might take many more bytes, but that's ok, because we can always mark our subtrees as
+    // not existing and stop the packet at this point, then start up with a new packet for the remaining sub trees.
+    const int CHILD_COLOR_MASK_BYTES = 1;
+    const int MAX_CHILDREN = 8;
+    const int BYTES_PER_COLOR = 3;
+    const int CHILD_TREE_EXISTS_BYTES = 1;
+    const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + MAX_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
+    
+    // Make our local buffer large enough to handle writing at this level in case we need to.
+    unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
+    unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
+
+    unsigned char childrenExistBits = 0;
+    unsigned char childrenColoredBits = 0;
+    int inViewCount = 0;
+    int inViewNotLeafCount = 0;
+    int inViewWithColorCount = 0;
+
+    // for each child node, check to see if they exist, are colored, and in view, and if so
+    // add them to our distance ordered array of children
+    for (int i = 0; i < MAX_CHILDREN; i++) {
+        VoxelNode* childNode = node->children[i];
+        bool childExists = (childNode != NULL);
+        
+        if (childExists) {
+            childNode->printDebugDetails("encodeTreeBitstream() looping children");
+        }
+        
+        bool childIsColored = (childExists && childNode->isColored());
+        bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
+        bool childIsLeaf    = (childExists && childNode->isLeaf());
+        
+        printf("childExists=%s childIsColored=%s childIsInView=%s childIsLeaf=%s \n",
+            (childExists ? "yes" : "no"), (childIsColored ? "yes" : "no"), 
+            (childIsInView ? "yes" : "no"), (childIsLeaf ? "yes" : "no") );
+        
+        if (childIsInView) {
+            inViewCount++;
+            
+            // track children in view as existing and not a leaf, if they're a leaf,
+            // we don't care about recursing deeper on them, and we don't consider their
+            // subtree to exist
+            if (!childIsLeaf) {
+                childrenExistBits += (1 << (7 - i));
+                inViewNotLeafCount++;
+            }
+            
+            // track children with actual color
+            if (childIsColored) {
+                childrenColoredBits += (1 << (7 - i));
+                inViewWithColorCount++;
+            }
+        }
+    }
+    printf("bhgLoadBitstream() child nodes in view... inViewCount=%d\n",inViewCount);
+    printf("bhgLoadBitstream() child nodes in view with color... inViewWithColorCount=%d\n",inViewWithColorCount);
+    printf("bhgLoadBitstream() child nodes in view NOT LEAF... inViewNotLeafCount=%d\n",inViewNotLeafCount);
+    
+    // write the child color bits
+    printf("bhgLoadBitstream() writing child color bits=");
+    outputBits(childrenColoredBits);
+    
+    *writeToThisLevelBuffer = childrenColoredBits;
+
+    writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
+    bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
+    
+    // write the color data...
+    for (int i = 0; i < MAX_CHILDREN; i++) {
+        if (oneAtBit(childrenColoredBits, i)) {
+            printf("bhgLoadBitstream() writing color for child %d\n",i);
+            memcpy(writeToThisLevelBuffer,&node->children[i]->getColor(),BYTES_PER_COLOR);
+            writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
+            bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
+        }
+    }
+
+    printf("inViewNotLeafCount=%d \n", inViewNotLeafCount );
+
+    printf("bhgLoadBitstream() writing child trees exist bits=");
+    outputBits(childrenExistBits);
+
+    // write the child exist bits
+    *writeToThisLevelBuffer = childrenExistBits;
+
+    writeToThisLevelBuffer += sizeof(childrenExistBits); // move the pointer
+    bytesAtThisLevel += sizeof(childrenExistBits); // keep track of byte count
+    
+    // We only need to keep digging, if there is at least one child that is inView, and not a leaf.
+    keepDiggingDeeper = (inViewNotLeafCount > 0);
+        
+    // at this point we need to do a gut check. If we're writing, then we need to check how many bytes we've
+    // written at this level, and how many bytes we have available in the outputBuffer. If we can fit what we've got so far
+    // and room for the no more children terminator, then let's write what we got so far.
+
+    printf("availableBytes=%d bytesAtThisLevel=%d keepDiggingDeeper=%s \n", 
+        availableBytes, bytesAtThisLevel, (keepDiggingDeeper ? "yes" : "no") );
+    
+    // If we have enough room to copy our local results into the buffer, then do so...
+    if (availableBytes >= bytesAtThisLevel) {
+        memcpy(outputBuffer,&thisLevelBuffer[0],bytesAtThisLevel);
+        
+        outputBuffer   += bytesAtThisLevel;
+        availableBytes -= bytesAtThisLevel;
+
+        printf("actually write our local bytes to the outputBuffer bytesAtThisLevel=%d availableBytes=%d\n",
+            bytesAtThisLevel, availableBytes);
+    } else {
+        // we've run out of room!!! What do we do!!!
+        printf("we don't have room to write bytes bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
+        
+        // 1) return 0 for bytes written so upper levels do the right thing, namely prune us from their trees
+        // 2) add our node to the list of extra nodes for later output...
+        // Note: we don't do any termination for this level, we just return 0, then the upper level is in charge
+        // of handling things. For example, in case of child iteration, it needs to unset the child exist bit for
+        // this child.
+        
+        // add our node the the list of extra nodes to output later... 
+
+        // If we have room on our extra tree list, then add ourselves to the end.
+        if (countExtraTrees < sizeExtraTrees) {
+            extraTrees[countExtraTrees] = node;
+            countExtraTrees++;
+        } else {
+            // do we want to expand the extraTrees array here, or do we bail???
+        }
+        
+        return 0;
+    }
+    
+    if (keepDiggingDeeper) {
+    
+        printf("keepDiggingDeeper == TRUE... dig deeper!\n");
+        
+        // at this point, we need to iterate the children who are in view, even if not colored
+        // and we need to determine if there's a deeper tree below them that we care about. 
+        //
+        // Since this recursive function assumes we're already writing, we know we've already written our 
+        // childrenExistBits. But... we don't really know how big the child tree will be. And we don't know if
+        // we'll have room in our buffer to actually write all these child trees. What we kinda would like to do is
+        // write our childExistsBits as a place holder. Then let each potential tree have a go at it. If they 
+        // write something, we keep them in the bits, if they don't, we take them out.
+        //
+        // we know the last thing we wrote to the outputBuffer was our childrenExistBits. Let's remember where that was!
+        unsigned char* childExistsPlaceHolder = outputBuffer-sizeof(childrenExistBits);
+
+        for (int i = 0; i < MAX_CHILDREN; i++) {
+        
+            if (oneAtBit(childrenExistBits, i)) {
+                VoxelNode* childNode = node->children[i];
+            
+                printf("about to dig deeper child[%d] outputBuffer=%p, availableBytes=%d\n",i,outputBuffer,availableBytes);
+
+                int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, viewFrustum,
+                                                outputBuffer, availableBytes, extraTrees, sizeExtraTrees, countExtraTrees);
+                
+                // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
+                // basically, the children below don't contain any info.
+
+                // if the child tree wrote 1 byte??? something must have gone wrong... because it must have at least the color
+                // byte and the child exist byte.
+                //
+                assert(childTreeBytesOut != 1);
+                
+                // if the child tree wrote just 2 bytes, then it means: it had no colors and no child nodes, because...
+                //    if it had colors it would write 1 byte for the color mask, 
+                //          and at least a color's worth of bytes for the node of colors.
+                //   if it had child trees (with something in them) then it would have the 1 byte for child mask
+                //         and some number of bytes of lower children...
+                // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
+                //
+                // we can make this act like no bytes out, by just resetting the bytes out in this case
+                if (2 == childTreeBytesOut) {
+                    printf("after to dig deeper child[%d] childTreeBytesOut was 2, we're resetting to 0\n",i);
+                    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
+                }
+
+                bytesAtThisLevel += childTreeBytesOut;
+                availableBytes -= childTreeBytesOut;
+                outputBuffer += childTreeBytesOut;
+
+                printf("after dig deeper child[%d] childTreeBytesOut=%d outputBuffer=%p, availableBytes=%d\n",
+                    i,childTreeBytesOut, outputBuffer, availableBytes);
+                            
+                // If we had previously started writing, and if the child DIDN'T write any bytes,
+                // then we want to remove their bit from the childExistsPlaceHolder bitmask
+                if (0 == childTreeBytesOut) {
+
+                    printf("bhgLoadBitstream() child %d didn't write bytes, removing from bitmask\n",i );
+
+                    // remove this child's bit...
+                    childrenExistBits -= (1 << (7 - i));
+                
+                    // repair the child exists mask
+                    *childExistsPlaceHolder = childrenExistBits;
+                
+                    // Note: no need to move the pointer, cause we already stored this
+                    
+                } // end if (0 == childTreeBytesOut)
+                
+            } // end if (oneAtBit(childrenExistBits, i))
+        } // end for
+
+    } // end keepDiggingDeeper
+    
+    
+    printf("bhgLoadBitstream() at bottom, returning... bytesAtThisLevel=%d\n",bytesAtThisLevel );
+    
     return bytesAtThisLevel;
 }
 

@@ -61,11 +61,19 @@ public:
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
-    int bhgLoadBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
-                                    unsigned char*& lastOctalCode, bool& startedWriting, 
-                                    unsigned char*& outputBuffer, int availableBytes) const;
+    int encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
+                                    unsigned char* outputBuffer, int availableBytes,
+                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const;
+
+    int searchAndEncodeMultiTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
+                                        unsigned char*& lastOctalCode, bool& startedWriting, 
+                                        unsigned char*& outputBuffer, int availableBytes) const;
 	
 private:
+    int encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
+                                    unsigned char* outputBuffer, int availableBytes,
+                                    VoxelNode**& extraTrees, int& sizeExtraTrees, int& countExtraTrees) const;
+
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
