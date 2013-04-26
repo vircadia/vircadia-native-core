@@ -275,12 +275,15 @@ void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm
     addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
 }
 
+float Avatar::getAbsoluteHeadYaw() {
+    return _bodyYaw + _headYaw;
+}
+
 void Avatar::addLean(float x, float z) {
     //  Add Body lean as impulse
     _head.leanSideways += x;
     _head.leanForward  += z;
 }
-
 
 void Avatar::setLeanForward(float dist){
     _head.leanForward = dist;
