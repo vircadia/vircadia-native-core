@@ -39,8 +39,6 @@
 #include <ifaddrs.h>
 #endif
 
-#include <pthread.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -88,10 +86,7 @@ using namespace std;
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
-
-pthread_t networkReceiveThread;
-bool stopNetworkReceiveThread = false;
-
+unsigned char incomingPacket[MAX_PACKET_SIZE];
 int packetCount = 0;
 int packetsPerSecond = 0; 
 int bytesPerSecond = 0;
@@ -429,8 +424,6 @@ void terminate () {
     #ifndef _WIN32
     audio.terminate();
     #endif
-    stopNetworkReceiveThread = true;
-    pthread_join(networkReceiveThread, NULL);
     
     exit(EXIT_SUCCESS);
 }
@@ -1492,41 +1485,34 @@ void key(unsigned char k, int x, int y)
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
-void *networkReceive(void *args)
+void networkReceive()
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
 
-    while (!stopNetworkReceiveThread) {
-        if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
-            packetCount++;
-            bytesCount += bytesReceived;
-            
-            switch (incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA:
-                    myAvatar.processTransmitterData(incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_VOXEL_DATA:
-                case PACKET_HEADER_Z_COMMAND:
-                case PACKET_HEADER_ERASE_VOXEL:
-                    voxels.parseData(incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
-                                                                   incomingPacket,
-                                                                   bytesReceived);
-                    break;
-                default:
-                    AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
-                    break;
-            }
+    while (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
+        packetCount++;
+        bytesCount += bytesReceived;
+        
+        switch (incomingPacket[0]) {
+            case PACKET_HEADER_TRANSMITTER_DATA:
+                myAvatar.processTransmitterData(incomingPacket, bytesReceived);
+                break;
+            case PACKET_HEADER_VOXEL_DATA:
+            case PACKET_HEADER_Z_COMMAND:
+            case PACKET_HEADER_ERASE_VOXEL:
+                voxels.parseData(incomingPacket, bytesReceived);
+                break;
+            case PACKET_HEADER_BULK_AVATAR_DATA:
+                AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                                                               incomingPacket,
+                                                               bytesReceived);
+                break;
+            default:
+                AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                break;
         }
     }
-    
-    delete[] incomingPacket;
-    pthread_exit(0); 
-    return NULL;
 }
 
 void idle(void) {
@@ -1559,6 +1545,9 @@ void idle(void) {
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar(deltaTime);
+		
+		// read incoming packets from network
+		networkReceive();
 		
         //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
@@ -1703,6 +1692,7 @@ int main(int argc, const char * argv[])
         listenPort = atoi(portStr);
     }
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    AgentList::getInstance()->getAgentSocket().setBlocking(false);
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
@@ -1784,10 +1774,6 @@ int main(int argc, const char * argv[])
 	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
         printLog("Local Voxel File loaded.\n");
 	}
-    
-    // create thread for receipt of data via UDP
-    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printLog("Network receive thread created.\n");
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
