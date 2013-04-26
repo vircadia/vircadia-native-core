@@ -79,7 +79,7 @@ public:
     void startPingUnknownAgentsThread();
     void stopPingUnknownAgentsThread();
     
-    friend ::AgentListIterator;
+    friend class AgentListIterator;
 private:
     static AgentList* _sharedInstance;
     
