@@ -122,30 +122,22 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 	::randomTree.eraseAllVoxels();
 
 	// enumerate the agents clean up their marker nodes
-	for (int i = 0; i < AgentList::getInstance()->getAgents().size(); i++) {
+    
+	for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
 
 		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
         
-		Agent *thisAgent = (Agent *)&AgentList::getInstance()->getAgents()[i];
-		VoxelAgentData *agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
-
-		// lock this agent's delete mutex so that the delete thread doesn't
-		// kill the agent while we are working with it
-		pthread_mutex_lock(thisAgent->deleteMutex);
+		VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
 
 		// clean up the agent visit data
 		delete agentData->rootMarkerNode;
 		agentData->rootMarkerNode = new MarkerNode();
-		
-		// unlock the delete mutex so the other thread can
-		// kill the agent if it has dissapeared
-		pthread_mutex_unlock(thisAgent->deleteMutex);
 	}
 }
 
-void *distributeVoxelsToListeners(void *args) {
+void* distributeVoxelsToListeners(void *args) {
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     unsigned char *stopOctal;
@@ -159,15 +151,8 @@ void *distributeVoxelsToListeners(void *args) {
         gettimeofday(&lastSendTime, NULL);
         
         // enumerate the agents to send 3 packets to each
-        for (int i = 0; i < agentList->getAgents().size(); i++) {
-
-            Agent* thisAgent = (Agent *)&agentList->getAgents()[i];
-
-            // lock this agent's delete mutex so that the delete thread doesn't
-            // kill the agent while we are working with it
-            pthread_mutex_lock(thisAgent->deleteMutex);
-
-            VoxelAgentData* agentData = (VoxelAgentData *)(thisAgent->getLinkedData());
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            VoxelAgentData* agentData = (VoxelAgentData*)agent->getLinkedData();
             
             // If we don't have nodes already in our agent's node bag, then fill the node bag
             if (agentData->nodeBag.isEmpty()) {
@@ -292,10 +277,6 @@ void *distributeVoxelsToListeners(void *args) {
                 agentData->rootMarkerNode = new MarkerNode();
             }
 ***/
-            
-            // unlock the delete mutex so the other thread can
-            // kill the agent if it has dissapeared
-            pthread_mutex_unlock(thisAgent->deleteMutex);
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
@@ -320,7 +301,7 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 int main(int argc, const char * argv[])
 {
-    AgentList *agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
