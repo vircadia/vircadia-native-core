@@ -41,7 +41,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
+const int PACKETS_PER_CLIENT_PER_INTERVAL = 5;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -50,6 +50,7 @@ VoxelTree randomTree;
 bool wantColorRandomizer = false;
 bool debugViewFrustum = false;
 bool viewFrustumCulling = true; // for now
+bool newVoxelDistributor = false; // for now
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -72,12 +73,25 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
-	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
-	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),0.06125,(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/512),true,true);
+	
+	// The old voxel distributor has a hard time with smaller voxels and more
+	// complex scenes... so if we're using the old distributor make our scene
+	// simple with larger sized voxels
+	//int sphereBaseSize = ::newVoxelDistributor ? 512 : 256;
+	int sphereBaseSize = 256;
+	
+	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/sphereBaseSize),true,wantColorRandomizer);
+	printf("one sphere added...\n");
+	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/(sphereBaseSize*2)),true,true);
+	printf("two spheres added...\n");
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/(sphereBaseSize*2)),true,true);
+	printf("three spheres added...\n");
+	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),0.06125,(1.0/(sphereBaseSize*2)),true,true);
+	printf("four spheres added...\n");
+	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/(sphereBaseSize*2)),true,true);
+	printf("five spheres added...\n");
+	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/(sphereBaseSize*2)),true,true);
+	printf("DONE adding scene of spheres...\n");
 }
 
 
@@ -127,15 +141,96 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
         
-		VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
-
-		// clean up the agent visit data
-		delete agentData->rootMarkerNode;
-		agentData->rootMarkerNode = new MarkerNode();
+		VoxelAgentData* agentData = (VoxelAgentData *)agent->getLinkedData();
+		
+		if (agentData) {
+            // clean up the agent visit data
+            agentData->nodeBag.deleteAll();
+            // old way
+            delete agentData->rootMarkerNode;
+            agentData->rootMarkerNode = new MarkerNode();
+        }
 	}
 }
 
-void* distributeVoxelsToListeners(void *args) {
+
+void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+    // If we don't have nodes already in our agent's node bag, then fill the node bag
+    if (agentData->nodeBag.isEmpty()) {
+
+        printf("agent calling searchForColoredNodes()\n");
+        randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
+    
+        // this would add the whole tree
+        //agentData->nodeBag.insert(randomTree.rootNode);
+    }
+
+    // If we have something in our nodeBag, then turn them into packets and send them out...
+    if (!agentData->nodeBag.isEmpty()) {
+        unsigned char* tempOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE-1]; // save 1 for "V" in final
+        int bytesWritten = 0;
+
+        // NOTE: we can assume the voxelPacket has already been set up with a "V"
+        int packetsSentThisInterval = 0;
+
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
+            if (!agentData->nodeBag.isEmpty()) {
+                VoxelNode* subTree = agentData->nodeBag.extract();
+
+                // Only let this guy create at largest packets equal to the amount of space we have left in our final???
+                // Or let it create the largest possible size (minus 1 for the "V")
+                bytesWritten = randomTree.encodeTreeBitstream(subTree, viewFrustum, 
+                        tempOutputBuffer, MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
+
+                // if we have room in our final packet, add this buffer to the final packet
+                if (agentData->getAvailable() >= bytesWritten) {
+                    agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                } else {
+                    // otherwise "send" the packet because it's as full as we can make it for now
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                   agentData->getPacket(), agentData->getPacketLength());
+
+                    // keep track that we sent it
+                    packetsSentThisInterval++;
+
+                    //printf("main loop send... this packetSize=%d packetsSentThisInterval=%d \n",
+                    //    agentData->getPacketLength(), packetsSentThisInterval);
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength(), true);
+
+                    // reset our finalOutputBuffer (keep the 'V')
+                    agentData->resetVoxelPacket();
+
+                    // we also need to stick the last created partial packet in here!!
+                    agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                }
+            } else {
+                // we're here, if there are no more nodes in our bag waiting to be sent.
+                // If we have a partial packet ready, then send it...
+                if (agentData->isPacketWaiting()) {
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                    agentData->getPacket(), agentData->getPacketLength());
+
+                    //printf("isPacketWaiting() send... this packetSize=%d packetsSentThisInterval=%d \n",
+                    //    agentData->getPacketLength(), packetsSentThisInterval);
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength(), true);
+
+                    // reset our finalOutputBuffer (keep the 'V')
+                    agentData->resetVoxelPacket();
+                }
+
+                // and we're done now for this interval, because we know we have not nodes in our
+                // bag, and we just sent the last waiting packet if we had one, so tell ourselves
+                // we done for the interval
+                packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
+            }
+        }
+    
+        // end
+        delete[] tempOutputBuffer;
+    }
+}
+
+void *distributeVoxelsToListeners(void *args) {
     
     AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
@@ -145,6 +240,9 @@ void* distributeVoxelsToListeners(void *args) {
     
     int totalBytesSent;
     
+    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    unsigned char *voxelPacketEnd;
+    
     float treeRoot[3] = {0, 0, 0};
     
     while (true) {
@@ -152,10 +250,10 @@ void* distributeVoxelsToListeners(void *args) {
         
         // enumerate the agents to send 3 packets to each
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            VoxelAgentData* agentData = (VoxelAgentData*)agent->getLinkedData();
-            
-            // If we don't have nodes already in our agent's node bag, then fill the node bag
-            if (agentData->nodeBag.isEmpty()) {
+            VoxelAgentData* agentData = (VoxelAgentData *)agent->getLinkedData();
+
+            // Sometimes the agent data has not yet been linked, in which case we can't really do anything
+    		if (agentData) {
                 ViewFrustum viewFrustum;
                 // get position and orientation details from the camera
                 viewFrustum.setPosition(agentData->getCameraPosition());
@@ -169,114 +267,48 @@ void* distributeVoxelsToListeners(void *args) {
             
                 viewFrustum.calculate();
 
-                randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
-            }
+                if (::newVoxelDistributor) {            
+                    newDistributeHelper(agentList, agent, agentData, viewFrustum);
+                } else {
+                    stopOctal = NULL;
+                    packetCount = 0;
+                    totalBytesSent = 0;
+                    randomTree.leavesWrittenToBitstream = 0;
             
-            // If we have something in our nodeBag, then turn them into packets and send them out...
-            if (!agentData->nodeBag.isEmpty()) {
-            
-                unsigned char* tempOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE-1]; // save 1 for "V" in final
-                int bytesWritten = 0;
-
-                // NOTE: we can assume the voxelPacket has already been set up with a "V"
-
-                int packetsSentThisInterval = 0;
-            
-                while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
-
-                    if (!agentData->nodeBag.isEmpty()) {
-
-                        VoxelNode* subTree = agentData->nodeBag.extract();
-
-                        // Only let this guy create at largest packets equal to the amount of space we have left in our final???
-                        // Or let it create the largest possible size (minus 1 for the "V")
-                        bytesWritten = randomTree.encodeTreeBitstream(subTree, viewFrustum, 
-                                tempOutputBuffer, MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
-
-                        //printf("this tree size=%d\n", bytesWritten);
-        
-                        // if we have room in our final packet, add this buffer to the final packet
-                        if (agentData->getAvailable() >= bytesWritten) {
-                            agentData->writeToPacket(tempOutputBuffer, bytesWritten);
-                        } else {
-                            // otherwise "send" the packet because it's as full as we can make it for now
-
-                            //outputBufferBits(agentData->getPacket(), agentData->getPacketLength(), true);
-                            agentList->getAgentSocket().send(thisAgent->getActiveSocket(), 
-                                            agentData->getPacket(), agentData->getPacketLength());
-
-                            // keep track that we sent it
-                            packetsSentThisInterval++;
-
-                            // reset our finalOutputBuffer (keep the 'V')
-                            agentData->resetVoxelPacket();
-            
-                            // we also need to stick the last created partial packet in here!!
-                            agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                    for (int j = 0; j < PACKETS_PER_CLIENT_PER_INTERVAL; j++) {
+                        voxelPacketEnd = voxelPacket;
+                        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
+                                                                   randomTree.rootNode,
+                                                                   agentData->rootMarkerNode,
+                                                                   agentData->getPosition(),
+                                                                   treeRoot,
+                                                                   viewFrustum,
+                                                                   ::viewFrustumCulling,
+                                                                   stopOctal);
+                
+                        agentList->getAgentSocket().send(agent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
+                
+                        packetCount++;
+                        totalBytesSent += voxelPacketEnd - voxelPacket;
+                
+                        // XXXBHG Hack Attack: This is temporary code to help debug an issue.
+                        // Normally we use this break to prevent resending voxels that an agent has
+                        // already visited. But since we might be modifying the voxel tree we might
+                        // want to always send. This is a hack to test the behavior
+                        bool alwaysSend = true;
+                        if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                            break;
                         }
-                    } else {
-                        // we're here, if there are no more nodes in our bag waiting to be sent.
-                        
-                        // If we have a partial packet ready, then send it...
-                        if (agentData->isPacketWaiting()) {
-                            //outputBufferBits(agentData->getPacket(), agentData->getPacketLength(), true);
-                            agentList->getAgentSocket().send(thisAgent->getActiveSocket(), 
-                                            agentData->getPacket(), agentData->getPacketLength());
-                        }
-
-                        // and we're done now for this interval, because we know we have not nodes in our
-                        // bag, and we just sent the last waiting packet if we had one, so tell ourselves
-                        // we done for the interval
-                        packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
+                    }
+            
+                    // for any agent that has a root marker node with 8 visited children
+                    // recursively delete its marker nodes so we can revisit
+                    if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
+                        delete agentData->rootMarkerNode;
+                        agentData->rootMarkerNode = new MarkerNode();
                     }
                 }
-                
-                // end
-                delete[] tempOutputBuffer;
             }
-/***            
-
-            unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-            unsigned char *voxelPacketEnd;
-
-            stopOctal = NULL;
-            packetCount = 0;
-            totalBytesSent = 0;
-            randomTree.leavesWrittenToBitstream = 0;
-            
-            for (int j = 0; j < PACKETS_PER_CLIENT_PER_INTERVAL; j++) {
-                voxelPacketEnd = voxelPacket;
-                stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
-                                                           randomTree.rootNode,
-                                                           agentData->rootMarkerNode,
-                                                           agentData->getPosition(),
-                                                           treeRoot,
-                                                           viewFrustum,
-                                                           ::viewFrustumCulling,
-                                                           stopOctal);
-                
-                agentList->getAgentSocket().send(thisAgent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
-                
-                packetCount++;
-                totalBytesSent += voxelPacketEnd - voxelPacket;
-                
-                // XXXBHG Hack Attack: This is temporary code to help debug an issue.
-                // Normally we use this break to prevent resending voxels that an agent has
-                // already visited. But since we might be modifying the voxel tree we might
-                // want to always send. This is a hack to test the behavior
-                bool alwaysSend = true;
-                if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                    break;
-                }
-            }
-            
-            // for any agent that has a root marker node with 8 visited children
-            // recursively delete its marker nodes so we can revisit
-            if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                delete agentData->rootMarkerNode;
-                agentData->rootMarkerNode = new MarkerNode();
-            }
-***/
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
@@ -327,10 +359,14 @@ int main(int argc, const char * argv[])
     ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
 	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
-	const char* WANT_COLOR_RANDOMIZER = "--WantColorRandomizer";
+	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
+	const char* NEW_VOXEL_DISTRIBUTOR = "--newVoxelDistributor";
+    ::newVoxelDistributor = cmdOptionExists(argc, argv, NEW_VOXEL_DISTRIBUTOR);
+	printf("newVoxelDistributor=%s\n", (::newVoxelDistributor ? "yes" : "no"));
+	
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
 	const char* INPUT_FILE = "-i";
