@@ -65,24 +65,48 @@ void Camera::updateFollowMode( float deltaTime ) {
     }
 
     // update _yaw (before position!) 
-    _yaw += ( _idealYaw - _yaw ) * t;
-    _orientation.yaw  ( _yaw   );
+    _yaw += (_idealYaw - _yaw) * t;
+    _orientation.yaw(_yaw);
             
-    float radian = ( _yaw / 180.0 ) * PIE;
+    float radian = (_yaw / 180.0) * PIE;
 
     // update _position
     //these need to be checked to make sure they correspond to the correct coordinate system.
-    double x = _distance * -sin( radian );
-    double z = _distance *  cos( radian );
+    double x = _distance * -sin(radian);
+    double z = _distance *  cos(radian);
     double y = _upShift; 
         
-    _idealPosition  = _targetPosition + glm::vec3( x, y, z );
-    //_idealPosition += _orientation.getRight() * _rightShift;
-    //_idealPosition += _orientation.getUp   () * _upShift;
+    _idealPosition = _targetPosition + glm::vec3(x, y, z);
     
     // pull position towards ideal position
-    _position += ( _idealPosition - _position ) * t; 
+    _position += (_idealPosition - _position) * t; 
 }
+
+void Camera::setMode(CameraMode  m) { 
+    _mode = m;
+    _modeShift = 0.0f; 
+}
+
+void Camera::setFieldOfView(float f) { 
+    _fieldOfView = f; 
+    _frustumNeedsReshape = true; 
+}
+
+void Camera::setAspectRatio(float a) { 
+    _aspectRatio = a; 
+    _frustumNeedsReshape = true; 
+}
+
+void Camera::setNearClip   (float n) { 
+    _nearClip = n; 
+    _frustumNeedsReshape = true; 
+}
+
+void Camera::setFarClip    (float f) { 
+    _farClip = f; 
+    _frustumNeedsReshape = true; 
+}
+
 
 
 // call to find out if the view frustum needs to be reshaped

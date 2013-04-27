@@ -13,6 +13,7 @@
 #include <Orientation.h>
 
 #include "world.h"
+#include "AvatarTouch.h"
 
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
@@ -25,7 +26,7 @@
 
 const bool  AVATAR_GRAVITY  = true;
 const float DECAY           = 0.1;
-const float THRUST_MAG      = 10.0;
+const float THRUST_MAG      = 1200.0;
 const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
@@ -46,6 +47,8 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define MAX_DRIVE_KEYS 8
 
 #define MAX_OTHER_AVATARS 10 // temporary - for testing purposes!
+
+
 
 enum AvatarMode
 {
@@ -256,22 +259,25 @@ private:
     Avatar*           _interactingOther;
     bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
-    
     Balls*            _balls;
-    
-     void initializeSkeleton();
-    void updateSkeleton();
-    void initializeBodySprings();
-    void updateBodySprings( float deltaTime );
-    void calculateBoneLengths();
-    void readSensors();
-    void renderBoneAsBlock( AvatarBoneID b );
-    void updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
-                                                   float     collisionGirth,
-                                                   float     collisionHeight,
-                                                   glm::vec3 collisionUpVector,
-                                                   float     deltaTime);
-
+    AvatarTouch       _avatarTouch;
+        
+        // private methods...
+		void initializeSkeleton();
+		void updateSkeleton();
+		void initializeBodySprings();
+		void updateBodySprings( float deltaTime );
+		void calculateBoneLengths();
+        void readSensors();
+        void renderBoneAsBlock( AvatarBoneID b );
+        void updateAvatarCollisionDetectionAndResponse
+        ( 
+            glm::vec3 collisionPosition, 
+            float     collisionGirth, 
+            float     collisionHeight, 
+            glm::vec3 collisionUpVector, 
+            float     deltaTime 
+        );
 };
 
 #endif
