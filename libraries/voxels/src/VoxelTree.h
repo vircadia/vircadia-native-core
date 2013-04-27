@@ -82,7 +82,7 @@ private:
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
     
-    pthread_mutex_t _treeNodeDelete;
+    //pthread_mutex_t _treeNodeDelete;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);

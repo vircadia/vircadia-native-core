@@ -140,27 +140,27 @@ VoxelTree::VoxelTree() :
     
     //pthread_mutexattr_t mta;
     //pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
-    int res = pthread_mutex_init(&_treeNodeDelete, NULL);
+    //int res = pthread_mutex_init(&_treeNodeDelete, NULL);
     //debugThreadError("pthread_mutex_init(&_treeNodeDelete, &mta);", res);
 }
 
 VoxelTree::~VoxelTree() {
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
     // delete the children of the root node
     // this recursively deletes the tree
     for (int i = 0; i < 8; i++) {
         delete rootNode->children[i];
     }
-    pthread_mutex_unlock(&_treeNodeDelete);
-    pthread_mutex_destroy(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_destroy(&_treeNodeDelete);
 }
 
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
     recurseNodeWithOperation(rootNode, operation,extraData);
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 // Recurses voxel node with an operation function
@@ -211,8 +211,13 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
 VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char* codeToReach) {
 
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->octalCode, codeToReach);
-    lastParentNode->addChildAtIndex(indexOfNewChild);
+    
+    // we could be coming down a branch that was already created, so don't stomp on it.
+    if (lastParentNode->children[indexOfNewChild] == NULL) {
+        lastParentNode->addChildAtIndex(indexOfNewChild);
+    }
 
+    // This works because we know we traversed down the same tree so if the length is the same, then the whole code is the same
     if (*lastParentNode->children[indexOfNewChild]->octalCode == *codeToReach) {
         return lastParentNode->children[indexOfNewChild];
     } else {
@@ -223,10 +228,9 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
 // BHG Notes: We appear to call this function for every Voxel Node getting created.
 // This is recursive in nature. So, for example, if we are given an octal code for
 // a 1/256th size voxel, we appear to call this function 8 times. Maybe??
-int VoxelTree::readNodeData(VoxelNode *destinationNode,
-                            unsigned char * nodeData,
+int VoxelTree::readNodeData(VoxelNode* destinationNode,
+                            unsigned char* nodeData,
                             int bytesLeftToRead) {
-
     // instantiate variable for bytes already read
     int bytesRead = 1;
     for (int i = 0; i < 8; i++) {
@@ -243,7 +247,6 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             nodeColor newColor;
             memcpy(newColor, nodeData + bytesRead, 3);
             newColor[3] = 1;
-
             destinationNode->children[i]->setColor(newColor);
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
@@ -251,10 +254,9 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
             bytesRead += 3;
         }
     }
-    
     // average node's color based on color of children
     destinationNode->setColorFromAverageOfChildren();
-    
+
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
     
@@ -286,41 +288,41 @@ int VoxelTree::readNodeData(VoxelNode *destinationNode,
 
 void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
 
-    int mutexLock;
-    mutexLock = pthread_mutex_lock(&_treeNodeDelete);
+    //int mutexLock;
+    //mutexLock = pthread_mutex_lock(&_treeNodeDelete);
     //debugThreadError("pthread_mutex_lock(&_treeNodeDelete)", mutexLock);
     
     int bytesRead = 0;
+    unsigned char* bitstreamAt = bitstream;
 
     // Keep looping through the buffer calling readNodeData() this allows us to pack multiple root-relative Octal codes
     // into a single network packet. readNodeData() basically goes down a tree from the root, and fills things in from there
     // if there are more bytes after that, it's assumed to be another root relative tree
 
-    while (bytesRead < bufferSizeBytes) {
-        VoxelNode* bitstreamRootNode = nodeForOctalCode(rootNode, (unsigned char *)bitstream, NULL);
-
-        if (*bitstream != *bitstreamRootNode->octalCode) {
+    while (bitstreamAt < bitstream+bufferSizeBytes) {
+        VoxelNode* bitstreamRootNode = nodeForOctalCode(rootNode, (unsigned char *)bitstreamAt, NULL);
+        if (*bitstreamAt != *bitstreamRootNode->octalCode) {
             // if the octal code returned is not on the same level as
             // the code being searched for, we have VoxelNodes to create
 
             // Note: we need to create this node relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
-            bitstreamRootNode = createMissingNode(rootNode, (unsigned char *)bitstream);
+            bitstreamRootNode = createMissingNode(rootNode, (unsigned char *)bitstreamAt);
         }
 
-        int octalCodeBytes = bytesRequiredForCodeLength(*bitstream);
-
-        bytesRead += octalCodeBytes;
-        bytesRead += readNodeData(bitstreamRootNode, bitstream + octalCodeBytes, bufferSizeBytes - octalCodeBytes);
+        int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
+        int theseBytesRead = 0;
+        theseBytesRead += octalCodeBytes;
+        theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes, bufferSizeBytes - (bytesRead+octalCodeBytes));
 
         // skip bitstream to new startPoint
-        bitstream += bytesRead;
+        bitstreamAt += theseBytesRead;
+        bytesRead +=  theseBytesRead;
     }
 
     this->voxelsBytesRead += bufferSizeBytes;
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
-
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
@@ -343,10 +345,10 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 			
 			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
-            pthread_mutex_lock(&_treeNodeDelete);
+            //pthread_mutex_lock(&_treeNodeDelete);
             delete parentNode->children[childNDX]; // delete the child nodes
             parentNode->children[childNDX]=NULL; // set it to NULL
-            pthread_mutex_unlock(&_treeNodeDelete);
+            //pthread_mutex_unlock(&_treeNodeDelete);
 
 			reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 		}
@@ -357,16 +359,16 @@ void VoxelTree::eraseAllVoxels() {
 
 	// XXXBHG Hack attack - is there a better way to erase the voxel tree?
 
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
     delete rootNode; // this will recurse and delete all children
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
-    pthread_mutex_lock(&_treeNodeDelete);
+    ////pthread_mutex_lock(&_treeNodeDelete);
     VoxelNode* lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
 
     // create the node if it does not exist
@@ -381,7 +383,7 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
     newColor[3] = 1;
     lastCreatedNode->setColor(newColor);
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
@@ -395,7 +397,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
 {
     unsigned char * childStopOctalCode = NULL;
     // could we make this tighter?
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
     static unsigned char *initialBitstreamPos = bitstreamBuffer;
 
     if (stopOctalCode == NULL) {
@@ -456,7 +458,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                 if ((bitstreamBuffer - initialBitstreamPos) + MAX_TREE_SLICE_BYTES > MAX_VOXEL_PACKET_SIZE) {
                     // we can't send this packet, not enough room
                     // return our octal code as the stop
-                    pthread_mutex_unlock(&_treeNodeDelete);
+                    //pthread_mutex_unlock(&_treeNodeDelete);
                     return currentVoxelNode->octalCode;
                 }
             
@@ -493,9 +495,9 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                             childPosition[2] *= TREE_SCALE; // scale it up
                     
                             float halfChildVoxel = powf(0.5, *childOctalCode) * (0.5 * TREE_SCALE);
-                            float distanceToChildCenter = sqrtf(powf(agentPosition[0] - childPosition[0] - halfChildVoxel, 2) +
-                                                                powf(agentPosition[1] - childPosition[1] - halfChildVoxel, 2) +
-                                                                powf(agentPosition[2] - childPosition[2] - halfChildVoxel, 2));
+                            //float distanceToChildCenter = sqrtf(powf(agentPosition[0] - childPosition[0] - halfChildVoxel, 2) +
+                            //                                    powf(agentPosition[1] - childPosition[1] - halfChildVoxel, 2) +
+                            //                                    powf(agentPosition[2] - childPosition[2] - halfChildVoxel, 2));
 
                             float fullChildVoxel = halfChildVoxel * 2.0f;
                             AABox childBox;
@@ -637,7 +639,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
             }
         }
     }
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
     return childStopOctalCode;
 }
 
@@ -667,7 +669,7 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
 
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     // could we make this tighter?
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
     int colorMask = 0;
 
     // create the color mask
@@ -677,14 +679,18 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
         }
     }
 
+    printLog("color mask: ");
     outputBits(colorMask);
 
     // output the colors we have
     for (int j = 0; j < 8; j++) {
         if (startNode->children[j] != NULL && startNode->children[j]->isColored()) {
+            printf("color %d : ",j);
             for (int c = 0; c < 3; c++) {
-                outputBits(startNode->children[j]->getTrueColor()[c]);
+                outputBits(startNode->children[j]->getTrueColor()[c],false);
             }
+            startNode->children[j]->printDebugDetails("");
+            //printf("\n");
         }
     }
 
@@ -696,6 +702,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
         }
     }
 
+    printLog("child mask: ");
     outputBits(childMask);
 
     if (childMask > 0) {
@@ -707,12 +714,12 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
             }
         }
     }   
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     // could we make this tighter?
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete); // can't be recursed!
     bool hasChildren = false;
 
     for (int i = 0; i < 8; i++) {
@@ -729,7 +736,7 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
             startNode->setColorFromAverageOfChildren();
         }
     }
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // Method:      VoxelTree::loadVoxelsFile()
@@ -783,9 +790,9 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
                    voxelData[lengthInBytes+1], voxelData[lengthInBytes+2], voxelData[lengthInBytes+3]);
 
             //printVoxelCode(voxelData);
-            pthread_mutex_lock(&_treeNodeDelete);
+            //pthread_mutex_lock(&_treeNodeDelete);
             this->readCodeColorBufferToTree(voxelData);
-            pthread_mutex_unlock(&_treeNodeDelete);
+            //pthread_mutex_unlock(&_treeNodeDelete);
             
             delete voxelData;
         }
@@ -869,8 +876,6 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 				
 				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
                 this->readCodeColorBufferToTree(voxelData);
-				//printLog("voxel data for x:%f y:%f z:%f s:%f\n",x,y,z,s);
-                //printVoxelCode(voxelData);
                 delete voxelData;
 			}
 		}
@@ -896,8 +901,6 @@ void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustu
         return;
     }
     
-    bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
-
     const int  MAX_CHILDREN = 8;
     VoxelNode* inViewChildren[MAX_CHILDREN];
     float      distancesToChildren[MAX_CHILDREN];
@@ -978,7 +981,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
     int bytesWritten = 0;
 
     // could we make this tighter?
-    pthread_mutex_lock(&_treeNodeDelete);
+    //pthread_mutex_lock(&_treeNodeDelete);
 
     // Some debugging code... where are we in the tree..
     //node->printDebugDetails("encodeTreeBitstream() node=");
@@ -986,7 +989,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {
         //printf("encodeTreeBitstream() node NOT IN VIEW\n");
-        pthread_mutex_unlock(&_treeNodeDelete);
+        //pthread_mutex_unlock(&_treeNodeDelete);
         return bytesWritten;
     }
 
@@ -1018,7 +1021,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
         //printf("encodeTreeBitstreamRecursion() no bytes below...\n");
         bytesWritten = 0;
     }
-    pthread_mutex_unlock(&_treeNodeDelete);
+    //pthread_mutex_unlock(&_treeNodeDelete);
     return bytesWritten;
 }
 
