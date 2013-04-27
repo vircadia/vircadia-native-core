@@ -32,10 +32,29 @@ const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
-const float COLLISION_FRICTION = 0.5;
+const float COLLISION_FRICTION      = 0.5;
+const float COLLISION_RADIUS_SCALAR = 1.8;
+const float COLLISION_BALL_FORCE    = 0.1;
+const float COLLISION_BODY_FORCE    = 3.0;
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
+
+
+enum DriveKeys
+{
+    FWD = 0,
+    BACK,
+    LEFT, 
+    RIGHT, 
+    UP,
+    DOWN,
+    ROT_LEFT, 
+    ROT_RIGHT, 
+	MAX_DRIVE_KEYS
+};
+
+/*
 #define FWD 0
 #define BACK 1 
 #define LEFT 2 
@@ -45,8 +64,9 @@ enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 #define ROT_LEFT 6 
 #define ROT_RIGHT 7 
 #define MAX_DRIVE_KEYS 8
+*/
 
-#define MAX_OTHER_AVATARS 10 // temporary - for testing purposes!
+//#define MAX_OTHER_AVATARS 10 // temporary - for testing purposes!
 
 
 

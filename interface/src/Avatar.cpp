@@ -574,27 +574,33 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
 }
 
 
+//detect collisions with other avatars and respond
 void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTime ) {
 
+    // check if the bounding spheres of the two avatars are colliding
     glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
-    
     if ( glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF ) {
-    
+        
+        // loop through the bones of each avatar to check for every possible collision
         for (int b=1; b<NUM_AVATAR_BONES; b++) {
             for (int o=b+1; o<NUM_AVATAR_BONES; o++) {
             
                 glm::vec3 vectorBetweenJoints(_bone[b].springyPosition - otherAvatar->_bone[o].springyPosition);
                 float distanceBetweenJoints = glm::length(vectorBetweenJoints);
     
+                // to avoid divide by zero
                 if ( distanceBetweenJoints > 0.0 ) {
                     float combinedRadius = _bone[b].radius + otherAvatar->_bone[o].radius;
 
-                    if ( distanceBetweenJoints < combinedRadius * 1.8)  {
+                    // check for collision
+                    if ( distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
                         glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
-                        _bone[b].springyVelocity += directionVector * 0.1f * deltaTime;
-                        _velocity                += directionVector * 3.0f * deltaTime;
+                        // push ball away from colliding other ball and puch avatar body (_velocity) as well
+                        _bone[b].springyVelocity += directionVector * COLLISION_BALL_FORCE * deltaTime;
+                        _velocity                += directionVector * COLLISION_BODY_FORCE * deltaTime;
                         
+                        // apply fruction to _velocity
                         float momentum = 1.0 - COLLISION_FRICTION  * deltaTime;
                         if ( momentum < 0.0 ) { momentum = 0.0;}
                         _velocity *= momentum;
@@ -604,6 +610,7 @@ void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTi
         }
     }
 }
+
 
 void Avatar::setDisplayingHead( bool displayingHead ) {
     _displayingHead = displayingHead;
