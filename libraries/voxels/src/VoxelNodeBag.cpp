@@ -15,10 +15,18 @@
 #include <OctalCode.h>
 
 VoxelNodeBag::~VoxelNodeBag() {
+    deleteAll();
+}
+
+void VoxelNodeBag::deleteAll() {
     if (_bagElements) {
         delete[] _bagElements;
     }
+    _bagElements = NULL;
+    _elementsInUse = 0;
+    _sizeOfElementsArray = 0;
 }
+
 
 const int GROW_BAG_BY = 100;
 

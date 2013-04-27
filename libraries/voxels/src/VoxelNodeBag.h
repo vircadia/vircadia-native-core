@@ -29,8 +29,10 @@ public:
     void insert(VoxelNode* node); // put a node into the bag
     VoxelNode* extract(); // pull a node out of the bag (could come in any order)
     
-    bool isEmpty() const { return (_elementsInUse == 0); }
-    int count() const { return _elementsInUse; }
+    bool isEmpty() const { return (_elementsInUse == 0); };
+    int count() const { return _elementsInUse; };
+
+    void deleteAll();
 
 private:
     
