@@ -860,7 +860,7 @@ void display(void)
     
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
-        if (audioScope.getState()) audioScope.render();
+        audioScope.render();
         #endif
 
         if (displayHeadMouse && !::lookingInMirror && statsOn) {
