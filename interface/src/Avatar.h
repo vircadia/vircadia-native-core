@@ -89,16 +89,8 @@ enum AvatarBoneID
 	NUM_AVATAR_BONES
 };
 
-struct AvatarCollisionElipsoid
-{
-    bool      colliding;
-    glm::vec3 position;
-    float     girth;
-    float     height;
-    glm::vec3 upVector;
-};
 
-struct AvatarHandHolding
+struct AvatarHandHolding //think of this as one half of a distributed spring :)
 {
     glm::vec3 position;
     glm::vec3 velocity;
@@ -181,6 +173,8 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     
+    bool getIsNearInteractingOther() { return _interactingOtherIsNearby; }
+    
     float getAbsoluteHeadYaw() const;
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
@@ -208,6 +202,7 @@ public:
     void setHandMovementValues( glm::vec3 movement );
     void updateHandMovement( float deltaTime );
     void updateArmIKAndConstraints( float deltaTime );
+    void setDisplayingHead( bool displayingHead );
     
     float getAverageLoudness() {return _head.averageLoudness;};
     void setAverageLoudness(float al) {_head.averageLoudness = al;};
@@ -262,6 +257,7 @@ private:
     float             _pelvisStandingHeight;
     Balls*            _balls;
     AvatarTouch       _avatarTouch;
+    bool              _displayingHead; // should be false if in first-person view
         
         // private methods...
 		void initializeSkeleton();
@@ -270,7 +266,6 @@ private:
 		void updateBodySprings( float deltaTime );
 		void calculateBoneLengths();
         void readSensors();
-        void renderBoneAsBlock( AvatarBoneID b );
         void updateAvatarCollisionDetectionAndResponse
         ( 
             glm::vec3 collisionPosition, 

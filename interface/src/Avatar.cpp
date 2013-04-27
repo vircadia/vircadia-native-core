@@ -50,23 +50,22 @@ Avatar::Avatar(bool isMine) {
     
     _orientation.setToIdentity();
     
-	_velocity           = glm::vec3( 0.0, 0.0, 0.0 );
-	_thrust		        = glm::vec3( 0.0, 0.0, 0.0 );
-    _rotation           = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
-	_bodyYaw            = -90.0;
-	_bodyPitch          = 0.0;
-	_bodyRoll           = 0.0;
-	_bodyYawDelta       = 0.0;
-	_mousePressed       = false;
-	_mode               = AVATAR_MODE_STANDING;
-    _isMine             = isMine;
-    _maxArmLength       = 0.0;
-    //_transmitterTimer   = 0;
-    _transmitterHz      = 0.0;
-    _transmitterPackets = 0;
-    _speed              = 0.0;
+	_velocity             = glm::vec3( 0.0, 0.0, 0.0 );
+	_thrust		          = glm::vec3( 0.0, 0.0, 0.0 );
+    _rotation             = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+	_bodyYaw              = -90.0;
+	_bodyPitch            = 0.0;
+	_bodyRoll             = 0.0;
+	_bodyYawDelta         = 0.0;
+	_mousePressed         = false;
+	_mode                 = AVATAR_MODE_STANDING;
+    _isMine               = isMine;
+    _maxArmLength         = 0.0;
+    _transmitterHz        = 0.0;
+    _transmitterPackets   = 0;
+    _speed                = 0.0;
     _pelvisStandingHeight = 0.0f;
-    
+    _displayingHead       = true;
     _TEST_bigSphereRadius = 0.3f;
     _TEST_bigSpherePosition = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
     
@@ -591,6 +590,11 @@ void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPositi
     }
 }
 
+void Avatar::setDisplayingHead( bool displayingHead ) {
+    _displayingHead = displayingHead;
+}
+
+
 void Avatar::render(bool lookingInMirror) {
     
     /*
@@ -618,8 +622,10 @@ void Avatar::render(bool lookingInMirror) {
 	renderBody();
     
 	// render head
-	renderHead(lookingInMirror);
-	
+    if (_displayingHead) {
+        renderHead(lookingInMirror);
+	}
+    
 	// if this is my avatar, then render my interactions with the other avatar
     if ( _isMine )
     {
@@ -1131,25 +1137,27 @@ void Avatar::renderBody() {
     
     //  Render bone positions as spheres
 	for (int b = 0; b < NUM_AVATAR_BONES; b++) {
-        //renderBoneAsBlock( (AvatarBoneID)b);
         
-        //render bone orientation
-        //renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
-        
-		if ( _usingBodySprings ) {
-			glColor3fv( skinColor );
-			glPushMatrix();
-            glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
-            glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
-			glPopMatrix();
-		}
-		else {
-			glColor3fv( skinColor );
-			glPushMatrix();
-            glTranslatef( _bone[b].position.x, _bone[b].position.y, _bone[b].position.z );
-            glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
-			glPopMatrix();
-		}
+        if ( b != AVATAR_BONE_HEAD ) { // the head is rendered as a special case in "renderHead"
+    
+            //render bone orientation
+            //renderOrientationDirections( _bone[b].springyPosition, _bone[b].orientation, _bone[b].radius * 2.0 );
+            
+            if ( _usingBodySprings ) {
+                glColor3fv( skinColor );
+                glPushMatrix();
+                glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
+                glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
+                glPopMatrix();
+            }
+            else {
+                glColor3fv( skinColor );
+                glPushMatrix();
+                glTranslatef( _bone[b].position.x, _bone[b].position.y, _bone[b].position.z );
+                glutSolidSphere( _bone[b].radius, 20.0f, 20.0f );
+                glPopMatrix();
+            }
+        }
 	}
     
     // Render lines connecting the bone positions
@@ -1192,18 +1200,6 @@ void Avatar::renderBody() {
         
 		glPopMatrix();
 	}
-}
-
-void Avatar::renderBoneAsBlock( AvatarBoneID b ) {
-    glColor3fv( skinColor );
-    glPushMatrix();
-    glTranslatef( _bone[b].springyPosition.x, _bone[b].springyPosition.y, _bone[b].springyPosition.z );
-    glScalef( _bone[b].radius, _bone[b].length, _bone[b].radius );
-    glRotatef(_bone[b].yaw,   0, 1, 0 );
-    glRotatef(_bone[b].pitch, 1, 0, 0 );
-    glRotatef(_bone[b].roll,  0, 0, 1 );
-    glutSolidCube(1.0);
-    glPopMatrix();
 }
 
 void Avatar::SetNewHeadTarget(float pitch, float yaw) {
