@@ -32,8 +32,7 @@ const float YAW_MAG         = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY  = 5.0;
 const float LIN_VEL_DECAY   = 5.0;
 
-const float COLLISION_BODY_RADIUS = 0.1;
-const float COLLISION_HEIGHT = 1.5;
+const float COLLISION_FRICTION = 0.5;
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
@@ -103,7 +102,7 @@ struct AvatarBone
 	glm::vec3	 position;				// the position at the "end" of the bone
 	glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
-	glm::dvec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
+	glm::vec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
 	float		 springBodyTightness;	// how tightly the springy position tries to stay on the position
     glm::quat    rotation;              // this will eventually replace yaw, pitch and roll (and maybe orientation)
 	float		 yaw;					// the yaw Euler angle of the bone rotation off the parent
@@ -255,25 +254,20 @@ private:
     Avatar*           _interactingOther;
     bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
+    float             _height;
     Balls*            _balls;
     AvatarTouch       _avatarTouch;
     bool              _displayingHead; // should be false if in first-person view
         
-        // private methods...
-		void initializeSkeleton();
-		void updateSkeleton();
-		void initializeBodySprings();
-		void updateBodySprings( float deltaTime );
-		void calculateBoneLengths();
-        void readSensors();
-        void updateAvatarCollisionDetectionAndResponse
-        ( 
-            glm::vec3 collisionPosition, 
-            float     collisionGirth, 
-            float     collisionHeight, 
-            glm::vec3 collisionUpVector, 
-            float     deltaTime 
-        );
+    // private methods...
+    void initializeSkeleton();
+    void updateSkeleton();
+    void initializeBodySprings();
+    void updateBodySprings( float deltaTime );
+    void calculateBoneLengths();
+    void readSensors();
+    void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
+    void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
 };
 
 #endif

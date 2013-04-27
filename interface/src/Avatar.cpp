@@ -328,11 +328,7 @@ void Avatar::simulate(float deltaTime) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // check for collisions with other avatars and respond
-                updateAvatarCollisionDetectionAndResponse(otherAvatar->getPosition(),
-                                                          0.1,
-                                                          0.1,
-                                                          otherAvatar->getBodyUpDirection(),
-                                                          deltaTime);
+                updateCollisionWithOtherAvatar(otherAvatar, deltaTime );
                 
                 // test other avatar hand position for proximity
                 glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
@@ -381,12 +377,8 @@ void Avatar::simulate(float deltaTime) {
     }
     
     if (usingBigSphereCollisionTest) {
-        // test for avatar collision response (using a big sphere :)
-        updateAvatarCollisionDetectionAndResponse(_TEST_bigSpherePosition,
-                                                  _TEST_bigSphereRadius,
-                                                  _TEST_bigSphereRadius,
-                                                  glm::vec3( 0.0, 1.0, 0.0 ),
-                                                  deltaTime);
+        // test for avatar collision response with the big sphere
+        updateCollisionWithSphere( _TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime );
     }
     
     if ( AVATAR_GRAVITY ) {
@@ -540,31 +532,22 @@ void Avatar::simulate(float deltaTime) {
 	}
 }
 
-float Avatar::getGirth() {
-    return COLLISION_BODY_RADIUS;
-}
-
 float Avatar::getHeight() {
-    return COLLISION_HEIGHT;
+    return _height;
 }
 
-// This is a workspace for testing avatar body collision detection and response
-void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPosition,
-                                                       float collisionGirth,
-                                                       float collisionHeight,
-                                                       glm::vec3 collisionUpVector,
-                                                       float deltaTime) {
-    
+
+void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime ) {
     float myBodyApproximateBoundingRadius = 1.0f;
-    glm::vec3 vectorFromMyBodyToBigSphere(_position - collisionPosition);
+    glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
     bool jointCollision = false;
     
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + collisionGirth ) {
+    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + radius ) {
         for (int b = 0; b < NUM_AVATAR_BONES; b++) {
-            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - collisionPosition);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - position);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-            float combinedRadius = _bone[b].radius + collisionGirth;
+            float combinedRadius = _bone[b].radius + radius;
             
             if ( distanceToBigSphereCenter < combinedRadius )  {
                 jointCollision = true;
@@ -576,7 +559,7 @@ void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPositi
                     
                     _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
                     _velocity                += collisionForce * 100.0f * deltaTime;
-                    _bone[b].springyPosition = collisionPosition + directionVector * combinedRadius;
+                    _bone[b].springyPosition = position + directionVector * combinedRadius;
                 }
             }
         }
@@ -585,6 +568,38 @@ void Avatar::updateAvatarCollisionDetectionAndResponse(glm::vec3 collisionPositi
             if (!_usingBodySprings) {
                 _usingBodySprings = true;
                 initializeBodySprings();
+            }
+        }
+    }
+}
+
+
+void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTime ) {
+
+    glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
+    
+    if ( glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF ) {
+    
+        for (int b=1; b<NUM_AVATAR_BONES; b++) {
+            for (int o=b+1; o<NUM_AVATAR_BONES; o++) {
+            
+                glm::vec3 vectorBetweenJoints(_bone[b].springyPosition - otherAvatar->_bone[o].springyPosition);
+                float distanceBetweenJoints = glm::length(vectorBetweenJoints);
+    
+                if ( distanceBetweenJoints > 0.0 ) {
+                    float combinedRadius = _bone[b].radius + otherAvatar->_bone[o].radius;
+
+                    if ( distanceBetweenJoints < combinedRadius * 1.8)  {
+                        glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
+
+                        _bone[b].springyVelocity += directionVector * 0.1f * deltaTime;
+                        _velocity                += directionVector * 3.0f * deltaTime;
+                        
+                        float momentum = 1.0 - COLLISION_FRICTION  * deltaTime;
+                        if ( momentum < 0.0 ) { momentum = 0.0;}
+                        _velocity *= momentum;
+                    }
+                }
             }
         }
     }
@@ -965,12 +980,22 @@ void Avatar::initializeSkeleton() {
 	calculateBoneLengths();
     
     _pelvisStandingHeight = 
-    _bone[ AVATAR_BONE_PELVIS_SPINE ].length +
-	_bone[ AVATAR_BONE_LEFT_THIGH   ].length +
+	_bone[ AVATAR_BONE_LEFT_FOOT    ].radius +
 	_bone[ AVATAR_BONE_LEFT_SHIN    ].length +
-	_bone[ AVATAR_BONE_LEFT_FOOT    ].length +
-	_bone[ AVATAR_BONE_RIGHT_FOOT   ].radius;
-
+	_bone[ AVATAR_BONE_LEFT_THIGH   ].length +
+    _bone[ AVATAR_BONE_PELVIS_SPINE ].length;
+    //printf( "_pelvisStandingHeight = %f\n", _pelvisStandingHeight );
+    
+    _height = 
+    (
+        _pelvisStandingHeight +
+        _bone[ AVATAR_BONE_MID_SPINE  ].length +
+        _bone[ AVATAR_BONE_CHEST_SPINE].length +
+        _bone[ AVATAR_BONE_NECK		  ].length +
+        _bone[ AVATAR_BONE_HEAD		  ].length +
+        _bone[ AVATAR_BONE_HEAD		  ].radius
+    );
+    
 	// generate world positions
 	updateSkeleton();
 }

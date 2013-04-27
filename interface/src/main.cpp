@@ -103,7 +103,7 @@ int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
-bool USING_FIRST_PERSON_EFFECT = true;
+bool USING_FIRST_PERSON_EFFECT = false;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
