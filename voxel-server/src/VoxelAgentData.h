@@ -13,6 +13,8 @@
 #include <AgentData.h>
 #include <AvatarData.h>
 #include "MarkerNode.h"
+#include "VoxelNodeBag.h"
+#include "VoxelTree.h" // for MAX_VOXEL_PACKET_SIZE
 
 class VoxelAgentData : public AvatarData {
 public:
@@ -35,9 +37,9 @@ public:
     int getAvailable() const { return _voxelPacketAvailableBytes; }
 
     VoxelNodeBag nodeBag;
-
 private:    
     unsigned char* _voxelPacket;
+    unsigned char* _voxelPacketAt;
     int _voxelPacketAvailableBytes;
     bool _voxelPacketWaiting;
     

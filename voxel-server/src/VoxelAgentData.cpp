@@ -18,13 +18,13 @@ void VoxelAgentData::init() {
     rootMarkerNode = new MarkerNode();
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
-
+    _voxelPacketAt = _voxelPacket;
     resetVoxelPacket();
 }
 
 void VoxelAgentData::resetVoxelPacket() {
     _voxelPacket[0] = 'V';
-    _voxelPacketAt = &voxelPacket[1];
+    _voxelPacketAt = &_voxelPacket[1];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE-1;
     _voxelPacketWaiting = false;
 }
