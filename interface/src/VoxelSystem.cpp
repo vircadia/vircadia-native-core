@@ -122,138 +122,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
-        {
-            /***************** TEMPORARY CODE *********************************************************************************
-            // YES! Stephen - I have intentionally placed this horrible UGLY  LINE across your screen! I did it so you and I 
-            // would make a point of removing this code when all this work is done. But in the mean time, I need it here for
-            // debugging purposes... When you do the code review... DO NOT tell me to remove it. :) Thank you!
-            //
-            unsigned char fakePacketA[18] = { 86,4,39,128,232,128,128,128,139,138,139,139,137,139,138,139,139,0 };
-            unsigned char fakePacketB[13] = { 86,
-                7,39,135,128,
-                136,
-                    255,0,0,
-                    0,255,0,
-                0
-                };
-            unsigned char fakePacketC[13] = { 86,
-                7,39,135,64,
-                136,
-                    0,0,255,
-                    0,255,255,
-                0
-                };
-
-            unsigned char fakePacketD[25] = { 86,
-                6,39,135,64,
-                136,
-                    0,0,255,
-                    0,255,255,
-                0,
-                6,39,135,128,
-                136,
-                    255,0,0,
-                    0,255,0,
-                0
-                };
-
-            unsigned char fakePacketE[60] = {
-                86 // V
-
-                ,6,39,135,64,
-                136,
-                    0,0,255,
-                    0,255,255,
-                0
-
-                ,6,39,135,128,
-                136,
-                    255,0,0,
-                    0,255,0,
-                0
-
-                // now some extra bits, what happens???
-                ,2,252, // octcode for root
-                7, // child color bits
-                    255,0,0, // child 1 color
-                    255,255,0, // child 1 color
-                    128,128,0, // child 1 color
-                0 // child tree bits
-
-                ,3,0,0, // octcode for root
-                3, // child color bits
-                    0,0,255, // child 128 color
-                    0,255,0, // child 8 color
-                0 // child tree bits - none
-
-                ,3,0,0, // octcode for root
-                136, // child color bits
-                    0,0,255, // child 128 color
-                    0,255,0, // child 8 color
-                0 // child tree bits - none
-            };
-
-            unsigned char fakeBuffer[18] = {
-                86, // V
-                2,0, // octcode for root
-                136, // child color bits
-                0,0,255, // child 128 color
-                0,255,0, // child 8 color
-                0, // child tree bits - none
-                
-                // now some extra bits, what happens???
-                2,252, // octcode for root
-                1, // child color bits
-                255,0,0, // child 1 color
-                0 // child tree bits
-            };
-
-            //printf("loading fake data! fakeBuffer \n");
-            tree->readBitstreamToTree((unsigned char*)&fakeBuffer[1], sizeof(fakeBuffer)-1);
-
-            unsigned char fakeBuffer[11] = {
-                86, // V
-                2,0, // octcode for root
-                136, // child color bits
-                0,0,255, // child 128 color
-                0,255,0, // child 8 color
-                0 // child tree bits - none
-            };
-
-            printf("loading fake data! fakeBuffer \n");
-            tree->readBitstreamToTree((unsigned char*)&fakeBuffer[1], sizeof(fakeBuffer)-1);
-
-            unsigned char fakeBufferA[11] = {
-                    86, // V
-                    0, // octcode for root
-                    0, // child color bits?
-                    128, // child exists bits 
-                    0, // child color bits
-                    128, // child exists
-                    128, // child color bits
-                    0,0,255, // child color
-                    0 // child exists bits
-                    };
-
-            unsigned char fakeBufferB[11] = { 
-                    86, // V
-                    0, // octcode for root
-                    0, // child color bits?
-                    128, // child exists bits 
-                    0, // child color bits
-                    128, // child exists
-                    16, // child color bits
-                    0,255,0, // child color??
-                    0 // child exists bits
-                    };
-
-            // trim off the "V"
-            
-            ***** END OF TEMPORARY CODE ***************************************************************************************/
-            
             // ask the VoxelTree to read the bitstream into the tree
             tree->readBitstreamToTree(voxelData, numBytes - 1);
-        }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
@@ -342,17 +212,8 @@ int VoxelSystem::treeToArrays(VoxelNode* currentNode, const glm::vec3&  nodePosi
         }
     }
 
-    // if we didn't get any voxels added then we're a leaf
+    // if we didn't get any voxels added then we're a leaf (XXXBHG - Stephen can you explain this to me????)
     // add our vertex and color information to the interleaved array
-    /****** XXXBHG ***** Stephen!!! ********************************************************************************************
-    * What is this code about??? Why are we checking to see if voxelsAdded==0???? Shouldn't we always be writing arrays?
-    * Help me understand this? If I remove this check, then two things happen:
-    *   1) I get much more blinking... which is not desirable.
-    *   2) I seem to get large blocks of "average color" voxels... namely I see big voxels, where their should be smaller ones
-    *
-    * But with this check in here, the blinking stops... which kind of makes sense... and the average blocks go away??? not
-    * sure why, but updates seem to be slower... namely, we don't seem to see the new voxels even though the client got them.
-    ***************************************************************************************************************************/
     if (voxelsAdded == 0 && currentNode->isColored()) {
         float startVertex[3];
         copyFirstVertexForCode(currentNode->octalCode,(float*)&startVertex);
