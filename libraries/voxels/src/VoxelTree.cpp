@@ -63,44 +63,7 @@
 #include "ViewFrustum.h"
 #include <fstream> // to load voxels from file
 
-#include <pthread.h>
-#include <errno.h>
-
 using voxels_lib::printLog;
-
-
-void debugThreadError(const char* message, int err) {
-    switch (err) {
-        case EINVAL:
-            printf("%s -> EINVAL\n",message);
-            break;
-        
-        case EBUSY:
-            printf("%s -> EBUSY\n",message);
-            break;
-        
-        case EAGAIN:
-            printf("%s -> EAGAIN\n",message);
-            break;
-        
-        case EDEADLK:
-            printf("%s -> EDEADLK\n",message);
-            break;
-        
-        case EPERM:
-            printf("%s -> EPERM\n",message);
-            break;
-        
-        case EINTR:
-            printf("%s -> EINTR\n",message);
-            break;
-        
-        default:
-            printf("%s -> %d\n",message,err);
-            break;
-    }
-
-}
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     switch (renderLevel) {
