@@ -137,30 +137,20 @@ VoxelTree::VoxelTree() :
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
-    
-    //pthread_mutexattr_t mta;
-    //pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
-    //int res = pthread_mutex_init(&_treeNodeDelete, NULL);
-    //debugThreadError("pthread_mutex_init(&_treeNodeDelete, &mta);", res);
 }
 
 VoxelTree::~VoxelTree() {
-    //pthread_mutex_lock(&_treeNodeDelete);
     // delete the children of the root node
     // this recursively deletes the tree
     for (int i = 0; i < 8; i++) {
         delete rootNode->children[i];
     }
-    //pthread_mutex_unlock(&_treeNodeDelete);
-    //pthread_mutex_destroy(&_treeNodeDelete);
 }
 
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
-    //pthread_mutex_lock(&_treeNodeDelete);
     recurseNodeWithOperation(rootNode, operation,extraData);
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 // Recurses voxel node with an operation function
@@ -287,11 +277,6 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
 }
 
 void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
-
-    //int mutexLock;
-    //mutexLock = pthread_mutex_lock(&_treeNodeDelete);
-    //debugThreadError("pthread_mutex_lock(&_treeNodeDelete)", mutexLock);
-    
     int bytesRead = 0;
     unsigned char* bitstreamAt = bitstream;
 
@@ -322,7 +307,6 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 
     this->voxelsBytesRead += bufferSizeBytes;
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
@@ -345,10 +329,8 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 			
 			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
-            //pthread_mutex_lock(&_treeNodeDelete);
             delete parentNode->children[childNDX]; // delete the child nodes
             parentNode->children[childNDX]=NULL; // set it to NULL
-            //pthread_mutex_unlock(&_treeNodeDelete);
 
 			reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 		}
@@ -356,19 +338,14 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
 }
 
 void VoxelTree::eraseAllVoxels() {
-
 	// XXXBHG Hack attack - is there a better way to erase the voxel tree?
-
-    //pthread_mutex_lock(&_treeNodeDelete);
     delete rootNode; // this will recurse and delete all children
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
-    ////pthread_mutex_lock(&_treeNodeDelete);
     VoxelNode* lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
 
     // create the node if it does not exist
@@ -383,7 +360,6 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
     newColor[3] = 1;
     lastCreatedNode->setColor(newColor);
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
@@ -396,8 +372,6 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                                unsigned char * stopOctalCode)
 {
     unsigned char * childStopOctalCode = NULL;
-    // could we make this tighter?
-    //pthread_mutex_lock(&_treeNodeDelete);
     static unsigned char *initialBitstreamPos = bitstreamBuffer;
 
     if (stopOctalCode == NULL) {
@@ -458,7 +432,6 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                 if ((bitstreamBuffer - initialBitstreamPos) + MAX_TREE_SLICE_BYTES > MAX_VOXEL_PACKET_SIZE) {
                     // we can't send this packet, not enough room
                     // return our octal code as the stop
-                    //pthread_mutex_unlock(&_treeNodeDelete);
                     return currentVoxelNode->octalCode;
                 }
             
@@ -639,14 +612,10 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
             }
         }
     }
-    //pthread_mutex_unlock(&_treeNodeDelete);
     return childStopOctalCode;
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
-    // do we need to lock out tree mutex
-    //if (0 == pthread_mutex_lock(&_treeNodeDelete))
-
 	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
 	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
 	printLog("processRemoveVoxelBitstream() receivedBytes=%d itemNumber=%d\n",bufferSizeBytes,itemNumber);
@@ -668,8 +637,6 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
 }
 
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
-    // could we make this tighter?
-    //pthread_mutex_lock(&_treeNodeDelete);
     int colorMask = 0;
 
     // create the color mask
@@ -714,12 +681,9 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
             }
         }
     }   
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
-    // could we make this tighter?
-    //pthread_mutex_lock(&_treeNodeDelete); // can't be recursed!
     bool hasChildren = false;
 
     for (int i = 0; i < 8; i++) {
@@ -736,7 +700,6 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
             startNode->setColorFromAverageOfChildren();
         }
     }
-    //pthread_mutex_unlock(&_treeNodeDelete);
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // Method:      VoxelTree::loadVoxelsFile()
@@ -790,10 +753,7 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
                    voxelData[lengthInBytes+1], voxelData[lengthInBytes+2], voxelData[lengthInBytes+3]);
 
             //printVoxelCode(voxelData);
-            //pthread_mutex_lock(&_treeNodeDelete);
             this->readCodeColorBufferToTree(voxelData);
-            //pthread_mutex_unlock(&_treeNodeDelete);
-            
             delete voxelData;
         }
         file.close();
@@ -980,16 +940,8 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
 
-    // could we make this tighter?
-    //pthread_mutex_lock(&_treeNodeDelete);
-
-    // Some debugging code... where are we in the tree..
-    //node->printDebugDetails("encodeTreeBitstream() node=");
-
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {
-        //printf("encodeTreeBitstream() node NOT IN VIEW\n");
-        //pthread_mutex_unlock(&_treeNodeDelete);
         return bytesWritten;
     }
 
@@ -1021,7 +973,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
         //printf("encodeTreeBitstreamRecursion() no bytes below...\n");
         bytesWritten = 0;
     }
-    //pthread_mutex_unlock(&_treeNodeDelete);
     return bytesWritten;
 }
 
