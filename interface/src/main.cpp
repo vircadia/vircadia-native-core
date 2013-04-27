@@ -1632,7 +1632,6 @@ int main(int argc, const char * argv[])
         listenPort = atoi(portStr);
     }
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
-
     enableNetworkThread = !cmdOptionExists(argc, argv, "--nonblocking");
     if (!enableNetworkThread) {
         AgentList::getInstance()->getAgentSocket().setBlocking(false);
