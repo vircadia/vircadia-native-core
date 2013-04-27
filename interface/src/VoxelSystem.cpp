@@ -115,8 +115,6 @@ float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
     return tree->voxelsBytesReadStats.getAverageSampleValuePerSecond();
 }
 
-bool pickAorB = false;
-
 int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
@@ -130,6 +128,71 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             // would make a point of removing this code when all this work is done. But in the mean time, I need it here for
             // debugging purposes... When you do the code review... DO NOT tell me to remove it. :) Thank you!
             //
+            unsigned char fakePacketA[18] = { 86,4,39,128,232,128,128,128,139,138,139,139,137,139,138,139,139,0 };
+            unsigned char fakePacketB[13] = { 86,
+                7,39,135,128,
+                136,
+                    255,0,0,
+                    0,255,0,
+                0
+                };
+            unsigned char fakePacketC[13] = { 86,
+                7,39,135,64,
+                136,
+                    0,0,255,
+                    0,255,255,
+                0
+                };
+
+            unsigned char fakePacketD[25] = { 86,
+                6,39,135,64,
+                136,
+                    0,0,255,
+                    0,255,255,
+                0,
+                6,39,135,128,
+                136,
+                    255,0,0,
+                    0,255,0,
+                0
+                };
+
+            unsigned char fakePacketE[60] = {
+                86 // V
+
+                ,6,39,135,64,
+                136,
+                    0,0,255,
+                    0,255,255,
+                0
+
+                ,6,39,135,128,
+                136,
+                    255,0,0,
+                    0,255,0,
+                0
+
+                // now some extra bits, what happens???
+                ,2,252, // octcode for root
+                7, // child color bits
+                    255,0,0, // child 1 color
+                    255,255,0, // child 1 color
+                    128,128,0, // child 1 color
+                0 // child tree bits
+
+                ,3,0,0, // octcode for root
+                3, // child color bits
+                    0,0,255, // child 128 color
+                    0,255,0, // child 8 color
+                0 // child tree bits - none
+
+                ,3,0,0, // octcode for root
+                136, // child color bits
+                    0,0,255, // child 128 color
+                    0,255,0, // child 8 color
+                0 // child tree bits - none
+            };
+
             unsigned char fakeBuffer[18] = {
                 86, // V
                 2,0, // octcode for root
@@ -185,13 +248,6 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                     };
 
             // trim off the "V"
-            printf("loading fake data! pickAorB=%s\n", (pickAorB ? "A" : "B") );
-            if (pickAorB) {
-                tree->readBitstreamToTree((unsigned char*)&fakeBufferA[1], sizeof(fakeBufferA)-1);
-            } else {
-                tree->readBitstreamToTree((unsigned char*)&fakeBufferB[1], sizeof(fakeBufferB)-1);
-            }
-            pickAorB = !pickAorB;
             
             ***** END OF TEMPORARY CODE ***************************************************************************************/
             
@@ -256,9 +312,8 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
     pthread_mutex_unlock(&bufferWriteLock);
 }
 
-int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosition) {
+int VoxelSystem::treeToArrays(VoxelNode* currentNode, const glm::vec3&  nodePosition) {
     int voxelsAdded = 0;
-
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
     glm::vec3 viewerPosition = viewerAvatar->getPosition();
 
@@ -266,21 +321,12 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
     glm::vec3 debugNodePosition;
     copyFirstVertexForCode(currentNode->octalCode,(float*)&debugNodePosition);
 
-    //printf("-----------------\n");
-    //printf("halfUnitForVoxel=%f\n",halfUnitForVoxel);
-    //printf("viewer.x=%f y=%f z=%f \n", viewerPosition.x, viewerPosition.y, viewerPosition.z);
-    //printf("node.x=%f y=%f z=%f \n", nodePosition[0], nodePosition[1], nodePosition[2]);
-    //printf("debugNodePosition.x=%f y=%f z=%f \n", debugNodePosition[0], debugNodePosition[1], debugNodePosition[2]);
-
     float distanceToVoxelCenter = sqrtf(powf(viewerPosition.x - nodePosition[0] - halfUnitForVoxel, 2) +
                                         powf(viewerPosition.y - nodePosition[1] - halfUnitForVoxel, 2) +
                                         powf(viewerPosition.z - nodePosition[2] - halfUnitForVoxel, 2));
 
     int renderLevel = *currentNode->octalCode + 1;
     int boundaryPosition = boundaryDistanceForRenderLevel(renderLevel);
-    //printLog("treeToArrays() renderLevel=%d distanceToVoxelCenter=%f boundaryPosition=%d\n",
-    //    renderLevel,distanceToVoxelCenter,boundaryPosition);
-
     bool alwaysDraw = false; // XXXBHG - temporary debug code. Flip this to true to disable LOD blurring
 
     if (alwaysDraw || distanceToVoxelCenter < boundaryPosition) {
@@ -291,22 +337,6 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
                 glm::vec3 childNodePosition;
                 copyFirstVertexForCode(currentNode->children[i]->octalCode,(float*)&childNodePosition);
                 childNodePosition *= (float)TREE_SCALE; // scale it up
-
-                /**** disabled ************************************************************************************************
-                // Note: Stephen, I intentionally left this in so you would talk to me about it. Here's the deal, this code
-                // doesn't seem to work correctly. It returns X and Z flipped and the values are negative. Since we use the
-                // firstVertexForCode() function below to calculate the child vertex and that DOES work, I've decided to use
-                // that function to calculate our position for LOD handling.
-                //
-                // calculate the child's position based on the parent position
-                for (int j = 0; j < 3; j++) {
-                    childNodePosition[j] = nodePosition[j];
-
-                    if (oneAtBit(branchIndexWithDescendant(currentNode->octalCode,currentNode->children[i]->octalCode),(7 - j))) {
-                        childNodePosition[j] -= (powf(0.5, *currentNode->children[i]->octalCode) * TREE_SCALE);
-                    }
-                }
-                **** disabled ************************************************************************************************/
                 voxelsAdded += treeToArrays(currentNode->children[i], childNodePosition);
             }
         }
@@ -314,6 +344,15 @@ int VoxelSystem::treeToArrays(VoxelNode *currentNode, const glm::vec3&  nodePosi
 
     // if we didn't get any voxels added then we're a leaf
     // add our vertex and color information to the interleaved array
+    /****** XXXBHG ***** Stephen!!! ********************************************************************************************
+    * What is this code about??? Why are we checking to see if voxelsAdded==0???? Shouldn't we always be writing arrays?
+    * Help me understand this? If I remove this check, then two things happen:
+    *   1) I get much more blinking... which is not desirable.
+    *   2) I seem to get large blocks of "average color" voxels... namely I see big voxels, where their should be smaller ones
+    *
+    * But with this check in here, the blinking stops... which kind of makes sense... and the average blocks go away??? not
+    * sure why, but updates seem to be slower... namely, we don't seem to see the new voxels even though the client got them.
+    ***************************************************************************************************************************/
     if (voxelsAdded == 0 && currentNode->isColored()) {
         float startVertex[3];
         copyFirstVertexForCode(currentNode->octalCode,(float*)&startVertex);
