@@ -1626,39 +1626,6 @@ int main(int argc, const char * argv[])
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
 
-    // Quick test of the Orientation class on startup!
-    if (cmdOptionExists(argc, argv, "--testOrientation")) {
-        testOrientationClass();
-        return EXIT_SUCCESS;
-    }
-
-    // Quick test of sortedArrays helper
-    if (cmdOptionExists(argc, argv, "--testSortedArray")) {
-        void* values[8];
-        float keys[8];
-        int   meta[8];
-        int   count = 0;
-
-        count = insertIntoSortedArrays((void*)10, 10.0, 1, values, keys, meta, count, 8);
-        printf("after one insert...\n");
-        for (int i=0; i<count; i++){
-            printf("keys[%d]=%f values[%d]=%ld meta[%d]=%d\n",i,keys[i],i,(long)values[i],i,meta[i]);
-        }
-
-        count = insertIntoSortedArrays((void*)20, 100.0, 2, values, keys, meta, count, 8);
-        printf("after two insert...\n");
-        for (int i=0; i<count; i++){
-            printf("keys[%d]=%f values[%d]=%ld meta[%d]=%d\n",i,keys[i],i,(long)values[i],i,meta[i]);
-        }
-
-        count = insertIntoSortedArrays((void*)30, 1.0, 3, values, keys, meta, count, 8);
-        printf("after three inserts...\n");
-        for (int i=0; i<count; i++){
-            printf("keys[%d]=%f values[%d]=%ld meta[%d]=%d\n",i,keys[i],i,(long)values[i],i,meta[i]);
-        }
-        return EXIT_SUCCESS;
-    }
-
     AgentList::createInstance(AGENT_TYPE_AVATAR);
 
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
