@@ -157,12 +157,7 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
     // If we don't have nodes already in our agent's node bag, then fill the node bag
     if (agentData->nodeBag.isEmpty()) {
-
-        printf("agent calling searchForColoredNodes()\n");
         randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
-    
-        // this would add the whole tree
-        //agentData->nodeBag.insert(randomTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -193,10 +188,6 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                     // keep track that we sent it
                     packetsSentThisInterval++;
 
-                    //printf("main loop send... this packetSize=%d packetsSentThisInterval=%d \n",
-                    //    agentData->getPacketLength(), packetsSentThisInterval);
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength(), true);
-
                     // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
 
@@ -209,10 +200,6 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                     agentData->getPacket(), agentData->getPacketLength());
-
-                    //printf("isPacketWaiting() send... this packetSize=%d packetsSentThisInterval=%d \n",
-                    //    agentData->getPacketLength(), packetsSentThisInterval);
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength(), true);
 
                     // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
