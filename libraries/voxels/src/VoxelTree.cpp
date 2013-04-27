@@ -361,31 +361,7 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                                             powf(agentPosition[1] - thisNodePosition[1] - halfUnitForVoxel, 2) +
                                             powf(agentPosition[2] - thisNodePosition[2] - halfUnitForVoxel, 2));
 
-        // If the voxel is outside of the view frustum, then don't bother sending or recursing
-        bool voxelInView = true;
-    
-        /**** not yet working properly at this level! **************************************************************************
-        if (viewFrustumCulling) {
-            float fullUnitForVoxel = halfUnitForVoxel * 2.0f;
-            AABox voxelBox;
-            voxelBox.setBox(glm::vec3(thisNodePosition[0],thisNodePosition[1],thisNodePosition[2]),
-                fullUnitForVoxel,fullUnitForVoxel,fullUnitForVoxel);
-    
-            //printf("VoxelTree::loadBitstreamBuffer() voxelBox.corner=(%f,%f,%f) x=%f \n",
-            //  voxelBox.getCorner().x,voxelBox.getCorner().y,voxelBox.getCorner().z, voxelBox.getSize().x);
-
-            voxelInView = (ViewFrustum::OUTSIDE != viewFrustum.pointInFrustum(voxelBox.getCorner()));
-        } else {
-            voxelInView = true;
-        }
-        **********************************************************************************************************************/
-    
-        // if the distance to this voxel's center is less than the threshold
-        // distance for its children, we should send the children
-        bool voxelIsClose = (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentVoxelNode->octalCode + 1));
-        bool sendVoxel = voxelIsClose && voxelInView;
-
-        if (sendVoxel) {
+        if (distanceToVoxelCenter < boundaryDistanceForRenderLevel(*currentVoxelNode->octalCode + 1)) {
         
             // write this voxel's data if we're below or at
             // or at the same level as the stopOctalCode
