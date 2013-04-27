@@ -23,12 +23,15 @@ class UDPSocket {
         UDPSocket(int listening_port);
         ~UDPSocket();
         bool init();
+        void setBlocking(bool blocking);
+        bool isBlocking() { return blocking; }
         int send(sockaddr *destAddress, const void *data, size_t byteLength);
         int send(char *destAddress, int destPort, const void *data, size_t byteLength);
         bool receive(void *receivedData, ssize_t *receivedBytes);
         bool receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes);
     private:
         int handle;
+        bool blocking;
 };
 
 bool socketMatch(sockaddr *first, sockaddr *second);

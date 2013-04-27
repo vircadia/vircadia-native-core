@@ -151,10 +151,8 @@ int audioCallback (const void *inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            for (int p = 0; p < 3; p++) {
-                memcpy(currentPacketPtr, &data->linkedAvatar->getPosition()[p], sizeof(float));
-                currentPacketPtr += sizeof(float);
-            }
+            memcpy(currentPacketPtr, &data->linkedAvatar->getHeadPosition(), sizeof(float) * 3);
+            currentPacketPtr += (sizeof(float) * 3);
             
             // tell the mixer not to add additional attenuation to our source
             *(currentPacketPtr++) = 255;
