@@ -9,8 +9,6 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include <pthread.h>
-
 #include "SimpleMovingAverage.h"
 
 #include "ViewFrustum.h"
