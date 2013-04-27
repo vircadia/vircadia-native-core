@@ -39,7 +39,7 @@
 #include <ifaddrs.h>
 #endif
 
-#include <pthread.h>
+#include <pthread.h> 
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -88,10 +88,11 @@ using namespace std;
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
-
+bool enableNetworkThread = true;
 pthread_t networkReceiveThread;
 bool stopNetworkReceiveThread = false;
-
+ 
+unsigned char incomingPacket[MAX_PACKET_SIZE];
 int packetCount = 0;
 int packetsPerSecond = 0; 
 int bytesPerSecond = 0;
@@ -353,8 +354,11 @@ void terminate () {
     #ifndef _WIN32
     audio.terminate();
     #endif
-    stopNetworkReceiveThread = true;
-    pthread_join(networkReceiveThread, NULL);
+    
+    if (enableNetworkThread) {
+        stopNetworkReceiveThread = true;
+        pthread_join(networkReceiveThread, NULL); 
+    }
     
     exit(EXIT_SUCCESS);
 }
@@ -1348,7 +1352,7 @@ void specialkey(int k, int x, int y)
 
 void keyUp(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
-        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setKeyState(NO_KEY_DOWN);
         return;
     }
 
@@ -1366,7 +1370,7 @@ void key(unsigned char k, int x, int y)
     if (::chatEntryOn) {
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
-                AvatarData::DeleteKeyDown : AvatarData::InsertKeyDown);            
+                DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
             myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
             
         } else {
@@ -1445,18 +1449,17 @@ void key(unsigned char k, int x, int y)
     
     if (k == '\r') {
         ::chatEntryOn = true;
-        myAvatar.setKeyState(AvatarData::NoKeyDown);
+        myAvatar.setKeyState(NO_KEY_DOWN);
         myAvatar.setChatMessage(string());
     }
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
-void *networkReceive(void *args)
+void* networkReceive(void* args)
 {    
     sockaddr senderAddress;
     ssize_t bytesReceived;
-    unsigned char *incomingPacket = new unsigned char[MAX_PACKET_SIZE];
-
+    
     while (!stopNetworkReceiveThread) {
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
@@ -1480,12 +1483,15 @@ void *networkReceive(void *args)
                     AgentList::getInstance()->processAgentData(&senderAddress, incomingPacket, bytesReceived);
                     break;
             }
+        } else if (!enableNetworkThread) {
+            break;
         }
     }
     
-    delete[] incomingPacket;
-    pthread_exit(0); 
-    return NULL;
+    if (enableNetworkThread) {
+        pthread_exit(0); 
+    }
+    return NULL; 
 }
 
 void idle(void) {
@@ -1520,6 +1526,11 @@ void idle(void) {
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
         updateAvatar(deltaTime);
+
+        // read incoming packets from network
+        if (!enableNetworkThread) {
+            networkReceive(0);
+		}
 		
         //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
@@ -1663,6 +1674,10 @@ int main(int argc, const char * argv[])
         listenPort = atoi(portStr);
     }
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    enableNetworkThread = !cmdOptionExists(argc, argv, "--nonblocking");
+    if (!enableNetworkThread) {
+        AgentList::getInstance()->getAgentSocket().setBlocking(false);
+    }
     
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
@@ -1746,8 +1761,10 @@ int main(int argc, const char * argv[])
 	}
     
     // create thread for receipt of data via UDP
-    pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
-    printLog("Network receive thread created.\n");
+    if (enableNetworkThread) {
+        pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
+        printLog("Network receive thread created.\n"); 
+    }
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();

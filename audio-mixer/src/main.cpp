@@ -52,10 +52,9 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float DISTANCE_RATIO = 3.0/4.2;
+const float DISTANCE_RATIO = 3.0f / 0.3f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
-
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
@@ -127,7 +126,7 @@ void *sendBuffer(void *args)
             
             
             for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                if (otherAgent != agent || ( otherAgent == agent && agentWantsLoopback)) {
+                if (otherAgent != agent || (otherAgent == agent && agentWantsLoopback)) {
                     AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
                     float *agentPosition = agentRingBuffer->getPosition();
