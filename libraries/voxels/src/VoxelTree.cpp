@@ -560,7 +560,6 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
                 outputBits(startNode->children[j]->getTrueColor()[c],false);
             }
             startNode->children[j]->printDebugDetails("");
-            //printf("\n");
         }
     }
 
@@ -888,10 +887,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
 int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes,
                                     VoxelNodeBag& bag) const {
-
-    // Some debugging code... where are we in the tree..
-    //node->printDebugDetails("encodeTreeBitstreamRecursion() node=");
-    
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -931,17 +926,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
         VoxelNode* childNode = node->children[i];
         bool childExists = (childNode != NULL);
         
-        if (childExists) {
-            //childNode->printDebugDetails("encodeTreeBitstream() looping children");
-        }
-        
         bool childIsColored = (childExists && childNode->isColored());
         bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
         bool childIsLeaf    = (childExists && childNode->isLeaf());
-        
-        //printf("childExists=%s childIsColored=%s childIsInView=%s childIsLeaf=%s \n",
-        //    (childExists ? "yes" : "no"), (childIsColored ? "yes" : "no"), 
-        //    (childIsInView ? "yes" : "no"), (childIsLeaf ? "yes" : "no") );
         
         if (childIsInView) {
             inViewCount++;
@@ -961,16 +948,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
             }
         }
     }
-    //printf("bhgLoadBitstream() child nodes in view... inViewCount=%d\n",inViewCount);
-    //printf("bhgLoadBitstream() child nodes in view with color... inViewWithColorCount=%d\n",inViewWithColorCount);
-    //printf("bhgLoadBitstream() child nodes in view NOT LEAF... inViewNotLeafCount=%d\n",inViewNotLeafCount);
-    
-    // write the child color bits
-    //printf("bhgLoadBitstream() writing child color bits=");
-    //outputBits(childrenColoredBits);
-    
     *writeToThisLevelBuffer = childrenColoredBits;
-
     writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
     
@@ -983,12 +961,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
             bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
         }
     }
-
-    //printf("inViewNotLeafCount=%d \n", inViewNotLeafCount );
-
-    //printf("bhgLoadBitstream() writing child trees exist bits=");
-    //outputBits(childrenExistBits);
-
     // write the child exist bits
     *writeToThisLevelBuffer = childrenExistBits;
 
@@ -1002,38 +974,26 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
     // written at this level, and how many bytes we have available in the outputBuffer. If we can fit what we've got so far
     // and room for the no more children terminator, then let's write what we got so far.
 
-    //printf("availableBytes=%d bytesAtThisLevel=%d keepDiggingDeeper=%s \n", 
-    //    availableBytes, bytesAtThisLevel, (keepDiggingDeeper ? "yes" : "no") );
-    
     // If we have enough room to copy our local results into the buffer, then do so...
     if (availableBytes >= bytesAtThisLevel) {
         memcpy(outputBuffer,&thisLevelBuffer[0],bytesAtThisLevel);
         
         outputBuffer   += bytesAtThisLevel;
         availableBytes -= bytesAtThisLevel;
-
-        //printf("actually write our local bytes to the outputBuffer bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
     } else {
         // we've run out of room!!! What do we do!!!
-        //printf("we don't have room to write bytes bytesAtThisLevel=%d availableBytes=%d\n",bytesAtThisLevel, availableBytes);
-        
         // 1) return 0 for bytes written so upper levels do the right thing, namely prune us from their trees
         // 2) add our node to the list of extra nodes for later output...
         // Note: we don't do any termination for this level, we just return 0, then the upper level is in charge
         // of handling things. For example, in case of child iteration, it needs to unset the child exist bit for
         // this child.
-        
         // add our node the the list of extra nodes to output later... 
 
         bag.insert(node);
-        
         return 0;
     }
     
     if (keepDiggingDeeper) {
-    
-        //printf("keepDiggingDeeper == TRUE... dig deeper!\n");
-        
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about. 
         //
@@ -1050,9 +1010,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
         
             if (oneAtBit(childrenExistBits, i)) {
                 VoxelNode* childNode = node->children[i];
-            
-                //printf("about to dig deeper child[%d] outputBuffer=%p, availableBytes=%d\n",i,outputBuffer,availableBytes);
-
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, viewFrustum, outputBuffer, availableBytes, bag);
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
@@ -1072,7 +1029,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
                 if (2 == childTreeBytesOut) {
-                    //printf("after to dig deeper child[%d] childTreeBytesOut was 2, we're resetting to 0\n",i);
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
                 }
 
@@ -1080,33 +1036,19 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
                 availableBytes -= childTreeBytesOut;
                 outputBuffer += childTreeBytesOut;
 
-                //printf("after dig deeper child[%d] childTreeBytesOut=%d outputBuffer=%p, availableBytes=%d\n",
-                //    i,childTreeBytesOut, outputBuffer, availableBytes);
-                            
                 // If we had previously started writing, and if the child DIDN'T write any bytes,
                 // then we want to remove their bit from the childExistsPlaceHolder bitmask
                 if (0 == childTreeBytesOut) {
-
-                    //printf("bhgLoadBitstream() child %d didn't write bytes, removing from bitmask\n",i );
-
                     // remove this child's bit...
                     childrenExistBits -= (1 << (7 - i));
                 
                     // repair the child exists mask
                     *childExistsPlaceHolder = childrenExistBits;
-                
                     // Note: no need to move the pointer, cause we already stored this
-                    
                 } // end if (0 == childTreeBytesOut)
-                
             } // end if (oneAtBit(childrenExistBits, i))
         } // end for
-
     } // end keepDiggingDeeper
-    
-    
-    //printf("bhgLoadBitstream() at bottom, returning... bytesAtThisLevel=%d\n",bytesAtThisLevel );
-    
     return bytesAtThisLevel;
 }
 
