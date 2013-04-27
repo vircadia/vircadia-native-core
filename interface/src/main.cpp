@@ -1626,8 +1626,6 @@ int main(int argc, const char * argv[])
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
 
-    AgentList::createInstance(AGENT_TYPE_AVATAR);
-
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char* portStr = getCmdOption(argc, argv, "--listenPort");
     if (portStr) {
