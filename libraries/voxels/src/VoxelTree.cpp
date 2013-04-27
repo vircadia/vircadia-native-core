@@ -407,49 +407,31 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                             childPosition[2] *= TREE_SCALE; // scale it up
                     
                             float halfChildVoxel = powf(0.5, *childOctalCode) * (0.5 * TREE_SCALE);
-                            //float distanceToChildCenter = sqrtf(powf(agentPosition[0] - childPosition[0] - halfChildVoxel, 2) +
-                            //                                    powf(agentPosition[1] - childPosition[1] - halfChildVoxel, 2) +
-                            //                                    powf(agentPosition[2] - childPosition[2] - halfChildVoxel, 2));
-
                             float fullChildVoxel = halfChildVoxel * 2.0f;
                             AABox childBox;
                             childBox.setBox(glm::vec3(childPosition[0], childPosition[1], childPosition[2]),
                                 fullChildVoxel, fullChildVoxel, fullChildVoxel);
     
-                            // XXXBHG - not sure we want to do this "distance/LOD culling" at this level.
-                            //bool childIsClose = (distanceToChildCenter < boundaryDistanceForRenderLevel(*childOctalCode + 1));
-                        
-                            bool childIsClose = true; // for now, assume we're close enough
                             bool childInView  = !viewFrustumCulling || 
                                 (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(childBox));
 
                             /// XXXBHG - debug code, switch this to true, and we'll send everything but include false coloring
                             // on voxels based on whether or not they match these rules.
                             bool falseColorInsteadOfCulling = false;
+                            bool sendChild =  childInView || falseColorInsteadOfCulling; 
                         
-                            // removed childIsClose - until we determine if we want to include that
-                            bool sendChild =  (childInView) || falseColorInsteadOfCulling; 
-                        
-                            // if we sendAnyway, we'll do false coloring of the voxels based on childIsClose && childInView
+                            // if we sendAnyway, we'll do false coloring of the voxels based on childInView
                             if (sendChild) {
                     
                                 // copy in the childs color to bitstreamBuffer
-                                if (childIsClose && childInView) {
+                                if (childInView) {
                                     // true color
                                     memcpy(colorPointer, currentVoxelNode->children[i]->getTrueColor(), 3);
                                 } else {
                                     unsigned char red[3]   = {255,0,0};
-                                    unsigned char green[3] = {0,255,0};
-                                    unsigned char blue[3]  = {0,0,255};
-                                    if (!childIsClose && !childInView) {
-                                        // If both too far, and not in view, color them red
+                                    if (!childInView) {
+                                        // If not in view, color them red
                                         memcpy(colorPointer, red, 3);
-                                    } else if (!childIsClose) {
-                                        // If too far, but in view, color them blue
-                                        memcpy(colorPointer, blue, 3);
-                                    } else {
-                                        // If close, but out of view, color them green
-                                        memcpy(colorPointer, green, 3);
                                     }
                                 }
                                 colorPointer += 3;
@@ -495,24 +477,6 @@ unsigned char * VoxelTree::loadBitstreamBuffer(unsigned char *& bitstreamBuffer,
                         childNodePosition[1] *= TREE_SCALE; // scale it up
                         childNodePosition[2] *= TREE_SCALE; // scale it up
             
-                        /**** disabled *****************************************************************************************
-                        // Note: Stephen, I intentionally left this in so you would talk to me about it. Here's the deal, this
-                        // code doesn't seem to work correctly. It returns X and Z flipped and the values are negative. Since 
-                        // we use the firstVertexForCode() function in VoxelSystem to calculate the child vertex and that DOES
-                        //  work, I've decided to use that function to calculate our position for LOD handling.
-                        //
-                        // calculate the child's position based on the parent position
-                        for (int j = 0; j < 3; j++) {
-                            childNodePosition[j] = thisNodePosition[j];
-                        
-                            if (oneAtBit(branchIndexWithDescendant(currentVoxelNode->octalCode,
-                                                                   currentVoxelNode->children[i]->octalCode),
-                                         (7 - j))) {
-                                childNodePosition[j] -= (powf(0.5, *currentVoxelNode->children[i]->octalCode) * TREE_SCALE);
-                            }
-                        }
-                        **** disabled *****************************************************************************************/
-
                         // ask the child to load the bitstream buffer with their data
                         childStopOctalCode = loadBitstreamBuffer(bitstreamBuffer,
                                                                  currentVoxelNode->children[i],
