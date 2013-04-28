@@ -393,8 +393,8 @@ void updateAvatar(float frametime)
         const float YAW_SENSITIVITY = 1.0;
 
         if (fabs(gyroYawRate) > MIN_YAW_RATE) {
-            float addToBodyYaw = (gyroYawRate > 0.f) ?
-                                gyroYawRate - MIN_YAW_RATE : gyroYawRate + MIN_YAW_RATE;
+            float addToBodyYaw = (gyroYawRate > 0.f)
+                                    ? gyroYawRate - MIN_YAW_RATE : gyroYawRate + MIN_YAW_RATE;
             
             myAvatar.addBodyYaw(-addToBodyYaw * YAW_SENSITIVITY * frametime);
         }
@@ -404,8 +404,8 @@ void updateAvatar(float frametime)
         const float PITCH_SENSITIVITY = 1.0;
 
         if (fabs(gyroPitchRate) > MIN_PITCH_RATE) {
-            float addToBodyPitch = (gyroPitchRate > 0.f) ?
-            gyroPitchRate - MIN_PITCH_RATE : gyroPitchRate + MIN_PITCH_RATE;
+            float addToBodyPitch = (gyroPitchRate > 0.f) 
+                                    ? gyroPitchRate - MIN_PITCH_RATE : gyroPitchRate + MIN_PITCH_RATE;
             
             myAvatar.addBodyPitch(addToBodyPitch * PITCH_SENSITIVITY * frametime);
         */
