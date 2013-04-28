@@ -15,10 +15,10 @@ Balls::Balls(int numberOfBalls) {
     _numberOfBalls = numberOfBalls;
     _balls = new Ball[_numberOfBalls];
     for (unsigned int i = 0; i < _numberOfBalls; ++i) {
-        _balls[i].position = glm::vec3(1.0 + randFloat()*0.5,
-                                       0.5 + randFloat()*0.5,
-                                       1.0 + randFloat()*0.5);
-        _balls[i].radius = 0.02 + randFloat()*0.06;
+        _balls[i].position = glm::vec3(1.0 + randFloat() * 0.5,
+                                       0.5 + randFloat() * 0.5,
+                                       1.0 + randFloat() * 0.5);
+        _balls[i].radius = 0.02 + randFloat() * 0.06;
         for (unsigned int j = 0; j < NUMBER_SPRINGS; ++j) {
             _balls[i].links[j] = rand() % (numberOfBalls + 1);
             if (_balls[i].links[j]-1 == i) { _balls[i].links[j] = 0; }
@@ -42,7 +42,7 @@ void Balls::render() {
     
     //  Render springs
     if (RENDER_SPRINGS) {
-        glColor3f(0.74,0.91,0.62);
+        glColor3f(0.74, 0.91, 0.62);
         for (unsigned int i = 0; i < _numberOfBalls; ++i) {
             glBegin(GL_LINES);
             for (unsigned int j = 0; j < NUMBER_SPRINGS; ++j) {
@@ -73,7 +73,7 @@ void Balls::simulate(float deltaTime) {
         _balls[i].position += _balls[i].velocity * deltaTime;
         
         // Drag: decay velocity
-        _balls[i].velocity *= (1.f - CONSTANT_VELOCITY_DAMPING*deltaTime);
+        _balls[i].velocity *= (1.f - CONSTANT_VELOCITY_DAMPING * deltaTime);
         
         // Add noise
         _balls[i].velocity += glm::vec3((randFloat() - 0.5) * NOISE_SCALE,

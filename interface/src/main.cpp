@@ -50,7 +50,6 @@
 #include "voxels_Log.h"
 #include "avatars_Log.h"
 
-#include "Field.h"
 #include "world.h"
 #include "Util.h"
 #ifndef _WIN32
@@ -67,7 +66,6 @@
 #include "ChatEntry.h"
 #include "Avatar.h"
 #include "Texture.h"
-#include "Cloud.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
@@ -124,13 +122,7 @@ bool showingVoxels = true;
 
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
-Cloud cloud(0,                             //  Particles
-            box,                           //  Bounding Box
-            false                          //  Wrap
-            );
-
 VoxelSystem voxels;
-Field field;
 
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
@@ -138,10 +130,6 @@ Audio audio(&audioScope, &myAvatar);
 
 #define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
                                          //  in the idle loop?
-
-float startYaw = 122.f;
-float renderYawRate = 0.f;
-float renderPitchRate = 0.f; 
 
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
@@ -158,11 +146,10 @@ bool logOn = true;                  //  Whether to show on-screen log
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
-bool gyroLook = false;               //  Whether to allow the gyro data from head to move your view
+bool gyroLook = true;               //  Whether to allow the gyro data from head to move your view
 
 int displayLevels = 0;
 bool lookingInMirror = 0;           //  Are we currently rendering one's own head as if in mirror?
-int displayField = 0;
 
 int displayHeadMouse = 1;         //  Display sample mouse pointer controlled by head movement
 int headMouseX, headMouseY; 
@@ -312,7 +299,6 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
-    myAvatar.setRenderYaw(startYaw);
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
@@ -320,10 +306,7 @@ void init(void)
     headMouseY = HEIGHT/2; 
 
     stars.readInput(starFile, starCacheFile, 0);
- 
-    //  Initialize Field values
-    field = Field();
- 
+  
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
@@ -365,13 +348,7 @@ void terminate () {
 
 void reset_sensors()
 {
-    //  
-    //   Reset serial I/O sensors 
-    // 
-    myAvatar.setRenderYaw(startYaw);
     
-    renderYawRate = 0; 
-    renderPitchRate = 0;
     myAvatar.setPosition(start_location);
     headMouseX = WIDTH/2;
     headMouseY = HEIGHT/2;
@@ -409,28 +386,30 @@ void updateAvatar(float frametime)
     headMouseY = max(headMouseY, 0);
     headMouseY = min(headMouseY, HEIGHT);
     
-    //  Update render direction (pitch/yaw) based on measured gyro rates
-    const float MIN_YAW_RATE = 5;
-    const float YAW_SENSITIVITY = 1.0;
-    
-    //  If enabled, Update render pitch and yaw based on gyro data
-    if (::gyroLook) {
-        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
-            myAvatar.addBodyYaw(-gyroYawRate * YAW_SENSITIVITY * frametime);
-        }
-    }
-    
-    float renderPitch = myAvatar.getRenderPitch();
-    // Decay renderPitch toward zero because we never look constantly up/down 
-    renderPitch *= (1.f - 2.0*frametime);
+    //  Update head and body pitch and yaw based on measured gyro rates
+        if (::gyroLook) {
+        // Yaw
+        const float MIN_YAW_RATE = 50;
+        const float YAW_SENSITIVITY = 1.0;
 
-    //  Decay angular rates toward zero 
-    renderPitchRate *= (1.f - 5.0*frametime);
-    renderYawRate *= (1.f - 7.0*frametime);
-    
-    //  Update own avatar data
-    myAvatar.setRenderYaw(myAvatar.getRenderYaw() + renderYawRate);
-    myAvatar.setRenderPitch(renderPitch + renderPitchRate);
+        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
+            float addToBodyYaw = (gyroYawRate > 0.f)
+                                    ? gyroYawRate - MIN_YAW_RATE : gyroYawRate + MIN_YAW_RATE;
+            
+            myAvatar.addBodyYaw(-addToBodyYaw * YAW_SENSITIVITY * frametime);
+        }
+        // Pitch   NOTE: PER - Need to make camera able to pitch first!
+        /*
+        const float MIN_PITCH_RATE = 50;
+        const float PITCH_SENSITIVITY = 1.0;
+
+        if (fabs(gyroPitchRate) > MIN_PITCH_RATE) {
+            float addToBodyPitch = (gyroPitchRate > 0.f) 
+                                    ? gyroPitchRate - MIN_PITCH_RATE : gyroPitchRate + MIN_PITCH_RATE;
+            
+            myAvatar.addBodyPitch(addToBodyPitch * PITCH_SENSITIVITY * frametime);
+        */
+    }
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
@@ -720,9 +699,9 @@ void display(void)
         
         GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };  //{ 0.125, 0.305, 0.5 };  
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  //{ 0.5, 0.42, 0.33 }; 
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
         glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
         GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
         glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
@@ -870,19 +849,6 @@ void display(void)
         glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         
-        
-        /*
-        // Test - Draw a blue sphere around a body part of mine!
-        
-        glPushMatrix();
-        glColor4f(0,0,1, 0.7);
-        glTranslatef(myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).x,
-                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).y,
-                      myAvatar.getBonePosition(AVATAR_BONE_RIGHT_HAND).z);
-        glutSolidSphere(0.03, 10, 10);
-        glPopMatrix();
-        */
-		
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
@@ -890,21 +856,15 @@ void display(void)
 			glutSolidSphere( sphereRadius, 15, 15 );
 		glPopMatrix();
 
-		//draw a grid gound plane....
+		//draw a grid ground plane....
 		drawGroundPlaneGrid( 5.0f, 9 );
 		
-        //  Draw cloud of dots
-        if (!::lookingInMirror) cloud.render();
-    
         //  Draw voxels
 		if ( showingVoxels )
 		{
 			voxels.render();
 		}
 		
-        //  Draw field vectors
-        if (displayField) field.render();
-            
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -1041,10 +1001,6 @@ int setValue(int state, bool *value) {
 
 int setHead(int state) {
     return setValue(state, &::lookingInMirror);
-}
-
-int setField(int state) {
-    return setValue(state, &displayField);
 }
 
 int setNoise(int state) {
@@ -1197,7 +1153,6 @@ void initMenu() {
     menuColumnRender = menu.addColumn("Render");
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
-    menuColumnRender->addRow("Field (f)", setField);
     
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
@@ -1435,16 +1390,13 @@ void key(unsigned char k, int x, int y)
     
     if (k == 'm' || k == 'M') setMenu(MENU_ROW_PICKED);
     
-    if (k == 'f') displayField = !displayField;
     if (k == 'l') displayLevels = !displayLevels;
     if (k == 'e') myAvatar.setDriveKeys(UP, 1);
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
     if (k == 's') myAvatar.setDriveKeys(BACK, 1);
     if (k == ' ') reset_sensors();
-    if (k == 't') renderPitchRate -= KEYBOARD_PITCH_RATE;
-    if (k == 'g') renderPitchRate += KEYBOARD_PITCH_RATE;
-    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1); 
+    if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1);
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
     
     if (k == '\r') {
@@ -1541,9 +1493,7 @@ void idle(void) {
             }
         }
     
-        field.simulate   (deltaTime);
         myAvatar.simulate(deltaTime);
-        cloud.simulate   (deltaTime);
 
         glutPostRedisplay();
         lastTimeIdle = check;

@@ -12,7 +12,6 @@
 #include <AvatarData.h>
 #include <Orientation.h>
 
-#include "Field.h"
 #include "world.h"
 #include "AvatarTouch.h"
 
