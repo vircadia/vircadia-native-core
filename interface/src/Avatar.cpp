@@ -116,10 +116,7 @@ Avatar::Avatar(bool isMine) {
 	_sphere                   = NULL;
     _interactingOther         = NULL;
 	_interactingOtherIsNearby = false;
-    
-    _handHolding.position = glm::vec3( 0.0, 0.0, 0.0 );
-    _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
-    _handHolding.force    = 10.0f;
+    _handHoldingPosition      = glm::vec3( 0.0, 0.0, 0.0 );
     
     initializeSkeleton();
     
@@ -309,8 +306,7 @@ void Avatar::simulate(float deltaTime) {
     
     if ( !_interactingOtherIsNearby ) {
         //initialize _handHolding
-        _handHolding.position = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
-        _handHolding.velocity = glm::vec3( 0.0, 0.0, 0.0 );
+        _handHoldingPosition = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
     }
     
     _interactingOtherIsNearby = false;
@@ -337,27 +333,20 @@ void Avatar::simulate(float deltaTime) {
                 float distance = glm::length( v );
                 if ( distance < _maxArmLength + _maxArmLength ) {
                                 
-                    //if ( distance < closestDistance ) { // perhaps I don't need this if we want to allow multi-avatar interactions
-                    {
-                        closestDistance = distance;
-                        _interactingOther = otherAvatar;
-                        _interactingOtherIsNearby = true;
-                        
-                        // if I am holding hands with another avatar, a force is applied
-                        if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
-                            glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHolding.position;
-                            glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHolding.position;
-                                                       
-                            _handHolding.velocity *= 0.7;
-                            _handHolding.velocity += ( vectorToOtherHand + vectorToMyHand ) * _handHolding.force * deltaTime;
-                            _handHolding.position += _handHolding.velocity;
-                            
-                            _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHolding.position;
-                        }
-                    }
+                    closestDistance = distance;
+                    _interactingOther = otherAvatar;
+                    _interactingOtherIsNearby = true;
                     
-                    _avatarTouch.setMyHandPosition( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-                    _avatarTouch.setYourPosition( otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND ) );
+                    // if I am holding hands with another avatar, a force is applied
+                    if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
+                        glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHoldingPosition;
+                        glm::vec3 vectorToMyHand = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHoldingPosition;
+                        _handHoldingPosition += vectorToOtherHand * YOUR_HAND_HOLDING_PULL;
+                        _handHoldingPosition += vectorToMyHand    * MY_HAND_HOLDING_PULL;
+                        _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHoldingPosition;
+                    }
+
+                    _avatarTouch.setYourHandPosition( _interactingOther->_handPosition );
                 }
             }
         }
@@ -370,7 +359,12 @@ void Avatar::simulate(float deltaTime) {
         
     }//if ( _isMine )
     
+    //constrain right arm length and re-adjust elbow position as it bends
     updateArmIKAndConstraints( deltaTime );
+    
+    if (_isMine) {
+        _avatarTouch.setMyHandPosition( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
+    }
     
     if (!_interactingOtherIsNearby) {
         _interactingOther = NULL;
@@ -867,19 +861,6 @@ void Avatar::renderHead(bool lookingInMirror) {
     glPopMatrix();
  }
 
-
-void Avatar::startHandMovement() {
-    
-    if (!_usingBodySprings) {
-        initializeBodySprings();
-        _usingBodySprings = true;
-    }
-}
-
-void Avatar::stopHandMovement() {
-    //_usingBodySprings = false;
-}
-
 void Avatar::setHandMovementValues( glm::vec3 handOffset ) {
 	_movedHandOffset = handOffset;
 }
@@ -1135,7 +1116,7 @@ void Avatar::updateArmIKAndConstraints( float deltaTime ) {
 	// test to see if right hand is being dragged beyond maximum arm length
 	float distance = glm::length( armVector );
 	
-	// if right hand is being dragged beyond maximum arm length...
+	// don't let right hand get dragged beyond maximum arm length...
 	if ( distance > _maxArmLength ) {
 		// reset right hand to be constrained to maximum arm length
 		_bone[ AVATAR_BONE_RIGHT_HAND ].position = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;

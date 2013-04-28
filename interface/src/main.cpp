@@ -1512,8 +1512,7 @@ void idle(void) {
 		// tell my avatar if the mouse is being pressed...
 		if ( mousePressed == 1 ) {
 			myAvatar.setMousePressed( true );
-		}
-		else {
+		} else {
 			myAvatar.setMousePressed( false );
 		}
         
@@ -1532,7 +1531,7 @@ void idle(void) {
             networkReceive(0);
 		}
 		
-        //loop through all the other avatars and simulate them...
+        //loop through all the remote avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
