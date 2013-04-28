@@ -742,9 +742,14 @@ void display(void)
 			myCamera.setTightness		( 100.0f );
 		} else {
 
+            //float firstPersonPitch     =  20.0f;
+            //float firstPersonUpShift   =   0.0f;
+            //float firstPersonDistance  =   0.0f;
+            //float firstPersonTightness = 100.0f;
+
             float firstPersonPitch     =  20.0f;
             float firstPersonUpShift   =   0.1f;
-            float firstPersonDistance  =   0.0f;
+            float firstPersonDistance  =   0.4f;
             float firstPersonTightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
@@ -753,14 +758,44 @@ void display(void)
             float thirdPersonTightness =   8.0f;
                         
             if ( USING_FIRST_PERSON_EFFECT ) {
+                float ff = 0.0;
+                float min = 0.1;
+                float max = 0.5;
+
+                if ( myAvatar.getIsNearInteractingOther()){
+                    if ( myAvatar.getSpeed() < max ) {
+                    
+                        float s = (myAvatar.getSpeed()- min)/max ;    
+                        ff = 1.0 - s;
+                    }
+                }
+               
+                /*
+                if ( ff < 0.8 ) {
+                    myAvatar.setDisplayingHead( true );
+                } else {
+                    myAvatar.setDisplayingHead( false );
+                }
+                */
+                
+                 //printf( "ff = %f\n", ff );
+
+                myCamera.setPitch	   ( thirdPersonPitch     + ff * ( firstPersonPitch     - thirdPersonPitch     ));
+                myCamera.setUpShift    ( thirdPersonUpShift   + ff * ( firstPersonUpShift   - thirdPersonUpShift   ));
+                myCamera.setDistance   ( thirdPersonDistance  + ff * ( firstPersonDistance  - thirdPersonDistance  ));
+                myCamera.setTightness  ( thirdPersonTightness + ff * ( firstPersonTightness - thirdPersonTightness ));                
+                
+                
+                    
+                // this version uses a ramp-up/ramp-down timer in the camera to determine shift between first and thirs-person view 
+                /*
                 if ( myAvatar.getSpeed() < 0.02 ) {   
                 
                     if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                         myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                     }
                     
-                    printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-
+                    //printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
                     myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
                     myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
                     myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
@@ -770,13 +805,14 @@ void display(void)
                         myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
                     }
                 
-                    printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-
+                    //printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
                     myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
                     myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
                     myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
                     myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
                 }
+                */
+                
             } else {
                 myCamera.setPitch	 (thirdPersonPitch    );
                 myCamera.setUpShift  (thirdPersonUpShift  );
