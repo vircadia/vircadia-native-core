@@ -58,6 +58,7 @@ int main(int argc, const char* argv[])
     
     agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
     
+    agentList->startDomainServerCheckInThread();
     agentList->startSilentAgentRemovalThread();
     
     sockaddr *agentAddress = new sockaddr;
@@ -105,6 +106,7 @@ int main(int argc, const char* argv[])
     }
     
     agentList->stopSilentAgentRemovalThread();
+    agentList->stopDomainServerCheckInThread();
     
     return 0;
 }
