@@ -121,7 +121,7 @@ int main(int argc, const char* argv[]) {
     
     // put her hand out so somebody can shake it
     eve.setHandPosition(glm::vec3(eve.getPosition()[0] - 0.2,
-                                  0.25,
+                                  0.32, // this is the same as the pelvis standing height (as of 4/26/13)
                                   eve.getPosition()[2] + 0.1));    
     // read eve's audio data
     AudioInjector eveAudioInjector("eve.raw");
