@@ -152,14 +152,46 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 
 void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+
+    // A quick explanation of the strategy here. First, each time through, we ask ourselves, do we have voxels
+    // that need to be sent? If not, we search for them, if we do, then we send them. We store our to be sent voxel sub trees
+    // in a VoxelNodeBag on a per agent basis. The bag stores just pointers to the root node of the sub tree to be sent, so
+    // it doesn't store much on a per agent basis.
+    //
+    // There could be multiple strategies at play for how we determine which voxels need to be sent. For example, at the
+    // simplest level, we can just add the root node to this bag, and let the system send it. The other thing that we use
+    // this bag for is, keeping track of voxels sub trees we wanted to send in the packet, but wouldn't fit into the current
+    // packet because they were too big once encoded. So, as we run though this function multiple times, we start out with
+    // voxel sub trees that we determined needed to be sent because they were in view, new, correct distance, etc. But as
+    // we send those sub trees, if their child trees don't fit in a packet, we'll add those sub trees to this bag as well, and
+    // next chance we get, we'll also send those needed sub trees.
     // If we don't have nodes already in our agent's node bag, then fill the node bag
     if (agentData->nodeBag.isEmpty()) {
+    
+        // To get things started, we look for colored nodes. We could have also just started with the root node. In fact, if
+        // you substitute this call with something as simple as agentData->nodeBag.insert(rootNod), you'll see almost the same
+        // behavior on the client. The scene will appear. 
+        //
+        // So why do we do this extra effort to look for colored nodes? It turns out that there are subtle differences between
+        // how many bytes it takes to encode a tree based on how deep it is relative to the root node (which effects the octal
+        // code size) vs how dense the tree is (which effects how many bits in the bitMask are being wasted, and maybe more
+        // importantly, how many subtrees are also included). There is a break point where the more dense a tree is, it's more
+        // efficient to encode the peers together with their empty parents. This would argue that we shouldn't search for these
+        // sub trees, and we should instead encode the parent for dense scenes.
+        //
+        // But, there's another important side effect of dense trees related to out maximum packet size. Namely... if a tree
+        // is very dense, then you can't fit as many branches in a single network packet. Because when we encode the parent and
+        // children in a single packet, we must include the entire child branch (all the way down to our target LOD) before we
+        // can include the siblings. Since dense trees take more space per ranch, we often end up only being able to encode a
+        // single branch. This means on a per packet basis, the trees actually _are not_ dense. And sparse trees are shorter to
+        // encode when we only include the child tree.
         randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!agentData->nodeBag.isEmpty()) {
-        unsigned char* tempOutputBuffer = new unsigned char[MAX_VOXEL_PACKET_SIZE-1]; // save 1 for "V" in final
+    
+        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE-1]; // save on allocs by making this static
         int bytesWritten = 0;
 
         // NOTE: we can assume the voxelPacket has already been set up with a "V"
@@ -172,11 +204,11 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                 // Only let this guy create at largest packets equal to the amount of space we have left in our final???
                 // Or let it create the largest possible size (minus 1 for the "V")
                 bytesWritten = randomTree.encodeTreeBitstream(subTree, viewFrustum, 
-                        tempOutputBuffer, MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
+                        &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
 
                 // if we have room in our final packet, add this buffer to the final packet
                 if (agentData->getAvailable() >= bytesWritten) {
-                    agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
                     // otherwise "send" the packet because it's as full as we can make it for now
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
@@ -189,7 +221,7 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                     agentData->resetVoxelPacket();
 
                     // we also need to stick the last created partial packet in here!!
-                    agentData->writeToPacket(tempOutputBuffer, bytesWritten);
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 }
             } else {
                 // we're here, if there are no more nodes in our bag waiting to be sent.
@@ -208,9 +240,6 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
             }
         }
-    
-        // end
-        delete[] tempOutputBuffer;
     }
 }
 
