@@ -60,7 +60,6 @@ int main(int argc, const char* argv[])
     
     agentList->startDomainServerCheckInThread();
     agentList->startSilentAgentRemovalThread();
-    agentList->startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
@@ -70,28 +69,27 @@ int main(int argc, const char* argv[])
     *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
     
     unsigned char* currentBufferPosition = NULL;
-    int agentIndex = 0;
         
     while (true) {
         if (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
+                    // add this agent if we don't have them yet
+                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
+                        agentList->increaseAgentId();
+                    }
+                    
                     // this is positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
-                    
+                
                     currentBufferPosition = broadcastPacket + 1;
-                    agentIndex = 0;
                     
                     // send back a packet with other active agent data to this agent
-                    for (AgentList::iterator avatarAgent = agentList->begin();
-                         avatarAgent != agentList->end();
-                         avatarAgent++) {
-                        if (avatarAgent->getLinkedData() != NULL
-                            && !socketMatch(agentAddress, avatarAgent->getActiveSocket())) {
-                            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+                    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+                        if (agent->getLinkedData() != NULL
+                            && !socketMatch(agentAddress, agent->getActiveSocket())) {
+                            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*agent);
                         }
-                        
-                        agentIndex++;
                     }
                     
                     agentList->getAgentSocket().send(agentAddress,
@@ -107,9 +105,8 @@ int main(int argc, const char* argv[])
         }
     }
     
-    agentList->stopDomainServerCheckInThread();
     agentList->stopSilentAgentRemovalThread();
-    agentList->stopPingUnknownAgentsThread();
+    agentList->stopDomainServerCheckInThread();
     
     return 0;
 }

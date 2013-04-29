@@ -259,7 +259,9 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // to use the local socket information the domain server gave us
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
-        } else if (newAgent->getType() == AGENT_TYPE_VOXEL) {
+        } else if (newAgent->getType() == AGENT_TYPE_VOXEL || newAgent->getType() == AGENT_TYPE_AVATAR_MIXER) {
+            // this is currently the cheat we use to talk directly to our test servers on EC2
+            // to be removed when we have a proper identification strategy
             newAgent->activatePublicSocket();
         }
         
