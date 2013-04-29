@@ -63,6 +63,7 @@ int main(int argc, const char* argv[])
     agentList->startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
+    sockaddr_in* agentAddressIn;
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
@@ -78,6 +79,8 @@ int main(int argc, const char* argv[])
                 case PACKET_HEADER_HEAD_DATA:
                     // this is positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+                    agentAddressIn = (sockaddr_in*) agentAddress;
+                    printf("Received agent data from agent at %s:%d\n", inet_ntoa(agentAddressIn->sin_addr), ntohs(agentAddressIn->sin_port));
                     
                     currentBufferPosition = broadcastPacket + 1;
                     agentIndex = 0;
@@ -89,6 +92,8 @@ int main(int argc, const char* argv[])
                         if (avatarAgent->getLinkedData() != NULL
                             && !socketMatch(agentAddress, avatarAgent->getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
+                        } else {
+                            printf("Not adding agent with ID %d to packet\n", avatarAgent->getAgentId());
                         }
                         
                         agentIndex++;
