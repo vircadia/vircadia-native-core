@@ -97,6 +97,9 @@ int main(int argc, const char* argv[])
                                                     currentBufferPosition - broadcastPacket);
                     
                     break;
+                case PACKET_HEADER_DOMAIN:
+                    // ignore the DS packet, for now agents are added only when they communicate directly with us
+                    break;
                 default:
                     // hand this off to the AgentList
                     agentList->processAgentData(agentAddress, packetData, receivedBytes);
