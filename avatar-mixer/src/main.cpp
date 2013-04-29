@@ -68,7 +68,6 @@ int main(int argc, const char* argv[])
     *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
     
     unsigned char* currentBufferPosition = NULL;
-    int agentIndex = 0;
         
     while (true) {
         if (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
@@ -81,9 +80,8 @@ int main(int argc, const char* argv[])
                     
                     // this is positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
-                    
+                
                     currentBufferPosition = broadcastPacket + 1;
-                    agentIndex = 0;
                     
                     // send back a packet with other active agent data to this agent
                     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -91,8 +89,6 @@ int main(int argc, const char* argv[])
                             && !socketMatch(agentAddress, agent->getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*agent);
                         }
-                        
-                        agentIndex++;
                     }
                     
                     agentList->getAgentSocket().send(agentAddress,
