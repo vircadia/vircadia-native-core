@@ -53,6 +53,9 @@ public:
     uint16_t getLastAgentId();
     void increaseAgentId();
     
+    void lock() { pthread_mutex_lock(&mutex); }
+    void unlock() { pthread_mutex_unlock(&mutex); }
+    
     int updateList(unsigned char *packetData, size_t dataBytes);
     
     Agent* agentWithAddress(sockaddr *senderAddress);
@@ -99,6 +102,7 @@ private:
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
     pthread_t pingUnknownAgentsThread;
+    pthread_mutex_t mutex;
     
     void handlePingReply(sockaddr *agentAddress);
 };
