@@ -539,21 +539,23 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
     if ( distanceToBigSphere < myBodyApproximateBoundingRadius + radius ) {
         for (int b = 0; b < NUM_AVATAR_BONES; b++) {
-            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - position);
-            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-            float combinedRadius = _bone[b].radius + radius;
-            
-            if ( distanceToBigSphereCenter < combinedRadius )  {
-                jointCollision = true;
-                if (distanceToBigSphereCenter > 0.0) {
-                    glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
-                    
-                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
-                    glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
-                    
-                    _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
-                    _velocity                += collisionForce * 100.0f * deltaTime;
-                    _bone[b].springyPosition = position + directionVector * combinedRadius;
+            if ( _bone[b].isCollidable ) {
+                glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - position);
+                float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
+                float combinedRadius = _bone[b].radius + radius;
+                
+                if ( distanceToBigSphereCenter < combinedRadius )  {
+                    jointCollision = true;
+                    if (distanceToBigSphereCenter > 0.0) {
+                        glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
+                        
+                        float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
+                        glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
+                        
+                        _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
+                        _velocity                += collisionForce * 100.0f * deltaTime;
+                        _bone[b].springyPosition = position + directionVector * combinedRadius;
+                    }
                 }
             }
         }
@@ -577,27 +579,32 @@ void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTi
         
         // loop through the bones of each avatar to check for every possible collision
         for (int b=1; b<NUM_AVATAR_BONES; b++) {
-            for (int o=b+1; o<NUM_AVATAR_BONES; o++) {
+            if ( _bone[b].isCollidable ) {
+
+                for (int o=b+1; o<NUM_AVATAR_BONES; o++) {
+                    if ( _bone[o].isCollidable ) {
+                    
+                        glm::vec3 vectorBetweenJoints(_bone[b].springyPosition - otherAvatar->_bone[o].springyPosition);
+                        float distanceBetweenJoints = glm::length(vectorBetweenJoints);
             
-                glm::vec3 vectorBetweenJoints(_bone[b].springyPosition - otherAvatar->_bone[o].springyPosition);
-                float distanceBetweenJoints = glm::length(vectorBetweenJoints);
-    
-                // to avoid divide by zero
-                if ( distanceBetweenJoints > 0.0 ) {
-                    float combinedRadius = _bone[b].radius + otherAvatar->_bone[o].radius;
+                        // to avoid divide by zero
+                        if ( distanceBetweenJoints > 0.0 ) {
+                            float combinedRadius = _bone[b].radius + otherAvatar->_bone[o].radius;
 
-                    // check for collision
-                    if ( distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
-                        glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
+                            // check for collision
+                            if ( distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
+                                glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
-                        // push ball away from colliding other ball and puch avatar body (_velocity) as well
-                        _bone[b].springyVelocity += directionVector * COLLISION_BALL_FORCE * deltaTime;
-                        _velocity                += directionVector * COLLISION_BODY_FORCE * deltaTime;
-                        
-                        // apply fruction to _velocity
-                        float momentum = 1.0 - COLLISION_FRICTION  * deltaTime;
-                        if ( momentum < 0.0 ) { momentum = 0.0;}
-                        _velocity *= momentum;
+                                // push ball away from colliding other ball and puch avatar body (_velocity) as well
+                                _bone[b].springyVelocity += directionVector * COLLISION_BALL_FORCE * deltaTime;
+                                _velocity                += directionVector * COLLISION_BODY_FORCE * deltaTime;
+                                
+                                // apply fruction to _velocity
+                                float momentum = 1.0 - COLLISION_FRICTION  * deltaTime;
+                                if ( momentum < 0.0 ) { momentum = 0.0;}
+                                _velocity *= momentum;
+                            }
+                        }
                     }
                 }
             }
@@ -872,6 +879,7 @@ AvatarMode Avatar::getMode() {
 void Avatar::initializeSkeleton() {
     
 	for (int b=0; b<NUM_AVATAR_BONES; b++) {
+        _bone[b].isCollidable        = true;
         _bone[b].parent              = AVATAR_BONE_NULL;
         _bone[b].position			 = glm::vec3( 0.0, 0.0, 0.0 );
         _bone[b].defaultPosePosition = glm::vec3( 0.0, 0.0, 0.0 );
@@ -887,9 +895,7 @@ void Avatar::initializeSkeleton() {
         _bone[b].orientation.setToIdentity();
 	}
     
-	//----------------------------------------------------------------------------
-	// parental hierarchy
-	//----------------------------------------------------------------------------
+	// specify the parental hierarchy
 	_bone[ AVATAR_BONE_PELVIS_SPINE		].parent = AVATAR_BONE_NULL;
 	_bone[ AVATAR_BONE_MID_SPINE        ].parent = AVATAR_BONE_PELVIS_SPINE;
 	_bone[ AVATAR_BONE_CHEST_SPINE		].parent = AVATAR_BONE_MID_SPINE;
@@ -939,7 +945,7 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_SHIN		].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
     
-    
+	// specify the radii of the bone positions
 	_bone[ AVATAR_BONE_PELVIS_SPINE		].radius = 0.05;
 	_bone[ AVATAR_BONE_MID_SPINE		].radius = 0.06;
 	_bone[ AVATAR_BONE_CHEST_SPINE		].radius = 0.03;
@@ -963,7 +969,12 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_THIGH		].radius = 0.02;
 	_bone[ AVATAR_BONE_RIGHT_SHIN		].radius = 0.015;
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].radius = 0.02;
-    
+
+	// to aid in hand-shaking and hand-holding, the right hand is not collidable
+	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].isCollidable = false;
+	_bone[ AVATAR_BONE_RIGHT_FOREARM	].isCollidable = false;
+	_bone[ AVATAR_BONE_RIGHT_HAND		].isCollidable = false; 
+       
 	// calculate bone length
 	calculateBoneLengths();
     

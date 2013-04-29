@@ -112,7 +112,7 @@ enum AvatarBoneID
 struct AvatarBone
 {
 	AvatarBoneID parent;				// which bone is this bone connected to?
-	glm::vec3	 position;				// the position at the "end" of the bone
+	glm::vec3	 position;				// the position at the "end" of the bone - in global space
 	glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::vec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
@@ -124,6 +124,7 @@ struct AvatarBone
 	Orientation	 orientation;			// three orthogonal normals determined by yaw, pitch, roll
 	float		 length;				// the length of the bone
 	float		 radius;                // used for detecting collisions for certain physical effects
+	bool		 isCollidable;          // when false, the bone position will not register a collision
 };
 
 struct AvatarHead
