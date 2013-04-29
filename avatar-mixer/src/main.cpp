@@ -58,12 +58,9 @@ int main(int argc, const char* argv[])
     
     agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
     
-    agentList->startDomainServerCheckInThread();
     agentList->startSilentAgentRemovalThread();
-    agentList->startPingUnknownAgentsThread();
     
     sockaddr *agentAddress = new sockaddr;
-    sockaddr_in* agentAddressIn;
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
@@ -77,6 +74,11 @@ int main(int argc, const char* argv[])
         if (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
+                    // add this agent if we don't have them yet
+                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
+                        agentList->increaseAgentId();
+                    }
+                    
                     // this is positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                     
@@ -106,9 +108,7 @@ int main(int argc, const char* argv[])
         }
     }
     
-    agentList->stopDomainServerCheckInThread();
     agentList->stopSilentAgentRemovalThread();
-    agentList->stopPingUnknownAgentsThread();
     
     return 0;
 }
