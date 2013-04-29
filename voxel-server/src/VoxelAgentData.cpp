@@ -6,6 +6,7 @@
 //
 //
 
+#include "PacketHeaders.h"
 #include "VoxelAgentData.h"
 #include <cstring>
 #include <cstdio>
@@ -23,7 +24,7 @@ void VoxelAgentData::init() {
 }
 
 void VoxelAgentData::resetVoxelPacket() {
-    _voxelPacket[0] = 'V';
+    _voxelPacket[0] = PACKET_HEADER_VOXEL_DATA;
     _voxelPacketAt = &_voxelPacket[1];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE-1;
     _voxelPacketWaiting = false;
