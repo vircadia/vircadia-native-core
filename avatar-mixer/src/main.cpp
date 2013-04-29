@@ -75,7 +75,7 @@ int main(int argc, const char* argv[])
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // add this agent if we don't have them yet
-                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
+                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentList->getLastAgentId())) {
                         agentList->increaseAgentId();
                     }
                     
