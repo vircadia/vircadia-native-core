@@ -12,9 +12,9 @@
 #include "SharedUtil.h"
 #include "voxels_Log.h"
 #include "VoxelNode.h"
+#include "VoxelConstants.h"
 #include "OctalCode.h"
 #include "AABox.h"
-
 using voxels_lib::printLog;
 
 // using voxels_lib::printLog;

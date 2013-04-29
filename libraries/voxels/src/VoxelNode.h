@@ -15,9 +15,6 @@
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
 
-const int TREE_SCALE = 10;
-
-
 class VoxelNode {
 private:
     nodeColor _trueColor;

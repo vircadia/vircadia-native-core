@@ -62,6 +62,7 @@
 #include "VoxelNodeBag.h"
 #include "ViewFrustum.h"
 #include <fstream> // to load voxels from file
+#include "VoxelConstants.h"
 
 using voxels_lib::printLog;
 

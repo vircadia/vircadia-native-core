@@ -14,7 +14,7 @@
 #include <AvatarData.h>
 #include "MarkerNode.h"
 #include "VoxelNodeBag.h"
-#include "VoxelTree.h" // for MAX_VOXEL_PACKET_SIZE
+#include "VoxelConstants.h"
 
 class VoxelAgentData : public AvatarData {
 public:

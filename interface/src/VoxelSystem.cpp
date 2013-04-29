@@ -18,14 +18,9 @@
 #include <OctalCode.h>
 #include <pthread.h>
 #include "Log.h"
+#include "VoxelConstants.h"
 
 #include "VoxelSystem.h"
-
-const int MAX_VOXELS_PER_SYSTEM = 250000;
-
-const int VERTICES_PER_VOXEL = 24;
-const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
-const int INDICES_PER_VOXEL = 3 * 12;
 
 float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
                              0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
