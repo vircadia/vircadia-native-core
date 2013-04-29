@@ -10,10 +10,12 @@
 #include <cmath>
 #include <cstring>
 #include "SharedUtil.h"
-//#include "voxels_Log.h"
+#include "voxels_Log.h"
 #include "VoxelNode.h"
 #include "OctalCode.h"
 #include "AABox.h"
+
+using voxels_lib::printLog;
 
 // using voxels_lib::printLog;
 
@@ -119,7 +121,6 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
 
 
 void VoxelNode::setColor(const nodeColor& color) {
-    //printf("VoxelNode::setColor() isFalseColored=%s\n",_falseColored ? "Yes" : "No");
     memcpy(&_trueColor,&color,sizeof(nodeColor));
     if (!_falseColored) {
         memcpy(&_currentColor,&color,sizeof(nodeColor));
@@ -194,7 +195,7 @@ bool VoxelNode::isLeaf() const {
 void VoxelNode::printDebugDetails(const char* label) const {
     AABox box;
     getAABox(box);
-    printf("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=",label,
+    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=",label,
         box.getCorner().x, box.getCorner().y, box.getCorner().z,box.getSize().x);
     printOctalCode(octalCode);
 }

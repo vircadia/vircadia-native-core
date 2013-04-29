@@ -88,10 +88,6 @@ VoxelNode* VoxelNodeBag::extract() {
         // reduce the count
         _elementsInUse--;
 
-        // debug!!
-        //printf("VoxelNodeBag::extract() node=");
-        //node->printDebugDetails("");
-
         return node;
     }
     return NULL;

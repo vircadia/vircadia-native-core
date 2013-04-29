@@ -372,13 +372,7 @@ bool VoxelSystem::randomColorOperation(VoxelNode* node, bool down, void* extraDa
         newColor[0] = randomColorValue(150);
         newColor[1] = randomColorValue(150);
         newColor[1] = randomColorValue(150);
-
-        //printf("randomize color node %d was %x,%x,%x NOW %x,%x,%x\n",
-        //      _nodeCount,node->getTrueColor()[0],node->getTrueColor()[1],node->getTrueColor()[2],
-        //      newColor[0],newColor[1],newColor[2]);
         node->setColor(newColor);
-    } else {
-        //printf("not randomizing color node of %d since it has no color\n",_nodeCount);
     }
     return true;
 }
@@ -386,7 +380,7 @@ bool VoxelSystem::randomColorOperation(VoxelNode* node, bool down, void* extraDa
 void VoxelSystem::randomizeVoxelColors() {
     _nodeCount = 0;
     tree->recurseTreeWithOperation(randomColorOperation);
-    printf("setting randomized true color for %d nodes\n",_nodeCount);
+    printLog("setting randomized true color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -403,10 +397,6 @@ bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, bool down, void*
     unsigned char newR = randomColorValue(150);
     unsigned char newG = randomColorValue(150);
     unsigned char newB = randomColorValue(150);
-
-    printf("randomize FALSE color node %d was %x,%x,%x NOW %x,%x,%x\n",
-          _nodeCount,node->getTrueColor()[0],node->getTrueColor()[1],node->getTrueColor()[2],
-          newR,newG,newB);
     node->setFalseColor(newR,newG,newB);
 
     return true; // keep going!
@@ -415,7 +405,7 @@ bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, bool down, void*
 void VoxelSystem::falseColorizeRandom() {
     _nodeCount = 0;
     tree->recurseTreeWithOperation(falseColorizeRandomOperation);
-    printf("setting randomized false color for %d nodes\n",_nodeCount);
+    printLog("setting randomized false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -428,14 +418,13 @@ bool VoxelSystem::trueColorizeOperation(VoxelNode* node, bool down, void* extraD
 
     _nodeCount++;
     node->setFalseColored(false);
-    //printf("setting true color for node %d\n",_nodeCount);
     return true;
 }
 
 void VoxelSystem::trueColorize() {
     _nodeCount = 0;
     tree->recurseTreeWithOperation(trueColorizeOperation);
-    printf("setting true color for %d nodes\n",_nodeCount);
+    printLog("setting true color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -459,9 +448,6 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
             unsigned char newR = 255;
             unsigned char newG = 0;
             unsigned char newB = 0;
-
-            //printf("voxel OUTSIDE view - FALSE colorizing node %d TRUE color is %x,%x,%x  \n",
-            //     _nodeCount,node->getTrueColor()[0],node->getTrueColor()[1],node->getTrueColor()[2]);
             node->setFalseColor(newR,newG,newB);
         }
     }
@@ -472,14 +458,12 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, bool down, void*
 void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
     _nodeCount = 0;
     tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)viewFrustum);
-    printf("setting in view false color for %d nodes\n",_nodeCount);
+    printLog("setting in view false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
 }
 
 // Will false colorize voxels based on distance from view
 bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool down, void* extraData) {
-
-    //printf("falseColorizeDistanceFromViewOperation() down=%s\n",(down ? "TRUE" : "FALSE"));
 
     // we do our operations on the way up!
     if (down) {
@@ -505,10 +489,6 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
         float halfUnitForVoxel = powf(0.5, *node->octalCode) * (0.5 * TREE_SCALE);
         glm::vec3 viewerPosition = viewFrustum->getPosition();
 
-        //printf("halfUnitForVoxel=%f\n",halfUnitForVoxel);
-        //printf("viewer.x=%f y=%f z=%f \n", viewerPosition.x, viewerPosition.y, viewerPosition.z);
-        //printf("node.x=%f y=%f z=%f \n", nodePosition.x, nodePosition.y, nodePosition.z);
-
         float distance = sqrtf(powf(viewerPosition.x - nodePosition.x - halfUnitForVoxel, 2) +
                                             powf(viewerPosition.y - nodePosition.y - halfUnitForVoxel, 2) +
                                             powf(viewerPosition.z - nodePosition.z - halfUnitForVoxel, 2));
@@ -526,12 +506,7 @@ bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, bool d
         unsigned char newR = (colorBand*(gradientOver/colorBands))+(maxColor-gradientOver);
         unsigned char newG = 0;
         unsigned char newB = 0;
-        //printf("Setting color down=%s distance=%f min=%f max=%f distanceRatio=%f color=%d \n",
-        //    (down ? "TRUE" : "FALSE"), distance, _minDistance, _maxDistance, distanceRatio, (int)newR);
-
         node->setFalseColor(newR,newG,newB);
-    } else {
-        //printf("voxel not colored, don't consider it - down=%s\n",(down ? "TRUE" : "FALSE"));
     }
     return true; // keep going!
 }
@@ -548,8 +523,6 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, bool down, 
     if (down) {
         return true;
     }
-
-    //printf("getDistanceFromViewRangeOperation() down=%s\n",(down ? "TRUE" : "FALSE"));
 
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
 
@@ -577,11 +550,9 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, bool down, 
         // on way down, calculate the range of distances
         if (distance > _maxDistance) {
             _maxDistance = distance;
-            //printf("new maxDistance=%f down=%s\n",_maxDistance, (down ? "TRUE" : "FALSE"));
         }
         if (distance < _minDistance) {
             _minDistance = distance;
-            //printf("new minDistance=%f down=%s\n",_minDistance, (down ? "TRUE" : "FALSE"));
         }
 
         _nodeCount++;
@@ -595,11 +566,11 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
     tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation,(void*)viewFrustum);
-    printf("determining distance range for %d nodes\n",_nodeCount);
+    printLog("determining distance range for %d nodes\n",_nodeCount);
 
     _nodeCount = 0;
 
     tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
-    printf("setting in distance false color for %d nodes\n",_nodeCount);
+    printLog("setting in distance false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
 }

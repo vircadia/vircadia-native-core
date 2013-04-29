@@ -555,7 +555,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     // output the colors we have
     for (int j = 0; j < 8; j++) {
         if (startNode->children[j] != NULL && startNode->children[j]->isColored()) {
-            printf("color %d : ",j);
+            printLog("color %d : ",j);
             for (int c = 0; c < 3; c++) {
                 outputBits(startNode->children[j]->getTrueColor()[c],false);
             }
@@ -780,10 +780,6 @@ void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustu
         bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
         bool childIsLeaf    = (childExists && childNode->isLeaf());
         
-        //printf("childExists=%s childIsColored=%s childIsInView=%s childIsLeaf=%s \n",
-        //    (childExists ? "yes" : "no"), (childIsColored ? "yes" : "no"), 
-        //    (childIsInView ? "yes" : "no"), (childIsLeaf ? "yes" : "no") );
-        
         if (childIsInView) {
             
             // track children in view as existing and not a leaf
@@ -797,8 +793,6 @@ void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustu
             }
         
             float distance = childNode->distanceToCamera(viewFrustum);
-
-            //printf("child[%d] distance=%f\n",i,distance);
 
             inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
                                 (void**)&inViewChildren, (float*)&distancesToChildren, (int*)&positionOfChildren,
@@ -872,7 +866,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
         bytesWritten += childBytesWritten; 
     } else {
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
-        //printf("encodeTreeBitstreamRecursion() no bytes below...\n");
         bytesWritten = 0;
     }
     return bytesWritten;
@@ -894,7 +887,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
     // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
     // we're out of view
     if (!node->isInView(viewFrustum)) {
-        //printf("encodeTreeBitstreamRecursion() node NOT IN VIEW\n");
         return bytesAtThisLevel;
     }
     
@@ -955,7 +947,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
     // write the color data...
     for (int i = 0; i < MAX_CHILDREN; i++) {
         if (oneAtBit(childrenColoredBits, i)) {
-            //printf("bhgLoadBitstream() writing color for child %d\n",i);
             memcpy(writeToThisLevelBuffer,&node->children[i]->getColor(),BYTES_PER_COLOR);
             writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
             bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
