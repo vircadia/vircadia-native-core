@@ -152,7 +152,6 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 
 void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
-
     // A quick explanation of the strategy here. First, each time through, we ask ourselves, do we have voxels
     // that need to be sent? If not, we search for them, if we do, then we send them. We store our to be sent voxel sub trees
     // in a VoxelNodeBag on a per agent basis. The bag stores just pointers to the root node of the sub tree to be sent, so
@@ -185,12 +184,28 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
         // can include the siblings. Since dense trees take more space per ranch, we often end up only being able to encode a
         // single branch. This means on a per packet basis, the trees actually _are not_ dense. And sparse trees are shorter to
         // encode when we only include the child tree.
-        randomTree.searchForColoredNodes(randomTree.rootNode, viewFrustum, agentData->nodeBag);
+        //
+        // Now, a quick explanation of maxSearchLevel: We will actually send the entire scene, multiple times for each search
+        // level. We start at level 1, and we scan the scene for this level, then we increment to the next level until we've
+        // sent the entire scene at it's deepest possible level. This means that clients will get an initial view of the scene
+        // with chunky granularity and then finer and finer granularity until they've gotten the whole scene. Then we start
+        // over to handle packet loss and changes in the scene. 
+        int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
+                                                                        viewFrustum, agentData->nodeBag);
+        agentData->setMaxLevelReached(maxLevelReached);
+        
+        // If nothing got added, then we bump our levels.
+        if (agentData->nodeBag.isEmpty()) {
+            if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
+                agentData->resetMaxSearchLevel();
+            } else {
+                agentData->incrementMaxSearchLevel();
+            }
+        }
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!agentData->nodeBag.isEmpty()) {
-    
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE-1]; // save on allocs by making this static
         int bytesWritten = 0;
 
@@ -203,7 +218,7 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
 
                 // Only let this guy create at largest packets equal to the amount of space we have left in our final???
                 // Or let it create the largest possible size (minus 1 for the "V")
-                bytesWritten = randomTree.encodeTreeBitstream(subTree, viewFrustum, 
+                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
                         &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
 
                 // if we have room in our final packet, add this buffer to the final packet
@@ -232,6 +247,7 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
 
                     // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
+                    
                 }
 
                 // and we're done now for this interval, because we know we have not nodes in our
@@ -240,6 +256,16 @@ void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Voxel
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
             }
         }
+
+        // Ok, so we're in the "send from our bag mode"... if during this last pass, we emptied our bag, then
+        // we want to move to the next level.
+        if (agentData->nodeBag.isEmpty()) {
+            if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
+                agentData->resetMaxSearchLevel();
+            } else {
+                agentData->incrementMaxSearchLevel();
+            }
+        }        
     }
 }
 

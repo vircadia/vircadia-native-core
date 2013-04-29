@@ -20,6 +20,8 @@ void VoxelAgentData::init() {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
     _voxelPacketAt = _voxelPacket;
+    _maxSearchLevel = 1;
+    _maxLevelReachedInLastSearch = 1;
     resetVoxelPacket();
 }
 

@@ -748,21 +748,44 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 
 // This will encode a larger tree into multiple subtree bitstreams. Given a node it will search for deeper subtrees that 
 // have color. It will search for sub trees, and upon finding a subTree, it will stick the node in the bag to for later
-// endcoding.
-void VoxelTree::searchForColoredNodes(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+// endcoding. It returns the maximum level that we reached during our search. That might be the maximum level we were asked
+// to search (if the tree is deeper than that max level), or it will be the maximum level of the tree (if we asked to search
+// deeper than the tree exists).
+int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
 
     // call the recursive version, this will add all found colored node roots to the bag
-    searchForColoredNodesRecursion(rootNode, viewFrustum, bag);
+    int currentSearchLevel = 0;
+    
+    // levelReached will be the maximum level reached. If we made it to the maxSearchLevel, then it will be that.
+    // but if the tree is shallower than the maxSearchLevel, then we will return the deepest level of the tree that
+    // exists.
+    int levelReached = searchForColoredNodesRecursion(maxSearchLevel, currentSearchLevel, rootNode, viewFrustum, bag);
+    return levelReached;
 }
 
 
 
-void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
+    VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+
+    // Keep track of how deep we've searched.    
+    currentSearchLevel++;
+
+    // If we've reached our max Search Level, then stop searching.
+    if (currentSearchLevel >= maxSearchLevel) {
+        return currentSearchLevel;
+    }
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {
-        return;
+        return currentSearchLevel;
     }
+    
+    // Ok, this is a little tricky, each child may have been deeper than the others, so we need to track
+    // how deep each child went. And we actually return the maximum of each child. We use these variables below
+    // when we recurse the children.
+    int thisLevel = currentSearchLevel;
+    int maxChildLevel = thisLevel;
     
     const int  MAX_CHILDREN = 8;
     VoxelNode* inViewChildren[MAX_CHILDREN];
@@ -812,12 +835,14 @@ void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustu
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about. We will iterate
         // these based on which tree is closer. 
-        //
         for (int i = 0; i < inViewCount; i++) {
             VoxelNode* childNode = inViewChildren[i];
-            searchForColoredNodesRecursion(childNode, viewFrustum, bag);
+            thisLevel = currentSearchLevel; // reset this, since the children will munge it up
+            int childLevelReached = searchForColoredNodesRecursion(maxSearchLevel, thisLevel, childNode, viewFrustum, bag);
+            maxChildLevel = std::max(maxChildLevel, childLevelReached);
         }
     }
+    return maxChildLevel;
 }
 
 // This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
@@ -830,7 +855,7 @@ void VoxelTree::searchForColoredNodesRecursion(VoxelNode* node, const ViewFrustu
 // extraTrees is assumed to me an allocated array of VoxelNode*, if we're unable to fully encode the tree
 // because we run out of room on the outputBuffer, then we will add VoxelNode*'s of the trees that need
 // to be encoded to that array. If the array
-int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrustum,
+int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes, 
                                     VoxelNodeBag& bag) {
 
@@ -850,7 +875,9 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
     bytesWritten += codeLength; // keep track of byte count
     availableBytes -= codeLength; // keep track or remaining space 
 
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, viewFrustum, 
+    int currentEncodeLevel = 0;
+    int childBytesWritten = encodeTreeBitstreamRecursion(maxEncodeLevel, currentEncodeLevel, 
+                                    node, viewFrustum, 
                                     outputBuffer, availableBytes, bag);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
@@ -878,11 +905,20 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, const ViewFrustum& viewFrust
 //
 // NOTE: This recursive function DOES NOT add the octcode to the buffer. It's assumed that the caller has
 // already done that.
-int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& viewFrustum,
+int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
+                                    VoxelNode* node, const ViewFrustum& viewFrustum,
                                     unsigned char* outputBuffer, int availableBytes,
                                     VoxelNodeBag& bag) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
+
+    // Keep track of how deep we've encoded.
+    currentEncodeLevel++;
+
+    // If we've reached our max Search Level, then stop searching.
+    if (currentEncodeLevel >= maxEncodeLevel) {
+        return bytesAtThisLevel;
+    }
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
@@ -1002,7 +1038,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, const ViewFrustum& 
         
             if (oneAtBit(childrenExistBits, i)) {
                 VoxelNode* childNode = node->children[i];
-                int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, viewFrustum, outputBuffer, availableBytes, bag);
+                
+                int thisLevel = currentEncodeLevel;
+                int childTreeBytesOut = encodeTreeBitstreamRecursion(maxEncodeLevel, thisLevel, 
+                        childNode, viewFrustum, outputBuffer, availableBytes, bag);
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
