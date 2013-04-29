@@ -66,7 +66,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     socketListenPort(newSocketListenPort),
     lastAgentId(0)
 {
-
+    pthread_mutex_init(&mutex, 0);
 }
 
 AgentList::~AgentList() {
@@ -74,6 +74,8 @@ AgentList::~AgentList() {
     stopSilentAgentRemovalThread();
     stopDomainServerCheckInThread();
     stopPingUnknownAgentsThread();
+    
+    pthread_mutex_destroy(&mutex);
 }
 
 UDPSocket& AgentList::getAgentSocket() {
@@ -106,6 +108,8 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
 }
 
 void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
+    lock();
+    
     // find the avatar mixer in our agent list and update the lastRecvTime from it
     Agent* bulkSendAgent = agentWithAddress(senderAddress);
 
@@ -141,6 +145,8 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
                                                packetHolder,
                                                numTotalBytes - (currentPosition - startPosition));
     }
+    
+    unlock();
 }
 
 int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
