@@ -79,21 +79,15 @@ int main(int argc, const char* argv[])
                 case PACKET_HEADER_HEAD_DATA:
                     // this is positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
-                    agentAddressIn = (sockaddr_in*) agentAddress;
-                    printf("Received agent data from agent at %s:%d\n", inet_ntoa(agentAddressIn->sin_addr), ntohs(agentAddressIn->sin_port));
                     
                     currentBufferPosition = broadcastPacket + 1;
                     agentIndex = 0;
                     
                     // send back a packet with other active agent data to this agent
-                    for (AgentList::iterator avatarAgent = agentList->begin();
-                         avatarAgent != agentList->end();
-                         avatarAgent++) {
-                        if (avatarAgent->getLinkedData() != NULL
-                            && !socketMatch(agentAddress, avatarAgent->getActiveSocket())) {
-                            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*avatarAgent);
-                        } else {
-                            printf("Not adding agent with ID %d to packet\n", avatarAgent->getAgentId());
+                    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+                        if (agent->getLinkedData() != NULL
+                            && !socketMatch(agentAddress, agent->getActiveSocket())) {
+                            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*agent);
                         }
                         
                         agentIndex++;
