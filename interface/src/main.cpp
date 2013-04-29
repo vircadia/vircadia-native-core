@@ -867,12 +867,14 @@ void display(void)
 		
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
+        agentList->lock();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
             }
         }
+        agentList->unlock();
         
         //  Render the world box
         if (!::lookingInMirror && ::statsOn) { render_world_box(); }
@@ -1485,12 +1487,14 @@ void idle(void) {
 		
         //loop through all the remote avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
+        agentList->lock();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
             }
         }
+        agentList->unlock();
     
         myAvatar.simulate(deltaTime);
 
