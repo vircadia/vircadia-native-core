@@ -5,11 +5,6 @@
 //  Created by Brad Hefta-Gaub on 4/25/2013
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  This class is used by the VoxelTree:encodeTreeBitstream() functions to store extra nodes that need to be sent
-//  it's a generic bag style storage mechanism. But It has the property that you can't put the same node into the bag
-//  more than once (in other words, it de-dupes automatically), also, it supports collapsing it's several peer nodes
-//  into a parent node in cases where you add enough peers that it makes more sense to just add the parent.
-//
 
 #include "VoxelNodeBag.h"
 #include <OctalCode.h>
