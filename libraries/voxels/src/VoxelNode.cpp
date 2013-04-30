@@ -183,13 +183,12 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
 }
 
 bool VoxelNode::isLeaf() const {
-    int childCount = 0;
     for (int i = 0; i < 8; i++) {
-        if (NULL != children[i]) {
-            childCount++;
+        if (children[i]) {
+            return false;
         }
     }
-    return (0 == childCount);
+    return true;
 }
 
 void VoxelNode::printDebugDetails(const char* label) const {
