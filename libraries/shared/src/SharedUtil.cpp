@@ -54,7 +54,7 @@ bool randomBoolean() {
 
 void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
     for (int i = 0; i < length; i++) {
-        outputBits(buffer[i],false);
+        outputBits(buffer[i], false);
     }
     if (withNewLine) {
         printLog("\n");
@@ -377,28 +377,30 @@ void printVoxelCode(unsigned char* voxelCode) {
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
-int insertIntoSortedArrays(void* value, float key, int originalIndex, 
-            void** valueArray, float* keyArray, int* originalIndexArray, int currentCount, int maxCount) {
+int insertIntoSortedArrays(
+            void* value, float key, int originalIndex, 
+            void** valueArray, float* keyArray, int* originalIndexArray, 
+            int currentCount, int maxCount) {
             
     if (currentCount < maxCount) {
-        int i=0;
+        int i = 0;
         if (currentCount > 0) {
-            while (i<currentCount && key > keyArray[i]) {
+            while (i < currentCount && key > keyArray[i]) {
                 i++;
             }
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i+1],&valueArray[i],sizeof(void*) * (currentCount-i));
-                memcpy(&keyArray[i+1],&keyArray[i],sizeof(float) * (currentCount-i));
-                memcpy(&originalIndexArray[i+1],&originalIndexArray[i],sizeof(int) * (currentCount-i));
+                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
             }
         }
         // place new element at i
-        valueArray[i]=value;
-        keyArray[i]=key;
-        originalIndexArray[i]=originalIndex;
-        return currentCount+1;
+        valueArray[i] = value;
+        keyArray[i] = key;
+        originalIndexArray[i] = originalIndex;
+        return currentCount + 1;
     }
     return -1; // error case
 }
