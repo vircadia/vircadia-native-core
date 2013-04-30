@@ -135,54 +135,32 @@ float * firstVertexForCode(unsigned char * octalCode) {
     return firstVertex;
 }
 
-OctalTreeDepth compareOctalCodesDepth(unsigned char* codeA, unsigned char* codeB) {
+OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
     if (!codeA || !codeB) {
         return ILLEGAL_CODE;
     }
 
-    OctalTreeDepth result = SHALLOWER; // assume it's shallower
-    int codeLenthA = numberOfThreeBitSectionsInCode(codeA);
-    int codeLenthB = numberOfThreeBitSectionsInCode(codeB);
+    OctalCodeComparison result = LESS_THAN; // assume it's shallower
     
-    if (codeLenthA > codeLenthB) {
-        result = DEEPER;
-    } else if (codeLenthA == codeLenthB) {
-        int numberOfBytes = bytesRequiredForCodeLength(*codeA); // they are the same!!
-        if (0 == memcmp(codeA,codeB,numberOfBytes)) {
-            result = EXACT_MATCH;
-        } else {
-            result = EQUAL_DEPTH;
-        }
-    }
-    return result;
-}
-
-OctalTreeDepth compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
-    if (!codeA || !codeB) {
-        return ILLEGAL_CODE;
-    }
-
-    OctalTreeDepth result = LESS_THAN; // assume it's shallower
-    
-    int numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA),bytesRequiredForCodeLength(*codeB));
-    int compare = memcmp(codeA,codeB,numberOfBytes);
+    int numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
+    int compare = memcmp(codeA, codeB, numberOfBytes);
 
     if (compare < 0) {
         result = LESS_THAN;
     } else if (compare > 0) {
         result = GREATER_THAN;
     } else {
-        int codeLenthA = numberOfThreeBitSectionsInCode(codeA);
-        int codeLenthB = numberOfThreeBitSectionsInCode(codeB);
+        int codeLengthA = numberOfThreeBitSectionsInCode(codeA);
+        int codeLengthB = numberOfThreeBitSectionsInCode(codeB);
 
-        if (codeLenthA == codeLenthB) {
+        if (codeLengthA == codeLengthB) {
             // if the memcmp matched exactly, and they were the same length,
             // then these must be the same code!
             result = EXACT_MATCH;
         } else {
             // if the memcmp matched exactly, but they aren't the same length,
             // then they have a matching common parent, but they aren't the same
-            if (codeLenthA < codeLenthB) {
+            if (codeLengthA < codeLengthB) {
                 result = LESS_THAN;
             } else {
                 result = GREATER_THAN;

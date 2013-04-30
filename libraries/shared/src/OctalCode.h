@@ -24,14 +24,11 @@ float * firstVertexForCode(unsigned char * octalCode);
 void copyFirstVertexForCode(unsigned char * octalCode, float* output);
 
 typedef enum {
-    SHALLOWER,
-    EQUAL_DEPTH,
-    EXACT_MATCH,
-    DEEPER,
-    ILLEGAL_CODE,
-    GREATER_THAN,
-    LESS_THAN
-} OctalTreeDepth;
+    ILLEGAL_CODE = -2,
+    LESS_THAN = -1,
+    EXACT_MATCH = 0,
+    GREATER_THAN = 1
+} OctalCodeComparison;
 
-OctalTreeDepth compareOctalCodes(unsigned char* code1, unsigned char* code2);
+OctalCodeComparison compareOctalCodes(unsigned char* code1, unsigned char* code2);
 #endif /* defined(__hifi__OctalCode__) */
