@@ -65,6 +65,7 @@
 #include "ui/MenuRow.h"
 #include "ui/MenuColumn.h"
 #include "ui/Menu.h"
+#include "ui/TextRenderer.h"
 
 #include "Camera.h"
 #include "Avatar.h"
@@ -1333,7 +1334,7 @@ void key(unsigned char k, int x, int y)
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
                 DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
-            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
             
         } else {
             myAvatar.setChatMessage(chatEntry.getContents());

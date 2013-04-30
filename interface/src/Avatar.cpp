@@ -736,7 +736,7 @@ void Avatar::render(bool lookingInMirror) {
         glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         
-        glColor3f(0, 1, 0);
+        glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 0, 1);
         glScalef(chatMessageScale, chatMessageScale, 1.0f);
 
@@ -752,6 +752,7 @@ void Avatar::render(bool lookingInMirror) {
             _chatMessage[lastIndex] = '\0';
             textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
+            glColor3f(0, 1, 0);
             textRenderer()->draw(width/2 - lastWidth, 0, _chatMessage.c_str() + lastIndex);                        
         }
         glEnable(GL_LIGHTING);

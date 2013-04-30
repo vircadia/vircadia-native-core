@@ -89,9 +89,11 @@ const Glyph& TextRenderer::getGlyph(char c) {
     if (glyph.isValid()) {
         return glyph;
     }
-    QRect bounds = _metrics.boundingRect(c);
+    // we use 'J' as a representative size for the solid block character
+    QChar ch = (c == SOLID_BLOCK_CHAR) ? QChar('J') : QChar(c);
+    QRect bounds = _metrics.boundingRect(ch);
     if (bounds.isEmpty()) {
-        glyph = Glyph(0, QPoint(), QRect(), _metrics.width(c));
+        glyph = Glyph(0, QPoint(), QRect(), _metrics.width(ch));
         return glyph;
     }
     
@@ -116,16 +118,19 @@ const Glyph& TextRenderer::getGlyph(char c) {
     }
     // render the glyph into an image and copy it into the texture
     QImage image(bounds.width(), bounds.height(), QImage::Format_ARGB32);
-    image.fill(0);
-    {
+    if (c == SOLID_BLOCK_CHAR) {
+        image.fill(QColor(255, 255, 255));
+    
+    } else {
+        image.fill(0);
         QPainter painter(&image);
         painter.setFont(_font);
         painter.setPen(QColor(255, 255, 255));
-        painter.drawText(-bounds.x(), -bounds.y(), QChar(c));
+        painter.drawText(-bounds.x(), -bounds.y(), ch);
     }    
     glTexSubImage2D(GL_TEXTURE_2D, 0, _x, _y, bounds.width(), bounds.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
        
-    glyph = Glyph(_currentTextureID, QPoint(_x, _y), bounds, _metrics.width(c));
+    glyph = Glyph(_currentTextureID, QPoint(_x, _y), bounds, _metrics.width(ch));
     _x += bounds.width();
     _rowHeight = qMax(_rowHeight, bounds.height());
     

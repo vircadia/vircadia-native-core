@@ -15,6 +15,9 @@
 #include <QImage>
 #include <QVector>
 
+// a special "character" that renders as a solid block
+const char SOLID_BLOCK_CHAR = 127;
+
 class Glyph;
 
 class TextRenderer {
