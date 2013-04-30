@@ -243,7 +243,8 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
-        theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes, bufferSizeBytes - (bytesRead+octalCodeBytes));
+        theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes, 
+                                bufferSizeBytes - (bytesRead + octalCodeBytes));
 
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
@@ -257,33 +258,33 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
-	VoxelNode* parentNode = NULL;
+    VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
-    
+
     // If the node exists...
-	int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
+    int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
     if (0 == memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
 
-		float* vertices = firstVertexForCode(nodeToDelete->octalCode);
-		delete []vertices;
+        float* vertices = firstVertexForCode(nodeToDelete->octalCode);
+        delete[] vertices;
 
-		if (parentNode) {
-			float* vertices = firstVertexForCode(parentNode->octalCode);
-			delete []vertices;
-			
-			int childNDX = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
+        if (parentNode) {
+            float* vertices = firstVertexForCode(parentNode->octalCode);
+            delete[] vertices;
+        
+            int childIndex = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
-            delete parentNode->children[childNDX]; // delete the child nodes
-            parentNode->children[childNDX]=NULL; // set it to NULL
+            delete parentNode->children[childIndex]; // delete the child nodes
+            parentNode->children[childIndex] = NULL; // set it to NULL
 
-			reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
-		}
+            reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
+        }
     }
 }
 
 void VoxelTree::eraseAllVoxels() {
-	// XXXBHG Hack attack - is there a better way to erase the voxel tree?
+    // XXXBHG Hack attack - is there a better way to erase the voxel tree?
     delete rootNode; // this will recurse and delete all children
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
