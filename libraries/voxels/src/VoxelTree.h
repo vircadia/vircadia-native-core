@@ -45,15 +45,6 @@ public:
 	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
-    unsigned char * loadBitstreamBuffer(unsigned char*& bitstreamBuffer,
-                                        VoxelNode* currentVoxelNode,
-                                        MarkerNode* currentMarkerNode,
-                                        const glm::vec3& agentPosition,
-                                        float thisNodePosition[3],
-                                        const ViewFrustum& viewFrustum,
-                                        bool viewFrustumCulling,
-                                        unsigned char* octalCode = NULL);
-    
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 	

@@ -47,7 +47,6 @@ VoxelTree randomTree;
 bool wantColorRandomizer = false;
 bool debugViewFrustum = false;
 bool viewFrustumCulling = true; // for now
-bool newVoxelDistributor = false; // for now
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -81,10 +80,6 @@ bool countVoxelsOperation(VoxelNode* node, bool down, void* extraData) {
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	
-	// The old voxel distributor has a hard time with smaller voxels and more
-	// complex scenes... so if we're using the old distributor make our scene
-	// simple with larger sized voxels
-	//int sphereBaseSize = ::newVoxelDistributor ? 512 : 256;
 	int sphereBaseSize = 256;
 	
 	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/sphereBaseSize),true,wantColorRandomizer);
@@ -305,16 +300,6 @@ void *distributeVoxelsToListeners(void *args) {
     AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
-    unsigned char *stopOctal;
-    int packetCount;
-    
-    int totalBytesSent;
-    
-    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    unsigned char *voxelPacketEnd;
-    
-    float treeRoot[3] = {0, 0, 0};
-    
     while (true) {
         gettimeofday(&lastSendTime, NULL);
         
@@ -337,47 +322,7 @@ void *distributeVoxelsToListeners(void *args) {
             
                 viewFrustum.calculate();
 
-                if (::newVoxelDistributor) {            
-                    newDistributeHelper(agentList, agent, agentData, viewFrustum);
-                } else {
-                    stopOctal = NULL;
-                    packetCount = 0;
-                    totalBytesSent = 0;
-                    randomTree.leavesWrittenToBitstream = 0;
-            
-                    for (int j = 0; j < PACKETS_PER_CLIENT_PER_INTERVAL; j++) {
-                        voxelPacketEnd = voxelPacket;
-                        stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
-                                                                   randomTree.rootNode,
-                                                                   agentData->rootMarkerNode,
-                                                                   agentData->getPosition(),
-                                                                   treeRoot,
-                                                                   viewFrustum,
-                                                                   ::viewFrustumCulling,
-                                                                   stopOctal);
-                
-                        agentList->getAgentSocket().send(agent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
-                
-                        packetCount++;
-                        totalBytesSent += voxelPacketEnd - voxelPacket;
-                
-                        // XXXBHG Hack Attack: This is temporary code to help debug an issue.
-                        // Normally we use this break to prevent resending voxels that an agent has
-                        // already visited. But since we might be modifying the voxel tree we might
-                        // want to always send. This is a hack to test the behavior
-                        bool alwaysSend = true;
-                        if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                            break;
-                        }
-                    }
-            
-                    // for any agent that has a root marker node with 8 visited children
-                    // recursively delete its marker nodes so we can revisit
-                    if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                        delete agentData->rootMarkerNode;
-                        agentData->rootMarkerNode = new MarkerNode();
-                    }
-                }
+                newDistributeHelper(agentList, agent, agentData, viewFrustum);
             }
         }
         
@@ -433,10 +378,6 @@ int main(int argc, const char * argv[])
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
-	const char* OLD_VOXEL_DISTRIBUTOR = "--OldVoxelDistributor";
-    ::newVoxelDistributor = !cmdOptionExists(argc, argv, OLD_VOXEL_DISTRIBUTOR);
-	printf("newVoxelDistributor=%s\n", (::newVoxelDistributor ? "yes" : "no"));
-	
     // Check to see if the user passed in a command line option for loading a local
 	// Voxel File. If so, load it now.
 	const char* INPUT_FILE = "-i";
