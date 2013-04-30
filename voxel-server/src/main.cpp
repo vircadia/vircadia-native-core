@@ -168,45 +168,9 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 }
 
 
-void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
-    // A quick explanation of the strategy here. First, each time through, we ask ourselves, do we have voxels
-    // that need to be sent? If not, we search for them, if we do, then we send them. We store our to be sent voxel sub trees
-    // in a VoxelNodeBag on a per agent basis. The bag stores just pointers to the root node of the sub tree to be sent, so
-    // it doesn't store much on a per agent basis.
-    //
-    // There could be multiple strategies at play for how we determine which voxels need to be sent. For example, at the
-    // simplest level, we can just add the root node to this bag, and let the system send it. The other thing that we use
-    // this bag for is, keeping track of voxels sub trees we wanted to send in the packet, but wouldn't fit into the current
-    // packet because they were too big once encoded. So, as we run though this function multiple times, we start out with
-    // voxel sub trees that we determined needed to be sent because they were in view, new, correct distance, etc. But as
-    // we send those sub trees, if their child trees don't fit in a packet, we'll add those sub trees to this bag as well, and
-    // next chance we get, we'll also send those needed sub trees.
-    // If we don't have nodes already in our agent's node bag, then fill the node bag
+void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+    // If the bag is empty, fill it...
     if (agentData->nodeBag.isEmpty()) {
-    
-        // To get things started, we look for colored nodes. We could have also just started with the root node. In fact, if
-        // you substitute this call with something as simple as agentData->nodeBag.insert(rootNod), you'll see almost the same
-        // behavior on the client. The scene will appear. 
-        //
-        // So why do we do this extra effort to look for colored nodes? It turns out that there are subtle differences between
-        // how many bytes it takes to encode a tree based on how deep it is relative to the root node (which effects the octal
-        // code size) vs how dense the tree is (which effects how many bits in the bitMask are being wasted, and maybe more
-        // importantly, how many subtrees are also included). There is a break point where the more dense a tree is, it's more
-        // efficient to encode the peers together with their empty parents. This would argue that we shouldn't search for these
-        // sub trees, and we should instead encode the parent for dense scenes.
-        //
-        // But, there's another important side effect of dense trees related to out maximum packet size. Namely... if a tree
-        // is very dense, then you can't fit as many branches in a single network packet. Because when we encode the parent and
-        // children in a single packet, we must include the entire child branch (all the way down to our target LOD) before we
-        // can include the siblings. Since dense trees take more space per ranch, we often end up only being able to encode a
-        // single branch. This means on a per packet basis, the trees actually _are not_ dense. And sparse trees are shorter to
-        // encode when we only include the child tree.
-        //
-        // Now, a quick explanation of maxSearchLevel: We will actually send the entire scene, multiple times for each search
-        // level. We start at level 1, and we scan the scene for this level, then we increment to the next level until we've
-        // sent the entire scene at it's deepest possible level. This means that clients will get an initial view of the scene
-        // with chunky granularity and then finer and finer granularity until they've gotten the whole scene. Then we start
-        // over to handle packet loss and changes in the scene. 
         int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
                                                                viewFrustum, agentData->nodeBag);
         agentData->setMaxLevelReached(maxLevelReached);
@@ -225,58 +189,34 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
     if (!agentData->nodeBag.isEmpty()) {
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
-
-        // NOTE: we can assume the voxelPacket has already been set up with a "V"
         int packetsSentThisInterval = 0;
-
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-
-                // Only let this guy create at largest packets equal to the amount of space we have left in our final???
-                // Or let it create the largest possible size (minus 1 for the "V")
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag);
 
-                // if we have room in our final packet, add this buffer to the final packet
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    // otherwise "send" the packet because it's as full as we can make it for now
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
-
-                    // keep track that we sent it
                     packetsSentThisInterval++;
-
-                    // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
-
-                    // we also need to stick the last created partial packet in here!!
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 }
             } else {
-                // we're here, if there are no more nodes in our bag waiting to be sent.
-                // If we have a partial packet ready, then send it...
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
-
-                    // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
                     
                 }
-
-                // and we're done now for this interval, because we know we have not nodes in our
-                // bag, and we just sent the last waiting packet if we had one, so tell ourselves
-                // we done for the interval
-                packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL;
+                packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
-
-        // Ok, so we're in the "send from our bag mode"... if during this last pass, we emptied our bag, then
-        // we want to move to the next level.
+        // if during this last pass, we emptied our bag, then we want to move to the next level.
         if (agentData->nodeBag.isEmpty()) {
             if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
                 agentData->resetMaxSearchLevel();
@@ -314,7 +254,7 @@ void *distributeVoxelsToListeners(void *args) {
             
                 viewFrustum.calculate();
 
-                voxelDistributeHelper(agentList, agent, agentData, viewFrustum);
+                voxelDistributor(agentList, agent, agentData, viewFrustum);
             }
         }
         
