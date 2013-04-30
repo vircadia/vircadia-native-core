@@ -305,6 +305,7 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
+    voxels.setCamera(&myCamera);
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
@@ -1623,12 +1624,6 @@ int main(int argc, const char * argv[])
 
     // we need to create a QApplication instance in order to use Qt's font rendering
     app = new QApplication(argc, const_cast<char**>(argv));
-
-    // Quick test of the Orientation class on startup!
-    if (cmdOptionExists(argc, argv, "--testOrientation")) {
-        testOrientationClass();
-        return EXIT_SUCCESS;
-    }
 
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char* portStr = getCmdOption(argc, argv, "--listenPort");

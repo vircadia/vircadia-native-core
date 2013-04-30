@@ -92,7 +92,7 @@ public:
 
     void dump() const;
     
-    enum {OUTSIDE, INTERSECT, INSIDE};
+    typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
     int pointInFrustum(const glm::vec3& point) const;
     int sphereInFrustum(const glm::vec3& center, float radius) const;

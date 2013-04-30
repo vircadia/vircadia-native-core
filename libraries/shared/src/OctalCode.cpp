@@ -7,9 +7,13 @@
 //
 
 #include <cmath>
+#include <algorithm> // std:min
 #include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
+#include "shared_Log.h"
+
+using shared_lib::printLog;
 
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
     if (*octalCode == 255) {
@@ -20,8 +24,13 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
 }
 
 void printOctalCode(unsigned char * octalCode) {
-    for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
-        outputBits(octalCode[i]);
+    if (!octalCode) {
+        printLog("NULL\n");
+    } else {
+        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+            outputBits(octalCode[i],false);
+        }
+        printLog("\n");
     }
 }
 
@@ -124,5 +133,40 @@ float * firstVertexForCode(unsigned char * octalCode) {
     float * firstVertex = new float[3];
     copyFirstVertexForCode(octalCode, firstVertex);
     return firstVertex;
+}
+
+OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
+    if (!codeA || !codeB) {
+        return ILLEGAL_CODE;
+    }
+
+    OctalCodeComparison result = LESS_THAN; // assume it's shallower
+    
+    int numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
+    int compare = memcmp(codeA, codeB, numberOfBytes);
+
+    if (compare < 0) {
+        result = LESS_THAN;
+    } else if (compare > 0) {
+        result = GREATER_THAN;
+    } else {
+        int codeLengthA = numberOfThreeBitSectionsInCode(codeA);
+        int codeLengthB = numberOfThreeBitSectionsInCode(codeB);
+
+        if (codeLengthA == codeLengthB) {
+            // if the memcmp matched exactly, and they were the same length,
+            // then these must be the same code!
+            result = EXACT_MATCH;
+        } else {
+            // if the memcmp matched exactly, but they aren't the same length,
+            // then they have a matching common parent, but they aren't the same
+            if (codeLengthA < codeLengthB) {
+                result = LESS_THAN;
+            } else {
+                result = GREATER_THAN;
+            }
+        }
+    }
+    return result;
 }
 
