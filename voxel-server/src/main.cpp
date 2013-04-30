@@ -29,9 +29,6 @@
 
 const int VOXEL_LISTEN_PORT = 40106;
 
-const int VERTICES_PER_VOXEL = 8;
-const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
-const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 
 const int VOXEL_SIZE_BYTES = 3 + (3 * sizeof(float));
 const int VOXELS_PER_PACKET = (MAX_PACKET_SIZE - 1) / VOXEL_SIZE_BYTES;
@@ -70,14 +67,54 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
+int _nodeCount=0;
+bool countVoxelsOperation(VoxelNode* node, bool down, void* extraData) {
+    if (down) {
+        if (node->isColored()){
+            _nodeCount++;
+        }
+    }
+    return true; // keep going
+}
+
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
-	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/256),true,wantColorRandomizer);
-	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),0.06125,(1.0/512),true,true);
-	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/512),true,true);
-	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/512),true,true);
+	
+	int sphereBaseSize = 256;
+	
+	tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
+	printf("one sphere added...\n");
+	tree->createSphere(0.030625, 0.5, 0.5, (0.25-0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+
+
+	printf("two spheres added...\n");
+	tree->createSphere(0.030625, (1.0 - 0.030625), (1.0 - 0.030625), (1.0 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+	printf("three spheres added...\n");
+	tree->createSphere(0.030625, (1.0 - 0.030625), (1.0 - 0.030625), 0.06125, (1.0 / (sphereBaseSize * 2)), true, true);
+	printf("four spheres added...\n");
+	tree->createSphere(0.030625, (1.0 - 0.030625), 0.06125, (1.0 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+	printf("five spheres added...\n");
+	tree->createSphere(0.06125, 0.125, 0.125, (1.0 - 0.125), (1.0 / (sphereBaseSize * 2)), true, true);
+
+    float radius = 0.0125f;
+	printf("6 spheres added...\n");
+	tree->createSphere(radius, 0.25, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+	printf("7 spheres added...\n");
+	tree->createSphere(radius, 0.125, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+	printf("8 spheres added...\n");
+	tree->createSphere(radius, 0.075, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+	printf("9 spheres added...\n");
+	tree->createSphere(radius, 0.05, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+	printf("10 spheres added...\n");
+	tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+	printf("11 spheres added...\n");
+
+    _nodeCount=0;
+    tree->recurseTreeWithOperation(countVoxelsOperation);
+    printf("Nodes after adding scene %d nodes\n", _nodeCount);
+
+
+	printf("DONE adding scene of spheres...\n");
 }
 
 
@@ -118,21 +155,76 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
 
 void eraseVoxelTreeAndCleanupAgentVisitData() {
 
-	// As our tree to erase all it's voxels
-	::randomTree.eraseAllVoxels();
+    // As our tree to erase all it's voxels
+    ::randomTree.eraseAllVoxels();
+    // enumerate the agents clean up their marker nodes
+    for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
+        VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
+        if (agentData) {
+            // clean up the agent visit data
+            agentData->nodeBag.deleteAll();
+        }
+    }
+}
 
-	// enumerate the agents clean up their marker nodes
-    
-	for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
 
-		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
+void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+    // If the bag is empty, fill it...
+    if (agentData->nodeBag.isEmpty()) {
+        int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
+                                                               viewFrustum, agentData->nodeBag);
+        agentData->setMaxLevelReached(maxLevelReached);
         
-		VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
+        // If nothing got added, then we bump our levels.
+        if (agentData->nodeBag.isEmpty()) {
+            if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
+                agentData->resetMaxSearchLevel();
+            } else {
+                agentData->incrementMaxSearchLevel();
+            }
+        }
+    }
 
-		// clean up the agent visit data
-		delete agentData->rootMarkerNode;
-		agentData->rootMarkerNode = new MarkerNode();
-	}
+    // If we have something in our nodeBag, then turn them into packets and send them out...
+    if (!agentData->nodeBag.isEmpty()) {
+        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+        int bytesWritten = 0;
+        int packetsSentThisInterval = 0;
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
+            if (!agentData->nodeBag.isEmpty()) {
+                VoxelNode* subTree = agentData->nodeBag.extract();
+                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
+                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
+                                                              agentData->nodeBag);
+
+                if (agentData->getAvailable() >= bytesWritten) {
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                } else {
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                                     agentData->getPacket(), agentData->getPacketLength());
+                    packetsSentThisInterval++;
+                    agentData->resetVoxelPacket();
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                }
+            } else {
+                if (agentData->isPacketWaiting()) {
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                                     agentData->getPacket(), agentData->getPacketLength());
+                    agentData->resetVoxelPacket();
+                    
+                }
+                packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
+            }
+        }
+        // if during this last pass, we emptied our bag, then we want to move to the next level.
+        if (agentData->nodeBag.isEmpty()) {
+            if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
+                agentData->resetMaxSearchLevel();
+            } else {
+                agentData->incrementMaxSearchLevel();
+            }
+        }        
+    }
 }
 
 void *distributeVoxelsToListeners(void *args) {
@@ -140,77 +232,29 @@ void *distributeVoxelsToListeners(void *args) {
     AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
-    unsigned char *stopOctal;
-    int packetCount;
-    
-    int totalBytesSent;
-    
-    unsigned char *voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    unsigned char *voxelPacketEnd;
-    
-    float treeRoot[3] = {0, 0, 0};
-    
     while (true) {
         gettimeofday(&lastSendTime, NULL);
         
         // enumerate the agents to send 3 packets to each
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            VoxelAgentData *agentData = (VoxelAgentData *)agent->getLinkedData();
-            
-            ViewFrustum viewFrustum;
-            // get position and orientation details from the camera
-            viewFrustum.setPosition(agentData->getCameraPosition());
-            viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
-    
-            // Also make sure it's got the correct lens details from the camera
-            viewFrustum.setFieldOfView(agentData->getCameraFov());
-            viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
-            viewFrustum.setNearClip(agentData->getCameraNearClip());
-            viewFrustum.setFarClip(agentData->getCameraFarClip());
-            
-            viewFrustum.calculate();
+            VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
 
-            // debug for fun!!
-            if (::debugViewFrustum) {
-                viewFrustum.dump();
-            }
+            // Sometimes the agent data has not yet been linked, in which case we can't really do anything
+    		if (agentData) {
+                ViewFrustum viewFrustum;
+                // get position and orientation details from the camera
+                viewFrustum.setPosition(agentData->getCameraPosition());
+                viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
+    
+                // Also make sure it's got the correct lens details from the camera
+                viewFrustum.setFieldOfView(agentData->getCameraFov());
+                viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
+                viewFrustum.setNearClip(agentData->getCameraNearClip());
+                viewFrustum.setFarClip(agentData->getCameraFarClip());
             
-            stopOctal = NULL;
-            packetCount = 0;
-            totalBytesSent = 0;
-            randomTree.leavesWrittenToBitstream = 0;
-            
-            for (int j = 0; j < PACKETS_PER_CLIENT_PER_INTERVAL; j++) {
-                voxelPacketEnd = voxelPacket;
-                stopOctal = randomTree.loadBitstreamBuffer(voxelPacketEnd,
-                                                           randomTree.rootNode,
-                                                           agentData->rootMarkerNode,
-                                                           agentData->getPosition(),
-                                                           treeRoot,
-                                                           viewFrustum,
-                                                           ::viewFrustumCulling,
-                                                           stopOctal);
-                
-                agentList->getAgentSocket().send(agent->getActiveSocket(), voxelPacket, voxelPacketEnd - voxelPacket);
-                
-                packetCount++;
-                totalBytesSent += voxelPacketEnd - voxelPacket;
-                
-                // XXXBHG Hack Attack: This is temporary code to help debug an issue.
-                // Normally we use this break to prevent resending voxels that an agent has
-                // already visited. But since we might be modifying the voxel tree we might
-                // want to always send. This is a hack to test the behavior
-                bool alwaysSend = true;
-                if (!alwaysSend && agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                    break;
-                }
-            }
-            
-            // for any agent that has a root marker node with 8 visited children
-            // recursively delete its marker nodes so we can revisit
-            if (agentData->rootMarkerNode->childrenVisitedMask == 255) {
-                delete agentData->rootMarkerNode;
-                agentData->rootMarkerNode = new MarkerNode();
+                viewFrustum.calculate();
+
+                voxelDistributor(agentList, agent, agentData, viewFrustum);
             }
         }
         
@@ -262,7 +306,7 @@ int main(int argc, const char * argv[])
     ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
 	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
     
-	const char* WANT_COLOR_RANDOMIZER = "--WantColorRandomizer";
+	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
