@@ -84,7 +84,7 @@ target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
 if (NOT APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
-    include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR} ${})
+    include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
     target_link_libraries(${TARGET_NAME} ${OPENGL_LIBRARY})
 else (NOT APPLE)
     # link in required OS X frameworks and include the right GL headers

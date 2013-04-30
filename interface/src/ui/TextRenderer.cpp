@@ -25,7 +25,7 @@ TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool i
 }
 
 TextRenderer::~TextRenderer() {
-    glDeleteTextures(_textureIDs.size(), _textureIDs.constData());
+    glDeleteTextures(_allTextureIDs.size(), _allTextureIDs.constData());
 }
 
 void TextRenderer::draw(int x, int y, const char* str) {
@@ -102,17 +102,17 @@ const Glyph& TextRenderer::getGlyph(char c) {
     }
     if (_y + bounds.height() > IMAGE_SIZE) {
         // can't fit it on current texture; make a new one
-        glGenTextures(1, &_textureID);
+        glGenTextures(1, &_currentTextureID);
         _x = _y = _rowHeight = 0;
         
-        glBindTexture(GL_TEXTURE_2D, _textureID);
+        glBindTexture(GL_TEXTURE_2D, _currentTextureID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, IMAGE_SIZE, IMAGE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        _textureIDs.append(_textureID);
+        _allTextureIDs.append(_currentTextureID);
            
     } else {
-        glBindTexture(GL_TEXTURE_2D, _textureID);
+        glBindTexture(GL_TEXTURE_2D, _currentTextureID);
     }
     // render the glyph into an image and copy it into the texture
     QImage image(bounds.width(), bounds.height(), QImage::Format_ARGB32);
@@ -125,7 +125,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
     }    
     glTexSubImage2D(GL_TEXTURE_2D, 0, _x, _y, bounds.width(), bounds.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
        
-    glyph = Glyph(_textureID, QPoint(_x, _y), bounds, _metrics.width(c));
+    glyph = Glyph(_currentTextureID, QPoint(_x, _y), bounds, _metrics.width(c));
     _x += bounds.width();
     _rowHeight = qMax(_rowHeight, bounds.height());
     

@@ -44,7 +44,7 @@ private:
     QHash<char, Glyph> _glyphs;
     
     // the id of the glyph texture to which we're currently writing
-    GLuint _textureID;
+    GLuint _currentTextureID;
     
     // the position within the current glyph texture
     int _x, _y;
@@ -53,7 +53,7 @@ private:
     int _rowHeight;
     
     // the list of all texture ids for which we're responsible
-    QVector<GLuint> _textureIDs;
+    QVector<GLuint> _allTextureIDs;
 };
 
 class Glyph {
