@@ -203,7 +203,7 @@ int VoxelSystem::treeToArrays(VoxelNode* currentNode, const glm::vec3&  nodePosi
         }
     }
 
-    // if we didn't get any voxels added then we're a leaf (XXXBHG - Stephen can you explain this to me????)
+    // if we didn't get any voxels added then we're a leaf
     // add our vertex and color information to the interleaved array
     if (voxelsAdded == 0 && currentNode->isColored()) {
         float startVertex[3];
