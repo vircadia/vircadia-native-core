@@ -237,7 +237,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
 
             // Note: we need to create this node relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
-            bitstreamRootNode = createMissingNode(rootNode, (unsigned char *)bitstreamAt);
+            bitstreamRootNode = createMissingNode(rootNode, (unsigned char*) bitstreamAt);
         }
 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
