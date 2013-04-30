@@ -110,8 +110,6 @@ Avatar::Avatar(bool isMine) {
     _head.noise               = 0;
 	_movedHandOffset          = glm::vec3( 0.0, 0.0, 0.0 );
     _usingBodySprings         = true;
-	_springForce              = 6.0f;
-	_springVelocityDecay      = 16.0f;
     _renderYaw                = 0.0;
     _renderPitch              = 0.0;
 	_sphere                   = NULL;
@@ -157,8 +155,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _TEST_bigSpherePosition   = otherAvatar._TEST_bigSpherePosition;
 	_movedHandOffset          = otherAvatar._movedHandOffset;
 	_usingBodySprings         = otherAvatar._usingBodySprings;
-	_springForce              = otherAvatar._springForce;
-	_springVelocityDecay      = otherAvatar._springVelocityDecay;
 	_orientation.set( otherAvatar._orientation );
     
 	_sphere = NULL;
@@ -294,6 +290,7 @@ void Avatar::setMousePressed( bool d ) {
 	_mousePressed = d;
 }
 
+
 void Avatar::simulate(float deltaTime) {
     
     // update balls
@@ -319,14 +316,13 @@ void Avatar::simulate(float deltaTime) {
         float closestDistance = 10000.0f;
         
         AgentList* agentList = AgentList::getInstance();
-        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // check for collisions with other avatars and respond
                 updateCollisionWithOtherAvatar(otherAvatar, deltaTime );
-                
+                 
                 // test other avatar hand position for proximity
                 glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
                 v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
@@ -420,10 +416,24 @@ void Avatar::simulate(float deltaTime) {
 	// decay velocity
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
-    //
-    //  Update Head information
-    //
+    // update head information
+    updateHead(deltaTime);
     
+    // calculate speed, and use that to determine walking vs. standing                                
+    _speed = glm::length( _velocity );
+	float rotationalSpeed = fabs( _bodyYawDelta );
+
+	if ( _speed + rotationalSpeed > 0.2 ) {
+		_mode = AVATAR_MODE_WALKING;
+	} else {
+		_mode = AVATAR_MODE_INTERACTING;
+	}
+}
+
+
+
+
+void Avatar::updateHead(float deltaTime) {
     if (!_head.noise) {
         //  Decay back toward center
         _headPitch *= (1.0f - DECAY * 2 * deltaTime);
@@ -516,16 +526,11 @@ void Avatar::simulate(float deltaTime) {
     const float AUDIO_AVERAGING_SECS = 0.05;
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-                            
-    _speed = glm::length( _velocity );
-	float rotationalSpeed = fabs( _bodyYawDelta );
-
-	if ( _speed + rotationalSpeed > 0.2 ) {
-		_mode = AVATAR_MODE_WALKING;
-	} else {
-		_mode = AVATAR_MODE_INTERACTING;
-	}
 }
+
+
+
+
 
 float Avatar::getHeight() {
     return _height;
@@ -540,23 +545,21 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
     if ( distanceToBigSphere < myBodyApproximateBoundingRadius + radius ) {
         for (int b = 0; b < NUM_AVATAR_BONES; b++) {
-            if ( _bone[b].isCollidable ) {
-                glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - position);
-                float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-                float combinedRadius = _bone[b].radius + radius;
-                
-                if ( distanceToBigSphereCenter < combinedRadius )  {
-                    jointCollision = true;
-                    if (distanceToBigSphereCenter > 0.0) {
-                        glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
-                        
-                        float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
-                        glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
-                        
-                        _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
-                        _velocity                += collisionForce * 100.0f * deltaTime;
-                        _bone[b].springyPosition = position + directionVector * combinedRadius;
-                    }
+            glm::vec3 vectorFromJointToBigSphereCenter(_bone[b].springyPosition - position);
+            float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
+            float combinedRadius = _bone[b].radius + radius;
+            
+            if ( distanceToBigSphereCenter < combinedRadius )  {
+                jointCollision = true;
+                if (distanceToBigSphereCenter > 0.0) {
+                    glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
+                    
+                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
+                    glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
+                    
+                    _bone[b].springyVelocity += collisionForce *  30.0f * deltaTime;
+                    _velocity                += collisionForce * 100.0f * deltaTime;
+                    _bone[b].springyPosition = position + directionVector * combinedRadius;
                 }
             }
         }
@@ -578,40 +581,63 @@ void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTi
     glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
     if ( glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF ) {
         
+    float bodyMomentum = 1.0f;
+    glm::vec3 bodyPushForce = glm::vec3( 0.0, 0.0, 0.0 );
+        
         // loop through the bones of each avatar to check for every possible collision
         for (int b=1; b<NUM_AVATAR_BONES; b++) {
             if ( _bone[b].isCollidable ) {
 
                 for (int o=b+1; o<NUM_AVATAR_BONES; o++) {
-                    if ( _bone[o].isCollidable ) {
+                    if ( otherAvatar->_bone[o].isCollidable ) {
                     
                         glm::vec3 vectorBetweenJoints(_bone[b].springyPosition - otherAvatar->_bone[o].springyPosition);
                         float distanceBetweenJoints = glm::length(vectorBetweenJoints);
-            
-                        // to avoid divide by zero
-                        if ( distanceBetweenJoints > 0.0 ) {
+                        
+                        if ( distanceBetweenJoints > 0.0 ) { // to avoid divide by zero
                             float combinedRadius = _bone[b].radius + otherAvatar->_bone[o].radius;
 
                             // check for collision
                             if ( distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
                                 glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
-                                // push ball away from colliding other ball and puch avatar body (_velocity) as well
-                                _bone[b].springyVelocity += directionVector * COLLISION_BALL_FORCE * deltaTime;
-                                _velocity                += directionVector * COLLISION_BODY_FORCE * deltaTime;
+                                // push balls away from each other and apply friction
+                                glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
+                                                                
+                                                                
+                                float ballMomentum = COLLISION_BALL_FRICTION * deltaTime;
+                                if ( ballMomentum < 0.0 ) { ballMomentum = 0.0;}
+                                                                
+                                                                
+                                             _bone[b].springyVelocity += ballPushForce;
+                                otherAvatar->_bone[o].springyVelocity -= ballPushForce;
                                 
-                                // apply fruction to _velocity
-                                float momentum = 1.0 - COLLISION_FRICTION  * deltaTime;
-                                if ( momentum < 0.0 ) { momentum = 0.0;}
-                                _velocity *= momentum;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+                                             _bone[b].springyVelocity *= 0.9;
+                                otherAvatar->_bone[o].springyVelocity *= 0.9;
+                                
+                                // accumulate forces and frictions to the velocities of avatar bodies
+                                bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
+                                bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
+                                if ( bodyMomentum < 0.0 ) { bodyMomentum = 0.0;}
+                                                                
+                            }// check for collision
+                        }   // to avoid divide by zero
+                    }      // o loop
+                }         // collidable
+            }            // b loop
+        }               // collidable
+        
+        
+        //apply forces and frictions on the bodies of both avatars 
+                     _velocity += bodyPushForce;
+        otherAvatar->_velocity -= bodyPushForce;
+                     _velocity *= bodyMomentum;
+        otherAvatar->_velocity *= bodyMomentum;
+        
+    } // bounding sphere collision
+}    //method
+
+
 
 
 void Avatar::setDisplayingHead( bool displayingHead ) {
@@ -1076,20 +1102,20 @@ void Avatar::updateBodySprings( float deltaTime ) {
 		if ( length > 0.0f ) {
 			glm::vec3 springDirection = springVector / length;
 			
-			float force = ( length - _bone[b].length ) * _springForce * deltaTime;
+			float force = (length - _bone[b].length) * BODY_SPRING_FORCE * deltaTime;
 			
 			_bone[b].springyVelocity -= springDirection * force;
             
             if ( _bone[b].parent != AVATAR_BONE_NULL ) {
-                _bone[ _bone[b].parent	].springyVelocity += springDirection * force;
+                _bone[_bone[b].parent].springyVelocity += springDirection * force;
             }
 		}
         
-		_bone[b].springyVelocity += ( _bone[b].position - _bone[b].springyPosition ) * _bone[b].springBodyTightness * deltaTime;
+		_bone[b].springyVelocity += (_bone[b].position - _bone[b].springyPosition) * _bone[b].springBodyTightness * deltaTime;
         
-		float decay = 1.0 - _springVelocityDecay * deltaTime;
+		float decay = 1.0 - BODY_SPRING_DECAY * deltaTime;
 		
-		if ( decay > 0.0 ) {
+		if (decay > 0.0) {
 			_bone[b].springyVelocity *= decay;
 		}
 		else {
