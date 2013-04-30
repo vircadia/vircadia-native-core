@@ -299,6 +299,7 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
+    voxels.setCamera(&myCamera);
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
@@ -1615,12 +1616,6 @@ int main(int argc, const char * argv[])
     shared_lib::printLog = & ::printLog;
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
-
-    // Quick test of the Orientation class on startup!
-    if (cmdOptionExists(argc, argv, "--testOrientation")) {
-        testOrientationClass();
-        return EXIT_SUCCESS;
-    }
 
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char* portStr = getCmdOption(argc, argv, "--listenPort");

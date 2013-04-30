@@ -16,6 +16,7 @@
 #include <VoxelTree.h>
 #include <ViewFrustum.h>
 #include "Avatar.h"
+#include "Camera.h"
 #include "Util.h"
 #include "world.h"
 
@@ -34,7 +35,8 @@ public:
     void render();
     void setVoxelsRendered(int v) {voxelsRendered = v;};
     int getVoxelsRendered() {return voxelsRendered;};
-    void setViewerAvatar(Avatar *newViewerAvatar);
+    void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
+    void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 
@@ -67,7 +69,8 @@ private:
     static float _minDistance;
 
     int voxelsRendered;
-    Avatar *viewerAvatar;
+    Avatar* _viewerAvatar;
+    Camera* _camera;
     VoxelTree *tree;
     GLfloat *readVerticesArray;
     GLubyte *readColorsArray;
