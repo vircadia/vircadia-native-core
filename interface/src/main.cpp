@@ -1428,6 +1428,7 @@ void* networkReceive(void* args)
             
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA:
+                    //  Process UDP packets that are sent to the client from local sensor devices 
                     myAvatar.processTransmitterData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:

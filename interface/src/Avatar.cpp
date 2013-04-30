@@ -72,71 +72,74 @@ Avatar::Avatar(bool isMine) {
     
     _orientation.setToIdentity();
     
-	_velocity             = glm::vec3( 0.0, 0.0, 0.0 );
-	_thrust		          = glm::vec3( 0.0, 0.0, 0.0 );
-    _rotation             = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
-	_bodyYaw              = -90.0;
-	_bodyPitch            = 0.0;
-	_bodyRoll             = 0.0;
-	_bodyYawDelta         = 0.0;
-	_mousePressed         = false;
-	_mode                 = AVATAR_MODE_STANDING;
-    _isMine               = isMine;
-    _maxArmLength         = 0.0;
-    _transmitterHz        = 0.0;
-    _transmitterPackets   = 0;
-    _speed                = 0.0;
-    _pelvisStandingHeight = 0.0f;
-    _displayingHead       = true;
-    _TEST_bigSphereRadius = 0.3f;
-    _TEST_bigSpherePosition = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
+	_velocity                   = glm::vec3( 0.0, 0.0, 0.0 );
+	_thrust                     = glm::vec3( 0.0, 0.0, 0.0 );
+    _rotation                   = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+	_bodyYaw                    = -90.0;
+	_bodyPitch                  = 0.0;
+	_bodyRoll                   = 0.0;
+	_bodyYawDelta               = 0.0;
+	_mousePressed               = false;
+	_mode                       = AVATAR_MODE_STANDING;
+    _isMine                     = isMine;
+    _maxArmLength               = 0.0;
+    _transmitterHz              = 0.0;
+    _transmitterPackets         = 0;
+    _transmitterIsFirstData     = true;
+    _transmitterInitialReading  = glm::vec3( 0.f, 0.f, 0.f );
+    _speed                      = 0.0;
+    _pelvisStandingHeight       = 0.0f;
+    _displayingHead             = true;
+    _TEST_bigSphereRadius       = 0.3f;
+    _TEST_bigSpherePosition     = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
-    _head.pupilSize           = 0.10;
-    _head.interPupilDistance  = 0.6;
-    _head.interBrowDistance   = 0.75;
-    _head.nominalPupilSize    = 0.10;
-    _head.pitchRate           = 0.0;
-    _head.yawRate             = 0.0;
-    _head.rollRate            = 0.0;
-    _head.eyebrowPitch[0]     = -30;
-    _head.eyebrowPitch[1]     = -30;
-    _head.eyebrowRoll [0]     = 20;
-    _head.eyebrowRoll [1]     = -20;
-    _head.mouthPitch          = 0;
-    _head.mouthYaw            = 0;
-    _head.mouthWidth          = 1.0;
-    _head.mouthHeight         = 0.2;
-    _head.eyeballPitch[0]     = 0;
-    _head.eyeballPitch[1]     = 0;
-    _head.eyeballScaleX       = 1.2;
-    _head.eyeballScaleY       = 1.5;
-    _head.eyeballScaleZ       = 1.0;
-    _head.eyeballYaw[0]       = 0;
-    _head.eyeballYaw[1]       = 0;
-    _head.pitchTarget         = 0;
-    _head.yawTarget           = 0;
-    _head.noiseEnvelope       = 1.0;
-    _head.pupilConverge       = 10.0;
-    _head.leanForward         = 0.0;
-    _head.leanSideways        = 0.0;
-    _head.eyeContact          = 1;
-    _head.eyeContactTarget    = LEFT_EYE;
-    _head.scale               = 1.0;
-    _head.audioAttack         = 0.0;
-    _head.averageLoudness     = 0.0;
-    _head.lastLoudness        = 0.0;
-    _head.browAudioLift       = 0.0;
-    _head.noise               = 0;
-	_movedHandOffset          = glm::vec3( 0.0, 0.0, 0.0 );
-    _usingBodySprings         = true;
-    _renderYaw                = 0.0;
-    _renderPitch              = 0.0;
-	_sphere                   = NULL;
-    _interactingOther         = NULL;
-	_interactingOtherIsNearby = false;
-    _handHoldingPosition      = glm::vec3( 0.0, 0.0, 0.0 );
+    _head.pupilSize             = 0.10;
+    _head.interPupilDistance    = 0.6;
+    _head.interBrowDistance     = 0.75;
+    _head.nominalPupilSize      = 0.10;
+    _head.pitchRate             = 0.0;
+    _head.yawRate               = 0.0;
+    _head.rollRate              = 0.0;
+    _head.eyebrowPitch[0]       = -30;
+    _head.eyebrowPitch[1]       = -30;
+    _head.eyebrowRoll [0]       = 20;
+    _head.eyebrowRoll [1]       = -20;
+    _head.mouthPitch            = 0;
+    _head.mouthYaw              = 0;
+    _head.mouthWidth            = 1.0;
+    _head.mouthHeight           = 0.2;
+    _head.eyeballPitch[0]       = 0;
+    _head.eyeballPitch[1]       = 0;
+    _head.eyeballScaleX         = 1.2;
+    _head.eyeballScaleY         = 1.5;
+    _head.eyeballScaleZ         = 1.0;
+    _head.eyeballYaw[0]         = 0;
+    _head.eyeballYaw[1]         = 0;
+    _head.pitchTarget           = 0;
+    _head.yawTarget             = 0;
+    _head.noiseEnvelope         = 1.0;
+    _head.pupilConverge         = 10.0;
+    _head.leanForward           = 0.0;
+    _head.leanSideways          = 0.0;
+    _head.eyeContact            = 1;
+    _head.eyeContactTarget      = LEFT_EYE;
+    _head.scale                 = 1.0;
+    _head.audioAttack           = 0.0;
+    _head.averageLoudness       = 0.0;
+    _head.lastLoudness          = 0.0;
+    _head.browAudioLift         = 0.0;
+    _head.noise                 = 0;
+    _head.returnSpringScale     = 1.0;
+	_movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
+    _usingBodySprings           = true;
+    _renderYaw                  = 0.0;
+    _renderPitch                = 0.0;
+	_sphere                     = NULL;
+    _interactingOther           = NULL;
+	_interactingOtherIsNearby   = false;
+    _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
     
     initializeSkeleton();
     
@@ -155,27 +158,30 @@ Avatar::Avatar(bool isMine) {
 
 Avatar::Avatar(const Avatar &otherAvatar) {
     
-    _velocity                 = otherAvatar._velocity;
-	_thrust                   = otherAvatar._thrust;
-    _rotation                 = otherAvatar._rotation;
-	_interactingOtherIsNearby = otherAvatar._interactingOtherIsNearby;
-	_bodyYaw                  = otherAvatar._bodyYaw;
-	_bodyPitch                = otherAvatar._bodyPitch;
-	_bodyRoll                 = otherAvatar._bodyRoll;
-	_bodyYawDelta             = otherAvatar._bodyYawDelta;
-	_mousePressed             = otherAvatar._mousePressed;
-	_mode                     = otherAvatar._mode;
-    _isMine                   = otherAvatar._isMine;
-    _renderYaw                = otherAvatar._renderYaw;
-    _renderPitch              = otherAvatar._renderPitch;
-    _maxArmLength             = otherAvatar._maxArmLength;
-    _transmitterTimer         = otherAvatar._transmitterTimer;
-    _transmitterHz            = otherAvatar._transmitterHz;
-    _transmitterPackets       = otherAvatar._transmitterPackets;
-    _TEST_bigSphereRadius     = otherAvatar._TEST_bigSphereRadius;
-    _TEST_bigSpherePosition   = otherAvatar._TEST_bigSpherePosition;
-	_movedHandOffset          = otherAvatar._movedHandOffset;
-	_usingBodySprings         = otherAvatar._usingBodySprings;
+    _velocity                       = otherAvatar._velocity;
+	_thrust                         = otherAvatar._thrust;
+    _rotation                       = otherAvatar._rotation;
+	_interactingOtherIsNearby       = otherAvatar._interactingOtherIsNearby;
+	_bodyYaw                        = otherAvatar._bodyYaw;
+	_bodyPitch                      = otherAvatar._bodyPitch;
+	_bodyRoll                       = otherAvatar._bodyRoll;
+	_bodyYawDelta                   = otherAvatar._bodyYawDelta;
+	_mousePressed                   = otherAvatar._mousePressed;
+	_mode                           = otherAvatar._mode;
+    _isMine                         = otherAvatar._isMine;
+    _renderYaw                      = otherAvatar._renderYaw;
+    _renderPitch                    = otherAvatar._renderPitch;
+    _maxArmLength                   = otherAvatar._maxArmLength;
+    _transmitterTimer               = otherAvatar._transmitterTimer;
+    _transmitterIsFirstData         = otherAvatar._transmitterIsFirstData;
+    _transmitterTimeLastReceived    = otherAvatar._transmitterTimeLastReceived;
+    _transmitterHz                  = otherAvatar._transmitterHz;
+    _transmitterInitialReading      = otherAvatar._transmitterInitialReading;
+    _transmitterPackets             = otherAvatar._transmitterPackets;
+    _TEST_bigSphereRadius           = otherAvatar._TEST_bigSphereRadius;
+    _TEST_bigSpherePosition         = otherAvatar._TEST_bigSpherePosition;
+	_movedHandOffset                = otherAvatar._movedHandOffset;
+	_usingBodySprings               = otherAvatar._usingBodySprings;
 	_orientation.set( otherAvatar._orientation );
     
 	_sphere = NULL;
@@ -258,9 +264,9 @@ void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm
     float measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
     _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
     float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
-    ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_ROLL_RATE);
+    ROLL_ACCEL_COUPLING * serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
-    PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_PITCH_RATE);
+    PITCH_ACCEL_COUPLING * serialInterface->getRelativeValue(HEAD_PITCH_RATE);
     float measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     
     //printLog("Pitch Rate: %d ACCEL_Z: %d\n", serialInterface->getRelativeValue(PITCH_RATE),
@@ -455,18 +461,22 @@ void Avatar::simulate(float deltaTime) {
 
 
 void Avatar::updateHead(float deltaTime) {
-    if (!_head.noise) {
+
+    //  Decay head back to center if turned on
+    if (_returnHeadToCenter) {
         //  Decay back toward center
-        _headPitch *= (1.0f - DECAY * 2 * deltaTime);
-        _headYaw   *= (1.0f - DECAY * 2 * deltaTime);
-        _headRoll  *= (1.0f - DECAY * 2 * deltaTime);
+        _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
+        _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
+        _headRoll  *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
     }
-    else {
+    
+    if (_head.noise) {
         //  Move toward new target
         _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
         _headYaw   += (_head.yawTarget   - _headYaw  ) * 10 * deltaTime; //  (1.f - DECAY*deltaTime);
         _headRoll *= 1.f - (DECAY * deltaTime);
     }
+    
     
     _head.leanForward  *= (1.f - DECAY * 30 * deltaTime);
     _head.leanSideways *= (1.f - DECAY * 30 * deltaTime);
@@ -1286,14 +1296,21 @@ void Avatar::SetNewHeadTarget(float pitch, float yaw) {
     _head.yawTarget   = yaw;
 }
 
-// getting data from Android transmitte app
+// Process UDP interface data from Android transmitter or Google Glass
 void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
-    float accX, accY, accZ,
-    graX, graY, graZ,
-    gyrX, gyrY, gyrZ,
-    linX, linY, linZ,
-    rot1, rot2, rot3, rot4;
+    float
+    accX, accY, accZ,           //  Measured acceleration
+    graX, graY, graZ,           //  Gravity
+    gyrX, gyrY, gyrZ,           //  Gyro velocity in radians/sec as (pitch, roll, yaw)
+    linX, linY, linZ,           //  Linear Acceleration (less gravity)
+    rot1, rot2, rot3, rot4;     //  Rotation of device:
+                                //    rot1 = roll, ranges from -1 to 1, 0 = flat on table
+                                //    rot2 = pitch, ranges from -1 to 1, 0 = flat on table
+                                //    rot3 = yaw, ranges from -1 to 1 
+    
+    const bool IS_GLASS = false;         //  Whether to assume this is a Google glass transmitting
+
     sscanf((char *)packetData, "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f",
            &accX, &accY, &accZ,
            &graX, &graY, &graZ,
@@ -1302,7 +1319,21 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
            &rot1, &rot2, &rot3, &rot4);
     
     if (_transmitterPackets++ == 0) {
+        // If first packet received, note time, turn head spring return OFF, get start rotation
         gettimeofday(&_transmitterTimer, NULL);
+        if (IS_GLASS) {
+            setHeadReturnToCenter(true);
+            setHeadSpringScale(10.f);
+            printLog("Using Google Glass to drive head, springs ON.\n");
+
+        } else {
+            setHeadReturnToCenter(false);
+            printLog("Using Transmitter to drive head, springs OFF.\n");
+
+        }
+        _transmitterInitialReading = glm::vec3(     rot3,
+                                                    rot2,
+                                                    rot1 );
     }
     const int TRANSMITTER_COUNT = 100;
     if (_transmitterPackets % TRANSMITTER_COUNT == 0) {
@@ -1310,27 +1341,71 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         timeval now;
         gettimeofday(&now, NULL);
         double msecsElapsed = diffclock(&_transmitterTimer, &now);
-        _transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT/(msecsElapsed/1000.0) );
+        _transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT / (msecsElapsed / 1000.0) );
         _transmitterTimer = now;
+        printLog("Transmitter Hz: %3.1f\n", _transmitterHz);
     }
-    /*  NOTE:  PR:  Will add back in when ready to animate avatar hand
-     
-     //  Add rotational forces to the hand
-     const float ANG_VEL_SENSITIVITY = 4.0;
-     const float ANG_VEL_THRESHOLD = 0.0;
-     float angVelScale = ANG_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
-     
-     addAngularVelocity(fabs(gyrX*angVelScale)>ANG_VEL_THRESHOLD?gyrX*angVelScale:0,
-     fabs(gyrZ*angVelScale)>ANG_VEL_THRESHOLD?gyrZ*angVelScale:0,
-     fabs(-gyrY*angVelScale)>ANG_VEL_THRESHOLD?-gyrY*angVelScale:0);
-     
-     //  Add linear forces to the hand
-     //const float LINEAR_VEL_SENSITIVITY = 50.0;
-     const float LINEAR_VEL_SENSITIVITY = 5.0;
-     float linVelScale = LINEAR_VEL_SENSITIVITY*(1.0f/getTransmitterHz());
-     glm::vec3 linVel(linX*linVelScale, linZ*linVelScale, -linY*linVelScale);
-     addVelocity(linVel);
-     */
+    //printLog("Gyr: %3.1f, %3.1f, %3.1f\n", glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
+    //printLog("Rot: %3.1f, %3.1f, %3.1f, %3.1f\n", rot1, rot2, rot3, rot4);
+    
+    //  Update the head with the transmitter data
+    glm::vec3 eulerAngles((rot3 - _transmitterInitialReading.x) * 180.f,
+                          -(rot2 - _transmitterInitialReading.y) * 180.f,
+                          (rot1 - _transmitterInitialReading.z) * 180.f);
+    if (eulerAngles.x > 180.f) { eulerAngles.x -= 360.f; }
+    if (eulerAngles.x < -180.f) { eulerAngles.x += 360.f; }
+    
+    glm::vec3 angularVelocity;
+    if (!IS_GLASS) {
+        angularVelocity = glm::vec3(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
+        setHeadFromGyros( &eulerAngles, &angularVelocity,
+                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1.0);
+
+    } else {
+        angularVelocity = glm::vec3(glm::degrees(gyrY), glm::degrees(-gyrX), glm::degrees(-gyrZ));
+        setHeadFromGyros( &eulerAngles, &angularVelocity,
+                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
+
+    }
+    
+}
+
+void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
+    //
+    //  Given absolute position and angular velocity information, update the avatar's head angles
+    //  with the goal of fast instantaneous updates that gradually follow the absolute data.
+    //
+    //  Euler Angle format is (Yaw, Pitch, Roll) in degrees
+    //
+    //  Angular Velocity is (Yaw, Pitch, Roll) in degrees per second
+    //
+    //  SMOOTHING_TIME is the time is seconds over which the head should average to the
+    //  absolute eulerAngles passed.
+    //  
+    //
+    float const MAX_YAW = 90.f;
+    float const MIN_YAW = -90.f;
+    float const MAX_PITCH = 85.f;
+    float const MIN_PITCH = -85.f;
+    float const MAX_ROLL = 90.f;
+    float const MIN_ROLL = -90.f;
+    
+    if (deltaTime == 0.f) {
+        //  On first sample, set head to absolute position
+        setHeadYaw(eulerAngles->x);
+        setHeadPitch(eulerAngles->y);
+        setHeadRoll(eulerAngles->z);
+    } else { 
+        glm::vec3 angles(getHeadYaw(), getHeadPitch(), getHeadRoll());
+        //  Increment by detected velocity 
+        angles += (*angularVelocity) * deltaTime;
+        //  Smooth to slowly follow absolute values
+        angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
+        setHeadYaw(fmin(fmax(angles.x, MIN_YAW), MAX_YAW));
+        setHeadPitch(fmin(fmax(angles.y, MIN_PITCH), MAX_PITCH));
+        setHeadRoll(fmin(fmax(angles.z, MIN_ROLL), MAX_ROLL));
+        //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
+    }
 }
 
 //  Find and return the gravity vector at my location
