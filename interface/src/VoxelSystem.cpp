@@ -55,10 +55,6 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&bufferWriteLock);
 }
 
-void VoxelSystem::setViewerAvatar(Avatar *newViewerAvatar) {
-    viewerAvatar = newViewerAvatar;
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////
 // Method:      VoxelSystem::loadVoxelsFile()
 // Description: Loads HiFidelity encoded Voxels from a binary file. The current file
@@ -180,7 +176,7 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
 int VoxelSystem::treeToArrays(VoxelNode* currentNode, const glm::vec3&  nodePosition) {
     int voxelsAdded = 0;
     float halfUnitForVoxel = powf(0.5, *currentNode->octalCode) * (0.5 * TREE_SCALE);
-    glm::vec3 viewerPosition = viewerAvatar->getPosition();
+    glm::vec3 viewerPosition = _camera->getPosition(); //_viewerAvatar->getPosition();
 
     // debug LOD code
     glm::vec3 debugNodePosition;

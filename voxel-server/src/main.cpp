@@ -38,7 +38,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-const int PACKETS_PER_CLIENT_PER_INTERVAL = 5;
+const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -68,6 +68,16 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
+int _nodeCount=0;
+bool countVoxelsOperation(VoxelNode* node, bool down, void* extraData) {
+    if (down) {
+        if (node->isColored()){
+            _nodeCount++;
+        }
+    }
+    return true; // keep going
+}
+
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	
@@ -80,6 +90,8 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	tree->createSphere(0.25,0.5,0.5,0.5,(1.0/sphereBaseSize),true,wantColorRandomizer);
 	printf("one sphere added...\n");
 	tree->createSphere(0.030625,0.5,0.5,(0.25-0.06125),(1.0/(sphereBaseSize*2)),true,true);
+
+
 	printf("two spheres added...\n");
 	tree->createSphere(0.030625,(1.0-0.030625),(1.0-0.030625),(1.0-0.06125),(1.0/(sphereBaseSize*2)),true,true);
 	printf("three spheres added...\n");
@@ -88,6 +100,25 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	tree->createSphere(0.030625,(1.0-0.030625),0.06125,(1.0-0.06125),(1.0/(sphereBaseSize*2)),true,true);
 	printf("five spheres added...\n");
 	tree->createSphere(0.06125,0.125,0.125,(1.0-0.125),(1.0/(sphereBaseSize*2)),true,true);
+
+    float radius = 0.0125f;
+	printf("6 spheres added...\n");
+	tree->createSphere(radius,0.25,radius*5.0f,0.25,(1.0/(4096)),true,true);
+	printf("7 spheres added...\n");
+	tree->createSphere(radius,0.125,radius*5.0f,0.25,(1.0/(4096)),true,true);
+	printf("8 spheres added...\n");
+	tree->createSphere(radius,0.075,radius*5.0f,0.25,(1.0/(4096)),true,true);
+	printf("9 spheres added...\n");
+	tree->createSphere(radius,0.05,radius*5.0f,0.25,(1.0/(4096)),true,true);
+	printf("10 spheres added...\n");
+	tree->createSphere(radius,0.025,radius*5.0f,0.25,(1.0/(4096)),true,true);
+	printf("11 spheres added...\n");
+
+    _nodeCount=0;
+    tree->recurseTreeWithOperation(countVoxelsOperation);
+    printf("Nodes after adding scene %d nodes\n",_nodeCount);
+
+
 	printf("DONE adding scene of spheres...\n");
 }
 

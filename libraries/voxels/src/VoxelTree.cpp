@@ -84,8 +84,26 @@ int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
         case 7:
             return 12;
             break;
-        default:
+        case 8:
+            return 10;
+            break;
+        case 9:
             return 6;
+            break;
+        case 10:
+            return 4.5;
+            break;
+        case 11:
+            return 3;
+            break;
+        case 12:
+            return 2.25;
+            break;
+        case 13:
+            return 1.5;
+            break;
+        default:
+            return 1;
             break;
     }
 }
@@ -817,10 +835,12 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
             }
         
             float distance = childNode->distanceToCamera(viewFrustum);
-
-            inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
-                                (void**)&inViewChildren, (float*)&distancesToChildren, (int*)&positionOfChildren,
-                                inViewCount, MAX_CHILDREN);
+            
+            if (distance < boundaryDistanceForRenderLevel(*childNode->octalCode + 1)) {
+                inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
+                                    (void**)&inViewChildren, (float*)&distancesToChildren, (int*)&positionOfChildren,
+                                    inViewCount, MAX_CHILDREN);
+            }
         }
     }
 
@@ -920,6 +940,14 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         return bytesAtThisLevel;
     }
 
+    float distance = node->distanceToCamera(viewFrustum);
+    float boundaryDistance = boundaryDistanceForRenderLevel(*node->octalCode + 1);
+
+    // If we're too far away for our render level, then just return
+    if (distance >= boundaryDistance) {
+        return bytesAtThisLevel;
+    }
+
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
     // we're out of view
@@ -954,26 +982,28 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     for (int i = 0; i < MAX_CHILDREN; i++) {
         VoxelNode* childNode = node->children[i];
         bool childExists = (childNode != NULL);
-        
-        bool childIsColored = (childExists && childNode->isColored());
         bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
-        bool childIsLeaf    = (childExists && childNode->isLeaf());
-        
         if (childIsInView) {
-            inViewCount++;
+            // Before we determine consider this further, let's see if it's in our LOD scope...
+            float distance = childNode->distanceToCamera(viewFrustum);
+            float boundaryDistance = boundaryDistanceForRenderLevel(*childNode->octalCode + 1);
+
+            if (distance < boundaryDistance) {
+                inViewCount++;
             
-            // track children in view as existing and not a leaf, if they're a leaf,
-            // we don't care about recursing deeper on them, and we don't consider their
-            // subtree to exist
-            if (!childIsLeaf) {
-                childrenExistBits += (1 << (7 - i));
-                inViewNotLeafCount++;
-            }
+                // track children in view as existing and not a leaf, if they're a leaf,
+                // we don't care about recursing deeper on them, and we don't consider their
+                // subtree to exist
+                if (!(childExists && childNode->isLeaf())) {
+                    childrenExistBits += (1 << (7 - i));
+                    inViewNotLeafCount++;
+                }
             
-            // track children with actual color
-            if (childIsColored) {
-                childrenColoredBits += (1 << (7 - i));
-                inViewWithColorCount++;
+                // track children with actual color
+                if (childExists && childNode->isColored()) {
+                    childrenColoredBits += (1 << (7 - i));
+                    inViewWithColorCount++;
+                }
             }
         }
     }
@@ -1016,7 +1046,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         // of handling things. For example, in case of child iteration, it needs to unset the child exist bit for
         // this child.
         // add our node the the list of extra nodes to output later... 
-
         bag.insert(node);
         return 0;
     }

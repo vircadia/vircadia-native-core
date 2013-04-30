@@ -299,6 +299,7 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
+    voxels.setCamera(&myCamera);
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
