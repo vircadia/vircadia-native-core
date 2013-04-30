@@ -15,12 +15,16 @@ class AvatarTouch {
 public:
     AvatarTouch();
     
-    void setMyHandPosition( glm::vec3 position );
-    void setYourPosition  ( glm::vec3 position );
+    void setMyHandPosition  ( glm::vec3 position );
+    void setYourHandPosition( glm::vec3 position );
     void simulate(float deltaTime);
     void render();
     
 private:
+
+    static const int NUM_POINTS = 100;
+    
+    glm::vec3 _point [NUM_POINTS];
     glm::vec3 _myHandPosition;
     glm::vec3 _yourHandPosition;
 };

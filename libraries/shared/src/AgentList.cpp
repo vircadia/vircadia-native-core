@@ -66,7 +66,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     socketListenPort(newSocketListenPort),
     lastAgentId(0)
 {
-
+    pthread_mutex_init(&mutex, 0);
 }
 
 AgentList::~AgentList() {
@@ -74,6 +74,8 @@ AgentList::~AgentList() {
     stopSilentAgentRemovalThread();
     stopDomainServerCheckInThread();
     stopPingUnknownAgentsThread();
+    
+    pthread_mutex_destroy(&mutex);
 }
 
 UDPSocket& AgentList::getAgentSocket() {
@@ -106,6 +108,8 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
 }
 
 void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
+    lock();
+    
     // find the avatar mixer in our agent list and update the lastRecvTime from it
     Agent* bulkSendAgent = agentWithAddress(senderAddress);
 
@@ -141,6 +145,8 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
                                                packetHolder,
                                                numTotalBytes - (currentPosition - startPosition));
     }
+    
+    unlock();
 }
 
 int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -253,7 +259,9 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
             // to use the local socket information the domain server gave us
             sockaddr_in *publicSocketIn = (sockaddr_in *)publicSocket;
             audioMixerSocketUpdate(publicSocketIn->sin_addr.s_addr, publicSocketIn->sin_port);
-        } else if (newAgent->getType() == AGENT_TYPE_VOXEL) {
+        } else if (newAgent->getType() == AGENT_TYPE_VOXEL || newAgent->getType() == AGENT_TYPE_AVATAR_MIXER) {
+            // this is currently the cheat we use to talk directly to our test servers on EC2
+            // to be removed when we have a proper identification strategy
             newAgent->activatePublicSocket();
         }
         

@@ -36,9 +36,10 @@ const float COLLISION_RADIUS_SCALAR = 1.8;
 const float COLLISION_BALL_FORCE    = 0.1;
 const float COLLISION_BODY_FORCE    = 3.0;
 
+const float MY_HAND_HOLDING_PULL = 0.2;
+const float YOUR_HAND_HOLDING_PULL = 1.0;
+
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
-
-
 
 enum DriveKeys
 {
@@ -107,18 +108,10 @@ enum AvatarBoneID
 	NUM_AVATAR_BONES
 };
 
-
-struct AvatarHandHolding //think of this as one half of a distributed spring :)
-{
-    glm::vec3 position;
-    glm::vec3 velocity;
-    float     force;
-};
-
 struct AvatarBone
 {
 	AvatarBoneID parent;				// which bone is this bone connected to?
-	glm::vec3	 position;				// the position at the "end" of the bone
+	glm::vec3	 position;				// the position at the "end" of the bone - in global space
 	glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
 	glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
 	glm::vec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
@@ -130,6 +123,7 @@ struct AvatarBone
 	Orientation	 orientation;			// three orthogonal normals determined by yaw, pitch, roll
 	float		 length;				// the length of the bone
 	float		 radius;                // used for detecting collisions for certain physical effects
+	bool		 isCollidable;          // when false, the bone position will not register a collision
 };
 
 struct AvatarHead
@@ -215,8 +209,6 @@ public:
     void renderBody();
     void renderHead(bool lookingInMirror);
     void simulate(float);
-    void startHandMovement();
-    void stopHandMovement();
     void setHandMovementValues( glm::vec3 movement );
     void updateHandMovement( float deltaTime );
     void updateArmIKAndConstraints( float deltaTime );
@@ -257,7 +249,7 @@ private:
     glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
     AvatarBone	      _bone[ NUM_AVATAR_BONES ];
     AvatarMode        _mode;
-    AvatarHandHolding _handHolding;
+    glm::vec3         _handHoldingPosition;
     glm::vec3         _velocity;
     glm::vec3	      _thrust;
     float             _speed;
