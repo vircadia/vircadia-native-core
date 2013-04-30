@@ -61,12 +61,13 @@ void VoxelNodeBag::insert(VoxelNode* node) {
             // copy old elements into the new bag, but leave a space where we need to
             // insert the new node
             memcpy(_bagElements, oldBag, insertAt * sizeof(VoxelNode*));
-            memcpy(&_bagElements[insertAt+1], &oldBag[insertAt], (_elementsInUse-insertAt) * sizeof(VoxelNode*));
+            memcpy(&_bagElements[insertAt + 1], &oldBag[insertAt], (_elementsInUse - insertAt) * sizeof(VoxelNode*));
+            delete[] oldBag;
         }
     } else {
         // move existing elements further back in the bag array, leave a space where we need to
         // insert the new node
-        memmove(&_bagElements[insertAt+1], &_bagElements[insertAt], (_elementsInUse-insertAt) * sizeof(VoxelNode*));
+        memmove(&_bagElements[insertAt + 1], &_bagElements[insertAt], (_elementsInUse - insertAt) * sizeof(VoxelNode*));
     }
     _bagElements[insertAt] = node;
     _elementsInUse++;
