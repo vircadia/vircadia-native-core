@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cctype>
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
