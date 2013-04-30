@@ -194,8 +194,8 @@ bool VoxelNode::isLeaf() const {
 void VoxelNode::printDebugDetails(const char* label) const {
     AABox box;
     getAABox(box);
-    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=",label,
-        box.getCorner().x, box.getCorner().y, box.getCorner().z,box.getSize().x);
+    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=", label,
+        box.getCorner().x, box.getCorner().y, box.getCorner().z, box.getSize().x);
     printOctalCode(octalCode);
 }
 
