@@ -25,7 +25,6 @@ using namespace std;
 // see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
 static float MONO_STROKE_WIDTH_GLUT = 104.76;
 
-
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
     //
     //  Converts from three euler angles to the associated orthonormal vectors

@@ -234,6 +234,10 @@ public:
     
     //  Find out what the local gravity vector is at this location
     glm::vec3 getGravity(glm::vec3 pos);
+    
+    //  Do you want head to try to return to center (depends on interface detected)
+    void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
+    const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 
 private:
     AvatarHead        _head;
@@ -259,9 +263,12 @@ private:
     GLUquadric*       _sphere;
     float             _renderYaw;
     float             _renderPitch; //   Pitch from view frustum when this is own head
+    bool              _transmitterIsFirstData; 
+    timeval           _transmitterTimeLastReceived;
     timeval           _transmitterTimer;
     float             _transmitterHz;
     int               _transmitterPackets;
+    glm::vec3         _transmitterInitialReading;
     Avatar*           _interactingOther;
     bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
@@ -269,6 +276,7 @@ private:
     Balls*            _balls;
     AvatarTouch       _avatarTouch;
     bool              _displayingHead; // should be false if in first-person view
+    bool              _returnHeadToCenter;
         
     // private methods...
     void initializeSkeleton();
@@ -279,6 +287,7 @@ private:
     void readSensors();
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
+    void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime);
 };
 
 #endif
