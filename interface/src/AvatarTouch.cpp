@@ -56,8 +56,8 @@ void AvatarTouch::simulate (float deltaTime) {
     glm::vec3 v = _yourHandPosition - _myHandPosition;
     for (int p=0; p<NUM_POINTS; p++) {
         _point[p] = _myHandPosition + v * ( (float)p / (float)NUM_POINTS );
-        _point[p].x += randFloatInRange( -0.007, 0.007 );
-        _point[p].y += randFloatInRange( -0.007, 0.007 );
-        _point[p].z += randFloatInRange( -0.007, 0.007 );
+        _point[p].x += randFloatInRange( -THREAD_RADIUS, THREAD_RADIUS );
+        _point[p].y += randFloatInRange( -THREAD_RADIUS, THREAD_RADIUS );
+        _point[p].z += randFloatInRange( -THREAD_RADIUS, THREAD_RADIUS );
     }
  }
