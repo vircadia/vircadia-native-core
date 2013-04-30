@@ -111,8 +111,6 @@ Avatar::Avatar(bool isMine) {
     _head.noise                 = 0;
 	_movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
     _usingBodySprings           = true;
-	_springForce                = 6.0f;
-	_springVelocityDecay        = 16.0f;
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
 	_sphere                     = NULL;
@@ -161,8 +159,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _TEST_bigSpherePosition         = otherAvatar._TEST_bigSpherePosition;
 	_movedHandOffset                = otherAvatar._movedHandOffset;
 	_usingBodySprings               = otherAvatar._usingBodySprings;
-	_springForce                    = otherAvatar._springForce;
-	_springVelocityDecay            = otherAvatar._springVelocityDecay;
 	_orientation.set( otherAvatar._orientation );
     
 	_sphere = NULL;
@@ -427,8 +423,23 @@ void Avatar::simulate(float deltaTime) {
     // update head information
     updateHead(deltaTime);
     
-    
-    //  Decay head back to center if turned on 
+    // calculate speed, and use that to determine walking vs. standing                                
+    _speed = glm::length( _velocity );
+	float rotationalSpeed = fabs( _bodyYawDelta );
+
+	if ( _speed + rotationalSpeed > 0.2 ) {
+		_mode = AVATAR_MODE_WALKING;
+	} else {
+		_mode = AVATAR_MODE_INTERACTING;
+	}
+}
+
+
+
+
+void Avatar::updateHead(float deltaTime) {
+
+    //  Decay head back to center if turned on
     if (_returnHeadToCenter) {
         //  Decay back toward center
         _headPitch *= (1.0f - DECAY * 2 * deltaTime);
