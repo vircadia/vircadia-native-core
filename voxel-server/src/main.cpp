@@ -433,8 +433,8 @@ int main(int argc, const char * argv[])
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
-	const char* NEW_VOXEL_DISTRIBUTOR = "--newVoxelDistributor";
-    ::newVoxelDistributor = cmdOptionExists(argc, argv, NEW_VOXEL_DISTRIBUTOR);
+	const char* OLD_VOXEL_DISTRIBUTOR = "--OldVoxelDistributor";
+    ::newVoxelDistributor = !cmdOptionExists(argc, argv, OLD_VOXEL_DISTRIBUTOR);
 	printf("newVoxelDistributor=%s\n", (::newVoxelDistributor ? "yes" : "no"));
 	
     // Check to see if the user passed in a command line option for loading a local
