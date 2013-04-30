@@ -11,6 +11,7 @@
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
 
+const float THREAD_RADIUS = 0.007;
 
 AvatarTouch::AvatarTouch() {
 

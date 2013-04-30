@@ -22,6 +22,27 @@ using namespace std;
 
 const bool BALLS_ON = false; 
 
+const bool  AVATAR_GRAVITY          = true;
+const float DECAY                   = 0.1;
+const float THRUST_MAG              = 1200.0;
+const float YAW_MAG                 = 500.0; //JJV - changed from 300.0;
+const float TEST_YAW_DECAY          = 5.0;
+const float LIN_VEL_DECAY           = 5.0;
+const float MY_HAND_HOLDING_PULL    = 0.2;
+const float YOUR_HAND_HOLDING_PULL  = 1.0;
+const float BODY_SPRING_FORCE       = 6.0f;
+const float BODY_SPRING_DECAY       = 16.0f;
+//const float COLLISION_FRICTION      = 0.5;
+//const float COLLISION_RADIUS_SCALAR = 1.8;
+//const float COLLISION_BALL_FORCE    = 0.1;
+//const float COLLISION_BODY_FORCE    = 3.0;
+
+const float COLLISION_RADIUS_SCALAR = 1.8;
+const float COLLISION_BALL_FORCE    = 0.6;
+const float COLLISION_BODY_FORCE    = 6.0;
+const float COLLISION_BALL_FRICTION = 200.0;
+const float COLLISION_BODY_FRICTION = 0.5;
+    
 float skinColor[] = {1.0, 0.84, 0.66};
 float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
