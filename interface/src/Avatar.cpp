@@ -109,6 +109,7 @@ Avatar::Avatar(bool isMine) {
     _head.lastLoudness          = 0.0;
     _head.browAudioLift         = 0.0;
     _head.noise                 = 0;
+    _head.returnSpringScale     = 1.0;
 	_movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
     _usingBodySprings           = true;
     _renderYaw                  = 0.0;
@@ -442,9 +443,9 @@ void Avatar::updateHead(float deltaTime) {
     //  Decay head back to center if turned on
     if (_returnHeadToCenter) {
         //  Decay back toward center
-        _headPitch *= (1.0f - DECAY * 2 * deltaTime);
-        _headYaw   *= (1.0f - DECAY * 2 * deltaTime);
-        _headRoll  *= (1.0f - DECAY * 2 * deltaTime);
+        _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
+        _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
+        _headRoll  *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
     }
     
     if (_head.noise) {
@@ -1266,7 +1267,7 @@ void Avatar::SetNewHeadTarget(float pitch, float yaw) {
     _head.yawTarget   = yaw;
 }
 
-// getting data from Android transmitter 
+// Process UDP interface data from Android transmitter or Google Glass
 void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float
@@ -1279,6 +1280,8 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
                                 //    rot2 = pitch, ranges from -1 to 1, 0 = flat on table
                                 //    rot3 = yaw, ranges from -1 to 1 
     
+    const bool IS_GLASS = false;         //  Whether to assume this is a Google glass transmitting
+
     sscanf((char *)packetData, "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f",
            &accX, &accY, &accZ,
            &graX, &graY, &graZ,
@@ -1289,11 +1292,19 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     if (_transmitterPackets++ == 0) {
         // If first packet received, note time, turn head spring return OFF, get start rotation
         gettimeofday(&_transmitterTimer, NULL);
-        setHeadReturnToCenter(false);
+        if (IS_GLASS) {
+            setHeadReturnToCenter(true);
+            setHeadSpringScale(10.f);
+            printLog("Using Google Glass to drive head, springs ON.\n");
+
+        } else {
+            setHeadReturnToCenter(false);
+            printLog("Using Transmitter to drive head, springs OFF.\n");
+
+        }
         _transmitterInitialReading = glm::vec3(     rot3,
                                                     rot2,
                                                     rot1 );
-        printLog("Using Transmitter to drive head, springs OFF.\n");
     }
     const int TRANSMITTER_COUNT = 100;
     if (_transmitterPackets % TRANSMITTER_COUNT == 0) {
@@ -1301,10 +1312,13 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         timeval now;
         gettimeofday(&now, NULL);
         double msecsElapsed = diffclock(&_transmitterTimer, &now);
-        _transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT/(msecsElapsed/1000.0) );
+        _transmitterHz = static_cast<float>( (double)TRANSMITTER_COUNT / (msecsElapsed / 1000.0) );
         _transmitterTimer = now;
         printLog("Transmitter Hz: %3.1f\n", _transmitterHz);
     }
+    //printLog("Gyr: %3.1f, %3.1f, %3.1f\n", glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
+    //printLog("Rot: %3.1f, %3.1f, %3.1f, %3.1f\n", rot1, rot2, rot3, rot4);
+    
     //  Update the head with the transmitter data
     glm::vec3 eulerAngles((rot3 - _transmitterInitialReading.x) * 180.f,
                           -(rot2 - _transmitterInitialReading.y) * 180.f,
@@ -1312,12 +1326,22 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     if (eulerAngles.x > 180.f) { eulerAngles.x -= 360.f; }
     if (eulerAngles.x < -180.f) { eulerAngles.x += 360.f; }
     
-    glm::vec3 angularVelocity(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
-    setHeadFromGyros( &eulerAngles, &angularVelocity,
-                     (_transmitterHz == 0.f) ? 0.f : 1.f/_transmitterHz );
+    glm::vec3 angularVelocity;
+    if (!IS_GLASS) {
+        angularVelocity = glm::vec3(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
+        setHeadFromGyros( &eulerAngles, &angularVelocity,
+                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1.0);
+
+    } else {
+        angularVelocity = glm::vec3(glm::degrees(gyrY), glm::degrees(-gyrX), glm::degrees(-gyrZ));
+        setHeadFromGyros( &eulerAngles, &angularVelocity,
+                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
+
+    }
+    
 }
 
-void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime) {
+void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
     //  Given absolute position and angular velocity information, update the avatar's head angles
     //  with the goal of fast instantaneous updates that gradually follow the absolute data.
@@ -1347,11 +1371,11 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         //  Increment by detected velocity 
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
-        const float SMOOTHING_TIME = 1.0;
-        angles = ((1.f - deltaTime/SMOOTHING_TIME) * angles) + (deltaTime/SMOOTHING_TIME) * (*eulerAngles);
+        angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
         setHeadYaw(fmin(fmax(angles.x, MIN_YAW), MAX_YAW));
         setHeadPitch(fmin(fmax(angles.y, MIN_PITCH), MAX_PITCH));
         setHeadRoll(fmin(fmax(angles.z, MIN_ROLL), MAX_ROLL));
+        //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
 }
 

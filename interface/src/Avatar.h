@@ -225,6 +225,9 @@ private:
         float lastLoudness;
         float averageLoudness;
         float audioAttack;
+        
+        //  Strength of return springs
+        float returnSpringScale;
     };
 
     AvatarHead        _head;
@@ -273,7 +276,8 @@ private:
     void updateHead( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
-    void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime);
+    void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
+    void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
 };
 
 #endif
