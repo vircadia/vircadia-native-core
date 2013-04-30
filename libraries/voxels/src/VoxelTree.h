@@ -14,7 +14,6 @@
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
-#include "MarkerNode.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, bool down, void* extraData);
