@@ -16,7 +16,6 @@ VoxelAgentData::VoxelAgentData() {
 }
 
 void VoxelAgentData::init() {
-    rootMarkerNode = new MarkerNode();
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
     _voxelPacketAt = _voxelPacket;
@@ -40,7 +39,6 @@ void VoxelAgentData::writeToPacket(unsigned char* buffer, int bytes) {
 }
 
 VoxelAgentData::~VoxelAgentData() {
-    delete rootMarkerNode;
     delete[] _voxelPacket;
 }
 

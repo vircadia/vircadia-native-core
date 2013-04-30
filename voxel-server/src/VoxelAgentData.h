@@ -12,14 +12,11 @@
 #include <iostream>
 #include <AgentData.h>
 #include <AvatarData.h>
-#include "MarkerNode.h"
 #include "VoxelNodeBag.h"
 #include "VoxelConstants.h"
 
 class VoxelAgentData : public AvatarData {
 public:
-    MarkerNode* rootMarkerNode;
-
     VoxelAgentData();
     ~VoxelAgentData();
     VoxelAgentData(const VoxelAgentData &otherAgentData);

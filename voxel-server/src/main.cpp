@@ -169,15 +169,12 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 		if (agentData) {
             // clean up the agent visit data
             agentData->nodeBag.deleteAll();
-            // old way
-            delete agentData->rootMarkerNode;
-            agentData->rootMarkerNode = new MarkerNode();
         }
 	}
 }
 
 
-void newDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
     // A quick explanation of the strategy here. First, each time through, we ask ourselves, do we have voxels
     // that need to be sent? If not, we search for them, if we do, then we send them. We store our to be sent voxel sub trees
     // in a VoxelNodeBag on a per agent basis. The bag stores just pointers to the root node of the sub tree to be sent, so
@@ -322,7 +319,7 @@ void *distributeVoxelsToListeners(void *args) {
             
                 viewFrustum.calculate();
 
-                newDistributeHelper(agentList, agent, agentData, viewFrustum);
+                voxelDistributeHelper(agentList, agent, agentData, viewFrustum);
             }
         }
         
