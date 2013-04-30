@@ -5,48 +5,6 @@
 //  Created by Stephen Birarda on 3/13/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//
-//
-// Oct-Tree in bits, and child ordinals
-//
-// Location             Decimal  Bit  Child in Array
-// -------------------  -------  ---  ---------------
-// Bottom Right Near    128      8th      0
-// Bottom Right Far     64       7th      1
-// Top    Right Near    32       6th      2
-// Top    Right Far     16       5th      3
-// Bottom Left  Near    8        4th      4
-// Bottom Left  Far     4        3rd      5
-// Top    Left  Near    2        2nd      6
-// Top    Left  Far     1        1st      7
-// 
-//                        ^
-//                +-------|------+ + Y
-//               /      / |     /|
-//              /   1  /  | 16 / |
-//             /------/-------+  | 
-//            /      /    |  /|16| 
-//           /   2  /  32 | / |  |
-//          /      /      |/  | /|     / +Z
-//         +--------------+ 32|/ |    / 
-//         |      |       |   /  |   /
-//         |      |       |  /|  |  /
-//         |   2  |   32  | / |64| /  
-//    4----|      |       |/  |  |/
-//         +------|------ +   |  /
-//         |      |       |   | /
-//         |      |       |128|/
-//         |   8  |  128  |   /
-//         |      |       |  /
-//         |      |       | /
-// < - - - +------+-------+/ - - - - - - >
-//   +X                (0,0,0)       -X         
-//                       /|
-//                      / |
-//                     /  |
-//                 -Z /   V -Y
-//
-//
 
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
@@ -393,11 +351,7 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         }
     }
 }
-//////////////////////////////////////////////////////////////////////////////////////////
-// Method:      VoxelTree::loadVoxelsFile()
-// Description: Loads HiFidelity encoded Voxels from a binary file. The current file
-//              format is a stream of single voxels with color data.
-// Complaints:  Brad :)
+
 void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     int vCount = 0;
 
@@ -452,11 +406,6 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// Method:      VoxelTree::createSphere()
-// Description: Creates a sphere of voxels in the local system at a given location/radius
-// To Do:       Move this function someplace better?
-// Complaints:  Brad :)
 void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
@@ -535,19 +484,11 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	this->reaverageVoxelColors(this->rootNode);
 }
 
-// This will encode a larger tree into multiple subtree bitstreams. Given a node it will search for deeper subtrees that 
-// have color. It will search for sub trees, and upon finding a subTree, it will stick the node in the bag to for later
-// endcoding. It returns the maximum level that we reached during our search. That might be the maximum level we were asked
-// to search (if the tree is deeper than that max level), or it will be the maximum level of the tree (if we asked to search
-// deeper than the tree exists).
 int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
 
     // call the recursive version, this will add all found colored node roots to the bag
     int currentSearchLevel = 0;
     
-    // levelReached will be the maximum level reached. If we made it to the maxSearchLevel, then it will be that.
-    // but if the tree is shallower than the maxSearchLevel, then we will return the deepest level of the tree that
-    // exists.
     int levelReached = searchForColoredNodesRecursion(maxSearchLevel, currentSearchLevel, rootNode, viewFrustum, bag);
     return levelReached;
 }
@@ -636,16 +577,6 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     return maxChildLevel;
 }
 
-// This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
-// It will ignore any branches that are not in view. But other than that, it will not (can not) do any
-// prioritization of branches or deeper searching of the branches for optimization.
-//
-// NOTE: This STUB function DOES add the octcode to the buffer, then it calls the recursive helper to
-// actually encode the tree
-//
-// extraTrees is assumed to me an allocated array of VoxelNode*, if we're unable to fully encode the tree
-// because we run out of room on the outputBuffer, then we will add VoxelNode*'s of the trees that need
-// to be encoded to that array. If the array
 int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
                                    unsigned char* outputBuffer, int availableBytes, 
                                    VoxelNodeBag& bag) {
@@ -690,12 +621,6 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
     return bytesWritten;
 }
 
-// This will encode a tree bitstream, given a node it will encode the full tree from that point onward. 
-// It will ignore any branches that are not in view. But other than that, it will not (can not) do any
-// prioritization of branches or deeper searching of the branches for optimization.
-//
-// NOTE: This recursive function DOES NOT add the octcode to the buffer. It's assumed that the caller has
-// already done that.
 int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                             VoxelNode* node, const ViewFrustum& viewFrustum,
                                             unsigned char* outputBuffer, int availableBytes,
@@ -799,10 +724,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     // We only need to keep digging, if there is at least one child that is inView, and not a leaf.
     keepDiggingDeeper = (inViewNotLeafCount > 0);
         
-    // at this point we need to do a gut check. If we're writing, then we need to check how many bytes we've
-    // written at this level, and how many bytes we have available in the outputBuffer. If we can fit what we've got so far
-    // and room for the no more children terminator, then let's write what we got so far.
-
     // If we have enough room to copy our local results into the buffer, then do so...
     if (availableBytes >= bytesAtThisLevel) {
         memcpy(outputBuffer, &thisLevelBuffer[0], bytesAtThisLevel);
@@ -810,13 +731,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         outputBuffer   += bytesAtThisLevel;
         availableBytes -= bytesAtThisLevel;
     } else {
-        // we've run out of room!!! What do we do!!!
-        // 1) return 0 for bytes written so upper levels do the right thing, namely prune us from their trees
-        // 2) add our node to the list of extra nodes for later output...
-        // Note: we don't do any termination for this level, we just return 0, then the upper level is in charge
-        // of handling things. For example, in case of child iteration, it needs to unset the child exist bit for
-        // this child.
-        // add our node the the list of extra nodes to output later... 
         bag.insert(node);
         return 0;
     }
