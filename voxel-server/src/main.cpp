@@ -155,22 +155,16 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
 
 void eraseVoxelTreeAndCleanupAgentVisitData() {
 
-	// As our tree to erase all it's voxels
-	::randomTree.eraseAllVoxels();
-
-	// enumerate the agents clean up their marker nodes
-    
-	for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
-
-		//printf("eraseVoxelTreeAndCleanupAgentVisitData() agent[%d]\n",i);
-        
-		VoxelAgentData* agentData = (VoxelAgentData *)agent->getLinkedData();
-		
-		if (agentData) {
+    // As our tree to erase all it's voxels
+    ::randomTree.eraseAllVoxels();
+    // enumerate the agents clean up their marker nodes
+    for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
+        VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
+        if (agentData) {
             // clean up the agent visit data
             agentData->nodeBag.deleteAll();
         }
-	}
+    }
 }
 
 
@@ -214,7 +208,7 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
         // with chunky granularity and then finer and finer granularity until they've gotten the whole scene. Then we start
         // over to handle packet loss and changes in the scene. 
         int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
-                                                                        viewFrustum, agentData->nodeBag);
+                                                               viewFrustum, agentData->nodeBag);
         agentData->setMaxLevelReached(maxLevelReached);
         
         // If nothing got added, then we bump our levels.
@@ -229,7 +223,7 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!agentData->nodeBag.isEmpty()) {
-        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE-1]; // save on allocs by making this static
+        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
 
         // NOTE: we can assume the voxelPacket has already been set up with a "V"
@@ -242,7 +236,8 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
                 // Only let this guy create at largest packets equal to the amount of space we have left in our final???
                 // Or let it create the largest possible size (minus 1 for the "V")
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
-                        &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE-1, agentData->nodeBag);
+                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
+                                                              agentData->nodeBag);
 
                 // if we have room in our final packet, add this buffer to the final packet
                 if (agentData->getAvailable() >= bytesWritten) {
@@ -250,7 +245,7 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
                 } else {
                     // otherwise "send" the packet because it's as full as we can make it for now
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
-                                   agentData->getPacket(), agentData->getPacketLength());
+                                                     agentData->getPacket(), agentData->getPacketLength());
 
                     // keep track that we sent it
                     packetsSentThisInterval++;
@@ -266,7 +261,7 @@ void voxelDistributeHelper(AgentList* agentList, AgentList::iterator& agent, Vox
                 // If we have a partial packet ready, then send it...
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
-                                    agentData->getPacket(), agentData->getPacketLength());
+                                                     agentData->getPacket(), agentData->getPacketLength());
 
                     // reset our finalOutputBuffer (keep the 'V')
                     agentData->resetVoxelPacket();
@@ -302,7 +297,7 @@ void *distributeVoxelsToListeners(void *args) {
         
         // enumerate the agents to send 3 packets to each
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            VoxelAgentData* agentData = (VoxelAgentData *)agent->getLinkedData();
+            VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
 
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
     		if (agentData) {

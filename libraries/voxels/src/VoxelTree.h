@@ -50,19 +50,19 @@ public:
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                                    unsigned char* outputBuffer, int availableBytes,
-                                    VoxelNodeBag& bag);
+                            unsigned char* outputBuffer, int availableBytes,
+                            VoxelNodeBag& bag);
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                    VoxelNode* node, const ViewFrustum& viewFrustum,
-                                    unsigned char* outputBuffer, int availableBytes,
-                                    VoxelNodeBag& bag) const;
+                                     VoxelNode* node, const ViewFrustum& viewFrustum,
+                                     unsigned char* outputBuffer, int availableBytes,
+                                     VoxelNodeBag& bag) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                    VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
