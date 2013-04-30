@@ -39,7 +39,7 @@ void VoxelNodeBag::insert(VoxelNode* node) {
     for (int i = 0; i < _elementsInUse; i++) {
 
         // compare the newNode to the elements already in the bag
-        OctalCodeComparison comparison = compareOctalCodes(_bagElements[i]->octalCode,node->octalCode);
+        OctalCodeComparison comparison = compareOctalCodes(_bagElements[i]->octalCode, node->octalCode);
         
         // If we found a code in the bag that matches, then just return, since the element is already in the bag.
         if (comparison == EXACT_MATCH) {
@@ -56,9 +56,9 @@ void VoxelNodeBag::insert(VoxelNode* node) {
     // at this point, inserAt will be the location we want to insert at.
     
     // If we don't have room in our bag, then grow the bag
-    if (_sizeOfElementsArray < _elementsInUse+1) {
+    if (_sizeOfElementsArray < _elementsInUse + 1) {
         VoxelNode** oldBag = _bagElements;
-        _bagElements = new VoxelNode*[_sizeOfElementsArray + GROW_BAG_BY];
+        _bagElements = new VoxelNode * [_sizeOfElementsArray + GROW_BAG_BY];
         _sizeOfElementsArray += GROW_BAG_BY;
         
         // If we had an old bag...
@@ -66,12 +66,12 @@ void VoxelNodeBag::insert(VoxelNode* node) {
             // copy old elements into the new bag, but leave a space where we need to
             // insert the new node
             memcpy(_bagElements, oldBag, insertAt*sizeof(VoxelNode*));
-            memcpy(&_bagElements[insertAt+1], &oldBag[insertAt], (_elementsInUse-insertAt)*sizeof(VoxelNode*));
+            memcpy(&_bagElements[insertAt+1], &oldBag[insertAt], (_elementsInUse-insertAt) * sizeof(VoxelNode*));
         }
     } else {
         // move existing elements further back in the bag array, leave a space where we need to
         // insert the new node
-        memmove(&_bagElements[insertAt+1], &_bagElements[insertAt], (_elementsInUse-insertAt)*sizeof(VoxelNode*));
+        memmove(&_bagElements[insertAt+1], &_bagElements[insertAt], (_elementsInUse-insertAt) * sizeof(VoxelNode*));
     }
     _bagElements[insertAt] = node;
     _elementsInUse++;
@@ -83,7 +83,7 @@ VoxelNode* VoxelNodeBag::extract() {
     if (_elementsInUse) {
         
         // get the last element
-        VoxelNode* node = _bagElements[_elementsInUse-1];
+        VoxelNode* node = _bagElements[_elementsInUse - 1];
         
         // reduce the count
         _elementsInUse--;
