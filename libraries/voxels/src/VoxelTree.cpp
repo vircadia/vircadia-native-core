@@ -647,8 +647,8 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
 // because we run out of room on the outputBuffer, then we will add VoxelNode*'s of the trees that need
 // to be encoded to that array. If the array
 int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                                    unsigned char* outputBuffer, int availableBytes, 
-                                    VoxelNodeBag& bag) {
+                                   unsigned char* outputBuffer, int availableBytes, 
+                                   VoxelNodeBag& bag) {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
