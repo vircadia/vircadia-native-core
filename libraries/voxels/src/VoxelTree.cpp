@@ -68,7 +68,7 @@ using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     float voxelSizeScale = 5000.0;
-    return voxelSizeScale/pow(2,renderLevel);
+    return voxelSizeScale / powf(2, renderLevel);
 }
 
 VoxelTree::VoxelTree() :
