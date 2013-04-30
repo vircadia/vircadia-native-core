@@ -748,7 +748,7 @@ int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const 
 
 
 int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-    VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+                                              VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
 
     // Keep track of how deep we've searched.    
     currentSearchLevel++;
@@ -802,8 +802,8 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
             
             if (distance < boundaryDistanceForRenderLevel(*childNode->octalCode + 1)) {
                 inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
-                                    (void**)&inViewChildren, (float*)&distancesToChildren, (int*)&positionOfChildren,
-                                    inViewCount, MAX_CHILDREN);
+                                                     (void**)&inViewChildren, (float*)&distancesToChildren, 
+                                                     (int*)&positionOfChildren, inViewCount, MAX_CHILDREN);
             }
         }
     }
