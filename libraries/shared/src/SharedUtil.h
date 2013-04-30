@@ -71,9 +71,8 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
 void usleep(int waitTime);
 #endif
 
-int insertIntoSortedArrays(
-            void* value, float key, int originalIndex, 
-            void** valueArray, float* keyArray, int* originalIndexArray, 
-            int currentCount, int maxCount);
+int insertIntoSortedArrays(void* value, float key, int originalIndex, 
+                           void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount);
 
 #endif /* defined(__hifi__SharedUtil__) */

@@ -377,10 +377,9 @@ void printVoxelCode(unsigned char* voxelCode) {
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
-int insertIntoSortedArrays(
-            void* value, float key, int originalIndex, 
-            void** valueArray, float* keyArray, int* originalIndexArray, 
-            int currentCount, int maxCount) {
+int insertIntoSortedArrays(void* value, float key, int originalIndex, 
+                           void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount) {
             
     if (currentCount < maxCount) {
         int i = 0;
