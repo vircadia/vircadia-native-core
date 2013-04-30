@@ -24,6 +24,10 @@ TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool i
           _metrics(_font), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0) {
 }
 
+TextRenderer::~TextRenderer() {
+    glDeleteTextures(_textureIDs.size(), _textureIDs.constData());
+}
+
 void TextRenderer::draw(int x, int y, const char* str) {
 
     glEnable(GL_TEXTURE_2D);    
@@ -105,6 +109,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, IMAGE_SIZE, IMAGE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        _textureIDs.append(_textureID);
            
     } else {
         glBindTexture(GL_TEXTURE_2D, _textureID);

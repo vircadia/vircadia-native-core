@@ -13,6 +13,7 @@
 #include <QFontMetrics>
 #include <QHash>
 #include <QImage>
+#include <QVector>
 
 class Glyph;
 
@@ -20,6 +21,7 @@ class TextRenderer {
 public:
 
     TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false);
+    ~TextRenderer();
 
     const QFontMetrics& metrics() const { return _metrics; }
 
@@ -49,6 +51,9 @@ private:
     
     // the height of the current row of characters
     int _rowHeight;
+    
+    // the list of all texture ids for which we're responsible
+    QVector<GLuint> _textureIDs;
 };
 
 class Glyph {
