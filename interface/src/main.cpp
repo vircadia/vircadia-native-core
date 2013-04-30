@@ -61,11 +61,12 @@
 #include "AngleUtil.h"
 #include "Stars.h"
 
-#include "MenuRow.h"
-#include "MenuColumn.h"
-#include "Menu.h"
+#include "ui/ChatEntry.h"
+#include "ui/MenuRow.h"
+#include "ui/MenuColumn.h"
+#include "ui/Menu.h"
+
 #include "Camera.h"
-#include "ChatEntry.h"
 #include "Avatar.h"
 #include "Texture.h"
 #include <AgentList.h>
