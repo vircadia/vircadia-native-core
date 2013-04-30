@@ -13,6 +13,7 @@
 #include <SharedUtil.h>
 #include "Avatar.h"
 #include "Log.h"
+#include "ui/TextRenderer.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
@@ -39,7 +40,7 @@ bool usingBigSphereCollisionTest = true;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
-float chatMessageScale = 0.00025;
+float chatMessageScale = 0.001;
 float chatMessageHeight = 0.4;
 
 vector<unsigned char> iris_texture;
@@ -618,6 +619,11 @@ void Avatar::setDisplayingHead( bool displayingHead ) {
 }
 
 
+static TextRenderer* textRenderer() {
+    static TextRenderer* renderer = new TextRenderer("Helvetica", 24);
+    return renderer;
+}
+
 void Avatar::render(bool lookingInMirror) {
     
     /*
@@ -667,10 +673,10 @@ void Avatar::render(bool lookingInMirror) {
     }
 
     if (!_chatMessage.empty()) {
-        float width = 0;
-        float lastWidth;
+        int width = 0;
+        int lastWidth;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*chatMessageScale);
+            width += (lastWidth = textRenderer()->computeWidth(*it));
         }
         glPushMatrix();
         
@@ -682,11 +688,14 @@ void Avatar::render(bool lookingInMirror) {
         
         glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
-        glTranslatef(width * 0.5, 0, 0);
         
+        glColor3f(0, 1, 0);
+        glRotatef(180, 0, 0, 1);
+        glScalef(chatMessageScale, chatMessageScale, 1.0f);
+
         glDisable(GL_LIGHTING);
         if (_keyState == NO_KEY_DOWN) {
-            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
             
         } else {
             // rather than using substr and allocating a new string, just replace the last
@@ -694,11 +703,9 @@ void Avatar::render(bool lookingInMirror) {
             int lastIndex = _chatMessage.size() - 1;
             char lastChar = _chatMessage[lastIndex];
             _chatMessage[lastIndex] = '\0';
-            drawtext(0, 0, chatMessageScale, 180, 1.0, 0, _chatMessage.c_str(), 0, 1, 0);
+            textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
-            glTranslatef(lastWidth - width, 0, 0);
-            drawtext(0, 0, chatMessageScale, 180, 3.0,
-                0, _chatMessage.c_str() + lastIndex, 0, 1, 0);                        
+            textRenderer()->draw(width/2 - lastWidth, 0, _chatMessage.c_str() + lastIndex);                        
         }
         glEnable(GL_LIGHTING);
         

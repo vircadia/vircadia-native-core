@@ -39,6 +39,8 @@
 #include <ifaddrs.h>
 #endif
 
+#include <QApplication>
+
 #include <pthread.h> 
 
 #include <glm/glm.hpp>
@@ -85,6 +87,8 @@ using namespace std;
 
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
+
+QApplication* app;
 
 bool enableNetworkThread = true;
 pthread_t networkReceiveThread;
@@ -1614,6 +1618,9 @@ int main(int argc, const char * argv[])
     shared_lib::printLog = & ::printLog;
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
+
+    // we need to create a QApplication instance in order to use Qt's font rendering
+    app = new QApplication(argc, const_cast<char**>(argv));
 
     // Quick test of the Orientation class on startup!
     if (cmdOptionExists(argc, argv, "--testOrientation")) {

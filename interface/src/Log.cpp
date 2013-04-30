@@ -14,6 +14,7 @@
 #include <stdarg.h>
 
 #include "Util.h"
+#include "ui/TextRenderer.h"
 
 namespace {
     // anonymous namespace - everything in here only exists within this very .cpp file
@@ -194,6 +195,11 @@ void Log::setCharacterSize(unsigned width, unsigned height) {
     pthread_mutex_unlock(& _mtx);
 }
 
+static TextRenderer* textRenderer() {
+    static TextRenderer* renderer = new TextRenderer("Helvetica");
+    return renderer;
+}
+
 void Log::render(unsigned screenWidth, unsigned screenHeight) {
 
     // rendering might take some time, so create a local copy of the portion we need
@@ -261,10 +267,8 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     }
 
     // get values for rendering
-    float scaleFactor = _valCharScale;
-    int yStart = int((screenHeight - _valCharYoffset) / _valCharAspect);
-    int yStep = int(_valCharHeight / _valCharAspect);
-    float yScale = _valCharAspect;
+    int yStep = textRenderer()->metrics().lineSpacing();
+    int yStart = screenHeight - textRenderer()->metrics().descent();
 
     // render text
     char** line = _ptrLinesEnd + showLines;
@@ -272,11 +276,6 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
 
     pthread_mutex_unlock(& _mtx);
     // ok, we got all we need
-
-    GLint matrixMode; 
-    glGetIntegerv(GL_MATRIX_MODE, & matrixMode);   
-    glPushMatrix();
-    glScalef(1.0f, yScale, 1.0f);
 
     for (int y = yStart; y > 0; y -= yStep) {
 
@@ -299,14 +298,11 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
         assert(! (chars < _ptrCharsEnd || chars >= _ptrCharsEnd + (_ptrCharsEnd - _arrChars)));
 
         // render the string
-        drawtext(x, y, scaleFactor, 0.0f, 1.0f, int(TEXT_MONOSPACED), 
-                 chars, TEXT_RED, TEXT_GREEN, TEXT_BLUE);
+        glColor3f(TEXT_RED, TEXT_GREEN, TEXT_BLUE);
+        textRenderer()->draw(x, y, chars);
 
 //fprintf(stderr, "Log::render, message = \"%s\"\n", chars);
     }
-
-    glPopMatrix();
-    glMatrixMode(matrixMode);
 }
 
 Log logger;

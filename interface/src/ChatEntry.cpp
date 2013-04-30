@@ -14,7 +14,7 @@ using namespace std;
 
 const int MAX_CONTENT_LENGTH = 140;
 
-void ChatEntry::clear () {
+void ChatEntry::clear() {
     _contents.clear();
     _cursorPos = 0;
 }
@@ -67,7 +67,7 @@ void ChatEntry::render(int screenWidth, int screenHeight) {
     
     float width = 0;
     for (string::iterator it = _contents.begin(), end = it + _cursorPos; it != end; it++) {
-        width += glutStrokeWidth(GLUT_STROKE_ROMAN, *it)*0.10;
+        width += widthChar(0.10, 0, *it);
     }
     glDisable(GL_LINE_SMOOTH);
     glBegin(GL_LINE_STRIP);
