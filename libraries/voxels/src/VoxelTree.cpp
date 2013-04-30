@@ -229,7 +229,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     // into a single network packet. readNodeData() basically goes down a tree from the root, and fills things in from there
     // if there are more bytes after that, it's assumed to be another root relative tree
 
-    while (bitstreamAt < bitstream+bufferSizeBytes) {
+    while (bitstreamAt < bitstream + bufferSizeBytes) {
         VoxelNode* bitstreamRootNode = nodeForOctalCode(rootNode, (unsigned char *)bitstreamAt, NULL);
         if (*bitstreamAt != *bitstreamRootNode->octalCode) {
             // if the octal code returned is not on the same level as
