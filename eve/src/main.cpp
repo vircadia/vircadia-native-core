@@ -29,7 +29,7 @@ bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
 
 int TEMP_AUDIO_LISTEN_PORT = 55439;
-// UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
+UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
 
 void *receiveAgentData(void *args) {
     sockaddr senderAddress;
@@ -80,7 +80,7 @@ void *injectAudio(void *args) {
         }
         
         // we have an active audio mixer we can send data to
-//        eveAudioInjector->injectAudio(&::audioSocket, audioMixer->getActiveSocket());
+        eveAudioInjector->injectAudio(&::audioSocket, audioMixer->getActiveSocket());
     }
     
     ::injectAudioThreadRunning = false;
@@ -124,7 +124,7 @@ int main(int argc, const char* argv[]) {
                                   0.32, // this is the same as the pelvis standing height (as of 4/26/13)
                                   eve.getPosition()[2] + 0.1));    
     // read eve's audio data
-    AudioInjector eveAudioInjector("eve.raw");
+    AudioInjector eveAudioInjector("/etc/highfidelity/eve/resources/eve.raw");
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
@@ -134,8 +134,8 @@ int main(int argc, const char* argv[]) {
     timeval thisSend;
     double numMicrosecondsSleep = 0;
     
-//    int numIterationsLeftBeforeAudioSend = 0;
-//    pthread_t injectAudioThread;
+    int numIterationsLeftBeforeAudioSend = 0;
+    pthread_t injectAudioThread;
     
     int handStateTimer = 0;
 
@@ -156,16 +156,16 @@ int main(int argc, const char* argv[]) {
         }
 
         // temporarily disable Eve's audio sending until the file is actually available on EC2 box
-//        if (numIterationsLeftBeforeAudioSend == 0) {
-//            if (!::injectAudioThreadRunning) {
-//                pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
-//                
-//                numIterationsLeftBeforeAudioSend = randIntInRange(MIN_ITERATIONS_BETWEEN_AUDIO_SENDS,
-//                                                                  MAX_ITERATIONS_BETWEEN_AUDIO_SENDS);
-//            }
-//        } else {
-//            numIterationsLeftBeforeAudioSend--;
-//        }
+        if (numIterationsLeftBeforeAudioSend == 0) {
+            if (!::injectAudioThreadRunning) {
+                pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
+                
+                numIterationsLeftBeforeAudioSend = randIntInRange(MIN_ITERATIONS_BETWEEN_AUDIO_SENDS,
+                                                                  MAX_ITERATIONS_BETWEEN_AUDIO_SENDS);
+            }
+        } else {
+            numIterationsLeftBeforeAudioSend--;
+        }
         
         // sleep for the correct amount of time to have data send be consistently timed
         if ((numMicrosecondsSleep = (DATA_SEND_INTERVAL_MSECS * 1000) - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
