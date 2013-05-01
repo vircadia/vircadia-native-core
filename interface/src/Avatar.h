@@ -148,6 +148,7 @@ public:
     const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 
 private:
+
     struct AvatarBone
     {
         AvatarBoneID parent;				// which bone is this bone connected to?
