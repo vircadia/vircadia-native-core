@@ -34,12 +34,6 @@ Camera::Camera() {
 
 void Camera::update( float deltaTime )  {
 
-    // generate the ortho-normals for the orientation based on the Euler angles
-    _orientation.setToIdentity();
-    _orientation.yaw  ( _yaw   );
-    _orientation.pitch( _pitch );
-    _orientation.roll ( _roll  );
-    
     if ( _mode == CAMERA_MODE_NULL ) {
         _modeShift = 0.0;
     } else {
@@ -53,6 +47,19 @@ void Camera::update( float deltaTime )  {
             }
         }
     }
+    
+    // do this AFTER making any changes to yaw pitch and roll....
+    generateOrientation();    
+}
+
+
+
+// generate the ortho-normals for the orientation based on the three Euler angles
+void Camera::generateOrientation() {
+    _orientation.setToIdentity();
+    _orientation.pitch( _pitch );
+    _orientation.yaw  ( _yaw   );
+    _orientation.roll ( _roll  );    
 }
 
 
@@ -71,9 +78,8 @@ void Camera::updateFollowMode( float deltaTime ) {
     float radian = (_yaw / 180.0) * PIE;
 
     // update _position
-    //these need to be checked to make sure they correspond to the correct coordinate system.
-    double x = _distance * -sin(radian);
-    double z = _distance *  cos(radian);
+    double x = -_distance * sin(radian);
+    double z = -_distance * cos(radian);
     double y = _upShift; 
         
     _idealPosition = _targetPosition + glm::vec3(x, y, z);
