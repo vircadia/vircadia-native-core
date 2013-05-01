@@ -22,6 +22,7 @@ Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int wid
 TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool italic)
         : _font(family, pointSize, weight, italic),
           _metrics(_font), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0) {
+    _font.setKerning(false);
 }
 
 TextRenderer::~TextRenderer() {
@@ -96,6 +97,8 @@ const Glyph& TextRenderer::getGlyph(char c) {
         glyph = Glyph(0, QPoint(), QRect(), _metrics.width(ch));
         return glyph;
     }
+    // grow the bounds to account for antialiasing
+    bounds.adjust(-1, -1, 1, 1);
     
     if (_x + bounds.width() > IMAGE_SIZE) {
         // we can't fit it on the current row; move to next
