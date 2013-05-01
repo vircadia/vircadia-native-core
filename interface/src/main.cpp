@@ -1623,9 +1623,6 @@ int main(int argc, const char * argv[])
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
 
-    // we need to create a QApplication instance in order to use Qt's font rendering
-    app = new QApplication(argc, const_cast<char**>(argv));
-
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char* portStr = getCmdOption(argc, argv, "--listenPort");
     if (portStr) {
@@ -1678,7 +1675,10 @@ int main(int argc, const char * argv[])
     #ifdef _WIN32
     glewInit();
     #endif
-    
+        
+    // we need to create a QApplication instance in order to use Qt's font rendering
+    app = new QApplication(argc, const_cast<char**>(argv));
+
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
