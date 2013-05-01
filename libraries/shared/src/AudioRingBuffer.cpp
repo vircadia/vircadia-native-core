@@ -14,7 +14,7 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) {
     bufferLengthSamples = bufferSamples;
     
     started = false;
-    addedToMix = false;
+    _shouldBeAddedToMix = false;
     
     endOfLastWrite = NULL;
     
@@ -26,7 +26,7 @@ AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
     ringBufferLengthSamples = otherRingBuffer.ringBufferLengthSamples;
     bufferLengthSamples = otherRingBuffer.bufferLengthSamples;
     started = otherRingBuffer.started;
-    addedToMix = otherRingBuffer.addedToMix;
+    _shouldBeAddedToMix = otherRingBuffer._shouldBeAddedToMix;
     
     buffer = new int16_t[ringBufferLengthSamples];
     memcpy(buffer, otherRingBuffer.buffer, sizeof(int16_t) * ringBufferLengthSamples);
@@ -69,14 +69,6 @@ bool AudioRingBuffer::isStarted() {
 
 void AudioRingBuffer::setStarted(bool status) {
     started = status;
-}
-
-bool AudioRingBuffer::wasAddedToMix() {
-    return addedToMix;
-}
-
-void AudioRingBuffer::setAddedToMix(bool added) {
-    addedToMix = added;
 }
 
 float* AudioRingBuffer::getPosition() {
@@ -135,8 +127,6 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(endOfLastWrite, sourceBuffer, bufferLengthSamples * sizeof(int16_t));
     
     endOfLastWrite += bufferLengthSamples;
-    
-    addedToMix = false;
     
     if (endOfLastWrite >= buffer + ringBufferLengthSamples) {
         endOfLastWrite = buffer;
