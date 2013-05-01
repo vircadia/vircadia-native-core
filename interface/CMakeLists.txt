@@ -30,8 +30,12 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
 
-# grab the implementation and header files from src dir
+# grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
+foreach(SUBDIR ui)
+  file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
+endforeach(SUBDIR)
 
 # project subdirectories
 add_subdirectory(src/starfield)
@@ -72,6 +76,10 @@ include_directories(
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
 )
+
+find_package(Qt4 REQUIRED QtCore QtGui)
+include(${QT_USE_FILE})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
 
 if (NOT APPLE)
     find_package(OpenGL REQUIRED)

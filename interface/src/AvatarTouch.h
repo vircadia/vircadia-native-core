@@ -19,8 +19,6 @@ public:
     void setYourHandPosition( glm::vec3 position );
     void simulate(float deltaTime);
     void render();
-
-    const float THREAD_RADIUS = 0.007;
     
 private:
 

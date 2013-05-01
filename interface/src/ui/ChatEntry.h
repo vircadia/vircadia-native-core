@@ -14,9 +14,9 @@
 class ChatEntry {
 public:
 
-    const std::string& getContents () const { return _contents; }
+    const std::string& getContents() const { return _contents; }
     
-    void clear ();
+    void clear();
     
     bool key(unsigned char k);
     void specialKey(unsigned char k);
