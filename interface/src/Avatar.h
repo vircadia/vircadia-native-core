@@ -144,23 +144,24 @@ public:
     
 private:
 
-    const bool  AVATAR_GRAVITY          = true;
-    const float DECAY                   = 0.1;
-    const float THRUST_MAG              = 1200.0;
-    const float YAW_MAG                 = 500.0;
-    const float BODY_PITCH_DECAY        = 5.0;
-    const float BODY_YAW_DECAY          = 5.0;
-    const float BODY_ROLL_DECAY         = 5.0;
-    const float LIN_VEL_DECAY           = 5.0;
-    const float MY_HAND_HOLDING_PULL    = 0.2;
-    const float YOUR_HAND_HOLDING_PULL  = 1.0;
-	const float BODY_SPRING_FORCE       = 6.0f;
-	const float BODY_SPRING_DECAY       = 16.0f;
-    const float COLLISION_RADIUS_SCALAR = 1.8;
-    const float COLLISION_BALL_FORCE    = 1.0;
-    const float COLLISION_BODY_FORCE    = 6.0;
-    const float COLLISION_BALL_FRICTION = 60.0;
-    const float COLLISION_BODY_FRICTION = 0.5;
+    const bool  AVATAR_GRAVITY                = true;
+    const float DECAY                         = 0.1;
+    const float THRUST_MAG                    = 1200.0;
+    const float YAW_MAG                       = 500.0;
+    const float BODY_PITCH_DECAY              = 5.0;
+    const float BODY_YAW_DECAY                = 5.0;
+    const float BODY_ROLL_DECAY               = 5.0;
+    const float LIN_VEL_DECAY                 = 5.0;
+    const float MY_HAND_HOLDING_PULL          = 0.2;
+    const float YOUR_HAND_HOLDING_PULL        = 1.0;
+	const float BODY_SPRING_FORCE             = 6.0f;
+	const float BODY_SPRING_DECAY             = 16.0f;
+	const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
+    const float COLLISION_RADIUS_SCALAR       = 1.8;
+    const float COLLISION_BALL_FORCE          = 1.0;
+    const float COLLISION_BODY_FORCE          = 6.0;
+    const float COLLISION_BALL_FRICTION       = 60.0;
+    const float COLLISION_BODY_FRICTION       = 0.5;
 
     //  Do you want head to try to return to center (depends on interface detected)
     void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };

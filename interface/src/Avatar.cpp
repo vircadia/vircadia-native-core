@@ -140,7 +140,7 @@ Avatar::Avatar(bool isMine) {
     _renderPitch                = 0.0;
 	_sphere                     = NULL;
     _interactingOther           = NULL;
-	_closeEnoughToHoldHands   = false;	//_interactingOtherIsNearby   = false;
+	_closeEnoughToHoldHands   = false;
     _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
 
     initializeSkeleton();
@@ -156,7 +156,6 @@ Avatar::Avatar(bool isMine) {
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
 }
-
 
 Avatar::Avatar(const Avatar &otherAvatar) {
     
@@ -324,7 +323,16 @@ void Avatar::setMousePressed( bool d ) {
 
 
 void Avatar::simulate(float deltaTime) {
-    
+
+//keep this - I'm still using it to test things....
+/*
+//TEST    
+static float tt = 0.0f;
+tt += deltaTime * 2.0f;
+//_head.leanSideways = 0.01 * sin( tt );
+_head.leanForward  = 0.02 * sin( tt * 0.8 );
+*/
+
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
     
@@ -398,7 +406,8 @@ void Avatar::simulate(float deltaTime) {
     updateArmIKAndConstraints( deltaTime );
         
     // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
-    if ( _interactingOther != NULL ) {    
+    //if ( _interactingOther != NULL ) {    
+    if ( _interactingOther ) { // Brad recommended I use this method pof checking that a pointer is valid
         if (_isMine) {
             _avatarTouch.setMyHandPosition  ( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
             _avatarTouch.setYourHandPosition( _interactingOther->_handPosition );
@@ -479,6 +488,14 @@ void Avatar::simulate(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
+    //apply the head lean values to the springy positions in the upper-spine...
+    if ( fabs( _head.leanSideways + _head.leanForward ) > 0.0f ) {
+        glm::vec3 headLean = 
+        _orientation.getRight() * _head.leanSideways +
+        _orientation.getFront() * _head.leanForward;
+        _bone[ AVATAR_BONE_HEAD ].springyPosition += headLean;
+    }
+    
     //  Decay head back to center if turned on
     if (_returnHeadToCenter) {
         //  Decay back toward center
@@ -494,10 +511,9 @@ void Avatar::updateHead(float deltaTime) {
         _headRoll *= 1.f - (DECAY * deltaTime);
     }
     
-    
     _head.leanForward  *= (1.f - DECAY * 30 * deltaTime);
     _head.leanSideways *= (1.f - DECAY * 30 * deltaTime);
-    
+        
     //  Update where the avatar's eyes are
     //
     //  First, decide if we are making eye contact or not
@@ -963,7 +979,7 @@ void Avatar::initializeSkeleton() {
         _bone[b].roll                = 0.0;
         _bone[b].length              = 0.0;
         _bone[b].radius              = 0.0;
-        _bone[b].springBodyTightness = 4.0;
+        _bone[b].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
         _bone[b].orientation.setToIdentity();
 	}
     
@@ -1041,7 +1057,35 @@ void Avatar::initializeSkeleton() {
 	_bone[ AVATAR_BONE_RIGHT_THIGH		].radius = 0.02;
 	_bone[ AVATAR_BONE_RIGHT_SHIN		].radius = 0.015;
 	_bone[ AVATAR_BONE_RIGHT_FOOT		].radius = 0.02;
-
+    
+	// specify the tightness of the springy positions as far as attraction to rigid body
+	_bone[ AVATAR_BONE_PELVIS_SPINE    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 1.0;
+	_bone[ AVATAR_BONE_MID_SPINE       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.8;	
+	_bone[ AVATAR_BONE_CHEST_SPINE     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_NECK            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.4;
+	_bone[ AVATAR_BONE_HEAD            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
+	
+    _bone[ AVATAR_BONE_LEFT_CHEST      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_LEFT_SHOULDER   ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_LEFT_UPPER_ARM  ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_LEFT_FOREARM    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
+	_bone[ AVATAR_BONE_LEFT_HAND       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
+	
+    _bone[ AVATAR_BONE_RIGHT_CHEST     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_RIGHT_SHOULDER  ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
+	_bone[ AVATAR_BONE_RIGHT_FOREARM   ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
+	_bone[ AVATAR_BONE_RIGHT_HAND      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
+    
+	_bone[ AVATAR_BONE_LEFT_PELVIS     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_LEFT_THIGH      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_LEFT_SHIN       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_LEFT_FOOT       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_RIGHT_PELVIS    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_RIGHT_THIGH     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_RIGHT_SHIN      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+	_bone[ AVATAR_BONE_RIGHT_FOOT      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+    
 	// to aid in hand-shaking and hand-holding, the right hand is not collidable
 	_bone[ AVATAR_BONE_RIGHT_UPPER_ARM	].isCollidable = false;
 	_bone[ AVATAR_BONE_RIGHT_FOREARM	].isCollidable = false;
@@ -1167,12 +1211,14 @@ void Avatar::updateBodySprings( float deltaTime ) {
 
 const glm::vec3& Avatar::getHeadPosition() const {
     
-    if (_usingBodySprings) {
-        return _bone[ AVATAR_BONE_HEAD ].springyPosition;
-    }
+    
+    //if (_usingBodySprings) {
+    //    return _bone[ AVATAR_BONE_HEAD ].springyPosition;
+    //}
     
     return _bone[ AVATAR_BONE_HEAD ].position;
 }
+
 
 void Avatar::updateHandMovement( float deltaTime ) {
 	glm::vec3 transformedHandMovement;
@@ -1215,7 +1261,6 @@ void Avatar::updateArmIKAndConstraints( float deltaTime ) {
 	glm::vec3 newElbowPosition = _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position;
 	newElbowPosition += armVector * ONE_HALF;
 
-	//glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
 	glm::vec3 perpendicular = glm::cross( _orientation.getFront(), armVector );
 
 	newElbowPosition += perpendicular * ( 1.0f - ( _maxArmLength / distance ) ) * ONE_HALF;
