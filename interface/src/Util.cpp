@@ -153,8 +153,8 @@ double diffclock(timeval *clock1,timeval *clock2)
 }
 
 static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = new TextRenderer("Courier");
-    static TextRenderer* proportionalRenderer = new TextRenderer("Helvetica");
+    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY);
+    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY);
     return mono ? monoRenderer : proportionalRenderer;
 }
 

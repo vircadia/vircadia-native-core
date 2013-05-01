@@ -24,6 +24,8 @@ namespace {
     unsigned const LINE_BUFFER_SIZE = 256;          // number of lines that are buffered
     unsigned const MAX_MESSAGE_LENGTH = 512;        // maximum number of characters for a message
 
+    const char* FONT_FAMILY = SANS_FONT_FAMILY;
+    
     bool const TEXT_MONOSPACED = true;
 
     float const TEXT_RED = 0.7f;
@@ -196,7 +198,7 @@ void Log::setCharacterSize(unsigned width, unsigned height) {
 }
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer("Helvetica");
+    static TextRenderer* renderer = new TextRenderer(FONT_FAMILY);
     return renderer;
 }
 

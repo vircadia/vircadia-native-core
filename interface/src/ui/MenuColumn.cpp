@@ -139,13 +139,11 @@ int MenuColumn::getMaxRowWidth() {
 }
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer("Helvetica", 11);
+    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 11);
     return renderer;
 }
 
 void MenuColumn::render(int yOffset, int menuHeight, int lineHeight) {
-    float scale = 0.09;
-    int mono = 0;
     int numberOfRows = rows.size();
     if (numberOfRows > 0) {
 
@@ -165,7 +163,7 @@ void MenuColumn::render(int yOffset, int menuHeight, int lineHeight) {
     for (unsigned int i = 0; i < rows.size(); ++i) {
         rowName = rows[i].getName();
         glColor3f(0, 0, 0);
-        textRenderer()->draw(leftPosition + SPACE_BEFORE_ROW_NAME, y+5 + yOffset, rowName);
+        textRenderer()->draw(leftPosition + SPACE_BEFORE_ROW_NAME, y + 5 + yOffset, rowName);
         y += lineHeight;
     }
     renderMouseOver(yOffset);

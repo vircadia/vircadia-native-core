@@ -677,7 +677,7 @@ void Avatar::setDisplayingHead( bool displayingHead ) {
 
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer("Helvetica", 24);
+    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24);
     return renderer;
 }
 
