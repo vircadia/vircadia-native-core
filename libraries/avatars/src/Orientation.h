@@ -24,9 +24,13 @@ public:
 	void set( Orientation );
 	void setToIdentity();
 
-	void yaw  ( float );
-	void pitch( float );
-	void roll ( float );
+	void pitch( float p );
+	void yaw  ( float y );
+	void roll ( float r );
+    
+    void rotate( float pitch, float yaw, float roll );
+    void rotate( glm::vec3 EulerAngles );
+    void rotate( glm::quat quaternion );
 
 	const glm::vec3 & getRight() const { return right; }
 	const glm::vec3 & getUp   () const { return up;	   }

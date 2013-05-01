@@ -93,6 +93,25 @@ void Orientation::roll( float angle ) {
     }
 }
 
+void Orientation::rotate( float p, float y, float r ) {
+    pitch(p);
+    yaw  (y);
+    roll (r);
+}
+
+void Orientation::rotate( glm::vec3 eulerAngles ) {
+
+//this needs to be optimized!
+    pitch(eulerAngles.x);
+    yaw  (eulerAngles.y);
+    roll (eulerAngles.z);
+}
+
+void Orientation::rotate( glm::quat rotation ) {
+    rotateAndGenerateDirections(rotation);
+}
+
+
 void Orientation::rotateAndGenerateDirections( glm::quat rotation ) {
 
     quat = quat * rotation;

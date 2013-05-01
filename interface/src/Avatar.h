@@ -148,7 +148,9 @@ private:
     const float DECAY                   = 0.1;
     const float THRUST_MAG              = 1200.0;
     const float YAW_MAG                 = 500.0;
-    const float TEST_YAW_DECAY          = 5.0;
+    const float BODY_PITCH_DECAY        = 5.0;
+    const float BODY_YAW_DECAY          = 5.0;
+    const float BODY_ROLL_DECAY         = 5.0;
     const float LIN_VEL_DECAY           = 5.0;
     const float MY_HAND_HOLDING_PULL    = 0.2;
     const float YOUR_HAND_HOLDING_PULL  = 1.0;
@@ -228,7 +230,9 @@ private:
     glm::vec3         _TEST_bigSpherePosition;
     float             _TEST_bigSphereRadius;
     bool              _mousePressed;
+    float             _bodyPitchDelta;
     float             _bodyYawDelta;
+    float             _bodyRollDelta;
     bool              _usingBodySprings;
     glm::vec3         _movedHandOffset;
     glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
@@ -252,7 +256,6 @@ private:
     glm::vec3         _transmitterInitialReading;
     Avatar*           _interactingOther;
     bool              _closeEnoughToHoldHands;
-    //bool              _interactingOtherIsNearby;
     float             _pelvisStandingHeight;
     float             _height;
     Balls*            _balls;
