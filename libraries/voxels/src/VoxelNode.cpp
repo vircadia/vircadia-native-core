@@ -7,12 +7,15 @@
 //
 
 #include <stdio.h>
+#include <cmath>
 #include <cstring>
 #include "SharedUtil.h"
-//#include "voxels_Log.h"
+#include "voxels_Log.h"
 #include "VoxelNode.h"
+#include "VoxelConstants.h"
 #include "OctalCode.h"
 #include "AABox.h"
+using voxels_lib::printLog;
 
 // using voxels_lib::printLog;
 
@@ -118,7 +121,6 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
 
 
 void VoxelNode::setColor(const nodeColor& color) {
-    //printf("VoxelNode::setColor() isFalseColored=%s\n",_falseColored ? "Yes" : "No");
     memcpy(&_trueColor,&color,sizeof(nodeColor));
     if (!_falseColored) {
         memcpy(&_currentColor,&color,sizeof(nodeColor));
@@ -178,4 +180,39 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
     
     newColor[3] = 1;
     setColor(newColor);
+}
+
+bool VoxelNode::isLeaf() const {
+    for (int i = 0; i < 8; i++) {
+        if (children[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void VoxelNode::printDebugDetails(const char* label) const {
+    AABox box;
+    getAABox(box);
+    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=", label,
+        box.getCorner().x, box.getCorner().y, box.getCorner().z, box.getSize().x);
+    printOctalCode(octalCode);
+}
+
+
+bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
+    AABox box;
+    getAABox(box);
+    box.scale(TREE_SCALE);
+    bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
+    return inView;
+}
+
+float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
+    AABox box;
+    getAABox(box);
+    float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - (box.getCorner().x + box.getSize().x), 2) +
+                                        powf(viewFrustum.getPosition().y - (box.getCorner().y + box.getSize().y), 2) +
+                                        powf(viewFrustum.getPosition().z - (box.getCorner().z + box.getSize().z), 2));
+    return distanceToVoxelCenter;
 }

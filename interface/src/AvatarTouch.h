@@ -21,8 +21,6 @@ public:
     void setYourHandState   ( int state );
     void simulate           (float deltaTime);
     void render();
-
-    const float THREAD_RADIUS = 0.007;
     
 private:
 

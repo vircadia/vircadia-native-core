@@ -39,6 +39,8 @@
 #include <ifaddrs.h>
 #endif
 
+#include <QApplication>
+
 #include <pthread.h> 
 
 #include <glm/glm.hpp>
@@ -59,11 +61,13 @@
 #include "AngleUtil.h"
 #include "Stars.h"
 
-#include "MenuRow.h"
-#include "MenuColumn.h"
-#include "Menu.h"
+#include "ui/ChatEntry.h"
+#include "ui/MenuRow.h"
+#include "ui/MenuColumn.h"
+#include "ui/Menu.h"
+#include "ui/TextRenderer.h"
+
 #include "Camera.h"
-#include "ChatEntry.h"
 #include "Avatar.h"
 #include "Texture.h"
 #include <AgentList.h>
@@ -85,6 +89,8 @@ using namespace std;
 
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
+
+QApplication* app;
 
 bool enableNetworkThread = true;
 pthread_t networkReceiveThread;
@@ -299,6 +305,7 @@ void init(void)
 {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
+    voxels.setCamera(&myCamera);
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
@@ -1318,7 +1325,7 @@ void key(unsigned char k, int x, int y)
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
                 DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
-            myAvatar.setChatMessage(string(chatEntry.getContents().size(), 'X'));
+            myAvatar.setChatMessage(string(chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
             
         } else {
             myAvatar.setChatMessage(chatEntry.getContents());
@@ -1411,6 +1418,7 @@ void* networkReceive(void* args)
             
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA:
+                    //  Process UDP packets that are sent to the client from local sensor devices 
                     myAvatar.processTransmitterData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
@@ -1605,12 +1613,6 @@ int main(int argc, const char * argv[])
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
 
-    // Quick test of the Orientation class on startup!
-    if (cmdOptionExists(argc, argv, "--testOrientation")) {
-        testOrientationClass();
-        return EXIT_SUCCESS;
-    }
-
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char* portStr = getCmdOption(argc, argv, "--listenPort");
     if (portStr) {
@@ -1663,7 +1665,10 @@ int main(int argc, const char * argv[])
     #ifdef _WIN32
     glewInit();
     #endif
-    
+        
+    // we need to create a QApplication instance in order to use Qt's font rendering
+    app = new QApplication(argc, const_cast<char**>(argv));
+
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);

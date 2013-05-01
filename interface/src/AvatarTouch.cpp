@@ -11,6 +11,8 @@
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
 
+const float THREAD_RADIUS = 0.007;
+
 AvatarTouch::AvatarTouch() {
 
     _myHandPosition   = glm::vec3( 0.0f, 0.0f, 0.0f );
