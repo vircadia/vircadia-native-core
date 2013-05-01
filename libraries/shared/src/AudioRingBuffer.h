@@ -13,42 +13,42 @@
 #include "AgentData.h"
 
 class AudioRingBuffer : public AgentData {
-    public:
-        AudioRingBuffer(int ringSamples, int bufferSamples);
-        ~AudioRingBuffer();
-        AudioRingBuffer(const AudioRingBuffer &otherRingBuffer);
-    
-        int parseData(unsigned char* sourceBuffer, int numBytes);
-        AudioRingBuffer* clone() const;
+public:
+    AudioRingBuffer(int ringSamples, int bufferSamples);
+    ~AudioRingBuffer();
+    AudioRingBuffer(const AudioRingBuffer &otherRingBuffer);
 
-        int16_t* getNextOutput();
-        void setNextOutput(int16_t *newPointer);
-        int16_t* getEndOfLastWrite();
-        void setEndOfLastWrite(int16_t *newPointer);
-        int16_t* getBuffer();
-        bool isStarted();
-        void setStarted(bool status);
-        bool wasAddedToMix();
-        void setAddedToMix(bool added);
-        float* getPosition();
-        void setPosition(float newPosition[]);
-        float getAttenuationRatio();
-        void setAttenuationRatio(float newAttenuation);
-        float getBearing();
-        void setBearing(float newBearing);
-    
-        short diffLastWriteNextOutput();
-    private:
-        int ringBufferLengthSamples;
-        int bufferLengthSamples;
-        float position[3];
-        float attenuationRatio;
-        float bearing;
-        int16_t *nextOutput;
-        int16_t *endOfLastWrite;
-        int16_t *buffer;
-        bool started;
-        bool addedToMix;
+    int parseData(unsigned char* sourceBuffer, int numBytes);
+    AudioRingBuffer* clone() const;
+
+    int16_t* getNextOutput();
+    void setNextOutput(int16_t *newPointer);
+    int16_t* getEndOfLastWrite();
+    void setEndOfLastWrite(int16_t *newPointer);
+    int16_t* getBuffer();
+    bool isStarted();
+    void setStarted(bool status);
+    bool shouldBeAddedToMix() const  { return _shouldBeAddedToMix; }
+    void setShouldBeAddedToMix(bool shouldBeAddedToMix) { _shouldBeAddedToMix = shouldBeAddedToMix; }
+    float* getPosition();
+    void setPosition(float newPosition[]);
+    float getAttenuationRatio();
+    void setAttenuationRatio(float newAttenuation);
+    float getBearing();
+    void setBearing(float newBearing);
+
+    short diffLastWriteNextOutput();
+private:
+    int ringBufferLengthSamples;
+    int bufferLengthSamples;
+    float position[3];
+    float attenuationRatio;
+    float bearing;
+    int16_t *nextOutput;
+    int16_t *endOfLastWrite;
+    int16_t *buffer;
+    bool started;
+    bool _shouldBeAddedToMix;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

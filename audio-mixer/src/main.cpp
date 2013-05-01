@@ -92,13 +92,15 @@ void *sendBuffer(void *args)
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
                     printf("Held back buffer for agent with ID %d.\n", agent->getAgentId());
+                    agentBuffer->setShouldBeAddedToMix(false);
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                     printf("Buffer from agent with ID %d starved.\n", agent->getAgentId());
                     agentBuffer->setStarted(false);
+                    agentBuffer->setShouldBeAddedToMix(false);
                 } else {
                     // good buffer, add this to the mix
                     agentBuffer->setStarted(true);
-                    agentBuffer->setAddedToMix(true);
+                    agentBuffer->setShouldBeAddedToMix(true);
                 }
             }
         }
@@ -129,89 +131,91 @@ void *sendBuffer(void *args)
                 if (otherAgent != agent || (otherAgent == agent && agentWantsLoopback)) {
                     AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
-                    float *agentPosition = agentRingBuffer->getPosition();
-                    float *otherAgentPosition = otherAgentBuffer->getPosition();
-                   
-                    // calculate the distance to the other agent
-                    
-                    // use the distance to the other agent to calculate the change in volume for this frame
-                    int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                    int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                    
-                    if (distanceCoeffs[lowAgentIndex][highAgentIndex] == 0) {
-                        float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-                                                      powf(agentPosition[1] - otherAgentPosition[1], 2) +
-                                                      powf(agentPosition[2] - otherAgentPosition[2], 2));
+                    if (otherAgentBuffer->shouldBeAddedToMix()) {
+                        float *agentPosition = agentRingBuffer->getPosition();
+                        float *otherAgentPosition = otherAgentBuffer->getPosition();
                         
-                        float minCoefficient = std::min(1.0f,
-                                                        powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
-                        distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
-                    }
-                    
-                    
-                    // get the angle from the right-angle triangle
-                    float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
-                                                 fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
-                    float angleToSource;
-                    
-                    
-                    // find the angle we need for calculation based on the orientation of the triangle
-                    if (otherAgentPosition[0] > agentPosition[0]) {
-                        if (otherAgentPosition[2] > agentPosition[2]) {
-                            angleToSource = -90 + triangleAngle - agentBearing;
-                        } else {
-                            angleToSource = -90 - triangleAngle - agentBearing;
+                        // calculate the distance to the other agent
+                        
+                        // use the distance to the other agent to calculate the change in volume for this frame
+                        int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                        int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                        
+                        if (distanceCoeffs[lowAgentIndex][highAgentIndex] == 0) {
+                            float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+                                                          powf(agentPosition[1] - otherAgentPosition[1], 2) +
+                                                          powf(agentPosition[2] - otherAgentPosition[2], 2));
+                            
+                            float minCoefficient = std::min(1.0f,
+                                                            powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                            distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
                         }
-                    } else {
-                        if (otherAgentPosition[2] > agentPosition[2]) {
-                            angleToSource = 90 - triangleAngle - agentBearing;
+                        
+                        
+                        // get the angle from the right-angle triangle
+                        float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
+                                                     fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
+                        float angleToSource;
+                        
+                        
+                        // find the angle we need for calculation based on the orientation of the triangle
+                        if (otherAgentPosition[0] > agentPosition[0]) {
+                            if (otherAgentPosition[2] > agentPosition[2]) {
+                                angleToSource = -90 + triangleAngle - agentBearing;
+                            } else {
+                                angleToSource = -90 - triangleAngle - agentBearing;
+                            }
                         } else {
-                            angleToSource = 90 + triangleAngle - agentBearing;
+                            if (otherAgentPosition[2] > agentPosition[2]) {
+                                angleToSource = 90 - triangleAngle - agentBearing;
+                            } else {
+                                angleToSource = 90 + triangleAngle - agentBearing;
+                            }
                         }
-                    }
-                    
-                    if (angleToSource > 180) {
-                        angleToSource -= 360;
-                    } else if (angleToSource < -180) {
-                        angleToSource += 360;
-                    }
-                    
-                    angleToSource *= (M_PI / 180);
-                    
-                    float sinRatio = fabsf(sinf(angleToSource));
-                    int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                    float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-                    
-                    int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
-                    int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                    
-                    int16_t *delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
+                        
+                        if (angleToSource > 180) {
+                            angleToSource -= 360;
+                        } else if (angleToSource < -180) {
+                            angleToSource += 360;
+                        }
+                        
+                        angleToSource *= (M_PI / 180);
+                        
+                        float sinRatio = fabsf(sinf(angleToSource));
+                        int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                        float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                        
+                        int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
+                        int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                        
+                        int16_t *delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                         ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                         : otherAgentBuffer->getNextOutput() - numSamplesDelay;
-                    
-                    
-                    for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                         
-                        if (s < numSamplesDelay) {
-                            // pull the earlier sample for the delayed channel
+                        
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             
-                            int earlierSample = delaySamplePointer[s] *
-                                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
-                                                otherAgentBuffer->getAttenuationRatio();
+                            if (s < numSamplesDelay) {
+                                // pull the earlier sample for the delayed channel
+                                
+                                int earlierSample = delaySamplePointer[s] *
+                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
+                                otherAgentBuffer->getAttenuationRatio();
+                                
+                                plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
+                            }
                             
-                            plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
-                        }
-                        
-                        int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
-                                                 distanceCoeffs[lowAgentIndex][highAgentIndex] *
-                                                 otherAgentBuffer->getAttenuationRatio());
-                        plateauAdditionOfSamples(goodChannel[s], currentSample);
-                        
-                        if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                            plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
-                                                     currentSample *
-                                                     weakChannelAmplitudeRatio *
+                            int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
+                                                     distanceCoeffs[lowAgentIndex][highAgentIndex] *
                                                      otherAgentBuffer->getAttenuationRatio());
+                            plateauAdditionOfSamples(goodChannel[s], currentSample);
+                            
+                            if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                                plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
+                                                         currentSample *
+                                                         weakChannelAmplitudeRatio *
+                                                         otherAgentBuffer->getAttenuationRatio());
+                            }
                         }
                     }
                 }
@@ -222,14 +226,14 @@ void *sendBuffer(void *args)
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
-            if (agentBuffer->wasAddedToMix()) {
+            if (agentBuffer->shouldBeAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
                 if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
                     agentBuffer->setNextOutput(agentBuffer->getBuffer());
                 }
                 
-                agentBuffer->setAddedToMix(false);
+                agentBuffer->setShouldBeAddedToMix(false);
             }
         }
         
