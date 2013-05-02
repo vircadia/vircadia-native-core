@@ -38,7 +38,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-const int PACKETS_PER_CLIENT_PER_INTERVAL = 2;
+const int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -68,11 +68,9 @@ void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 }
 
 int _nodeCount=0;
-bool countVoxelsOperation(VoxelNode* node, bool down, void* extraData) {
-    if (down) {
-        if (node->isColored()){
-            _nodeCount++;
-        }
+bool countVoxelsOperation(VoxelNode* node, void* extraData) {
+    if (node->isColored()){
+        _nodeCount++;
     }
     return true; // keep going
 }
@@ -80,7 +78,7 @@ bool countVoxelsOperation(VoxelNode* node, bool down, void* extraData) {
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
 	printf("adding scene of spheres...\n");
 	
-	int sphereBaseSize = 256;
+	int sphereBaseSize = 512;
 	
 	tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
 	printf("one sphere added...\n");

@@ -236,7 +236,7 @@ void displayStats(void)
     drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() << " Updated: " << voxels.getVoxelsUpdated();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
@@ -1609,6 +1609,8 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    voxels.setViewFrustum(&::viewFrustum);
+
     shared_lib::printLog = & ::printLog;
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;

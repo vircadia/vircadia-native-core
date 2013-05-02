@@ -21,4 +21,7 @@ const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 const int INDICES_PER_VOXEL = 3 * 12;
 const int COLOR_VALUES_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
 
+typedef unsigned long int glBufferIndex;
+const glBufferIndex GLBUFFER_INDEX_UNKNOWN = ULONG_MAX;
+
 #endif
