@@ -102,7 +102,7 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-int WIDTH = 1200;                   //  Window size
+int WIDTH = 1280;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
@@ -177,7 +177,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
 GLuint oculusProgramID = 0;         //  The GLSL program containing the distortion shader
-float oculusDistortionScale = 1.5f; //  Controls the Oculus field of view
+float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
 
 //
 //  Serial USB Variables
@@ -778,20 +778,30 @@ void displayOculus(Camera& whichCamera) {
     // render the left eye view to the left side of the screen
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glTranslatef(-0.151976, 0, 0); // -h, see Oculus SDK docs p. 26
+    glLoadIdentity();
+    glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
+    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
+        whichCamera.getNearClip(), whichCamera.getFarClip());
+    glTranslatef(0.032, 0, 0);
+    
     glMatrixMode(GL_MODELVIEW);
     glViewport(0, 0, WIDTH/2, HEIGHT);
     displaySide(whichCamera);
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    
+
     // and the right eye to the right side
-    glPushMatrix();
-    glTranslatef(0.151976, 0, 0); // +h
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glTranslatef(-0.151976, 0, 0); // -h
+    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
+        whichCamera.getNearClip(), whichCamera.getFarClip());
+    glTranslatef(-0.032, 0, 0);
+    
     glMatrixMode(GL_MODELVIEW);
     glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
     displaySide(whichCamera);
 
+    glPopMatrix();
+    
     // restore our normal viewport
     glViewport(0, 0, WIDTH, HEIGHT);
 
@@ -819,8 +829,6 @@ void displayOculus(Camera& whichCamera) {
     }
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
 
-    glPopMatrix();
-    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, WIDTH, 0, HEIGHT);           
@@ -868,6 +876,7 @@ void displayOculus(Camera& whichCamera) {
     glEnd();
                
     glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgramObjectARB(0);
     
     glPopMatrix();
@@ -1691,7 +1700,7 @@ void reshape(int width, int height)
 
     if (::oculusOn) {
         // more magic numbers; see Oculus SDK docs, p. 32
-        aspectRatio *= 0.5;
+        camera.setAspectRatio(aspectRatio *= 0.5);
         camera.setFieldOfView(fov = 2 * atan((0.0468 * ::oculusDistortionScale) / 0.041) * (180 / PI));
         
     } else {
@@ -1808,6 +1817,8 @@ int main(int argc, const char * argv[])
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
+
+    fullscreen = cmdOptionExists(argc, argv, "--fullscreen");
     
     // the callback for our instance of AgentList is attachNewHeadToAgent
     AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
