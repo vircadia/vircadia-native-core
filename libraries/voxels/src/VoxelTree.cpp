@@ -498,10 +498,10 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     // Keep track of how deep we've searched.    
     currentSearchLevel++;
 
-    // If we've reached our max Search Level, then stop searching.
-    if (currentSearchLevel >= maxSearchLevel) {
-        return currentSearchLevel;
-    }
+    // If we've passed our max Search Level, then stop searching. return last level searched
+    if (currentSearchLevel > maxSearchLevel) {
+        return currentSearchLevel-1;
+     }
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {
