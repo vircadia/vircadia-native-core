@@ -299,7 +299,6 @@ void VoxelSystem::updateVBOs() {
     if (_voxelsDirty) {
         glBufferIndex segmentStart = 0;
         glBufferIndex segmentEnd = 0;
-        
         bool inSegment = false;
         for (glBufferIndex i = 0; i < _voxelsInArrays; i++) {
             if (!inSegment) {
@@ -313,20 +312,14 @@ void VoxelSystem::updateVBOs() {
                     segmentEnd = i;
                     inSegment = false;
                     int segmentLength = (segmentEnd - segmentStart) + 1;
-
-                    // vertices for segment - note: we might not need to do this
                     GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
                     GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
                     GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                    
                     glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
                     glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-
-                    // colors for segment
                     segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
                     segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
                     GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-
                     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
                     glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
                 }
@@ -378,7 +371,6 @@ void VoxelSystem::simulate(float deltaTime) {
 int VoxelSystem::_nodeCount = 0;
 
 bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
-
     _nodeCount++;
     if (node->isColored()) {
         nodeColor newColor = { 0,0,0,1 };
@@ -398,15 +390,12 @@ void VoxelSystem::randomizeVoxelColors() {
 }
 
 bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, void* extraData) {
-
     _nodeCount++;
-
     // always false colorize
     unsigned char newR = randomColorValue(150);
     unsigned char newG = randomColorValue(150);
     unsigned char newB = randomColorValue(150);
     node->setFalseColor(newR,newG,newB);
-
     return true; // keep going!
 }
 
@@ -433,12 +422,8 @@ void VoxelSystem::trueColorize() {
 // Will false colorize voxels that are not in view
 bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData) {
     const ViewFrustum* viewFrustum = (const ViewFrustum*) extraData;
-
     _nodeCount++;
-
-    // only do this for truely colored voxels...
     if (node->isColored()) {
-        // If the voxel is outside of the view frustum, then false color it red
         if (!node->isInView(*viewFrustum)) {
             // Out of view voxels are colored RED
             unsigned char newR = 255;
@@ -447,7 +432,6 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData)
             node->setFalseColor(newR,newG,newB);
         }
     }
-
     return true; // keep going!
 }
 
@@ -461,29 +445,9 @@ void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
 // Will false colorize voxels based on distance from view
 bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData) {
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
-
-    // only do this for truly colored voxels...
     if (node->isColored()) {
-        glm::vec3 nodePosition;
-        float* startVertex = firstVertexForCode(node->octalCode);
-        nodePosition.x = startVertex[0];
-        nodePosition.y = startVertex[1];
-        nodePosition.z = startVertex[2];
-        delete startVertex;
-
-        // scale up the node position
-        nodePosition = nodePosition*(float)TREE_SCALE;
-
-        float halfUnitForVoxel = powf(0.5, *node->octalCode) * (0.5 * TREE_SCALE);
-        glm::vec3 viewerPosition = viewFrustum->getPosition();
-
-        float distance = sqrtf(powf(viewerPosition.x - nodePosition.x - halfUnitForVoxel, 2) +
-                                            powf(viewerPosition.y - nodePosition.y - halfUnitForVoxel, 2) +
-                                            powf(viewerPosition.z - nodePosition.z - halfUnitForVoxel, 2));
-
-        // actually colorize
+        float distance = node->distanceToCamera(*viewFrustum);
         _nodeCount++;
-
         float distanceRatio = (_minDistance==_maxDistance) ? 1 : (distance - _minDistance)/(_maxDistance - _minDistance);
 
         // We want to colorize this in 16 bug chunks of color
@@ -507,28 +471,9 @@ float VoxelSystem::_minDistance = FLT_MAX;
 // we wouldn't need to do two passes of the tree
 bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData) {
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
-
     // only do this for truly colored voxels...
     if (node->isColored()) {
-
-        // We need our distance for both up and down
-        glm::vec3 nodePosition;
-        float* startVertex = firstVertexForCode(node->octalCode);
-        nodePosition.x = startVertex[0];
-        nodePosition.y = startVertex[1];
-        nodePosition.z = startVertex[2];
-        delete startVertex;
-
-        // scale up the node position
-        nodePosition = nodePosition*(float)TREE_SCALE;
-
-        float halfUnitForVoxel = powf(0.5, *node->octalCode) * (0.5 * TREE_SCALE);
-        glm::vec3 viewerPosition = viewFrustum->getPosition();
-
-        float distance = sqrtf(powf(viewerPosition.x - nodePosition.x - halfUnitForVoxel, 2) +
-                                            powf(viewerPosition.y - nodePosition.y - halfUnitForVoxel, 2) +
-                                            powf(viewerPosition.z - nodePosition.z - halfUnitForVoxel, 2));
-
+        float distance = node->distanceToCamera(*viewFrustum);
         // calculate the range of distances
         if (distance > _maxDistance) {
             _maxDistance = distance;
@@ -536,7 +481,6 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extra
         if (distance < _minDistance) {
             _minDistance = distance;
         }
-
         _nodeCount++;
     }
     return true; // keep going!
@@ -544,14 +488,11 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extra
 
 void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     _nodeCount = 0;
-
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
     _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation,(void*)viewFrustum);
     printLog("determining distance range for %d nodes\n",_nodeCount);
-
     _nodeCount = 0;
-
     _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
     printLog("setting in distance false color for %d nodes\n",_nodeCount);
     setupNewVoxelsForDrawing();
