@@ -102,7 +102,7 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-int WIDTH = 1280;                   //  Window size
+int WIDTH = 1200;                   //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
@@ -782,7 +782,7 @@ void displayOculus(Camera& whichCamera) {
     glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
     gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
         whichCamera.getNearClip(), whichCamera.getFarClip());
-    glTranslatef(0.032, 0, 0);
+    glTranslatef(0.032, 0, 0); // dip/2, see p. 27
     
     glMatrixMode(GL_MODELVIEW);
     glViewport(0, 0, WIDTH/2, HEIGHT);
