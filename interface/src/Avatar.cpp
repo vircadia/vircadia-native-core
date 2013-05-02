@@ -320,6 +320,8 @@ void Avatar::setMousePressed( bool d ) {
 
 void Avatar::simulate(float deltaTime) {
     
+    float nearestAvatarDistance = 1000000.f;
+
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
     
@@ -341,7 +343,7 @@ void Avatar::simulate(float deltaTime) {
     if ( _isMine )
     {    
         float closestDistance = 10000.0f;
-        
+                
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
@@ -355,6 +357,8 @@ void Avatar::simulate(float deltaTime) {
                 v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
                 
                 float distance = glm::length( v );
+                if ( distance < nearestAvatarDistance ) { nearestAvatarDistance = distance; }
+                
                 if ( distance < _maxArmLength + _maxArmLength ) {
                                 
                     closestDistance = distance;
@@ -442,6 +446,11 @@ void Avatar::simulate(float deltaTime) {
 
 	// decay velocity
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
+    
+    // If other avatars nearby, damp velocity much more!
+    if (_isMine && (nearestAvatarDistance < 3.f)) {
+        _velocity *= (1.0 - fmin(10.f * glm::length(_velocity) * deltaTime, 1.0));
+    }
 	
     // update head information
     updateHead(deltaTime);
