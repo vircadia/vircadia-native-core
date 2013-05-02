@@ -167,8 +167,14 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 
 void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
-    // If the bag is empty, fill it...
-    if (agentData->nodeBag.isEmpty()) {
+    bool searchReset = false;
+    int  searchLoops = 0;
+    int  searchLevelWas = agentData->getMaxSearchLevel();
+    double start = usecTimestampNow();
+    while (!searchReset && agentData->nodeBag.isEmpty()) {
+        searchLoops++;
+
+        searchLevelWas = agentData->getMaxSearchLevel();
         int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
                                                                viewFrustum, agentData->nodeBag);
         agentData->setMaxLevelReached(maxLevelReached);
@@ -177,17 +183,38 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
         if (agentData->nodeBag.isEmpty()) {
             if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
                 agentData->resetMaxSearchLevel();
+                searchReset = true;
             } else {
                 agentData->incrementMaxSearchLevel();
             }
         }
     }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printf("WARNING! searchForColoredNodes() took %lf seconds to identify %d nodes at level %d in %d loops\n",
+                elapsedsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+        } else {
+            printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+                elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+        }
+    } else {
+        printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+                elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+    }
+
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!agentData->nodeBag.isEmpty()) {
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
         int packetsSentThisInterval = 0;
+        int truePacketsSent = 0;
+        int trueBytesSent = 0;
+        double start = usecTimestampNow();
+
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
@@ -200,6 +227,8 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 } else {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
                     packetsSentThisInterval++;
                     agentData->resetVoxelPacket();
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -208,12 +237,30 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
                     agentData->resetVoxelPacket();
                     
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
+        double end = usecTimestampNow();
+        double elapsedmsec = (end - start)/1000.0;
+        if (elapsedmsec > 100) {
+            if (elapsedmsec > 1000) {
+                double elapsedsec = (end - start)/1000000.0;
+                printf("WARNING! packetLoop() took %lf seconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                        elapsedsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+            } else {
+                printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                        elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+            }
+        } else {
+            printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                    elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+        }
+
         // if during this last pass, we emptied our bag, then we want to move to the next level.
         if (agentData->nodeBag.isEmpty()) {
             if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
