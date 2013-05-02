@@ -92,7 +92,7 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     
-    bool  getIsNearInteractingOther() { return _closeEnoughToHoldHands; }
+    bool  getIsNearInteractingOther() { return _canReachToOtherAvatar; }
     
     float getAbsoluteHeadYaw() const;
     void  setLeanForward(float dist);
@@ -256,7 +256,8 @@ private:
     int               _transmitterPackets;
     glm::vec3         _transmitterInitialReading;
     Avatar*           _interactingOther;
-    bool              _closeEnoughToHoldHands;
+    bool              _canReachToOtherAvatar;
+    bool              _handsCloseEnoughToGrasp;
     float             _pelvisStandingHeight;
     float             _height;
     Balls*            _balls;
