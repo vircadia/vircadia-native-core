@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <UDPSocket.h>
+#include <arpa/inet.h>
 
 const int PAIRING_SERVER_LISTEN_PORT = 52934;
 const int MAX_PACKET_SIZE_BYTES = 1400;
@@ -17,8 +18,18 @@ const int MAX_PACKET_SIZE_BYTES = 1400;
 struct PairableDevice {
     char identifier[64];
     char name[64];
-    sockaddr localSocket;
+    sockaddr_in localSocket;
 };
+
+int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
+    int currentIndex = 0;
+    
+    while (haystack[currentIndex] != '\0' && haystack[currentIndex] != needle) {
+        currentIndex++;
+    }
+    
+    return currentIndex;
+}
 
 int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
@@ -31,9 +42,33 @@ int main(int argc, const char* argv[]) {
     
     while (true) {
         if (serverSocket.receive(&deviceAddress, &deviceData, &receivedBytes)) {
+            // create a new PairableDevice
+            PairableDevice newDevice = {};
             
+            int addressBytes[4];
+            int socketPort = 0;
+            
+            sscanf(deviceData, "A %s %d.%d.%d.%d:%d %s",
+                   newDevice.identifier,
+                   &addressBytes[3],
+                   &addressBytes[2],
+                   &addressBytes[1],
+                   &addressBytes[0],
+                   &socketPort,
+                   newDevice.name);
+            
+            // setup the localSocket for the pairing device
+            newDevice.localSocket.sin_family = AF_INET;
+            newDevice.localSocket.sin_addr.s_addr = (addressBytes[3] |
+                                                     addressBytes[2] << 8 |
+                                                     addressBytes[1] << 16 |
+                                                     addressBytes[0] << 24);
+            newDevice.localSocket.sin_port = socketPort;
+            
+            // push this new device into the vector
+            printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
+            devices.push_back(newDevice);
         }
     }
+        
 }
-
-
