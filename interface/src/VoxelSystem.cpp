@@ -423,10 +423,17 @@ void VoxelSystem::render() {
 
 int VoxelSystem::_nodeCount = 0;
 
+void VoxelSystem::killLocalVoxels() {
+    _tree->eraseAllVoxels();
+    _voxelsInArrays = 0; // better way to do this??
+    //setupNewVoxelsForDrawing();
+}
+
+
 bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     if (node->isColored()) {
-        nodeColor newColor = { randomColorValue(150), randomColorValue(150), randomColorValue(150), 1 };
+        nodeColor newColor = { 255, randomColorValue(150), randomColorValue(150), 1 };
         node->setColor(newColor);
     }
     return true;
@@ -442,7 +449,7 @@ void VoxelSystem::randomizeVoxelColors() {
 bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     // always false colorize
-    node->setFalseColor(randomColorValue(150), randomColorValue(150), randomColorValue(150));
+    node->setFalseColor(255, randomColorValue(150), randomColorValue(150));
     return true; // keep going!
 }
 

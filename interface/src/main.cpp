@@ -130,6 +130,9 @@ glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 VoxelSystem voxels;
 
+bool wantToKillLocalVoxels = false;
+
+
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
 #endif
@@ -1071,6 +1074,13 @@ int setFrustumRenderMode(int state) {
     return ::frustumDrawingMode;
 }
 
+int doKillLocalVoxels(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::wantToKillLocalVoxels = true;
+    }
+    return state;
+}
+
 int doRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.randomizeVoxelColors();
@@ -1168,6 +1178,7 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
+    menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
@@ -1412,6 +1423,12 @@ void* networkReceive(void* args)
     ssize_t bytesReceived;
     
     while (!stopNetworkReceiveThread) {
+        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
+        if (::wantToKillLocalVoxels) {
+            ::voxels.killLocalVoxels();
+            ::wantToKillLocalVoxels = false;
+        }
+    
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
             bytesCount += bytesReceived;

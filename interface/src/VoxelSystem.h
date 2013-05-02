@@ -58,6 +58,8 @@ public:
     void falseColorizeInView(ViewFrustum* viewFrustum);
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
 
+    void killLocalVoxels();
+    
 private:
     // Operation functions for tree recursion methods
     static int _nodeCount;
