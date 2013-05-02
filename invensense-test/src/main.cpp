@@ -13,6 +13,21 @@
 #include <dirent.h>
 #include <SharedUtil.h>
 
+void loadIntFromTwoHex(char* sourceBuffer, int& destinationInt) {
+    
+    unsigned int byte[2];
+    
+    for(int i = 0; i < 2; i++) {
+        sscanf(sourceBuffer + 2 * i, "%2x", &byte[i]);
+//        printf("The hex code is 0x%c%c so the byte is %d\n", (sourceBuffer + 2 * i)[0], (sourceBuffer + 2 * i)[1], byte[i]);
+    }
+    
+    int16_t result = (byte[0] << 8);
+    result += byte[1];
+    
+    destinationInt = result;
+}
+
 int main(int argc, char* argv[]) {
     int serialFd = open("/dev/tty.usbmodemfa141", O_RDWR | O_NOCTTY | O_NDELAY);
     
@@ -38,37 +53,37 @@ int main(int argc, char* argv[]) {
     
     write(serialFd, "WR686B01\n", 9);
     usleep(100000);
+    write(serialFd, "SD\n", 3);
+    usleep(100000);
     
     tcflush(serialFd, TCIOFLUSH);
     
-    char gyroBuffer[12] = {};
-    int16_t gyroX, gyroY, gyroZ;
+    char gyroBuffer[20] = {};
+    int gyroX, gyroY, gyroZ;
+    int readBytes = 0;
     
-    char statusByte[4] = {};
-    int dataReadyVal = 0;
+    double lastRead = usecTimestampNow();
     
     while (true) {
-        write(serialFd, "RS3A\n", 5);
-        read(serialFd, statusByte, 4);
-        
-        printf("The status byte read was %c%c%c%c\n", statusByte[0], statusByte[1], statusByte[2], statusByte[3]);
-        dataReadyVal = statusByte[3] - '0';
-        
-        if (dataReadyVal % 2 == 1) {
-            tcflush(serialFd, TCIOFLUSH);
+        if (usecTimestampNow() - lastRead >= 10000) {
             
             write(serialFd, "RD684306\n", 9);
-            printf("Read %ld bytes from serial\n", read(serialFd, gyroBuffer, 12));
-            printf("The first six chars %c%c%c%c%c%c\n", gyroBuffer[0], gyroBuffer[1], gyroBuffer[2], gyroBuffer[3], gyroBuffer[4], gyroBuffer[5]);
-
-            gyroX = (gyroBuffer[6] << 8) | gyroBuffer[7];
-            gyroY = (gyroBuffer[8] << 8) | gyroBuffer[9];
-            gyroZ = (gyroBuffer[10] << 8) | gyroBuffer[11];
             
-            printf("The gyro data %d, %d, %d\n", gyroX, gyroY, gyroZ);
-        }
-        
-        tcflush(serialFd, TCIOFLUSH);
+            readBytes = read(serialFd, gyroBuffer, 20);
+//            printf("Read %d bytes from serial\n", readBytes);
+            
+//            printf("The first two characters are %c%c\n", gyroBuffer[0], gyroBuffer[1]);
+            
+            if (readBytes == 20 && gyroBuffer[0] == 'R' && gyroBuffer[1] == 'D') {
+                loadIntFromTwoHex(gyroBuffer + 6, gyroX);
+                loadIntFromTwoHex(gyroBuffer + 10, gyroY);
+                loadIntFromTwoHex(gyroBuffer + 14, gyroZ);
+                
+                printf("The gyro data %d, %d, %d\n", gyroX, gyroY, gyroZ);
+            }
+            
+            lastRead = usecTimestampNow();
+        } 
     }
     
     close(serialFd);
