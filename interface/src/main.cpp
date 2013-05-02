@@ -840,6 +840,7 @@ void displayOculus(Camera& whichCamera) {
     float scaleFactor = 1.0 / ::oculusDistortionScale;
     float aspectRatio = (WIDTH * 0.5) / HEIGHT;
     
+    glDisable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
     glUseProgramObjectARB(::oculusProgramID);
     glUniform1fARB(textureLocation, 0);
@@ -874,7 +875,8 @@ void displayOculus(Camera& whichCamera) {
     glTexCoord2f(0.5, 1);
     glVertex2f(WIDTH/2, HEIGHT);
     glEnd();
-               
+    
+    glEnable(GL_BLEND);           
     glDisable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgramObjectARB(0);
