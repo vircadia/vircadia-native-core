@@ -177,6 +177,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
 GLuint oculusProgramID = 0;         //  The GLSL program containing the distortion shader
+float oculusDistortionScale = 1.5f; //  Controls the Oculus field of view
 
 //
 //  Serial USB Variables
@@ -743,6 +744,9 @@ void displaySide(Camera& whichCamera) {
 	glPopMatrix();
 }
 
+// this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
+// code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
+// (http://www.apache.org/licenses/LICENSE-2.0)
 const char* DISTORTION_FRAGMENT_SHADER =
     "#version 120\n"
     "uniform sampler2D texture;"
@@ -766,6 +770,7 @@ const char* DISTORTION_FRAGMENT_SHADER =
     "       above.s * above.t * below.s * below.t);"
     "}";
 
+// the locations of the uniform variables
 int textureLocation;
 int lensCenterLocation;
 int screenCenterLocation;
@@ -775,11 +780,27 @@ int hmdWarpParamLocation;
 
 // renders both sides into a texture, then renders the texture to the display with distortion
 void displayOculus(Camera& whichCamera) {
+    // magic numbers ahoy! in order to avoid pulling in the Oculus utility library that calculates
+    // the rendering parameters from the hardware stats, i just folded their calculations into
+    // constants using the stats for the current-model hardware as contained in the SDK file
+    // LibOVR/Src/Util/Util_Render_Stereo.cpp
+
+    // eye 
+
     // render the left eye view to the left side of the screen
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glTranslatef(-0.151976, 0, 0); // -h, see Oculus SDK docs p. 26
+    glMatrixMode(GL_MODELVIEW);
     glViewport(0, 0, WIDTH/2, HEIGHT);
     displaySide(whichCamera);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
     
     // and the right eye to the right side
+    glPushMatrix();
+    glTranslatef(0.151976, 0, 0); // +h
+    glMatrixMode(GL_MODELVIEW);
     glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
     displaySide(whichCamera);
 
@@ -813,19 +834,23 @@ void displayOculus(Camera& whichCamera) {
     glPopMatrix();
     
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(0, WIDTH, 0, HEIGHT);           
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     
+    // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
+    
+    float scaleFactor = 1.0 / ::oculusDistortionScale;
+    float aspectRatio = (WIDTH * 0.5) / HEIGHT;
+    
     glEnable(GL_TEXTURE_2D);
     glUseProgramObjectARB(::oculusProgramID);
     glUniform1fARB(textureLocation, 0);
-    glUniform2fARB(lensCenterLocation, 0.25, 0.5);
+    glUniform2fARB(lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
     glUniform2fARB(screenCenterLocation, 0.25, 0.5);
-    glUniform2fARB(scaleLocation, 0.25, 0.5);
-    glUniform2fARB(scaleInLocation, 4, 2);
+    glUniform2fARB(scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
+    glUniform2fARB(scaleInLocation, 4, 2 / aspectRatio);
     glUniform4fARB(hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
     
     glColor3f(1, 0, 1);
@@ -840,7 +865,7 @@ void displayOculus(Camera& whichCamera) {
     glVertex2f(0, HEIGHT);
     glEnd();
     
-    glUniform2fARB(lensCenterLocation, 0.75, 0.5);
+    glUniform2fARB(lensCenterLocation, 0.787994, 0.5);
     glUniform2fARB(screenCenterLocation, 0.75, 0.5);
     
     glBegin(GL_QUADS);
@@ -1175,7 +1200,12 @@ int setStars(int state) {
 }
 
 int setOculus(int state) {
-    return setValue(state, &::oculusOn);
+    bool wasOn = ::oculusOn;
+    int value = setValue(state, &::oculusOn);
+    if (::oculusOn != wasOn) {
+        reshape(WIDTH, HEIGHT);
+    }
+    return value;
 }
 
 int setStats(int state) {
@@ -1492,7 +1522,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
-    if (k == 'o') ::oculusOn = !::oculusOn;
+    if (k == 'o') setOculus(!::oculusOn);
     
 	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
 	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
@@ -1663,19 +1693,19 @@ void reshape(int width, int height)
     HEIGHT = height; 
     aspectRatio = ((float)width/(float)height); // based on screen resize
 
-    float fov;
-    float nearClip;
-    float farClip;
-
     // get the lens details from the current camera
-    if (::viewFrustumFromOffset) {
-        fov       = ::viewFrustumOffsetCamera.getFieldOfView();
-        nearClip  = ::viewFrustumOffsetCamera.getNearClip();
-        farClip   = ::viewFrustumOffsetCamera.getFarClip();
+    Camera& camera = ::viewFrustumFromOffset ? (::viewFrustumOffsetCamera) : (::myCamera);
+    float nearClip = camera.getNearClip();
+    float farClip = camera.getFarClip();
+    float fov;
+
+    if (::oculusOn) {
+        // more magic numbers; see Oculus SDK docs, p. 32
+        aspectRatio *= 0.5;
+        camera.setFieldOfView(fov = 2 * atan((0.0468 * ::oculusDistortionScale) / 0.041) * (180 / PI));
+        
     } else {
-        fov       = ::myCamera.getFieldOfView();
-        nearClip  = ::myCamera.getNearClip();
-        farClip   = ::myCamera.getFarClip();
+        camera.setFieldOfView(fov = 60);
     }
 
     //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
