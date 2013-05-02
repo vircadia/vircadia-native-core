@@ -176,7 +176,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
-GLuint oculusProgramID = 0;         //  The GLSL program containing the distortion shader
+GLhandleARB oculusProgramID = 0;         //  The GLSL program containing the distortion shader
 float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
 
 //
@@ -811,7 +811,7 @@ void displayOculus(Camera& whichCamera) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
         
-        GLuint shaderID = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
+        GLhandleARB shaderID = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
         glShaderSourceARB(shaderID, 1, &DISTORTION_FRAGMENT_SHADER, 0);
         glCompileShaderARB(shaderID);
         ::oculusProgramID = glCreateProgramObjectARB();
