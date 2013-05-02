@@ -11,6 +11,7 @@
 
 #include "AABox.h"
 #include "ViewFrustum.h"
+#include "VoxelConstants.h"
 
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
@@ -22,6 +23,9 @@ private:
     nodeColor _currentColor;
     bool      _falseColored;
 #endif
+    glBufferIndex _glBufferIndex;
+    bool _isDirty;
+    bool _shouldRender;
 public:
     VoxelNode();
     ~VoxelNode();
@@ -40,7 +44,14 @@ public:
     bool isLeaf() const;
     void getAABox(AABox& box) const;
     void printDebugDetails(const char* label) const;
-    
+    bool isDirty() const { return _isDirty; };
+    void clearDirtyBit() { _isDirty = false; };
+    glBufferIndex getBufferIndex() const { return _glBufferIndex; };
+    bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
+    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; };
+    void setShouldRender(bool shouldRender);
+    bool getShouldRender() const { return _shouldRender; }
+
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
     void setFalseColored(bool isFalseColored);
