@@ -143,6 +143,8 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
 
 void VoxelNode::setColor(const nodeColor& color) {
     if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
+        //printLog("VoxelNode::setColor() was: (%d,%d,%d) is: (%d,%d,%d)\n",
+        //    _trueColor[0],_trueColor[1],_trueColor[2],color[0],color[1],color[2]);
         memcpy(&_trueColor,&color,sizeof(nodeColor));
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));

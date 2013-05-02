@@ -149,7 +149,12 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
     double start = usecTimestampNow();
-    _voxelsUpdated = newTreeToArrays(_tree->rootNode);
+    if (_tree->isDirty()) {
+        _voxelsUpdated = newTreeToArrays(_tree->rootNode);
+        _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
+    } else {
+        _voxelsUpdated = 0;
+    }
     if (_voxelsUpdated) {
         _voxelsDirty=true;
     }
@@ -248,8 +253,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
             _voxelsInArrays++; // our know vertices in the arrays
         }
         voxelsUpdated++;
-        node->clearDirtyBit();
     }
+    node->clearDirtyBit(); // always clear the dirty bit, even if it doesn't need to be rendered
     return voxelsUpdated;
 }
 

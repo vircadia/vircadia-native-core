@@ -35,7 +35,8 @@ VoxelTree::VoxelTree() :
     voxelsBytesRead(0),
     voxelsCreatedStats(100),
     voxelsColoredStats(100),
-    voxelsBytesReadStats(100) {
+    voxelsBytesReadStats(100),
+    _isDirty(true) {
         
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
@@ -127,10 +128,13 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(*nodeData, i)) {
             // create the child if it doesn't exist
-            if (destinationNode->children[i] == NULL) {
+            if (!destinationNode->children[i]) {
                 destinationNode->addChildAtIndex(i);
-                this->voxelsCreated++;
-                this->voxelsCreatedStats.updateAverage(1);
+                if (destinationNode->isDirty()) {
+                    _isDirty = true;
+                }
+                voxelsCreated++;
+                voxelsCreatedStats.updateAverage(1);
             }
 
             // pull the color for this child
@@ -138,6 +142,9 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
             memcpy(newColor, nodeData + bytesRead, 3);
             newColor[3] = 1;
             destinationNode->children[i]->setColor(newColor);
+            if (destinationNode->children[i]->isDirty()) {
+                _isDirty = true;
+            }
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
            
@@ -146,6 +153,9 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
     }
     // average node's color based on color of children
     destinationNode->setColorFromAverageOfChildren();
+    if (destinationNode->isDirty()) {
+        _isDirty = true;
+    }
 
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
@@ -157,9 +167,12 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         // check the exists mask to see if we have a child to traverse into
         
         if (oneAtBit(childMask, childIndex)) {            
-            if (destinationNode->children[childIndex] == NULL) {
+            if (!destinationNode->children[childIndex]) {
                 // add a child at that index, if it doesn't exist
                 destinationNode->addChildAtIndex(childIndex);
+                if (destinationNode->isDirty()) {
+                    _isDirty = true;
+                }
                 this->voxelsCreated++;
                 this->voxelsCreatedStats.updateAverage(this->voxelsCreated);
             }
@@ -193,6 +206,9 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
             // Note: we need to create this node relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
             bitstreamRootNode = createMissingNode(rootNode, (unsigned char*) bitstreamAt);
+            if (bitstreamRootNode->isDirty()) {
+                _isDirty = true;
+            }
         }
 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);

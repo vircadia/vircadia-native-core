@@ -54,6 +54,9 @@ public:
                             VoxelNodeBag& bag);
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+
+    bool isDirty() const { return _isDirty; };
+    void clearDirtyBit() { _isDirty = false; };
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
@@ -68,6 +71,8 @@ private:
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
+    
+    bool _isDirty;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);
