@@ -1476,6 +1476,10 @@ void idle(void) {
             handControl.stop();
 		}
         
+        if (serialPort.active && USING_INVENSENSE_MPU9150) {
+            serialPort.readData();
+        }
+        
         //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         //
@@ -1504,7 +1508,7 @@ void idle(void) {
     }
     
     //  Read serial data 
-    if (serialPort.active) {
+    if (serialPort.active && !USING_INVENSENSE_MPU9150) {
         serialPort.readData();
     }
 }

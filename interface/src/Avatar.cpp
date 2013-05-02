@@ -226,45 +226,39 @@ void Avatar::reset() {
     _head.leanForward = _head.leanSideways = 0;
 }
 
-
-//this pertains to moving the head with the glasses
-void Avatar::UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity)
+// this pertains to moving the head with the glasses
 //  Using serial data, update avatar/render position and angles
-{
-    const float PITCH_ACCEL_COUPLING = 0.5;
-    const float ROLL_ACCEL_COUPLING = -1.0;
-    float measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-    _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
-    float measured_lateral_accel = serialInterface->getRelativeValue(ACCEL_X) -
-    ROLL_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    float measured_fwd_accel = serialInterface->getRelativeValue(ACCEL_Z) -
-    PITCH_ACCEL_COUPLING*serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-    float measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    
-    //printLog("Pitch Rate: %d ACCEL_Z: %d\n", serialInterface->getRelativeValue(PITCH_RATE),
-    //                                         serialInterface->getRelativeValue(ACCEL_Z));
-    //printLog("Pitch Rate: %d ACCEL_X: %d\n", serialInterface->getRelativeValue(PITCH_RATE),
-    //                                         serialInterface->getRelativeValue(ACCEL_Z));
-    //printLog("Pitch: %f\n", Pitch);
+void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+    float measured_pitch_rate = 0.0f;
+    float measured_roll_rate = 0.0f;
+    if (serialInterface->active && USING_INVENSENSE_MPU9150) {
+        measured_pitch_rate = serialInterface->getLastPitch();
+        _head.yawRate = serialInterface->getLastYaw();
+        measured_roll_rate = -1 * serialInterface->getLastRoll();
+    } else {
+        measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
+        _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
+        measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
+    }
     
     //  Update avatar head position based on measured gyro rates
     const float HEAD_ROTATION_SCALE = 0.70;
     const float HEAD_ROLL_SCALE = 0.40;
-    const float HEAD_LEAN_SCALE = 0.01;
     const float MAX_PITCH = 45;
     const float MIN_PITCH = -45;
     const float MAX_YAW = 85;
     const float MIN_YAW = -85;
     
-    if ((_headPitch < MAX_PITCH) && (_headPitch > MIN_PITCH))
+    if ((_headPitch < MAX_PITCH) && (_headPitch > MIN_PITCH)) {
         addHeadPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-    
+    }
+        
     addHeadRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
     
-    if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW))
-        addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
-    
-    addLean(-measured_lateral_accel * frametime * HEAD_LEAN_SCALE, -measured_fwd_accel*frametime * HEAD_LEAN_SCALE);
+    if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW)) {
+         addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
+    }
+
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
