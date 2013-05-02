@@ -234,6 +234,7 @@ bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
     AABox box;
     getAABox(box);
+    box.scale(TREE_SCALE);
     float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - (box.getCorner().x + box.getSize().x), 2) +
                                         powf(viewFrustum.getPosition().y - (box.getCorner().y + box.getSize().y), 2) +
                                         powf(viewFrustum.getPosition().z - (box.getCorner().z + box.getSize().z), 2));
