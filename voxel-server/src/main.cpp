@@ -45,8 +45,7 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
-bool debugViewFrustum = false;
-bool viewFrustumCulling = true; // for now
+bool debugVoxelSending = false;
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -200,7 +199,7 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
             printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
                 elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
         }
-    } else {
+    } else if (::debugVoxelSending) {
         printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
                 elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
     }
@@ -256,7 +255,7 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
                         elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
             }
-        } else {
+        } else if (::debugVoxelSending) {
             printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
                     elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
         }
@@ -343,13 +342,9 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-    const char* DEBUG_VIEW_FRUSTUM = "--DebugViewFrustum";
-    ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
-	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
-
-    const char* NO_VIEW_FRUSTUM_CULLING = "--NoViewFrustumCulling";
-    ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
-	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
+	const char* DEBUG_VOXEL_SENDING = "--DebugVoxelSending";
+    ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
+	printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
     
 	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
@@ -427,8 +422,6 @@ int main(int argc, const char * argv[])
             		delete []vertices;
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData);
-	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",
-	            	//		voxelDataSize,atByte,receivedBytes);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
