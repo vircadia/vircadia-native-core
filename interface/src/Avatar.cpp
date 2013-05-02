@@ -69,7 +69,7 @@ Avatar::Avatar(bool isMine) {
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
-    _TEST_bigSphereRadius       = 0.3f;
+    _TEST_bigSphereRadius       = 0.4f;
     _TEST_bigSpherePosition     = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
@@ -814,7 +814,13 @@ void Avatar::renderHead(bool lookingInMirror) {
                      _joint[ AVATAR_JOINT_HEAD_BASE ].position.z);
 	}
 	
-	glScalef( 0.03, 0.03, 0.03 );
+    glScalef
+    ( 
+        _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
+        _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
+        _joint[ AVATAR_JOINT_HEAD_BASE ].radius
+    );
+    
     
     if (lookingInMirror) {
         glRotatef(_bodyYaw   - _headYaw,   0, 1, 0);
@@ -826,7 +832,7 @@ void Avatar::renderHead(bool lookingInMirror) {
         glRotatef(_bodyRoll  + _headRoll,  0, 0, 1);
     }
     
-    glScalef(2.0, 2.0, 2.0);
+    //glScalef(2.0, 2.0, 2.0);
     glColor3fv(skinColor);
     
     glutSolidSphere(1, 30, 30);
@@ -1006,50 +1012,58 @@ void Avatar::initializeSkeleton() {
     
 	// specify the default pose position
 	_joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0  );
-	_joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.05,  0.0  );
-	_joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
-	_joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.06,  0.0  );
-	_joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.05,  0.02,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.03,  0.0,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.05,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.05,  0.02,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.03,  0.0,   0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.1,   0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.05,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.03,  0.0,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	_joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.0  );
+	_joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.0  );
+	_joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
+	_joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.0  );
+	
+    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04,  0.0  );
+	_joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.04,  0.0,   0.0  );
+	_joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
+	_joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
+	_joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
+	
+    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04,  0.0  );
+	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.04,  0.0,   0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
+	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
+	
+    _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.05,  0.0,   0.0  );
+	_joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
+	_joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
 	_joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
-	_joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.03,  0.0,   0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.15,  0.0  );
+	
+    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.05,  0.0,   0.0  );
+	_joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
+	_joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
 	_joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
     
 	// specify the radii of the bone positions
-	_joint[ AVATAR_JOINT_PELVIS           ].radius = 0.05;
-	_joint[ AVATAR_JOINT_TORSO            ].radius = 0.04;
-	_joint[ AVATAR_JOINT_CHEST            ].radius = 0.06;
-	_joint[ AVATAR_JOINT_NECK_BASE        ].radius = 0.02;
-	_joint[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.02;
-	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.025;
-	_joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.02;
-	_joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.015;
-	_joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.015;
+	_joint[ AVATAR_JOINT_PELVIS           ].radius = 0.06;
+	_joint[ AVATAR_JOINT_TORSO            ].radius = 0.055;
+	_joint[ AVATAR_JOINT_CHEST            ].radius = 0.075;
+	_joint[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
+	_joint[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
+    
+	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.027;
+	_joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.023;
+	_joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.017;
+	_joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.017;
 	_joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
-	_joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.025;
-	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.02;
+    
+	_joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.027;
+	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.023;
 	_joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].radius = 0.015;
 	_joint[ AVATAR_JOINT_RIGHT_WRIST	  ].radius = 0.015;
 	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
-	_joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.02;
+    
+	_joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.03;
 	_joint[ AVATAR_JOINT_LEFT_KNEE		  ].radius = 0.02;
 	_joint[ AVATAR_JOINT_LEFT_HEEL		  ].radius = 0.015;
 	_joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.02;
-	_joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.02;
+    
+	_joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.03;
 	_joint[ AVATAR_JOINT_RIGHT_KNEE		  ].radius = 0.02;
 	_joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.015;
 	_joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.02;
@@ -1091,14 +1105,16 @@ void Avatar::initializeSkeleton() {
 	calculateBoneLengths();
     
     _pelvisStandingHeight = 
-	_joint[ AVATAR_JOINT_LEFT_TOES ].radius +
+	_joint[ AVATAR_JOINT_LEFT_HEEL ].radius +
 	_joint[ AVATAR_JOINT_LEFT_HEEL ].length +
-	_joint[ AVATAR_JOINT_LEFT_KNEE ].length +
-    _joint[ AVATAR_JOINT_PELVIS    ].length;
+	_joint[ AVATAR_JOINT_LEFT_KNEE ].length;
     
     _height = 
     (
         _pelvisStandingHeight +
+        _joint[ AVATAR_JOINT_LEFT_HEEL ].radius +
+        _joint[ AVATAR_JOINT_LEFT_HEEL ].length +
+        _joint[ AVATAR_JOINT_LEFT_KNEE ].length +
         _joint[ AVATAR_JOINT_PELVIS    ].length +
         _joint[ AVATAR_JOINT_TORSO     ].length +
         _joint[ AVATAR_JOINT_CHEST     ].length +
@@ -1106,6 +1122,12 @@ void Avatar::initializeSkeleton() {
         _joint[ AVATAR_JOINT_HEAD_BASE ].length +
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
     );
+    
+    printf( "_height = %f\n", _height );
+    
+
+    
+    
     
 	// generate world positions
 	updateSkeleton();

@@ -728,7 +728,7 @@ void display(void)
 
             float thirdPersonPitch     =   0.0f;
             float thirdPersonUpShift   =  -0.1f;
-            float thirdPersonDistance  =   1.f;
+            float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         
             if ( USING_FIRST_PERSON_EFFECT ) {
