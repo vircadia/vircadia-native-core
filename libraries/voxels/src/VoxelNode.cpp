@@ -30,6 +30,10 @@ VoxelNode::VoxelNode() {
     for (int i = 0; i < 8; i++) {
         children[i] = NULL;
     }
+    
+    _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
+    _isDirty = true;
+    _shouldRender = false;
 }
 
 VoxelNode::~VoxelNode() {
@@ -40,6 +44,14 @@ VoxelNode::~VoxelNode() {
         if (children[i]) {
             delete children[i];
         }
+    }
+}
+
+void VoxelNode::setShouldRender(bool shouldRender) {
+    // if shouldRender is changing, then consider ourselves dirty
+    if (shouldRender != _shouldRender) {
+        _shouldRender = shouldRender;
+        _isDirty = true;
     }
 }
 
@@ -59,16 +71,19 @@ void VoxelNode::getAABox(AABox& box) const {
 }
 
 void VoxelNode::addChildAtIndex(int childIndex) {
-    children[childIndex] = new VoxelNode();
+    if (!children[childIndex]) {
+        children[childIndex] = new VoxelNode();
     
-    // XXXBHG - When the node is constructed, it should be cleanly set up as 
-    // true colored, but for some reason, not so much. I've added a a basecamp
-    // to-do to research this. But for now we'll use belt and suspenders and set
-    // it to not-false-colored here!
-    children[childIndex]->setFalseColored(false);
+        // XXXBHG - When the node is constructed, it should be cleanly set up as 
+        // true colored, but for some reason, not so much. I've added a a basecamp
+        // to-do to research this. But for now we'll use belt and suspenders and set
+        // it to not-false-colored here!
+        children[childIndex]->setFalseColored(false);
     
-    // give this child its octal code
-    children[childIndex]->octalCode = childOctalCode(octalCode, childIndex);
+        // give this child its octal code
+        children[childIndex]->octalCode = childOctalCode(octalCode, childIndex);
+        _isDirty = true;
+    }
 }
 
 // will average the child colors...
@@ -104,26 +119,35 @@ void VoxelNode::setColorFromAverageOfChildren() {
 //       the actual NO_FALSE_COLOR version are inline in the VoxelNode.h
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
 void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
-    _falseColored=true;
-    _currentColor[0] = red;
-    _currentColor[1] = green;
-    _currentColor[2] = blue;
-    _currentColor[3] = 1; // XXXBHG - False colors are always considered set
+    if (_falseColored != true || _currentColor[0] != red || _currentColor[1] != green || _currentColor[2] != blue) {
+        _falseColored=true;
+        _currentColor[0] = red;
+        _currentColor[1] = green;
+        _currentColor[2] = blue;
+        _currentColor[3] = 1; // XXXBHG - False colors are always considered set
+        _isDirty = true;
+    }
 }
 
 void VoxelNode::setFalseColored(bool isFalseColored) {
-    // if we were false colored, and are no longer false colored, then swap back
-    if (_falseColored && !isFalseColored) {
-        memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
+    if (_falseColored != isFalseColored) {
+        // if we were false colored, and are no longer false colored, then swap back
+        if (_falseColored && !isFalseColored) {
+            memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
+        }
+        _falseColored = isFalseColored; 
+        _isDirty = true;
     }
-    _falseColored = isFalseColored; 
 };
 
 
 void VoxelNode::setColor(const nodeColor& color) {
-    memcpy(&_trueColor,&color,sizeof(nodeColor));
-    if (!_falseColored) {
-        memcpy(&_currentColor,&color,sizeof(nodeColor));
+    if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
+        memcpy(&_trueColor,&color,sizeof(nodeColor));
+        if (!_falseColored) {
+            memcpy(&_currentColor,&color,sizeof(nodeColor));
+        }
+        _isDirty = true;
     }
 }
 #endif
@@ -198,7 +222,6 @@ void VoxelNode::printDebugDetails(const char* label) const {
         box.getCorner().x, box.getCorner().y, box.getCorner().z, box.getSize().x);
     printOctalCode(octalCode);
 }
-
 
 bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
     AABox box;

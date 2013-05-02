@@ -16,7 +16,7 @@
 #include "VoxelNodeBag.h"
 
 // Callback function, for recuseTreeWithOperation
-typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, bool down, void* extraData);
+typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 
 class VoxelTree {
 public:
