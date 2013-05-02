@@ -97,8 +97,21 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
+        {
+            double start = usecTimestampNow();
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
+            double end = usecTimestampNow();
+            double elapsedmsec = (end - start)/1000.0;
+            if (elapsedmsec > 100) {
+                if (elapsedmsec > 1000) {
+                    double elapsedsec = (end - start)/1000000.0;
+                    printLog("WARNING! readBitstreamToTree() took %lf seconds\n",elapsedsec);
+                } else {
+                    printLog("WARNING! readBitstreamToTree() took %lf milliseconds\n",elapsedmsec);
+                }
+            }
+        }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
@@ -135,9 +148,20 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
+    double start = usecTimestampNow();
     _voxelsUpdated = newTreeToArrays(_tree->rootNode);
     if (_voxelsUpdated) {
         _voxelsDirty=true;
+    }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! newTreeToArrays() took %lf seconds\n",elapsedsec);
+        } else {
+            printLog("WARNING! newTreeToArrays() took %lf milliseconds\n",elapsedmsec);
+        }
     }
 
     // copy the newly written data to the arrays designated for reading
@@ -145,6 +169,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
+    double start = usecTimestampNow();
     if (_voxelsDirty) {
         // lock on the buffer write lock so we can't modify the data when the GPU is reading it
         pthread_mutex_lock(&_bufferWriteLock);
@@ -153,6 +178,16 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
         memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
         memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
         pthread_mutex_unlock(&_bufferWriteLock);
+    }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds\n",elapsedsec);
+        } else {
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf milliseconds\n",elapsedmsec);
+        }
     }
 }
 
@@ -296,6 +331,7 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::updateVBOs() {
+    double start = usecTimestampNow();
     if (_voxelsDirty) {
         glBufferIndex segmentStart = 0;
         glBufferIndex segmentEnd = 0;
@@ -327,9 +363,20 @@ void VoxelSystem::updateVBOs() {
         }
         _voxelsDirty = false;
     }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! updateVBOs() took %lf seconds\n",elapsedsec);
+        } else {
+            printLog("WARNING! updateVBOs() took %lf milliseconds\n",elapsedmsec);
+        }
+    }
 }
 
 void VoxelSystem::render() {
+    double start = usecTimestampNow();
     glPushMatrix();
     updateVBOs();
     // tell OpenGL where to find vertex and color information
@@ -362,6 +409,16 @@ void VoxelSystem::render() {
 
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! render() took %lf seconds\n",elapsedsec);
+        } else {
+            printLog("WARNING! render() took %lf milliseconds\n",elapsedmsec);
+        }
+    }
 }
 
 int VoxelSystem::_nodeCount = 0;
