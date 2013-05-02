@@ -143,6 +143,8 @@ Audio audio(&audioScope, &myAvatar);
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
 
+bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
+
 bool statsOn = false;               //  Whether to show onscreen text overlay with stats
 bool starsOn = false;               //  Whether to display the stars
 bool paintOn = false;               //  Whether to paint voxels as you fly around
@@ -1041,6 +1043,14 @@ int setMenu(int state) {
     return setValue(state, &::menuOn);
 }
 
+int setRenderWarnings(int state) {
+    int value = setValue(state, &::renderWarningsOn);
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.setRenderPipelineWarnings(::renderWarningsOn);
+    }
+    return value;
+}
+
 int setDisplayFrustum(int state) {
     return setValue(state, &::frustumOn);
 }
@@ -1178,6 +1188,7 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
+    menuColumnDebug->addRow("Show Render Pipeline Warnings", setRenderWarnings);
     menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);

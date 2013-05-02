@@ -103,7 +103,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
             double end = usecTimestampNow();
             double elapsedmsec = (end - start)/1000.0;
-            if (elapsedmsec > 1) {
+            if (_renderWarningsOn && elapsedmsec > 1) {
                 if (elapsedmsec > 1000) {
                     double elapsedsec = (end - start)/1000000.0;
                     printLog("WARNING! readBitstreamToTree() took %lf seconds\n",elapsedsec);
@@ -155,7 +155,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
-    if (elapsedmsec > 1) {
+    if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
             printLog("WARNING! newTreeToArrays() took %lf seconds\n",elapsedsec);
@@ -181,7 +181,7 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
-    if (elapsedmsec > 1) {
+    if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
             printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds\n",elapsedsec);
@@ -259,6 +259,8 @@ VoxelSystem* VoxelSystem::clone() const {
 }
 
 void VoxelSystem::init() {
+
+    _renderWarningsOn = false;
 
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
@@ -365,7 +367,7 @@ void VoxelSystem::updateVBOs() {
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
-    if (elapsedmsec > 1) {
+    if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
             printLog("WARNING! updateVBOs() took %lf seconds\n",elapsedsec);
@@ -411,7 +413,7 @@ void VoxelSystem::render() {
     glPopMatrix();
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
-    if (elapsedmsec > 1) {
+    if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
             printLog("WARNING! render() took %lf seconds\n",elapsedsec);
