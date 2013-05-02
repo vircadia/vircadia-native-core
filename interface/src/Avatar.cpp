@@ -324,7 +324,16 @@ void Avatar::setMousePressed( bool d ) {
 
 void Avatar::simulate(float deltaTime) {
     
-    float nearestAvatarDistance = 1000000.f;
+    float nearestAvatarDistance = std::numeric_limits<float>::max();
+
+//keep this - I'm still using it to test things....
+/*
+//TEST    
+static float tt = 0.0f;
+tt += deltaTime * 2.0f;
+//_head.leanSideways = 0.01 * sin( tt );
+_head.leanForward  = 0.02 * sin( tt * 0.8 );
+*/
 
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
@@ -346,8 +355,7 @@ void Avatar::simulate(float deltaTime) {
     // all the other avatars for potential interactions...
     if ( _isMine )
     {    
-        float closestDistance = 10000.0f;
-                
+        
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
@@ -467,9 +475,11 @@ void Avatar::simulate(float deltaTime) {
 	// decay velocity
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
     
-    // If other avatars nearby, damp velocity much more!
-    if (_isMine && (nearestAvatarDistance < 3.f)) {
-        _velocity *= (1.0 - fmin(10.f * glm::length(_velocity) * deltaTime, 1.0));
+    // If someone is near, damp velocity as a function of closeness
+    const float AVATAR_BRAKING_RANGE = 1.2f;
+    const float AVATAR_BRAKING_STRENGTH = 25.f;
+    if (_isMine && (nearestAvatarDistance < AVATAR_BRAKING_RANGE )) {
+        _velocity *= (1.f - deltaTime * AVATAR_BRAKING_STRENGTH * (AVATAR_BRAKING_RANGE - nearestAvatarDistance));
     }
 	
     // update head information

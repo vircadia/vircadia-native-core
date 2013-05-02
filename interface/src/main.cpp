@@ -221,23 +221,15 @@ void displayStats(void)
     if (::menuOn == 0) {
         statsVerticalOffset = 8;
     }
-	//  bitmap chars are about 10 pels high 
-    char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, legend);
 
-    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
-    drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
-
-	glm::vec3 avatarPos = myAvatar.getPosition();
-    
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
-            FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
-    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
+    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
+            FPS, packetsPerSecond,  (float)bytesPerSecond * 8.f / 1000000.f);
+    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() << " Updated: " << voxels.getVoxelsUpdated();
-    drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
 	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
@@ -251,7 +243,7 @@ void displayStats(void)
     
 	voxelStats.str("");
 	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
-    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
+    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
@@ -1633,7 +1625,7 @@ int main(int argc, const char * argv[])
 	}
 
     // Handle Local Domain testing with the --local command line
-    if (true || cmdOptionExists(argc, argv, "--local")) {
+    if (cmdOptionExists(argc, argv, "--local")) {
     	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
