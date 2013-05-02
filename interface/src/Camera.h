@@ -38,7 +38,6 @@ public:
     void setTargetPosition( glm::vec3   t ) { _targetPosition = t; }
     void setTargetYaw     ( float       y ) { _idealYaw       = y; }
     void setPosition      ( glm::vec3   p ) { _position       = p; }
-    void setOrientation   ( Orientation o ) { _orientation.set(o); }
     void setTightness     ( float       t ) { _tightness      = t; }
     
     void setMode          ( CameraMode  m );
@@ -83,6 +82,7 @@ private:
 	float		_tightness;
 	Orientation	_orientation;
     
+    void generateOrientation();
     void updateFollowMode( float deltaTime );
 };
 
