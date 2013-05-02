@@ -38,7 +38,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-const int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -342,7 +342,7 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-	const char* DEBUG_VOXEL_SENDING = "--DebugVoxelSending";
+	const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
 	printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
     
@@ -356,6 +356,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
+
+    // Check to see if the user passed in a command line option for setting packet send rate
+	const char* PACKETS_PER_SECOND = "--packetsPerSecond";
+    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
+    if (packetsPerSecond) {
+	    PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+	    if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
+	        PACKETS_PER_CLIENT_PER_INTERVAL = 1;
+	    }
+    	printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
 	}
     
 	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
