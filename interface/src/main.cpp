@@ -113,7 +113,7 @@ bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
+ViewFrustum viewFrustum;            // current state of view frustum, perspective, orientation, etc.
 
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
@@ -704,16 +704,16 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		// camera settings
-		if ( ::lookingInMirror ) {
-			// set the camera to looking at my own face
-			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
+        // camera settings
+        if ( ::lookingInMirror ) {
+            // set the camera to looking at my own face
+            myCamera.setTargetPosition  ( myAvatar.getHeadPosition() );
             myCamera.setTargetYaw       ( myAvatar.getBodyYaw() - 180.0f ); // 180 degrees from body yaw
-			myCamera.setPitch			( 0.0 );
-			myCamera.setRoll			( 0.0 );
-			myCamera.setUpShift         ( 0.0 );	
-			myCamera.setDistance		( 0.2 );
-			myCamera.setTightness		( 100.0f );
+            myCamera.setPitch           ( 0.0 );
+            myCamera.setRoll            ( 0.0 );
+            myCamera.setUpShift         ( 0.0 );	
+            myCamera.setDistance        ( 0.2 );
+            myCamera.setTightness       ( 100.0f );
 		} else {
 
             //float firstPersonPitch     =  20.0f;
@@ -788,15 +788,15 @@ void display(void)
                 */
                 
             } else {
-                myCamera.setPitch	 (thirdPersonPitch    );
+                myCamera.setPitch    (thirdPersonPitch    );
                 myCamera.setUpShift  (thirdPersonUpShift  );
                 myCamera.setDistance (thirdPersonDistance );
                 myCamera.setTightness(thirdPersonTightness);
             }
                 
-			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
-            myCamera.setTargetYaw	  ( myAvatar.getBodyYaw() );
-			myCamera.setRoll		  (   0.0  );
+            myCamera.setTargetPosition( myAvatar.getHeadPosition() );
+            myCamera.setTargetYaw     ( myAvatar.getBodyYaw() );
+            myCamera.setRoll          (   0.0  );
 		}
                 
         // important...
@@ -815,24 +815,24 @@ void display(void)
 
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
-			// set the camera to third-person view but offset so we can see the frustum
+            // set the camera to third-person view but offset so we can see the frustum
             viewFrustumOffsetCamera.setTargetYaw(  ::viewFrustumOffsetYaw + myAvatar.getBodyYaw() );
-			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
-			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
-			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
-			viewFrustumOffsetCamera.update(1.f/FPS);
-			whichCamera = viewFrustumOffsetCamera;
-		}		
+            viewFrustumOffsetCamera.setPitch    (  ::viewFrustumOffsetPitch    );
+            viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
+            viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
+            viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
+            viewFrustumOffsetCamera.update(1.f/FPS);
+            whichCamera = viewFrustumOffsetCamera;
+        }		
 
 		// transform view according to whichCamera
 		// could be myCamera (if in normal mode)
 		// or could be viewFrustumOffsetCamera if in offset mode
 		// I changed the ordering here - roll is FIRST (JJV) 
 
-        glRotatef	(         whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z );
-        glRotatef	(         whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z );
-        glRotatef	( 180.0 - whichCamera.getYaw(),	  IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z    );
+        glRotatef   (         whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z );
+        glRotatef   (         whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z );
+        glRotatef   ( 180.0 - whichCamera.getYaw(),	  IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z    );
 
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
@@ -849,18 +849,18 @@ void display(void)
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
-		glPushMatrix();
-			glutSolidSphere( sphereRadius, 15, 15 );
-		glPopMatrix();
+        glPushMatrix();
+            glutSolidSphere( sphereRadius, 15, 15 );
+        glPopMatrix();
 
-		//draw a grid ground plane....
-		drawGroundPlaneGrid( 5.0f, 9 );
+        //draw a grid ground plane....
+        drawGroundPlaneGrid( 5.0f, 9 );
 		
         //  Draw voxels
-		if ( showingVoxels )
-		{
-			voxels.render();
-		}
+        if ( showingVoxels )
+        {
+            voxels.render();
+        }
 		
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
