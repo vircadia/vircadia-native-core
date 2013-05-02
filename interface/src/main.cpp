@@ -1633,7 +1633,7 @@ int main(int argc, const char * argv[])
 	}
 
     // Handle Local Domain testing with the --local command line
-    if (true || cmdOptionExists(argc, argv, "--local")) {
+    if (cmdOptionExists(argc, argv, "--local")) {
     	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
