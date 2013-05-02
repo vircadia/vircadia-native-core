@@ -58,16 +58,13 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 
 // Recurses voxel node with an operation function
 void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperation operation, void* extraData) {
-    // call the operation function going "down" first, stop deeper recursion if function returns false
-    if (operation(node,true,extraData)) {
-        for (int i = 0; i < sizeof(node->children)/sizeof(node->children[0]); i++) {
+    if (operation(node, extraData)) {
+        for (int i = 0; i < sizeof(node->children) / sizeof(node->children[0]); i++) {
             VoxelNode* child = node->children[i];
             if (child) {
-                recurseNodeWithOperation(child,operation,extraData);
+                recurseNodeWithOperation(child, operation, extraData);
             }
         }
-        // call operation on way back up
-        operation(node,false,extraData);
     }
 }
 

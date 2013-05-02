@@ -72,7 +72,6 @@ enum AvatarBoneID
 	NUM_AVATAR_BONES
 };
 
-
 class Avatar : public AvatarData {
 public:
     Avatar(bool isMine);
@@ -93,8 +92,8 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     
-    bool getIsNearInteractingOther() { return _interactingOtherIsNearby; }
-    
+    bool  getIsNearInteractingOther();
+        
     float getAbsoluteHeadYaw() const;
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
@@ -123,7 +122,7 @@ public:
     void setDisplayingHead( bool displayingHead );
     
     float getAverageLoudness() {return _head.averageLoudness;};
-    void setAverageLoudness(float al) {_head.averageLoudness = al;};
+    void  setAverageLoudness(float al) {_head.averageLoudness = al;};
      
     void SetNewHeadTarget(float, float);
 
@@ -145,27 +144,29 @@ public:
     
 private:
 
-    const bool  AVATAR_GRAVITY          = true;
-    const float DECAY                   = 0.1;
-    const float THRUST_MAG              = 1200.0;
-    const float YAW_MAG                 = 500.0; //JJV - changed from 300.0;
-    const float TEST_YAW_DECAY          = 5.0;
-    const float LIN_VEL_DECAY           = 5.0;
-    const float MY_HAND_HOLDING_PULL    = 0.2;
-    const float YOUR_HAND_HOLDING_PULL  = 1.0;
-	const float BODY_SPRING_FORCE       = 6.0f;
-	const float BODY_SPRING_DECAY       = 16.0f;
+    const bool  BALLS_ON                      = false;
+    const bool  AVATAR_GRAVITY                = true;
+    const float DECAY                         = 0.1;
+    const float THRUST_MAG                    = 1200.0;
+    const float YAW_MAG                       = 500.0;
+    const float BODY_PITCH_DECAY              = 5.0;
+    const float BODY_YAW_DECAY                = 5.0;
+    const float BODY_ROLL_DECAY               = 5.0;
+    const float LIN_VEL_DECAY                 = 5.0;
+    const float MY_HAND_HOLDING_PULL          = 0.2;
+    const float YOUR_HAND_HOLDING_PULL        = 1.0;
+	const float BODY_SPRING_FORCE             = 6.0f;
+	const float BODY_SPRING_DECAY             = 16.0f;
+	const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
+    const float COLLISION_RADIUS_SCALAR       = 1.8;
+    const float COLLISION_BALL_FORCE          = 1.0;
+    const float COLLISION_BODY_FORCE          = 6.0;
+    const float COLLISION_BALL_FRICTION       = 60.0;
+    const float COLLISION_BODY_FRICTION       = 0.5;
 
-    //const float COLLISION_FRICTION      = 0.5;
-    //const float COLLISION_RADIUS_SCALAR = 1.8;
-    //const float COLLISION_BALL_FORCE    = 0.1;
-    //const float COLLISION_BODY_FORCE    = 3.0;
-
-    const float COLLISION_RADIUS_SCALAR = 1.8;
-    const float COLLISION_BALL_FORCE    = 0.6;
-    const float COLLISION_BODY_FORCE    = 6.0;
-    const float COLLISION_BALL_FRICTION = 200.0;
-    const float COLLISION_BODY_FRICTION = 0.5;
+    //  Do you want head to try to return to center (depends on interface detected)
+    void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
+    const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 
     struct AvatarBone
     {
@@ -221,40 +222,48 @@ private:
         float lastLoudness;
         float averageLoudness;
         float audioAttack;
+        
+        //  Strength of return springs
+        float returnSpringScale;
     };
 
-    AvatarHead        _head;
-    bool              _isMine;
-    glm::vec3         _TEST_bigSpherePosition;
-    float             _TEST_bigSphereRadius;
-    bool              _mousePressed;
-    float             _bodyYawDelta;
-    bool              _usingBodySprings;
-    glm::vec3         _movedHandOffset;
-    glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBone	      _bone[ NUM_AVATAR_BONES ];
-    AvatarMode        _mode;
-    glm::vec3         _handHoldingPosition;
-    glm::vec3         _velocity;
-    glm::vec3	      _thrust;
-    float             _speed;
-    float		      _maxArmLength;
-    Orientation	      _orientation;
-    int               _driveKeys[MAX_DRIVE_KEYS];
-    GLUquadric*       _sphere;
-    float             _renderYaw;
-    float             _renderPitch; //   Pitch from view frustum when this is own head
-    timeval           _transmitterTimer;
-    float             _transmitterHz;
-    int               _transmitterPackets;
-    Avatar*           _interactingOther;
-    bool              _interactingOtherIsNearby;
-    float             _pelvisStandingHeight;
-    float             _height;
-    Balls*            _balls;
-    AvatarTouch       _avatarTouch;
-    bool              _displayingHead; // should be false if in first-person view
-        
+    AvatarHead  _head;
+    bool        _isMine;
+    glm::vec3   _TEST_bigSpherePosition;
+    float       _TEST_bigSphereRadius;
+    bool        _mousePressed;
+    float       _bodyPitchDelta;
+    float       _bodyYawDelta;
+    float       _bodyRollDelta;
+    bool        _usingBodySprings;
+    glm::vec3   _movedHandOffset;
+    glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
+    AvatarBone	_bone[ NUM_AVATAR_BONES ];
+    AvatarMode  _mode;
+    glm::vec3   _handHoldingPosition;
+    glm::vec3   _velocity;
+    glm::vec3	_thrust;
+    float       _speed;
+    float		_maxArmLength;
+    Orientation	_orientation;
+    int         _driveKeys[MAX_DRIVE_KEYS];
+    GLUquadric* _sphere;
+    float       _renderYaw;
+    float       _renderPitch; //   Pitch from view frustum when this is own head
+    bool        _transmitterIsFirstData; 
+    timeval     _transmitterTimeLastReceived;
+    timeval     _transmitterTimer;
+    float       _transmitterHz;
+    int         _transmitterPackets;
+    glm::vec3   _transmitterInitialReading;
+    Avatar*     _interactingOther;
+    float       _pelvisStandingHeight;
+    float       _height;
+    Balls*      _balls;
+    AvatarTouch _avatarTouch;
+    bool        _displayingHead; // should be false if in first-person view
+    bool        _returnHeadToCenter;
+
     // private methods...
     void initializeSkeleton();
     void updateSkeleton();
@@ -265,6 +274,8 @@ private:
     void updateHead( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
+    void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
+    void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
 };
 
 #endif

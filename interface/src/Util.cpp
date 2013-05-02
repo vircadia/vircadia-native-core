@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 
 #include "Log.h"
+#include "ui/TextRenderer.h"
 #include "world.h"
 #include "Util.h"
 
@@ -24,7 +25,6 @@ using namespace std;
 #define WORKAROUND_BROKEN_GLUT_STROKES
 // see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
 static float MONO_STROKE_WIDTH_GLUT = 104.76;
-
 
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
     //
@@ -152,19 +152,18 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
+static TextRenderer* textRenderer(int mono) {
+    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY);
+    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY);
+    return mono ? monoRenderer : proportionalRenderer;
+}
+
 int widthText(float scale, int mono, char const* string) {
-    int width = 0;
-    if (!mono) {
-        width = scale * glutStrokeLength(GLUT_STROKE_ROMAN, (const unsigned char *) string);
-    } else {
-#ifndef WORKAROUND_BROKEN_GLUT_STROKES
-        width = scale * glutStrokeLength(GLUT_STROKE_MONO_ROMAN, (const unsigned char *) string);
-#else
-        // return value is unreliable, so just calculate it
-        width = scale * float(strlen(string)) * MONO_STROKE_WIDTH_GLUT;
-#endif
-    }
-    return width;
+    return textRenderer(mono)->computeWidth(string) * (scale / 0.10);
+}
+
+float widthChar(float scale, int mono, char ch) {
+    return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
 }
 
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
@@ -177,35 +176,12 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     glPushMatrix();
     glTranslatef( static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3f(r,g,b);
-    glRotated(180+rotate,0,0,1);
-    glRotated(180,0,1,0);
-    glLineWidth(thick);
-    glScalef(scale, scale, 1.0);
-    len = (int) strlen(string);
-	for (i = 0; i < len; i++)
-	{
-        if (!mono) {
-            glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
-        } else {
-#ifdef WORKAROUND_BROKEN_GLUT_STROKES
-            if (string[i] != 'm') {
-#endif
-                glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(string[i]));
-#ifdef WORKAROUND_BROKEN_GLUT_STROKES
-            } else {
-                // some glut implementations have a broken 'm'...
-                unsigned char tmpStr[2]; 
-                tmpStr[0] = string[i];
-                tmpStr[1] = '\0';
-                float scale = MONO_STROKE_WIDTH_GLUT / glutStrokeLength(GLUT_STROKE_ROMAN, tmpStr);
-                glScalef(scale, 1.0f, 1.0f);
-                glutStrokeCharacter(GLUT_STROKE_ROMAN, int(string[i]));
-                // staying humble on the stack - might be in projection mode
-                glScalef(1.0f / scale, 1.0f, 1.0f);
-            }
-#endif
-        }
-	}
+    glRotated(rotate,0,0,1);
+    // glLineWidth(thick);
+    glScalef(scale / 0.10, scale / 0.10, 1.0);
+    
+    textRenderer(mono)->draw(0, 0, string);
+    
     glPopMatrix();
 
 }

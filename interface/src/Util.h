@@ -19,6 +19,13 @@
 
 #include <Orientation.h>
 
+// the standard sans serif font family
+#define SANS_FONT_FAMILY "Helvetica"
+
+// the standard mono font family
+#define MONO_FONT_FAMILY "Courier"
+
+
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
@@ -28,6 +35,7 @@ float randFloat();
 void render_world_box();
 void render_vector(glm::vec3 * vec);
 int widthText(float scale, int mono, char const* string);
+float widthChar(float scale, int mono, char ch);
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono, 
               char const* string, float r=1.0, float g=1.0, float b=1.0);
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
