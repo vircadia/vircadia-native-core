@@ -33,7 +33,7 @@ public:
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; };
 
     void init();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime) { };
     void render();
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
