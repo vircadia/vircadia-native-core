@@ -29,12 +29,16 @@ public:
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
     VoxelSystem* clone() const;
+    
+    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; };
 
     void init();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime) { };
     void render();
-    void setVoxelsRendered(int v) {voxelsRendered = v;};
-    int getVoxelsRendered() {return voxelsRendered;};
+
+    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
+    unsigned long  getVoxelsRendered() const {return _voxelsInArrays;};
+
     void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
     void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
@@ -57,36 +61,42 @@ public:
 private:
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool randomColorOperation(VoxelNode* node, bool down, void* extraData);
-    static bool falseColorizeRandomOperation(VoxelNode* node, bool down, void* extraData);
-    static bool trueColorizeOperation(VoxelNode* node, bool down, void* extraData);
-    static bool falseColorizeInViewOperation(VoxelNode* node, bool down, void* extraData);
-    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, bool down, void* extraData);
-    static bool getDistanceFromViewRangeOperation(VoxelNode* node, bool down, void* extraData);
+    static bool randomColorOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeRandomOperation(VoxelNode* node, void* extraData);
+    static bool trueColorizeOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeInViewOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
+    static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
 
-    int voxelsRendered;
     Avatar* _viewerAvatar;
     Camera* _camera;
-    VoxelTree *tree;
-    GLfloat *readVerticesArray;
-    GLubyte *readColorsArray;
-    GLfloat *readVerticesEndPointer;
-    GLfloat *writeVerticesArray;
-    GLubyte *writeColorsArray;
-    GLfloat *writeVerticesEndPointer;
-    GLuint vboVerticesID;
-    GLuint vboNormalsID;
-    GLuint vboColorsID;
-    GLuint vboIndicesID;
-    pthread_mutex_t bufferWriteLock;
+    VoxelTree* _tree;
+    GLfloat* _readVerticesArray;
+    GLubyte* _readColorsArray;
+    GLfloat* _writeVerticesArray;
+    GLubyte* _writeColorsArray;
+    bool* _voxelDirtyArray;
+    unsigned long _voxelsUpdated;
+    unsigned long _voxelsInArrays;
+    
+    GLuint _vboVerticesID;
+    GLuint _vboNormalsID;
+    GLuint _vboColorsID;
+    GLuint _vboIndicesID;
+    pthread_mutex_t _bufferWriteLock;
 
-    int treeToArrays(VoxelNode *currentNode, const glm::vec3& nodePosition);
+    ViewFrustum* _viewFrustum;
+
+    int newTreeToArrays(VoxelNode *currentNode);
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
+    void updateVBOs();
+    
+    bool _voxelsDirty;
 };
 
 #endif

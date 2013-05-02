@@ -113,11 +113,11 @@ bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
 
-ViewFrustum viewFrustum;			// current state of view frustum, perspective, orientation, etc.
+ViewFrustum viewFrustum;            // current state of view frustum, perspective, orientation, etc.
 
-Avatar myAvatar(true);              // The rendered avatar of oneself
-Camera myCamera;                    // My view onto the world (sometimes on myself :)
-Camera viewFrustumOffsetCamera;     // The camera we use to sometimes show the view frustum from an offset mode
+Avatar myAvatar(true);            // The rendered avatar of oneself
+Camera myCamera;                  // My view onto the world (sometimes on myself :)
+Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -236,7 +236,7 @@ void displayStats(void)
     drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered();
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() << " Updated: " << voxels.getVoxelsUpdated();
     drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
@@ -502,31 +502,19 @@ void loadViewFrustum(ViewFrustum& viewFrustum) {
 	glm::vec3 up;
 	glm::vec3 right;
 	float fov, nearClip, farClip;
-	float yaw, pitch, roll;
 	
 	// Camera or Head?
 	if (::cameraFrustum) {
-		position    = ::myCamera.getPosition();
+		position = ::myCamera.getPosition();
 	} else {
-		position    = ::myAvatar.getHeadPosition();
+		position = ::myAvatar.getHeadPosition();
 	}
     
-    // This bit of hackery is all because our Cameras report the incorrect yaw.
-    // For whatever reason, the camera has a yaw set to 180.0-trueYaw, so we basically
-    // need to get the "yaw" from the camera and adjust it to be the trueYaw
-    yaw         =  -(::myCamera.getOrientation().getYaw()-180);
-    pitch       = ::myCamera.getOrientation().getPitch();
-    roll        = ::myCamera.getOrientation().getRoll();
     fov         = ::myCamera.getFieldOfView();
     nearClip    = ::myCamera.getNearClip();
     farClip     = ::myCamera.getFarClip();
-	
-	// We can't use the camera's Orientation because of it's broken yaw. so we make a new
-	// correct orientation to get our vectors
-    Orientation o;
-    o.yaw(yaw);
-    o.pitch(pitch);
-    o.roll(roll);
+
+    Orientation o = ::myCamera.getOrientation();
 
     direction   = o.getFront();
     up          = o.getUp();
@@ -716,16 +704,16 @@ void display(void)
         glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
-		// camera settings
-		if ( ::lookingInMirror ) {
-			// set the camera to looking at my own face
-			myCamera.setTargetPosition	( myAvatar.getHeadPosition() );
-			myCamera.setTargetYaw       ( - myAvatar.getBodyYaw() );
-			myCamera.setPitch			( 0.0 );
-			myCamera.setRoll			( 0.0 );
-			myCamera.setUpShift         ( 0.0 );	
-			myCamera.setDistance		( 0.2 );
-			myCamera.setTightness		( 100.0f );
+        // camera settings
+        if ( ::lookingInMirror ) {
+            // set the camera to looking at my own face
+            myCamera.setTargetPosition  ( myAvatar.getHeadPosition() );
+            myCamera.setTargetYaw       ( myAvatar.getBodyYaw() - 180.0f ); // 180 degrees from body yaw
+            myCamera.setPitch           ( 0.0 );
+            myCamera.setRoll            ( 0.0 );
+            myCamera.setUpShift         ( 0.0 );	
+            myCamera.setDistance        ( 0.2 );
+            myCamera.setTightness       ( 100.0f );
 		} else {
 
             //float firstPersonPitch     =  20.0f;
@@ -800,17 +788,17 @@ void display(void)
                 */
                 
             } else {
-                myCamera.setPitch	 (thirdPersonPitch    );
+                myCamera.setPitch    (thirdPersonPitch    );
                 myCamera.setUpShift  (thirdPersonUpShift  );
                 myCamera.setDistance (thirdPersonDistance );
                 myCamera.setTightness(thirdPersonTightness);
             }
                 
-			myCamera.setTargetPosition( myAvatar.getHeadPosition() );
-			myCamera.setTargetYaw	  ( 180.0 - myAvatar.getBodyYaw() );
-			myCamera.setRoll		  (   0.0  );
+            myCamera.setTargetPosition( myAvatar.getHeadPosition() );
+            myCamera.setTargetYaw     ( myAvatar.getBodyYaw() );
+            myCamera.setRoll          (   0.0  );
 		}
-        
+                
         // important...
         myCamera.update( 1.f/FPS );
 		
@@ -827,23 +815,25 @@ void display(void)
 
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
-			// set the camera to third-person view but offset so we can see the frustum
-			viewFrustumOffsetCamera.setTargetYaw(  180.0 - myAvatar.getBodyYaw() + ::viewFrustumOffsetYaw );
-			viewFrustumOffsetCamera.setPitch	(  ::viewFrustumOffsetPitch    );
-			viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-			viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
-			viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
-			viewFrustumOffsetCamera.update(1.f/FPS);
-			whichCamera = viewFrustumOffsetCamera;
-		}		
+            // set the camera to third-person view but offset so we can see the frustum
+            viewFrustumOffsetCamera.setTargetYaw(  ::viewFrustumOffsetYaw + myAvatar.getBodyYaw() );
+            viewFrustumOffsetCamera.setPitch    (  ::viewFrustumOffsetPitch    );
+            viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
+            viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
+            viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
+            viewFrustumOffsetCamera.update(1.f/FPS);
+            whichCamera = viewFrustumOffsetCamera;
+        }		
 
 		// transform view according to whichCamera
 		// could be myCamera (if in normal mode)
 		// or could be viewFrustumOffsetCamera if in offset mode
 		// I changed the ordering here - roll is FIRST (JJV) 
-        glRotatef	( whichCamera.getRoll(),	0, 0, 1 );
-        glRotatef	( whichCamera.getPitch(),	1, 0, 0 );
-        glRotatef	( whichCamera.getYaw(),	    0, 1, 0 );
+
+        glRotatef   (         whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z );
+        glRotatef   (         whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z );
+        glRotatef   ( 180.0 - whichCamera.getYaw(),	  IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z    );
+
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
         if (::starsOn) {
@@ -859,18 +849,18 @@ void display(void)
 		// draw a red sphere  
 		float sphereRadius = 0.25f;
         glColor3f(1,0,0);
-		glPushMatrix();
-			glutSolidSphere( sphereRadius, 15, 15 );
-		glPopMatrix();
+        glPushMatrix();
+            glutSolidSphere( sphereRadius, 15, 15 );
+        glPopMatrix();
 
-		//draw a grid ground plane....
-		drawGroundPlaneGrid( 5.0f, 9 );
+        //draw a grid ground plane....
+        drawGroundPlaneGrid( 5.0f, 9 );
 		
         //  Draw voxels
-		if ( showingVoxels )
-		{
-			voxels.render();
-		}
+        if ( showingVoxels )
+        {
+            voxels.render();
+        }
 		
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
@@ -1619,6 +1609,8 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[])
 {
+    voxels.setViewFrustum(&::viewFrustum);
+
     shared_lib::printLog = & ::printLog;
     voxels_lib::printLog = & ::printLog;
     avatars_lib::printLog = & ::printLog;
@@ -1641,7 +1633,7 @@ int main(int argc, const char * argv[])
 	}
 
     // Handle Local Domain testing with the --local command line
-    if (cmdOptionExists(argc, argv, "--local")) {
+    if (true || cmdOptionExists(argc, argv, "--local")) {
     	printLog("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
