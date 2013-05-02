@@ -63,6 +63,8 @@ public:
     bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
     
 private:
+    int  _callsToTreesToArrays;
+
     bool _renderWarningsOn;
     // Operation functions for tree recursion methods
     static int _nodeCount;

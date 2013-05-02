@@ -150,6 +150,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 void VoxelSystem::setupNewVoxelsForDrawing() {
     double start = usecTimestampNow();
     if (_tree->isDirty()) {
+        _callsToTreesToArrays++;
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
     } else {
@@ -163,14 +164,16 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! newTreeToArrays() took %lf seconds\n",elapsedsec);
+            printLog("WARNING! newTreeToArrays() took %lf seconds %ld voxels updated\n", elapsedsec, _voxelsUpdated);
         } else {
-            printLog("WARNING! newTreeToArrays() took %lf milliseconds\n",elapsedmsec);
+            printLog("WARNING! newTreeToArrays() took %lf milliseconds %ld voxels updated\n", elapsedmsec, _voxelsUpdated);
         }
     }
 
-    // copy the newly written data to the arrays designated for reading
-    copyWrittenDataToReadArrays();
+    if (_voxelsDirty) {
+        // copy the newly written data to the arrays designated for reading
+        copyWrittenDataToReadArrays();
+    }
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
@@ -189,9 +192,11 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
     if (_renderWarningsOn && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds\n",elapsedsec);
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds for %ld voxels %ld updated\n", 
+                elapsedsec, _voxelsInArrays, _voxelsUpdated);
         } else {
-            printLog("WARNING! copyWrittenDataToReadArrays() took %lf milliseconds\n",elapsedmsec);
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf milliseconds for %ld voxels %ld updated\n", 
+                elapsedmsec, _voxelsInArrays, _voxelsUpdated);
         }
     }
 }
@@ -266,6 +271,7 @@ VoxelSystem* VoxelSystem::clone() const {
 void VoxelSystem::init() {
 
     _renderWarningsOn = false;
+    _callsToTreesToArrays = 0;
 
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
@@ -373,13 +379,20 @@ void VoxelSystem::updateVBOs() {
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
     if (_renderWarningsOn && elapsedmsec > 1) {
-        if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! updateVBOs() took %lf seconds\n",elapsedsec);
+        if (elapsedmsec > 1) {
+            if (elapsedmsec > 1000) {
+                double elapsedsec = (end - start)/1000000.0;
+                printLog("WARNING! updateVBOs() took %lf seconds after %d calls to newTreeToArrays()\n",
+                    elapsedsec, _callsToTreesToArrays);
+            } else {
+                printLog("WARNING! updateVBOs() took %lf milliseconds after %d calls to newTreeToArrays()\n",
+                    elapsedmsec, _callsToTreesToArrays);
+            }
         } else {
-            printLog("WARNING! updateVBOs() took %lf milliseconds\n",elapsedmsec);
+            printLog("WARNING! updateVBOs() called after %d calls to newTreeToArrays()\n",_callsToTreesToArrays);
         }
     }
+    _callsToTreesToArrays = 0; // clear it
 }
 
 void VoxelSystem::render() {

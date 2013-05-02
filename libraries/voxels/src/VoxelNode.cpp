@@ -125,7 +125,9 @@ void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
         _currentColor[1] = green;
         _currentColor[2] = blue;
         _currentColor[3] = 1; // XXXBHG - False colors are always considered set
-        _isDirty = true;
+        if (_shouldRender) {
+            _isDirty = true;
+        }
     }
 }
 
@@ -136,7 +138,9 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
             memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
         }
         _falseColored = isFalseColored; 
-        _isDirty = true;
+        if (_shouldRender) {
+            _isDirty = true;
+        }
     }
 };
 
@@ -149,7 +153,9 @@ void VoxelNode::setColor(const nodeColor& color) {
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
-        _isDirty = true;
+        if (_shouldRender) {
+            _isDirty = true;
+        }
     }
 }
 #endif
