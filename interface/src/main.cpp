@@ -1748,6 +1748,12 @@ void reshape(int width, int height)
         camera.setAspectRatio(aspectRatio *= 0.5);
         camera.setFieldOfView(fov = 2 * atan((0.0468 * ::oculusDistortionScale) / 0.041) * (180 / PI));
         
+        // resize the render texture
+        if (::oculusTextureID != 0) {
+            glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
     } else {
         camera.setFieldOfView(fov = 60);
     }
