@@ -459,11 +459,6 @@ namespace starfield {
 
     private: // gl API handling 
 
-#ifdef __APPLE__ 
-#   define glBindVertexArray glBindVertexArrayAPPLE 
-#   define glGenVertexArrays glGenVertexArraysAPPLE 
-#   define glDeleteVertexArrays glDeleteVertexArraysAPPLE 
-#endif
         void glAlloc() {
 
             GLchar const* const VERTEX_SHADER =
@@ -487,26 +482,21 @@ namespace starfield {
             _objProgram.addShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
             _objProgram.link();
 
-            glGenVertexArrays(1, & _hndVertexArray);
+            glGenBuffersARB(1, & _hndVertexArray);
         }
 
         void glFree() {
 
-            glDeleteVertexArrays(1, & _hndVertexArray);
+            glDeleteBuffersARB(1, & _hndVertexArray);
         }
 
         void glUpload(GLsizei n) {
-
-            GLuint vbo;
-            glGenBuffers(1, & vbo);
-
-            glBindVertexArray(_hndVertexArray);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
             glBufferData(GL_ARRAY_BUFFER,
                     n * sizeof(GpuVertex), _arrData, GL_STATIC_DRAW);
-            glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
+            //glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
 
-            glBindVertexArray(0); 
+            glBindBufferARB(GL_ARRAY_BUFFER, 0); 
         }
 
         void glBatch(GLfloat const* matrix, GLsizei n_ranges) {
@@ -538,14 +528,15 @@ namespace starfield {
 
             // select shader and vertex array
             _objProgram.activate();
-            glBindVertexArray(_hndVertexArray);
-
+            glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
+            glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
+            
             // render
             glMultiDrawArrays(GL_POINTS,
                     _arrBatchOffs, _arrBatchCount, n_ranges);
 
             // restore state
-            glBindVertexArray(0); 
+            glBindBufferARB(GL_ARRAY_BUFFER, 0); 
             glUseProgram(0);
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glDisable(GL_POINT_SMOOTH);
@@ -553,11 +544,6 @@ namespace starfield {
             glMatrixMode(GL_MODELVIEW);
             glPopMatrix();
         }
-#ifdef __APPLE__
-#   undef glBindVertexArray 
-#   undef glGenVertexArrays 
-#   undef glDeleteVertexArrays
-#endif
     };
 
 } // anonymous namespace
