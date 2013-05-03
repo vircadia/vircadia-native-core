@@ -260,9 +260,6 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
         delete[] vertices;
 
         if (parentNode) {
-            float* vertices = firstVertexForCode(parentNode->octalCode);
-            delete[] vertices;
-        
             int childIndex = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
             delete parentNode->children[childIndex]; // delete the child nodes
