@@ -666,8 +666,7 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
 
     int currentEncodeLevel = 0;
     int childBytesWritten = encodeTreeBitstreamRecursion(maxEncodeLevel, currentEncodeLevel, 
-                                                         node, viewFrustum, 
-                                                         outputBuffer, availableBytes, bag);
+                                                         node, outputBuffer, availableBytes, bag, &viewFrustum);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -689,9 +688,8 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
 }
 
 int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                            VoxelNode* node, const ViewFrustum& viewFrustum,
-                                            unsigned char* outputBuffer, int availableBytes,
-                                            VoxelNodeBag& bag) const {
+                                            VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -703,21 +701,24 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         return bytesAtThisLevel;
     }
 
-    float distance = node->distanceToCamera(viewFrustum);
-    float boundaryDistance = boundaryDistanceForRenderLevel(*node->octalCode + 1);
+    // caller can pass NULL as viewFrustum if they want everything
+    if (viewFrustum) {
+        float distance = node->distanceToCamera(*viewFrustum);
+        float boundaryDistance = boundaryDistanceForRenderLevel(*node->octalCode + 1);
 
-    // If we're too far away for our render level, then just return
-    if (distance >= boundaryDistance) {
-        return bytesAtThisLevel;
-    }
+        // If we're too far away for our render level, then just return
+        if (distance >= boundaryDistance) {
+            return bytesAtThisLevel;
+        }
 
-    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
-    // we're out of view
-    if (!node->isInView(viewFrustum)) {
-        return bytesAtThisLevel;
+        // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
+        // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
+        // we're out of view
+        if (!node->isInView(*viewFrustum)) {
+            return bytesAtThisLevel;
+        }
     }
-    
+        
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
 
     // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
@@ -745,11 +746,11 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     for (int i = 0; i < MAX_CHILDREN; i++) {
         VoxelNode* childNode = node->children[i];
         bool childExists = (childNode != NULL);
-        bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
+        bool childIsInView  = (childExists && (!viewFrustum || childNode->isInView(*viewFrustum)));
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
-            float distance = childNode->distanceToCamera(viewFrustum);
-            float boundaryDistance = boundaryDistanceForRenderLevel(*childNode->octalCode + 1);
+            float distance = viewFrustum ? 0 : childNode->distanceToCamera(*viewFrustum);
+            float boundaryDistance = viewFrustum ? 1 : boundaryDistanceForRenderLevel(*childNode->octalCode + 1);
 
             if (distance < boundaryDistance) {
                 inViewCount++;
@@ -822,7 +823,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                 
                 int thisLevel = currentEncodeLevel;
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(maxEncodeLevel, thisLevel, childNode, 
-                                                                     viewFrustum, outputBuffer, availableBytes, bag);
+                                                                     outputBuffer, availableBytes, bag, viewFrustum);
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.

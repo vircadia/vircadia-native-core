@@ -63,13 +63,12 @@ public:
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
     unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
+
+    int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
+                                     VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
     
 private:
-    int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                     VoxelNode* node, const ViewFrustum& viewFrustum,
-                                     unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag) const;
-
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
