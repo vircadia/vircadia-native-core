@@ -15,7 +15,7 @@
 //  Welcome Aboard!
 //
 //
-//  Keyboard Commands: 
+//  Keyboard Commands:
 //
 //  / = toggle stats display
 //  spacebar = reset gyros/head position
@@ -134,7 +134,7 @@ VoxelSystem voxels;
 Audio audio(&audioScope, &myAvatar);
 #endif
 
-#define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
+#define IDLE_SIMULATE_MSECS 16           //  How often should call simulate and other stuff 
                                          //  in the idle loop?
 
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
@@ -221,37 +221,30 @@ void displayStats(void)
     if (::menuOn == 0) {
         statsVerticalOffset = 8;
     }
-	//  bitmap chars are about 10 pels high 
-    char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, legend);
 
-    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
-    drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
-
-	glm::vec3 avatarPos = myAvatar.getPosition();
-    
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
-            FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
-    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
+    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
+            FPS, packetsPerSecond,  (float)bytesPerSecond * 8.f / 1000000.f);
+    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() << " Updated: " << voxels.getVoxelsUpdated();
-    drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    voxelStats.precision(4);
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() / 1000.f << "K Updated: " << voxels.getVoxelsUpdated()/1000.f << "K";
+    drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
-    << "/sec) ";
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() / 1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
+    << "Kps) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredPerSecondAverage()
-    << "/sec) ";
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() / 1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage() / 1000.f
+    << "Kps) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
-    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
+	voxelStats << "Voxel Bits Read: " << voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
+    << "M (" << voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
@@ -259,13 +252,13 @@ void displayStats(void)
         ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
         : 0;
     
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
+	voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     if (avatarMixer) {
-        sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+        sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                 roundf(avatarMixer->getAverageKilobitsPerSecond()),
                 roundf(avatarMixer->getAveragePacketsPerSecond()));
     } else {
