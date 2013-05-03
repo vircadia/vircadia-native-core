@@ -132,6 +132,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
                 destinationNode->addChildAtIndex(i);
                 if (destinationNode->isDirty()) {
                     _isDirty = true;
+                    _nodesChangedFromBitstream++;
                 }
                 voxelsCreated++;
                 voxelsCreatedStats.updateAverage(1);
@@ -141,9 +142,14 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
             nodeColor newColor;
             memcpy(newColor, nodeData + bytesRead, 3);
             newColor[3] = 1;
+            bool nodeWasDirty = destinationNode->children[i]->isDirty();
             destinationNode->children[i]->setColor(newColor);
-            if (destinationNode->children[i]->isDirty()) {
+            bool nodeIsDirty = destinationNode->children[i]->isDirty();
+            if (nodeIsDirty) {
                 _isDirty = true;
+            }
+            if (!nodeWasDirty && nodeIsDirty) {
+                _nodesChangedFromBitstream++;
             }
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
@@ -152,9 +158,14 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         }
     }
     // average node's color based on color of children
+    bool nodeWasDirty = destinationNode->isDirty();
     destinationNode->setColorFromAverageOfChildren();
-    if (destinationNode->isDirty()) {
+    bool nodeIsDirty = destinationNode->isDirty();
+    if (nodeIsDirty) {
         _isDirty = true;
+    }
+    if (!nodeWasDirty && nodeIsDirty) {
+        _nodesChangedFromBitstream++;
     }
 
     // give this destination node the child mask from the packet
@@ -169,9 +180,14 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         if (oneAtBit(childMask, childIndex)) {            
             if (!destinationNode->children[childIndex]) {
                 // add a child at that index, if it doesn't exist
+                bool nodeWasDirty = destinationNode->isDirty();
                 destinationNode->addChildAtIndex(childIndex);
-                if (destinationNode->isDirty()) {
+                bool nodeIsDirty = destinationNode->isDirty();
+                if (nodeIsDirty) {
                     _isDirty = true;
+                }
+                if (!nodeWasDirty && nodeIsDirty) {
+                    _nodesChangedFromBitstream++;
                 }
                 this->voxelsCreated++;
                 this->voxelsCreatedStats.updateAverage(this->voxelsCreated);
@@ -192,6 +208,8 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
 void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
     int bytesRead = 0;
     unsigned char* bitstreamAt = bitstream;
+    
+    _nodesChangedFromBitstream = 0;
 
     // Keep looping through the buffer calling readNodeData() this allows us to pack multiple root-relative Octal codes
     // into a single network packet. readNodeData() basically goes down a tree from the root, and fills things in from there
@@ -208,6 +226,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
             bitstreamRootNode = createMissingNode(rootNode, (unsigned char*) bitstreamAt);
             if (bitstreamRootNode->isDirty()) {
                 _isDirty = true;
+                _nodesChangedFromBitstream++;
             }
         }
 

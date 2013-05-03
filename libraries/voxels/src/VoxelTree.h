@@ -57,6 +57,7 @@ public:
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
+    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
@@ -73,6 +74,7 @@ private:
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
     
     bool _isDirty;
+    unsigned long int _nodesChangedFromBitstream;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);

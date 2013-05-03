@@ -101,6 +101,11 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             double start = usecTimestampNow();
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
+            if (_renderWarningsOn && _tree->getNodesChangedFromBitstream()) {
+                printLog("readBitstreamToTree()... getNodesChangedFromBitstream=%ld _tree->isDirty()=%s \n",
+                    _tree->getNodesChangedFromBitstream(), (_tree->isDirty() ? "yes" : "no") );
+            }
+
             double end = usecTimestampNow();
             double elapsedmsec = (end - start)/1000.0;
             if (_renderWarningsOn && elapsedmsec > 1) {
@@ -178,7 +183,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
     double start = usecTimestampNow();
-    if (_voxelsDirty) {
+    if (_voxelsDirty && _voxelsUpdated) {
         // lock on the buffer write lock so we can't modify the data when the GPU is reading it
         pthread_mutex_lock(&_bufferWriteLock);
         int bytesOfVertices = (_voxelsInArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
