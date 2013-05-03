@@ -243,6 +243,7 @@ private:
     AvatarTouch _avatarTouch;
     bool        _displayingHead; // should be false if in first-person view
     bool        _returnHeadToCenter;
+    float       _distanceToNearestAvatar;    //  How close is the nearest avatar?
 
     // private methods...
     void initializeSkeleton();
