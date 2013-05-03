@@ -75,10 +75,36 @@ bool countVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
-    printf("adding scene of spheres...\n");
+    printf("adding scene...\n");
+
+    float voxelSize = 1.f/32;
+    printf("creating corner points...\n");
+    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
+    tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
+    tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
+    tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
+
+
+    tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
+    tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
+    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
+    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
+    printf("DONE creating corner points...\n");
+
+    printf("creating voxel lines...\n");
+    float lineVoxelSize = 0.99f/256;
+    rgbColor red   = {255,0,0};
+    rgbColor green = {0,255,0};
+    rgbColor blue  = {0,0,255};
+
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), lineVoxelSize, blue);
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), lineVoxelSize, red);
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), lineVoxelSize, green);
+
+    printf("DONE creating lines...\n");
 
     int sphereBaseSize = 512;
-
+    printf("creating spheres...\n");
     tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
     printf("one sphere added...\n");
     tree->createSphere(0.030625, 0.5, 0.5, (0.25-0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
@@ -106,19 +132,7 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
     tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
     printf("11 spheres added...\n");
 
-    float voxelSize = 0.99f/8;
-    printf("creating corner points...\n");
-    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
-    tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
-    tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
-    tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
-
-
-    tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
-    tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
-    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
-    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
-    printf("DONE creating corner points...\n");
+    printf("DONE creating spheres...\n");
 
     _nodeCount=0;
     tree->recurseTreeWithOperation(countVoxelsOperation);

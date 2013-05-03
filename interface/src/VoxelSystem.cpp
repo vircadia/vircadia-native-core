@@ -433,7 +433,7 @@ void VoxelSystem::render() {
 
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-    glScalef(10, 10, 10);
+    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     glDrawElements(GL_TRIANGLES, 36 * _voxelsInArrays, GL_UNSIGNED_INT, 0);
 
     // deactivate vertex and color arrays after drawing

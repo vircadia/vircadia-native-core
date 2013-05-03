@@ -42,35 +42,37 @@ enum AvatarMode
 	NUM_AVATAR_MODES
 };
 
-enum AvatarBoneID
+enum AvatarJointID
 {
-	AVATAR_BONE_NULL = -1,
-	AVATAR_BONE_PELVIS_SPINE,		// connects pelvis			joint with torso			joint (not supposed to be rotated)
-	AVATAR_BONE_MID_SPINE,			// connects torso			joint with chest			joint
-	AVATAR_BONE_CHEST_SPINE,		// connects chest			joint with neckBase			joint (not supposed to be rotated)
-	AVATAR_BONE_NECK,				// connects neckBase		joint with headBase			joint
-	AVATAR_BONE_HEAD,				// connects headBase		joint with headTop			joint
-	AVATAR_BONE_LEFT_CHEST,			// connects chest			joint with left clavicle	joint (not supposed to be rotated)
-	AVATAR_BONE_LEFT_SHOULDER,		// connects left clavicle	joint with left shoulder	joint
-	AVATAR_BONE_LEFT_UPPER_ARM,		// connects left shoulder	joint with left elbow		joint
-	AVATAR_BONE_LEFT_FOREARM,		// connects left elbow		joint with left wrist		joint
-	AVATAR_BONE_LEFT_HAND,			// connects left wrist		joint with left fingertips	joint
-	AVATAR_BONE_RIGHT_CHEST,		// connects chest			joint with right clavicle	joint (not supposed to be rotated)
-	AVATAR_BONE_RIGHT_SHOULDER,		// connects right clavicle	joint with right shoulder	joint
-	AVATAR_BONE_RIGHT_UPPER_ARM,	// connects right shoulder	joint with right elbow		joint
-	AVATAR_BONE_RIGHT_FOREARM,		// connects right elbow		joint with right wrist		joint
-	AVATAR_BONE_RIGHT_HAND,			// connects right wrist		joint with right fingertips	joint
-	AVATAR_BONE_LEFT_PELVIS,		// connects pelvis			joint with left hip			joint (not supposed to be rotated)
-	AVATAR_BONE_LEFT_THIGH,			// connects left hip		joint with left knee		joint
-	AVATAR_BONE_LEFT_SHIN,			// connects left knee		joint with left heel		joint
-	AVATAR_BONE_LEFT_FOOT,			// connects left heel		joint with left toes		joint
-	AVATAR_BONE_RIGHT_PELVIS,		// connects pelvis			joint with right hip		joint (not supposed to be rotated)
-	AVATAR_BONE_RIGHT_THIGH,		// connects right hip		joint with right knee		joint
-	AVATAR_BONE_RIGHT_SHIN,			// connects right knee		joint with right heel		joint
-	AVATAR_BONE_RIGHT_FOOT,			// connects right heel		joint with right toes		joint
+	AVATAR_JOINT_NULL = -1,
+	AVATAR_JOINT_PELVIS,	
+	AVATAR_JOINT_TORSO,	
+	AVATAR_JOINT_CHEST,	
+	AVATAR_JOINT_NECK_BASE,	
+	AVATAR_JOINT_HEAD_BASE,	
+	AVATAR_JOINT_HEAD_TOP,	
+	AVATAR_JOINT_LEFT_COLLAR,
+	AVATAR_JOINT_LEFT_SHOULDER,
+	AVATAR_JOINT_LEFT_ELBOW,
+	AVATAR_JOINT_LEFT_WRIST,
+	AVATAR_JOINT_LEFT_FINGERTIPS,
+	AVATAR_JOINT_RIGHT_COLLAR,
+	AVATAR_JOINT_RIGHT_SHOULDER,
+	AVATAR_JOINT_RIGHT_ELBOW,
+	AVATAR_JOINT_RIGHT_WRIST,
+	AVATAR_JOINT_RIGHT_FINGERTIPS,
+	AVATAR_JOINT_LEFT_HIP,
+	AVATAR_JOINT_LEFT_KNEE,
+	AVATAR_JOINT_LEFT_HEEL,		
+	AVATAR_JOINT_LEFT_TOES,		
+	AVATAR_JOINT_RIGHT_HIP,	
+	AVATAR_JOINT_RIGHT_KNEE,	
+	AVATAR_JOINT_RIGHT_HEEL,	
+	AVATAR_JOINT_RIGHT_TOES,	
     
-	NUM_AVATAR_BONES
+	NUM_AVATAR_JOINTS
 };
+
 
 class Avatar : public AvatarData {
 public:
@@ -99,11 +101,14 @@ public:
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
 
-    const glm::vec3& getHeadLookatDirection() const { return _orientation.getFront(); };
-    const glm::vec3& getHeadLookatDirectionUp() const { return _orientation.getUp(); };
-    const glm::vec3& getHeadLookatDirectionRight() const { return _orientation.getRight(); };
+    /*
+    const glm::vec3& getHeadRightDirection() const { return _orientation.getRight(); };
+    const glm::vec3& getHeadUpDirection   () const { return _orientation.getUp   (); };
+    const glm::vec3& getHeadFrontDirection() const { return _orientation.getFront(); };
+    */
+    
     const glm::vec3& getHeadPosition() const ;
-    const glm::vec3& getBonePosition(AvatarBoneID b) const { return _bone[b].position; };
+    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
     float getSpeed() const { return _speed; };
     float getGirth();
@@ -117,7 +122,6 @@ public:
     void renderHead(bool lookingInMirror);
     void simulate(float);
     void setHandMovementValues( glm::vec3 movement );
-    void updateHandMovement( float deltaTime );
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );
     
@@ -148,22 +152,22 @@ private:
     void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
     const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 
-    struct AvatarBone
+    struct AvatarJoint
     {
-        AvatarBoneID parent;				// which bone is this bone connected to?
-        glm::vec3	 position;				// the position at the "end" of the bone - in global space
-        glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-        glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
-        glm::vec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
-        float		 springBodyTightness;	// how tightly the springy position tries to stay on the position
-        glm::quat    rotation;              // this will eventually replace yaw, pitch and roll (and maybe orientation)
-        float		 yaw;					// the yaw Euler angle of the bone rotation off the parent
-        float		 pitch;					// the pitch Euler angle of the bone rotation off the parent
-        float		 roll;					// the roll Euler angle of the bone rotation off the parent
-        Orientation	 orientation;			// three orthogonal normals determined by yaw, pitch, roll
-        float		 length;				// the length of the bone
-        float		 radius;                // used for detecting collisions for certain physical effects
-        bool		 isCollidable;          // when false, the bone position will not register a collision
+        AvatarJointID parent;               // which joint is this joint connected to?
+        glm::vec3	  position;				// the position at the "end" of the joint - in global space
+        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+        glm::vec3	  springyPosition;		// used for special effects (a 'flexible' variant of position)
+        glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
+        float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
+        glm::quat     rotation;             // this will eventually replace yaw, pitch and roll (and maybe orientation)
+        float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
+        float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
+        float		  roll;					// the roll Euler angle of the joint rotation off the parent
+        Orientation	  orientation;			// three orthogonal normals determined by yaw, pitch, roll
+        float		  length;				// the length of vector connecting the joint and its parent
+        float		  radius;               // used for detecting collisions for certain physical effects
+        bool		  isCollidable;         // when false, the joint position will not register a collision
     };
 
     struct AvatarHead
@@ -218,7 +222,7 @@ private:
     bool        _usingBodySprings;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBone	_bone[ NUM_AVATAR_BONES ];
+    AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
     AvatarMode  _mode;
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
@@ -253,6 +257,7 @@ private:
     void calculateBoneLengths();
     void readSensors();
     void updateHead( float deltaTime );
+    void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
