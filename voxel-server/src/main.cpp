@@ -80,6 +80,21 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
     float voxelSize = 1.f/32;
     printf("creating corner points...\n");
     tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
+
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    }
+
+    tree->deleteVoxelAt(0, 0, 0, voxelSize);
+    printf("attempting to delete corner point 0,0,0\n");
+
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    } else {
+        printf("corner point 0,0,0 does not exists...\n");
+    }
+
+
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
     tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
     tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);

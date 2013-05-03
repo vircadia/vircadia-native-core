@@ -69,7 +69,7 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) {
+VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
@@ -244,6 +244,13 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     this->voxelsBytesRead += bufferSizeBytes;
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
 }
+
+void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
+    unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
+    deleteVoxelCodeFromTree(octalCode);
+    delete octalCode; // cleanup memory
+}
+
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
@@ -433,6 +440,16 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
         }
         file.close();
     }
+}
+
+VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
+    unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
+    VoxelNode* node = nodeForOctalCode(rootNode, octalCode, NULL);
+    if (*node->octalCode != *octalCode) {
+        node = NULL;
+    }
+    delete octalCode; // cleanup memory
+    return node;
 }
 
 void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {

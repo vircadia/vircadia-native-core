@@ -45,10 +45,12 @@ public:
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
-    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
 
+    void deleteVoxelAt(float x, float y, float z, float s);
+    VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
+    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
@@ -72,7 +74,7 @@ private:
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
-    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
+    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
     
