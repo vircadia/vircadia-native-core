@@ -36,15 +36,15 @@ int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
     
     sockaddr_in senderSocket;
-    char deviceData[MAX_PACKET_SIZE_BYTES] = {};
+    char senderData[MAX_PACKET_SIZE_BYTES] = {};
     ssize_t receivedBytes = 0;
     
     std::vector<PairableDevice> devices;
     
     while (true) {
-        if (serverSocket.receive((sockaddr *)&senderSocket, &deviceData, &receivedBytes)) {
+        if (serverSocket.receive((sockaddr *)&senderSocket, &senderData, &receivedBytes)) {
             
-            if (deviceData[0] == 'A') {
+            if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
                 
                 // create a new PairableDevice
@@ -53,7 +53,7 @@ int main(int argc, const char* argv[]) {
                 int addressBytes[4];
                 int socketPort = 0;
                 
-                int numMatches = sscanf(deviceData, "A %s %d.%d.%d.%d:%d %s",
+                int numMatches = sscanf(senderData, "Available %s %d.%d.%d.%d:%d %s",
                                         newDevice.identifier,
                                         &addressBytes[3],
                                         &addressBytes[2],
@@ -80,18 +80,23 @@ int main(int argc, const char* argv[]) {
                     printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
                     devices.push_back(newDevice);
                 }
-            } else if (deviceData[0] == 'P') {
+            } else if (senderData[0] == 'F') {
                 // this is a client looking to pair with a device
                 // send the most recent device this address so it can attempt to pair
                 
-                char requestorSocketString[INET_ADDRSTRLEN + 6] = {};
-                char requestorAddress[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, &(senderSocket.sin_addr), requestorAddress, INET_ADDRSTRLEN);
+                char requestorAddress[INET_ADDRSTRLEN] = {};
+                int requestorPort = 0;
                 
-                sprintf(requestorSocketString, "%s:%d", requestorAddress, ntohs(senderSocket.sin_port));
+                int requestorMatches = sscanf(senderData, "Find %[^:]:%d", requestorAddress, &requestorPort);
                 
-                PairableDevice lastDevice = devices[devices.size() - 1];
-                serverSocket.send((sockaddr*) &lastDevice.sendingSocket, requestorSocketString, strlen(requestorSocketString));
+                if (requestorMatches == 2) {
+                    PairableDevice lastDevice = devices[devices.size() - 1];
+                    
+                    char pairData[INET_ADDRSTRLEN + 6] = {};
+                    sprintf(pairData, "%s:%d", requestorAddress, requestorPort);
+                    
+                    serverSocket.send((sockaddr*) &lastDevice.sendingSocket, pairData, strlen(pairData));
+                }
             }
         }
     }
