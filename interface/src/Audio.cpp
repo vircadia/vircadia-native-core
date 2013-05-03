@@ -317,8 +317,8 @@ void *receiveAudioViaUDP(void *args) {
     
     if (LOG_SAMPLE_DELAY) {
         
-        char *directory = new char[50];
-        char *filename = new char[50];
+        char directory[50];
+        char filename[50];
         
         sprintf(directory, "%s/Desktop/echo_tests", getenv("HOME"));
         
@@ -326,9 +326,6 @@ void *receiveAudioViaUDP(void *args) {
         sprintf(filename, "%s/%ld.csv", directory, previousReceiveTime.tv_sec);
         
         logFile.open(filename, std::ios::out);
-        
-        delete[] directory;
-        delete[] filename;
     }
     
     while (!stopAudioReceiveThread) {
