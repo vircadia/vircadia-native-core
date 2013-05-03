@@ -11,10 +11,10 @@
 
 #include <glm/glm.hpp>
 
+const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.1;
+
 class AvatarTouch {
 public:
-
-    const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.1;
 
     AvatarTouch();
 

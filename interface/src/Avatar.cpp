@@ -20,6 +20,27 @@
 
 using namespace std;
 
+const bool  BALLS_ON                      = false;
+const bool  AVATAR_GRAVITY                = true;
+const float DECAY                         = 0.1;
+const float THRUST_MAG                    = 1200.0;
+const float YAW_MAG                       = 500.0;
+const float BODY_SPIN_FRICTION            = 5.0;
+const float BODY_UPRIGHT_FORCE            = 10.0;
+const float BODY_PITCH_WHILE_WALKING      = 30.0;
+const float BODY_ROLL_WHILE_TURNING       = 0.1;
+const float LIN_VEL_DECAY                 = 5.0;
+const float MY_HAND_HOLDING_PULL          = 0.2;
+const float YOUR_HAND_HOLDING_PULL        = 1.0;
+const float BODY_SPRING_FORCE             = 6.0f;
+const float BODY_SPRING_DECAY             = 16.0f;
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
+const float COLLISION_RADIUS_SCALAR       = 1.8;
+const float COLLISION_BALL_FORCE          = 1.0;
+const float COLLISION_BODY_FORCE          = 6.0;
+const float COLLISION_BALL_FRICTION       = 60.0;
+const float COLLISION_BODY_FRICTION       = 0.5;
+
 float skinColor[] = {1.0, 0.84, 0.66};
 float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -462,7 +483,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     vectorBetweenHands -= otherAvatar->getJointPosition( AVATAR_JOINT_RIGHT_FINGERTIPS );
                     float distanceBetweenHands = glm::length(vectorBetweenHands);
                     
-                    if (distanceBetweenHands < _avatarTouch.HANDS_CLOSE_ENOUGH_TO_GRASP) { 
+                    if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) { 
                         _avatarTouch.setHandsCloseEnoughToGrasp(true);
                     }
                         
@@ -470,7 +491,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
                         
                         // if the hands are close enough to grasp...
-                        if (distanceBetweenHands < _avatarTouch.HANDS_CLOSE_ENOUGH_TO_GRASP)
+                        if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP)
                         { 
                             // apply the forces...
                             glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHoldingPosition;
