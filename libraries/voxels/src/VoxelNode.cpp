@@ -125,7 +125,9 @@ void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
         _currentColor[1] = green;
         _currentColor[2] = blue;
         _currentColor[3] = 1; // XXXBHG - False colors are always considered set
-        _isDirty = true;
+        //if (_shouldRender) {
+            _isDirty = true;
+        //}
     }
 }
 
@@ -136,18 +138,24 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
             memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
         }
         _falseColored = isFalseColored; 
-        _isDirty = true;
+        //if (_shouldRender) {
+            _isDirty = true;
+        //}
     }
 };
 
 
 void VoxelNode::setColor(const nodeColor& color) {
     if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
+        //printLog("VoxelNode::setColor() was: (%d,%d,%d) is: (%d,%d,%d)\n",
+        //    _trueColor[0],_trueColor[1],_trueColor[2],color[0],color[1],color[2]);
         memcpy(&_trueColor,&color,sizeof(nodeColor));
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
-        _isDirty = true;
+        //if (_shouldRender) {
+            _isDirty = true;
+        //}
     }
 }
 #endif
@@ -234,6 +242,7 @@ bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
     AABox box;
     getAABox(box);
+    box.scale(TREE_SCALE);
     float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - (box.getCorner().x + box.getSize().x), 2) +
                                         powf(viewFrustum.getPosition().y - (box.getCorner().y + box.getSize().y), 2) +
                                         powf(viewFrustum.getPosition().z - (box.getCorner().z + box.getSize().z), 2));

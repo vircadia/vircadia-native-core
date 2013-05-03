@@ -25,7 +25,7 @@
 using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    float voxelSizeScale = 5000.0;
+    float voxelSizeScale = 500.0*TREE_SCALE;
     return voxelSizeScale / powf(2, renderLevel);
 }
 
@@ -35,7 +35,8 @@ VoxelTree::VoxelTree() :
     voxelsBytesRead(0),
     voxelsCreatedStats(100),
     voxelsColoredStats(100),
-    voxelsBytesReadStats(100) {
+    voxelsBytesReadStats(100),
+    _isDirty(true) {
         
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
@@ -127,17 +128,29 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(*nodeData, i)) {
             // create the child if it doesn't exist
-            if (destinationNode->children[i] == NULL) {
+            if (!destinationNode->children[i]) {
                 destinationNode->addChildAtIndex(i);
-                this->voxelsCreated++;
-                this->voxelsCreatedStats.updateAverage(1);
+                if (destinationNode->isDirty()) {
+                    _isDirty = true;
+                    _nodesChangedFromBitstream++;
+                }
+                voxelsCreated++;
+                voxelsCreatedStats.updateAverage(1);
             }
 
             // pull the color for this child
             nodeColor newColor;
             memcpy(newColor, nodeData + bytesRead, 3);
             newColor[3] = 1;
+            bool nodeWasDirty = destinationNode->children[i]->isDirty();
             destinationNode->children[i]->setColor(newColor);
+            bool nodeIsDirty = destinationNode->children[i]->isDirty();
+            if (nodeIsDirty) {
+                _isDirty = true;
+            }
+            if (!nodeWasDirty && nodeIsDirty) {
+                _nodesChangedFromBitstream++;
+            }
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
            
@@ -145,7 +158,15 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         }
     }
     // average node's color based on color of children
+    bool nodeWasDirty = destinationNode->isDirty();
     destinationNode->setColorFromAverageOfChildren();
+    bool nodeIsDirty = destinationNode->isDirty();
+    if (nodeIsDirty) {
+        _isDirty = true;
+    }
+    if (!nodeWasDirty && nodeIsDirty) {
+        _nodesChangedFromBitstream++;
+    }
 
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
@@ -157,9 +178,17 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
         // check the exists mask to see if we have a child to traverse into
         
         if (oneAtBit(childMask, childIndex)) {            
-            if (destinationNode->children[childIndex] == NULL) {
+            if (!destinationNode->children[childIndex]) {
                 // add a child at that index, if it doesn't exist
+                bool nodeWasDirty = destinationNode->isDirty();
                 destinationNode->addChildAtIndex(childIndex);
+                bool nodeIsDirty = destinationNode->isDirty();
+                if (nodeIsDirty) {
+                    _isDirty = true;
+                }
+                if (!nodeWasDirty && nodeIsDirty) {
+                    _nodesChangedFromBitstream++;
+                }
                 this->voxelsCreated++;
                 this->voxelsCreatedStats.updateAverage(this->voxelsCreated);
             }
@@ -179,6 +208,8 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
 void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
     int bytesRead = 0;
     unsigned char* bitstreamAt = bitstream;
+    
+    _nodesChangedFromBitstream = 0;
 
     // Keep looping through the buffer calling readNodeData() this allows us to pack multiple root-relative Octal codes
     // into a single network packet. readNodeData() basically goes down a tree from the root, and fills things in from there
@@ -193,6 +224,10 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
             // Note: we need to create this node relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
             bitstreamRootNode = createMissingNode(rootNode, (unsigned char*) bitstreamAt);
+            if (bitstreamRootNode->isDirty()) {
+                _isDirty = true;
+                _nodesChangedFromBitstream++;
+            }
         }
 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
@@ -403,6 +438,27 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     }
 }
 
+void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
+    unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+    this->readCodeColorBufferToTree(voxelData);
+    delete voxelData;
+}
+
+
+void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color) {
+    glm::vec3 distance = point2 - point1;
+    glm::vec3 items = distance / unitSize;
+    int maxItems = std::max(items.x, std::max(items.y, items.z));
+    glm::vec3 increment = distance * (1.0f/ maxItems);
+    glm::vec3 pointAt = point1;
+    for (int i = 0; i <= maxItems; i++ ) {
+        pointAt += increment;
+        unsigned char* voxelData = pointToVoxel(pointAt.x,pointAt.y,pointAt.z,unitSize,color[0],color[1],color[2]);
+        readCodeColorBufferToTree(voxelData);
+        delete voxelData;
+    }
+}
+
 void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
@@ -498,10 +554,10 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     // Keep track of how deep we've searched.    
     currentSearchLevel++;
 
-    // If we've reached our max Search Level, then stop searching.
-    if (currentSearchLevel >= maxSearchLevel) {
-        return currentSearchLevel;
-    }
+    // If we've passed our max Search Level, then stop searching. return last level searched
+    if (currentSearchLevel > maxSearchLevel) {
+        return currentSearchLevel-1;
+     }
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (!node->isInView(viewFrustum)) {

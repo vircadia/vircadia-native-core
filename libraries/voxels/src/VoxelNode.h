@@ -15,6 +15,7 @@
 
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
+typedef unsigned char rgbColor[3];
 
 class VoxelNode {
 private:

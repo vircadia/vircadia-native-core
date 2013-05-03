@@ -15,7 +15,7 @@
 //  Welcome Aboard!
 //
 //
-//  Keyboard Commands: 
+//  Keyboard Commands:
 //
 //  / = toggle stats display
 //  spacebar = reset gyros/head position
@@ -134,15 +134,20 @@ glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 VoxelSystem voxels;
 
+bool wantToKillLocalVoxels = false;
+
+
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
 #endif
 
-#define IDLE_SIMULATE_MSECS 8            //  How often should call simulate and other stuff 
+#define IDLE_SIMULATE_MSECS 16           //  How often should call simulate and other stuff 
                                          //  in the idle loop?
 
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
+
+bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
 
 bool statsOn = false;               //  Whether to show onscreen text overlay with stats
 bool starsOn = false;               //  Whether to display the stars
@@ -178,7 +183,10 @@ int menuOn = 1;  //  Whether to show onscreen menu
 ChatEntry chatEntry;       // chat entry field
 bool chatEntryOn = false;  //  Whether to show the chat entry
 
-
+bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
+GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
+GLhandleARB oculusProgramID = 0;         //  The GLSL program containing the distortion shader
+float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
 
 //
 //  Serial USB Variables
@@ -225,37 +233,30 @@ void displayStats(void)
     if (::menuOn == 0) {
         statsVerticalOffset = 8;
     }
-	//  bitmap chars are about 10 pels high 
-    char legend[] = "/ - toggle this display, Q - exit, H - show head, M - show hand, T - test audio";
-    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, legend);
 
-    char legend2[] = "* - toggle stars, & - toggle paint mode, '-' - send erase all, '%' - send add scene";
-    drawtext(10, statsVerticalOffset + 32, 0.10f, 0, 1.0, 0, legend2);
-
-	glm::vec3 avatarPos = myAvatar.getPosition();
-    
     char stats[200];
-    sprintf(stats, "FPS = %3.0f  Pkts/s = %d  Bytes/s = %d Head(x,y,z)= %4.2f, %4.2f, %4.2f ", 
-            FPS, packetsPerSecond,  bytesPerSecond, avatarPos.x,avatarPos.y,avatarPos.z);
-    drawtext(10, statsVerticalOffset + 49, 0.10f, 0, 1.0, 0, stats);
+    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
+            FPS, packetsPerSecond,  (float)bytesPerSecond * 8.f / 1000000.f);
+    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
     
     std::stringstream voxelStats;
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() << " Updated: " << voxels.getVoxelsUpdated();
-    drawtext(10, statsVerticalOffset + 70, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    voxelStats.precision(4);
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() / 1000.f << "K Updated: " << voxels.getVoxelsUpdated()/1000.f << "K";
+    drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() << " (" << voxels.getVoxelsCreatedPerSecondAverage()
-    << "/sec) ";
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() / 1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
+    << "Kps) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() << " (" << voxels.getVoxelsColoredPerSecondAverage()
-    << "/sec) ";
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() / 1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage() / 1000.f
+    << "Kps) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Bytes Read: " << voxels.getVoxelsBytesRead()
-    << " (" << voxels.getVoxelsBytesReadPerSecondAverage() << " Bps)";
+	voxelStats << "Voxel Bits Read: " << voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
+    << "M (" << voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
 	voxelStats.str("");
@@ -263,13 +264,13 @@ void displayStats(void)
         ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
         : 0;
     
-	voxelStats << "Voxels Bytes per Colored: " << voxelsBytesPerColored;
+	voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     if (avatarMixer) {
-        sprintf(avatarMixerStats, "Avatar Mixer - %.f kbps, %.f pps",
+        sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                 roundf(avatarMixer->getAverageKilobitsPerSecond()),
                 roundf(avatarMixer->getAveragePacketsPerSecond()));
     } else {
@@ -680,6 +681,289 @@ void renderViewFrustum(ViewFrustum& viewFrustum) {
     glEnable(GL_LIGHTING);
 }
 
+// displays a single side (left, right, or combined for non-Oculus)
+void displaySide(Camera& whichCamera) {
+    glPushMatrix();
+    
+    if (::starsOn) {
+        // should be the first rendering pass - w/o depth buffer / lighting
+
+        // finally render the starfield
+    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+    }
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+    
+	// draw a red sphere  
+	float sphereRadius = 0.25f;
+    glColor3f(1,0,0);
+    glPushMatrix();
+        glutSolidSphere( sphereRadius, 15, 15 );
+    glPopMatrix();
+
+    //draw a grid ground plane....
+    drawGroundPlaneGrid(10.f);
+	
+    //  Draw voxels
+    if ( showingVoxels )
+    {
+        voxels.render();
+    }
+	
+    //  Render avatars of other agents
+    AgentList* agentList = AgentList::getInstance();
+    agentList->lock();
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+            Avatar *avatar = (Avatar *)agent->getLinkedData();
+            avatar->render(0);
+            //avatarRenderer.render(avatar, 0); // this will replace the above call
+        }
+    }
+    agentList->unlock();
+    
+    //  Render the world box
+    if (!::lookingInMirror && ::statsOn) { render_world_box(); }
+    
+    // brad's frustum for debugging
+    if (::frustumOn) renderViewFrustum(::viewFrustum);
+
+    //Render my own avatar
+	myAvatar.render(::lookingInMirror);
+    //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
+	
+	glPopMatrix();
+}
+
+// this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
+// code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
+// (http://www.apache.org/licenses/LICENSE-2.0)
+const char* DISTORTION_FRAGMENT_SHADER =
+    "#version 120\n"
+    "uniform sampler2D texture;"
+    "uniform vec2 lensCenter;"
+    "uniform vec2 screenCenter;"
+    "uniform vec2 scale;"
+    "uniform vec2 scaleIn;"
+    "uniform vec4 hmdWarpParam;"
+    "vec2 hmdWarp(vec2 in01) {"
+    "   vec2 theta = (in01 - lensCenter) * scaleIn;"
+    "   float rSq = theta.x * theta.x + theta.y * theta.y;"
+    "   vec2 theta1 = theta * (hmdWarpParam.x + hmdWarpParam.y * rSq + "
+    "                 hmdWarpParam.z * rSq * rSq + hmdWarpParam.w * rSq * rSq * rSq);"
+    "   return lensCenter + scale * theta1;"
+    "}"
+    "void main(void) {"
+    "   vec2 tc = hmdWarp(gl_TexCoord[0].st);"
+    "   vec2 below = step(screenCenter.st + vec2(-0.25, -0.5), tc.st);"
+    "   vec2 above = vec2(1.0, 1.0) - step(screenCenter.st + vec2(0.25, 0.5), tc.st);"
+    "   gl_FragColor = mix(vec4(0.0, 0.0, 0.0, 1.0), texture2D(texture, tc), "
+    "       above.s * above.t * below.s * below.t);"
+    "}";
+
+// the locations of the uniform variables
+int textureLocation;
+int lensCenterLocation;
+int screenCenterLocation;
+int scaleLocation;
+int scaleInLocation;
+int hmdWarpParamLocation;
+
+// renders both sides into a texture, then renders the texture to the display with distortion
+void displayOculus(Camera& whichCamera) {
+    // magic numbers ahoy! in order to avoid pulling in the Oculus utility library that calculates
+    // the rendering parameters from the hardware stats, i just folded their calculations into
+    // constants using the stats for the current-model hardware as contained in the SDK file
+    // LibOVR/Src/Util/Util_Render_Stereo.cpp
+
+    // eye 
+
+    // render the left eye view to the left side of the screen
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
+    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
+        whichCamera.getNearClip(), whichCamera.getFarClip());
+    glTranslatef(0.032, 0, 0); // dip/2, see p. 27
+    
+    glMatrixMode(GL_MODELVIEW);
+    glViewport(0, 0, WIDTH/2, HEIGHT);
+    displaySide(whichCamera);
+
+    // and the right eye to the right side
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glTranslatef(-0.151976, 0, 0); // -h
+    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
+        whichCamera.getNearClip(), whichCamera.getFarClip());
+    glTranslatef(-0.032, 0, 0);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
+    displaySide(whichCamera);
+
+    glPopMatrix();
+    
+    // restore our normal viewport
+    glViewport(0, 0, WIDTH, HEIGHT);
+
+    if (::oculusTextureID == 0) {
+        glGenTextures(1, &::oculusTextureID);
+        glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
+        
+        GLhandleARB shaderID = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
+        glShaderSourceARB(shaderID, 1, &DISTORTION_FRAGMENT_SHADER, 0);
+        glCompileShaderARB(shaderID);
+        ::oculusProgramID = glCreateProgramObjectARB();
+        glAttachObjectARB(::oculusProgramID, shaderID);
+        glLinkProgramARB(::oculusProgramID);
+        textureLocation = glGetUniformLocationARB(::oculusProgramID, "texture");
+        lensCenterLocation = glGetUniformLocationARB(::oculusProgramID, "lensCenter");
+        screenCenterLocation = glGetUniformLocationARB(::oculusProgramID, "screenCenter");
+        scaleLocation = glGetUniformLocationARB(::oculusProgramID, "scale");
+        scaleInLocation = glGetUniformLocationARB(::oculusProgramID, "scaleIn");
+        hmdWarpParamLocation = glGetUniformLocationARB(::oculusProgramID, "hmdWarpParam");
+        
+    } else {
+        glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
+    }
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, WIDTH, 0, HEIGHT);           
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    
+    // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
+    
+    float scaleFactor = 1.0 / ::oculusDistortionScale;
+    float aspectRatio = (WIDTH * 0.5) / HEIGHT;
+    
+    glDisable(GL_BLEND);
+    glEnable(GL_TEXTURE_2D);
+    glUseProgramObjectARB(::oculusProgramID);
+    glUniform1fARB(textureLocation, 0);
+    glUniform2fARB(lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
+    glUniform2fARB(screenCenterLocation, 0.25, 0.5);
+    glUniform2fARB(scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
+    glUniform2fARB(scaleInLocation, 4, 2 / aspectRatio);
+    glUniform4fARB(hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
+    
+    glColor3f(1, 0, 1);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0);
+    glVertex2f(0, 0);
+    glTexCoord2f(0.5, 0);
+    glVertex2f(WIDTH/2, 0);
+    glTexCoord2f(0.5, 1);
+    glVertex2f(WIDTH/2, HEIGHT);
+    glTexCoord2f(0, 1);
+    glVertex2f(0, HEIGHT);
+    glEnd();
+    
+    glUniform2fARB(lensCenterLocation, 0.787994, 0.5);
+    glUniform2fARB(screenCenterLocation, 0.75, 0.5);
+    
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.5, 0);
+    glVertex2f(WIDTH/2, 0);
+    glTexCoord2f(1, 0);
+    glVertex2f(WIDTH, 0);
+    glTexCoord2f(1, 1);
+    glVertex2f(WIDTH, HEIGHT);
+    glTexCoord2f(0.5, 1);
+    glVertex2f(WIDTH/2, HEIGHT);
+    glEnd();
+    
+    glEnable(GL_BLEND);           
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgramObjectARB(0);
+    
+    glPopMatrix();
+}
+
+void displayOverlay() {
+    //  Render 2D overlay:  I/O level bar graphs and text  
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+        glLoadIdentity(); 
+        gluOrtho2D(0, WIDTH, HEIGHT, 0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
+    
+        #ifndef _WIN32
+        audio.render(WIDTH, HEIGHT);
+        audioScope.render();
+        #endif
+
+        if (displayHeadMouse && !::lookingInMirror && statsOn) {
+            //  Display small target box at center or head mouse target that can also be used to measure LOD
+            glColor3f(1.0, 1.0, 1.0);
+            glDisable(GL_LINE_SMOOTH);
+            const int PIXEL_BOX = 20;
+            glBegin(GL_LINE_STRIP);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
+            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
+            glEnd();            
+            glEnable(GL_LINE_SMOOTH);
+        }
+        
+    //  Show detected levels from the serial I/O ADC channel sensors
+    if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
+    
+    //  Display stats and log text onscreen
+    glLineWidth(1.0f);
+    glPointSize(1.0f);
+    
+    if (::statsOn) { displayStats(); }
+    if (::logOn) { logger.render(WIDTH, HEIGHT); }
+        
+    //  Show menu
+    if (::menuOn) {
+        glLineWidth(1.0f);
+        glPointSize(1.0f);
+        menu.render(WIDTH,HEIGHT);
+    }
+
+    //  Show chat entry field
+    if (::chatEntryOn) {
+        chatEntry.render(WIDTH, HEIGHT);
+    }
+
+    //  Stats at upper right of screen about who domain server is telling us about
+    glPointSize(1.0f);
+    char agents[100];
+    
+    AgentList* agentList = AgentList::getInstance();
+    int totalAvatars = 0, totalServers = 0;
+    
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
+    }
+    
+    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    
+    if (::paintOn) {
+    
+		char paintMessage[100];
+		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
+			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
+			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
+		drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+    }
+    
+    glPopMatrix();
+}
 
 void display(void)
 {
@@ -840,133 +1124,17 @@ void display(void)
 
         glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
 
-        if (::starsOn) {
-            // should be the first rendering pass - w/o depth buffer / lighting
-
-            // finally render the starfield
-        	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+        if (::oculusOn) {
+            displayOculus(whichCamera);
+            
+        } else {
+            displaySide(whichCamera);
+            glPopMatrix();
+            
+            displayOverlay();
         }
-
-        glEnable(GL_LIGHTING);
-        glEnable(GL_DEPTH_TEST);
-        
-		// draw a red sphere  
-		float sphereRadius = 0.25f;
-        glColor3f(1,0,0);
-        glPushMatrix();
-            glutSolidSphere( sphereRadius, 15, 15 );
-        glPopMatrix();
-
-        //draw a grid ground plane....
-        drawGroundPlaneGrid( 5.0f, 9 );
-		
-        //  Draw voxels
-        if ( showingVoxels )
-        {
-            voxels.render();
-        }
-		
-        //  Render avatars of other agents
-        AgentList* agentList = AgentList::getInstance();
-        agentList->lock();
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(0);
-                //avatarRenderer.render(avatar, 0); // this will replace the above call
-            }
-        }
-        agentList->unlock();
-        
-        //  Render the world box
-        if (!::lookingInMirror && ::statsOn) { render_world_box(); }
-        
-        // brad's frustum for debugging
-        if (::frustumOn) renderViewFrustum(::viewFrustum);
-    
-        //Render my own avatar
-		myAvatar.render(::lookingInMirror);
-        //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
     }
     
-    glPopMatrix();
-
-    //  Render 2D overlay:  I/O level bar graphs and text  
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-        glLoadIdentity(); 
-        gluOrtho2D(0, WIDTH, HEIGHT, 0);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
-    
-        #ifndef _WIN32
-        audio.render(WIDTH, HEIGHT);
-        audioScope.render();
-        #endif
-
-        if (displayHeadMouse && !::lookingInMirror && statsOn) {
-            //  Display small target box at center or head mouse target that can also be used to measure LOD
-            glColor3f(1.0, 1.0, 1.0);
-            glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 20;
-            glBegin(GL_LINE_STRIP);
-            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
-            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
-            glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
-            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY + PIXEL_BOX/2);
-            glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY - PIXEL_BOX/2);
-            glEnd();            
-            glEnable(GL_LINE_SMOOTH);
-        }
-        
-    //  Show detected levels from the serial I/O ADC channel sensors
-    if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
-    
-    //  Display stats and log text onscreen
-    glLineWidth(1.0f);
-    glPointSize(1.0f);
-    
-    if (::statsOn) { displayStats(); }
-    if (::logOn) { logger.render(WIDTH, HEIGHT); }
-        
-    //  Show menu
-    if (::menuOn) {
-        glLineWidth(1.0f);
-        glPointSize(1.0f);
-        menu.render(WIDTH,HEIGHT);
-    }
-
-    //  Show chat entry field
-    if (::chatEntryOn) {
-        chatEntry.render(WIDTH, HEIGHT);
-    }
-
-    //  Stats at upper right of screen about who domain server is telling us about
-    glPointSize(1.0f);
-    char agents[100];
-    
-    AgentList* agentList = AgentList::getInstance();
-    int totalAvatars = 0, totalServers = 0;
-    
-    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
-    }
-    
-    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
-    
-    if (::paintOn) {
-    
-		char paintMessage[100];
-		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
-			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
-			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
-		drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
-    }
-    
-    glPopMatrix();
-    
-
     glutSwapBuffers();
     frameCount++;
     
@@ -1028,6 +1196,20 @@ int setGyroLook(int state) {
     return iRet;
 }
 
+int setFullscreen(int state) {
+    bool wasFullscreen = ::fullscreen;
+    int value = setValue(state, &::fullscreen);
+    if (::fullscreen != wasFullscreen) {
+        if (::fullscreen) {
+            glutFullScreen();    
+            
+        } else {
+            glutReshapeWindow(WIDTH, HEIGHT);
+        }
+    }
+    return value;
+}
+
 int setVoxels(int state) {
     return setValue(state, &::showingVoxels);
 }
@@ -1036,12 +1218,29 @@ int setStars(int state) {
     return setValue(state, &::starsOn);
 }
 
+int setOculus(int state) {
+    bool wasOn = ::oculusOn;
+    int value = setValue(state, &::oculusOn);
+    if (::oculusOn != wasOn) {
+        reshape(WIDTH, HEIGHT);
+    }
+    return value;
+}
+
 int setStats(int state) {
     return setValue(state, &::statsOn);
 }
 
 int setMenu(int state) {
     return setValue(state, &::menuOn);
+}
+
+int setRenderWarnings(int state) {
+    int value = setValue(state, &::renderWarningsOn);
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.setRenderPipelineWarnings(::renderWarningsOn);
+    }
+    return value;
 }
 
 int setDisplayFrustum(int state) {
@@ -1075,6 +1274,13 @@ int setFrustumRenderMode(int state) {
 		::frustumDrawingMode = (::frustumDrawingMode+1)%FRUSTUM_DRAW_MODE_COUNT;
     }
     return ::frustumDrawingMode;
+}
+
+int doKillLocalVoxels(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::wantToKillLocalVoxels = true;
+    }
+    return state;
 }
 
 int doRandomizeVoxelColors(int state) {
@@ -1152,12 +1358,14 @@ void initMenu() {
     menuColumnOptions->addRow("Mirror (h)", setHead); 
     menuColumnOptions->addRow("Noise (n)", setNoise);
     menuColumnOptions->addRow("Gyro Look", setGyroLook);
+    menuColumnOptions->addRow("Fullscreen (f)", setFullscreen);
     menuColumnOptions->addRow("Quit (q)", quitApp);
 
     //  Render
     menuColumnRender = menu.addColumn("Render");
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
+    menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
     menuColumnTools = menu.addColumn("Tools");
@@ -1174,6 +1382,8 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
+    menuColumnDebug->addRow("Show Render Pipeline Warnings", setRenderWarnings);
+    menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
@@ -1349,6 +1559,8 @@ void key(unsigned char k, int x, int y)
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
+    if (k == 'f') setFullscreen(!::fullscreen);
+    if (k == 'o') setOculus(!::oculusOn);
     
 	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
 	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
@@ -1418,6 +1630,12 @@ void* networkReceive(void* args)
     ssize_t bytesReceived;
     
     while (!stopNetworkReceiveThread) {
+        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
+        if (::wantToKillLocalVoxels) {
+            ::voxels.killLocalVoxels();
+            ::wantToKillLocalVoxels = false;
+        }
+    
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
             bytesCount += bytesReceived;
@@ -1519,19 +1737,19 @@ void reshape(int width, int height)
     HEIGHT = height; 
     aspectRatio = ((float)width/(float)height); // based on screen resize
 
-    float fov;
-    float nearClip;
-    float farClip;
-
     // get the lens details from the current camera
-    if (::viewFrustumFromOffset) {
-        fov       = ::viewFrustumOffsetCamera.getFieldOfView();
-        nearClip  = ::viewFrustumOffsetCamera.getNearClip();
-        farClip   = ::viewFrustumOffsetCamera.getFarClip();
+    Camera& camera = ::viewFrustumFromOffset ? (::viewFrustumOffsetCamera) : (::myCamera);
+    float nearClip = camera.getNearClip();
+    float farClip = camera.getFarClip();
+    float fov;
+
+    if (::oculusOn) {
+        // more magic numbers; see Oculus SDK docs, p. 32
+        camera.setAspectRatio(aspectRatio *= 0.5);
+        camera.setFieldOfView(fov = 2 * atan((0.0468 * ::oculusDistortionScale) / 0.041) * (180 / PI));
+        
     } else {
-        fov       = ::myCamera.getFieldOfView();
-        nearClip  = ::myCamera.getNearClip();
-        farClip   = ::myCamera.getFarClip();
+        camera.setFieldOfView(fov = 60);
     }
 
     //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
@@ -1644,7 +1862,7 @@ int main(int argc, const char * argv[])
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
-    
+
     // the callback for our instance of AgentList is attachNewHeadToAgent
     AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
     
@@ -1681,7 +1899,7 @@ int main(int argc, const char * argv[])
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
     viewFrustumOffsetCamera.setNearClip(0.1);
-    viewFrustumOffsetCamera.setFarClip(500.0);
+    viewFrustumOffsetCamera.setFarClip(500.0*TREE_SCALE);
 
     printLog( "Created Display Window.\n" );
         

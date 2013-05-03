@@ -148,27 +148,6 @@ public:
 
 private:
 
-    const bool  BALLS_ON                      = false;
-    const bool  AVATAR_GRAVITY                = true;
-    const float DECAY                         = 0.1;
-    const float THRUST_MAG                    = 1200.0;
-    const float YAW_MAG                       = 500.0;
-    const float BODY_SPIN_FRICTION            = 5.0;
-    const float BODY_UPRIGHT_FORCE            = 10.0;
-    const float BODY_PITCH_WHILE_WALKING      = 30.0;
-    const float BODY_ROLL_WHILE_TURNING       = 0.1;
-    const float LIN_VEL_DECAY                 = 5.0;
-    const float MY_HAND_HOLDING_PULL          = 0.2;
-    const float YOUR_HAND_HOLDING_PULL        = 1.0;
-	const float BODY_SPRING_FORCE             = 6.0f;
-	const float BODY_SPRING_DECAY             = 16.0f;
-	const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
-    const float COLLISION_RADIUS_SCALAR       = 1.8;
-    const float COLLISION_BALL_FORCE          = 1.0;
-    const float COLLISION_BODY_FORCE          = 6.0;
-    const float COLLISION_BALL_FRICTION       = 60.0;
-    const float COLLISION_BODY_FRICTION       = 0.5;
-
     //  Do you want head to try to return to center (depends on interface detected)
     void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
     const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
@@ -268,6 +247,7 @@ private:
     AvatarTouch _avatarTouch;
     bool        _displayingHead; // should be false if in first-person view
     bool        _returnHeadToCenter;
+    float       _distanceToNearestAvatar;    //  How close is the nearest avatar?
 
     // private methods...
     void initializeSkeleton();
