@@ -1015,7 +1015,7 @@ void display(void)
             float firstPersonTightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
-            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonUpShift   =  -0.2f;
             float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         

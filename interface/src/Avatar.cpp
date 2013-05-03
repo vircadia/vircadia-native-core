@@ -32,9 +32,14 @@ const float BODY_ROLL_WHILE_TURNING       = 0.1;
 const float LIN_VEL_DECAY                 = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
-const float BODY_SPRING_FORCE             = 6.0f;
+
+//const float BODY_SPRING_DEFAULT_TIGHTNESS = 20.0f;
+//const float BODY_SPRING_FORCE             = 6.0f;
+
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
+const float BODY_SPRING_FORCE             = 300.0f;
+
 const float BODY_SPRING_DECAY             = 16.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 20.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
 const float COLLISION_BALL_FORCE          = 1.0;
 const float COLLISION_BODY_FORCE          = 6.0;
@@ -336,10 +341,6 @@ void Avatar::simulate(float deltaTime) {
     //update the movement of the hand and process handshaking with other avatars... 
     updateHandMovementAndTouching(deltaTime);
         
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest) {
-        updateCollisionWithSphere( _TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime );
-    }
     
     // apply gravity and collision wiht the ground/floor
     if ( AVATAR_GRAVITY ) {
@@ -353,6 +354,11 @@ void Avatar::simulate(float deltaTime) {
     
 	// update body springs
     updateBodySprings( deltaTime );
+    
+    // test for avatar collision response with the big sphere
+    if (usingBigSphereCollisionTest) {
+        updateCollisionWithSphere( _TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime );
+    }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
     if ( _isMine ) {
@@ -670,9 +676,9 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
                     glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
                     
-                    _joint[b].springyVelocity += collisionForce *  30.0f * deltaTime;
-                    _velocity                += collisionForce * 100.0f * deltaTime;
-                    _joint[b].springyPosition = position + directionVector * combinedRadius;
+                    _joint[b].springyVelocity += collisionForce * 0.0f * deltaTime;
+                    _velocity                 += collisionForce * 40.0f * deltaTime;
+                    _joint[b].springyPosition  = position + directionVector * combinedRadius;
                 }
             }
         }
@@ -1292,7 +1298,7 @@ void Avatar::updateBodySprings( float deltaTime ) {
             _joint[b].springyVelocity = glm::vec3( 0.0f, 0.0f, 0.0f );
         }
         
-        _joint[b].springyPosition += _joint[b].springyVelocity;
+        _joint[b].springyPosition += _joint[b].springyVelocity * deltaTime;
     }
 }
 

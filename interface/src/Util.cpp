@@ -245,11 +245,13 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
     glColor4f( 0.0f, 0.0f, 0.0f, darkness );
     
     int   num = 20;
-    float y  = 0.01f;
+    float y  = 0.001f;
     float x2 = 0.0f;
     float z2 = radius;
     float x1;
     float z1;
+
+    glBegin(GL_TRIANGLES);             
 
     for (int i=1; i<num+1; i++) {
         x1 = x2;
@@ -258,12 +260,12 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
         x2 = radius * sin(r);
         z2 = radius * cos(r);
     
-        glBegin(GL_TRIANGLES);             
             glVertex3f(position.x,      y, position.z     ); 
             glVertex3f(position.x + x1, y, position.z + z1); 
             glVertex3f(position.x + x2, y, position.z + z2); 
-        glEnd();
     }
+    
+    glEnd();
 }
 
 
