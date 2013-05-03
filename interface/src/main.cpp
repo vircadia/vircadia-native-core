@@ -847,7 +847,7 @@ void display(void)
         glPopMatrix();
 
         //draw a grid ground plane....
-        drawGroundPlaneGrid( 5.0f, 9 );
+        drawGroundPlaneGrid(10.f);
 		
         //  Draw voxels
         if ( showingVoxels )

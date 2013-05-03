@@ -1508,8 +1508,13 @@ glm::vec3 Avatar::getGravity(glm::vec3 pos) {
     //  For now, we'll test this with a simple global lookup, but soon we will add getting this
     //  from the domain/voxelserver (or something similar)
     //
-    if (glm::length(pos) < 5.f)  {
-        //  If near the origin sphere, turn gravity ON
+    if ((pos.x > 0.f) &&
+        (pos.x < 10.f) &&
+        (pos.z > 0.f) &&
+        (pos.z < 10.f) &&
+        (pos.y > 0.f) &&
+        (pos.y < 3.f))  {
+        //  If above ground plane, turn gravity on
         return glm::vec3(0.f, -1.f, 0.f);
     } else {
         //  If flying in space, turn gravity OFF
