@@ -25,7 +25,7 @@
 using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    float voxelSizeScale = 5000.0;
+    float voxelSizeScale = 500.0*TREE_SCALE;
     return voxelSizeScale / powf(2, renderLevel);
 }
 
@@ -442,6 +442,21 @@ void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char re
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
     this->readCodeColorBufferToTree(voxelData);
     delete voxelData;
+}
+
+
+void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color) {
+    glm::vec3 distance = point2 - point1;
+    glm::vec3 items = distance / unitSize;
+    int maxItems = std::max(items.x, std::max(items.y, items.z));
+    glm::vec3 increment = distance * (1.0f/ maxItems);
+    glm::vec3 pointAt = point1;
+    for (int i = 0; i <= maxItems; i++ ) {
+        pointAt += increment;
+        unsigned char* voxelData = pointToVoxel(pointAt.x,pointAt.y,pointAt.z,unitSize,color[0],color[1],color[2]);
+        readCodeColorBufferToTree(voxelData);
+        delete voxelData;
+    }
 }
 
 void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
