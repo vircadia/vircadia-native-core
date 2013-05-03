@@ -1190,6 +1190,20 @@ int setGyroLook(int state) {
     return iRet;
 }
 
+int setFullscreen(int state) {
+    bool wasFullscreen = ::fullscreen;
+    int value = setValue(state, &::fullscreen);
+    if (::fullscreen != wasFullscreen) {
+        if (::fullscreen) {
+            glutFullScreen();    
+            
+        } else {
+            glutReshapeWindow(WIDTH, HEIGHT);
+        }
+    }
+    return value;
+}
+
 int setVoxels(int state) {
     return setValue(state, &::showingVoxels);
 }
@@ -1338,6 +1352,7 @@ void initMenu() {
     menuColumnOptions->addRow("Mirror (h)", setHead); 
     menuColumnOptions->addRow("Noise (n)", setNoise);
     menuColumnOptions->addRow("Gyro Look", setGyroLook);
+    menuColumnOptions->addRow("Fullscreen (f)", setFullscreen);
     menuColumnOptions->addRow("Quit (q)", quitApp);
 
     //  Render
@@ -1538,6 +1553,7 @@ void key(unsigned char k, int x, int y)
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
+    if (k == 'f') setFullscreen(!::fullscreen);
     if (k == 'o') setOculus(!::oculusOn);
     
 	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
@@ -1841,8 +1857,6 @@ int main(int argc, const char * argv[])
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
-    fullscreen = cmdOptionExists(argc, argv, "--fullscreen");
-    
     // the callback for our instance of AgentList is attachNewHeadToAgent
     AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
     
