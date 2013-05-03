@@ -145,7 +145,7 @@ public:
     
     //  Find out what the local gravity vector is at this location
     glm::vec3 getGravity(glm::vec3 pos);
-    
+
 private:
 
     //  Do you want head to try to return to center (depends on interface detected)
