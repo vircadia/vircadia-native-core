@@ -208,8 +208,7 @@ bool justStarted = true;
 
 
 //  Every second, check the frame rates and other stuff
-void Timer(int extra)
-{
+void Timer(int extra) {
     gettimeofday(&timerEnd, NULL);
     FPS = (float)frameCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
     packetsPerSecond = (float)packetCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
@@ -227,8 +226,7 @@ void Timer(int extra)
     }
 }
 
-void displayStats(void)
-{
+void displayStats(void) {
     int statsVerticalOffset = 50;
     if (::menuOn == 0) {
         statsVerticalOffset = 8;
@@ -269,6 +267,7 @@ void displayStats(void)
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
+    
     if (avatarMixer) {
         sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                 roundf(avatarMixer->getAverageKilobitsPerSecond()),
@@ -276,6 +275,7 @@ void displayStats(void)
     } else {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
+    
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
     
 	if (::perfStatsOn) {
@@ -293,8 +293,7 @@ void displayStats(void)
 	}
 }
 
-void initDisplay(void)
-{
+void initDisplay(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -306,8 +305,7 @@ void initDisplay(void)
     if (fullscreen) glutFullScreen();
 }
 
-void init(void)
-{
+void init(void) {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
     voxels.setCamera(&myCamera);
@@ -360,8 +358,7 @@ void terminate () {
     exit(EXIT_SUCCESS);
 }
 
-void reset_sensors()
-{
+void reset_sensors() {
     
     myAvatar.setPosition(start_location);
     headMouseX = WIDTH/2;
@@ -377,16 +374,13 @@ void reset_sensors()
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
-void updateAvatar(float frametime)
-{
+void updateAvatar(float frametime) {
     float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
     float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
     myAvatar.UpdateGyros(frametime, &serialPort, &gravity);
 		
-    //  
     //  Update gyro-based mouse (X,Y on screen)
-    // 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
     if (powf(gyroYawRate*gyroYawRate + 
@@ -401,7 +395,7 @@ void updateAvatar(float frametime)
     headMouseY = min(headMouseY, HEIGHT);
     
     //  Update head and body pitch and yaw based on measured gyro rates
-        if (::gyroLook) {
+    if (::gyroLook) {
         // Yaw
         const float MIN_YAW_RATE = 50;
         const float YAW_SENSITIVITY = 1.0;
