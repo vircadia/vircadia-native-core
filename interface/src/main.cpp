@@ -344,7 +344,9 @@ void init(void)
 
 void terminate () {
     // Close serial port
-    //close(serial_fd);
+    // close(serial_fd);
+    
+    myAvatar.writeAvatarDataToFile();    
 
     #ifndef _WIN32
     audio.terminate();
@@ -1290,7 +1292,6 @@ int doRandomizeVoxelColors(int state) {
     return state;
 }
 
-
 int doFalseRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.falseColorizeRandom();
@@ -1321,7 +1322,6 @@ int doFalseColorizeInView(int state) {
     }
     return state;
 }
-
 
 const char* modeAll     = " - All "; 
 const char* modeVectors = " - Vectors "; 
@@ -1396,8 +1396,7 @@ void testPointToVoxel()
 	float y=0;
 	float z=0;
 	float s=0.1;
-	for (float x=0; x<=1; x+= 0.05)
-	{
+	for (float x=0; x<=1; x+= 0.05) {
 		printLog(" x=%f");
 
 		unsigned char red   = 200; //randomColorValue(65);
@@ -1486,11 +1485,9 @@ void specialkeyUp(int k, int x, int y) {
         myAvatar.setDriveKeys(RIGHT, 0);
         myAvatar.setDriveKeys(ROT_RIGHT, 0);
     }
-    
 }
 
-void specialkey(int k, int x, int y)
-{
+void specialkey(int k, int x, int y) {
     if (::chatEntryOn) {
         chatEntry.specialKey(k);
         return;
@@ -1532,7 +1529,6 @@ void keyUp(unsigned char k, int x, int y) {
     if (k == 's') myAvatar.setDriveKeys(BACK, 0);
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 0);
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
-
 }
 
 void key(unsigned char k, int x, int y)
@@ -1624,8 +1620,7 @@ void key(unsigned char k, int x, int y)
 }
 
 //  Receive packets from other agents/servers and decide what to do with them!
-void* networkReceive(void* args)
-{    
+void* networkReceive(void* args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
     
@@ -1697,9 +1692,7 @@ void idle(void) {
             handControl.stop();
 		}
         
-        //
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
-        //
         updateAvatar(deltaTime);
 
         // read incoming packets from network
@@ -1730,9 +1723,7 @@ void idle(void) {
     }
 }
 
-
-void reshape(int width, int height)
-{
+void reshape(int width, int height) {
     WIDTH = width;
     HEIGHT = height; 
     aspectRatio = ((float)width/(float)height); // based on screen resize
@@ -1758,17 +1749,12 @@ void reshape(int width, int height)
         camera.setFieldOfView(fov = 60);
     }
 
-    //printLog("reshape() width=%d, height=%d, aspectRatio=%f fov=%f near=%f far=%f \n",
-    //    width,height,aspectRatio,fov,nearClip,farClip);
-    
     // Tell our viewFrustum about this change
     ::viewFrustum.setAspectRatio(aspectRatio);
 
-    
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
-    glMatrixMode(GL_PROJECTION); //hello
-
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
     // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
@@ -1785,42 +1771,32 @@ void reshape(int width, int height)
     
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-     
 }
 
-void mouseFunc( int button, int state, int x, int y ) 
-{
-    if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN )
-    {
-        if (!menu.mouseClick(x, y)) {
+void mouseFunc(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
+        if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
             mouseX = x;
             mouseY = y;
             mousePressed = 1;
+        } else if (state == GLUT_UP) {
+            mouseX = x;
+            mouseY = y;
+            mousePressed = 0;
         }
-    }
-	if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
-        mouseX = x;
-        mouseY = y;
-        mousePressed = 0;
-    }
-	
+    }	
 }
 
-void motionFunc( int x, int y)
-{
+void motionFunc(int x, int y) {
 	mouseX = x;
 	mouseY = y;
 }
 
-void mouseoverFunc( int x, int y)
-{
+void mouseoverFunc(int x, int y){
     menu.mouseOver(x, y);
 
 	mouseX = x;
 	mouseY = y;
-    if (mousePressed == 0)
-    {}
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
@@ -1943,6 +1919,8 @@ int main(int argc, const char * argv[])
         pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
         printLog("Network receive thread created.\n"); 
     }
+    
+    myAvatar.readAvatarDataFromFile();
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
