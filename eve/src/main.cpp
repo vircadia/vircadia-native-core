@@ -114,7 +114,7 @@ int main(int argc, const char* argv[]) {
     // pick a random point inside a 10x10 grid
     
     eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION), 
-                              0.32, // this is the same as the pelvis standing height (as of 4/26/13)
+                              1.33, // this should be the same as the avatar's pelvis standing height 
                               randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
     
     // face any instance of eve down the z-axis
@@ -122,7 +122,7 @@ int main(int argc, const char* argv[]) {
     
     // put her hand out so somebody can shake it
     eve.setHandPosition(glm::vec3(eve.getPosition()[0] - 0.2,
-                                  0.25,
+                                  0.5,
                                   eve.getPosition()[2] + 0.1));    
     // read eve's audio data
     AudioInjector eveAudioInjector("/etc/highfidelity/eve/resources/eve.raw");

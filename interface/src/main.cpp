@@ -69,6 +69,7 @@
 
 #include "Camera.h"
 #include "Avatar.h"
+#include "AvatarRenderer.h"
 #include "Texture.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
@@ -118,6 +119,9 @@ ViewFrustum viewFrustum;            // current state of view frustum, perspectiv
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+
+
+AvatarRenderer avatarRenderer;
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -726,7 +730,7 @@ void display(void)
 
             float thirdPersonPitch     =   0.0f;
             float thirdPersonUpShift   =  -0.1f;
-            float thirdPersonDistance  =   1.f;
+            float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         
             if ( USING_FIRST_PERSON_EFFECT ) {
@@ -867,6 +871,7 @@ void display(void)
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->render(0);
+                //avatarRenderer.render(avatar, 0); // this will replace the above call
             }
         }
         agentList->unlock();
@@ -879,6 +884,7 @@ void display(void)
     
         //Render my own avatar
 		myAvatar.render(::lookingInMirror);
+        //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
     }
     
     glPopMatrix();
