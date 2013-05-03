@@ -229,16 +229,16 @@ void displayStats(void)
     
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered()/1000.f << "K Updated: " << voxels.getVoxelsUpdated()/1000.f << "K";
+    voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() / 1000.f << "K Updated: " << voxels.getVoxelsUpdated()/1000.f << "K";
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated()/1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage()/1000.f
+	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() / 1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
     << "Kps) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
 	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored()/1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage()/1000.f
+	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() / 1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage() / 1000.f
     << "Kps) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     

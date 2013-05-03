@@ -375,9 +375,9 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
                 v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_SHOULDER );
                 
                 float distance = glm::length( v );
-                if ( distance < nearestAvatarDistance ) { nearestAvatarDistance = distance; }
+                if (distance < nearestAvatarDistance) { nearestAvatarDistance = distance; }
                 
-                if ( distance < _maxArmLength + _maxArmLength ) {
+                if (distance < _maxArmLength + _maxArmLength) {
                                 
                     _interactingOther = otherAvatar;
                     _avatarTouch.setAbleToReachOtherAvatar(true);
@@ -491,8 +491,10 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
     // If someone is near, damp velocity as a function of closeness
     const float AVATAR_BRAKING_RANGE = 1.2f;
     const float AVATAR_BRAKING_STRENGTH = 25.f;
-    if (_isMine && (nearestAvatarDistance < AVATAR_BRAKING_RANGE )) {
-        _velocity *= (1.f - deltaTime * AVATAR_BRAKING_STRENGTH * (AVATAR_BRAKING_RANGE - nearestAvatarDistance));
+    if (_isMine && (nearestAvatarDistance < AVATAR_BRAKING_RANGE)) {
+        _velocity *=
+        (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
+         (AVATAR_BRAKING_RANGE - nearestAvatarDistance));
     }
 	
     // update head information
@@ -1421,8 +1423,8 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
             printLog("Using Transmitter %s to drive head, springs OFF.\n", device);
 
         }
-        printLog("Packet: [%s]\n", packetData);
-        printLog("Version:  %s\n", device);
+        //printLog("Packet: [%s]\n", packetData);
+        //printLog("Version:  %s\n", device);
         
         _transmitterInitialReading = glm::vec3(     rot3,
                                                     rot2,
@@ -1449,7 +1451,7 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     if (eulerAngles.x < -180.f) { eulerAngles.x += 360.f; }
     
     glm::vec3 angularVelocity;
-    if (!(deviceType == DEVICE_GLASS)) {
+    if (deviceType != DEVICE_GLASS) {
         angularVelocity = glm::vec3(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
         setHeadFromGyros( &eulerAngles, &angularVelocity,
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1.0);
