@@ -1817,8 +1817,6 @@ void mouseoverFunc( int x, int y)
     {}
 }
 
-
-
 void attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
         newAgent->setLinkedData(new Avatar(false));
