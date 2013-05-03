@@ -344,7 +344,9 @@ void init(void)
 
 void terminate () {
     // Close serial port
-    //close(serial_fd);
+    // close(serial_fd);
+    
+    myAvatar.writeAvatarDataToFile();    
 
     #ifndef _WIN32
     audio.terminate();
@@ -1943,6 +1945,8 @@ int main(int argc, const char * argv[])
         pthread_create(&networkReceiveThread, NULL, networkReceive, NULL);
         printLog("Network receive thread created.\n"); 
     }
+    
+    myAvatar.readAvatarDataFromFile();
     
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
