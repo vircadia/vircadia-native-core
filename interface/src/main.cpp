@@ -130,6 +130,9 @@ glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 VoxelSystem voxels;
 
+bool wantToKillLocalVoxels = false;
+
+
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
 #endif
@@ -139,6 +142,8 @@ Audio audio(&audioScope, &myAvatar);
 
 //  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
 glm::vec3 start_location(6.1f, 0, 1.4f);
+
+bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
 
 bool statsOn = false;               //  Whether to show onscreen text overlay with stats
 bool starsOn = false;               //  Whether to display the stars
@@ -1031,6 +1036,14 @@ int setMenu(int state) {
     return setValue(state, &::menuOn);
 }
 
+int setRenderWarnings(int state) {
+    int value = setValue(state, &::renderWarningsOn);
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.setRenderPipelineWarnings(::renderWarningsOn);
+    }
+    return value;
+}
+
 int setDisplayFrustum(int state) {
     return setValue(state, &::frustumOn);
 }
@@ -1062,6 +1075,13 @@ int setFrustumRenderMode(int state) {
 		::frustumDrawingMode = (::frustumDrawingMode+1)%FRUSTUM_DRAW_MODE_COUNT;
     }
     return ::frustumDrawingMode;
+}
+
+int doKillLocalVoxels(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::wantToKillLocalVoxels = true;
+    }
+    return state;
 }
 
 int doRandomizeVoxelColors(int state) {
@@ -1161,6 +1181,8 @@ void initMenu() {
 
     // Debug
     menuColumnDebug = menu.addColumn("Debug");
+    menuColumnDebug->addRow("Show Render Pipeline Warnings", setRenderWarnings);
+    menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
@@ -1405,6 +1427,12 @@ void* networkReceive(void* args)
     ssize_t bytesReceived;
     
     while (!stopNetworkReceiveThread) {
+        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
+        if (::wantToKillLocalVoxels) {
+            ::voxels.killLocalVoxels();
+            ::wantToKillLocalVoxels = false;
+        }
+    
         if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) {
             packetCount++;
             bytesCount += bytesReceived;
