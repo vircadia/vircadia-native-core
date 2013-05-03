@@ -1292,7 +1292,6 @@ int doRandomizeVoxelColors(int state) {
     return state;
 }
 
-
 int doFalseRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.falseColorizeRandom();
@@ -1323,7 +1322,6 @@ int doFalseColorizeInView(int state) {
     }
     return state;
 }
-
 
 const char* modeAll     = " - All "; 
 const char* modeVectors = " - Vectors "; 
@@ -1398,8 +1396,7 @@ void testPointToVoxel()
 	float y=0;
 	float z=0;
 	float s=0.1;
-	for (float x=0; x<=1; x+= 0.05)
-	{
+	for (float x=0; x<=1; x+= 0.05) {
 		printLog(" x=%f");
 
 		unsigned char red   = 200; //randomColorValue(65);
@@ -1488,7 +1485,6 @@ void specialkeyUp(int k, int x, int y) {
         myAvatar.setDriveKeys(RIGHT, 0);
         myAvatar.setDriveKeys(ROT_RIGHT, 0);
     }
-    
 }
 
 void specialkey(int k, int x, int y) {
