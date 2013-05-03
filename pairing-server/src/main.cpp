@@ -12,7 +12,7 @@
 #include <UDPSocket.h>
 #include <arpa/inet.h>
 
-const int PAIRING_SERVER_LISTEN_PORT = 52934;
+const int PAIRING_SERVER_LISTEN_PORT = 7247;
 const int MAX_PACKET_SIZE_BYTES = 1400;
 
 struct PairableDevice {
