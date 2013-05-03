@@ -80,10 +80,6 @@ timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
 float usecsAtStartup = 0;
 
-#define LOG_SAMPLE_DELAY 0
-
-std::ofstream logFile;
-
 /**
  * Audio callback used by portaudio.
  * Communicates with Audio via a shared pointer to Audio::data.
@@ -315,34 +311,12 @@ void *receiveAudioViaUDP(void *args) {
     
     stdev.reset();
     
-    if (LOG_SAMPLE_DELAY) {
-        
-        char *directory = new char[50];
-        char *filename = new char[50];
-        
-        sprintf(directory, "%s/Desktop/echo_tests", getenv("HOME"));
-        
-        mkdir(directory, S_IRWXU | S_IRWXG | S_IRWXO);
-        sprintf(filename, "%s/%ld.csv", directory, previousReceiveTime.tv_sec);
-        
-        logFile.open(filename, std::ios::out);
-        
-        delete[] directory;
-        delete[] filename;
-    }
-    
     while (!stopAudioReceiveThread) {
 
         if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
             
             gettimeofday(&currentReceiveTime, NULL);
             totalPacketsReceived++;
-
-            if (LOG_SAMPLE_DELAY) {
-                // write time difference (in microseconds) between packet receipts to file
-                double timeDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
-                logFile << timeDiff << std::endl;
-            }
             
             double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
             //printLog("tDiff %4.1f\n", tDiff);
@@ -562,8 +536,7 @@ void Audio::render(int screenWidth, int screenHeight)
  * @return Returns true if the initialization was successful, or false if an error occured.
  The error code may be retrieved by Audio::getError().
  */
-bool Audio::terminate ()
-{
+bool Audio::terminate() {
     stopAudioReceiveThread = true;
     pthread_join(audioReceiveThread, NULL);
     
@@ -577,7 +550,6 @@ bool Audio::terminate ()
         if (paError != paNoError) goto error;
     }
     
-    logFile.close();    
     delete audioData;
     
     return true;
