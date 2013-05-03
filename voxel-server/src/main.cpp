@@ -106,7 +106,7 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
     tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
     printf("11 spheres added...\n");
 
-    float voxelSize = 1.0f/8;
+    float voxelSize = 0.99f/8;
     printf("creating corner points...\n");
     tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
