@@ -24,7 +24,6 @@ using namespace std;
 // no clue which versions are affected...
 #define WORKAROUND_BROKEN_GLUT_STROKES
 // see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-static float MONO_STROKE_WIDTH_GLUT = 104.76;
 
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
     //
@@ -172,7 +171,6 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     //
     //  Draws text on screen as stroked so it can be resized
     //
-    int len, i;
     glPushMatrix();
     glTranslatef( static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3f(r,g,b);
