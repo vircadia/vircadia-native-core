@@ -42,7 +42,6 @@ enum AvatarMode
 	NUM_AVATAR_MODES
 };
 
-
 enum AvatarJointID
 {
 	AVATAR_JOINT_NULL = -1,
@@ -52,19 +51,16 @@ enum AvatarJointID
 	AVATAR_JOINT_NECK_BASE,	
 	AVATAR_JOINT_HEAD_BASE,	
 	AVATAR_JOINT_HEAD_TOP,	
-    
 	AVATAR_JOINT_LEFT_COLLAR,
 	AVATAR_JOINT_LEFT_SHOULDER,
 	AVATAR_JOINT_LEFT_ELBOW,
 	AVATAR_JOINT_LEFT_WRIST,
 	AVATAR_JOINT_LEFT_FINGERTIPS,
-    
 	AVATAR_JOINT_RIGHT_COLLAR,
 	AVATAR_JOINT_RIGHT_SHOULDER,
 	AVATAR_JOINT_RIGHT_ELBOW,
 	AVATAR_JOINT_RIGHT_WRIST,
 	AVATAR_JOINT_RIGHT_FINGERTIPS,
-    
 	AVATAR_JOINT_LEFT_HIP,
 	AVATAR_JOINT_LEFT_KNEE,
 	AVATAR_JOINT_LEFT_HEEL,		
@@ -73,37 +69,8 @@ enum AvatarJointID
 	AVATAR_JOINT_RIGHT_KNEE,	
 	AVATAR_JOINT_RIGHT_HEEL,	
 	AVATAR_JOINT_RIGHT_TOES,	
-
-    /*
-	AVATAR_JOINT_NULL = -1,
-	AVATAR_JOINT_PELVIS,
-	AVATAR_JOINT_TORSO,
-	AVATAR_JOINT_CHEST,
-	AVATAR_JOINT_NECK_BASE,
-	AVATAR_JOINT_HEAD_BASE,
-	AVATAR_JOINT_HEAD_TOP,
-	AVATAR_JOINT_LEFT_COLLAR,
-	AVATAR_JOINT_LEFT_SHOULDER,
-	AVATAR_JOINT_LEFT_ELBOW,
-	AVATAR_JOINT_LEFT_WRIST,
-	AVATAR_JOINT_LEFT_FINGERTIPS,
-	AVATAR_JOINT_RIGHT_COLLAR,
-	AVATAR_JOINT_RIGHT_SHOULDER,
-	AVATAR_JOINT_RIGHT_ELBOW,
-	AVATAR_JOINT_RIGHT_WRIST,
-	AVATAR_JOINT_RIGHT_FINGERTIPS,
-	AVATAR_JOINT_LEFT_HIP,
-	AVATAR_JOINT_LEFT_KNEE,
-	AVATAR_JOINT_LEFT_HEEL,
-	AVATAR_JOINT_LEFT_TOES,
-	AVATAR_JOINT_RIGHT_HIP,
-	AVATAR_JOINT_RIGHT_KNEE,
-	AVATAR_JOINT_RIGHT_HEEL,
-	AVATAR_JOINT_RIGHT_TOES,
-    */
     
 	NUM_AVATAR_JOINTS
-    
 };
 
 
@@ -134,9 +101,12 @@ public:
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
 
-    const glm::vec3& getHeadLookatDirection() const { return _orientation.getFront(); };
-    const glm::vec3& getHeadLookatDirectionUp() const { return _orientation.getUp(); };
-    const glm::vec3& getHeadLookatDirectionRight() const { return _orientation.getRight(); };
+    /*
+    const glm::vec3& getHeadRightDirection() const { return _orientation.getRight(); };
+    const glm::vec3& getHeadUpDirection   () const { return _orientation.getUp   (); };
+    const glm::vec3& getHeadFrontDirection() const { return _orientation.getFront(); };
+    */
+    
     const glm::vec3& getHeadPosition() const ;
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
@@ -183,9 +153,10 @@ private:
     const float DECAY                         = 0.1;
     const float THRUST_MAG                    = 1200.0;
     const float YAW_MAG                       = 500.0;
-    const float BODY_PITCH_DECAY              = 5.0;
-    const float BODY_YAW_DECAY                = 5.0;
-    const float BODY_ROLL_DECAY               = 5.0;
+    const float BODY_SPIN_FRICTION            = 5.0;
+    const float BODY_UPRIGHT_FORCE            = 10.0;
+    const float BODY_PITCH_WHILE_WALKING      = 30.0;
+    const float BODY_ROLL_WHILE_TURNING       = 0.1;
     const float LIN_VEL_DECAY                 = 5.0;
     const float MY_HAND_HOLDING_PULL          = 0.2;
     const float YOUR_HAND_HOLDING_PULL        = 1.0;
@@ -204,20 +175,20 @@ private:
 
     struct AvatarJoint
     {
-        AvatarJointID parent;				// which joint is this joint connected to?
-        glm::vec3	 position;				// the position at the "end" of the joint - in global space
-        glm::vec3	 defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-        glm::vec3	 springyPosition;		// used for special effects (a 'flexible' variant of position)
-        glm::vec3	 springyVelocity;		// used for special effects ( the velocity of the springy position)
-        float		 springBodyTightness;	// how tightly the springy position tries to stay on the position
-        glm::quat    rotation;              // this will eventually replace yaw, pitch and roll (and maybe orientation)
-        float		 yaw;					// the yaw Euler angle of the joint rotation off the parent
-        float		 pitch;					// the pitch Euler angle of the joint rotation off the parent
-        float		 roll;					// the roll Euler angle of the joint rotation off the parent
-        Orientation	 orientation;			// three orthogonal normals determined by yaw, pitch, roll
-        float		 length;				// the length of the joint
-        float		 radius;                // used for detecting collisions for certain physical effects
-        bool		 isCollidable;          // when false, the joint position will not register a collision
+        AvatarJointID parent;               // which joint is this joint connected to?
+        glm::vec3	  position;				// the position at the "end" of the joint - in global space
+        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+        glm::vec3	  springyPosition;		// used for special effects (a 'flexible' variant of position)
+        glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
+        float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
+        glm::quat     rotation;             // this will eventually replace yaw, pitch and roll (and maybe orientation)
+        float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
+        float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
+        float		  roll;					// the roll Euler angle of the joint rotation off the parent
+        Orientation	  orientation;			// three orthogonal normals determined by yaw, pitch, roll
+        float		  length;				// the length of vector connecting the joint and its parent
+        float		  radius;               // used for detecting collisions for certain physical effects
+        bool		  isCollidable;         // when false, the joint position will not register a collision
     };
 
     struct AvatarHead

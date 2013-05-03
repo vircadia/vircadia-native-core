@@ -135,31 +135,31 @@ Avatar::Avatar(bool isMine) {
 
 Avatar::Avatar(const Avatar &otherAvatar) {
     
-    _velocity                       = otherAvatar._velocity;
-	_thrust                         = otherAvatar._thrust;
-    _rotation                       = otherAvatar._rotation;
-	_bodyYaw                        = otherAvatar._bodyYaw;
-	_bodyPitch                      = otherAvatar._bodyPitch;
-	_bodyRoll                       = otherAvatar._bodyRoll;
-	_bodyPitchDelta                 = otherAvatar._bodyPitchDelta;
-	_bodyYawDelta                   = otherAvatar._bodyYawDelta;
-	_bodyRollDelta                  = otherAvatar._bodyRollDelta;
-	_mousePressed                   = otherAvatar._mousePressed;
-	_mode                           = otherAvatar._mode;
-    _isMine                         = otherAvatar._isMine;
-    _renderYaw                      = otherAvatar._renderYaw;
-    _renderPitch                    = otherAvatar._renderPitch;
-    _maxArmLength                   = otherAvatar._maxArmLength;
-    _transmitterTimer               = otherAvatar._transmitterTimer;
-    _transmitterIsFirstData         = otherAvatar._transmitterIsFirstData;
-    _transmitterTimeLastReceived    = otherAvatar._transmitterTimeLastReceived;
-    _transmitterHz                  = otherAvatar._transmitterHz;
-    _transmitterInitialReading      = otherAvatar._transmitterInitialReading;
-    _transmitterPackets             = otherAvatar._transmitterPackets;
-    _TEST_bigSphereRadius           = otherAvatar._TEST_bigSphereRadius;
-    _TEST_bigSpherePosition         = otherAvatar._TEST_bigSpherePosition;
-	_movedHandOffset                = otherAvatar._movedHandOffset;
-	_usingBodySprings               = otherAvatar._usingBodySprings;
+    _velocity                    = otherAvatar._velocity;
+	_thrust                      = otherAvatar._thrust;
+    _rotation                    = otherAvatar._rotation;
+	_bodyYaw                     = otherAvatar._bodyYaw;
+	_bodyPitch                   = otherAvatar._bodyPitch;
+	_bodyRoll                    = otherAvatar._bodyRoll;
+	_bodyPitchDelta              = otherAvatar._bodyPitchDelta;
+	_bodyYawDelta                = otherAvatar._bodyYawDelta;
+	_bodyRollDelta               = otherAvatar._bodyRollDelta;
+	_mousePressed                = otherAvatar._mousePressed;
+	_mode                        = otherAvatar._mode;
+    _isMine                      = otherAvatar._isMine;
+    _renderYaw                   = otherAvatar._renderYaw;
+    _renderPitch                 = otherAvatar._renderPitch;
+    _maxArmLength                = otherAvatar._maxArmLength;
+    _transmitterTimer            = otherAvatar._transmitterTimer;
+    _transmitterIsFirstData      = otherAvatar._transmitterIsFirstData;
+    _transmitterTimeLastReceived = otherAvatar._transmitterTimeLastReceived;
+    _transmitterHz               = otherAvatar._transmitterHz;
+    _transmitterInitialReading   = otherAvatar._transmitterInitialReading;
+    _transmitterPackets          = otherAvatar._transmitterPackets;
+    _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
+    _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
+	_movedHandOffset             = otherAvatar._movedHandOffset;
+	_usingBodySprings            = otherAvatar._usingBodySprings;
 
 	_orientation.set( otherAvatar._orientation );
     
@@ -347,16 +347,34 @@ void Avatar::simulate(float deltaTime) {
         
     // update body yaw by body yaw delta
     if (_isMine) {
-        _bodyYaw += _bodyYawDelta * deltaTime;
+        _bodyPitch += _bodyPitchDelta * deltaTime;
+        _bodyYaw   += _bodyYawDelta   * deltaTime;
+        _bodyRoll  += _bodyRollDelta  * deltaTime;
     }
     
-	// decay body rotation deltas
-    _bodyPitchDelta *= (1.0 - BODY_PITCH_DECAY * deltaTime);
-    _bodyYawDelta   *= (1.0 - BODY_YAW_DECAY   * deltaTime);
-    _bodyRollDelta  *= (1.0 - BODY_ROLL_DECAY  * deltaTime);
-    
+	// decay body rotation momentum
+    float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
+    if  ( bodySpinMomentum < 0.0f ) { bodySpinMomentum = 0.0f; } 
+    _bodyPitchDelta *= bodySpinMomentum;
+    _bodyYawDelta   *= bodySpinMomentum;
+    _bodyRollDelta  *= bodySpinMomentum;
+        
 	// add thrust to velocity
 	_velocity += _thrust * deltaTime;
+    
+    // calculate speed                             
+    _speed = glm::length( _velocity );
+    
+    //pitch and roll the body as a function of forward speed and turning delta
+    float forwardComponentOfVelocity = glm::dot( _orientation.getFront(), _velocity );
+    _bodyPitch += BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity;
+    _bodyRoll  += BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta;
+        
+	// these forces keep the body upright...     
+    float tiltDecay = 1.0 - BODY_UPRIGHT_FORCE * deltaTime;
+    if  ( tiltDecay < 0.0f ) { tiltDecay = 0.0f; }     
+    _bodyPitch *= tiltDecay;
+    _bodyRoll  *= tiltDecay;
 
     // update position by velocity
     _position += _velocity * deltaTime;
@@ -367,11 +385,8 @@ void Avatar::simulate(float deltaTime) {
     // update head information
     updateHead(deltaTime);
     
-    // calculate speed, and use that to determine walking vs. standing                                
-    _speed = glm::length( _velocity );
-	float rotationalSpeed = fabs( _bodyYawDelta );
-
-	if ( _speed + rotationalSpeed > 0.2 ) {
+    // use speed and angular velocity to determine walking vs. standing                                
+	if ( _speed + fabs( _bodyYawDelta ) > 0.2 ) {
 		_mode = AVATAR_MODE_WALKING;
 	} else {
 		_mode = AVATAR_MODE_INTERACTING;
@@ -708,6 +723,7 @@ static TextRenderer* textRenderer() {
 }
 
 void Avatar::render(bool lookingInMirror) {
+
     
     /*
 	// show avatar position
@@ -991,6 +1007,7 @@ void Avatar::initializeSkeleton() {
 	_joint[ AVATAR_JOINT_CHEST		      ].parent = AVATAR_JOINT_TORSO;
 	_joint[ AVATAR_JOINT_NECK_BASE	      ].parent = AVATAR_JOINT_CHEST;
 	_joint[ AVATAR_JOINT_HEAD_BASE        ].parent = AVATAR_JOINT_NECK_BASE;
+	_joint[ AVATAR_JOINT_HEAD_TOP         ].parent = AVATAR_JOINT_HEAD_BASE;
 	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].parent = AVATAR_JOINT_CHEST;
 	_joint[ AVATAR_JOINT_LEFT_SHOULDER    ].parent = AVATAR_JOINT_LEFT_COLLAR;
 	_joint[ AVATAR_JOINT_LEFT_ELBOW	      ].parent = AVATAR_JOINT_LEFT_SHOULDER;
@@ -1012,32 +1029,28 @@ void Avatar::initializeSkeleton() {
     
 	// specify the default pose position
 	_joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0  );
-	_joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.0  );
+	_joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
 	_joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.0  );
-	_joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,   0.0  );
-	_joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.0  );
-	
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.04,  0.0,   0.0  );
+	_joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,  -0.01 );
+	_joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
+    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04, -0.01 );
+	_joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.03,  0.0,  -0.01 );
 	_joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
 	_joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
 	_joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
-	
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.04,  0.0,   0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04, -0.01 );
+	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.03,  0.0,  -0.01 );
     _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
 	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
-	
-    _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.05,  0.0,   0.0  );
-	_joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
-	_joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
-	
-    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.05,  0.0,   0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.0  );
-	_joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.04 );
+    _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.04,  0.0,  -0.02 );
+	_joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.02 );
+	_joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22, -0.01 );
+	_joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
+    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.04,  0.0,  -0.02 );
+	_joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.02 );
+	_joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22, -0.01 );
+	_joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
     
 	// specify the radii of the bone positions
 	_joint[ AVATAR_JOINT_PELVIS           ].radius = 0.06;
@@ -1046,13 +1059,13 @@ void Avatar::initializeSkeleton() {
 	_joint[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
 	_joint[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
     
-	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.027;
+	_joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.029;
 	_joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.023;
 	_joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.017;
 	_joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.017;
 	_joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
     
-	_joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.027;
+	_joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.029;
 	_joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.023;
 	_joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].radius = 0.015;
 	_joint[ AVATAR_JOINT_RIGHT_WRIST	  ].radius = 0.015;
@@ -1122,12 +1135,7 @@ void Avatar::initializeSkeleton() {
         _joint[ AVATAR_JOINT_HEAD_BASE ].length +
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
     );
-    
-    printf( "_height = %f\n", _height );
-    
-
-    
-    
+    //printf( "_height = %f\n", _height );
     
 	// generate world positions
 	updateSkeleton();
@@ -1145,9 +1153,12 @@ void Avatar::calculateBoneLengths() {
 }
 
 void Avatar::updateSkeleton() {
-	// rotate body...
+	
+    // rotate body...
 	_orientation.setToIdentity();
-	_orientation.yaw( _bodyYaw );
+	_orientation.yaw  ( _bodyYaw   );
+	_orientation.pitch( _bodyPitch );
+	_orientation.roll ( _bodyRoll  );
     
 	// calculate positions of all bones by traversing the skeleton tree:
 	for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
