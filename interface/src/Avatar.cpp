@@ -4,7 +4,7 @@
 //
 //  Created by Philip Rosedale on 9/11/12.
 //	adapted by Jeffrey Ventrella
-//  Copyright (c) 2012 Physical, Inc.. All rights reserved.
+//  Copyright (c) 2013 Physical, Inc.. All rights reserved.
 //
 
 #include <glm/glm.hpp>
@@ -20,11 +20,15 @@
 
 using namespace std;
 
+/*
 const bool BALLS_ON = false;
 
 const bool  AVATAR_GRAVITY          = true;
 const float DECAY                   = 0.1;
-const float THRUST_MAG              = 1200.0;
+
+//const float THRUST_MAG              = 1200.0;
+const float THRUST_MAG              = 0.0;
+
 const float YAW_MAG                 = 500.0; //JJV - changed from 300.0;
 const float TEST_YAW_DECAY          = 5.0;
 const float LIN_VEL_DECAY           = 5.0;
@@ -32,17 +36,13 @@ const float MY_HAND_HOLDING_PULL    = 0.2;
 const float YOUR_HAND_HOLDING_PULL  = 1.0;
 const float BODY_SPRING_FORCE       = 6.0f;
 const float BODY_SPRING_DECAY       = 16.0f;
-//const float COLLISION_FRICTION      = 0.5;
-//const float COLLISION_RADIUS_SCALAR = 1.8;
-//const float COLLISION_BALL_FORCE    = 0.1;
-//const float COLLISION_BODY_FORCE    = 3.0;
-
 const float COLLISION_RADIUS_SCALAR = 1.8;
 const float COLLISION_BALL_FORCE    = 0.6;
 const float COLLISION_BODY_FORCE    = 6.0;
 const float COLLISION_BALL_FRICTION = 200.0;
 const float COLLISION_BODY_FRICTION = 0.5;
-    
+*/
+
 float skinColor[] = {1.0, 0.84, 0.66};
 float lightBlue[] = { 0.7, 0.8, 1.0 };
 float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -140,7 +140,7 @@ Avatar::Avatar(bool isMine) {
     _renderPitch                = 0.0;
 	_sphere                     = NULL;
     _interactingOther           = NULL;
-	_closeEnoughToHoldHands   = false;
+	//_canReachToOtherAvatar      = false;
     _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
 
     initializeSkeleton();
@@ -162,7 +162,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _velocity                       = otherAvatar._velocity;
 	_thrust                         = otherAvatar._thrust;
     _rotation                       = otherAvatar._rotation;
-	_closeEnoughToHoldHands         = otherAvatar._closeEnoughToHoldHands;
+	//_canReachToOtherAvatar          = otherAvatar._canReachToOtherAvatar;
 	_bodyYaw                        = otherAvatar._bodyYaw;
 	_bodyPitch                      = otherAvatar._bodyPitch;
 	_bodyRoll                       = otherAvatar._bodyRoll;
@@ -231,7 +231,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
     
-
     initializeSkeleton();
     
     if (iris_texture.size() == 0) {
@@ -322,6 +321,11 @@ void Avatar::setMousePressed( bool d ) {
 }
 
 
+bool Avatar::getIsNearInteractingOther() { 
+    return _avatarTouch.getAbleToReachOtherAvatar(); 
+}
+
+
 void Avatar::simulate(float deltaTime) {
     
     float nearestAvatarDistance = std::numeric_limits<float>::max();
@@ -344,12 +348,14 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
 	// reset hand and arm positions according to hand movement
 	updateHandMovement( deltaTime );
     
-    if ( !_closeEnoughToHoldHands ) {
+    if ( !_avatarTouch.getAbleToReachOtherAvatar() ) {
         //initialize _handHolding
         _handHoldingPosition = _bone[ AVATAR_BONE_RIGHT_HAND ].position;
     }
     
-    _closeEnoughToHoldHands = false; // reset for the next go-round
+    //reset these for the next go-round
+    _avatarTouch.setAbleToReachOtherAvatar (false);
+    _avatarTouch.setHandsCloseEnoughToGrasp(false);
 
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
@@ -366,23 +372,31 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
                  
                 // test other avatar hand position for proximity
                 glm::vec3 v( _bone[ AVATAR_BONE_RIGHT_SHOULDER ].position );
-                v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
+                v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_SHOULDER );
                 
                 float distance = glm::length( v );
                 if ( distance < nearestAvatarDistance ) { nearestAvatarDistance = distance; }
                 
                 if ( distance < _maxArmLength + _maxArmLength ) {
                                 
-                    //closestDistance = distance;
                     _interactingOther = otherAvatar;
-                    _closeEnoughToHoldHands = true;
+                    _avatarTouch.setAbleToReachOtherAvatar(true);
                     
+                    glm::vec3 vectorBetweenHands( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
+                    vectorBetweenHands -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_HAND );
+                    float distanceBetweenHands = glm::length(vectorBetweenHands);
+                    
+                    if (distanceBetweenHands < _avatarTouch.HANDS_CLOSE_ENOUGH_TO_GRASP) { 
+                        _avatarTouch.setHandsCloseEnoughToGrasp(true);
+                    }
+                        
                     // if I am holding hands with another avatar, a force is applied
                     if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
-                    
+                        
                         // if the hands are close enough to grasp...
-                        //if (distance < 0.1)
+                        if (distanceBetweenHands < _avatarTouch.HANDS_CLOSE_ENOUGH_TO_GRASP)
                         { 
+                            // apply the forces...
                             glm::vec3 vectorToOtherHand = _interactingOther->_handPosition         - _handHoldingPosition;
                             glm::vec3 vectorToMyHand    = _bone[ AVATAR_BONE_RIGHT_HAND ].position - _handHoldingPosition;
                                                     
@@ -390,6 +404,7 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
                             _handHoldingPosition += vectorToMyHand    * MY_HAND_HOLDING_PULL;
                             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handHoldingPosition;
                             
+                            // apply a force to the avatar body
                             if ( glm::length(vectorToOtherHand) > _maxArmLength * 0.9 ) {
                                 _velocity += vectorToOtherHand;                         
                             }
@@ -402,25 +417,23 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
         //  Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_bone[ AVATAR_BONE_RIGHT_HAND ].position);
         
-        //update the effects of touching another avatar        
     }//if ( _isMine )
     
     //constrain right arm length and re-adjust elbow position as it bends
     updateArmIKAndConstraints( deltaTime );
         
     // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
-    //if ( _interactingOther != NULL ) {    
-    if ( _interactingOther ) { // Brad recommended I use this method pof checking that a pointer is valid
+    if ( _interactingOther ) { 
         if (_isMine) {
             _avatarTouch.setMyHandPosition  ( _bone[ AVATAR_BONE_RIGHT_HAND ].position );
-            _avatarTouch.setYourHandPosition( _interactingOther->_handPosition );
+            _avatarTouch.setYourHandPosition( _interactingOther->_bone[ AVATAR_BONE_RIGHT_HAND ].position );
             _avatarTouch.setMyHandState     ( _handState );
             _avatarTouch.setYourHandState   ( _interactingOther->_handState );
             _avatarTouch.simulate(deltaTime);
         }
     }
     
-    if (!_closeEnoughToHoldHands) {
+    if (!_avatarTouch.getAbleToReachOtherAvatar() ) {
         _interactingOther = NULL;
     }
     
@@ -498,7 +511,7 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
 
 void Avatar::updateHead(float deltaTime) {
 
-    //apply the head lean values to the springy positions in the upper-spine...
+    //apply the head lean values to the springy position...
     if ( fabs( _head.leanSideways + _head.leanForward ) > 0.0f ) {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
@@ -732,7 +745,6 @@ void Avatar::render(bool lookingInMirror) {
     */
     
     if ( usingBigSphereCollisionTest ) {
-        
         // show TEST big sphere
         glColor4f( 0.5f, 0.6f, 0.8f, 0.7 );
         glPushMatrix();
@@ -742,7 +754,7 @@ void Avatar::render(bool lookingInMirror) {
         glPopMatrix();
     }
     
-	// render body
+	//render body
 	renderBody();
     
 	// render head
@@ -751,12 +763,11 @@ void Avatar::render(bool lookingInMirror) {
 	}
     
 	// if this is my avatar, then render my interactions with the other avatar
-    if (( _isMine ) && ( _closeEnoughToHoldHands )) {					
+    if ( _isMine ) {			
         _avatarTouch.render();
     }
     
     //  Render the balls
-    
     if (_balls) {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
@@ -1157,7 +1168,7 @@ void Avatar::updateSkeleton() {
             _bone[ AVATAR_BONE_RIGHT_HAND ].position = _handPosition;
         }
         
-        // the following will be replaced by a proper rotation...
+        // the following will be replaced by a proper rotation...close
 		float xx = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getRight() );
 		float yy = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getUp	() );
 		float zz = glm::dot( _bone[b].defaultPosePosition, _bone[b].orientation.getFront() );

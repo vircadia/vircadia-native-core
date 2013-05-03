@@ -92,8 +92,8 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     
-    bool  getIsNearInteractingOther() { return _closeEnoughToHoldHands; }
-    
+    bool  getIsNearInteractingOther();
+        
     float getAbsoluteHeadYaw() const;
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
@@ -144,6 +144,7 @@ public:
     
 private:
 
+    const bool  BALLS_ON                      = false;
     const bool  AVATAR_GRAVITY                = true;
     const float DECAY                         = 0.1;
     const float THRUST_MAG                    = 1200.0;
@@ -226,45 +227,43 @@ private:
         float returnSpringScale;
     };
 
-    AvatarHead        _head;
-    bool              _isMine;
-    glm::vec3         _TEST_bigSpherePosition;
-    float             _TEST_bigSphereRadius;
-    bool              _mousePressed;
-    float             _bodyPitchDelta;
-    float             _bodyYawDelta;
-    float             _bodyRollDelta;
-    bool              _usingBodySprings;
-    glm::vec3         _movedHandOffset;
-    glm::quat         _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBone	      _bone[ NUM_AVATAR_BONES ];
-    AvatarMode        _mode;
-    glm::vec3         _handHoldingPosition;
-    glm::vec3         _velocity;
-    glm::vec3	      _thrust;
-    float             _speed;
-    float		      _maxArmLength;
-    Orientation	      _orientation;
-    int               _driveKeys[MAX_DRIVE_KEYS];
-    GLUquadric*       _sphere;
-    float             _renderYaw;
-    float             _renderPitch; //   Pitch from view frustum when this is own head
-    bool              _transmitterIsFirstData; 
-    timeval           _transmitterTimeLastReceived;
-    timeval           _transmitterTimer;
-    float             _transmitterHz;
-    int               _transmitterPackets;
-    glm::vec3         _transmitterInitialReading;
-    Avatar*           _interactingOther;
-    bool              _closeEnoughToHoldHands;
-    float             _pelvisStandingHeight;
-    float             _height;
-    Balls*            _balls;
-    AvatarTouch       _avatarTouch;
-    bool              _displayingHead; // should be false if in first-person view
-    bool              _returnHeadToCenter;
+    AvatarHead  _head;
+    bool        _isMine;
+    glm::vec3   _TEST_bigSpherePosition;
+    float       _TEST_bigSphereRadius;
+    bool        _mousePressed;
+    float       _bodyPitchDelta;
+    float       _bodyYawDelta;
+    float       _bodyRollDelta;
+    bool        _usingBodySprings;
+    glm::vec3   _movedHandOffset;
+    glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
+    AvatarBone	_bone[ NUM_AVATAR_BONES ];
+    AvatarMode  _mode;
+    glm::vec3   _handHoldingPosition;
+    glm::vec3   _velocity;
+    glm::vec3	_thrust;
+    float       _speed;
+    float		_maxArmLength;
+    Orientation	_orientation;
+    int         _driveKeys[MAX_DRIVE_KEYS];
+    GLUquadric* _sphere;
+    float       _renderYaw;
+    float       _renderPitch; //   Pitch from view frustum when this is own head
+    bool        _transmitterIsFirstData; 
+    timeval     _transmitterTimeLastReceived;
+    timeval     _transmitterTimer;
+    float       _transmitterHz;
+    int         _transmitterPackets;
+    glm::vec3   _transmitterInitialReading;
+    Avatar*     _interactingOther;
+    float       _pelvisStandingHeight;
+    float       _height;
+    Balls*      _balls;
+    AvatarTouch _avatarTouch;
+    bool        _displayingHead; // should be false if in first-person view
+    bool        _returnHeadToCenter;
 
-        
     // private methods...
     void initializeSkeleton();
     void updateSkeleton();
