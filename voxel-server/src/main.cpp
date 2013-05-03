@@ -38,15 +38,14 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-const int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
 
 bool wantColorRandomizer = false;
-bool debugViewFrustum = false;
-bool viewFrustumCulling = true; // for now
+bool debugVoxelSending = false;
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -76,43 +75,71 @@ bool countVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
-	printf("adding scene of spheres...\n");
-	
-	int sphereBaseSize = 512;
-	
-	tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
-	printf("one sphere added...\n");
-	tree->createSphere(0.030625, 0.5, 0.5, (0.25-0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+    printf("adding scene...\n");
+
+    float voxelSize = 1.f/32;
+    printf("creating corner points...\n");
+    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
+    tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
+    tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
+    tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
 
 
-	printf("two spheres added...\n");
-	tree->createSphere(0.030625, (1.0 - 0.030625), (1.0 - 0.030625), (1.0 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
-	printf("three spheres added...\n");
-	tree->createSphere(0.030625, (1.0 - 0.030625), (1.0 - 0.030625), 0.06125, (1.0 / (sphereBaseSize * 2)), true, true);
-	printf("four spheres added...\n");
-	tree->createSphere(0.030625, (1.0 - 0.030625), 0.06125, (1.0 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
-	printf("five spheres added...\n");
-	tree->createSphere(0.06125, 0.125, 0.125, (1.0 - 0.125), (1.0 / (sphereBaseSize * 2)), true, true);
+    tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
+    tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
+    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
+    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
+    printf("DONE creating corner points...\n");
+
+    printf("creating voxel lines...\n");
+    float lineVoxelSize = 0.99f/256;
+    rgbColor red   = {255,0,0};
+    rgbColor green = {0,255,0};
+    rgbColor blue  = {0,0,255};
+
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), lineVoxelSize, blue);
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), lineVoxelSize, red);
+    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), lineVoxelSize, green);
+
+    printf("DONE creating lines...\n");
+
+    int sphereBaseSize = 512;
+    printf("creating spheres...\n");
+    tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
+    printf("one sphere added...\n");
+    tree->createSphere(0.030625, 0.5, 0.5, (0.25-0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+
+
+    printf("two spheres added...\n");
+    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), (0.75 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+    printf("three spheres added...\n");
+    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), 0.06125, (1.0 / (sphereBaseSize * 2)), true, true);
+    printf("four spheres added...\n");
+    tree->createSphere(0.030625, (0.75 - 0.030625), 0.06125, (0.75 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
+    printf("five spheres added...\n");
+    tree->createSphere(0.06125, 0.125, 0.125, (0.75 - 0.125), (1.0 / (sphereBaseSize * 2)), true, true);
 
     float radius = 0.0125f;
-	printf("6 spheres added...\n");
-	tree->createSphere(radius, 0.25, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-	printf("7 spheres added...\n");
-	tree->createSphere(radius, 0.125, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-	printf("8 spheres added...\n");
-	tree->createSphere(radius, 0.075, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-	printf("9 spheres added...\n");
-	tree->createSphere(radius, 0.05, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-	printf("10 spheres added...\n");
-	tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-	printf("11 spheres added...\n");
+    printf("6 spheres added...\n");
+    tree->createSphere(radius, 0.25, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+    printf("7 spheres added...\n");
+    tree->createSphere(radius, 0.125, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+    printf("8 spheres added...\n");
+    tree->createSphere(radius, 0.075, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+    printf("9 spheres added...\n");
+    tree->createSphere(radius, 0.05, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+    printf("10 spheres added...\n");
+    tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
+    printf("11 spheres added...\n");
+
+    printf("DONE creating spheres...\n");
 
     _nodeCount=0;
     tree->recurseTreeWithOperation(countVoxelsOperation);
     printf("Nodes after adding scene %d nodes\n", _nodeCount);
 
 
-	printf("DONE adding scene of spheres...\n");
+    printf("DONE adding scene of spheres...\n");
 }
 
 
@@ -167,8 +194,14 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 
 
 void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
-    // If the bag is empty, fill it...
-    if (agentData->nodeBag.isEmpty()) {
+    bool searchReset = false;
+    int  searchLoops = 0;
+    int  searchLevelWas = agentData->getMaxSearchLevel();
+    double start = usecTimestampNow();
+    while (!searchReset && agentData->nodeBag.isEmpty()) {
+        searchLoops++;
+
+        searchLevelWas = agentData->getMaxSearchLevel();
         int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
                                                                viewFrustum, agentData->nodeBag);
         agentData->setMaxLevelReached(maxLevelReached);
@@ -177,17 +210,38 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
         if (agentData->nodeBag.isEmpty()) {
             if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
                 agentData->resetMaxSearchLevel();
+                searchReset = true;
             } else {
                 agentData->incrementMaxSearchLevel();
             }
         }
     }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printf("WARNING! searchForColoredNodes() took %lf seconds to identify %d nodes at level %d in %d loops\n",
+                elapsedsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+        } else {
+            printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+                elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+        }
+    } else if (::debugVoxelSending) {
+        printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+                elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
+    }
+
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!agentData->nodeBag.isEmpty()) {
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
         int packetsSentThisInterval = 0;
+        int truePacketsSent = 0;
+        int trueBytesSent = 0;
+        double start = usecTimestampNow();
+
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
@@ -200,6 +254,8 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 } else {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
                     packetsSentThisInterval++;
                     agentData->resetVoxelPacket();
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -208,12 +264,30 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket().send(agent->getActiveSocket(), 
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
                     agentData->resetVoxelPacket();
                     
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
+        double end = usecTimestampNow();
+        double elapsedmsec = (end - start)/1000.0;
+        if (elapsedmsec > 100) {
+            if (elapsedmsec > 1000) {
+                double elapsedsec = (end - start)/1000000.0;
+                printf("WARNING! packetLoop() took %lf seconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                        elapsedsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+            } else {
+                printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                        elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+            }
+        } else if (::debugVoxelSending) {
+            printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                    elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
+        }
+
         // if during this last pass, we emptied our bag, then we want to move to the next level.
         if (agentData->nodeBag.isEmpty()) {
             if (agentData->getMaxLevelReached() < agentData->getMaxSearchLevel()) {
@@ -296,13 +370,9 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-    const char* DEBUG_VIEW_FRUSTUM = "--DebugViewFrustum";
-    ::debugViewFrustum = cmdOptionExists(argc, argv, DEBUG_VIEW_FRUSTUM);
-	printf("debugViewFrustum=%s\n", (::debugViewFrustum ? "yes" : "no"));
-
-    const char* NO_VIEW_FRUSTUM_CULLING = "--NoViewFrustumCulling";
-    ::viewFrustumCulling = !cmdOptionExists(argc, argv, NO_VIEW_FRUSTUM_CULLING);
-	printf("viewFrustumCulling=%s\n", (::viewFrustumCulling ? "yes" : "no"));
+	const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
+    ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
+	printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
     
 	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
@@ -314,6 +384,17 @@ int main(int argc, const char * argv[])
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
 	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+	}
+
+    // Check to see if the user passed in a command line option for setting packet send rate
+	const char* PACKETS_PER_SECOND = "--packetsPerSecond";
+    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
+    if (packetsPerSecond) {
+	    PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+	    if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
+	        PACKETS_PER_CLIENT_PER_INTERVAL = 1;
+	    }
+    	printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
 	}
     
 	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
@@ -380,8 +461,6 @@ int main(int argc, const char * argv[])
             		delete []vertices;
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData);
-	            	//printf("readCodeColorBufferToTree() of size=%d  atByte=%d receivedBytes=%ld\n",
-	            	//		voxelDataSize,atByte,receivedBytes);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;

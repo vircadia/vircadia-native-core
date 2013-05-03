@@ -97,8 +97,26 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
+        {
+            double start = usecTimestampNow();
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
+            if (_renderWarningsOn && _tree->getNodesChangedFromBitstream()) {
+                printLog("readBitstreamToTree()... getNodesChangedFromBitstream=%ld _tree->isDirty()=%s \n",
+                    _tree->getNodesChangedFromBitstream(), (_tree->isDirty() ? "yes" : "no") );
+            }
+
+            double end = usecTimestampNow();
+            double elapsedmsec = (end - start)/1000.0;
+            if (_renderWarningsOn && elapsedmsec > 1) {
+                if (elapsedmsec > 1000) {
+                    double elapsedsec = (end - start)/1000000.0;
+                    printLog("WARNING! readBitstreamToTree() took %lf seconds\n",elapsedsec);
+                } else {
+                    printLog("WARNING! readBitstreamToTree() took %lf milliseconds\n",elapsedmsec);
+                }
+            }
+        }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
@@ -135,17 +153,48 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
-    _voxelsUpdated = newTreeToArrays(_tree->rootNode);
+    double start = usecTimestampNow();
+    
+    double sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished);
+    
+    if (sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed,SIXTY_FPS_IN_MILLISECONDS)) {
+        return; // bail early, it hasn't been long enough since the last time we ran
+    }
+    
+    if (_tree->isDirty()) {
+        _callsToTreesToArrays++;
+        _voxelsUpdated = newTreeToArrays(_tree->rootNode);
+        _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
+    } else {
+        _voxelsUpdated = 0;
+    }
     if (_voxelsUpdated) {
         _voxelsDirty=true;
     }
 
-    // copy the newly written data to the arrays designated for reading
-    copyWrittenDataToReadArrays();
+    if (_voxelsDirty) {
+        // copy the newly written data to the arrays designated for reading
+        copyWrittenDataToReadArrays();
+    }
+
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (_renderWarningsOn && elapsedmsec > 1) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! newTreeToArrays() took %lf seconds %ld voxels updated\n", elapsedsec, _voxelsUpdated);
+        } else {
+            printLog("WARNING! newTreeToArrays() took %lf milliseconds %ld voxels updated\n", elapsedmsec, _voxelsUpdated);
+        }
+    }
+    
+    _setupNewVoxelsForDrawingLastFinished = end;
+    _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
-    if (_voxelsDirty) {
+    double start = usecTimestampNow();
+    if (_voxelsDirty && _voxelsUpdated) {
         // lock on the buffer write lock so we can't modify the data when the GPU is reading it
         pthread_mutex_lock(&_bufferWriteLock);
         int bytesOfVertices = (_voxelsInArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
@@ -153,6 +202,18 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
         memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
         memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
         pthread_mutex_unlock(&_bufferWriteLock);
+    }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (_renderWarningsOn && elapsedmsec > 1) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds for %ld voxels %ld updated\n", 
+                elapsedsec, _voxelsInArrays, _voxelsUpdated);
+        } else {
+            printLog("WARNING! copyWrittenDataToReadArrays() took %lf milliseconds for %ld voxels %ld updated\n", 
+                elapsedmsec, _voxelsInArrays, _voxelsUpdated);
+        }
     }
 }
 
@@ -164,7 +225,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     float childBoundary   = boundaryDistanceForRenderLevel(*node->octalCode + 2);
     bool  inBoundary      = (distanceToNode <= boundary);
     bool  inChildBoundary = (distanceToNode <= childBoundary);
-    bool shouldRender     = node->isColored() && ((node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary));
+    bool  shouldRender    = node->isColored() && ((node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary));
 
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
@@ -213,8 +274,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
             _voxelsInArrays++; // our know vertices in the arrays
         }
         voxelsUpdated++;
-        node->clearDirtyBit();
     }
+    node->clearDirtyBit(); // always clear the dirty bit, even if it doesn't need to be rendered
     return voxelsUpdated;
 }
 
@@ -224,6 +285,11 @@ VoxelSystem* VoxelSystem::clone() const {
 }
 
 void VoxelSystem::init() {
+
+    _renderWarningsOn = false;
+    _callsToTreesToArrays = 0;
+    _setupNewVoxelsForDrawingLastFinished = 0;
+    _setupNewVoxelsForDrawingLastElapsed = 0;
 
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
@@ -296,6 +362,7 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::updateVBOs() {
+    double start = usecTimestampNow();
     if (_voxelsDirty) {
         glBufferIndex segmentStart = 0;
         glBufferIndex segmentEnd = 0;
@@ -327,9 +394,27 @@ void VoxelSystem::updateVBOs() {
         }
         _voxelsDirty = false;
     }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (_renderWarningsOn && elapsedmsec > 1) {
+        if (elapsedmsec > 1) {
+            if (elapsedmsec > 1000) {
+                double elapsedsec = (end - start)/1000000.0;
+                printLog("WARNING! updateVBOs() took %lf seconds after %d calls to newTreeToArrays()\n",
+                    elapsedsec, _callsToTreesToArrays);
+            } else {
+                printLog("WARNING! updateVBOs() took %lf milliseconds after %d calls to newTreeToArrays()\n",
+                    elapsedmsec, _callsToTreesToArrays);
+            }
+        } else {
+            printLog("WARNING! updateVBOs() called after %d calls to newTreeToArrays()\n",_callsToTreesToArrays);
+        }
+    }
+    _callsToTreesToArrays = 0; // clear it
 }
 
 void VoxelSystem::render() {
+    double start = usecTimestampNow();
     glPushMatrix();
     updateVBOs();
     // tell OpenGL where to find vertex and color information
@@ -348,7 +433,7 @@ void VoxelSystem::render() {
 
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-    glScalef(10, 10, 10);
+    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     glDrawElements(GL_TRIANGLES, 36 * _voxelsInArrays, GL_UNSIGNED_INT, 0);
 
     // deactivate vertex and color arrays after drawing
@@ -362,14 +447,31 @@ void VoxelSystem::render() {
 
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (_renderWarningsOn && elapsedmsec > 1) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printLog("WARNING! render() took %lf seconds\n",elapsedsec);
+        } else {
+            printLog("WARNING! render() took %lf milliseconds\n",elapsedmsec);
+        }
+    }
 }
 
 int VoxelSystem::_nodeCount = 0;
 
+void VoxelSystem::killLocalVoxels() {
+    _tree->eraseAllVoxels();
+    _voxelsInArrays = 0; // better way to do this??
+    //setupNewVoxelsForDrawing();
+}
+
+
 bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     if (node->isColored()) {
-        nodeColor newColor = { randomColorValue(150), randomColorValue(150), randomColorValue(150), 1 };
+        nodeColor newColor = { 255, randomColorValue(150), randomColorValue(150), 1 };
         node->setColor(newColor);
     }
     return true;
@@ -385,7 +487,7 @@ void VoxelSystem::randomizeVoxelColors() {
 bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     // always false colorize
-    node->setFalseColor(randomColorValue(150), randomColorValue(150), randomColorValue(150));
+    node->setFalseColor(255, randomColorValue(150), randomColorValue(150));
     return true; // keep going!
 }
 
