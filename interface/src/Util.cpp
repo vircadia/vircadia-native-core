@@ -213,42 +213,28 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     
 } 
 
-void drawGroundPlaneGrid( float size, int resolution )
+void drawGroundPlaneGrid(float size)
 {
 
-	glColor3f( 0.4f, 0.5f, 0.3f );
+	glColor3f( 0.4f, 0.5f, 0.3f ); 
 	glLineWidth(2.0);
 		
-	float gridSize = 10.0;
-	int gridResolution = 20;
-
-	for (int g=0; g<gridResolution; g++)
-	{
-		float fraction = (float)g / (float)( gridResolution - 1 );
-		float inc = -gridSize * ONE_HALF + fraction * gridSize;
-		glBegin( GL_LINE_STRIP );			
-		glVertex3f( inc, 0.0f, -gridSize * ONE_HALF );
-		glVertex3f( inc, 0.0f,  gridSize * ONE_HALF );
-		glEnd();
-	}
-		
-	for (int g=0; g<gridResolution; g++)
-	{
-		float fraction = (float)g / (float)( gridResolution - 1 );
-		float inc = -gridSize * ONE_HALF + fraction * gridSize;
-		glBegin( GL_LINE_STRIP );			
-		glVertex3f( -gridSize * ONE_HALF, 0.0f, inc );
-		glVertex3f(  gridSize * ONE_HALF, 0.0f, inc );
-		glEnd();
-	}
-    
+    for (float x = 0; x <= size; x++) {
+		glBegin(GL_LINES);
+		glVertex3f(x, 0.0f, 0);
+		glVertex3f(x, 0.0f, size);
+        glVertex3f(0, 0.0f, x);
+		glVertex3f(size, 0.0f, x);
+        glEnd();
+    }
+        
     // Draw a translucent quad just underneath the grid.
     glColor4f(0.5, 0.5, 0.5, 0.4);
     glBegin(GL_QUADS);
-    glVertex3f(-gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
-    glVertex3f(gridSize * ONE_HALF, 0, -gridSize * ONE_HALF);
-    glVertex3f(gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
-    glVertex3f(-gridSize * ONE_HALF, 0, gridSize * ONE_HALF);
+    glVertex3f(0, 0, 0);
+    glVertex3f(size, 0, 0);
+    glVertex3f(size, 0, size);
+    glVertex3f(0, 0, size);
     glEnd();
 }
 
