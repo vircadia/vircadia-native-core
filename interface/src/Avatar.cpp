@@ -142,6 +142,7 @@ Avatar::Avatar(bool isMine) {
     _interactingOther           = NULL;
 	//_canReachToOtherAvatar      = false;
     _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
+    _distanceToNearestAvatar    = std::numeric_limits<float>::max();
 
     initializeSkeleton();
     
@@ -230,6 +231,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.lastLoudness       = otherAvatar._head.lastLoudness;
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
+    _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
     
@@ -328,7 +330,6 @@ bool Avatar::getIsNearInteractingOther() {
 
 void Avatar::simulate(float deltaTime) {
     
-    float nearestAvatarDistance = std::numeric_limits<float>::max();
 
 //keep this - I'm still using it to test things....
 /*
@@ -360,8 +361,10 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
     if ( _isMine )
-    {    
-        
+    {
+        //  Reset detector for nearest avatar
+        _distanceToNearestAvatar = std::numeric_limits<float>::max();
+    
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
@@ -375,7 +378,7 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
                 v -= otherAvatar->getBonePosition( AVATAR_BONE_RIGHT_SHOULDER );
                 
                 float distance = glm::length( v );
-                if (distance < nearestAvatarDistance) { nearestAvatarDistance = distance; }
+                if (distance < _distanceToNearestAvatar) { _distanceToNearestAvatar = distance; }
                 
                 if (distance < _maxArmLength + _maxArmLength) {
                                 
@@ -491,10 +494,10 @@ _head.leanForward  = 0.02 * sin( tt * 0.8 );
     // If someone is near, damp velocity as a function of closeness
     const float AVATAR_BRAKING_RANGE = 1.2f;
     const float AVATAR_BRAKING_STRENGTH = 25.f;
-    if (_isMine && (nearestAvatarDistance < AVATAR_BRAKING_RANGE)) {
+    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
         _velocity *=
         (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
-         (AVATAR_BRAKING_RANGE - nearestAvatarDistance));
+         (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
     }
 	
     // update head information
