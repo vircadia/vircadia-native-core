@@ -90,6 +90,10 @@ private:
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInArrays;
     
+    
+    double _setupNewVoxelsForDrawingLastElapsed;
+    double _setupNewVoxelsForDrawingLastFinished;
+    
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
     GLuint _vboColorsID;

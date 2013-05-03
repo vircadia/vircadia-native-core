@@ -154,6 +154,13 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
     double start = usecTimestampNow();
+    
+    double sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished);
+    
+    if (sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed,SIXTY_FPS_IN_MILLISECONDS)) {
+        return; // bail early, it hasn't been long enough since the last time we ran
+    }
+    
     if (_tree->isDirty()) {
         _callsToTreesToArrays++;
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
@@ -164,6 +171,12 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     if (_voxelsUpdated) {
         _voxelsDirty=true;
     }
+
+    if (_voxelsDirty) {
+        // copy the newly written data to the arrays designated for reading
+        copyWrittenDataToReadArrays();
+    }
+
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
     if (_renderWarningsOn && elapsedmsec > 1) {
@@ -174,11 +187,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
             printLog("WARNING! newTreeToArrays() took %lf milliseconds %ld voxels updated\n", elapsedmsec, _voxelsUpdated);
         }
     }
-
-    if (_voxelsDirty) {
-        // copy the newly written data to the arrays designated for reading
-        copyWrittenDataToReadArrays();
-    }
+    
+    _setupNewVoxelsForDrawingLastFinished = end;
+    _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
@@ -277,6 +288,8 @@ void VoxelSystem::init() {
 
     _renderWarningsOn = false;
     _callsToTreesToArrays = 0;
+    _setupNewVoxelsForDrawingLastFinished = 0;
+    _setupNewVoxelsForDrawingLastElapsed = 0;
 
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;

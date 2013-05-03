@@ -438,6 +438,12 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
     }
 }
 
+void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
+    unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+    this->readCodeColorBufferToTree(voxelData);
+    delete voxelData;
+}
+
 void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
