@@ -35,46 +35,63 @@ int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
 int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
     
-    sockaddr_in deviceAddress;
+    sockaddr_in senderSocket;
     char deviceData[MAX_PACKET_SIZE_BYTES] = {};
     ssize_t receivedBytes = 0;
     
     std::vector<PairableDevice> devices;
     
     while (true) {
-        if (serverSocket.receive((sockaddr *)&deviceAddress, &deviceData, &receivedBytes)) {
-            // create a new PairableDevice
-            PairableDevice newDevice = {};
+        if (serverSocket.receive((sockaddr *)&senderSocket, &deviceData, &receivedBytes)) {
             
-            int addressBytes[4];
-            int socketPort = 0;
-            
-            int numMatches = sscanf(deviceData, "A %s %d.%d.%d.%d:%d %s",
-                                    newDevice.identifier,
-                                    &addressBytes[3],
-                                    &addressBytes[2],
-                                    &addressBytes[1],
-                                    &addressBytes[0],
-                                    &socketPort,
-                                    newDevice.name);
-            
-            if (numMatches >= 6) {
-                // if we have fewer than 6 matches the packet wasn't properly formatted
+            if (deviceData[0] == 'A') {
+                // this is a device reporting itself as available
                 
-                // setup the localSocket for the pairing device
-                newDevice.localSocket.sin_family = AF_INET;
-                newDevice.localSocket.sin_addr.s_addr = (addressBytes[3] |
-                                                         addressBytes[2] << 8 |
-                                                         addressBytes[1] << 16 |
-                                                         addressBytes[0] << 24);
-                newDevice.localSocket.sin_port = socketPort;
+                // create a new PairableDevice
+                PairableDevice newDevice = {};
                 
-                // store this device's sending socket so we can talk back to it
-                newDevice.sendingSocket = deviceAddress;
+                int addressBytes[4];
+                int socketPort = 0;
                 
-                // push this new device into the vector
-                printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
-                devices.push_back(newDevice);
+                int numMatches = sscanf(deviceData, "A %s %d.%d.%d.%d:%d %s",
+                                        newDevice.identifier,
+                                        &addressBytes[3],
+                                        &addressBytes[2],
+                                        &addressBytes[1],
+                                        &addressBytes[0],
+                                        &socketPort,
+                                        newDevice.name);
+                
+                if (numMatches >= 6) {
+                    // if we have fewer than 6 matches the packet wasn't properly formatted
+                    
+                    // setup the localSocket for the pairing device
+                    newDevice.localSocket.sin_family = AF_INET;
+                    newDevice.localSocket.sin_addr.s_addr = (addressBytes[3] |
+                                                             addressBytes[2] << 8 |
+                                                             addressBytes[1] << 16 |
+                                                             addressBytes[0] << 24);
+                    newDevice.localSocket.sin_port = socketPort;
+                    
+                    // store this device's sending socket so we can talk back to it
+                    newDevice.sendingSocket = senderSocket;
+                    
+                    // push this new device into the vector
+                    printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
+                    devices.push_back(newDevice);
+                }
+            } else if (deviceData[0] == 'P') {
+                // this is a client looking to pair with a device
+                // send the most recent device this address so it can attempt to pair
+                
+                char requestorSocketString[INET_ADDRSTRLEN + 6] = {};
+                char requestorAddress[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(senderSocket.sin_addr), requestorAddress, INET_ADDRSTRLEN);
+                
+                sprintf(requestorSocketString, "%s:%d", requestorAddress, ntohs(senderSocket.sin_port));
+                
+                PairableDevice lastDevice = devices[devices.size() - 1];
+                serverSocket.send((sockaddr*) &lastDevice.sendingSocket, requestorSocketString, strlen(requestorSocketString));
             }
         }
     }
