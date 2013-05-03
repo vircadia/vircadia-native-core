@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <cstdio>
+#include <cstring>
 
 #include <UDPSocket.h>
 #include <arpa/inet.h>
