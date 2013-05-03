@@ -49,17 +49,17 @@ Avatar::Avatar(bool isMine) {
     
     _orientation.setToIdentity();
     
-	_velocity                   = glm::vec3( 0.0, 0.0, 0.0 );
-	_thrust                     = glm::vec3( 0.0, 0.0, 0.0 );
+    _velocity                   = glm::vec3( 0.0, 0.0, 0.0 );
+    _thrust                     = glm::vec3( 0.0, 0.0, 0.0 );
     _rotation                   = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
-	_bodyYaw                    = -90.0;
-	_bodyPitch                  = 0.0;
-	_bodyRoll                   = 0.0;
-	_bodyPitchDelta             = 0.0;
-	_bodyYawDelta               = 0.0;
-	_bodyRollDelta              = 0.0;
-	_mousePressed               = false;
-	_mode                       = AVATAR_MODE_STANDING;
+    _bodyYaw                    = -90.0;
+    _bodyPitch                  = 0.0;
+    _bodyRoll                   = 0.0;
+    _bodyPitchDelta             = 0.0;
+    _bodyYawDelta               = 0.0;
+    _bodyRollDelta              = 0.0;
+    _mousePressed               = false;
+    _mode                       = AVATAR_MODE_STANDING;
     _isMine                     = isMine;
     _maxArmLength               = 0.0;
     _transmitterHz              = 0.0;
@@ -111,11 +111,11 @@ Avatar::Avatar(bool isMine) {
     _head.browAudioLift         = 0.0;
     _head.noise                 = 0;
     _head.returnSpringScale     = 1.0;
-	_movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
+    _movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
     _usingBodySprings           = true;
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
-	_sphere                     = NULL;
+    _sphere                     = NULL;
     _interactingOther           = NULL;
     _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
 
@@ -136,16 +136,16 @@ Avatar::Avatar(bool isMine) {
 Avatar::Avatar(const Avatar &otherAvatar) {
     
     _velocity                    = otherAvatar._velocity;
-	_thrust                      = otherAvatar._thrust;
+    _thrust                      = otherAvatar._thrust;
     _rotation                    = otherAvatar._rotation;
-	_bodyYaw                     = otherAvatar._bodyYaw;
-	_bodyPitch                   = otherAvatar._bodyPitch;
-	_bodyRoll                    = otherAvatar._bodyRoll;
-	_bodyPitchDelta              = otherAvatar._bodyPitchDelta;
-	_bodyYawDelta                = otherAvatar._bodyYawDelta;
-	_bodyRollDelta               = otherAvatar._bodyRollDelta;
-	_mousePressed                = otherAvatar._mousePressed;
-	_mode                        = otherAvatar._mode;
+    _bodyYaw                     = otherAvatar._bodyYaw;
+    _bodyPitch                   = otherAvatar._bodyPitch;
+    _bodyRoll                    = otherAvatar._bodyRoll;
+    _bodyPitchDelta              = otherAvatar._bodyPitchDelta;
+    _bodyYawDelta                = otherAvatar._bodyYawDelta;
+    _bodyRollDelta               = otherAvatar._bodyRollDelta;
+    _mousePressed                = otherAvatar._mousePressed;
+    _mode                        = otherAvatar._mode;
     _isMine                      = otherAvatar._isMine;
     _renderYaw                   = otherAvatar._renderYaw;
     _renderPitch                 = otherAvatar._renderPitch;
@@ -158,12 +158,12 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _transmitterPackets          = otherAvatar._transmitterPackets;
     _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
     _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
-	_movedHandOffset             = otherAvatar._movedHandOffset;
-	_usingBodySprings            = otherAvatar._usingBodySprings;
-
-	_orientation.set( otherAvatar._orientation );
+    _movedHandOffset             = otherAvatar._movedHandOffset;
+    _usingBodySprings            = otherAvatar._usingBodySprings;
     
-	_sphere = NULL;
+    _orientation.set( otherAvatar._orientation );
+    
+    _sphere = NULL;
     
     initializeSkeleton();
     
