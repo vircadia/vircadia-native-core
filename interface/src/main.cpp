@@ -718,7 +718,7 @@ void displaySide(Camera& whichCamera) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *avatar = (Avatar *)agent->getLinkedData();
             avatar->render(0);
-            //avatarRenderer.render(avatar, 0); // this will replace the above call
+            avatarRenderer.render(avatar, 0); // this will replace the above call
         }
     }
     agentList->unlock();
@@ -731,7 +731,7 @@ void displaySide(Camera& whichCamera) {
 
     //Render my own avatar
 	myAvatar.render(::lookingInMirror);
-    //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
+    avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
 	
 	glPopMatrix();
 }

@@ -34,21 +34,21 @@ const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_FORCE             = 6.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 20.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
 const float COLLISION_BALL_FORCE          = 1.0;
 const float COLLISION_BODY_FORCE          = 6.0;
 const float COLLISION_BALL_FRICTION       = 60.0;
 const float COLLISION_BODY_FRICTION       = 0.5;
 
-float skinColor[] = {1.0, 0.84, 0.66};
-float lightBlue[] = { 0.7, 0.8, 1.0 };
-float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
+float skinColor [] = {1.0, 0.84, 0.66};
+float lightBlue [] = { 0.7, 0.8, 1.0 };
+float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
-float BrowRollAngle[5] = {0, 15, 30, -30, -15};
+float BrowRollAngle [5] = {0, 15, 30, -30, -15};
 float BrowPitchAngle[3] = {-70, -60, -50};
-float eyeColor[3] = {1,1,1};
+float eyeColor      [3] = {1,1,1};
 
 float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 
@@ -91,7 +91,7 @@ Avatar::Avatar(bool isMine) {
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
     _TEST_bigSphereRadius       = 0.4f;
-    _TEST_bigSpherePosition     = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
+    _TEST_bigSpherePosition     = glm::vec3( 5.0f, _TEST_bigSphereRadius, 5.0f );
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
@@ -759,9 +759,25 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
+
+struct TriangleArray
+{
+	float	v0x,v0y,v0z;  // x,y,z coordinate of vertex 0
+	float	r0,g0,b0,a0;  // r,g,b color of vertex 0
+
+	float	v1x,v1y,v1z;  // x,y,z coordinate of vertex 1
+	float	r1,g1,b1,a1;  // r,g,b color of vertex 1
+
+	float	v2x,v2y,v2z;  // x,y,z coordinate of vertex 2
+	float	r2,g2,b2,a2;  // r,g,b color of vertex 2
+};
+
+
 void Avatar::render(bool lookingInMirror) {
 
-    
+    // render a simple round on the ground projected down from the avatar's position
+    renderDiskShadow( _position, glm::vec3( 0.0f, 1.0f, 0.0f ), 0.1f, 0.2f );
+
     /*
     // show avatar position
     glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
@@ -1539,3 +1555,4 @@ glm::vec3 Avatar::getGravity(glm::vec3 pos) {
         return glm::vec3(0.f, 0.f, 0.f);
     }
 }
+
