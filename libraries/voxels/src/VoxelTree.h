@@ -47,6 +47,8 @@ public:
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
     void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
+
+    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 

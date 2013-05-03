@@ -1702,7 +1702,7 @@ int main(int argc, const char * argv[])
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
     viewFrustumOffsetCamera.setNearClip(0.1);
-    viewFrustumOffsetCamera.setFarClip(500.0);
+    viewFrustumOffsetCamera.setFarClip(500.0*TREE_SCALE);
 
     printLog( "Created Display Window.\n" );
         
