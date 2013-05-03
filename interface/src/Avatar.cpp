@@ -118,6 +118,7 @@ Avatar::Avatar(bool isMine) {
 	_sphere                     = NULL;
     _interactingOther           = NULL;
     _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
+    _distanceToNearestAvatar    = std::numeric_limits<float>::max();
 
     initializeSkeleton();
     
@@ -205,6 +206,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.lastLoudness       = otherAvatar._head.lastLoudness;
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
+    _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
     
@@ -302,6 +304,7 @@ bool Avatar::getIsNearInteractingOther() {
 
 
 void Avatar::simulate(float deltaTime) {
+    
 
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
@@ -382,6 +385,15 @@ void Avatar::simulate(float deltaTime) {
 	// decay velocity
     _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
 	
+    // If someone is near, damp velocity as a function of closeness
+    const float AVATAR_BRAKING_RANGE = 1.2f;
+    const float AVATAR_BRAKING_STRENGTH = 25.f;
+    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
+        _velocity *=
+        (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
+         (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
+    }
+
     // update head information
     updateHead(deltaTime);
     
@@ -417,7 +429,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
     if ( _isMine )
-    {    
+    {
+        //  Reset detector for nearest avatar
+        _distanceToNearestAvatar = std::numeric_limits<float>::max();
+    
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
@@ -431,7 +446,9 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 v -= otherAvatar->getJointPosition( AVATAR_JOINT_RIGHT_SHOULDER );
                 
                 float distance = glm::length( v );
-                if ( distance < _maxArmLength + _maxArmLength ) {
+                if (distance < _distanceToNearestAvatar) { _distanceToNearestAvatar = distance; }
+                
+                if (distance < _maxArmLength + _maxArmLength) {
                                 
                     _interactingOther = otherAvatar;
                     
@@ -497,8 +514,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-
-
+	
 void Avatar::updateHead(float deltaTime) {
 
     //apply the head lean values to the springy position...
@@ -1351,7 +1367,9 @@ void Avatar::SetNewHeadTarget(float pitch, float yaw) {
     _head.yawTarget   = yaw;
 }
 
+//
 // Process UDP interface data from Android transmitter or Google Glass
+//
 void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     //  Read a packet from a transmitter app, process the data
     float
@@ -1362,30 +1380,43 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     rot1, rot2, rot3, rot4;     //  Rotation of device:
                                 //    rot1 = roll, ranges from -1 to 1, 0 = flat on table
                                 //    rot2 = pitch, ranges from -1 to 1, 0 = flat on table
-                                //    rot3 = yaw, ranges from -1 to 1 
+                                //    rot3 = yaw, ranges from -1 to 1
+    char device[100];           //  Device ID
     
-    const bool IS_GLASS = false;         //  Whether to assume this is a Google glass transmitting
+    enum deviceTypes            { DEVICE_GLASS, DEVICE_ANDROID, DEVICE_IPHONE, DEVICE_UNKNOWN };
 
-    sscanf((char *)packetData, "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f",
+    sscanf((char *)packetData,
+           "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f dna \"%s",
            &accX, &accY, &accZ,
            &graX, &graY, &graZ,
            &gyrX, &gyrY, &gyrZ,
            &linX, &linY, &linZ,
-           &rot1, &rot2, &rot3, &rot4);
+           &rot1, &rot2, &rot3, &rot4, (char *)&device);
+    
+    // decode transmitter device type
+    deviceTypes deviceType = DEVICE_UNKNOWN;
+    if (strcmp(device, "ADR")) {
+        deviceType = DEVICE_ANDROID;
+    } else {
+        deviceType = DEVICE_GLASS;
+    }
     
     if (_transmitterPackets++ == 0) {
         // If first packet received, note time, turn head spring return OFF, get start rotation
         gettimeofday(&_transmitterTimer, NULL);
-        if (IS_GLASS) {
+        if (deviceType == DEVICE_GLASS) {
             setHeadReturnToCenter(true);
             setHeadSpringScale(10.f);
             printLog("Using Google Glass to drive head, springs ON.\n");
 
         } else {
             setHeadReturnToCenter(false);
-            printLog("Using Transmitter to drive head, springs OFF.\n");
+            printLog("Using Transmitter %s to drive head, springs OFF.\n", device);
 
         }
+        //printLog("Packet: [%s]\n", packetData);
+        //printLog("Version:  %s\n", device);
+        
         _transmitterInitialReading = glm::vec3(     rot3,
                                                     rot2,
                                                     rot1 );
@@ -1411,7 +1442,7 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
     if (eulerAngles.x < -180.f) { eulerAngles.x += 360.f; }
     
     glm::vec3 angularVelocity;
-    if (!IS_GLASS) {
+    if (deviceType != DEVICE_GLASS) {
         angularVelocity = glm::vec3(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
         setHeadFromGyros( &eulerAngles, &angularVelocity,
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1.0);
@@ -1422,7 +1453,6 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
 
     }
-    
 }
 
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
@@ -1469,8 +1499,13 @@ glm::vec3 Avatar::getGravity(glm::vec3 pos) {
     //  For now, we'll test this with a simple global lookup, but soon we will add getting this
     //  from the domain/voxelserver (or something similar)
     //
-    if (glm::length(pos) < 5.f)  {
-        //  If near the origin sphere, turn gravity ON
+    if ((pos.x > 0.f) &&
+        (pos.x < 10.f) &&
+        (pos.z > 0.f) &&
+        (pos.z < 10.f) &&
+        (pos.y > 0.f) &&
+        (pos.y < 3.f))  {
+        //  If above ground plane, turn gravity on
         return glm::vec3(0.f, -1.f, 0.f);
     } else {
         //  If flying in space, turn gravity OFF

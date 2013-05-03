@@ -46,6 +46,7 @@ public:
     void reaverageVoxelColors(VoxelNode *startNode);
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
+    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
@@ -54,6 +55,10 @@ public:
                             VoxelNodeBag& bag);
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+
+    bool isDirty() const { return _isDirty; };
+    void clearDirtyBit() { _isDirty = false; };
+    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
@@ -68,6 +73,9 @@ private:
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
+    
+    bool _isDirty;
+    unsigned long int _nodesChangedFromBitstream;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);

@@ -58,7 +58,14 @@ public:
     void falseColorizeInView(ViewFrustum* viewFrustum);
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
 
+    void killLocalVoxels();
+    void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
+    bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
+    
 private:
+    int  _callsToTreesToArrays;
+
+    bool _renderWarningsOn;
     // Operation functions for tree recursion methods
     static int _nodeCount;
     static bool randomColorOperation(VoxelNode* node, void* extraData);
@@ -82,6 +89,10 @@ private:
     bool* _voxelDirtyArray;
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInArrays;
+    
+    
+    double _setupNewVoxelsForDrawingLastElapsed;
+    double _setupNewVoxelsForDrawingLastFinished;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
