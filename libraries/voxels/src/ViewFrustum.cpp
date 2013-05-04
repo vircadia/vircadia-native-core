@@ -225,7 +225,7 @@ int ViewFrustum::boxInFrustum(const AABox& box) const {
 	return(result);
  }
 
-void ViewFrustum::computePickRay(float x, float y, glm::vec3* origin, glm::vec3* direction) const {
-    *origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
-    *direction = glm::normalize(*origin - _position);
+void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
+    origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
+    direction = glm::normalize(origin - _position);
 }
