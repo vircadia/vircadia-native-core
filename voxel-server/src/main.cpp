@@ -358,18 +358,8 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
     }
 }
 
-void terminate (int sig) {
-    printf("terminating now...\n");
-    exit(EXIT_SUCCESS);
-}
-
-
 int main(int argc, const char * argv[])
 {
-    signal(SIGABRT,&terminate);
-    signal(SIGTERM,&terminate);
-    signal(SIGINT,&terminate);
-    
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
