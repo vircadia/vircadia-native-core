@@ -262,10 +262,6 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
     int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
     if (0 == memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
-
-        float* vertices = firstVertexForCode(nodeToDelete->octalCode);
-        delete[] vertices;
-
         if (parentNode) {
             int childIndex = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
@@ -273,6 +269,7 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
             parentNode->children[childIndex] = NULL; // set it to NULL
 
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
+            _isDirty = true;
         }
     }
 }
@@ -283,6 +280,7 @@ void VoxelTree::eraseAllVoxels() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
+    _isDirty = true;
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
@@ -291,6 +289,7 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {
         lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        _isDirty = true;
     }
 
     // give this node its color
@@ -300,6 +299,9 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
     newColor[3] = 1;
     lastCreatedNode->setColor(newColor);
+    if (lastCreatedNode->isDirty()) {
+        _isDirty = true;
+    }
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
