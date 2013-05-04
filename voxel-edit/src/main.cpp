@@ -7,6 +7,7 @@
 //
 
 #include <VoxelTree.h>
+#include <SharedUtil.h>
 
 VoxelTree myTree;
 
@@ -115,8 +116,20 @@ void addScene(VoxelTree * tree) {
 
 int main(int argc, const char * argv[])
 {
-    addScene(&myTree);
-    myTree.writeToFileV2("voxels.hio2");
+	const char* SAY_HELLO = "--sayHello";
+    if (cmdOptionExists(argc, argv, SAY_HELLO)) {
+    	printf("I'm just saying hello...\n");
+	}
+
+	const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
+    bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
     
+    if (dontCreateFile) {
+    	printf("You asked us not to create a scene file, so we will not.\n");
+	} else {
+    	printf("Creating Scene File...\n");
+        addScene(&myTree);
+        myTree.writeToFileV2("voxels.hio2");
+    }    
     return 0;
 }
