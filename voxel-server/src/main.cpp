@@ -43,7 +43,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
-bool wantVoxelPersist = false;
+bool wantVoxelPersist = true;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
@@ -81,49 +81,9 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
     float voxelSize = 1.f/32;
     printf("creating corner points...\n");
     tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
-
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
-        printf("corner point 0,0,0 exists...\n");
-    }
-
-    tree->deleteVoxelAt(0, 0, 0, voxelSize);
-    printf("attempting to delete corner point 0,0,0\n");
-
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
-        printf("corner point 0,0,0 exists...\n");
-    } else {
-        printf("corner point 0,0,0 does not exists...\n");
-    }
-
-    printf("creating corner points...\n");
-    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
-    
-    printf("saving file voxels.hio2...\n");
-    tree->writeToFileV2("voxels.hio2");
-    printf("erasing all voxels...\n");
-    tree->eraseAllVoxels();
-
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
-        printf("corner point 0,0,0 exists...\n");
-    } else {
-        printf("corner point 0,0,0 does not exists...\n");
-    }
-
-    printf("loading file voxels.hio2...\n");
-    tree->readFromFileV2("voxels.hio2",true);
-
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
-        printf("corner point 0,0,0 exists...\n");
-    } else {
-        printf("corner point 0,0,0 does not exists...\n");
-    }
-
-
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
     tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
     tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
-
-
     tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
     tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
@@ -436,14 +396,18 @@ int main(int argc, const char * argv[])
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
-	const char* WANT_VOXEL_PERSIST = "--wantVoxelPersist";
-    ::wantVoxelPersist = cmdOptionExists(argc, argv, WANT_VOXEL_PERSIST);
+    // By default we will voxel persist, if you want to disable this, then pass in this parameter
+	const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
+    if (cmdOptionExists(argc, argv, NO_VOXEL_PERSIST)) {
+        ::wantVoxelPersist = false;
+    }
 	printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
 
     // if we want Voxel Persistance, load the local file now...
+    bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        ::randomTree.readFromFileV2("voxels.hio2",true);
+        persistantFileRead = ::randomTree.readFromFileV2("voxels.hio2");
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file...\n");
         _nodeCount=0;
@@ -485,8 +449,20 @@ int main(int argc, const char * argv[])
 		addSphere(&randomTree,true,wantColorRandomizer);
     }
 
+	const char* ADD_SCENE = "--AddScene";
+    bool addScene = cmdOptionExists(argc, argv, ADD_SCENE);
 	const char* NO_ADD_SCENE = "--NoAddScene";
-	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
+    bool noAddScene = cmdOptionExists(argc, argv, NO_ADD_SCENE);
+    if (addScene && noAddScene) {
+        printf("WARNING! --AddScene and --NoAddScene are mutually exclusive. We will honor --NoAddScene\n");
+    }
+
+    // We will add a scene if...
+    //      1) we attempted to load a persistant file and it wasn't there
+    //      2) you asked us to add a scene
+    // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
+    bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
+	if (actuallyAddScene) {
 		addSphereScene(&randomTree,wantColorRandomizer);
     }
     
