@@ -644,15 +644,14 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     return maxChildLevel;
 }
 
-int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                                   unsigned char* outputBuffer, int availableBytes, 
-                                   VoxelNodeBag& bag) {
+int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes, 
+                                   VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    if (!node->isInView(viewFrustum)) {
+    if (viewFrustum && !node->isInView(*viewFrustum)) {
         return bytesWritten;
     }
 
@@ -666,7 +665,7 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
 
     int currentEncodeLevel = 0;
     int childBytesWritten = encodeTreeBitstreamRecursion(maxEncodeLevel, currentEncodeLevel, 
-                                                         node, outputBuffer, availableBytes, bag, &viewFrustum);
+                                                         node, outputBuffer, availableBytes, bag, viewFrustum);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -865,21 +864,18 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
 }
 
 void VoxelTree::readFromFileV2(const char* fileName, bool reset) {
-    std::ifstream file(fileName, std::ios::in|std::ios::binary);
-
+    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
 		printLog("loading file...\n");
 		
 		// get file length....
-        unsigned long start = file.tellg();
-        file.seekg( 0, std::ios::end );
-        unsigned long end = file.tellg();
-        unsigned long size = end - start;
+        unsigned long fileLength = file.tellg();
+        file.seekg( 0, std::ios::beg );
         
         // read the entire file into a buffer, WHAT!? Why not.
-        unsigned char* entireFile = new unsigned char[size];
-        file.read((char*)entireFile, size);
-        readBitstreamToTree(entireFile,size);
+        unsigned char* entireFile = new unsigned char[fileLength];
+        file.read((char*)entireFile, fileLength);
+        readBitstreamToTree(entireFile, fileLength);
         delete[] entireFile;
     		
         file.close();
@@ -894,17 +890,14 @@ void VoxelTree::writeToFileV2(const char* fileName) const {
         VoxelNodeBag nodeBag;
         nodeBag.insert(rootNode);
 
-        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+        static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
-
+        
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
-            int currentEncodeLevel = 0;
-            bytesWritten = encodeTreeBitstreamRecursion(INT_MAX, currentEncodeLevel, subTree,
-                                                          &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                          nodeBag, NULL);
+            bytesWritten = encodeTreeBitstream(INT_MAX, subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, NULL);
                                                       
-            file.write((const char*)&tempOutputBuffer[0], bytesWritten);
+            file.write((const char*)&outputBuffer[0], bytesWritten);
         }
     }
     file.close();

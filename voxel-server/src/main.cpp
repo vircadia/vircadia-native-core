@@ -284,9 +284,9 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
+                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag);
+                                                              agentData->nodeBag, &viewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -390,7 +390,11 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 void terminate (int sig) {
     printf("terminating now...\n");
-    if (::wantVoxelPersist) {
+    if (false && ::wantVoxelPersist) {
+        _nodeCount=0;
+        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
+        printf("Nodes in scene before saving: %d nodes\n", _nodeCount);
+
         printf("saving voxels to file...\n");
         randomTree.writeToFileV2("voxels.hio2");
         printf("DONE saving voxels to file...\n");
@@ -408,8 +412,11 @@ int main(int argc, const char * argv[])
     // if we want Voxel Persistance, load the local file now...
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        randomTree.readFromFileV2("voxels.hio2",true);
+        ::randomTree.readFromFileV2("voxels.hio2",true);
         printf("DONE loading voxels from file...\n");
+        _nodeCount=0;
+        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
+        printf("Nodes after loading scene %d nodes\n", _nodeCount);
     }
 
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
@@ -418,7 +425,7 @@ int main(int argc, const char * argv[])
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
     bool wantLocalDomain = cmdOptionExists(argc, argv,local);
-    if (wantLocalDomain) {
+    if (true || wantLocalDomain) {
     	printf("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));

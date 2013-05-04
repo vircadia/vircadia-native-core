@@ -53,19 +53,14 @@ public:
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
-    int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                            unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag);
+    int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
     unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
-
-    int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                     VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
@@ -75,6 +70,10 @@ public:
     void readFromFileV2(const char* filename, bool reset);
     
 private:
+    int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
+                                     VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
+
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
