@@ -80,37 +80,37 @@ bool AABox::contains(const glm::vec3& point) const {
         isWithin(point.z, _corner.z, _size.z);
 }
 
-// finds the intersection between the closer plane in one direction
-static bool findIntersection(float origin, float direction, float corner, float size, float* t) {
+// finds the intersection between a ray and the facing plane on one axis
+static bool findIntersection(float origin, float direction, float corner, float size, float& distance) {
     if (direction > EPSILON) {
-        *t = (corner - origin) / direction;
+        distance = (corner - origin) / direction;
         return true;
         
     } else if (direction < -EPSILON) {
-        *t = (corner + size - origin) / direction;
+        distance = (corner + size - origin) / direction;
         return true;
     }
     return false;
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float* t) const {
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
-        *t = 0;
+        distance = 0;
         return true;
     }
-    // check each direction
-    float nt;
-    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, &nt) && nt >= 0 &&
-            isWithin(origin.y + nt*direction.y, _corner.y, _size.y) &&
-            isWithin(origin.z + nt*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.y, direction.y, _corner.y, _size.y, &nt) && nt >= 0 &&
-            isWithin(origin.x + nt*direction.x, _corner.x, _size.x) &&
-            isWithin(origin.z + nt*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.z, direction.z, _corner.z, _size.z, &nt) && nt >= 0 &&
-            isWithin(origin.y + nt*direction.y, _corner.y, _size.y) &&
-            isWithin(origin.x + nt*direction.x, _corner.x, _size.x)) {
-        *t = nt;
+    // check each axis
+    float axisDistance;
+    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
+        findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
+        findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x)) {
+        distance = axisDistance;
         return true;
     }
     return false;

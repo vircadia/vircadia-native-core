@@ -62,7 +62,7 @@ public:
     void clearDirtyBit() { _isDirty = false; };
     unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode** node, float* t);
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode*& node, float& distance);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
