@@ -367,9 +367,9 @@ int main(int argc, const char * argv[])
     const char* local = "--local";
     bool wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (wantLocalDomain) {
-    	printf("Local Domain MODE!\n");
-		int ip = getLocalAddress();
-		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        printf("Local Domain MODE!\n");
+        int ip = getLocalAddress();
+        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
     agentList->linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
@@ -378,20 +378,20 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-	const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
+    const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
-	printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
-    
-	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
+    printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+
+    const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
+    printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
-	const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
+    const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
     if (cmdOptionExists(argc, argv, NO_VOXEL_PERSIST)) {
         ::wantVoxelPersist = false;
     }
-	printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
+    printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
 
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
@@ -406,42 +406,42 @@ int main(int argc, const char * argv[])
     }
 
     // Check to see if the user passed in a command line option for loading an old style local
-	// Voxel File. If so, load it now. This is not the same as a voxel persist file
-	const char* INPUT_FILE = "-i";
+    // Voxel File. If so, load it now. This is not the same as a voxel persist file
+    const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
-	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
-	}
-
-    // Check to see if the user passed in a command line option for setting packet send rate
-	const char* PACKETS_PER_SECOND = "--packetsPerSecond";
-    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
-    if (packetsPerSecond) {
-	    PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
-	    if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
-	        PACKETS_PER_CLIENT_PER_INTERVAL = 1;
-	    }
-    	printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
-	}
-    
-	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
-	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
-		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
-		// octal codes to the tree nodes that it is creating
-	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
-	}
-	
-	const char* ADD_SPHERE = "--AddSphere";
-	const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
-	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
-		addSphere(&randomTree,false,wantColorRandomizer);
-    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
-		addSphere(&randomTree,true,wantColorRandomizer);
+        randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
     }
 
-	const char* ADD_SCENE = "--AddScene";
+    // Check to see if the user passed in a command line option for setting packet send rate
+    const char* PACKETS_PER_SECOND = "--packetsPerSecond";
+    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
+    if (packetsPerSecond) {
+        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+        if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
+            PACKETS_PER_CLIENT_PER_INTERVAL = 1;
+        }
+        printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
+    }
+    
+    const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
+    if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
+        // create an octal code buffer and load it with 0 so that the recursive tree fill can give
+        // octal codes to the tree nodes that it is creating
+        randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+    }
+
+    const char* ADD_SPHERE = "--AddSphere";
+    const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
+    if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
+        addSphere(&randomTree,false,wantColorRandomizer);
+    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
+        addSphere(&randomTree,true,wantColorRandomizer);
+    }
+
+    const char* ADD_SCENE = "--AddScene";
     bool addScene = cmdOptionExists(argc, argv, ADD_SCENE);
-	const char* NO_ADD_SCENE = "--NoAddScene";
+    const char* NO_ADD_SCENE = "--NoAddScene";
     bool noAddScene = cmdOptionExists(argc, argv, NO_ADD_SCENE);
     if (addScene && noAddScene) {
         printf("WARNING! --AddScene and --NoAddScene are mutually exclusive. We will honor --NoAddScene\n");
@@ -452,8 +452,8 @@ int main(int argc, const char * argv[])
     //      2) you asked us to add a scene
     // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
     bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
-	if (actuallyAddScene) {
-		addSphereScene(&randomTree,wantColorRandomizer);
+    if (actuallyAddScene) {
+        addSphereScene(&randomTree,wantColorRandomizer);
     }
     
     pthread_t sendVoxelThread;
