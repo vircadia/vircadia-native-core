@@ -1539,3 +1539,23 @@ glm::vec3 Avatar::getGravity(glm::vec3 pos) {
         return glm::vec3(0.f, 0.f, 0.f);
     }
 }
+
+const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
+
+void Avatar::writeAvatarDataToFile() {
+    // write the avatar position and yaw to a local file
+    FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "w");
+    
+    if (avatarFile) {
+        fprintf(avatarFile, "%f,%f,%f %f", _position.x, _position.y, _position.z, _bodyYaw);
+        fclose(avatarFile);
+    }
+}
+
+void Avatar::readAvatarDataFromFile() {
+    FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "r");
+    
+    if (avatarFile) {
+        fscanf(avatarFile, "%f,%f,%f %f", &_position.x, &_position.y, &_position.z, &_bodyYaw);
+    }
+}
