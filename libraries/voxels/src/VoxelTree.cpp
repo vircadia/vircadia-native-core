@@ -546,7 +546,41 @@ int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const 
     return levelReached;
 }
 
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    glm::vec3 origin;
+    glm::vec3 direction;
+    VoxelNode** node;
+    float* t;
+    bool found;
+};
 
+bool findRayOperation(VoxelNode* node, void* extraData) {
+    RayArgs* args = static_cast<RayArgs*>(extraData);
+    AABox box;
+    node->getAABox(box);
+    float t;
+    if (!box.findRayIntersection(args->origin, args->direction, &t)) {
+        return false;
+    }
+    if (!node->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (!args->found || t < *(args->t)) {
+        *(args->node) = node;
+        *(args->t) = t;
+        args->found = true;
+    }
+    return false;
+}
+
+bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode** node, float* t)
+{
+    RayArgs args = { origin, direction, node, t };
+    recurseTreeWithOperation(findRayOperation, &args);
+    return args.found;
+}
 
 int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                               VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
