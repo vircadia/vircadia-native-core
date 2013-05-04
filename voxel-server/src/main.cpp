@@ -94,6 +94,29 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
         printf("corner point 0,0,0 does not exists...\n");
     }
 
+    printf("creating corner points...\n");
+    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
+    
+    printf("saving file voxels.hio2...\n");
+    tree->writeToFileV2("voxels.hio2");
+    printf("erasing all voxels...\n");
+    tree->eraseAllVoxels();
+
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    } else {
+        printf("corner point 0,0,0 does not exists...\n");
+    }
+
+    printf("loading file voxels.hio2...\n");
+    tree->readFromFileV2("voxels.hio2",true);
+
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    } else {
+        printf("corner point 0,0,0 does not exists...\n");
+    }
+
 
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
     tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
@@ -373,7 +396,7 @@ int main(int argc, const char * argv[])
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
     bool wantLocalDomain = cmdOptionExists(argc, argv,local);
-    if (wantLocalDomain) {
+    if (true || wantLocalDomain) {
     	printf("Local Domain MODE!\n");
 		int ip = getLocalAddress();
 		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));

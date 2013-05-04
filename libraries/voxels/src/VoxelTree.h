@@ -39,12 +39,11 @@ public:
 	void eraseAllVoxels();
 
 	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
+    void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
 	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
-	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
     void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
@@ -67,6 +66,13 @@ public:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
                                      VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
+
+    // Note: this assumes the fileFormat is the HIO individual voxels code files
+	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
+
+    // these will read/write files that match the wireformat, including the 'V' leading
+    void writeToFileV2(const char* filename) const;
+    void readFromFileV2(const char* filename, bool reset);
     
 private:
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
