@@ -577,7 +577,7 @@ bool findRayOperation(VoxelNode* node, void* extraData) {
 
 bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode** node, float* t)
 {
-    RayArgs args = { origin, direction, node, t };
+    RayArgs args = { origin / (float)TREE_SCALE, direction, node, t };
     recurseTreeWithOperation(findRayOperation, &args);
     return args.found;
 }

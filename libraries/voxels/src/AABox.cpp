@@ -101,13 +101,13 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     }
     // check each direction
     float nt;
-    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, &nt) &&
+    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, &nt) && nt >= 0 &&
             isWithin(origin.y + nt*direction.y, _corner.y, _size.y) &&
             isWithin(origin.z + nt*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.y, direction.y, _corner.y, _size.y, &nt) &&
+        findIntersection(origin.y, direction.y, _corner.y, _size.y, &nt) && nt >= 0 &&
             isWithin(origin.x + nt*direction.x, _corner.x, _size.x) &&
             isWithin(origin.z + nt*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.z, direction.z, _corner.z, _size.z, &nt) &&
+        findIntersection(origin.z, direction.z, _corner.z, _size.z, &nt) && nt >= 0 &&
             isWithin(origin.y + nt*direction.y, _corner.y, _size.y) &&
             isWithin(origin.x + nt*direction.x, _corner.x, _size.x)) {
         *t = nt;
