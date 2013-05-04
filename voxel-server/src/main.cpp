@@ -43,7 +43,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
-bool wantVoxelPersist = true;
+bool wantVoxelPersist = false;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
@@ -390,7 +390,10 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 void terminate (int sig) {
     printf("terminating now...\n");
-    if (false && ::wantVoxelPersist) {
+    
+    // This apparently does not work, because the randomTree has already been freed before this
+    // sig term handler runs... So, we need to find a better solution than this.
+    if (false) {
         _nodeCount=0;
         ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
         printf("Nodes in scene before saving: %d nodes\n", _nodeCount);
@@ -409,16 +412,6 @@ int main(int argc, const char * argv[])
     signal(SIGTERM,&terminate);
     signal(SIGINT,&terminate);
     
-    // if we want Voxel Persistance, load the local file now...
-    if (::wantVoxelPersist) {
-        printf("loading voxels from file...\n");
-        ::randomTree.readFromFileV2("voxels.hio2",true);
-        printf("DONE loading voxels from file...\n");
-        _nodeCount=0;
-        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
-        printf("Nodes after loading scene %d nodes\n", _nodeCount);
-    }
-
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
@@ -445,8 +438,22 @@ int main(int argc, const char * argv[])
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
 	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
-    // Check to see if the user passed in a command line option for loading a local
-	// Voxel File. If so, load it now.
+	const char* WANT_VOXEL_PERSIST = "--wantVoxelPersist";
+    ::wantVoxelPersist = cmdOptionExists(argc, argv, WANT_VOXEL_PERSIST);
+	printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
+
+    // if we want Voxel Persistance, load the local file now...
+    if (::wantVoxelPersist) {
+        printf("loading voxels from file...\n");
+        ::randomTree.readFromFileV2("voxels.hio2",true);
+        printf("DONE loading voxels from file...\n");
+        _nodeCount=0;
+        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
+        printf("Nodes after loading scene %d nodes\n", _nodeCount);
+    }
+
+    // Check to see if the user passed in a command line option for loading an old style local
+	// Voxel File. If so, load it now. This is not the same as a voxel persist file
 	const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
