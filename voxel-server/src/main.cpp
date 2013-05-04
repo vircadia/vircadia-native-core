@@ -338,6 +338,16 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
     }
 }
 
+void persistVoxelsWhenDirty() {
+    // check the dirty bit and persist here...
+    if (::wantVoxelPersist && ::randomTree.isDirty()) {
+        printf("saving voxels to file...\n");
+        randomTree.writeToFileV2("voxels.hio2");
+        randomTree.clearDirtyBit(); // tree is clean after saving
+        printf("DONE saving voxels to file...\n");
+    }
+}
+
 void *distributeVoxelsToListeners(void *args) {
     
     AgentList* agentList = AgentList::getInstance();
@@ -390,18 +400,6 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
 
 void terminate (int sig) {
     printf("terminating now...\n");
-    
-    // This apparently does not work, because the randomTree has already been freed before this
-    // sig term handler runs... So, we need to find a better solution than this.
-    if (false) {
-        _nodeCount=0;
-        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
-        printf("Nodes in scene before saving: %d nodes\n", _nodeCount);
-
-        printf("saving voxels to file...\n");
-        randomTree.writeToFileV2("voxels.hio2");
-        printf("DONE saving voxels to file...\n");
-    }
     exit(EXIT_SUCCESS);
 }
 
@@ -446,6 +444,7 @@ int main(int argc, const char * argv[])
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
         ::randomTree.readFromFileV2("voxels.hio2",true);
+        ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file...\n");
         _nodeCount=0;
         ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
@@ -493,7 +492,7 @@ int main(int argc, const char * argv[])
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
-    
+
     sockaddr agentPublicAddress;
     
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
@@ -501,6 +500,9 @@ int main(int argc, const char * argv[])
 
     // loop to send to agents requesting data
     while (true) {
+        // check to see if we need to persist our voxel state
+        persistVoxelsWhenDirty();    
+    
         if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
