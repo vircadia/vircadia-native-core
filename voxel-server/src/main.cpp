@@ -43,6 +43,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
+bool wantVoxelPersist = true;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
@@ -387,9 +388,30 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
     }
 }
 
+void terminate (int sig) {
+    printf("terminating now...\n");
+    if (::wantVoxelPersist) {
+        printf("saving voxels to file...\n");
+        randomTree.writeToFileV2("voxels.hio2");
+        printf("DONE saving voxels to file...\n");
+    }
+    exit(EXIT_SUCCESS);
+}
+
 
 int main(int argc, const char * argv[])
 {
+    signal(SIGABRT,&terminate);
+    signal(SIGTERM,&terminate);
+    signal(SIGINT,&terminate);
+    
+    // if we want Voxel Persistance, load the local file now...
+    if (::wantVoxelPersist) {
+        printf("loading voxels from file...\n");
+        randomTree.readFromFileV2("voxels.hio2",true);
+        printf("DONE loading voxels from file...\n");
+    }
+
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
