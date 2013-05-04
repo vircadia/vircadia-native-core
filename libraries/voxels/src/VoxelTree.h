@@ -65,7 +65,7 @@ public:
     // Note: this assumes the fileFormat is the HIO individual voxels code files
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
-    // these will read/write files that match the wireformat, including the 'V' leading
+    // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToFileV2(const char* filename) const;
     void readFromFileV2(const char* filename, bool reset);
     
