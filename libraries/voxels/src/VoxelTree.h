@@ -67,7 +67,7 @@ public:
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToFileV2(const char* filename) const;
-    void readFromFileV2(const char* filename, bool reset);
+    bool readFromFileV2(const char* filename);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,

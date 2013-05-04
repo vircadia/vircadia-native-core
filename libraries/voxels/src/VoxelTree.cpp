@@ -865,7 +865,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     return bytesAtThisLevel;
 }
 
-void VoxelTree::readFromFileV2(const char* fileName, bool reset) {
+bool VoxelTree::readFromFileV2(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
 		printLog("loading file...\n");
@@ -881,7 +881,9 @@ void VoxelTree::readFromFileV2(const char* fileName, bool reset) {
         delete[] entireFile;
     		
         file.close();
+        return true;
     }
+    return false;
 }
 
 void VoxelTree::writeToFileV2(const char* fileName) const {
