@@ -220,12 +220,19 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
 int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     assert(_viewFrustum); // you must set up _viewFrustum before calling this
     int   voxelsUpdated   = 0;
-    float distanceToNode  = node->distanceToCamera(*_viewFrustum);
-    float boundary        = boundaryDistanceForRenderLevel(node->getLevel());
-    float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
-    bool  inBoundary      = (distanceToNode <= boundary);
-    bool  inChildBoundary = (distanceToNode <= childBoundary);
-    bool  shouldRender    = node->isColored() && ((node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary));
+    bool  shouldRender    = false; // assume we don't need to render it
+    
+    // if it's colored, we might need to render it!
+    if (node->isColored()) {
+        float distanceToNode  = node->distanceToCamera(*_viewFrustum);
+        float boundary        = boundaryDistanceForRenderLevel(node->getLevel());
+        float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
+        bool  inBoundary      = (distanceToNode <= boundary);
+        bool  inChildBoundary = (distanceToNode <= childBoundary);
+        
+        shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+    }
+
 
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
