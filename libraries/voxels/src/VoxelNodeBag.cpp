@@ -34,7 +34,7 @@ void VoxelNodeBag::insert(VoxelNode* node) {
     for (int i = 0; i < _elementsInUse; i++) {
 
         // compare the newNode to the elements already in the bag
-        OctalCodeComparison comparison = compareOctalCodes(_bagElements[i]->octalCode, node->octalCode);
+        OctalCodeComparison comparison = compareOctalCodes(_bagElements[i]->getOctalCode(), node->getOctalCode());
         
         // If we found a code in the bag that matches, then just return, since the element is already in the bag.
         if (comparison == EXACT_MATCH) {

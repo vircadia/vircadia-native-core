@@ -221,8 +221,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     assert(_viewFrustum); // you must set up _viewFrustum before calling this
     int   voxelsUpdated   = 0;
     float distanceToNode  = node->distanceToCamera(*_viewFrustum);
-    float boundary        = boundaryDistanceForRenderLevel(*node->octalCode + 1);
-    float childBoundary   = boundaryDistanceForRenderLevel(*node->octalCode + 2);
+    float boundary        = boundaryDistanceForRenderLevel(node->getLevel());
+    float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
     bool  inBoundary      = (distanceToNode <= boundary);
     bool  inChildBoundary = (distanceToNode <= childBoundary);
     bool  shouldRender    = node->isColored() && ((node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary));
@@ -230,8 +230,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
     for (int i = 0; i < 8; i++) {
-        if (node->children[i]) {
-            voxelsUpdated += newTreeToArrays(node->children[i]);
+        if (node->getChildAtIndex(i)) {
+            voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
         }
     }
     
@@ -242,8 +242,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         
         // If we're should render, use our legit location and scale, 
         if (node->getShouldRender()) {
-            copyFirstVertexForCode(node->octalCode, (float*)&startVertex);
-            voxelScale = (1 / powf(2, *node->octalCode));
+            startVertex = node->getCorner();
+            voxelScale = node->getScale();
         } else {
             // if we shouldn't render then set out location to some infinitely distant location, 
             // and our scale as infinitely small

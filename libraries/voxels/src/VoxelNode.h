@@ -27,23 +27,37 @@ private:
     glBufferIndex _glBufferIndex;
     bool _isDirty;
     bool _shouldRender;
+    AABox _box;
+    unsigned char* _octalCode;
+    VoxelNode* _children[8];
+
+    void calculateAABox();
+
+    void init(unsigned char * octalCode);
+
 public:
-    VoxelNode();
+    VoxelNode(); // root node constructor
+    VoxelNode(unsigned char * octalCode); // regular constructor
     ~VoxelNode();
     
+    unsigned char* getOctalCode() const { return _octalCode; };
+    VoxelNode* getChildAtIndex(int i) const { return _children[i]; };
+    void deleteChildAtIndex(int childIndex);
     void addChildAtIndex(int childIndex);
     void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
     bool collapseIdenticalLeaves();
-    
-    unsigned char *octalCode;
-    VoxelNode *children[8];
+
+    const AABox& getAABox() const { return _box; };
+    const glm::vec3& getCenter() const { return _box.getCenter(); };
+    const glm::vec3& getCorner() const { return _box.getCorner(); };
+    float getScale() const { return _box.getSize().x;  /* voxelScale = (1 / powf(2, *node->getOctalCode())); */ };
+    int getLevel() const { return *_octalCode + 1; /* one based or zero based? */ };
     
     bool isColored() const { return (_trueColor[3]==1); }; 
     bool isInView(const ViewFrustum& viewFrustum) const; 
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     bool isLeaf() const;
-    void getAABox(AABox& box) const;
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };

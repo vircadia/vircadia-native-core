@@ -153,12 +153,8 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
         for (int i = 0; i < 8; i++) {
             if (true) {
                 // create a new VoxelNode to put here
-                currentRootNode->children[i] = new VoxelNode();
-                
-                // give this child it's octal code
-                currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-
-                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
+                currentRootNode->addChildAtIndex(i);
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->getChildAtIndex(i));
                 createdChildren = true;
             }
         }

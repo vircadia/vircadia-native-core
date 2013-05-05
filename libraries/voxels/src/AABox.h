@@ -34,9 +34,11 @@ public:
 	
 	const glm::vec3& getCorner() const { return _corner; };
 	const glm::vec3& getSize() const { return _size; };
+	const glm::vec3& getCenter() const { return _center; };
 
 private:
 	glm::vec3 _corner;
+	glm::vec3 _center;
 	glm::vec3 _size;
 };
 
