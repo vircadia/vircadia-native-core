@@ -157,16 +157,6 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
             bytesRead += 3;
         }
     }
-    // average node's color based on color of children
-    bool nodeWasDirty = destinationNode->isDirty();
-    destinationNode->setColorFromAverageOfChildren();
-    bool nodeIsDirty = destinationNode->isDirty();
-    if (nodeIsDirty) {
-        _isDirty = true;
-    }
-    if (!nodeWasDirty && nodeIsDirty) {
-        _nodesChangedFromBitstream++;
-    }
 
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
