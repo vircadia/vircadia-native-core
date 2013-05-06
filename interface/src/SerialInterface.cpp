@@ -43,25 +43,29 @@ void SerialInterface::pair() {
     int matchStatus;
     regex_t regex;
     
-    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
-    if((devDir = opendir("/dev"))) {
-        while((entry = readdir(devDir))) {
-            regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
-            matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
-            if (matchStatus == 0) {
-                char *serialPortname = new char[100];
-                sprintf(serialPortname, "/dev/%s", entry->d_name);
-                
-                initializePort(serialPortname, 115200);
-                
-                delete [] serialPortname;
+    if (_failedOpenAttempts < 2) {
+        // if we've already failed to open the detected interface twice then don't try again
+        
+        // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
+        if((devDir = opendir("/dev"))) {
+            while((entry = readdir(devDir))) {
+                regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
+                matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
+                if (matchStatus == 0) {
+                    char *serialPortname = new char[100];
+                    sprintf(serialPortname, "/dev/%s", entry->d_name);
+                    
+                    initializePort(serialPortname, 115200);
+                    
+                    delete [] serialPortname;
+                }
+                regfree(&regex);
             }
-            regfree(&regex);
+            closedir(devDir);
         }
-        closedir(devDir);
     }
-#endif
     
+#endif
 }
 
 //  connect to the serial port
@@ -73,6 +77,7 @@ int SerialInterface::initializePort(char* portname, int baud) {
     
     if (serialFd == -1) {
         printLog("Failed.\n");
+        _failedOpenAttempts++;
         return -1;     //  Failed to open port
     }    
     struct termios options;

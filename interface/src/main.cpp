@@ -90,6 +90,8 @@ using namespace std;
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
+glm::vec3 getGravity(glm::vec3 pos); //get the local gravity vector at this location in the universe
+
 QApplication* app;
 
 bool enableNetworkThread = true;
@@ -1703,6 +1705,7 @@ void idle(void) {
         }
         agentList->unlock();
     
+        myAvatar.setGravity(getGravity(myAvatar.getPosition()));
         myAvatar.simulate(deltaTime);
 
         glutPostRedisplay();
@@ -1765,6 +1768,30 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
+
+
+    
+        
+//Find and return the gravity vector at this location
+glm::vec3 getGravity(glm::vec3 pos) {
+    //
+    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
+    //  from the domain/voxelserver (or something similar)
+    //
+    if ((pos.x >  0.f) &&
+        (pos.x < 10.f) &&
+        (pos.z >  0.f) &&
+        (pos.z < 10.f) &&
+        (pos.y >  0.f) &&
+        (pos.y <  3.f)) {
+        //  If above ground plane, turn gravity on
+        return glm::vec3(0.f, -1.f, 0.f);
+    } else {
+        //  If flying in space, turn gravity OFF
+        return glm::vec3(0.f, 0.f, 0.f);
+    }
+}
+       
 void mouseFunc(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
         if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
