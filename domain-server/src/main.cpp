@@ -96,11 +96,12 @@ int main(int argc, const char * argv[])
     agentList->startSilentAgentRemovalThread();
     
     while (true) {
-        if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
+        if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
+            (packetData[0] == PACKET_HEADER_DOMAIN_RFD || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            unpackSocket(&packetData[2], (sockaddr*) &agentLocalAddress);
+            unpackSocket(packetData + 2, (sockaddr*) &agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -118,14 +119,9 @@ int main(int argc, const char * argv[])
                                            agentType,
                                            agentList->getLastAgentId())) {
                 agentList->increaseAgentId();
-            } else if (packetData[0] == PACKET_HEADER_DOMAIN_RFD) {
-                // if this is a previous agent, and they are re-reporting for duty
-                // then we need to update the first receive time
-                Agent* refreshedAgent = agentList->agentWithAddress((sockaddr*) &agentLocalAddress);
-                refreshedAgent->setWakeMicrostamp(usecTimestampNow());
             }
             
-            currentBufferPos = broadcastPacket + 2;
+            currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -146,8 +142,14 @@ int main(int argc, const char * argv[])
                         }
                     }
                 } else {
+                    double timeNow = usecTimestampNow();
                     // this is the agent, just update last receive to now
-                    agent->setLastHeardMicrostamp(usecTimestampNow());
+                    agent->setLastHeardMicrostamp(timeNow);
+                    
+                    if (packetData[0] == PACKET_HEADER_DOMAIN_RFD
+                        && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
+                            agent->setWakeMicrostamp(timeNow);
+                    }
                 }
             }
             
