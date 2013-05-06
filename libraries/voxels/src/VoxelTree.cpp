@@ -558,8 +558,7 @@ public:
 
 bool findRayOperation(VoxelNode* node, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AABox box;
-    node->getAABox(box);
+    AABox box = node->getAABox();
     float distance;
     if (!box.findRayIntersection(args->origin, args->direction, distance)) {
         return false;
