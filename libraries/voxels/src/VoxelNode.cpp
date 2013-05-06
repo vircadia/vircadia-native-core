@@ -89,6 +89,15 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
     }
 }
 
+// does not delete the node!
+VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
+    VoxelNode* returnedChild = _children[childIndex];
+    if (_children[childIndex]) {
+        _children[childIndex] = NULL;
+    }
+    return returnedChild;
+}
+
 void VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));

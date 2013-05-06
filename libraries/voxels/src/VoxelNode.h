@@ -43,6 +43,7 @@ public:
     unsigned char* getOctalCode() const { return _octalCode; };
     VoxelNode* getChildAtIndex(int i) const { return _children[i]; };
     void deleteChildAtIndex(int childIndex);
+    VoxelNode* removeChildAtIndex(int childIndex);
     void addChildAtIndex(int childIndex);
     void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
