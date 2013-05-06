@@ -16,10 +16,13 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
+
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <Stacktrace.h>
+
 #include "AudioRingBuffer.h"
 #include "PacketHeaders.h"
 
@@ -71,8 +74,7 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     mixSample = normalizedSample;    
 }
 
-void *sendBuffer(void *args)
-{
+void *sendBuffer(void *args) {
     int sentBytes;
     int nextFrame = 0;
     timeval startTime;
@@ -255,10 +257,11 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, const char * argv[])
-{
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+int main(int argc, const char* argv[]) {
+    signal(SIGSEGV, printStacktrace);
     setvbuf(stdout, NULL, _IOLBF, 0);
+    
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     
     ssize_t receivedBytes = 0;
     
