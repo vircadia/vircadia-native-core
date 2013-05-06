@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
+#include <signal.h>
 
 #include <AgentList.h>
 #include <AgentTypes.h>
