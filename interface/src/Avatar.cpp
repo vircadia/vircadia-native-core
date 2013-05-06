@@ -381,7 +381,7 @@ void Avatar::simulate(float deltaTime) {
     
 	// decay body rotation momentum
     float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
-    if  ( bodySpinMomentum < 0.0f ) { bodySpinMomentum = 0.0f; } 
+    if  (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; } 
     _bodyPitchDelta *= bodySpinMomentum;
     _bodyYawDelta   *= bodySpinMomentum;
     _bodyRollDelta  *= bodySpinMomentum;
@@ -1193,6 +1193,9 @@ void Avatar::initializeSkeleton() {
     
     // generate world positions
     updateSkeleton();
+
+    //set spring positions to be in the skeleton bone positions
+    initializeBodySprings();
 }
 
 void Avatar::calculateBoneLengths() {
