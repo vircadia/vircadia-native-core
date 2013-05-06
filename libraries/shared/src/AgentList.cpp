@@ -64,8 +64,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     agentSocket(newSocketListenPort),
     ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
-    lastAgentId(0)
-{
+    lastAgentId(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -114,7 +113,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     Agent* bulkSendAgent = agentWithAddress(senderAddress);
 
     if (bulkSendAgent) {
-        bulkSendAgent->setLastRecvTimeUsecs(usecTimestampNow());
+        bulkSendAgent->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendAgent->recordBytesReceived(numTotalBytes);
     }
 
@@ -161,7 +160,7 @@ int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packe
 }
 
 int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
-    agent->setLastRecvTimeUsecs(usecTimestampNow());
+    agent->setLastHeardMicrostamp(usecTimestampNow());
     
     if (agent->getActiveSocket() != NULL) {
         agent->recordBytesReceived(dataBytes);
@@ -273,7 +272,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            agent->setLastRecvTimeUsecs(usecTimestampNow());
+            agent->setLastHeardMicrostamp(usecTimestampNow());
         }
         
         // we had this agent already, do nothing for now
@@ -383,7 +382,7 @@ void *removeSilentAgents(void *args) {
         
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
-            if ((checkTimeUSecs - agent->getLastRecvTimeUsecs()) > AGENT_SILENCE_THRESHOLD_USECS
+            if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
             	&& agent->getType() != AGENT_TYPE_VOXEL) {
                 
                 printLog("Killing agent - ");
@@ -418,13 +417,6 @@ void *checkInWithDomainServer(void *args) {
     
     const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
     
-    AgentList* parentAgentList = (AgentList*) args;
-    
-    timeval lastSend;
-    unsigned char output[7];
-    
-    in_addr_t localAddress = getLocalAddress();
-    
     //  Lookup the IP address of the domain server if we need to
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -439,14 +431,23 @@ void *checkInWithDomainServer(void *args) {
         }
     } else printLog("Using static domainserver IP: %s\n", DOMAIN_IP);
     
+    AgentList* parentAgentList = (AgentList*) args;
+    
+    timeval lastSend;
+    in_addr_t localAddress = getLocalAddress();
+    unsigned char packet[8];
+    
+    packet[0] = PACKET_HEADER_DOMAIN_RFD;
+    packet[1] = parentAgentList->getOwnerType();    
     
     while (!domainServerCheckinStopFlag) {
         gettimeofday(&lastSend, NULL);
         
-        output[0] = parentAgentList->getOwnerType();
-        packSocket(output + 1, localAddress, htons(parentAgentList->getSocketListenPort()));
+        packSocket(packet + 2, localAddress, htons(parentAgentList->getSocketListenPort()));
         
-        parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, output, 7);
+        parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, packet, sizeof(packet));
+        
+        packet[0] = PACKET_HEADER_DOMAIN_LIST_REQUEST;
         
         double usecToSleep = DOMAIN_SERVER_CHECK_IN_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
@@ -481,7 +482,8 @@ AgentList::iterator AgentList::begin() const {
         }
     }
     
-    return AgentListIterator(this, 0);
+    // there's no alive agent to start from - return the end
+    return end();
 }
 
 AgentList::iterator AgentList::end() const {
