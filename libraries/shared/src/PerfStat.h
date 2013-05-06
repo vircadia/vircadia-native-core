@@ -13,6 +13,7 @@
 #define __hifi__PerfStat__
 
 #include <stdint.h>
+#include "SharedUtil.h"
 
 #ifdef _WIN32
 #define snprintf _snprintf
@@ -80,6 +81,16 @@ public:
 };
 
 typedef std::map<std::string,PerfStatHistory,std::less<std::string> >::iterator PerfStatMapItr;
+
+class PerformanceWarning {
+private:
+	double _start;
+	const char* _message;
+	bool _renderWarningsOn;
+public:
+    PerformanceWarning(bool renderWarnings, const char* message);
+    ~PerformanceWarning();
+};
 
 
 #endif /* defined(__hifi__PerfStat__) */

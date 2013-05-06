@@ -103,3 +103,28 @@ int PerfStat::DumpStats(char** array) {
 	return lineCount;
 }
 
+
+// Constructor handles starting the warning timer
+PerformanceWarning::PerformanceWarning(bool renderWarnings, const char* message) {
+    _start = usecTimestampNow();
+	_message = message;
+	_renderWarningsOn = renderWarnings;
+	// need to also store the args...
+}
+
+// Destructor handles recording all of our stats
+PerformanceWarning::~PerformanceWarning() {
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - _start)/1000.0;
+    if (_renderWarningsOn && elapsedmsec > 1) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - _start)/1000000.0;
+            printLog("WARNING! %s took %lf seconds\n", _message, elapsedsec);
+        } else {
+            printLog("WARNING! %s took %lf milliseconds\n", _message, elapsedmsec);
+        }
+    }
+	
+};
+
+
