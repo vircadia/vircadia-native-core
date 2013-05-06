@@ -170,12 +170,37 @@ void SerialInterface::renderLevels(int width, int height) {
             disp_x += GAP;
         }
     } else {
+        const int LEVEL_CORNER_X = 10;
+        const int LEVEL_CORNER_Y = 200;
+        
+        // Draw the text values 
+        sprintf(val, "Yaw   %d", _lastYaw);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        sprintf(val, "Pitch %d", _lastPitch);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        sprintf(val, "Roll  %d", _lastRoll);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        
+        //  Draw the levels as horizontal lines        
+        const int LEVEL_CENTER = 150;
         glLineWidth(2.0);
         glColor4f(1, 1, 1, 1);
-        //glBegin(GL_LINES);
-        //glVertex2f(disp_x, height*0.95);
-        sprintf(val, "Yaw %d, Pitch %d, Roll %d", _lastYaw, _lastPitch, _lastRoll);
-        drawtext(10, 100, 0.10, 0, 1.0, 0, val, 0, 1, 0);
+        glBegin(GL_LINES);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastYaw, LEVEL_CORNER_Y - 3);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastPitch, LEVEL_CORNER_Y + 12);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastRoll, LEVEL_CORNER_Y + 27);
+        glEnd();
+        //  Draw green vertical centerline
+        glColor4f(0, 1, 0, 0.5);
+        glBegin(GL_LINES);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
+        glEnd();
+        
+
     }
     //  Display Serial latency block
     if (LED) {
