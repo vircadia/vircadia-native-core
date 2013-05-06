@@ -64,7 +64,6 @@ public:
 
     void removeOutOfView();
     bool hasViewChanged();
-    void cleanupRemovedVoxels();
     
 private:
     int  _callsToTreesToArrays;

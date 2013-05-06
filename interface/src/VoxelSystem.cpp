@@ -170,7 +170,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     } else {
         _voxelsUpdated = 0;
     }
-    //printLog("setupNewVoxelsForDrawing() AFTER treeToArray _voxelsUpdated=%ld _voxelsDirty=%s\n", _voxelsUpdated, (_voxelsDirty ? "yes" : "no"));
     if (_voxelsUpdated) {
         _voxelsDirty=true;
     }
@@ -200,10 +199,8 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
 
 int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     assert(_viewFrustum); // you must set up _viewFrustum before calling this
-
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
-    
     // if it's colored, we might need to render it!
     if (node->isColored()) {
         float distanceToNode  = node->distanceToCamera(*_viewFrustum);
@@ -211,11 +208,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
         bool  inBoundary      = (distanceToNode <= boundary);
         bool  inChildBoundary = (distanceToNode <= childBoundary);
-        
         shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
-
-
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
     for (int i = 0; i < 8; i++) {
@@ -223,7 +217,6 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
             voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
         }
     }
-
     if (_alwaysRenderFullVBO) {
         voxelsUpdated += newway__updateNodeInArray(node);
     } else {
@@ -438,7 +431,6 @@ void VoxelSystem::updateVBOs() {
 void VoxelSystem::render() {
     PerformanceWarning warn(_renderWarningsOn, "render()");
     glPushMatrix();
-    //cleanupRemovedVoxels();
     updateVBOs();
     // tell OpenGL where to find vertex and color information
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -634,26 +626,4 @@ void VoxelSystem::removeOutOfView() {
     removedCount = 0;
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
     pthread_mutex_unlock(&_voxelCleanupLock);
-}
-
-// Deletes the VoxelNodes from the _removedVoxels bag, but also cleans up those items from the vertex arrays
-void VoxelSystem::cleanupRemovedVoxels() {
-    if (!pthread_mutex_trylock(&_voxelCleanupLock)) {
-        while (!_removedVoxels.isEmpty()){
-            VoxelNode* node = _removedVoxels.extract();
-            // If the voxel is in the vertex, and it was previously rendered, then set it's vertices to "hidden"
-            if (node->isKnownBufferIndex() && node->getShouldRender()) {
-                unsigned long nodeIndex = node->getBufferIndex();
-                _voxelDirtyArray[nodeIndex] = true;
-                for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-                    GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-                    *(writeVerticesAt+j) = FLT_MAX;
-                }
-                _voxelsDirty = true; // yep
-            }
-            _unusedArraySpace++; // track this so we can blow away our arrays if they get too much
-            delete node; // actually delete the node
-        }
-        pthread_mutex_unlock(&_voxelCleanupLock);
-    }
 }
