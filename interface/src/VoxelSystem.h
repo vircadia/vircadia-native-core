@@ -37,7 +37,7 @@ public:
     void render();
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
-    unsigned long  getVoxelsRendered() const {return _voxelsInArrays;};
+    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
     void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
     void setCamera(Camera* newCamera) { _camera = newCamera; };
@@ -61,9 +61,13 @@ public:
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
     bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
+
+    void removeOutOfView();
+    bool hasViewChanged();
     
 private:
     int  _callsToTreesToArrays;
+    VoxelNodeBag _removedVoxels;
 
     bool _renderWarningsOn;
     // Operation functions for tree recursion methods
@@ -74,6 +78,10 @@ private:
     static bool falseColorizeInViewOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
+    static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
+
+    int newway__updateNodeInArray(VoxelNode* node);
+    int oldway__updateNodeInArray(VoxelNode* node);
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
@@ -88,11 +96,15 @@ private:
     GLubyte* _writeColorsArray;
     bool* _voxelDirtyArray;
     unsigned long _voxelsUpdated;
-    unsigned long _voxelsInArrays;
+    unsigned long _voxelsInWriteArrays;
+    unsigned long _voxelsInReadArrays;
+    unsigned long _unusedArraySpace;
     
+    bool _alwaysRenderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
+    double _lastViewCulling;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
@@ -101,6 +113,7 @@ private:
     pthread_mutex_t _bufferWriteLock;
 
     ViewFrustum* _viewFrustum;
+    ViewFrustum _lastKnowViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void setupNewVoxelsForDrawing();
