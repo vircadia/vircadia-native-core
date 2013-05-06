@@ -61,9 +61,14 @@ public:
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
     bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
+
+    void removeOutOfView();
+    bool hasViewChanged();
+    void cleanupRemovedVoxels();
     
 private:
     int  _callsToTreesToArrays;
+    VoxelNodeBag _removedVoxels;
 
     bool _renderWarningsOn;
     // Operation functions for tree recursion methods
@@ -74,6 +79,7 @@ private:
     static bool falseColorizeInViewOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
+    static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
@@ -89,6 +95,7 @@ private:
     bool* _voxelDirtyArray;
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInArrays;
+    unsigned long _unusedArraySpace;
     
     
     double _setupNewVoxelsForDrawingLastElapsed;
@@ -99,8 +106,10 @@ private:
     GLuint _vboColorsID;
     GLuint _vboIndicesID;
     pthread_mutex_t _bufferWriteLock;
+    pthread_mutex_t _voxelCleanupLock;
 
     ViewFrustum* _viewFrustum;
+    ViewFrustum _lastKnowViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void setupNewVoxelsForDrawing();

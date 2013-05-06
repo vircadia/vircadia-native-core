@@ -15,6 +15,7 @@
 #include <fstream> // to load voxels from file
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <PerfStat.h>
 #include <OctalCode.h>
 #include <pthread.h>
 #include "Log.h"
@@ -44,6 +45,7 @@ VoxelSystem::VoxelSystem() {
     _voxelsInArrays = _voxelsUpdated = 0;
     _tree = new VoxelTree();
     pthread_mutex_init(&_bufferWriteLock, NULL);
+    pthread_mutex_init(&_voxelCleanupLock, NULL);
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -54,6 +56,7 @@ VoxelSystem::~VoxelSystem() {
     delete[] _voxelDirtyArray;
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
+    pthread_mutex_destroy(&_voxelCleanupLock);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -98,23 +101,12 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
         {
-            double start = usecTimestampNow();
+            PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
             if (_renderWarningsOn && _tree->getNodesChangedFromBitstream()) {
                 printLog("readBitstreamToTree()... getNodesChangedFromBitstream=%ld _tree->isDirty()=%s \n",
                     _tree->getNodesChangedFromBitstream(), (_tree->isDirty() ? "yes" : "no") );
-            }
-
-            double end = usecTimestampNow();
-            double elapsedmsec = (end - start)/1000.0;
-            if (_renderWarningsOn && elapsedmsec > 1) {
-                if (elapsedmsec > 1000) {
-                    double elapsedsec = (end - start)/1000000.0;
-                    printLog("WARNING! readBitstreamToTree() took %lf seconds\n",elapsedsec);
-                } else {
-                    printLog("WARNING! readBitstreamToTree() took %lf milliseconds\n",elapsedmsec);
-                }
             }
         }
         break;
@@ -153,13 +145,18 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
+    PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()"); // would like to include _voxelsInArrays, _voxelsUpdated
     double start = usecTimestampNow();
-    
     double sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished);
     
     if (sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed,SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
+    
+    // If the view frustum has changed, since last time, then remove nodes that are out of view
+    //if (hasViewChanged()) {
+    //    removeOutOfView();
+    //}    
     
     if (_tree->isDirty()) {
         _callsToTreesToArrays++;
@@ -179,21 +176,12 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
-    if (_renderWarningsOn && elapsedmsec > 1) {
-        if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! newTreeToArrays() took %lf seconds %ld voxels updated\n", elapsedsec, _voxelsUpdated);
-        } else {
-            printLog("WARNING! newTreeToArrays() took %lf milliseconds %ld voxels updated\n", elapsedmsec, _voxelsUpdated);
-        }
-    }
-    
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
-    double start = usecTimestampNow();
+    PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()"); // would like to include _voxelsInArrays, _voxelsUpdated
     if (_voxelsDirty && _voxelsUpdated) {
         // lock on the buffer write lock so we can't modify the data when the GPU is reading it
         pthread_mutex_lock(&_bufferWriteLock);
@@ -202,18 +190,6 @@ void VoxelSystem::copyWrittenDataToReadArrays() {
         memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
         memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
         pthread_mutex_unlock(&_bufferWriteLock);
-    }
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
-    if (_renderWarningsOn && elapsedmsec > 1) {
-        if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! copyWrittenDataToReadArrays() took %lf seconds for %ld voxels %ld updated\n", 
-                elapsedsec, _voxelsInArrays, _voxelsUpdated);
-        } else {
-            printLog("WARNING! copyWrittenDataToReadArrays() took %lf milliseconds for %ld voxels %ld updated\n", 
-                elapsedmsec, _voxelsInArrays, _voxelsUpdated);
-        }
     }
 }
 
@@ -301,6 +277,7 @@ void VoxelSystem::init() {
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
     _voxelsInArrays = 0;
+    _unusedArraySpace = 0;
 
     // we will track individual dirty sections with this array of bools
     _voxelDirtyArray = new bool[MAX_VOXELS_PER_SYSTEM];
@@ -369,7 +346,7 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::updateVBOs() {
-    double start = usecTimestampNow();
+    PerformanceWarning warn(_renderWarningsOn, "updateVBOs()"); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
         glBufferIndex segmentStart = 0;
         glBufferIndex segmentEnd = 0;
@@ -401,28 +378,13 @@ void VoxelSystem::updateVBOs() {
         }
         _voxelsDirty = false;
     }
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
-    if (_renderWarningsOn && elapsedmsec > 1) {
-        if (elapsedmsec > 1) {
-            if (elapsedmsec > 1000) {
-                double elapsedsec = (end - start)/1000000.0;
-                printLog("WARNING! updateVBOs() took %lf seconds after %d calls to newTreeToArrays()\n",
-                    elapsedsec, _callsToTreesToArrays);
-            } else {
-                printLog("WARNING! updateVBOs() took %lf milliseconds after %d calls to newTreeToArrays()\n",
-                    elapsedmsec, _callsToTreesToArrays);
-            }
-        } else {
-            printLog("WARNING! updateVBOs() called after %d calls to newTreeToArrays()\n",_callsToTreesToArrays);
-        }
-    }
     _callsToTreesToArrays = 0; // clear it
 }
 
 void VoxelSystem::render() {
-    double start = usecTimestampNow();
+    PerformanceWarning warn(_renderWarningsOn, "render()");
     glPushMatrix();
+    //cleanupRemovedVoxels();
     updateVBOs();
     // tell OpenGL where to find vertex and color information
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -454,16 +416,6 @@ void VoxelSystem::render() {
 
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
-    if (_renderWarningsOn && elapsedmsec > 1) {
-        if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printLog("WARNING! render() took %lf seconds\n",elapsedsec);
-        } else {
-            printLog("WARNING! render() took %lf milliseconds\n",elapsedmsec);
-        }
-    }
 }
 
 int VoxelSystem::_nodeCount = 0;
@@ -591,4 +543,63 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     setupNewVoxelsForDrawing();
 }
 
+// "Remove" voxels from the tree that are not in view. We don't actually delete them,
+// we remove them from the tree and place them into a holding area for later deletion
+int removedCount;
+bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
+    VoxelSystem* thisVoxelSystem = (VoxelSystem*) extraData;
+    _nodeCount++;
+    // Need to operate on our child nodes, so we can remove them
+    for (int i = 0; i < 8; i++) {
+        VoxelNode* childNode = node->getChildAtIndex(i);
+        if (childNode && !childNode->isInView(*thisVoxelSystem->_viewFrustum)) {
+            node->removeChildAtIndex(i);
+            removedCount++;
+            
+            // Note: VoxelNodeBag is more expensive than we need, because it checks octal code matches,
+            // we really just want a simple bag that checks pointers only, consider switching
+            thisVoxelSystem->_removedVoxels.insert(childNode);
+        }
+    }
+    return true; // keep going!
+}
 
+bool VoxelSystem::hasViewChanged() {
+    bool result = false; // assume the best
+    if (_viewFrustum && !_lastKnowViewFrustum.matches(_viewFrustum)) {
+        result = true;
+        _lastKnowViewFrustum = *_viewFrustum; // save last known
+    }
+    return result;
+}
+
+void VoxelSystem::removeOutOfView() {
+    PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()"); // would like to include removedCount, _nodeCount, _removedVoxels.count()
+    pthread_mutex_lock(&_voxelCleanupLock);
+    _nodeCount = 0;
+    removedCount = 0;
+    _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
+    pthread_mutex_unlock(&_voxelCleanupLock);
+}
+
+// Deletes the VoxelNodes from the _removedVoxels bag, but also cleans up those items from the vertex arrays
+void VoxelSystem::cleanupRemovedVoxels() {
+    if (!pthread_mutex_trylock(&_voxelCleanupLock)) {
+        while (!_removedVoxels.isEmpty()){
+            VoxelNode* node = _removedVoxels.extract();
+            // If the voxel is in the vertex, and it was previously rendered, then set it's vertices to "hidden"
+            if (node->isKnownBufferIndex() && node->getShouldRender()) {
+                unsigned long nodeIndex = node->getBufferIndex();
+                _voxelDirtyArray[nodeIndex] = true;
+                for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
+                    GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+                    *(writeVerticesAt+j) = FLT_MAX;
+                }
+                _voxelsDirty = true; // yep
+            }
+            _unusedArraySpace++; // track this so we can blow away our arrays if they get too much
+            delete node; // actually delete the node
+        }
+        pthread_mutex_unlock(&_voxelCleanupLock);
+    }
+}
