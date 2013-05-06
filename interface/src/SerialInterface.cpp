@@ -287,7 +287,7 @@ void SerialInterface::resetSerial() {
     gettimeofday(&lastGoodRead, NULL);
     
     if (!USING_INVENSENSE_MPU9150) {
-        gravity = glm::vec3(0,-1,0);
+        gravity = glm::vec3(0, -1, 0);
         
         //  Clear the measured and average channel data
         for (int i = 0; i < NUM_CHANNELS; i++) {
