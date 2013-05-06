@@ -14,8 +14,9 @@
 
 
 void AABox::scale(float scale) {
-    _corner = _corner*scale;
-    _size = _size*scale;
+    _corner = _corner * scale;
+    _size = _size * scale;
+    _center = _center * scale;
 }
 	
 
@@ -36,6 +37,7 @@ void AABox::setBox(const glm::vec3& corner,  const glm::vec3& size) {
 		_size.z = -size.z;
 		_corner.z -= _size.z;
 	}
+	_center = _corner + (_size * 0.5f);
 }
 
 glm::vec3 AABox::getVertexP(const glm::vec3 &normal) const {
@@ -101,15 +103,15 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     }
     // check each axis
     float axisDistance;
-    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, axisDistance) && axisDistance >= 0 &&
+    if ((findIntersection(origin.x, direction.x, _corner.x, _size.x, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z)) ||
+        (findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
-        findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z)) ||
+        (findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
-            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x)) {
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x))) {
         distance = axisDistance;
         return true;
     }
