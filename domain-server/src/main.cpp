@@ -97,7 +97,7 @@ int main(int argc, const char * argv[])
     
     while (true) {
         if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
-            (packetData[0] == PACKET_HEADER_DOMAIN_RFD) || (packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
+            (packetData[0] == PACKET_HEADER_DOMAIN_RFD || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
