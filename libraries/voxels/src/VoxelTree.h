@@ -39,22 +39,22 @@ public:
 	void eraseAllVoxels();
 
 	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes);
+    void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
 	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
-	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
-    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
 
+    void deleteVoxelAt(float x, float y, float z, float s);
+    VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
+    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
-    int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                            unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag);
+    int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
@@ -63,18 +63,24 @@ public:
     unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode*& node, float& distance);
+
+    // Note: this assumes the fileFormat is the HIO individual voxels code files
+	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
+
+    // these will read/write files that match the wireformat, excluding the 'V' leading
+    void writeToFileV2(const char* filename) const;
+    bool readFromFileV2(const char* filename);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                     VoxelNode* node, const ViewFrustum& viewFrustum,
-                                     unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag) const;
+                                     VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
-    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode);
+    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
     

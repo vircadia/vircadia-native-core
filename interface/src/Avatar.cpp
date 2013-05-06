@@ -1556,6 +1556,15 @@ void Avatar::readAvatarDataFromFile() {
     FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "r");
     
     if (avatarFile) {
-        fscanf(avatarFile, "%f,%f,%f %f", &_position.x, &_position.y, &_position.z, &_bodyYaw);
+        glm::vec3 readPosition;
+        float readYaw;
+        fscanf(avatarFile, "%f,%f,%f %f", &readPosition.x, &readPosition.y, &readPosition.z, &readYaw);
+
+        // make sure these values are sane
+        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) && !isnan(readYaw)) {
+            _position = readPosition;
+            _bodyYaw = readYaw;
+        }
+        fclose(avatarFile);
     }
 }
