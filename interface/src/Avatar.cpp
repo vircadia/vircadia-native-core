@@ -446,6 +446,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         _handState = _mousePressed;
     }
     
+    /*
     //reset these for the next go-round
     _avatarTouch.setAbleToReachOtherAvatar (false);
     _avatarTouch.setHandsCloseEnoughToGrasp(false);
@@ -516,12 +517,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         
         //  Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-        
     }//if (_isMine)
+    
+    */
     
     //constrain right arm length and re-adjust elbow position as it bends
     updateArmIKAndConstraints(deltaTime);
-        
+    
+    /*    
     // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
     if (_interactingOther) { 
         if (_isMine) {
@@ -536,9 +539,15 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     if (!_avatarTouch.getAbleToReachOtherAvatar() ) {
         _interactingOther = NULL;
     }
+    
+    */
 }
 
 	
+    
+    
+    
+    
 void Avatar::updateHead(float deltaTime) {
 
     //apply the head lean values to the springy position...
