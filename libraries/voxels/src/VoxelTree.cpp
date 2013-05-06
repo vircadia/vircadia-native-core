@@ -387,8 +387,8 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
             file.get(octets);
 			//printLog("octets=%d...\n",octets);    
             totalBytesRead++;
-            lengthInBytes = bytesRequiredForCodeLength(octets)-1; 
-            unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
+            lengthInBytes = bytesRequiredForCodeLength(octets) - 1; 
+            unsigned char * voxelData = new unsigned char[lengthInBytes + 1 + 3];
             voxelData[0]=octets;
             char byte;
 
