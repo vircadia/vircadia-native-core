@@ -46,7 +46,6 @@ VoxelSystem::VoxelSystem() {
     _alwaysRenderFullVBO = true;
     _tree = new VoxelTree();
     pthread_mutex_init(&_bufferWriteLock, NULL);
-    pthread_mutex_init(&_voxelCleanupLock, NULL);
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -57,7 +56,6 @@ VoxelSystem::~VoxelSystem() {
     delete[] _voxelDirtyArray;
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
-    pthread_mutex_destroy(&_voxelCleanupLock);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -616,8 +614,6 @@ bool VoxelSystem::hasViewChanged() {
 
 void VoxelSystem::removeOutOfView() {
     PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()"); // would like to include removedCount, _nodeCount, _removedVoxels.count()
-    pthread_mutex_lock(&_voxelCleanupLock);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
-    pthread_mutex_unlock(&_voxelCleanupLock);
 }

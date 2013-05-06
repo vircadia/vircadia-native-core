@@ -111,7 +111,6 @@ private:
     GLuint _vboColorsID;
     GLuint _vboIndicesID;
     pthread_mutex_t _bufferWriteLock;
-    pthread_mutex_t _voxelCleanupLock;
 
     ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
