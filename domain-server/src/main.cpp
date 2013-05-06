@@ -100,7 +100,7 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            unpackSocket(&packetData[2], (sockaddr*) &agentLocalAddress);
+            unpackSocket(&packetData[2], (sockaddr*) g&agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -121,7 +121,7 @@ int main(int argc, const char * argv[])
             } else if (packetData[0] == PACKET_HEADER_DOMAIN_RFD) {
                 // if this is a previous agent, and they are re-reporting for duty
                 // then we need to update the first receive time
-                Agent *refreshedAgent = agentList->agentWithAddress((sockaddr*) &agentLocalAddress);
+                Agent* refreshedAgent = agentList->agentWithAddress((sockaddr*) &agentLocalAddress);
                 refreshedAgent->setWakeMicrostamp(usecTimestampNow());
             }
             
