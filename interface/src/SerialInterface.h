@@ -36,7 +36,7 @@ extern const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
-    SerialInterface() { active = false; };
+    SerialInterface();
     void pair();
     void readData();
     
@@ -56,7 +56,7 @@ public:
     glm::vec3 getGravity() {return gravity;};
     
 private:
-    int initializePort(char * portname, int baud);
+    int initializePort(char* portname, int baud);
     void resetSerial();
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
@@ -68,6 +68,7 @@ private:
     int _lastYaw;
     int _lastPitch;
     int _lastRoll;
+    int _failedOpenAttempts;
 };
 
 #endif
