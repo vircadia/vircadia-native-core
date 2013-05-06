@@ -43,7 +43,7 @@ VoxelTree::VoxelTree() :
 VoxelTree::~VoxelTree() {
     // delete the children of the root node
     // this recursively deletes the tree
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         delete rootNode->getChildAtIndex(i);
     }
 }
@@ -57,7 +57,7 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 // Recurses voxel node with an operation function
 void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperation operation, void* extraData) {
     if (operation(node, extraData)) {
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
             if (child) {
                 recurseNodeWithOperation(child, operation, extraData);
@@ -115,7 +115,7 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
 
 // BHG Notes: We appear to call this function for every Voxel Node getting created.
 // This is recursive in nature. So, for example, if we are given an octal code for
-// a 1/256th size voxel, we appear to call this function 8 times. Maybe??
+// a 1/256th size voxel, we appear to call this function NUMBER_OF_CHILDREN times. Maybe??
 int VoxelTree::readNodeData(VoxelNode* destinationNode,
                             unsigned char* nodeData,
                             int bytesLeftToRead) {
@@ -161,7 +161,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
     int childIndex = 0;
     bytesRead++;
     
-    while (bytesLeftToRead - bytesRead > 0 && childIndex < 8) {
+    while (bytesLeftToRead - bytesRead > 0 && childIndex < NUMBER_OF_CHILDREN) {
         // check the exists mask to see if we have a child to traverse into
         
         if (oneAtBit(childMask, childIndex)) {            
@@ -313,7 +313,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     int colorMask = 0;
 
     // create the color mask
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (startNode->getChildAtIndex(i) && startNode->getChildAtIndex(i)->isColored()) {
             colorMask += (1 << (7 - i));
         }
@@ -323,7 +323,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     outputBits(colorMask);
 
     // output the colors we have
-    for (int j = 0; j < 8; j++) {
+    for (int j = 0; j < NUMBER_OF_CHILDREN; j++) {
         if (startNode->getChildAtIndex(j) && startNode->getChildAtIndex(j)->isColored()) {
             printLog("color %d : ",j);
             for (int c = 0; c < 3; c++) {
@@ -335,7 +335,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 
     unsigned char childMask = 0;
 
-    for (int k = 0; k < 8; k++) {
+    for (int k = 0; k < NUMBER_OF_CHILDREN; k++) {
         if (startNode->getChildAtIndex(k)) {
             childMask += (1 << (7 - k));
         }
@@ -347,7 +347,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     if (childMask > 0) {
         // ask children to recursively output their trees
         // if they aren't a leaf
-        for (int l = 0; l < 8; l++) {
+        for (int l = 0; l < NUMBER_OF_CHILDREN; l++) {
             if (startNode->getChildAtIndex(l)) {
                 printTreeForDebugging(startNode->getChildAtIndex(l));
             }
@@ -358,7 +358,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     bool hasChildren = false;
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (startNode->getChildAtIndex(i)) {
             reaverageVoxelColors(startNode->getChildAtIndex(i));
             hasChildren = true;
@@ -390,7 +390,7 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
             file.get(octets);
 			//printLog("octets=%d...\n",octets);    
             totalBytesRead++;
-            lengthInBytes = bytesRequiredForCodeLength(octets)-1; //(octets*3/8)+1;
+            lengthInBytes = bytesRequiredForCodeLength(octets)-1; 
             unsigned char * voxelData = new unsigned char[lengthInBytes+1+3];
             voxelData[0]=octets;
             char byte;
@@ -603,17 +603,16 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     int thisLevel = currentSearchLevel;
     int maxChildLevel = thisLevel;
     
-    const int  MAX_CHILDREN = 8;
-    VoxelNode* inViewChildren[MAX_CHILDREN];
-    float      distancesToChildren[MAX_CHILDREN];
-    int        positionOfChildren[MAX_CHILDREN];
+    VoxelNode* inViewChildren[NUMBER_OF_CHILDREN];
+    float      distancesToChildren[NUMBER_OF_CHILDREN];
+    int        positionOfChildren[NUMBER_OF_CHILDREN];
     int        inViewCount = 0;
     int        inViewNotLeafCount = 0;
     int        inViewWithColorCount = 0;
     
     // for each child node, check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
-    for (int i = 0; i < MAX_CHILDREN; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         bool childIsColored = (childNode && childNode->isColored());
         bool childIsInView  = (childNode && childNode->isInView(viewFrustum));
@@ -636,7 +635,7 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
             if (distance < boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1)) {
                 inViewCount = insertIntoSortedArrays((void*)childNode, distance, i, 
                                                      (void**)&inViewChildren, (float*)&distancesToChildren, 
-                                                     (int*)&positionOfChildren, inViewCount, MAX_CHILDREN);
+                                                     (int*)&positionOfChildren, inViewCount, NUMBER_OF_CHILDREN);
             }
         }
     }
@@ -739,14 +738,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
 
     // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
-    // is 1 byte for child colors + 3*8 bytes for the actual colors + 1 byte for child trees. There could be sub trees
+    // is 1 byte for child colors + 3*NUMBER_OF_CHILDREN bytes for the actual colors + 1 byte for child trees. There could be sub trees
     // below this point, which might take many more bytes, but that's ok, because we can always mark our subtrees as
     // not existing and stop the packet at this point, then start up with a new packet for the remaining sub trees.
     const int CHILD_COLOR_MASK_BYTES = 1;
-    const int MAX_CHILDREN = 8;
     const int BYTES_PER_COLOR = 3;
     const int CHILD_TREE_EXISTS_BYTES = 1;
-    const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + MAX_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
+    const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + NUMBER_OF_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
     
     // Make our local buffer large enough to handle writing at this level in case we need to.
     unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
@@ -760,7 +758,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
 
     // for each child node, check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
-    for (int i = 0; i < MAX_CHILDREN; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         bool childIsInView  = (childNode && (!viewFrustum || childNode->isInView(*viewFrustum)));
         if (childIsInView) {
@@ -792,7 +790,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
     
     // write the color data...
-    for (int i = 0; i < MAX_CHILDREN; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (oneAtBit(childrenColoredBits, i)) {
             memcpy(writeToThisLevelBuffer, &node->getChildAtIndex(i)->getColor(), BYTES_PER_COLOR);
             writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
@@ -832,7 +830,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         // we know the last thing we wrote to the outputBuffer was our childrenExistBits. Let's remember where that was!
         unsigned char* childExistsPlaceHolder = outputBuffer-sizeof(childrenExistBits);
 
-        for (int i = 0; i < MAX_CHILDREN; i++) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         
             if (oneAtBit(childrenExistBits, i)) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
