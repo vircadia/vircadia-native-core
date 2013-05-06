@@ -37,7 +37,7 @@ public:
     void render();
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
-    unsigned long  getVoxelsRendered() const {return _voxelsInArrays;};
+    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
     void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
     void setCamera(Camera* newCamera) { _camera = newCamera; };
@@ -81,6 +81,9 @@ private:
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
 
+    int newway__updateNodeInArray(VoxelNode* node);
+    int oldway__updateNodeInArray(VoxelNode* node);
+
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
@@ -94,12 +97,15 @@ private:
     GLubyte* _writeColorsArray;
     bool* _voxelDirtyArray;
     unsigned long _voxelsUpdated;
-    unsigned long _voxelsInArrays;
+    unsigned long _voxelsInWriteArrays;
+    unsigned long _voxelsInReadArrays;
     unsigned long _unusedArraySpace;
     
+    bool _alwaysRenderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
+    double _lastViewCulling;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
