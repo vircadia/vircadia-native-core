@@ -6,6 +6,7 @@
 //---------------------------------------------------------------------
 
 #include <SharedUtil.h>
+#include <VoxelConstants.h>
 // #include "Log.h"
 
 #include "Camera.h"
@@ -16,7 +17,7 @@ Camera::Camera() {
 	_tightness		      = 10.0; // default
 	_fieldOfView          = 60.0; // default
 	_nearClip             = 0.08; // default
-	_farClip              = 50.0; // default
+	_farClip              = 50.0 * TREE_SCALE; // default
     _modeShift            = 0.0;
 	_yaw                  = 0.0;
 	_pitch			      = 0.0;
