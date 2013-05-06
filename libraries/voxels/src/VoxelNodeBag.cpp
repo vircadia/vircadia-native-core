@@ -32,18 +32,12 @@ void VoxelNodeBag::insert(VoxelNode* node) {
     // Note: change this to binary search... instead of linear!
     int insertAt = _elementsInUse;
     for (int i = 0; i < _elementsInUse; i++) {
-
-        // compare the newNode to the elements already in the bag
-        OctalCodeComparison comparison = compareOctalCodes(_bagElements[i]->getOctalCode(), node->getOctalCode());
-        
-        // If we found a code in the bag that matches, then just return, since the element is already in the bag.
-        if (comparison == EXACT_MATCH) {
+        // just compare the pointers... that's good enough
+        if (_bagElements[i] == node) {
             return; // exit early!!
-        } 
+        }
         
-        // if we found a node "greater than" the inserted node, then
-        // we want to insert our node here.
-        if (comparison == GREATER_THAN) {
+        if (_bagElements[i] > node) {
             insertAt = i;
             break;
         }
