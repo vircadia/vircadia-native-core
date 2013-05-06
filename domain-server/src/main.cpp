@@ -121,9 +121,11 @@ int main(int argc, const char * argv[])
             } else if (packetData[0] == PACKET_HEADER_DOMAIN_RFD) {
                 // if this is a previous agent, and they are re-reporting for duty
                 // then we need to update the first receive time
+                Agent *refreshedAgent = agentList->agentWithAddress((sockaddr*) &agentLocalAddress);
+                refreshedAgent->setWakeMicrostamp(usecTimestampNow());
             }
             
-            currentBufferPos = broadcastPacket + 1;
+            currentBufferPos = broadcastPacket + 2;
             startPointer = currentBufferPos;
             
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
