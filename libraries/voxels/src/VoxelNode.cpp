@@ -37,7 +37,7 @@ void VoxelNode::init(unsigned char * octalCode) {
 #endif
     
     // default pointers to child nodes to NULL
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         _children[i] = NULL;
     }
     
@@ -52,7 +52,7 @@ VoxelNode::~VoxelNode() {
     delete[] _octalCode;
     
     // delete all of this node's children
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (_children[i]) {
             delete _children[i];
         }
@@ -115,7 +115,7 @@ void VoxelNode::addChildAtIndex(int childIndex) {
 // will average the child colors...
 void VoxelNode::setColorFromAverageOfChildren() {
 	int colorArray[4] = {0,0,0,0};
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
 		if (_children[i] && _children[i]->isColored()) {
 			for (int j = 0; j < 3; j++) {
 				colorArray[j] += _children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
@@ -194,7 +194,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	// scan children, verify that they are ALL present and accounted for
 	bool allChildrenMatch = true; // assume the best (ottimista)
 	int red,green,blue;
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
 		// if no child, or child doesn't have a color
 		if (!_children[i] || !_children[i]->isColored()) {
 			allChildrenMatch=false;
@@ -216,7 +216,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	
 	if (allChildrenMatch) {
 		//printLog("allChildrenMatch: pruning tree\n");
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
 			delete _children[i]; // delete all the child nodes
 			_children[i]=NULL; // set it to NULL
 		}
@@ -241,7 +241,7 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
 }
 
 bool VoxelNode::isLeaf() const {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (_children[i]) {
             return false;
         }

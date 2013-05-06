@@ -212,7 +212,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     }
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (node->getChildAtIndex(i)) {
             voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
         }
@@ -595,7 +595,7 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     VoxelSystem* thisVoxelSystem = (VoxelSystem*) extraData;
     _nodeCount++;
     // Need to operate on our child nodes, so we can remove them
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode && !childNode->isInView(*thisVoxelSystem->_viewFrustum)) {
             node->removeChildAtIndex(i);
