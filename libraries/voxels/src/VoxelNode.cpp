@@ -116,7 +116,7 @@ void VoxelNode::addChildAtIndex(int childIndex) {
 void VoxelNode::setColorFromAverageOfChildren() {
 	int colorArray[4] = {0,0,0,0};
 	for (int i = 0; i < 8; i++) {
-		if (_children[i] != NULL && _children[i]->isColored()) {
+		if (_children[i] && _children[i]->isColored()) {
 			for (int j = 0; j < 3; j++) {
 				colorArray[j] += _children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
 			}
@@ -196,7 +196,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	int red,green,blue;
 	for (int i = 0; i < 8; i++) {
 		// if no child, or child doesn't have a color
-		if (_children[i] == NULL || !_children[i]->isColored()) {
+		if (!_children[i] || !_children[i]->isColored()) {
 			allChildrenMatch=false;
 			//printLog("SADNESS child missing or not colored! i=%d\n",i);
 			break;
