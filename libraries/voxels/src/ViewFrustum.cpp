@@ -226,7 +226,8 @@ int ViewFrustum::boxInFrustum(const AABox& box) const {
  }
  
 bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
-    return compareTo._position    == _position &&
+    bool debug = false;
+    bool result = compareTo._position    == _position &&
            compareTo._direction   == _direction &&
            compareTo._up          == _up &&
            compareTo._right       == _right &&
@@ -234,6 +235,39 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
            compareTo._aspectRatio == _aspectRatio &&
            compareTo._nearClip    == _nearClip &&
            compareTo._farClip     == _farClip;
+
+    if (!result && debug) {
+        printLog("ViewFrustum::matches()... result=%s\n", (result ? "yes" : "no"));
+        printLog("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
+            (compareTo._position == _position ? "MATCHES " : "NO MATCH"),
+            compareTo._position.x, compareTo._position.y, compareTo._position.z,
+            _position.x, _position.y, _position.z );
+        printLog("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
+            (compareTo._direction == _direction ? "MATCHES " : "NO MATCH"),
+            compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
+            _direction.x, _direction.y, _direction.z );
+        printLog("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
+            (compareTo._up == _up ? "MATCHES " : "NO MATCH"),
+            compareTo._up.x, compareTo._up.y, compareTo._up.z,
+            _up.x, _up.y, _up.z );
+        printLog("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
+            (compareTo._right == _right ? "MATCHES " : "NO MATCH"),
+            compareTo._right.x, compareTo._right.y, compareTo._right.z,
+            _right.x, _right.y, _right.z );
+        printLog("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
+            (compareTo._fieldOfView == _fieldOfView ? "MATCHES " : "NO MATCH"),
+            compareTo._fieldOfView, _fieldOfView);
+        printLog("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
+            (compareTo._aspectRatio == _aspectRatio ? "MATCHES " : "NO MATCH"),
+            compareTo._aspectRatio, _aspectRatio);
+        printLog("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
+            (compareTo._nearClip == _nearClip ? "MATCHES " : "NO MATCH"),
+            compareTo._nearClip, _nearClip);
+        printLog("%s -- compareTo._farClip=%f _farClip=%f\n", 
+            (compareTo._farClip == _farClip ? "MATCHES " : "NO MATCH"),
+            compareTo._farClip, _farClip);
+    }
+    return result;
 }
 
 
