@@ -25,12 +25,11 @@ public:
     void setYourHandPosition(glm::vec3 position);
     void setMyBodyPosition  (glm::vec3 position);
     void setYourBodyPosition(glm::vec3 position);
-    void setMyHandState     (int state );
-    void setYourHandState   (int state );
+    void setMyHandState     (int state);
+    void setYourHandState   (int state);
     void setReachableRadius (float r);
-    
-    void setAbleToReachOtherAvatar (bool a) { _canReachToOtherAvatar   = a;}
-    void setHandsCloseEnoughToGrasp(bool h) { _handsCloseEnoughToGrasp = h;}
+    void setAbleToReachOtherAvatar (bool a) {_canReachToOtherAvatar   = a;}
+    void setHandsCloseEnoughToGrasp(bool h) {_handsCloseEnoughToGrasp = h;}
 
     bool getAbleToReachOtherAvatar () {return _canReachToOtherAvatar;}
     bool getHandsCloseEnoughToGrasp() {return _handsCloseEnoughToGrasp;}

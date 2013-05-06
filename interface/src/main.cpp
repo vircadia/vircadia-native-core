@@ -1671,12 +1671,15 @@ void idle(void) {
         myAvatar.setHandMovementValues( handControl.getValues() );		
         
 		// tell my avatar if the mouse is being pressed...
+        myAvatar.setMousePressed(mousePressed);
+        /*
 		if ( mousePressed == 1 ) {
 			myAvatar.setMousePressed( true );
 		} else {
-			myAvatar.setMousePressed( false );
+            myAvatar.setMousePressed( false );
 		}
-        
+        */
+
         // walking triggers the handControl to stop
         if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
             handControl.stop();

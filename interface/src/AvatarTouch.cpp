@@ -61,23 +61,12 @@ void AvatarTouch::setReachableRadius( float r ) {
 
 void AvatarTouch::render() {
 
-if (_canReachToOtherAvatar) {
+    if (_canReachToOtherAvatar) {
         glPushMatrix();
-        glTranslatef(_myBodyPosition.x, _myBodyPosition.y, _myBodyPosition.z);
+        glTranslatef(_yourBodyPosition.x, _yourBodyPosition.y, _yourBodyPosition.z);
         glColor4f( 0.3, 0.4, 0.5, 0.3 ); glutSolidSphere( _reachableRadius, 30.0f, 30.0f );
         glPopMatrix();
-
-    /*
-        // if my hand is grasping, show it...
-        if ( _myHandState == 1 ) {
-            glPushMatrix();
-            glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
-            glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
-            glColor4f( 1.0, 1.0, 0.4, 0.2 ); glutSolidSphere( 0.025f, 10.0f, 10.0f );
-            glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
-            glPopMatrix();
-        }
-
+        
         // if your hand is grasping, show it...
         if ( _yourHandState == 1 ) {
             glPushMatrix();
@@ -87,7 +76,16 @@ if (_canReachToOtherAvatar) {
             glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
             glPopMatrix();
         }
-        */
+    }
+    
+    // if my hand is grasping, show it...
+    if ( _myHandState == 1 ) {
+        glPushMatrix();
+        glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
+        glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
+        glColor4f( 1.0, 1.0, 0.4, 0.2 ); glutSolidSphere( 0.025f, 10.0f, 10.0f );
+        glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
+        glPopMatrix();
     }
     
     /*
@@ -123,12 +121,12 @@ void AvatarTouch::simulate (float deltaTime) {
 
     float distance = glm::length(v);
 
-    if (distance < _reachableRadius * 2.0f ) {
+    if (distance < _reachableRadius * 2.3f ) {
         _canReachToOtherAvatar = true;
     } else {
         _canReachToOtherAvatar = false;
     }
-
+    
 /*
 
     for (int p=0; p<NUM_POINTS; p++) {

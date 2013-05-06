@@ -297,7 +297,6 @@ void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm:
     if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW)) {
          addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
     }
-
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -322,11 +321,9 @@ void Avatar::setMousePressed(bool d) {
 	_mousePressed = d;
 }
 
-
 bool Avatar::getIsNearInteractingOther() { 
     return _avatarTouch.getAbleToReachOtherAvatar(); 
 }
-
 
 void Avatar::simulate(float deltaTime) {
     
@@ -454,7 +451,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         _avatarTouch.setMyBodyPosition(_position);
         
         Avatar * _interactingOther = NULL;
-        float closestDistance = 10000.0f;
+        float closestDistance = std::numeric_limits<float>::max();;
     
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
@@ -473,7 +470,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         }
 
         if (_interactingOther) {
-            _avatarTouch.setYourHandPosition(_interactingOther->_position);   
+            _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
+            _avatarTouch.setYourHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
         }
         
     }//if (_isMine)
@@ -486,11 +484,15 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
         _handState = _mousePressed;
+        
+        _avatarTouch.setMyHandState(_handState);
+        
+        if (_handState == 1) {
+            _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
+        }
     }
- }
+}
 
-    
-    
     
 void Avatar::updateHead(float deltaTime) {
 
