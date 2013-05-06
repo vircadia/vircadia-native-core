@@ -142,31 +142,40 @@ void SerialInterface::renderLevels(int width, int height) {
     int i;
     int disp_x = 10;
     const int GAP = 16;
-    char val[10];
-    for(i = 0; i < NUM_CHANNELS; i++)
-    {
-        
-        //  Actual value
+    char val[40];
+    if (!USING_INVENSENSE_MPU9150) {
+        for(i = 0; i < NUM_CHANNELS; i++)
+        {
+            
+            //  Actual value
+            glLineWidth(2.0);
+            glColor4f(1, 1, 1, 1);
+            glBegin(GL_LINES);
+            glVertex2f(disp_x, height*0.95);
+            glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
+            glColor4f(1, 0, 0, 1);
+            glVertex2f(disp_x - 3, height*(0.25 + 0.75f*getValue(i)/4096));
+            glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
+            glEnd();
+            //  Trailing Average value
+            glBegin(GL_LINES);
+            glColor4f(1, 1, 1, 1);
+            glVertex2f(disp_x, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
+            glVertex2f(disp_x + 4, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
+            glEnd();
+            
+            sprintf(val, "%d", getValue(i));
+            drawtext(disp_x-GAP/2, (height*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
+            
+            disp_x += GAP;
+        }
+    } else {
         glLineWidth(2.0);
         glColor4f(1, 1, 1, 1);
-        glBegin(GL_LINES);
-        glVertex2f(disp_x, height*0.95);
-        glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
-        glColor4f(1, 0, 0, 1);
-        glVertex2f(disp_x - 3, height*(0.25 + 0.75f*getValue(i)/4096));
-        glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
-        glEnd();
-        //  Trailing Average value
-        glBegin(GL_LINES);
-        glColor4f(1, 1, 1, 1);
-        glVertex2f(disp_x, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
-        glVertex2f(disp_x + 4, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
-        glEnd();
-        
-        sprintf(val, "%d", getValue(i));
-        drawtext(disp_x-GAP/2, (height*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
-        
-        disp_x += GAP;
+        //glBegin(GL_LINES);
+        //glVertex2f(disp_x, height*0.95);
+        sprintf(val, "Yaw %d, Pitch %d, Roll %d", _lastYaw, _lastPitch, _lastRoll);
+        drawtext(10, 100, 0.10, 0, 1.0, 0, val, 0, 1, 0);
     }
     //  Display Serial latency block
     if (LED) {
@@ -198,7 +207,7 @@ void SerialInterface::readData() {
     
     int initialSamples = totalSamples;
     
-    if (USING_INVENSENSE_MPU9150) {
+    if (USING_INVENSENSE_MPU9150) { 
         unsigned char gyroBuffer[20];
         
         // ask the invensense for raw gyro data
