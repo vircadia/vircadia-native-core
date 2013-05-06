@@ -47,7 +47,7 @@ const float COLLISION_BALL_FRICTION       = 60.0;
 const float COLLISION_BODY_FRICTION       = 0.5;
 
 float skinColor [] = {1.0, 0.84, 0.66};
-float lightBlue [] = { 0.7, 0.8, 1.0 };
+float lightBlue [] = {0.7, 0.8, 1.0};
 float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
@@ -75,9 +75,9 @@ Avatar::Avatar(bool isMine) {
     
     _orientation.setToIdentity();
     
-    _velocity                   = glm::vec3( 0.0, 0.0, 0.0 );
-    _thrust                     = glm::vec3( 0.0, 0.0, 0.0 );
-    _rotation                   = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+    _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
+    _thrust                     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _rotation                   = glm::quat(0.0f, 0.0f, 0.0f, 0.0f);
     _bodyYaw                    = -90.0;
     _bodyPitch                  = 0.0;
     _bodyRoll                   = 0.0;
@@ -91,12 +91,12 @@ Avatar::Avatar(bool isMine) {
     _transmitterHz              = 0.0;
     _transmitterPackets         = 0;
     _transmitterIsFirstData     = true;
-    _transmitterInitialReading  = glm::vec3( 0.f, 0.f, 0.f );
+    _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
     _TEST_bigSphereRadius       = 0.4f;
-    _TEST_bigSpherePosition     = glm::vec3( 5.0f, _TEST_bigSphereRadius, 5.0f );
+    _TEST_bigSpherePosition     = glm::vec3(5.0f, _TEST_bigSphereRadius, 5.0f);
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
@@ -137,13 +137,13 @@ Avatar::Avatar(bool isMine) {
     _head.browAudioLift         = 0.0;
     _head.noise                 = 0;
     _head.returnSpringScale     = 1.0;
-    _movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
+    _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
     _usingBodySprings           = true;
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
     _sphere                     = NULL;
     _interactingOther           = NULL;
-    _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
+    _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
 
     initializeSkeleton();
@@ -188,7 +188,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _movedHandOffset             = otherAvatar._movedHandOffset;
     _usingBodySprings            = otherAvatar._usingBodySprings;
     
-    _orientation.set( otherAvatar._orientation );
+    _orientation.set(otherAvatar._orientation);
     
     _sphere = NULL;
     
@@ -319,7 +319,7 @@ void Avatar::setLeanSideways(float dist){
     _head.leanSideways = dist;
 }
 
-void Avatar::setMousePressed( bool d ) {
+void Avatar::setMousePressed(bool d) {
 	_mousePressed = d;
 }
 
@@ -343,27 +343,27 @@ void Avatar::simulate(float deltaTime) {
         
     
     // apply gravity and collision wiht the ground/floor
-    if ( AVATAR_GRAVITY ) {
-        if ( _position.y > _pelvisStandingHeight + 0.01 ) {
-            _velocity += glm::dvec3(getGravity(getPosition())) * ( 6.0 * deltaTime );
-        } else if ( _position.y < _pelvisStandingHeight ) {
+    if (AVATAR_GRAVITY) {
+        if ( _position.y > _pelvisStandingHeight + 0.01f) {
+            _velocity += glm::dvec3(getGravity(getPosition())) * (6.0 * deltaTime );
+        } else if (_position.y < _pelvisStandingHeight) {
             _position.y = _pelvisStandingHeight;
             _velocity.y = 0.0;
         }
     }
     
 	// update body springs
-    updateBodySprings( deltaTime );
+    updateBodySprings(deltaTime);
     
     // test for avatar collision response with the big sphere
     if (usingBigSphereCollisionTest) {
-        updateCollisionWithSphere( _TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime );
+        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
-    if ( _isMine ) {
+    if (_isMine) {
         
-        _thrust = glm::vec3( 0.0, 0.0, 0.0 );
+        _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
              
         if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getFront();}
@@ -764,19 +764,6 @@ static TextRenderer* textRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24);
     return renderer;
 }
-
-
-struct TriangleArray
-{
-	float	v0x,v0y,v0z;  // x,y,z coordinate of vertex 0
-	float	r0,g0,b0,a0;  // r,g,b color of vertex 0
-
-	float	v1x,v1y,v1z;  // x,y,z coordinate of vertex 1
-	float	r1,g1,b1,a1;  // r,g,b color of vertex 1
-
-	float	v2x,v2y,v2z;  // x,y,z coordinate of vertex 2
-	float	r2,g2,b2,a2;  // r,g,b color of vertex 2
-};
 
 
 void Avatar::render(bool lookingInMirror) {
