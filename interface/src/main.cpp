@@ -74,6 +74,7 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
+#include "Environment.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
@@ -135,6 +136,8 @@ glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 VoxelSystem voxels;
 
 bool wantToKillLocalVoxels = false;
+
+Environment environment;
 
 
 #ifndef _WIN32
@@ -1644,6 +1647,9 @@ void* networkReceive(void* args) {
                 case PACKET_HEADER_Z_COMMAND:
                 case PACKET_HEADER_ERASE_VOXEL:
                     voxels.parseData(incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_ENVIRONMENT_DATA:
+                    environment.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,

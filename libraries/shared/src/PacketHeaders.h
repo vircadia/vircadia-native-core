@@ -23,5 +23,6 @@ const char PACKET_HEADER_ERASE_VOXEL = 'E';
 const char PACKET_HEADER_VOXEL_DATA = 'V';
 const char PACKET_HEADER_BULK_AVATAR_DATA = 'X';
 const char PACKET_HEADER_TRANSMITTER_DATA = 't';
+const char PACKET_HEADER_ENVIRONMENT_DATA = 'e';
 
 #endif
