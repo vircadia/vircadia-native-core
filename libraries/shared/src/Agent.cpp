@@ -52,8 +52,8 @@ Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agent
     type = agentType;
     agentId = thisAgentId;
     
-    firstRecvTimeUsecs = usecTimestampNow();
-    lastRecvTimeUsecs = usecTimestampNow();
+    _wakeMicrostamp = usecTimestampNow();
+    _lastHeardMicrostamp = usecTimestampNow();
     
     activeSocket = NULL;
     linkedData = NULL;
@@ -87,8 +87,8 @@ Agent::Agent(const Agent &otherAgent) {
         activeSocket = NULL;
     }
     
-    firstRecvTimeUsecs = otherAgent.firstRecvTimeUsecs;
-    lastRecvTimeUsecs = otherAgent.lastRecvTimeUsecs;
+    _wakeMicrostamp = otherAgent._wakeMicrostamp;
+    _lastHeardMicrostamp = otherAgent._lastHeardMicrostamp;
     type = otherAgent.type;
     
     if (otherAgent.linkedData != NULL) {
@@ -120,8 +120,8 @@ void Agent::swap(Agent &first, Agent &second) {
     swap(first.type, second.type);
     swap(first.linkedData, second.linkedData);
     swap(first.agentId, second.agentId);
-    swap(first.firstRecvTimeUsecs, second.firstRecvTimeUsecs);
-    swap(first.lastRecvTimeUsecs, second.lastRecvTimeUsecs);
+    swap(first._wakeMicrostamp, second._wakeMicrostamp);
+    swap(first._lastHeardMicrostamp, second._lastHeardMicrostamp);
     swap(first._bytesReceivedMovingAverage, second._bytesReceivedMovingAverage);
 }
 
@@ -176,22 +176,6 @@ uint16_t Agent::getAgentId() {
 
 void Agent::setAgentId(uint16_t thisAgentId) {
     agentId = thisAgentId;
-}
-
-double Agent::getFirstRecvTimeUsecs() {
-    return firstRecvTimeUsecs;
-}
-
-void Agent::setFirstRecvTimeUsecs(double newTimeUsecs) {
-    firstRecvTimeUsecs = newTimeUsecs;
-}
-
-double Agent::getLastRecvTimeUsecs() {
-    return lastRecvTimeUsecs;
-}
-
-void Agent::setLastRecvTimeUsecs(double newTimeUsecs) {
-    lastRecvTimeUsecs = newTimeUsecs;
 }
 
 sockaddr* Agent::getPublicSocket() {

@@ -21,7 +21,9 @@
 using namespace std;
 
 const bool  BALLS_ON                      = false;
-const bool  AVATAR_GRAVITY                = true;
+const bool  USING_AVATAR_GRAVITY          = true;
+const float GRAVITY_SCALE                 = 6.0f;
+const float BOUNCE                        = 0.3f;
 const float DECAY                         = 0.1;
 const float THRUST_MAG                    = 1200.0;
 const float YAW_MAG                       = 500.0;
@@ -32,23 +34,28 @@ const float BODY_ROLL_WHILE_TURNING       = 0.1;
 const float LIN_VEL_DECAY                 = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
-const float BODY_SPRING_FORCE             = 6.0f;
+
+//const float BODY_SPRING_DEFAULT_TIGHTNESS = 20.0f;
+//const float BODY_SPRING_FORCE             = 6.0f;
+
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
+const float BODY_SPRING_FORCE             = 300.0f;
+
 const float BODY_SPRING_DECAY             = 16.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 10.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
 const float COLLISION_BALL_FORCE          = 1.0;
 const float COLLISION_BODY_FORCE          = 6.0;
 const float COLLISION_BALL_FRICTION       = 60.0;
 const float COLLISION_BODY_FRICTION       = 0.5;
 
-float skinColor[] = {1.0, 0.84, 0.66};
-float lightBlue[] = { 0.7, 0.8, 1.0 };
-float browColor[] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
+float skinColor [] = {1.0, 0.84, 0.66};
+float lightBlue [] = {0.7, 0.8, 1.0};
+float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
-float BrowRollAngle[5] = {0, 15, 30, -30, -15};
+float BrowRollAngle [5] = {0, 15, 30, -30, -15};
 float BrowPitchAngle[3] = {-70, -60, -50};
-float eyeColor[3] = {1,1,1};
+float eyeColor      [3] = {1,1,1};
 
 float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 
@@ -70,9 +77,9 @@ Avatar::Avatar(bool isMine) {
     
     _orientation.setToIdentity();
     
-    _velocity                   = glm::vec3( 0.0, 0.0, 0.0 );
-    _thrust                     = glm::vec3( 0.0, 0.0, 0.0 );
-    _rotation                   = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+    _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
+    _thrust                     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _rotation                   = glm::quat(0.0f, 0.0f, 0.0f, 0.0f);
     _bodyYaw                    = -90.0;
     _bodyPitch                  = 0.0;
     _bodyRoll                   = 0.0;
@@ -86,12 +93,12 @@ Avatar::Avatar(bool isMine) {
     _transmitterHz              = 0.0;
     _transmitterPackets         = 0;
     _transmitterIsFirstData     = true;
-    _transmitterInitialReading  = glm::vec3( 0.f, 0.f, 0.f );
+    _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
     _TEST_bigSphereRadius       = 0.4f;
-    _TEST_bigSpherePosition     = glm::vec3( 0.0f, _TEST_bigSphereRadius, 2.0f );
+    _TEST_bigSpherePosition     = glm::vec3(5.0f, _TEST_bigSphereRadius, 5.0f);
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
@@ -132,14 +139,15 @@ Avatar::Avatar(bool isMine) {
     _head.browAudioLift         = 0.0;
     _head.noise                 = 0;
     _head.returnSpringScale     = 1.0;
-    _movedHandOffset            = glm::vec3( 0.0, 0.0, 0.0 );
+    _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
     _usingBodySprings           = true;
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
     _sphere                     = NULL;
     _interactingOther           = NULL;
-    _handHoldingPosition        = glm::vec3( 0.0, 0.0, 0.0 );
+    _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
+    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
 
     initializeSkeleton();
     
@@ -183,7 +191,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _movedHandOffset             = otherAvatar._movedHandOffset;
     _usingBodySprings            = otherAvatar._usingBodySprings;
     
-    _orientation.set( otherAvatar._orientation );
+    _orientation.set(otherAvatar._orientation);
     
     _sphere = NULL;
     
@@ -308,7 +316,7 @@ void Avatar::setLeanSideways(float dist){
     _head.leanSideways = dist;
 }
 
-void Avatar::setMousePressed( bool d ) {
+void Avatar::setMousePressed(bool d) {
 	_mousePressed = d;
 }
 
@@ -330,28 +338,29 @@ void Avatar::simulate(float deltaTime) {
     //update the movement of the hand and process handshaking with other avatars... 
     updateHandMovementAndTouching(deltaTime);
         
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest) {
-        updateCollisionWithSphere( _TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime );
-    }
     
-    // apply gravity and collision wiht the ground/floor
-    if ( AVATAR_GRAVITY ) {
-        if ( _position.y > _pelvisStandingHeight + 0.01 ) {
-            _velocity += glm::dvec3(getGravity(getPosition())) * ( 6.0 * deltaTime );
-        } else if ( _position.y < _pelvisStandingHeight ) {
+    // apply gravity and collision with the ground/floor
+    if (USING_AVATAR_GRAVITY) {
+        if (_position.y > _pelvisStandingHeight + 0.01f) {
+            _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
+        } else if (_position.y < _pelvisStandingHeight) {
             _position.y = _pelvisStandingHeight;
-            _velocity.y = 0.0;
+            _velocity.y = -_velocity.y * BOUNCE;
         }
     }
     
 	// update body springs
-    updateBodySprings( deltaTime );
+    updateBodySprings(deltaTime);
+    
+    // test for avatar collision response with the big sphere
+    if (usingBigSphereCollisionTest) {
+        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
+    }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
-    if ( _isMine ) {
+    if (_isMine) {
         
-        _thrust = glm::vec3( 0.0, 0.0, 0.0 );
+        _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
              
         if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getFront();}
@@ -381,16 +390,16 @@ void Avatar::simulate(float deltaTime) {
 	_velocity += _thrust * deltaTime;
     
     // calculate speed                             
-    _speed = glm::length( _velocity );
+    _speed = glm::length(_velocity);
     
     //pitch and roll the body as a function of forward speed and turning delta
-    float forwardComponentOfVelocity = glm::dot( _orientation.getFront(), _velocity );
+    float forwardComponentOfVelocity = glm::dot(_orientation.getFront(), _velocity);
     _bodyPitch += BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity;
     _bodyRoll  += BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta;
         
 	// these forces keep the body upright...     
     float tiltDecay = 1.0 - BODY_UPRIGHT_FORCE * deltaTime;
-    if  ( tiltDecay < 0.0f ) { tiltDecay = 0.0f; }     
+    if  (tiltDecay < 0.0f) {tiltDecay = 0.0f;}     
     _bodyPitch *= tiltDecay;
     _bodyRoll  *= tiltDecay;
 
@@ -398,7 +407,7 @@ void Avatar::simulate(float deltaTime) {
     _position += _velocity * deltaTime;
 
 	// decay velocity
-    _velocity *= ( 1.0 - LIN_VEL_DECAY * deltaTime );
+    _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
 	
     // If someone is near, damp velocity as a function of closeness
     const float AVATAR_BRAKING_RANGE = 1.2f;
@@ -413,7 +422,7 @@ void Avatar::simulate(float deltaTime) {
     updateHead(deltaTime);
     
     // use speed and angular velocity to determine walking vs. standing                                
-	if ( _speed + fabs( _bodyYawDelta ) > 0.2 ) {
+	if (_speed + fabs(_bodyYawDelta) > 0.2) {
 		_mode = AVATAR_MODE_WALKING;
 	} else {
 		_mode = AVATAR_MODE_INTERACTING;
@@ -443,7 +452,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         
         // if the avatar being simulated is mine, then loop through
     // all the other avatars for potential interactions...
-    if ( _isMine )
+    if (_isMine)
     {
         //  Reset detector for nearest avatar
         _distanceToNearestAvatar = std::numeric_limits<float>::max();
@@ -457,24 +466,24 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 updateCollisionWithOtherAvatar(otherAvatar, deltaTime );
                  
                 // test other avatar hand position for proximity
-                glm::vec3 v( _joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position );
-                v -= otherAvatar->getJointPosition( AVATAR_JOINT_RIGHT_SHOULDER );
+                glm::vec3 v(_joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position);
+                v -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_SHOULDER);
                 
-                float distance = glm::length( v );
-                if (distance < _distanceToNearestAvatar) { _distanceToNearestAvatar = distance; }
+                float distance = glm::length(v);
+                if (distance < _distanceToNearestAvatar) {_distanceToNearestAvatar = distance;}
                 
                 if (distance < _maxArmLength + _maxArmLength) {
                                 
                     _interactingOther = otherAvatar;
                     
-                    if ( ! _avatarTouch.getAbleToReachOtherAvatar() ) {
+                    if (! _avatarTouch.getAbleToReachOtherAvatar()) {
                         //initialize _handHolding
                         _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
                         _avatarTouch.setAbleToReachOtherAvatar(true);
                     }
                     
-                    glm::vec3 vectorBetweenHands( _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position );
-                    vectorBetweenHands -= otherAvatar->getJointPosition( AVATAR_JOINT_RIGHT_FINGERTIPS );
+                    glm::vec3 vectorBetweenHands(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+                    vectorBetweenHands -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_FINGERTIPS);
                     float distanceBetweenHands = glm::length(vectorBetweenHands);
                     
                     if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) { 
@@ -482,7 +491,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     }
                         
                     // if I am holding hands with another avatar, a force is applied
-                    if (( _handState == 1 ) ||  ( _interactingOther->_handState == 1 )) {
+                    if ((_handState == 1) ||  (_interactingOther->_handState == 1)) {
                         
                         // if the hands are close enough to grasp...
                         if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP)
@@ -496,7 +505,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                             _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;
                             
                             // apply a force to the avatar body
-                            if ( glm::length(vectorToOtherHand) > _maxArmLength * 0.9 ) {
+                            if (glm::length(vectorToOtherHand) > _maxArmLength * 0.9) {
                                 _velocity += vectorToOtherHand;                         
                             }
                         }
@@ -508,18 +517,18 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //  Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
         
-    }//if ( _isMine )
+    }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
-    updateArmIKAndConstraints( deltaTime );
+    updateArmIKAndConstraints(deltaTime);
         
     // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
-    if ( _interactingOther ) { 
+    if (_interactingOther) { 
         if (_isMine) {
-            _avatarTouch.setMyHandPosition  ( _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position );
-            _avatarTouch.setYourHandPosition( _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position );
-            _avatarTouch.setMyHandState     ( _handState );
-            _avatarTouch.setYourHandState   ( _interactingOther->_handState );
+            _avatarTouch.setMyHandPosition  (_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+            _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+            _avatarTouch.setMyHandState     (_handState);
+            _avatarTouch.setYourHandState   (_interactingOther->_handState);
             _avatarTouch.simulate(deltaTime);
         }
     }
@@ -533,7 +542,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 void Avatar::updateHead(float deltaTime) {
 
     //apply the head lean values to the springy position...
-    if ( fabs( _head.leanSideways + _head.leanForward ) > 0.0f ) {
+    if (fabs( _head.leanSideways + _head.leanForward ) > 0.0f) {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;
@@ -644,19 +653,19 @@ float Avatar::getHeight() {
 }
 
 
-void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime ) {
+void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
     bool jointCollision = false;
     
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if ( distanceToBigSphere < myBodyApproximateBoundingRadius + radius ) {
+    if (distanceToBigSphere < myBodyApproximateBoundingRadius + radius) {
         for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
             glm::vec3 vectorFromJointToBigSphereCenter(_joint[b].springyPosition - position);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _joint[b].radius + radius;
             
-            if ( distanceToBigSphereCenter < combinedRadius )  {
+            if (distanceToBigSphereCenter < combinedRadius)  {
                 jointCollision = true;
                 if (distanceToBigSphereCenter > 0.0) {
                     glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
@@ -664,14 +673,14 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
                     glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
                     
-                    _joint[b].springyVelocity += collisionForce *  30.0f * deltaTime;
-                    _velocity                += collisionForce * 100.0f * deltaTime;
-                    _joint[b].springyPosition = position + directionVector * combinedRadius;
+                    _joint[b].springyVelocity += collisionForce * 0.0f * deltaTime;
+                    _velocity                 += collisionForce * 40.0f * deltaTime;
+                    _joint[b].springyPosition  = position + directionVector * combinedRadius;
                 }
             }
         }
     
-        if ( jointCollision ) {
+        if (jointCollision) {
             if (!_usingBodySprings) {
                 _usingBodySprings = true;
                 initializeBodySprings();
@@ -682,37 +691,37 @@ void Avatar::updateCollisionWithSphere( glm::vec3 position, float radius, float 
 
 
 //detect collisions with other avatars and respond
-void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTime ) {
+void Avatar::updateCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
 
     // check if the bounding spheres of the two avatars are colliding
     glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
-    if ( glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF ) {
+    if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
         
     float bodyMomentum = 1.0f;
-    glm::vec3 bodyPushForce = glm::vec3( 0.0, 0.0, 0.0 );
+    glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
         // loop through the joints of each avatar to check for every possible collision
         for (int b=1; b<NUM_AVATAR_JOINTS; b++) {
-            if ( _joint[b].isCollidable ) {
+            if (_joint[b].isCollidable) {
 
                 for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
-                    if ( otherAvatar->_joint[o].isCollidable ) {
+                    if (otherAvatar->_joint[o].isCollidable) {
                     
                         glm::vec3 vectorBetweenJoints(_joint[b].springyPosition - otherAvatar->_joint[o].springyPosition);
                         float distanceBetweenJoints = glm::length(vectorBetweenJoints);
                         
-                        if ( distanceBetweenJoints > 0.0 ) { // to avoid divide by zero
+                        if (distanceBetweenJoints > 0.0 ) { // to avoid divide by zero
                             float combinedRadius = _joint[b].radius + otherAvatar->_joint[o].radius;
 
                             // check for collision
-                            if ( distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
+                            if (distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
                                 glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
                                 // push balls away from each other and apply friction
                                 glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
                                                                 
                                 float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
-                                if ( ballMomentum < 0.0 ) { ballMomentum = 0.0;}
+                                if (ballMomentum < 0.0 ) { ballMomentum = 0.0;}
                                                                 
                                              _joint[b].springyVelocity += ballPushForce;
                                 otherAvatar->_joint[o].springyVelocity -= ballPushForce;
@@ -723,7 +732,7 @@ void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTi
                                 // accumulate forces and frictions to apply to the velocities of avatar bodies
                                 bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
                                 bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
-                                if ( bodyMomentum < 0.0 ) { bodyMomentum = 0.0;}
+                                if (bodyMomentum < 0.0 ) { bodyMomentum = 0.0;}
                                                                 
                             }// check for collision
                         }   // to avoid divide by zero
@@ -743,7 +752,7 @@ void Avatar::updateCollisionWithOtherAvatar( Avatar * otherAvatar, float deltaTi
 }    //method
 
 
-void Avatar::setDisplayingHead( bool displayingHead ) {
+void Avatar::setDisplayingHead(bool displayingHead ) {
     _displayingHead = displayingHead;
 }
 
@@ -753,26 +762,34 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
+
+void Avatar::setGravity(glm::vec3 gravity) {
+    _gravity = gravity;
+}
+
+
 void Avatar::render(bool lookingInMirror) {
 
-    
+    // render a simple round on the ground projected down from the avatar's position
+    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f ), 0.1f, 0.2f );
+
     /*
     // show avatar position
-    glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
+    glColor4f(0.5f, 0.5f, 0.5f, 0.6 );
     glPushMatrix();
     glTranslatef(_position.x, _position.y, _position.z);
-    glScalef( 0.03, 0.03, 0.03 );
-    glutSolidSphere( 1, 10, 10 );
+    glScalef(0.03, 0.03, 0.03 );
+    glutSolidSphere(1, 10, 10 );
     glPopMatrix();
     */
     
-    if ( usingBigSphereCollisionTest ) {
+    if (usingBigSphereCollisionTest ) {
         // show TEST big sphere
-        glColor4f( 0.5f, 0.6f, 0.8f, 0.7 );
+        glColor4f(0.5f, 0.6f, 0.8f, 0.7 );
         glPushMatrix();
         glTranslatef(_TEST_bigSpherePosition.x, _TEST_bigSpherePosition.y, _TEST_bigSpherePosition.z);
-        glScalef( _TEST_bigSphereRadius, _TEST_bigSphereRadius, _TEST_bigSphereRadius );
-        glutSolidSphere( 1, 20, 20 );
+        glScalef(_TEST_bigSphereRadius, _TEST_bigSphereRadius, _TEST_bigSphereRadius );
+        glutSolidSphere(1, 20, 20 );
         glPopMatrix();
     }
     
@@ -785,7 +802,7 @@ void Avatar::render(bool lookingInMirror) {
     }
     
     // if this is my avatar, then render my interactions with the other avatar
-    if ( _isMine ) {			
+    if (_isMine ) {			
         _avatarTouch.render();
     }
     
@@ -846,7 +863,7 @@ void Avatar::renderHead(bool lookingInMirror) {
     glEnable(GL_RESCALE_NORMAL);
     
 	// show head orientation
-	//renderOrientationDirections( _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, _joint[ AVATAR_JOINT_HEAD_BASE ].orientation, 0.2f );
+	//renderOrientationDirections(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, _joint[ AVATAR_JOINT_HEAD_BASE ].orientation, 0.2f );
     
     glPushMatrix();
     
@@ -862,7 +879,7 @@ void Avatar::renderHead(bool lookingInMirror) {
     }
 	
     glScalef
-    ( 
+    (
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
@@ -874,15 +891,15 @@ void Avatar::renderHead(bool lookingInMirror) {
         //glRotatef(_bodyPitch + _headPitch, 1, 0, 0);
         //glRotatef(_bodyRoll  - _headRoll,  0, 0, 1);
         // don't let body pitch and roll affect the head..
-        glRotatef(  _headPitch, 1, 0, 0);   
-        glRotatef( -_headRoll,  0, 0, 1);
+        glRotatef( _headPitch, 1, 0, 0);   
+        glRotatef(-_headRoll,  0, 0, 1);
     } else {
         glRotatef(_bodyYaw   + _headYaw,   0, 1, 0);
         //glRotatef(_bodyPitch + _headPitch, 1, 0, 0);
         //glRotatef(_bodyRoll  + _headRoll,  0, 0, 1);
         // don't let body pitch and roll affect the head..
-        glRotatef( _headPitch, 1, 0, 0);
-        glRotatef( _headRoll,  0, 0, 1);
+        glRotatef(_headPitch, 1, 0, 0);
+        glRotatef(_headRoll,  0, 0, 1);
     }
     
     //glScalef(2.0, 2.0, 2.0);
@@ -1011,7 +1028,7 @@ void Avatar::renderHead(bool lookingInMirror) {
     glPopMatrix();
  }
 
-void Avatar::setHandMovementValues( glm::vec3 handOffset ) {
+void Avatar::setHandMovementValues(glm::vec3 handOffset ) {
 	_movedHandOffset = handOffset;
 }
 
@@ -1024,11 +1041,11 @@ void Avatar::initializeSkeleton() {
 	for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
         _joint[b].isCollidable        = true;
         _joint[b].parent              = AVATAR_JOINT_NULL;
-        _joint[b].position			 = glm::vec3( 0.0, 0.0, 0.0 );
-        _joint[b].defaultPosePosition = glm::vec3( 0.0, 0.0, 0.0 );
-        _joint[b].springyPosition     = glm::vec3( 0.0, 0.0, 0.0 );
-        _joint[b].springyVelocity     = glm::vec3( 0.0, 0.0, 0.0 );
-        _joint[b].rotation            = glm::quat( 0.0f, 0.0f, 0.0f, 0.0f );
+        _joint[b].position			 = glm::vec3(0.0, 0.0, 0.0 );
+        _joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0 );
+        _joint[b].springyPosition     = glm::vec3(0.0, 0.0, 0.0 );
+        _joint[b].springyVelocity     = glm::vec3(0.0, 0.0, 0.0 );
+        _joint[b].rotation            = glm::quat(0.0f, 0.0f, 0.0f, 0.0f );
         _joint[b].yaw                 = 0.0;
         _joint[b].pitch               = 0.0;
         _joint[b].roll                = 0.0;
@@ -1065,19 +1082,19 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_TOES		  ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
     // specify the default pose position
-    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0  );
-    _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
-    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.0  );
-    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,  -0.01 );
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04, -0.01 );
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.03,  0.0,  -0.01 );
-    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04, -0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.03,  0.0,  -0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
+    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3( 0.0,   0.0,   0.0  );
+    _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3( 0.0,   0.08,  0.01 );
+    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3( 0.0,   0.09,  0.0  );
+    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3( 0.0,   0.1,  -0.01 );
+    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3( 0.0,   0.08,  0.01 );
+    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3(-0.06,  0.04, -0.01 );
+    _joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3(-0.03,  0.0,  -0.01 );
+    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3( 0.0,  -0.13,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3( 0.0,  -0.11,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3( 0.0,  -0.07,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3( 0.06,  0.04, -0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3( 0.03,  0.0,  -0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3( 0.0,  -0.13,  0.0  );
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.04,  0.0,  -0.02 );
@@ -1270,7 +1287,7 @@ void Avatar::updateBodySprings( float deltaTime ) {
             _joint[b].springyVelocity = glm::vec3( 0.0f, 0.0f, 0.0f );
         }
         
-        _joint[b].springyPosition += _joint[b].springyVelocity;
+        _joint[b].springyPosition += _joint[b].springyVelocity * deltaTime;
     }
 }
 
@@ -1514,25 +1531,7 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-//  Find and return the gravity vector at my location
-glm::vec3 Avatar::getGravity(glm::vec3 pos) {
-    //
-    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
-    //  from the domain/voxelserver (or something similar)
-    //
-    if ((pos.x > 0.f) &&
-        (pos.x < 10.f) &&
-        (pos.z > 0.f) &&
-        (pos.z < 10.f) &&
-        (pos.y > 0.f) &&
-        (pos.y < 3.f))  {
-        //  If above ground plane, turn gravity on
-        return glm::vec3(0.f, -1.f, 0.f);
-    } else {
-        //  If flying in space, turn gravity OFF
-        return glm::vec3(0.f, 0.f, 0.f);
-    }
-}
+
 
 const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
 
@@ -1562,3 +1561,4 @@ void Avatar::readAvatarDataFromFile() {
         fclose(avatarFile);
     }
 }
+

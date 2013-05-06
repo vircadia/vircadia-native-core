@@ -237,6 +237,36 @@ void drawGroundPlaneGrid(float size)
 }
 
 
+
+void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
+
+    glColor4f( 0.0f, 0.0f, 0.0f, darkness );
+    
+    int   num = 20;
+    float y  = 0.001f;
+    float x2 = 0.0f;
+    float z2 = radius;
+    float x1;
+    float z1;
+
+    glBegin(GL_TRIANGLES);             
+
+    for (int i=1; i<num+1; i++) {
+        x1 = x2;
+        z1 = z2;
+        float r = ((float)i / (float)num) * PI * 2.0;
+        x2 = radius * sin(r);
+        z2 = radius * cos(r);
+    
+            glVertex3f(position.x,      y, position.z     ); 
+            glVertex3f(position.x + x1, y, position.z + z1); 
+            glVertex3f(position.x + x2, y, position.z + z2); 
+    }
+    
+    glEnd();
+}
+
+
 void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
 	glm::vec3 pRight	= position + orientation.getRight() * size;
 	glm::vec3 pUp		= position + orientation.getUp() * size;

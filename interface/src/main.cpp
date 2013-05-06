@@ -69,7 +69,6 @@
 
 #include "Camera.h"
 #include "Avatar.h"
-#include "AvatarRenderer.h"
 #include "Texture.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
@@ -90,6 +89,8 @@ using namespace std;
 
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
+
+glm::vec3 getGravity(glm::vec3 pos); //get the local gravity vector at this location in the universe
 
 QApplication* app;
 
@@ -119,9 +120,6 @@ ViewFrustum viewFrustum;            // current state of view frustum, perspectiv
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
-
-
-AvatarRenderer avatarRenderer;
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -714,7 +712,6 @@ void displaySide(Camera& whichCamera) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *avatar = (Avatar *)agent->getLinkedData();
             avatar->render(0);
-            //avatarRenderer.render(avatar, 0); // this will replace the above call
         }
     }
     agentList->unlock();
@@ -727,7 +724,6 @@ void displaySide(Camera& whichCamera) {
 
     //Render my own avatar
 	myAvatar.render(::lookingInMirror);
-    //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
 	
 	glPopMatrix();
 }
@@ -1011,7 +1007,7 @@ void display(void)
             float firstPersonTightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
-            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonUpShift   =  -0.2f;
             float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         
@@ -1709,6 +1705,7 @@ void idle(void) {
         }
         agentList->unlock();
     
+        myAvatar.setGravity(getGravity(myAvatar.getPosition()));
         myAvatar.simulate(deltaTime);
 
         glutPostRedisplay();
@@ -1771,6 +1768,30 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
+
+
+    
+        
+//Find and return the gravity vector at this location
+glm::vec3 getGravity(glm::vec3 pos) {
+    //
+    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
+    //  from the domain/voxelserver (or something similar)
+    //
+    if ((pos.x >  0.f) &&
+        (pos.x < 10.f) &&
+        (pos.z >  0.f) &&
+        (pos.z < 10.f) &&
+        (pos.y >  0.f) &&
+        (pos.y <  3.f)) {
+        //  If above ground plane, turn gravity on
+        return glm::vec3(0.f, -1.f, 0.f);
+    } else {
+        //  If flying in space, turn gravity OFF
+        return glm::vec3(0.f, 0.f, 0.f);
+    }
+}
+       
 void mouseFunc(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
         if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
