@@ -144,7 +144,7 @@ Avatar::Avatar(bool isMine) {
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
     _sphere                     = NULL;
-    _interactingOther           = NULL;
+    //_interactingOther           = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
     _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
@@ -335,6 +335,11 @@ void Avatar::simulate(float deltaTime) {
 	// update avatar skeleton
 	updateSkeleton();
 	
+    //detect and respond to collisions with other avatars... 
+    if (_isMine) {
+        updateAvatarCollisions(deltaTime);
+    }
+    
     //update the movement of the hand and process handshaking with other avatars... 
     updateHandMovementAndTouching(deltaTime);
         
@@ -431,7 +436,6 @@ void Avatar::simulate(float deltaTime) {
 
 
 
-//update the movement of the hand and process handshaking with other avatars... 
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
     // reset hand and arm positions according to hand movement
@@ -441,110 +445,43 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     + _orientation.getFront() * -_movedHandOffset.y * 1.0f;
     
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
-    
-    if (_isMine) {
-        _handState = _mousePressed;
-    }
-    
-    /*
-    //reset these for the next go-round
-    _avatarTouch.setAbleToReachOtherAvatar (false);
-    _avatarTouch.setHandsCloseEnoughToGrasp(false);
-        
-        // if the avatar being simulated is mine, then loop through
-    // all the other avatars for potential interactions...
+            
     if (_isMine)
     {
         //  Reset detector for nearest avatar
         _distanceToNearestAvatar = std::numeric_limits<float>::max();
     
+        //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // check for collisions with other avatars and respond
-                updateCollisionWithOtherAvatar(otherAvatar, deltaTime );
-                 
+                //applyCollisionWithOtherAvatar(otherAvatar, deltaTime );
+                
                 // test other avatar hand position for proximity
                 glm::vec3 v(_joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position);
                 v -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_SHOULDER);
                 
-                float distance = glm::length(v);
-                if (distance < _distanceToNearestAvatar) {_distanceToNearestAvatar = distance;}
-                
-                if (distance < _maxArmLength + _maxArmLength) {
-                                
-                    _interactingOther = otherAvatar;
-                    
-                    if (! _avatarTouch.getAbleToReachOtherAvatar()) {
-                        //initialize _handHolding
-                        _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-                        _avatarTouch.setAbleToReachOtherAvatar(true);
-                    }
-                    
-                    glm::vec3 vectorBetweenHands(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-                    vectorBetweenHands -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_FINGERTIPS);
-                    float distanceBetweenHands = glm::length(vectorBetweenHands);
-                    
-                    if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) { 
-                        _avatarTouch.setHandsCloseEnoughToGrasp(true);
-                    }
-                        
-                    // if I am holding hands with another avatar, a force is applied
-                    if ((_handState == 1) ||  (_interactingOther->_handState == 1)) {
-                        
-                        // if the hands are close enough to grasp...
-                        if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP)
-                        { 
-                            // apply the forces...
-                            glm::vec3 vectorToOtherHand = _interactingOther->_handPosition - _handHoldingPosition;
-                            glm::vec3 vectorToMyHand    = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _handHoldingPosition;
-                                                    
-                            _handHoldingPosition += vectorToOtherHand * YOUR_HAND_HOLDING_PULL;
-                            _handHoldingPosition += vectorToMyHand    * MY_HAND_HOLDING_PULL;
-                            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;
-                            
-                            // apply a force to the avatar body
-                            if (glm::length(vectorToOtherHand) > _maxArmLength * 0.9) {
-                                _velocity += vectorToOtherHand;                         
-                            }
-                        }
-                    }
-                }
+                //float distance = glm::length(v);
+                //if (distance < _distanceToNearestAvatar) {
+                //    _distanceToNearestAvatar = distance;
+                //}
             }
         }
         
     }//if (_isMine)
     
-    */
-    
     //constrain right arm length and re-adjust elbow position as it bends
     updateArmIKAndConstraints(deltaTime);
     
     if (_isMine) {
-        //  Set the vector we send for hand position to other people to be our right hand
+        //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+        _handState = _mousePressed;
     }
-    
-    /*    
-    // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
-    if (_interactingOther) { 
-        if (_isMine) {
-            _avatarTouch.setMyHandPosition  (_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-            _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-            _avatarTouch.setMyHandState     (_handState);
-            _avatarTouch.setYourHandState   (_interactingOther->_handState);
-            _avatarTouch.simulate(deltaTime);
-        }
-    }
-    
-    if (!_avatarTouch.getAbleToReachOtherAvatar() ) {
-        _interactingOther = NULL;
-    }
-    
-    */
-}
+ }
 
 	
     
@@ -702,66 +639,96 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 }
 
 
-//detect collisions with other avatars and respond
-void Avatar::updateCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
 
-    // check if the bounding spheres of the two avatars are colliding
-    glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
-    if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
+
+void Avatar::updateAvatarCollisions(float deltaTime) {
+        
+    //  Reset detector for nearest avatar
+    _distanceToNearestAvatar = std::numeric_limits<float>::max();
+
+    //loop through all the other avatars for potential interactions...
+    AgentList* agentList = AgentList::getInstance();
+    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+            Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
+            
+            // check if the bounding spheres of the two avatars are colliding
+            glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
+            if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
+                //apply forces from collision
+                applyCollisionWithOtherAvatar(otherAvatar, deltaTime );
+            }            
+
+            // test other avatar hand position for proximity
+            glm::vec3 v(_joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position);
+            v -= otherAvatar->getPosition();
+            
+            float distance = glm::length(v);
+            if (distance < _distanceToNearestAvatar) {
+                _distanceToNearestAvatar = distance;
+            }
+        }
+    }
+}
+
+
+
+
+//detect collisions with other avatars and respond
+void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
         
     float bodyMomentum = 1.0f;
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
-        // loop through the joints of each avatar to check for every possible collision
-        for (int b=1; b<NUM_AVATAR_JOINTS; b++) {
-            if (_joint[b].isCollidable) {
+    // loop through the joints of each avatar to check for every possible collision
+    for (int b=1; b<NUM_AVATAR_JOINTS; b++) {
+        if (_joint[b].isCollidable) {
 
-                for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
-                    if (otherAvatar->_joint[o].isCollidable) {
+            for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
+                if (otherAvatar->_joint[o].isCollidable) {
+                
+                    glm::vec3 vectorBetweenJoints(_joint[b].springyPosition - otherAvatar->_joint[o].springyPosition);
+                    float distanceBetweenJoints = glm::length(vectorBetweenJoints);
                     
-                        glm::vec3 vectorBetweenJoints(_joint[b].springyPosition - otherAvatar->_joint[o].springyPosition);
-                        float distanceBetweenJoints = glm::length(vectorBetweenJoints);
-                        
-                        if (distanceBetweenJoints > 0.0 ) { // to avoid divide by zero
-                            float combinedRadius = _joint[b].radius + otherAvatar->_joint[o].radius;
+                    if (distanceBetweenJoints > 0.0 ) { // to avoid divide by zero
+                        float combinedRadius = _joint[b].radius + otherAvatar->_joint[o].radius;
 
-                            // check for collision
-                            if (distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
-                                glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
+                        // check for collision
+                        if (distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
+                            glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
-                                // push balls away from each other and apply friction
-                                glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
-                                                                
-                                float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
-                                if (ballMomentum < 0.0 ) { ballMomentum = 0.0;}
-                                                                
-                                             _joint[b].springyVelocity += ballPushForce;
-                                otherAvatar->_joint[o].springyVelocity -= ballPushForce;
-                                
-                                             _joint[b].springyVelocity *= ballMomentum;
-                                otherAvatar->_joint[o].springyVelocity *= ballMomentum;
-                                
-                                // accumulate forces and frictions to apply to the velocities of avatar bodies
-                                bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
-                                bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
-                                if (bodyMomentum < 0.0 ) { bodyMomentum = 0.0;}
-                                                                
-                            }// check for collision
-                        }   // to avoid divide by zero
-                    }      // o loop
-                }         // collidable
-            }            // b loop
-        }               // collidable
-        
-        
-        //apply forces and frictions on the bodies of both avatars 
-                     _velocity += bodyPushForce;
-        otherAvatar->_velocity -= bodyPushForce;
-                     _velocity *= bodyMomentum;
-        otherAvatar->_velocity *= bodyMomentum;
-        
-    } // bounding sphere collision
-}    //method
+                            // push balls away from each other and apply friction
+                            glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
+                                                            
+                            float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
+                            if (ballMomentum < 0.0 ) { ballMomentum = 0.0;}
+                                                            
+                                         _joint[b].springyVelocity += ballPushForce;
+                            otherAvatar->_joint[o].springyVelocity -= ballPushForce;
+                            
+                                         _joint[b].springyVelocity *= ballMomentum;
+                            otherAvatar->_joint[o].springyVelocity *= ballMomentum;
+                            
+                            // accumulate forces and frictions to apply to the velocities of avatar bodies
+                            bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
+                            bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
+                            if (bodyMomentum < 0.0 ) { bodyMomentum = 0.0;}
+                                                            
+                        }// check for collision
+                    }   // to avoid divide by zero
+                }      // o loop
+            }         // collidable
+        }            // b loop
+    }               // collidable
+    
+    
+    //apply forces and frictions on the bodies of both avatars 
+                 _velocity += bodyPushForce;
+    otherAvatar->_velocity -= bodyPushForce;
+                 _velocity *= bodyMomentum;
+    otherAvatar->_velocity *= bodyMomentum;        
+}
+
 
 
 void Avatar::setDisplayingHead(bool displayingHead ) {
