@@ -100,7 +100,7 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            unpackSocket(&packetData[2], (sockaddr*) g&agentLocalAddress);
+            unpackSocket(&packetData[2], (sockaddr*) &agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
