@@ -100,7 +100,7 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            unpackSocket(&packetData[2], (sockaddr*) &agentLocalAddress);
+            unpackSocket(packetData + 2, (sockaddr*) &agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -125,7 +125,7 @@ int main(int argc, const char * argv[])
                 refreshedAgent->setWakeMicrostamp(usecTimestampNow());
             }
             
-            currentBufferPos = broadcastPacket + 2;
+            currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
