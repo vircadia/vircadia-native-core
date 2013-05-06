@@ -65,46 +65,47 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
-void render_vector(glm::vec3 * vec)
+//  Draw a 3D vector floating in space
+void drawVector(glm::vec3 * vector)
 {
-    //  Show edge of world 
     glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(3.0);
+    glLineWidth(2.0);
+
     //  Draw axes
+    glBegin(GL_LINES);
     glColor3f(1,0,0);
-    glVertex3f(-1,0,0);
+    glVertex3f(0,0,0);
     glVertex3f(1,0,0);
     glColor3f(0,1,0);
-    glVertex3f(0,-1,0);
+    glVertex3f(0,0,0);
     glVertex3f(0, 1, 0);
     glColor3f(0,0,1);
-    glVertex3f(0,0,-1);
+    glVertex3f(0,0,0);
     glVertex3f(0, 0, 1);
-    // Draw vector
+    glEnd();
+        
+    // Draw the vector itself
+    glBegin(GL_LINES);
     glColor3f(1,1,1);
     glVertex3f(0,0,0);
-    glVertex3f(vec->x, vec->y, vec->z);
-    // Draw marker dots for magnitude    
+    glVertex3f(vector->x, vector->y, vector->z);
     glEnd();
-    float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
-    float particleAttenuationConstant[] = { 1.0f, 0.0f, 0.0f };
-
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
     
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10.0);
-    glBegin(GL_POINTS);
+    // Draw spheres for magnitude
+    glPushMatrix();
     glColor3f(1,0,0);
-    glVertex3f(vec->x,0,0);
+    glTranslatef(vector->x,0,0);
+    glutSolidSphere(0.02, 10, 10);
     glColor3f(0,1,0);
-    glVertex3f(0,vec->y,0);
+    glTranslatef(-vector->x, vector->y, 0);
+    glutSolidSphere(0.02, 10, 10);
     glColor3f(0,0,1);
-    glVertex3f(0,0,vec->z);
-    glEnd();
+    glTranslatef(0, -vector->y, vector->z);
+    glutSolidSphere(0.02, 10, 10);
+    glPopMatrix();
 
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationConstant );
 }
 
 void render_world_box()
@@ -184,7 +185,6 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
 
 }
 
-
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
               float r, float g, float b)
 {
@@ -209,7 +209,7 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
 	}
     glPopMatrix();
     
-} 
+}
 
 void drawGroundPlaneGrid(float size)
 {
