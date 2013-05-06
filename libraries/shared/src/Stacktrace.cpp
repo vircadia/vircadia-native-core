@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <execinfo.h>
+#include <cstdlib>
 
 #include "Stacktrace.h"
 
