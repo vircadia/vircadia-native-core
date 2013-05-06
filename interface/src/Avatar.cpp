@@ -515,14 +515,17 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             }
         }
         
-        //  Set the vector we send for hand position to other people to be our right hand
-        setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
     }//if (_isMine)
     
     */
     
     //constrain right arm length and re-adjust elbow position as it bends
     updateArmIKAndConstraints(deltaTime);
+    
+    if (_isMine) {
+        //  Set the vector we send for hand position to other people to be our right hand
+        setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+    }
     
     /*    
     // set hand positions for _avatarTouch.setMyHandPosition AFTER calling updateArmIKAndConstraints
