@@ -8,6 +8,8 @@
 //  Simple axis aligned box class.
 //
 
+#include "SharedUtil.h"
+
 #include "AABox.h"
 
 
@@ -67,4 +69,51 @@ glm::vec3 AABox::getVertexN(const glm::vec3 &normal) const {
 		res.z += _size.z;
 
 	return(res);
+}
+
+// determines whether a value is within the extents
+static bool isWithin(float value, float corner, float size) {
+    return value >= corner && value <= corner + size;
+}
+
+bool AABox::contains(const glm::vec3& point) const {
+    return isWithin(point.x, _corner.x, _size.x) &&
+        isWithin(point.y, _corner.y, _size.y) &&
+        isWithin(point.z, _corner.z, _size.z);
+}
+
+// finds the intersection between a ray and the facing plane on one axis
+static bool findIntersection(float origin, float direction, float corner, float size, float& distance) {
+    if (direction > EPSILON) {
+        distance = (corner - origin) / direction;
+        return true;
+        
+    } else if (direction < -EPSILON) {
+        distance = (corner + size - origin) / direction;
+        return true;
+    }
+    return false;
+}
+
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    // handle the trivial case where the box contains the origin
+    if (contains(origin)) {
+        distance = 0;
+        return true;
+    }
+    // check each axis
+    float axisDistance;
+    if (findIntersection(origin.x, direction.x, _corner.x, _size.x, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
+        findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z) ||
+        findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x)) {
+        distance = axisDistance;
+        return true;
+    }
+    return false;
 }

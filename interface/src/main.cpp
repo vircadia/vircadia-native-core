@@ -69,7 +69,6 @@
 
 #include "Camera.h"
 #include "Avatar.h"
-#include "AvatarRenderer.h"
 #include "Texture.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
@@ -90,6 +89,8 @@ using namespace std;
 
 void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
+
+glm::vec3 getGravity(glm::vec3 pos); //get the local gravity vector at this location in the universe
 
 QApplication* app;
 
@@ -119,9 +120,6 @@ ViewFrustum viewFrustum;            // current state of view frustum, perspectiv
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
-
-
-AvatarRenderer avatarRenderer;
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -208,8 +206,7 @@ bool justStarted = true;
 
 
 //  Every second, check the frame rates and other stuff
-void Timer(int extra)
-{
+void Timer(int extra) {
     gettimeofday(&timerEnd, NULL);
     FPS = (float)frameCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
     packetsPerSecond = (float)packetCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
@@ -227,8 +224,7 @@ void Timer(int extra)
     }
 }
 
-void displayStats(void)
-{
+void displayStats(void) {
     int statsVerticalOffset = 50;
     if (::menuOn == 0) {
         statsVerticalOffset = 8;
@@ -269,6 +265,7 @@ void displayStats(void)
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
+    
     if (avatarMixer) {
         sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                 roundf(avatarMixer->getAverageKilobitsPerSecond()),
@@ -276,6 +273,7 @@ void displayStats(void)
     } else {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
+    
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
     
 	if (::perfStatsOn) {
@@ -293,8 +291,7 @@ void displayStats(void)
 	}
 }
 
-void initDisplay(void)
-{
+void initDisplay(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -306,8 +303,7 @@ void initDisplay(void)
     if (fullscreen) glutFullScreen();
 }
 
-void init(void)
-{
+void init(void) {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
     voxels.setCamera(&myCamera);
@@ -360,8 +356,7 @@ void terminate () {
     exit(EXIT_SUCCESS);
 }
 
-void reset_sensors()
-{
+void reset_sensors() {
     
     myAvatar.setPosition(start_location);
     headMouseX = WIDTH/2;
@@ -377,16 +372,13 @@ void reset_sensors()
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
-void updateAvatar(float frametime)
-{
+void updateAvatar(float frametime) {
     float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
     float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
     
     myAvatar.UpdateGyros(frametime, &serialPort, &gravity);
 		
-    //  
     //  Update gyro-based mouse (X,Y on screen)
-    // 
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
     if (powf(gyroYawRate*gyroYawRate + 
@@ -401,7 +393,7 @@ void updateAvatar(float frametime)
     headMouseY = min(headMouseY, HEIGHT);
     
     //  Update head and body pitch and yaw based on measured gyro rates
-        if (::gyroLook) {
+    if (::gyroLook) {
         // Yaw
         const float MIN_YAW_RATE = 50;
         const float YAW_SENSITIVITY = 1.0;
@@ -720,7 +712,6 @@ void displaySide(Camera& whichCamera) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *avatar = (Avatar *)agent->getLinkedData();
             avatar->render(0);
-            //avatarRenderer.render(avatar, 0); // this will replace the above call
         }
     }
     agentList->unlock();
@@ -733,7 +724,6 @@ void displaySide(Camera& whichCamera) {
 
     //Render my own avatar
 	myAvatar.render(::lookingInMirror);
-    //avatarRenderer.render(&myAvatar, lookingInMirror); // this will replace the above call
 	
 	glPopMatrix();
 }
@@ -1017,7 +1007,7 @@ void display(void)
             float firstPersonTightness = 100.0f;
 
             float thirdPersonPitch     =   0.0f;
-            float thirdPersonUpShift   =  -0.1f;
+            float thirdPersonUpShift   =  -0.2f;
             float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         
@@ -1692,6 +1682,10 @@ void idle(void) {
             handControl.stop();
 		}
         
+        if (serialPort.active && USING_INVENSENSE_MPU9150) {
+            serialPort.readData();
+        }
+        
         //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
         updateAvatar(deltaTime);
 
@@ -1711,6 +1705,7 @@ void idle(void) {
         }
         agentList->unlock();
     
+        myAvatar.setGravity(getGravity(myAvatar.getPosition()));
         myAvatar.simulate(deltaTime);
 
         glutPostRedisplay();
@@ -1718,7 +1713,7 @@ void idle(void) {
     }
     
     //  Read serial data 
-    if (serialPort.active) {
+    if (serialPort.active && !USING_INVENSENSE_MPU9150) {
         serialPort.readData();
     }
 }
@@ -1773,6 +1768,30 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
+
+
+    
+        
+//Find and return the gravity vector at this location
+glm::vec3 getGravity(glm::vec3 pos) {
+    //
+    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
+    //  from the domain/voxelserver (or something similar)
+    //
+    if ((pos.x >  0.f) &&
+        (pos.x < 10.f) &&
+        (pos.z >  0.f) &&
+        (pos.z < 10.f) &&
+        (pos.y >  0.f) &&
+        (pos.y <  3.f)) {
+        //  If above ground plane, turn gravity on
+        return glm::vec3(0.f, -1.f, 0.f);
+    } else {
+        //  If flying in space, turn gravity OFF
+        return glm::vec3(0.f, 0.f, 0.f);
+    }
+}
+       
 void mouseFunc(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
         if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {

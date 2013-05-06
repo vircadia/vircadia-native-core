@@ -36,6 +36,9 @@ public:
 	const glm::vec3& getSize() const { return _size; };
 	const glm::vec3& getCenter() const { return _center; };
 
+    bool contains(const glm::vec3& point) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
 private:
 	glm::vec3 _corner;
 	glm::vec3 _center;

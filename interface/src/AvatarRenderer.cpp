@@ -11,13 +11,11 @@
 #include "AvatarRenderer.h"
 #include "InterfaceConfig.h"
 
-
 AvatarRenderer::AvatarRenderer() {
 }
 
 // this method renders the avatar 
 void AvatarRenderer::render(Avatar *avatar, bool lookingInMirror) {
-
 /*
 	// show avatar position
     glColor4f( 0.5f, 0.5f, 0.5f, 0.6 );
@@ -28,5 +26,3 @@ void AvatarRenderer::render(Avatar *avatar, bool lookingInMirror) {
 	glPopMatrix();
     */
 }
-    
-    

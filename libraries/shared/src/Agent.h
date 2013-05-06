@@ -38,11 +38,11 @@ public:
     uint16_t getAgentId();
     void setAgentId(uint16_t thisAgentId);
     
-    double getFirstRecvTimeUsecs();
-    void setFirstRecvTimeUsecs(double newTimeUsecs);
+    double getWakeMicrostamp() const { return _wakeMicrostamp; }
+    void setWakeMicrostamp(double wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
     
-    double getLastRecvTimeUsecs();
-    void setLastRecvTimeUsecs(double newTimeUsecs);
+    double getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(double lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket();
     void setPublicSocket(sockaddr *newSocket);
@@ -70,8 +70,8 @@ private:
     sockaddr *publicSocket, *localSocket, *activeSocket;
     char type;
     uint16_t agentId;
-    double firstRecvTimeUsecs;
-    double lastRecvTimeUsecs;
+    double _wakeMicrostamp;
+    double _lastHeardMicrostamp;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     AgentData* linkedData;
     bool _isAlive;

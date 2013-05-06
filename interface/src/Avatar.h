@@ -84,7 +84,7 @@ public:
     void  reset();
     void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
    
-    void  setNoise (float mag) { _head.noise = mag; }
+    void  setNoise (float mag) {_head.noise = mag;}
     void  setScale(float s) {_head.scale = s; };
     void  setRenderYaw(float y) {_renderYaw = y;}
     void  setRenderPitch(float p) {_renderPitch = p;}
@@ -93,6 +93,7 @@ public:
     float getLastMeasuredHeadYaw() const {return _head.yawRate;}
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
+    void  setGravity(glm::vec3 gravity);
     
     bool  getIsNearInteractingOther();
         
@@ -142,9 +143,6 @@ public:
     //  Related to getting transmitter UDP data used to animate the avatar hand
     void processTransmitterData(unsigned char * packetData, int numBytes);
     float getTransmitterHz() { return _transmitterHz; };
-    
-    //  Find out what the local gravity vector is at this location
-    glm::vec3 getGravity(glm::vec3 pos);
     
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
@@ -251,6 +249,7 @@ private:
     bool        _displayingHead; // should be false if in first-person view
     bool        _returnHeadToCenter;
     float       _distanceToNearestAvatar;    //  How close is the nearest avatar?
+    glm::vec3   _gravity;
 
     // private methods...
     void initializeSkeleton();

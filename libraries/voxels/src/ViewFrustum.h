@@ -101,7 +101,7 @@ public:
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo) const;
     bool matches(const ViewFrustum* compareTo) const { return matches(*compareTo); };
-    
+    void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 };
 
 

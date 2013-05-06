@@ -22,7 +22,6 @@
 #include <string>
 #endif
 
-int serialFd;
 const int MAX_BUFFER = 255;
 char serialBuffer[MAX_BUFFER];
 int serialBufferPos = 0;
@@ -31,6 +30,12 @@ const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const short SAMPLES_TO_DISCARD = 100;               //  Throw out the first few samples
 const int GRAVITY_SAMPLES = 200;                    //  Use the first samples to compute gravity vector
+
+const bool USING_INVENSENSE_MPU9150 = 1;
+
+SerialInterface::~SerialInterface() {
+    close(_serialDescriptor);
+}
 
 void SerialInterface::pair() {
     
@@ -41,43 +46,47 @@ void SerialInterface::pair() {
     int matchStatus;
     regex_t regex;
     
-    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
-    if((devDir = opendir("/dev"))) {
-        while((entry = readdir(devDir))) {
-            regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
-            matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
-            if (matchStatus == 0) {
-                char *serialPortname = new char[100];
-                sprintf(serialPortname, "/dev/%s", entry->d_name);
-                
-                initializePort(serialPortname, 115200);
-                
-                delete [] serialPortname;
+    if (_failedOpenAttempts < 2) {
+        // if we've already failed to open the detected interface twice then don't try again
+        
+        // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
+        if((devDir = opendir("/dev"))) {
+            while((entry = readdir(devDir))) {
+                regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
+                matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
+                if (matchStatus == 0) {
+                    char *serialPortname = new char[100];
+                    sprintf(serialPortname, "/dev/%s", entry->d_name);
+                    
+                    initializePort(serialPortname, 115200);
+                    
+                    delete [] serialPortname;
+                }
+                regfree(&regex);
             }
-            regfree(&regex);
+            closedir(devDir);
         }
-        closedir(devDir);
     }
-#endif
     
+#endif
 }
 
-//  Connect to the serial port
-int SerialInterface::initializePort(char* portname, int baud)
-{
+//  connect to the serial port
+void SerialInterface::initializePort(char* portname, int baud) {
 #ifdef __APPLE__
-    serialFd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
+    _serialDescriptor = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
     printLog("Opening SerialUSB %s: ", portname);
     
-    if (serialFd == -1) {
+    if (_serialDescriptor == -1) {
         printLog("Failed.\n");
-        return -1;     //  Failed to open port
+        _failedOpenAttempts++;
+        return;
     }    
     struct termios options;
-    tcgetattr(serialFd,&options);
-    switch(baud)
-    {
+    tcgetattr(_serialDescriptor, &options);
+    
+    switch(baud) {
 		case 9600: cfsetispeed(&options,B9600);
 			cfsetospeed(&options,B9600);
 			break;
@@ -94,20 +103,39 @@ int SerialInterface::initializePort(char* portname, int baud)
 			cfsetospeed(&options,B9600);
 			break;
     }
+    
     options.c_cflag |= (CLOCAL | CREAD);
     options.c_cflag &= ~PARENB;
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
-    tcsetattr(serialFd,TCSANOW,&options);
-
+    tcsetattr(_serialDescriptor, TCSANOW, &options);
+    
+    if (USING_INVENSENSE_MPU9150) {
+        // block on invensense reads until there is data to read
+        int currentFlags = fcntl(_serialDescriptor, F_GETFL);
+        fcntl(_serialDescriptor, F_SETFL, currentFlags & ~O_NONBLOCK);
+        
+        // there are extra commands to send to the invensense when it fires up
+        
+        // this takes it out of SLEEP
+        write(_serialDescriptor, "WR686B01\n", 9);
+        
+        // delay after the wakeup
+        usleep(10000);
+        
+        // this disables streaming so there's no garbage data on reads
+        write(_serialDescriptor, "SD\n", 3);
+        
+        // flush whatever was produced by the last two commands
+        tcflush(_serialDescriptor, TCIOFLUSH);
+    }
     
     printLog("Connected.\n");
-    resetSerial();    
+    resetSerial();
+    
     active = true;
  #endif
-   
-    return 0;
 }
 
 //  Reset Trailing averages to the current measurement
@@ -121,9 +149,7 @@ void SerialInterface::renderLevels(int width, int height) {
     int disp_x = 10;
     const int GAP = 16;
     char val[10];
-    for(i = 0; i < NUM_CHANNELS; i++)
-    {
-        
+    for(i = 0; i < NUM_CHANNELS; i++) {
         //  Actual value
         glLineWidth(2.0);
         glColor4f(1, 1, 1, 1);
@@ -157,62 +183,89 @@ void SerialInterface::renderLevels(int width, int height) {
         }
         glEnd();
     }
+}
 
+void convertHexToInt(unsigned char* sourceBuffer, int& destinationInt) {
+    unsigned int byte[2];
+    
+    for(int i = 0; i < 2; i++) {
+        sscanf((char*) sourceBuffer + 2 * i, "%2x", &byte[i]);
+    }
+    
+    int16_t result = (byte[0] << 8);
+    result += byte[1];
+    
+    destinationInt = result;
 }
 void SerialInterface::readData() {
 #ifdef __APPLE__
-    //  This array sets the rate of trailing averaging for each channel:
-    //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
-    const float AVG_RATE[] =  {0.002, 0.002, 0.002, 0.002, 0.002, 0.002};
-    char bufchar[1];
     
     int initialSamples = totalSamples;
     
-    while (read(serialFd, &bufchar, 1) > 0) { 
-        serialBuffer[serialBufferPos] = bufchar[0];
-        serialBufferPos++;
-        //  Have we reached end of a line of input?
-        if ((bufchar[0] == '\n') || (serialBufferPos >= MAX_BUFFER)) {
-            std::string serialLine(serialBuffer, serialBufferPos-1);
-            //printLog("%s\n", serialLine.c_str());
-            int spot;
-            //int channel = 0;
-            std::string val;
-            for (int i = 0; i < NUM_CHANNELS + 2; i++) {
-                spot = serialLine.find_first_of(" ", 0);
-                if (spot != std::string::npos) {
-                    val = serialLine.substr(0,spot);
-                    //printLog("%s\n", val.c_str());
-                    if (i < NUM_CHANNELS) lastMeasured[i] = atoi(val.c_str());
-                    else samplesAveraged = atoi(val.c_str());
-                } else LED = atoi(serialLine.c_str());
-                serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
-            }
-            
-            //  Update Trailing Averages
-            for (int i = 0; i < NUM_CHANNELS; i++) {
-                if (totalSamples > SAMPLES_TO_DISCARD) {
-                    trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
-                        AVG_RATE[i]*(float)lastMeasured[i];
-                } else {
-                    trailingAverage[i] = (float)lastMeasured[i];
+    if (USING_INVENSENSE_MPU9150) {
+        unsigned char gyroBuffer[20];
+        
+        // ask the invensense for raw gyro data
+        write(_serialDescriptor, "RD684306\n", 9);
+        read(_serialDescriptor, gyroBuffer, 20);
+        
+        convertHexToInt(gyroBuffer + 6, _lastYaw);
+        convertHexToInt(gyroBuffer + 10, _lastRoll);
+        convertHexToInt(gyroBuffer + 14, _lastPitch);
+        
+        totalSamples++;
+    } else {
+        //  This array sets the rate of trailing averaging for each channel:
+        //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
+        const float AVG_RATE[] =  {0.002, 0.002, 0.002, 0.002, 0.002, 0.002};
+        char bufchar[1];
+        
+        while (read(_serialDescriptor, &bufchar, 1) > 0) {
+            serialBuffer[serialBufferPos] = bufchar[0];
+            serialBufferPos++;
+            //  Have we reached end of a line of input?
+            if ((bufchar[0] == '\n') || (serialBufferPos >= MAX_BUFFER)) {
+                std::string serialLine(serialBuffer, serialBufferPos-1);
+                //printLog("%s\n", serialLine.c_str());
+                int spot;
+                //int channel = 0;
+                std::string val;
+                for (int i = 0; i < NUM_CHANNELS + 2; i++) {
+                    spot = serialLine.find_first_of(" ", 0);
+                    if (spot != std::string::npos) {
+                        val = serialLine.substr(0,spot);
+                        //printLog("%s\n", val.c_str());
+                        if (i < NUM_CHANNELS) lastMeasured[i] = atoi(val.c_str());
+                        else samplesAveraged = atoi(val.c_str());
+                    } else LED = atoi(serialLine.c_str());
+                    serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
                 }
-                   
+                
+                //  Update Trailing Averages
+                for (int i = 0; i < NUM_CHANNELS; i++) {
+                    if (totalSamples > SAMPLES_TO_DISCARD) {
+                        trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
+                        AVG_RATE[i]*(float)lastMeasured[i];
+                    } else {
+                        trailingAverage[i] = (float)lastMeasured[i];
+                    }
+                    
+                }
+                
+                //  Use a set of initial samples to compute gravity
+                if (totalSamples < GRAVITY_SAMPLES) {
+                    gravity.x += lastMeasured[ACCEL_X];
+                    gravity.y += lastMeasured[ACCEL_Y];
+                    gravity.z += lastMeasured[ACCEL_Z];
+                }
+                if (totalSamples == GRAVITY_SAMPLES) {
+                    gravity = glm::normalize(gravity);
+                    printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
+                }
+                
+                totalSamples++;
+                serialBufferPos = 0;
             }
-            
-            //  Use a set of initial samples to compute gravity 
-            if (totalSamples < GRAVITY_SAMPLES) {
-                gravity.x += lastMeasured[ACCEL_X];
-                gravity.y += lastMeasured[ACCEL_Y];
-                gravity.z += lastMeasured[ACCEL_Z];
-            }
-            if (totalSamples == GRAVITY_SAMPLES) {
-                gravity = glm::normalize(gravity);
-                printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
-            }
-
-            totalSamples++;
-            serialBufferPos = 0;
         }
     }
     
@@ -234,19 +287,23 @@ void SerialInterface::resetSerial() {
 #ifdef __APPLE__
     active = false;
     totalSamples = 0;
-    gravity = glm::vec3(0,-1,0);
     
     gettimeofday(&lastGoodRead, NULL);
     
-    //  Clear the measured and average channel data
-    for (int i = 0; i < NUM_CHANNELS; i++) {
-        lastMeasured[i] = 0;
-        trailingAverage[i] = 0.0;
+    if (!USING_INVENSENSE_MPU9150) {
+        gravity = glm::vec3(0, -1, 0);
+        
+        //  Clear the measured and average channel data
+        for (int i = 0; i < NUM_CHANNELS; i++) {
+            lastMeasured[i] = 0;
+            trailingAverage[i] = 0.0;
+        }
+        //  Clear serial input buffer
+        for (int i = 1; i < MAX_BUFFER; i++) {
+            serialBuffer[i] = ' ';
+        }
     }
-    //  Clear serial input buffer
-    for (int i = 1; i < MAX_BUFFER; i++) {
-        serialBuffer[i] = ' ';
-    }
+    
 #endif
 }
 
