@@ -14,9 +14,9 @@
 
 
 void AABox::scale(float scale) {
-    _corner = _corner*scale;
-    _size = _size*scale;
-    _center = _center*scale;
+    _corner = _corner * scale;
+    _size = _size * scale;
+    _center = _center * scale;
 }
 	
 
