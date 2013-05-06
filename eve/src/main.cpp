@@ -49,7 +49,7 @@ void *receiveAgentData(void *args) {
                     avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
                     
                     if (avatarMixer != NULL) {
-                        avatarMixer->setLastRecvTimeUsecs(usecTimestampNow());
+                        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                     }
                     
                     break;

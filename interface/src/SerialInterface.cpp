@@ -22,7 +22,6 @@
 #include <string>
 #endif
 
-int serialFd;
 const int MAX_BUFFER = 255;
 char serialBuffer[MAX_BUFFER];
 int serialBufferPos = 0;
@@ -33,6 +32,12 @@ const short SAMPLES_TO_DISCARD = 100;               //  Throw out the first few 
 const int GRAVITY_SAMPLES = 200;                    //  Use the first samples to compute gravity vector
 
 const bool USING_INVENSENSE_MPU9150 = 1;
+
+SerialInterface::~SerialInterface() {
+#ifdef __APPLE__
+    close(_serialDescriptor);
+#endif
+}
 
 void SerialInterface::pair() {
     
@@ -69,19 +74,19 @@ void SerialInterface::pair() {
 }
 
 //  connect to the serial port
-int SerialInterface::initializePort(char* portname, int baud) {
+void SerialInterface::initializePort(char* portname, int baud) {
 #ifdef __APPLE__
-    serialFd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
+    _serialDescriptor = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
     printLog("Opening SerialUSB %s: ", portname);
     
-    if (serialFd == -1) {
+    if (_serialDescriptor == -1) {
         printLog("Failed.\n");
         _failedOpenAttempts++;
-        return -1;     //  Failed to open port
+        return;
     }    
     struct termios options;
-    tcgetattr(serialFd,&options);
+    tcgetattr(_serialDescriptor, &options);
     
     switch(baud) {
 		case 9600: cfsetispeed(&options,B9600);
@@ -106,26 +111,26 @@ int SerialInterface::initializePort(char* portname, int baud) {
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
-    tcsetattr(serialFd,TCSANOW,&options);
+    tcsetattr(_serialDescriptor, TCSANOW, &options);
     
     if (USING_INVENSENSE_MPU9150) {
         // block on invensense reads until there is data to read
-        int currentFlags = fcntl(serialFd, F_GETFL);
-        fcntl(serialFd, F_SETFL, currentFlags & ~O_NONBLOCK);
+        int currentFlags = fcntl(_serialDescriptor, F_GETFL);
+        fcntl(_serialDescriptor, F_SETFL, currentFlags & ~O_NONBLOCK);
         
         // there are extra commands to send to the invensense when it fires up
         
         // this takes it out of SLEEP
-        write(serialFd, "WR686B01\n", 9);
+        write(_serialDescriptor, "WR686B01\n", 9);
         
         // delay after the wakeup
         usleep(10000);
         
         // this disables streaming so there's no garbage data on reads
-        write(serialFd, "SD\n", 3);
+        write(_serialDescriptor, "SD\n", 3);
         
         // flush whatever was produced by the last two commands
-        tcflush(serialFd, TCIOFLUSH);
+        tcflush(_serialDescriptor, TCIOFLUSH);
     }
     
     printLog("Connected.\n");
@@ -133,8 +138,6 @@ int SerialInterface::initializePort(char* portname, int baud) {
     
     active = true;
  #endif
-   
-    return 0;
 }
 
 //  Reset Trailing averages to the current measurement
@@ -241,8 +244,8 @@ void SerialInterface::readData() {
         unsigned char gyroBuffer[20];
         
         // ask the invensense for raw gyro data
-        write(serialFd, "RD684306\n", 9);
-        read(serialFd, gyroBuffer, 20);
+        write(_serialDescriptor, "RD684306\n", 9);
+        read(_serialDescriptor, gyroBuffer, 20);
         
         convertHexToInt(gyroBuffer + 6, _lastYaw);
         convertHexToInt(gyroBuffer + 10, _lastRoll);
@@ -255,7 +258,7 @@ void SerialInterface::readData() {
         const float AVG_RATE[] =  {0.002, 0.002, 0.002, 0.002, 0.002, 0.002};
         char bufchar[1];
         
-        while (read(serialFd, &bufchar, 1) > 0) {
+        while (read(_serialDescriptor, &bufchar, 1) > 0) {
             serialBuffer[serialBufferPos] = bufchar[0];
             serialBufferPos++;
             //  Have we reached end of a line of input?

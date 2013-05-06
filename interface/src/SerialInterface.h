@@ -38,6 +38,8 @@ class SerialInterface {
 public:
     SerialInterface() : active(false),
                         _failedOpenAttempts(0) {}
+    ~SerialInterface();
+    
     void pair();
     void readData();
     
@@ -57,8 +59,10 @@ public:
     glm::vec3 getGravity() {return gravity;};
     
 private:
-    int initializePort(char* portname, int baud);
+    void initializePort(char* portname, int baud);
     void resetSerial();
+
+    int _serialDescriptor;
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
     int samplesAveraged;
