@@ -113,9 +113,6 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
     }
 }
 
-// BHG Notes: We appear to call this function for every Voxel Node getting created.
-// This is recursive in nature. So, for example, if we are given an octal code for
-// a 1/256th size voxel, we appear to call this function NUMBER_OF_CHILDREN times. Maybe??
 int VoxelTree::readNodeData(VoxelNode* destinationNode,
                             unsigned char* nodeData,
                             int bytesLeftToRead) {
