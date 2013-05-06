@@ -64,8 +64,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     agentSocket(newSocketListenPort),
     ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
-    lastAgentId(0)
-{
+    lastAgentId(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -483,7 +482,8 @@ AgentList::iterator AgentList::begin() const {
         }
     }
     
-    return AgentListIterator(this, 0);
+    // there's no alive agent to start from - return the end
+    return end();
 }
 
 AgentList::iterator AgentList::end() const {
