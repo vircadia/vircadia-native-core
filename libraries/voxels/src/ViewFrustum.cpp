@@ -224,4 +224,17 @@ int ViewFrustum::boxInFrustum(const AABox& box) const {
 	}
 	return(result);
  }
+ 
+bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
+    return compareTo._position    == _position &&
+           compareTo._direction   == _direction &&
+           compareTo._up          == _up &&
+           compareTo._right       == _right &&
+           compareTo._fieldOfView == _fieldOfView &&
+           compareTo._aspectRatio == _aspectRatio &&
+           compareTo._nearClip    == _nearClip &&
+           compareTo._farClip     == _farClip;
+}
+
+
 

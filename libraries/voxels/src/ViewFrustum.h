@@ -98,6 +98,10 @@ public:
     int sphereInFrustum(const glm::vec3& center, float radius) const;
     int boxInFrustum(const AABox& box) const;
     
+    // some frustum comparisons
+    bool matches(const ViewFrustum& compareTo) const;
+    bool matches(const ViewFrustum* compareTo) const { return matches(*compareTo); };
+    
 };
 
 
