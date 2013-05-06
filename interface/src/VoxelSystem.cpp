@@ -105,10 +105,6 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
-            if (_renderWarningsOn && _tree->getNodesChangedFromBitstream()) {
-                printLog("readBitstreamToTree()... getNodesChangedFromBitstream=%ld _tree->isDirty()=%s \n",
-                    _tree->getNodesChangedFromBitstream(), (_tree->isDirty() ? "yes" : "no") );
-            }
         }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
