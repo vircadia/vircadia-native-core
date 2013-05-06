@@ -843,13 +843,13 @@ void displayOculus(Camera& whichCamera) {
     glDisable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
     glUseProgramObjectARB(::oculusProgramID);
-    glUniform1fARB(textureLocation, 0);
+    glUniform1iARB(textureLocation, 0);
     glUniform2fARB(lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
     glUniform2fARB(screenCenterLocation, 0.25, 0.5);
     glUniform2fARB(scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
     glUniform2fARB(scaleInLocation, 4, 2 / aspectRatio);
     glUniform4fARB(hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
-    
+
     glColor3f(1, 0, 1);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);

@@ -69,7 +69,7 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) {
+VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->octalCode, needleCode);
@@ -157,16 +157,6 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
             bytesRead += 3;
         }
     }
-    // average node's color based on color of children
-    bool nodeWasDirty = destinationNode->isDirty();
-    destinationNode->setColorFromAverageOfChildren();
-    bool nodeIsDirty = destinationNode->isDirty();
-    if (nodeIsDirty) {
-        _isDirty = true;
-    }
-    if (!nodeWasDirty && nodeIsDirty) {
-        _nodesChangedFromBitstream++;
-    }
 
     // give this destination node the child mask from the packet
     unsigned char childMask = *(nodeData + bytesRead);
@@ -205,7 +195,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode,
     return bytesRead;
 }
 
-void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeBytes) {
+void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int bufferSizeBytes) {
     int bytesRead = 0;
     unsigned char* bitstreamAt = bitstream;
     
@@ -245,6 +235,13 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, int bufferSizeByt
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
 }
 
+void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
+    unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
+    deleteVoxelCodeFromTree(octalCode);
+    delete octalCode; // cleanup memory
+}
+
+
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
@@ -255,20 +252,14 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
     int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
     if (0 == memcmp(nodeToDelete->octalCode,codeBuffer,lengthInBytes)) {
-
-        float* vertices = firstVertexForCode(nodeToDelete->octalCode);
-        delete[] vertices;
-
         if (parentNode) {
-            float* vertices = firstVertexForCode(parentNode->octalCode);
-            delete[] vertices;
-        
             int childIndex = branchIndexWithDescendant(parentNode->octalCode, codeBuffer);
 
             delete parentNode->children[childIndex]; // delete the child nodes
             parentNode->children[childIndex] = NULL; // set it to NULL
 
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
+            _isDirty = true;
         }
     }
 }
@@ -279,6 +270,7 @@ void VoxelTree::eraseAllVoxels() {
     rootNode = new VoxelNode();
     rootNode->octalCode = new unsigned char[1];
     *rootNode->octalCode = 0;
+    _isDirty = true;
 }
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
@@ -287,6 +279,7 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     // create the node if it does not exist
     if (*lastCreatedNode->octalCode != *codeColorBuffer) {
         lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
+        _isDirty = true;
     }
 
     // give this node its color
@@ -296,6 +289,9 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
     newColor[3] = 1;
     lastCreatedNode->setColor(newColor);
+    if (lastCreatedNode->isDirty()) {
+        _isDirty = true;
+    }
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
@@ -436,6 +432,16 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
         }
         file.close();
     }
+}
+
+VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
+    unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
+    VoxelNode* node = nodeForOctalCode(rootNode, octalCode, NULL);
+    if (*node->octalCode != *octalCode) {
+        node = NULL;
+    }
+    delete octalCode; // cleanup memory
+    return node;
 }
 
 void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
@@ -630,15 +636,14 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
     return maxChildLevel;
 }
 
-int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const ViewFrustum& viewFrustum,
-                                   unsigned char* outputBuffer, int availableBytes, 
-                                   VoxelNodeBag& bag) {
+int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes, 
+                                   VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    if (!node->isInView(viewFrustum)) {
+    if (viewFrustum && !node->isInView(*viewFrustum)) {
         return bytesWritten;
     }
 
@@ -652,8 +657,7 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
 
     int currentEncodeLevel = 0;
     int childBytesWritten = encodeTreeBitstreamRecursion(maxEncodeLevel, currentEncodeLevel, 
-                                                         node, viewFrustum, 
-                                                         outputBuffer, availableBytes, bag);
+                                                         node, outputBuffer, availableBytes, bag, viewFrustum);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -675,9 +679,8 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, const Vi
 }
 
 int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                            VoxelNode* node, const ViewFrustum& viewFrustum,
-                                            unsigned char* outputBuffer, int availableBytes,
-                                            VoxelNodeBag& bag) const {
+                                            VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
+                                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -689,21 +692,24 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         return bytesAtThisLevel;
     }
 
-    float distance = node->distanceToCamera(viewFrustum);
-    float boundaryDistance = boundaryDistanceForRenderLevel(*node->octalCode + 1);
+    // caller can pass NULL as viewFrustum if they want everything
+    if (viewFrustum) {
+        float distance = node->distanceToCamera(*viewFrustum);
+        float boundaryDistance = boundaryDistanceForRenderLevel(*node->octalCode + 1);
 
-    // If we're too far away for our render level, then just return
-    if (distance >= boundaryDistance) {
-        return bytesAtThisLevel;
-    }
+        // If we're too far away for our render level, then just return
+        if (distance >= boundaryDistance) {
+            return bytesAtThisLevel;
+        }
 
-    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
-    // we're out of view
-    if (!node->isInView(viewFrustum)) {
-        return bytesAtThisLevel;
+        // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
+        // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
+        // we're out of view
+        if (!node->isInView(*viewFrustum)) {
+            return bytesAtThisLevel;
+        }
     }
-    
+        
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
 
     // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
@@ -731,11 +737,11 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     for (int i = 0; i < MAX_CHILDREN; i++) {
         VoxelNode* childNode = node->children[i];
         bool childExists = (childNode != NULL);
-        bool childIsInView  = (childExists && childNode->isInView(viewFrustum));
+        bool childIsInView  = (childExists && (!viewFrustum || childNode->isInView(*viewFrustum)));
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
-            float distance = childNode->distanceToCamera(viewFrustum);
-            float boundaryDistance = boundaryDistanceForRenderLevel(*childNode->octalCode + 1);
+            float distance = viewFrustum ? childNode->distanceToCamera(*viewFrustum) : 0;
+            float boundaryDistance = viewFrustum ? boundaryDistanceForRenderLevel(*childNode->octalCode + 1) : 1;
 
             if (distance < boundaryDistance) {
                 inViewCount++;
@@ -808,7 +814,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                 
                 int thisLevel = currentEncodeLevel;
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(maxEncodeLevel, thisLevel, childNode, 
-                                                                     viewFrustum, outputBuffer, availableBytes, bag);
+                                                                     outputBuffer, availableBytes, bag, viewFrustum);
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
@@ -848,3 +854,46 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     } // end keepDiggingDeeper
     return bytesAtThisLevel;
 }
+
+bool VoxelTree::readFromFileV2(const char* fileName) {
+    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+    if(file.is_open()) {
+		printLog("loading file...\n");
+		
+		// get file length....
+        unsigned long fileLength = file.tellg();
+        file.seekg( 0, std::ios::beg );
+        
+        // read the entire file into a buffer, WHAT!? Why not.
+        unsigned char* entireFile = new unsigned char[fileLength];
+        file.read((char*)entireFile, fileLength);
+        readBitstreamToTree(entireFile, fileLength);
+        delete[] entireFile;
+    		
+        file.close();
+        return true;
+    }
+    return false;
+}
+
+void VoxelTree::writeToFileV2(const char* fileName) const {
+
+    std::ofstream file(fileName, std::ios::out|std::ios::binary);
+
+    if(file.is_open()) {
+        VoxelNodeBag nodeBag;
+        nodeBag.insert(rootNode);
+
+        static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+        int bytesWritten = 0;
+        
+        while (!nodeBag.isEmpty()) {
+            VoxelNode* subTree = nodeBag.extract();
+            bytesWritten = encodeTreeBitstream(INT_MAX, subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, NULL);
+                                                      
+            file.write((const char*)&outputBuffer[0], bytesWritten);
+        }
+    }
+    file.close();
+}
+

@@ -43,6 +43,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
+bool wantVoxelPersist = true;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
@@ -83,8 +84,6 @@ void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
     tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
     tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
-
-
     tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
     tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
@@ -245,9 +244,9 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree, viewFrustum, 
+                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag);
+                                                              agentData->nodeBag, &viewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -296,6 +295,16 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 agentData->incrementMaxSearchLevel();
             }
         }        
+    }
+}
+
+void persistVoxelsWhenDirty() {
+    // check the dirty bit and persist here...
+    if (::wantVoxelPersist && ::randomTree.isDirty()) {
+        printf("saving voxels to file...\n");
+        randomTree.writeToFileV2("voxels.hio2");
+        randomTree.clearDirtyBit(); // tree is clean after saving
+        printf("DONE saving voxels to file...\n");
     }
 }
 
@@ -349,7 +358,6 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
     }
 }
 
-
 int main(int argc, const char * argv[])
 {
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
@@ -359,9 +367,9 @@ int main(int argc, const char * argv[])
     const char* local = "--local";
     bool wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (wantLocalDomain) {
-    	printf("Local Domain MODE!\n");
-		int ip = getLocalAddress();
-		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        printf("Local Domain MODE!\n");
+        int ip = getLocalAddress();
+        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
     agentList->linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
@@ -370,56 +378,87 @@ int main(int argc, const char * argv[])
     
     srand((unsigned)time(0));
 
-	const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
+    const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
-	printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
-    
-	const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
+    printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+
+    const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-	printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
+    printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
 
-    // Check to see if the user passed in a command line option for loading a local
-	// Voxel File. If so, load it now.
-	const char* INPUT_FILE = "-i";
-    const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
-    if (voxelsFilename) {
-	    randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
-	}
+    // By default we will voxel persist, if you want to disable this, then pass in this parameter
+    const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
+    if (cmdOptionExists(argc, argv, NO_VOXEL_PERSIST)) {
+        ::wantVoxelPersist = false;
+    }
+    printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
 
-    // Check to see if the user passed in a command line option for setting packet send rate
-	const char* PACKETS_PER_SECOND = "--packetsPerSecond";
-    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
-    if (packetsPerSecond) {
-	    PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
-	    if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
-	        PACKETS_PER_CLIENT_PER_INTERVAL = 1;
-	    }
-    	printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
-	}
-    
-	const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
-	if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
-		// create an octal code buffer and load it with 0 so that the recursive tree fill can give
-		// octal codes to the tree nodes that it is creating
-	    randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
-	}
-	
-	const char* ADD_SPHERE = "--AddSphere";
-	const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
-	if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
-		addSphere(&randomTree,false,wantColorRandomizer);
-    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
-		addSphere(&randomTree,true,wantColorRandomizer);
+    // if we want Voxel Persistance, load the local file now...
+    bool persistantFileRead = false;
+    if (::wantVoxelPersist) {
+        printf("loading voxels from file...\n");
+        persistantFileRead = ::randomTree.readFromFileV2("voxels.hio2");
+        ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
+        printf("DONE loading voxels from file...\n");
+        _nodeCount=0;
+        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
+        printf("Nodes after loading scene %d nodes\n", _nodeCount);
     }
 
-	const char* NO_ADD_SCENE = "--NoAddScene";
-	if (!cmdOptionExists(argc, argv, NO_ADD_SCENE)) {
-		addSphereScene(&randomTree,wantColorRandomizer);
+    // Check to see if the user passed in a command line option for loading an old style local
+    // Voxel File. If so, load it now. This is not the same as a voxel persist file
+    const char* INPUT_FILE = "-i";
+    const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
+    if (voxelsFilename) {
+        randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+    }
+
+    // Check to see if the user passed in a command line option for setting packet send rate
+    const char* PACKETS_PER_SECOND = "--packetsPerSecond";
+    const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
+    if (packetsPerSecond) {
+        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+        if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
+            PACKETS_PER_CLIENT_PER_INTERVAL = 1;
+        }
+        printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, PACKETS_PER_CLIENT_PER_INTERVAL);
+    }
+    
+    const char* ADD_RANDOM_VOXELS = "--AddRandomVoxels";
+    if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
+        // create an octal code buffer and load it with 0 so that the recursive tree fill can give
+        // octal codes to the tree nodes that it is creating
+        randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+    }
+
+    const char* ADD_SPHERE = "--AddSphere";
+    const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
+    if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
+        addSphere(&randomTree,false,wantColorRandomizer);
+    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
+        addSphere(&randomTree,true,wantColorRandomizer);
+    }
+
+    const char* ADD_SCENE = "--AddScene";
+    bool addScene = cmdOptionExists(argc, argv, ADD_SCENE);
+    const char* NO_ADD_SCENE = "--NoAddScene";
+    bool noAddScene = cmdOptionExists(argc, argv, NO_ADD_SCENE);
+    if (addScene && noAddScene) {
+        printf("WARNING! --AddScene and --NoAddScene are mutually exclusive. We will honor --NoAddScene\n");
+    }
+
+    // We will add a scene if...
+    //      1) we attempted to load a persistant file and it wasn't there
+    //      2) you asked us to add a scene
+    // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
+    bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
+    if (actuallyAddScene) {
+        addSphereScene(&randomTree,wantColorRandomizer);
     }
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
-    
+
     sockaddr agentPublicAddress;
     
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
@@ -427,6 +466,9 @@ int main(int argc, const char * argv[])
 
     // loop to send to agents requesting data
     while (true) {
+        // check to see if we need to persist our voxel state
+        persistVoxelsWhenDirty();    
+    
         if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
