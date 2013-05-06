@@ -88,7 +88,11 @@ private:
 	const char* _message;
 	bool _renderWarningsOn;
 public:
-    PerformanceWarning(bool renderWarnings, const char* message);
+    PerformanceWarning(bool renderWarnings, const char* message) :
+        _start(usecTimestampNow()),
+        _message(message),
+        _renderWarningsOn(renderWarnings) { };
+    
     ~PerformanceWarning();
 };
 

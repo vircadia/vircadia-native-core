@@ -104,14 +104,6 @@ int PerfStat::DumpStats(char** array) {
 }
 
 
-// Constructor handles starting the warning timer
-PerformanceWarning::PerformanceWarning(bool renderWarnings, const char* message) {
-    _start = usecTimestampNow();
-	_message = message;
-	_renderWarningsOn = renderWarnings;
-	// need to also store the args...
-}
-
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
     double end = usecTimestampNow();
