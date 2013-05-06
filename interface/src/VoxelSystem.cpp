@@ -591,7 +591,6 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
 
 // "Remove" voxels from the tree that are not in view. We don't actually delete them,
 // we remove them from the tree and place them into a holding area for later deletion
-int removedCount;
 bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     VoxelSystem* thisVoxelSystem = (VoxelSystem*) extraData;
     _nodeCount++;
@@ -600,10 +599,6 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode && !childNode->isInView(*thisVoxelSystem->_viewFrustum)) {
             node->removeChildAtIndex(i);
-            removedCount++;
-            
-            // Note: VoxelNodeBag is more expensive than we need, because it checks octal code matches,
-            // we really just want a simple bag that checks pointers only, consider switching
             thisVoxelSystem->_removedVoxels.insert(childNode);
         }
     }
@@ -623,7 +618,6 @@ void VoxelSystem::removeOutOfView() {
     PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()"); // would like to include removedCount, _nodeCount, _removedVoxels.count()
     pthread_mutex_lock(&_voxelCleanupLock);
     _nodeCount = 0;
-    removedCount = 0;
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
     pthread_mutex_unlock(&_voxelCleanupLock);
 }
