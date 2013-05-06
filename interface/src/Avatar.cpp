@@ -151,6 +151,8 @@ Avatar::Avatar(bool isMine) {
 
     initializeSkeleton();
     
+    _avatarTouch.setReachableRadius(0.4);
+    
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -342,7 +344,8 @@ void Avatar::simulate(float deltaTime) {
     
     //update the movement of the hand and process handshaking with other avatars... 
     updateHandMovementAndTouching(deltaTime);
-        
+    
+    _avatarTouch.simulate(deltaTime);        
     
     // apply gravity and collision with the ground/floor
     if (USING_AVATAR_GRAVITY) {
@@ -448,32 +451,35 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             
     if (_isMine)
     {
-        //  Reset detector for nearest avatar
-        _distanceToNearestAvatar = std::numeric_limits<float>::max();
+        _avatarTouch.setMyBodyPosition(_position);
+        
+        Avatar * _interactingOther = NULL;
+        float closestDistance = 10000.0f;
     
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
-                
-                // check for collisions with other avatars and respond
-                //applyCollisionWithOtherAvatar(otherAvatar, deltaTime );
-                
-                // test other avatar hand position for proximity
-                glm::vec3 v(_joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position);
-                v -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_SHOULDER);
-                
-                //float distance = glm::length(v);
-                //if (distance < _distanceToNearestAvatar) {
-                //    _distanceToNearestAvatar = distance;
-                //}
+                 
+                // test whether shoulders are close enough to allow for reaching to touch hands
+                glm::vec3 v(_position - otherAvatar->_position);
+                float distance = glm::length(v);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    _interactingOther = otherAvatar;
+                }
             }
+        }
+
+        if (_interactingOther) {
+            _avatarTouch.setYourHandPosition(_interactingOther->_position);   
         }
         
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
+    // NOTE - the following must be called on all avatars - not just _isMine
     updateArmIKAndConstraints(deltaTime);
     
     if (_isMine) {
@@ -483,8 +489,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
  }
 
-	
-    
     
     
     
