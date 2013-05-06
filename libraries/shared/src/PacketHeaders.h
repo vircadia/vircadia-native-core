@@ -1,3 +1,4 @@
+
 //
 //  PacketHeaders.h
 //  hifi
@@ -24,5 +25,7 @@ const char PACKET_HEADER_VOXEL_DATA = 'V';
 const char PACKET_HEADER_BULK_AVATAR_DATA = 'X';
 const char PACKET_HEADER_TRANSMITTER_DATA = 't';
 const char PACKET_HEADER_ENVIRONMENT_DATA = 'e';
+const char PACKET_HEADER_DOMAIN_LIST_REQUEST = 'L';
+const char PACKET_HEADER_DOMAIN_RFD = 'C';
 
 #endif

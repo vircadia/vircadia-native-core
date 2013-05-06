@@ -44,6 +44,8 @@ double diffclock(timeval *clock1,timeval *clock2);
 
 void drawGroundPlaneGrid(float size);
 
+void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
+
 void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
 

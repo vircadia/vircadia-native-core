@@ -32,23 +32,32 @@
 #define HEAD_YAW_RATE 0
 #define HEAD_ROLL_RATE 2
 
+extern const bool USING_INVENSENSE_MPU9150;
+
 class SerialInterface {
 public:
-    SerialInterface() { active = false; };
+    SerialInterface() : active(false),
+                        _failedOpenAttempts(0) {}
     void pair();
     void readData();
+    
+    int getLastYaw() const { return _lastYaw; }
+    int getLastPitch() const { return _lastPitch; }
+    int getLastRoll() const { return _lastRoll; }
+    
     int getLED() {return LED;};
     int getNumSamples() {return samplesAveraged;};
     int getValue(int num) {return lastMeasured[num];};
     int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
     float getTrailingValue(int num) {return trailingAverage[num];};
+    
     void resetTrailingAverages();
     void renderLevels(int width, int height);
     bool active;
     glm::vec3 getGravity() {return gravity;};
     
 private:
-    int initializePort(char * portname, int baud);
+    int initializePort(char* portname, int baud);
     void resetSerial();
     int lastMeasured[NUM_CHANNELS];
     float trailingAverage[NUM_CHANNELS];
@@ -57,6 +66,10 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 gravity;
+    int _lastYaw;
+    int _lastPitch;
+    int _lastRoll;
+    int _failedOpenAttempts;
 };
 
 #endif
