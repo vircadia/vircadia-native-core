@@ -45,8 +45,6 @@ unsigned char packetData[MAX_PACKET_SIZE];
 
 const int LOGOFF_CHECK_INTERVAL = 5000;
 
-#define DEBUG_TO_SELF 0
-
 int lastActiveCount = 0;
 
 unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* agentToAdd) {
@@ -81,13 +79,13 @@ int main(int argc, const char * argv[])
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     ssize_t receivedBytes = 0;
-    char agentType;
+    char agentType = '\0';
     
-    unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    *broadcastPacket = PACKET_HEADER_DOMAIN;
+    unsigned char broadcastPacket[MAX_PACKET_SIZE];
+    broadcastPacket[0] = PACKET_HEADER_DOMAIN;
     
-    unsigned char *currentBufferPos;
-    unsigned char *startPointer;
+    unsigned char* currentBufferPos;
+    unsigned char* startPointer;
     int packetBytesWithoutLeadingChar;
     
     sockaddr_in agentPublicAddress, agentLocalAddress;
@@ -101,8 +99,8 @@ int main(int argc, const char * argv[])
         if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes)) {
             std::map<char, Agent *> newestSoloAgents;
             
-            agentType = packetData[0];
-            unpackSocket(&packetData[1], (sockaddr *)&agentLocalAddress);
+            agentType = packetData[1];
+            unpackSocket(&packetData[2], (sockaddr *)&agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -115,21 +113,21 @@ int main(int argc, const char * argv[])
 	            }
             }
             
-            if (agentList->addOrUpdateAgent((sockaddr *)&agentPublicAddress,
-                                           (sockaddr *)&agentLocalAddress,
+            if (agentList->addOrUpdateAgent((sockaddr*) &agentPublicAddress,
+                                           (sockaddr*) &agentLocalAddress,
                                            agentType,
                                            agentList->getLastAgentId())) {
-                
                 agentList->increaseAgentId();
-            
+            } else if (packetData[0] == PACKET_HEADER_DOMAIN_RFD) {
+                // if this is a previous agent, and they are re-reporting for duty
+                // then we need to update the first receive time
             }
             
             currentBufferPos = broadcastPacket + 1;
             startPointer = currentBufferPos;
             
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                if (DEBUG_TO_SELF ||
-                    !agent->matches((sockaddr *)&agentPublicAddress, (sockaddr *)&agentLocalAddress, agentType)) {
+                if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)) {
                     if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
                         // this is an agent of which there can be multiple, just add them to the packet
                         // don't send avatar agents to other avatars, that will come from avatar mixer
@@ -140,26 +138,26 @@ int main(int argc, const char * argv[])
                     } else {
                         // solo agent, we need to only send newest
                         if (newestSoloAgents[agent->getType()] == NULL ||
-                            newestSoloAgents[agent->getType()]->getFirstRecvTimeUsecs() < agent->getFirstRecvTimeUsecs()) {
+                            newestSoloAgents[agent->getType()]->getWakeMicrostamp() < agent->getWakeMicrostamp()) {
                             // we have to set the newer solo agent to add it to the broadcast later
                             newestSoloAgents[agent->getType()] = &(*agent);
                         }
                     }
                 } else {
                     // this is the agent, just update last receive to now
-                    agent->setLastRecvTimeUsecs(usecTimestampNow());
+                    agent->setLastHeardMicrostamp(usecTimestampNow());
                 }
             }
             
-            for (std::map<char, Agent *>::iterator agentIterator = newestSoloAgents.begin();
-                 agentIterator != newestSoloAgents.end();
-                 agentIterator++) {
+            for (std::map<char, Agent *>::iterator soloAgent = newestSoloAgents.begin();
+                 soloAgent != newestSoloAgents.end();
+                 soloAgent++) {
                 // this is the newest alive solo agent, add them to the packet
-                currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, agentIterator->second);
+                currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, soloAgent->second);
             }
             
             if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
-                agentList->getAgentSocket().send((sockaddr *)&agentPublicAddress,
+                agentList->getAgentSocket().send((sockaddr*) &agentPublicAddress,
                                                 broadcastPacket,
                                                 packetBytesWithoutLeadingChar + 1);
             }
