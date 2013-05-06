@@ -36,7 +36,8 @@ extern const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
-    SerialInterface();
+    SerialInterface() : active(false),
+                        _failedOpenAttempts(0) {}
     void pair();
     void readData();
     
