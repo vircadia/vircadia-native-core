@@ -130,8 +130,6 @@ int main(int argc, const char* argv[]) {
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
-    int numBytesToSend = 0;
-    
     timeval thisSend;
     double numMicrosecondsSleep = 0;
     
@@ -148,13 +146,16 @@ int main(int argc, const char* argv[]) {
         Agent *avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
         
         // make sure we actually have an avatar mixer with an active socket
-        if (avatarMixer != NULL && avatarMixer->getActiveSocket() != NULL) {
+        if (agentList->getOwnerID() != UNKNOWN_AGENT_ID && avatarMixer != NULL && avatarMixer->getActiveSocket() != NULL) {
+            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
+            packetPosition += packAgentId(packetPosition, agentList->getOwnerID());
+            
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer
-            numBytesToSend = eve.getBroadcastData((broadcastPacket + 1));
+            packetPosition += eve.getBroadcastData(packetPosition);
             
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
-            agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, numBytesToSend);
-        }
+            agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
+        }        
 
         // temporarily disable Eve's audio sending until the file is actually available on EC2 box
         if (numIterationsLeftBeforeAudioSend == 0) {
@@ -175,13 +176,12 @@ int main(int argc, const char* argv[]) {
                                     
         // simulate the effect of pressing and un-pressing the mouse button/pad
         handStateTimer++;
-        if ( handStateTimer == 100 ) { 
+        
+        if (handStateTimer == 100) {
             eve.setHandState(1);
-        }   
-        if ( handStateTimer == 150 ) { 
+        } else if (handStateTimer == 150) {
             eve.setHandState(0);
-        }   
-        if ( handStateTimer >= 200 ) { 
+        } else if (handStateTimer >= 200) {
             handStateTimer = 0;
         }   
     }
