@@ -52,6 +52,9 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
 
 void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
 
+void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition);
+void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
+
 
 class oTestCase {
 public:
