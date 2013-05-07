@@ -128,10 +128,13 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 // called on the other agents - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
-    // increment to push past the packet header and agent ID
-    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA) + sizeof(uint16_t);
+    // increment to push past the packet header
+    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
     
     unsigned char* startPosition = sourceBuffer;
+    
+    // push past the agent ID
+    sourceBuffer += + sizeof(uint16_t);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
