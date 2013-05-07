@@ -143,10 +143,10 @@ int main(int argc, const char* argv[]) {
         gettimeofday(&thisSend, NULL);
         
         // find the current avatar mixer
-        Agent *avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent* avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
         
         // make sure we actually have an avatar mixer with an active socket
-        if (agentList->getOwnerID() != UNKNOWN_AGENT_ID && avatarMixer != NULL && avatarMixer->getActiveSocket() != NULL) {
+        if (agentList->getOwnerID() != UNKNOWN_AGENT_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
             unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
             packetPosition += packAgentId(packetPosition, agentList->getOwnerID());
             
