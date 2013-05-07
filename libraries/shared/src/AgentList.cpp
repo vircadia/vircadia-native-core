@@ -123,7 +123,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     uint16_t agentID = -1;
     
     while ((currentPosition - startPosition) < numTotalBytes) {
-        currentPosition += unpackAgentId(currentPosition, &agentID);
+        unpackAgentId(currentPosition, &agentID);
         memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
         
         Agent* matchingAgent = agentWithID(agentID);
