@@ -548,7 +548,7 @@ int main(int argc, const char * argv[])
             // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 uint16_t agentID = 0;
-                unpackAgentId(packetData + 1, &agentID);
+                unpackAgentId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &agentID);
                 agentList->addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, AGENT_TYPE_AVATAR, agentID);
                 
                 agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
