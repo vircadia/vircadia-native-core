@@ -64,7 +64,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
-    _ownerID(-1),
+    _ownerID(UNKNOWN_AGENT_ID),
     lastAgentId(0) {
     pthread_mutex_init(&mutex, 0);
 }

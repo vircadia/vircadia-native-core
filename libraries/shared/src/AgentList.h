@@ -31,6 +31,8 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
+const int UNKNOWN_AGENT_ID = -1;
+
 class AgentListIterator;
 
 class AgentList {

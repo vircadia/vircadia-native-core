@@ -431,7 +431,7 @@ void updateAvatar(float frametime) {
     
     AgentList *agentList = AgentList::getInstance();
     
-    if (agentList->getOwnerID() >= 0) {
+    if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
         unsigned char broadcastString[200];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
