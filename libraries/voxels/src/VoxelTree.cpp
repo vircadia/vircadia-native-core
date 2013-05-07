@@ -456,28 +456,30 @@ void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, r
     }
 }
 
-void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
+void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float voxelSize, 
+        bool solid, bool wantColorRandomizer, bool debug) {
+        
     // About the color of the sphere... we're going to make this sphere be a gradient
     // between two RGB colors. We will do the gradient along the phi spectrum
-    unsigned char dominantColor1 = randIntInRange(1,3); //1=r, 2=g, 3=b dominant
-    unsigned char dominantColor2 = randIntInRange(1,3);
+    unsigned char dominantColor1 = randIntInRange(1, 3); //1=r, 2=g, 3=b dominant
+    unsigned char dominantColor2 = randIntInRange(1, 3);
     
-    if (dominantColor1==dominantColor2) {
-    	dominantColor2 = dominantColor1+1%3;
+    if (dominantColor1 == dominantColor2) {
+    	dominantColor2 = dominantColor1 + 1 % 3;
     }
     
-    unsigned char r1 = (dominantColor1==1)?randIntInRange(200,255):randIntInRange(40,100);
-    unsigned char g1 = (dominantColor1==2)?randIntInRange(200,255):randIntInRange(40,100);
-    unsigned char b1 = (dominantColor1==3)?randIntInRange(200,255):randIntInRange(40,100);
-    unsigned char r2 = (dominantColor2==1)?randIntInRange(200,255):randIntInRange(40,100);
-    unsigned char g2 = (dominantColor2==2)?randIntInRange(200,255):randIntInRange(40,100);
-    unsigned char b2 = (dominantColor2==3)?randIntInRange(200,255):randIntInRange(40,100);
+    unsigned char r1 = (dominantColor1 == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
+    unsigned char g1 = (dominantColor1 == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
+    unsigned char b1 = (dominantColor1 == 3) ? randIntInRange(200, 255) : randIntInRange(40, 100);
+    unsigned char r2 = (dominantColor2 == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
+    unsigned char g2 = (dominantColor2 == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
+    unsigned char b2 = (dominantColor2 == 3) ? randIntInRange(200, 255) : randIntInRange(40, 100);
 
 	// We initialize our rgb to be either "grey" in case of randomized surface, or
 	// the average of the gradient, in the case of the gradient sphere.
-    unsigned char red   = wantColorRandomizer ? 128 : (r1+r2)/2; // average of the colors
-    unsigned char green = wantColorRandomizer ? 128 : (g1+g2)/2;
-    unsigned char blue  = wantColorRandomizer ? 128 : (b1+b2)/2;
+    unsigned char red   = wantColorRandomizer ? 128 : (r1 + r2) / 2; // average of the colors
+    unsigned char green = wantColorRandomizer ? 128 : (g1 + g2) / 2;
+    unsigned char blue  = wantColorRandomizer ? 128 : (b1 + b2) / 2;
     
     // Psuedocode for creating a sphere:
     //
@@ -486,50 +488,54 @@ void VoxelTree::createSphere(float r,float xc, float yc, float zc, float s, bool
 	//          x = xc+r*cos(theta)*sin(phi)
 	//          y = yc+r*sin(theta)*sin(phi)
 	//          z = zc+r*cos(phi)
-	
-	int t=0; // total points
-
-    // We want to make sure that as we "sweep" through our angles we use a delta angle that's small enough to not skip any 
-    // voxels we can calculate theta from our desired arc length
-	//      lenArc = ndeg/360deg * 2pi*R  --->  lenArc = theta/2pi * 2pi*R
-	//      lenArc = theta*R ---> theta = lenArc/R ---> theta = g/r	
-	float angleDelta = (s/r);
 
 	// assume solid for now
-	float ri = 0.0;
+	float thisRadius = 0.0;
+	float thisVoxelSize = radius / 4.0f;
     
 	if (!solid) {
-		ri=r; // just the outer surface
+		thisRadius = radius; // just the outer surface
+		thisVoxelSize = voxelSize;
 	}
 	
 	// If you also iterate form the interior of the sphere to the radius, makeing
-	// larger and larger sphere's you'd end up with a solid sphere. And lots of voxels!
-	for (; ri <= (r+(s/2.0)); ri+=s) {
-		//printLog("radius: ri=%f ri+s=%f (r+(s/2.0))=%f\n",ri,ri+s,(r+(s/2.0)));
-		for (float theta=0.0; theta <= 2*M_PI; theta += angleDelta) {
+	// larger and larger sphere'voxelSize you'd end up with a solid sphere. And lots of voxels!
+	while (thisRadius <= (radius + (voxelSize / 2.0))) {
+		if (debug) { 
+		    printLog("radius: thisRadius=%f thisVoxelSize=%f thisRadius+thisVoxelSize=%f (radius+(voxelSize/2.0))=%f\n", 
+		        thisRadius, thisVoxelSize, thisRadius+thisVoxelSize, (radius + (voxelSize / 2.0))); 
+		}
+        // We want to make sure that as we "sweep" through our angles we use a delta angle that voxelSize 
+        // small enough to not skip any voxels we can calculate theta from our desired arc length
+        //      lenArc = ndeg/360deg * 2pi*R  --->  lenArc = theta/2pi * 2pi*R
+        //      lenArc = theta*R ---> theta = lenArc/R ---> theta = g/r	
+        float angleDelta = (thisVoxelSize / thisRadius);
+
+		for (float theta=0.0; theta <= 2 * M_PI; theta += angleDelta) {
 			for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
-				t++; // total voxels
-				float x = xc+ri*cos(theta)*sin(phi);
-				float y = yc+ri*sin(theta)*sin(phi);
-				float z = zc+ri*cos(phi);
+				float x = xc + thisRadius * cos(theta) * sin(phi);
+				float y = yc + thisRadius * sin(theta) * sin(phi);
+				float z = zc + thisRadius * cos(phi);
                 
                 // gradient color data
-                float gradient = (phi/M_PI);
+                float gradient = (phi / M_PI);
                 
                 // only use our actual desired color on the outer edge, otherwise
                 // use our "average" color
-                if (ri+(s*2.0)>=r) {
-					//printLog("painting candy shell radius: ri=%f r=%f\n",ri,r);
-					red   = wantColorRandomizer ? randomColorValue(165) : r1+((r2-r1)*gradient);
-					green = wantColorRandomizer ? randomColorValue(165) : g1+((g2-g1)*gradient);
-					blue  = wantColorRandomizer ? randomColorValue(165) : b1+((b2-b1)*gradient);
+                if (thisRadius + (voxelSize * 2.0) >= radius) {
+					//printLog("painting candy shell radius: thisRadius=%f radius=%f\n",thisRadius,radius);
+					red   = wantColorRandomizer ? randomColorValue(165) : r1 + ((r2 - r1) * gradient);
+					green = wantColorRandomizer ? randomColorValue(165) : g1 + ((g2 - g1) * gradient);
+					blue  = wantColorRandomizer ? randomColorValue(165) : b1 + ((b2 - b1) * gradient);
 				}				
 				
-				unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
+				unsigned char* voxelData = pointToVoxel(x, y, z, thisVoxelSize, red, green, blue);
                 this->readCodeColorBufferToTree(voxelData);
                 delete voxelData;
 			}
 		}
+        thisRadius += thisVoxelSize;
+	    thisVoxelSize = std::max(voxelSize, thisVoxelSize / 2.0f);
 	}
 	this->reaverageVoxelColors(this->rootNode);
 }
