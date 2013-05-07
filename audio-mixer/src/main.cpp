@@ -215,8 +215,7 @@ void *sendBuffer(void *args) {
                             
                             if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                                 plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
-                                                         currentSample *
-                                                         weakChannelAmplitudeRatio);
+                                                         currentSample * weakChannelAmplitudeRatio);
                             }
                         }
                     }
