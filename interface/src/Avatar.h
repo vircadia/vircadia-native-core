@@ -101,13 +101,6 @@ public:
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
-
-    /*
-    const glm::vec3& getHeadRightDirection() const { return _orientation.getRight(); };
-    const glm::vec3& getHeadUpDirection   () const { return _orientation.getUp   (); };
-    const glm::vec3& getHeadFrontDirection() const { return _orientation.getFront(); };
-    */
-    
     const glm::vec3& getHeadPosition() const ;
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
@@ -117,8 +110,8 @@ public:
     
     AvatarMode getMode();
     
-    void setMousePressed( bool pressed ); 
-    void render(bool lookingInMirror);
+    void setMousePressed(bool pressed); 
+    void render(bool lookingInMirrorm, glm::vec3 cameraPosition);
     void renderBody();
     void renderHead(bool lookingInMirror);
     void simulate(float);
@@ -241,7 +234,6 @@ private:
     float       _transmitterHz;
     int         _transmitterPackets;
     glm::vec3   _transmitterInitialReading;
-    Avatar*     _interactingOther;
     float       _pelvisStandingHeight;
     float       _height;
     Balls*      _balls;
@@ -260,8 +252,9 @@ private:
     void readSensors();
     void updateHead( float deltaTime );
     void updateHandMovementAndTouching(float deltaTime);
+    void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
-    void updateCollisionWithOtherAvatar( Avatar * other, float deltaTime );
+    void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
 };

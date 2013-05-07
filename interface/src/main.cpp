@@ -692,14 +692,14 @@ void displaySide(Camera& whichCamera) {
 	float sphereRadius = 0.25f;
     glColor3f(1,0,0);
     glPushMatrix();
-        glutSolidSphere( sphereRadius, 15, 15 );
+        glutSolidSphere(sphereRadius, 15, 15);
     glPopMatrix();
 
     //draw a grid ground plane....
     drawGroundPlaneGrid(10.f);
 	
     //  Draw voxels
-    if ( showingVoxels )
+    if (showingVoxels)
     {
         voxels.render();
     }
@@ -710,7 +710,7 @@ void displaySide(Camera& whichCamera) {
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *avatar = (Avatar *)agent->getLinkedData();
-            avatar->render(0);
+            avatar->render(0, ::myCamera.getPosition());
         }
     }
     agentList->unlock();
@@ -722,7 +722,7 @@ void displaySide(Camera& whichCamera) {
     if (::frustumOn) renderViewFrustum(::viewFrustum);
 
     //Render my own avatar
-	myAvatar.render(::lookingInMirror);
+	myAvatar.render(::lookingInMirror, ::myCamera.getPosition());
 	
 	glPopMatrix();
 }
@@ -984,15 +984,15 @@ void display(void)
         glMateriali(GL_FRONT, GL_SHININESS, 96);
 
         // camera settings
-        if ( ::lookingInMirror ) {
+        if (::lookingInMirror) {
             // set the camera to looking at my own face
-            myCamera.setTargetPosition  ( myAvatar.getHeadPosition() );
-            myCamera.setTargetYaw       ( myAvatar.getBodyYaw() - 180.0f ); // 180 degrees from body yaw
-            myCamera.setPitch           ( 0.0 );
-            myCamera.setRoll            ( 0.0 );
-            myCamera.setUpShift         ( 0.0 );	
-            myCamera.setDistance        ( 0.2 );
-            myCamera.setTightness       ( 100.0f );
+            myCamera.setTargetPosition  (myAvatar.getHeadPosition());
+            myCamera.setTargetYaw       (myAvatar.getBodyYaw() - 180.0f); // 180 degrees from body yaw
+            myCamera.setPitch           (0.0);
+            myCamera.setRoll            (0.0);
+            myCamera.setUpShift         (0.0);	
+            myCamera.setDistance        (0.2);
+            myCamera.setTightness       (100.0f);
 		} else {
 
             //float firstPersonPitch     =  20.0f;
@@ -1010,36 +1010,24 @@ void display(void)
             float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
                         
-            if ( USING_FIRST_PERSON_EFFECT ) {
+            if (USING_FIRST_PERSON_EFFECT) {
                 float ff = 0.0;
                 float min = 0.1;
                 float max = 0.5;
 
-                if ( myAvatar.getIsNearInteractingOther()){
-                    if ( myAvatar.getSpeed() < max ) {
+                if (myAvatar.getIsNearInteractingOther()){
+                    if (myAvatar.getSpeed() < max) {
                     
                         float s = (myAvatar.getSpeed()- min)/max ;    
                         ff = 1.0 - s;
                     }
                 }
-               
-                /*
-                if ( ff < 0.8 ) {
-                    myAvatar.setDisplayingHead( true );
-                } else {
-                    myAvatar.setDisplayingHead( false );
-                }
-                */
-                
-                 //printf( "ff = %f\n", ff );
 
-                myCamera.setPitch	   ( thirdPersonPitch     + ff * ( firstPersonPitch     - thirdPersonPitch     ));
-                myCamera.setUpShift    ( thirdPersonUpShift   + ff * ( firstPersonUpShift   - thirdPersonUpShift   ));
-                myCamera.setDistance   ( thirdPersonDistance  + ff * ( firstPersonDistance  - thirdPersonDistance  ));
-                myCamera.setTightness  ( thirdPersonTightness + ff * ( firstPersonTightness - thirdPersonTightness ));                
+                myCamera.setPitch	   (thirdPersonPitch     + ff * (firstPersonPitch     - thirdPersonPitch    ));
+                myCamera.setUpShift    (thirdPersonUpShift   + ff * (firstPersonUpShift   - thirdPersonUpShift  ));
+                myCamera.setDistance   (thirdPersonDistance  + ff * (firstPersonDistance  - thirdPersonDistance ));
+                myCamera.setTightness  (thirdPersonTightness + ff * (firstPersonTightness - thirdPersonTightness));                
                 
-                
-                    
                 // this version uses a ramp-up/ramp-down timer in the camera to determine shift between first and thirs-person view 
                 /*
                 if ( myAvatar.getSpeed() < 0.02 ) {   
@@ -1073,13 +1061,13 @@ void display(void)
                 myCamera.setTightness(thirdPersonTightness);
             }
                 
-            myCamera.setTargetPosition( myAvatar.getHeadPosition() );
-            myCamera.setTargetYaw     ( myAvatar.getBodyYaw() );
-            myCamera.setRoll          (   0.0  );
+            myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetYaw     (myAvatar.getBodyYaw());
+            myCamera.setRoll          (0.0);
 		}
                 
         // important...
-        myCamera.update( 1.f/FPS );
+        myCamera.update(1.f/FPS);
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
@@ -1095,11 +1083,11 @@ void display(void)
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
             // set the camera to third-person view but offset so we can see the frustum
-            viewFrustumOffsetCamera.setTargetYaw(  ::viewFrustumOffsetYaw + myAvatar.getBodyYaw() );
-            viewFrustumOffsetCamera.setPitch    (  ::viewFrustumOffsetPitch    );
-            viewFrustumOffsetCamera.setRoll     (  ::viewFrustumOffsetRoll     ); 
-            viewFrustumOffsetCamera.setUpShift  (  ::viewFrustumOffsetUp       );
-            viewFrustumOffsetCamera.setDistance (  ::viewFrustumOffsetDistance );
+            viewFrustumOffsetCamera.setTargetYaw(::viewFrustumOffsetYaw + myAvatar.getBodyYaw() );
+            viewFrustumOffsetCamera.setPitch    (::viewFrustumOffsetPitch   );
+            viewFrustumOffsetCamera.setRoll     (::viewFrustumOffsetRoll    ); 
+            viewFrustumOffsetCamera.setUpShift  (::viewFrustumOffsetUp      );
+            viewFrustumOffsetCamera.setDistance (::viewFrustumOffsetDistance);
             viewFrustumOffsetCamera.update(1.f/FPS);
             whichCamera = viewFrustumOffsetCamera;
         }		
@@ -1109,11 +1097,11 @@ void display(void)
 		// or could be viewFrustumOffsetCamera if in offset mode
 		// I changed the ordering here - roll is FIRST (JJV) 
 
-        glRotatef   (         whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z );
-        glRotatef   (         whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z );
-        glRotatef   ( 180.0 - whichCamera.getYaw(),	  IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z    );
+        glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
+        glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
+        glRotatef   (180.0 - whichCamera.getYaw(),	 IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
 
-        glTranslatef( -whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z );
+        glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
 
         if (::oculusOn) {
             displayOculus(whichCamera);
@@ -1666,18 +1654,16 @@ void idle(void) {
 
         // update behaviors for avatar hand movement: handControl takes mouse values as input, 
         // and gives back 3D values modulated for smooth transitioning between interaction modes.
-        handControl.update( mouseX, mouseY );
-        myAvatar.setHandMovementValues( handControl.getValues() );		
+        handControl.update(mouseX, mouseY);
+        myAvatar.setHandMovementValues(handControl.getValues());		
         
 		// tell my avatar if the mouse is being pressed...
-		if ( mousePressed == 1 ) {
-			myAvatar.setMousePressed( true );
-		} else {
-			myAvatar.setMousePressed( false );
-		}
-        
+        if (mousePressed) {
+            myAvatar.setMousePressed(mousePressed);
+        }
+           
         // walking triggers the handControl to stop
-        if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
+        if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
 		}
         
@@ -1870,7 +1856,7 @@ int main(int argc, const char * argv[])
     
 #ifdef _WIN32
     WSADATA WsaData;
-    int wsaresult = WSAStartup( MAKEWORD(2,2), &WsaData );
+    int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
 #endif
 
     // start the agentList threads
