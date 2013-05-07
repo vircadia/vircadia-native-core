@@ -172,6 +172,11 @@ void *sendBuffer(void *args) {
                         bearingRelativeAngleToSource *= (M_PI / 180);
                         
                         float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
+                        
+                        if (angleOfDelivery < -180) {
+                            angleOfDelivery += 360;
+                        }
+                        
                         float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
                             (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                         
