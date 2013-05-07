@@ -62,7 +62,7 @@ void addScene(VoxelTree * tree) {
 
     // Now some more examples... creating some lines using the line primitive
     printf("creating voxel lines...\n");
-    // We want our corner voxels to be about 1/8 meter high, and our TREE_SCALE is in meters, so...    
+    // We want our line voxels to be about 1/32 meter high, and our TREE_SCALE is in meters, so...    
     float lineVoxelSize = 1.f / (32 * TREE_SCALE);
     rgbColor red   = {255, 0, 0};
     rgbColor green = {0, 255, 0};
