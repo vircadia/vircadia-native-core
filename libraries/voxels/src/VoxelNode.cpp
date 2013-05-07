@@ -20,29 +20,41 @@ using voxels_lib::printLog;
 // using voxels_lib::printLog;
 
 VoxelNode::VoxelNode() {
-    octalCode = NULL;
+    unsigned char* rootCode = new unsigned char[1];
+    *rootCode = 0;
+    init(rootCode);
+}
+
+VoxelNode::VoxelNode(unsigned char * octalCode) {
+    init(octalCode);
+}
+
+void VoxelNode::init(unsigned char * octalCode) {
+    _octalCode = octalCode;
     
 #ifdef HAS_FALSE_COLOR
     _falseColored = false; // assume true color
 #endif
     
     // default pointers to child nodes to NULL
-    for (int i = 0; i < 8; i++) {
-        children[i] = NULL;
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        _children[i] = NULL;
     }
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
     _isDirty = true;
     _shouldRender = false;
+    
+    calculateAABox();
 }
 
 VoxelNode::~VoxelNode() {
-    delete[] octalCode;
+    delete[] _octalCode;
     
     // delete all of this node's children
-    for (int i = 0; i < 8; i++) {
-        if (children[i]) {
-            delete children[i];
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        if (_children[i]) {
+            delete _children[i];
         }
     }
 }
@@ -55,33 +67,47 @@ void VoxelNode::setShouldRender(bool shouldRender) {
     }
 }
 
-void VoxelNode::getAABox(AABox& box) const {
+void VoxelNode::calculateAABox() {
     
     glm::vec3 corner;
     glm::vec3 size;
     
     // copy corner into box
-    copyFirstVertexForCode(octalCode,(float*)&corner);
+    copyFirstVertexForCode(_octalCode,(float*)&corner);
     
     // this tells you the "size" of the voxel
-    float voxelScale = 1 / powf(2, *octalCode);
+    float voxelScale = 1 / powf(2, *_octalCode);
     size = glm::vec3(voxelScale,voxelScale,voxelScale);
     
-    box.setBox(corner,size);
+    _box.setBox(corner,size);
+}
+
+void VoxelNode::deleteChildAtIndex(int childIndex) {
+    if (_children[childIndex]) {
+        delete _children[childIndex];
+        _children[childIndex] = NULL;
+    }
+}
+
+// does not delete the node!
+VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
+    VoxelNode* returnedChild = _children[childIndex];
+    if (_children[childIndex]) {
+        _children[childIndex] = NULL;
+    }
+    return returnedChild;
 }
 
 void VoxelNode::addChildAtIndex(int childIndex) {
-    if (!children[childIndex]) {
-        children[childIndex] = new VoxelNode();
+    if (!_children[childIndex]) {
+        _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
     
         // XXXBHG - When the node is constructed, it should be cleanly set up as 
         // true colored, but for some reason, not so much. I've added a a basecamp
         // to-do to research this. But for now we'll use belt and suspenders and set
         // it to not-false-colored here!
-        children[childIndex]->setFalseColored(false);
+        _children[childIndex]->setFalseColored(false);
     
-        // give this child its octal code
-        children[childIndex]->octalCode = childOctalCode(octalCode, childIndex);
         _isDirty = true;
     }
 }
@@ -89,10 +115,10 @@ void VoxelNode::addChildAtIndex(int childIndex) {
 // will average the child colors...
 void VoxelNode::setColorFromAverageOfChildren() {
 	int colorArray[4] = {0,0,0,0};
-	for (int i = 0; i < 8; i++) {
-		if (children[i] != NULL && children[i]->isColored()) {
+	for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+		if (_children[i] && _children[i]->isColored()) {
 			for (int j = 0; j < 3; j++) {
-				colorArray[j] += children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
+				colorArray[j] += _children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
 			}
 			colorArray[3]++;
 		}
@@ -168,19 +194,19 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	// scan children, verify that they are ALL present and accounted for
 	bool allChildrenMatch = true; // assume the best (ottimista)
 	int red,green,blue;
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
 		// if no child, or child doesn't have a color
-		if (children[i] == NULL || !children[i]->isColored()) {
+		if (!_children[i] || !_children[i]->isColored()) {
 			allChildrenMatch=false;
 			//printLog("SADNESS child missing or not colored! i=%d\n",i);
 			break;
 		} else {
 			if (i==0) {
-				red   = children[i]->getColor()[0];
-				green = children[i]->getColor()[1];
-				blue  = children[i]->getColor()[2];
-			} else if (red != children[i]->getColor()[0] || 
-                    green != children[i]->getColor()[1] || blue != children[i]->getColor()[2]) {
+				red   = _children[i]->getColor()[0];
+				green = _children[i]->getColor()[1];
+				blue  = _children[i]->getColor()[2];
+			} else if (red != _children[i]->getColor()[0] || 
+                    green != _children[i]->getColor()[1] || blue != _children[i]->getColor()[2]) {
 				allChildrenMatch=false;
 				break;
 			}
@@ -190,9 +216,9 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	
 	if (allChildrenMatch) {
 		//printLog("allChildrenMatch: pruning tree\n");
-		for (int i = 0; i < 8; i++) {
-			delete children[i]; // delete all the child nodes
-			children[i]=NULL; // set it to NULL
+		for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+			delete _children[i]; // delete all the child nodes
+			_children[i]=NULL; // set it to NULL
 		}
 		nodeColor collapsedColor;
 		collapsedColor[0]=red;		
@@ -215,8 +241,8 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
 }
 
 bool VoxelNode::isLeaf() const {
-    for (int i = 0; i < 8; i++) {
-        if (children[i]) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        if (_children[i]) {
             return false;
         }
     }
@@ -224,27 +250,22 @@ bool VoxelNode::isLeaf() const {
 }
 
 void VoxelNode::printDebugDetails(const char* label) const {
-    AABox box;
-    getAABox(box);
     printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=", label,
-        box.getCorner().x, box.getCorner().y, box.getCorner().z, box.getSize().x);
-    printOctalCode(octalCode);
+        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x);
+    printOctalCode(_octalCode);
 }
 
 bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
-    AABox box;
-    getAABox(box);
+    AABox box = _box; // use temporary box so we can scale it
     box.scale(TREE_SCALE);
     bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
     return inView;
 }
 
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
-    AABox box;
-    getAABox(box);
-    box.scale(TREE_SCALE);
-    float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - (box.getCorner().x + box.getSize().x), 2) +
-                                        powf(viewFrustum.getPosition().y - (box.getCorner().y + box.getSize().y), 2) +
-                                        powf(viewFrustum.getPosition().z - (box.getCorner().z + box.getSize().z), 2));
+    glm::vec3 center = _box.getCenter() * (float)TREE_SCALE;
+    float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - center.x, 2) +
+                                        powf(viewFrustum.getPosition().y - center.y, 2) +
+                                        powf(viewFrustum.getPosition().z - center.z, 2));
     return distanceToVoxelCenter;
 }
