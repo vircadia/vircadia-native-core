@@ -115,16 +115,17 @@ void drawVector(glm::vec3 * vector) {
 
 //  Render a 2D set of squares using perlin/fractal noise
 void noiseTest(int w, int h) {
-    const float CELLS = 100;
+    const float CELLS = 500;
+    const float NOISE_SCALE = 10.0;
     float xStep = (float) w / CELLS;
     float yStep = (float) h / CELLS;
     glBegin(GL_QUADS);    
     for (float x = 0; x < (float)w; x += xStep) {
         for (float y = 0; y < (float)h; y += yStep) {
             //  Generate a vector varying between 0-1 corresponding to the screen location 
-            glm::vec2 position(x / (float) w, y / (float) h);
+            glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
             //  Set the cell color using the noise value at that location
-            float color = glm::simplex(position);
+            float color = glm::perlin(position);
             glColor4f(color, color, color, 1.0);
             glVertex2f(x, y);
             glVertex2f(x + xStep, y);
