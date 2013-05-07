@@ -40,6 +40,8 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
 
+void noiseTest(int w, int h);
+
 void drawVector(glm::vec3* vector);
 
 float angleBetween(glm::vec3 * v1, glm::vec3 * v2); 

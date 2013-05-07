@@ -62,8 +62,8 @@ bool usingBigSphereCollisionTest = true;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
-float chatMessageScale = 0.001;
-float chatMessageHeight = 0.4;
+float chatMessageScale = 0.0015;
+float chatMessageHeight = 0.45;
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
