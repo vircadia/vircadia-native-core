@@ -52,7 +52,7 @@ void *receiveAgentData(void *args) {
                     // avatar mixer - this makes sure it won't be killed during silent agent removal
                     avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
                     
-                    if (avatarMixer != NULL) {
+                    if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                     }
                     
@@ -77,9 +77,9 @@ void *injectAudio(void *args) {
     // look for an audio mixer in our agent list
     Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
     
-    if (audioMixer != NULL) {
+    if (audioMixer) {
         // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
-        if (audioMixer->getActiveSocket() == NULL) {
+        if (!audioMixer->getActiveSocket()) {
             audioMixer->activatePublicSocket();
         }
         
@@ -117,9 +117,9 @@ int main(int argc, const char* argv[]) {
     // move eve away from the origin
     // pick a random point inside a 10x10 grid
     
-    eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION), 
+    eve.setPosition(glm::vec3(randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION),
                               1.33, // this should be the same as the avatar's pelvis standing height 
-                              randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
+                              randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION)));
     
     // face any instance of eve down the z-axis
     eve.setBodyYaw(0);
