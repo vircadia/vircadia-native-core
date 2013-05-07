@@ -152,28 +152,26 @@ void SerialInterface::renderLevels(int width, int height) {
     const int GAP = 16;
     char val[40];
     if (!USING_INVENSENSE_MPU9150) {
-        for(i = 0; i < NUM_CHANNELS; i++)
-        {
-            
+        for(i = 0; i < NUM_CHANNELS; i++) {
             //  Actual value
             glLineWidth(2.0);
             glColor4f(1, 1, 1, 1);
             glBegin(GL_LINES);
-            glVertex2f(disp_x, height*0.95);
-            glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
+            glVertex2f(disp_x, height * 0.95);
+            glVertex2f(disp_x, height * (0.25 + 0.75f * getValue(i) / 4096));
             glColor4f(1, 0, 0, 1);
-            glVertex2f(disp_x - 3, height*(0.25 + 0.75f*getValue(i)/4096));
-            glVertex2f(disp_x, height*(0.25 + 0.75f*getValue(i)/4096));
+            glVertex2f(disp_x - 3, height * (0.25 + 0.75f * getValue(i) / 4096));
+            glVertex2f(disp_x, height * (0.25 + 0.75f * getValue(i) / 4096));
             glEnd();
             //  Trailing Average value
             glBegin(GL_LINES);
             glColor4f(1, 1, 1, 1);
-            glVertex2f(disp_x, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
-            glVertex2f(disp_x + 4, height*(0.25 + 0.75f*getTrailingValue(i)/4096));
+            glVertex2f(disp_x, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
+            glVertex2f(disp_x + 4, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
             glEnd();
             
             sprintf(val, "%d", getValue(i));
-            drawtext(disp_x-GAP/2, (height*0.95)+2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
+            drawtext(disp_x - GAP / 2, (height * 0.95) + 2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
             
             disp_x += GAP;
         }
@@ -207,9 +205,8 @@ void SerialInterface::renderLevels(int width, int height) {
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
         glEnd();
-        
-
     }
+    
     //  Display Serial latency block
     if (LED) {
         glColor3f(1,0,0);
