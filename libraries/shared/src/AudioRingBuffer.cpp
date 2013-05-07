@@ -122,6 +122,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
             bearing = bearing  > 0
                 ? bearing - AGENT_LOOPBACK_MODIFIER
                 : bearing + AGENT_LOOPBACK_MODIFIER;
+        } else {
+            _shouldLoopbackForAgent = false;
         }
         
         dataPtr += sizeof(float);
