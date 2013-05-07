@@ -26,6 +26,8 @@ EnvironmentData::EnvironmentData() :
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
+    *destinationBuffer++ = PACKET_HEADER_ENVIRONMENT_DATA;  
+      
     memcpy(destinationBuffer, &_atmosphereCenter, sizeof(_atmosphereCenter));
     destinationBuffer += sizeof(_atmosphereCenter);
 

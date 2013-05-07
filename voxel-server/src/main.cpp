@@ -13,6 +13,7 @@
 #include <OctalCode.h>
 #include <AgentList.h>
 #include <AgentTypes.h>
+#include <EnvironmentData.h>
 #include <VoxelTree.h>
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
@@ -47,6 +48,8 @@ bool wantVoxelPersist = true;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
+
+EnvironmentData environmentData;
 
 void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
 	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
@@ -237,7 +240,7 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
         int trueBytesSent = 0;
         double start = usecTimestampNow();
 
-        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL) {
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - 1) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
@@ -267,6 +270,12 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
+        // send the environment packet
+        int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
+        agentList->getAgentSocket().send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+        trueBytesSent += envPacketLength;
+        truePacketsSent++;
+        
         double end = usecTimestampNow();
         double elapsedmsec = (end - start)/1000.0;
         if (elapsedmsec > 100) {
