@@ -436,17 +436,22 @@ void updateAvatar(float frametime) {
     myAvatar.setCameraAspectRatio(::viewFrustum.getAspectRatio());
     myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
     myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
-
-    //  Send my stream of head/hand data to the avatar mixer and voxel server
-    unsigned char broadcastString[200];
-    *broadcastString = PACKET_HEADER_HEAD_DATA;
     
-    int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
-    broadcastBytes++;
+    AgentList *agentList = AgentList::getInstance();
     
-    const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
-    
-    AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
+    if (agentList->getOwnerID() >= 0) {
+        // if I know my ID, send head/hand data to the avatar mixer and voxel server
+        unsigned char broadcastString[200];
+        unsigned char* endOfBroadcastStringWrite = broadcastString;
+        
+        *(endOfBroadcastStringWrite++) = PACKET_HEADER_HEAD_DATA;
+        endOfBroadcastStringWrite += packAgentId(endOfBroadcastStringWrite, agentList->getOwnerID());
+        
+        endOfBroadcastStringWrite += myAvatar.getBroadcastData(endOfBroadcastStringWrite);
+        
+        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
+        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, 2);
+    }
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {

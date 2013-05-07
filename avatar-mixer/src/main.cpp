@@ -69,17 +69,20 @@ int main(int argc, const char* argv[])
     *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
     
     unsigned char* currentBufferPosition = NULL;
+    
+    uint16_t agentID = 0;
         
     while (true) {
         if (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
-                    // add this agent if we don't have them yet
-                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentList->getLastAgentId())) {
-                        agentList->increaseAgentId();
-                    }
+                    // grab the agent ID from the packet
+                    unpackAgentId(packetData + 1, &agentID);
                     
-                    // this is positional data from an agent
+                    // add or update the agent in our list
+                    agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentID);
+                    
+                    // parse positional data from an agent
                     agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                 
                     currentBufferPosition = broadcastPacket + 1;
