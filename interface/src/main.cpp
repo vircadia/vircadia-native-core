@@ -1438,8 +1438,7 @@ void setupPaintingVoxel() {
 	shiftPaintingColor();
 }
 
-void addRandomSphere(bool wantColorRandomizer)
-{
+void addRandomSphere(bool wantColorRandomizer) {
 	float r = randFloatInRange(0.05,0.1);
 	float xc = randFloatInRange(r,(1-r));
 	float yc = randFloatInRange(r,(1-r));
@@ -1770,10 +1769,6 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
-
-
-    
-        
 //Find and return the gravity vector at this location
 glm::vec3 getGravity(glm::vec3 pos) {
     //
@@ -1832,8 +1827,7 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
     voxels.setViewFrustum(&::viewFrustum);
 
     shared_lib::printLog = & ::printLog;
