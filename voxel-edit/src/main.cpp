@@ -19,6 +19,10 @@ bool countVoxelsOperation(VoxelNode* node, void* extraData) {
     return true; // keep going
 }
 
+void addLandscape(VoxelTree * tree) {
+    printf("Adding Landscape...\n");
+}
+
 void addScene(VoxelTree * tree) {
     printf("adding scene...\n");
 

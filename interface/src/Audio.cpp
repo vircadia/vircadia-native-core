@@ -111,7 +111,11 @@ int audioCallback (const void *inputBuffer,
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     
-    // printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
+    //  Add some noise to the audio we got from the callback
+    
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+        inputLeft[i] = (int16_t) (rand() % 65536);
+    }
     
     if (inputLeft != NULL) {
         
