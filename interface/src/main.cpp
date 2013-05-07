@@ -429,7 +429,7 @@ void updateAvatar(float frametime) {
     myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
     myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     
     if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
@@ -451,9 +451,9 @@ void updateAvatar(float frametime) {
     	glm::vec3 avatarPos = myAvatar.getPosition();
 
 		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = avatarPos.x/10.0;  
-		::paintingVoxel.y = avatarPos.y/10.0;  
-		::paintingVoxel.z = avatarPos.z/10.0;
+		::paintingVoxel.x = avatarPos.x / 10.0;
+		::paintingVoxel.y = avatarPos.y / 10.0;
+		::paintingVoxel.z = avatarPos.z / 10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -696,8 +696,7 @@ void displaySide(Camera& whichCamera) {
     drawGroundPlaneGrid(10.f);
 	
     //  Draw voxels
-    if (showingVoxels)
-    {
+    if (showingVoxels) {
         voxels.render();
     }
 	
