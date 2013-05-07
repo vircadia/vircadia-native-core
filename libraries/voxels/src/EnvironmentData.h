@@ -14,15 +14,24 @@
 class EnvironmentData {
 public:
 
-    void setAtmosphereCenter(const glm::vec3& center);
-    void setAtmosphereInnerRadius(float radius);
-    void setAtmosphereOuterRadius(float radius);
+    EnvironmentData();
+
+    void setAtmosphereCenter(const glm::vec3& center) { _atmosphereCenter = center; }
+    void setAtmosphereInnerRadius(float radius) { _atmosphereInnerRadius = radius; }
+    void setAtmosphereOuterRadius(float radius) { _atmosphereOuterRadius = radius; }
+    const glm::vec3& getAtmosphereCenter() const { return _atmosphereCenter; }
+    float getAtmosphereInnerRadius() const { return _atmosphereInnerRadius; }
+    float getAtmosphereOuterRadius() const { return _atmosphereOuterRadius; }
     
-    void setRayleighScattering(float scattering);
-    void setMieScattering(float scattering);
+    void setRayleighScattering(float scattering) { _rayleighScattering = scattering; }
+    void setMieScattering(float scattering) { _mieScattering = scattering; }
+    float getRayleighScattering() const { return _rayleighScattering; }
+    float getMieScattering() const { return _mieScattering; }
     
-    void setSunLocation(const glm::vec3 location);
-    void setSunBrightness(float brightness);
+    void setSunLocation(const glm::vec3& location) { _sunLocation = location; }
+    void setSunBrightness(float brightness) { _sunBrightness = brightness; }
+    const glm::vec3& getSunLocation() const { return _sunLocation; }
+    float getSunBrightness() const { return _sunBrightness; }
 
     int getBroadcastData(unsigned char* destinationBuffer) const;
     int parseData(unsigned char* sourceBuffer, int numBytes);

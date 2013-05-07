@@ -311,6 +311,8 @@ void init(void) {
     voxels.setViewerAvatar(&myAvatar);
     voxels.setCamera(&myCamera);
     
+    environment.init();
+    
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
     headMouseX = WIDTH/2;
@@ -682,6 +684,9 @@ void renderViewFrustum(ViewFrustum& viewFrustum) {
 void displaySide(Camera& whichCamera) {
     glPushMatrix();
     
+    // draw the sky dome
+    environment.render(whichCamera);
+
     if (::starsOn) {
         // should be the first rendering pass - w/o depth buffer / lighting
 
@@ -1747,6 +1752,7 @@ void reshape(int width, int height) {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     } else {
+        camera.setAspectRatio(aspectRatio);
         camera.setFieldOfView(fov = 60);
     }
 

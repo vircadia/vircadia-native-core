@@ -10,6 +10,18 @@
 #include "EnvironmentData.h"
 #include "PacketHeaders.h"
 
+// initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
+// GameEngine.cpp
+EnvironmentData::EnvironmentData() :
+    _atmosphereCenter(0, -6371000, 0),
+    _atmosphereInnerRadius(6371000),
+    _atmosphereOuterRadius(6530275),
+    _rayleighScattering(0.0025f),
+    _mieScattering(0.0010f),
+    _sunLocation(1000, 1000, 0),
+    _sunBrightness(20.0f) {
+}
+
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
