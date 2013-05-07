@@ -1067,7 +1067,17 @@ void display(void)
 		}
                 
         // important...
-        myCamera.update(1.f/FPS);
+
+        myCamera.update( 1.f/FPS );
+        
+        // Render anything (like HUD items) that we want to be in 3D but not in worldspace
+        const float HUD_Z_OFFSET = -5.f;
+        glPushMatrix();
+        glm::vec3 test(0.5, 0.5, 0.5);
+        glTranslatef(1, 1, HUD_Z_OFFSET);
+        drawVector(&test);
+        glPopMatrix();
+        
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
 		// main camera, vs, an alternate camera. The alternate camera we support right now
