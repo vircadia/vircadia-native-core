@@ -469,6 +469,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 glm::vec3 v(_joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position);
                 v -= otherAvatar->getJointPosition(AVATAR_JOINT_RIGHT_SHOULDER);
                 
+                /*
+                //  Test:  Show angle between your fwd vector and nearest avatar
+                glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
+                                getJointPosition(AVATAR_JOINT_PELVIS);
+                glm::vec3 myForwardVector = _orientation.getFront();
+                printLog("Angle between: %f\n", angleBetween(&vectorBetweenUs, &myForwardVector));
+                */
+                
                 float distance = glm::length(v);
                 if (distance < _distanceToNearestAvatar) {_distanceToNearestAvatar = distance;}
                 

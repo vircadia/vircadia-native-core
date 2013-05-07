@@ -42,6 +42,8 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
 
 void drawVector(glm::vec3* vector);
 
+float angleBetween(glm::vec3 * v1, glm::vec3 * v2); 
+
 double diffclock(timeval *clock1,timeval *clock2);
 
 void drawGroundPlaneGrid(float size);
