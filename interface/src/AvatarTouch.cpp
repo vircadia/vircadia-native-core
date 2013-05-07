@@ -10,6 +10,7 @@
 #include <SharedUtil.h>
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
+#include "Util.h"
 
 const float THREAD_RADIUS = 0.012;
 
@@ -59,14 +60,16 @@ void AvatarTouch::setReachableRadius( float r ) {
     _reachableRadius = r;
 }
 
-void AvatarTouch::render() {
+
+void AvatarTouch::render(glm::vec3 cameraPosition) {
 
     if (_canReachToOtherAvatar) {
-        glPushMatrix();
-        glTranslatef(_yourBodyPosition.x, _yourBodyPosition.y, _yourBodyPosition.z);
-        glColor4f( 0.3, 0.4, 0.5, 0.3 ); glutSolidSphere( _reachableRadius, 30.0f, 30.0f );
-        glPopMatrix();
-        
+    
+        glColor4f( 0.3, 0.4, 0.5, 0.5 ); 
+        glm::vec3 p(_yourBodyPosition);
+        p.y = 0.0005f;
+        renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+
         // if your hand is grasping, show it...
         if ( _yourHandState == 1 ) {
             glPushMatrix();
@@ -75,6 +78,27 @@ void AvatarTouch::render() {
             glColor4f( 1.0, 1.0, 0.4, 0.2 ); glutSolidSphere( 0.025f, 10.0f, 10.0f );
             glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
             glPopMatrix();
+        }
+        
+        //show beam
+        glm::vec3 v1( _myHandPosition );
+        glm::vec3 v2( _yourHandPosition );
+
+        if (_handsCloseEnoughToGrasp) {
+            glLineWidth( 2.0 );
+            glColor4f( 0.7f, 0.4f, 0.1f, 0.3 );
+            glBegin( GL_LINE_STRIP );
+            glVertex3f( v1.x, v1.y, v1.z );
+            glVertex3f( v2.x, v2.y, v2.z );
+            glEnd();
+
+            glColor4f( 1.0f, 1.0f, 0.0f, 0.8 );
+
+            for (int p=0; p<NUM_POINTS; p++) {
+                glBegin(GL_POINTS);
+                glVertex3f(_point[p].x, _point[p].y, _point[p].z);
+                glEnd();
+            }    
         }
     }
     
@@ -87,31 +111,6 @@ void AvatarTouch::render() {
         glColor4f( 1.0, 1.0, 0.2, 0.1 ); glutSolidSphere( 0.030f, 10.0f, 10.0f );
         glPopMatrix();
     }
-    
-    /*
-    //show beam
-    
-    glm::vec3 v1( _myHandPosition );
-    glm::vec3 v2( _yourHandPosition );
-
-    if (_handsCloseEnoughToGrasp) {
-        glLineWidth( 2.0 );
-        glColor4f( 0.7f, 0.4f, 0.1f, 0.3 );
-        glBegin( GL_LINE_STRIP );
-        glVertex3f( v1.x, v1.y, v1.z );
-        glVertex3f( v2.x, v2.y, v2.z );
-        glEnd();
-
-        glColor4f( 1.0f, 1.0f, 0.0f, 0.8 );
-
-        for (int p=0; p<NUM_POINTS; p++) {
-            glBegin(GL_POINTS);
-            glVertex3f(_point[p].x, _point[p].y, _point[p].z);
-            glEnd();
-        }    
-    }
-    */
-    
 }
 
 
@@ -121,7 +120,7 @@ void AvatarTouch::simulate (float deltaTime) {
 
     float distance = glm::length(v);
 
-    if (distance < _reachableRadius * 2.3f ) {
+    if (distance < _reachableRadius ) {
         _canReachToOtherAvatar = true;
     } else {
         _canReachToOtherAvatar = false;

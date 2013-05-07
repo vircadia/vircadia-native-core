@@ -711,7 +711,7 @@ void displaySide(Camera& whichCamera) {
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *avatar = (Avatar *)agent->getLinkedData();
-            avatar->render(0);
+            avatar->render(0, ::myCamera.getPosition());
         }
     }
     agentList->unlock();
@@ -723,7 +723,7 @@ void displaySide(Camera& whichCamera) {
     if (::frustumOn) renderViewFrustum(::viewFrustum);
 
     //Render my own avatar
-	myAvatar.render(::lookingInMirror);
+	myAvatar.render(::lookingInMirror, ::myCamera.getPosition());
 	
 	glPopMatrix();
 }
@@ -1671,15 +1671,10 @@ void idle(void) {
         myAvatar.setHandMovementValues( handControl.getValues() );		
         
 		// tell my avatar if the mouse is being pressed...
-        myAvatar.setMousePressed(mousePressed);
-        /*
-		if ( mousePressed == 1 ) {
-			myAvatar.setMousePressed( true );
-		} else {
-            myAvatar.setMousePressed( false );
-		}
-        */
-
+        if ( mousePressed) {
+            myAvatar.setMousePressed(mousePressed);
+        }
+           
         // walking triggers the handControl to stop
         if ( myAvatar.getMode() == AVATAR_MODE_WALKING ) {
             handControl.stop();

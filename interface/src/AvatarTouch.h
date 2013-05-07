@@ -19,7 +19,7 @@ public:
     AvatarTouch();
 
     void simulate(float deltaTime);
-    void render();
+    void render(glm::vec3 cameraPosition);
     
     void setMyHandPosition  (glm::vec3 position);
     void setYourHandPosition(glm::vec3 position);

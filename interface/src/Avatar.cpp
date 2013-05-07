@@ -34,10 +34,6 @@ const float BODY_ROLL_WHILE_TURNING       = 0.1;
 const float LIN_VEL_DECAY                 = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
-
-//const float BODY_SPRING_DEFAULT_TIGHTNESS = 20.0f;
-//const float BODY_SPRING_FORCE             = 6.0f;
-
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 
@@ -144,14 +140,13 @@ Avatar::Avatar(bool isMine) {
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
     _sphere                     = NULL;
-    //_interactingOther           = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
     _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
 
     initializeSkeleton();
     
-    _avatarTouch.setReachableRadius(0.4);
+    _avatarTouch.setReachableRadius(0.6);
     
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
@@ -317,8 +312,8 @@ void Avatar::setLeanSideways(float dist){
     _head.leanSideways = dist;
 }
 
-void Avatar::setMousePressed(bool d) {
-	_mousePressed = d;
+void Avatar::setMousePressed( bool mousePressed ) {
+	_mousePressed = mousePressed;
 }
 
 bool Avatar::getIsNearInteractingOther() { 
@@ -435,7 +430,6 @@ void Avatar::simulate(float deltaTime) {
 }
 
 
-
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
     // reset hand and arm positions according to hand movement
@@ -472,6 +466,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         if (_interactingOther) {
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
+            _avatarTouch.setYourHandState   (_interactingOther->_handState);   
         }
         
     }//if (_isMine)
@@ -483,7 +478,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     if (_isMine) {
         //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-        _handState = _mousePressed;
+     
+        if ( _mousePressed ) {
+            _handState = 1;
+        } else {
+            _handState = 0;
+        }
         
         _avatarTouch.setMyHandState(_handState);
         
@@ -493,7 +493,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-    
 void Avatar::updateHead(float deltaTime) {
 
     //apply the head lean values to the springy position...
@@ -753,7 +752,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
 }
 
 
-void Avatar::render(bool lookingInMirror) {
+void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f ), 0.1f, 0.2f );
@@ -788,7 +787,7 @@ void Avatar::render(bool lookingInMirror) {
     
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine ) {			
-        _avatarTouch.render();
+        _avatarTouch.render(cameraPosition);
     }
     
     //  Render the balls

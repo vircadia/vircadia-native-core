@@ -11,6 +11,19 @@
 #include "AvatarRenderer.h"
 #include "InterfaceConfig.h"
 
+
+#include <glm/glm.hpp>
+#include <vector>
+#include <lodepng.h>
+#include <SharedUtil.h>
+#include "Avatar.h"
+#include "Log.h"
+#include "ui/TextRenderer.h"
+#include <AgentList.h>
+#include <AgentTypes.h>
+#include <PacketHeaders.h>
+
+
 AvatarRenderer::AvatarRenderer() {
 }
 

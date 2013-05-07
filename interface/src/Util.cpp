@@ -185,9 +185,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
 }
 
 
-void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
-              float r, float g, float b)
-{
+void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
@@ -202,18 +200,14 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     glLineWidth(thick);
     glScalef(scale, scale, 1.0);
     len = (int) strlen(vectext);
-	for (i = 0; i < len; i++)
-	{
+	for (i = 0; i < len; i++) {
         if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
         else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
 	}
     glPopMatrix();
-    
 } 
 
-void drawGroundPlaneGrid(float size)
-{
-
+void drawGroundPlaneGrid(float size) {
 	glColor3f( 0.4f, 0.5f, 0.3f ); 
 	glLineWidth(2.0);
 		
@@ -263,6 +257,51 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
             glVertex3f(position.x + x2, y, position.z + z2); 
     }
     
+    glEnd();
+}
+
+
+
+void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
+    glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
+    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3( 0.0f, 1.0f, 0.0f));
+    glm::vec3 up    = glm::cross(right, vectorToPosition);
+    
+    glBegin(GL_LINE_STRIP);             
+    for (int i=0; i<numSides+1; i++) {
+        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float s = radius * sin(r);
+        float c = radius * cos(r);
+    
+        glVertex3f
+        (
+            position.x + right.x * s + up.x * c, 
+            position.y + right.y * s + up.y * c, 
+            position.z + right.z * s + up.z * c 
+        ); 
+    }
+    
+    glEnd();
+}
+
+
+void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides ) {
+    glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
+    glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
+    
+    glBegin(GL_LINE_STRIP);             
+
+    for (int i=0; i<numSides+1; i++) {
+        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float s = radius * sin(r);
+        float c = radius * cos(r);
+        glVertex3f
+        (
+            position.x + perp1.x * s + perp2.x * c, 
+            position.y + perp1.y * s + perp2.y * c, 
+            position.z + perp1.z * s + perp2.z * c 
+        ); 
+    }
     glEnd();
 }
 
