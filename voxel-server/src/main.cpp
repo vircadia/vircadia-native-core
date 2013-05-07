@@ -38,7 +38,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -153,12 +153,8 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
         for (int i = 0; i < 8; i++) {
             if (true) {
                 // create a new VoxelNode to put here
-                currentRootNode->children[i] = new VoxelNode();
-                
-                // give this child it's octal code
-                currentRootNode->children[i]->octalCode = childOctalCode(currentRootNode->octalCode, i);
-
-                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->children[i]);
+                currentRootNode->addChildAtIndex(i);
+                randomlyFillVoxelTree(levelsToGo - 1, currentRootNode->getChildAtIndex(i));
                 createdChildren = true;
             }
         }
@@ -551,12 +547,9 @@ int main(int argc, const char * argv[])
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
-                if (agentList->addOrUpdateAgent(&agentPublicAddress,
-                                               &agentPublicAddress,
-                                               AGENT_TYPE_AVATAR,
-                                               agentList->getLastAgentId())) {
-                    agentList->increaseAgentId();
-                }
+                uint16_t agentID = 0;
+                unpackAgentId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &agentID);
+                agentList->addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, AGENT_TYPE_AVATAR, agentID);
                 
                 agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
             }

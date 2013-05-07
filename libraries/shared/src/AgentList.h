@@ -31,6 +31,8 @@ extern char DOMAIN_HOSTNAME[];
 extern char DOMAIN_IP[100];    //  IP Address will be re-set by lookup on startup
 extern const int DOMAINSERVER_PORT;
 
+const int UNKNOWN_AGENT_ID = -1;
+
 class AgentListIterator;
 
 class AgentList {
@@ -56,7 +58,7 @@ public:
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
-    int updateList(unsigned char *packetData, size_t dataBytes);
+    int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     Agent* agentWithAddress(sockaddr *senderAddress);
     Agent* agentWithID(uint16_t agentID);
@@ -70,8 +72,12 @@ public:
     int updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
     void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
-    char getOwnerType();
     unsigned int getSocketListenPort();
+    
+    char getOwnerType() const { return _ownerType; }
+    
+    uint16_t getOwnerID() const { return _ownerID; }
+    void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
     
     Agent* soloAgentOfType(char agentType);
     
@@ -96,8 +102,9 @@ private:
     Agent** _agentBuckets[MAX_NUM_AGENTS / AGENTS_PER_BUCKET];
     int _numAgents;
     UDPSocket agentSocket;
-    char ownerType;
+    char _ownerType;
     unsigned int socketListenPort;
+    uint16_t _ownerID;
     uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;

@@ -16,10 +16,14 @@
 #include <errno.h>
 #include <fstream>
 #include <limits>
+#include <signal.h>
+
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <Stacktrace.h>
+
 #include "AudioRingBuffer.h"
 #include "PacketHeaders.h"
 
@@ -56,11 +60,8 @@ const float DISTANCE_RATIO = 3.0f / 0.3f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
-const int AGENT_LOOPBACK_MODIFIER = 307;
-
-const int LOOPBACK_SANITY_CHECK = 0;
-
-StDev stdev;
+const float MAX_OFF_AXIS_ATTENUATION = 0.5f;
+const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
@@ -71,8 +72,7 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     mixSample = normalizedSample;    
 }
 
-void *sendBuffer(void *args)
-{
+void *sendBuffer(void *args) {
     int sentBytes;
     int nextFrame = 0;
     timeval startTime;
@@ -106,115 +106,117 @@ void *sendBuffer(void *args)
         }
         
         int numAgents = agentList->size();
-        float distanceCoeffs[numAgents][numAgents];
-        memset(distanceCoeffs, 0, sizeof(distanceCoeffs));
+        float distanceCoefficients[numAgents][numAgents];
+        memset(distanceCoefficients, 0, sizeof(distanceCoefficients));
 
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
             float agentBearing = agentRingBuffer->getBearing();
-            bool agentWantsLoopback = false;
-            
-            if (agentBearing > 180 || agentBearing < -180) {
-                // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
-                agentWantsLoopback = true;
-                
-                // correct the bearing
-                agentBearing = agentBearing > 0
-                    ? agentBearing - AGENT_LOOPBACK_MODIFIER
-                    : agentBearing + AGENT_LOOPBACK_MODIFIER;
-            }
             
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
-            
             for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                if (otherAgent != agent || (otherAgent == agent && agentWantsLoopback)) {
+                if (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
                     AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
                     
                     if (otherAgentBuffer->shouldBeAddedToMix()) {
-                        float *agentPosition = agentRingBuffer->getPosition();
-                        float *otherAgentPosition = otherAgentBuffer->getPosition();
+                      
+                        float bearingRelativeAngleToSource = 0.f;
+                        float attenuationCoefficient = 1.f;
+                        int numSamplesDelay = 0;
+                        float weakChannelAmplitudeRatio = 1.f;
                         
-                        // calculate the distance to the other agent
-                        
-                        // use the distance to the other agent to calculate the change in volume for this frame
-                        int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                        int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                        
-                        if (distanceCoeffs[lowAgentIndex][highAgentIndex] == 0) {
-                            float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-                                                          powf(agentPosition[1] - otherAgentPosition[1], 2) +
-                                                          powf(agentPosition[2] - otherAgentPosition[2], 2));
+                        if (otherAgent != agent) {
+                            float *agentPosition = agentRingBuffer->getPosition();
+                            float *otherAgentPosition = otherAgentBuffer->getPosition();
                             
-                            float minCoefficient = std::min(1.0f,
-                                                            powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
-                            distanceCoeffs[lowAgentIndex][highAgentIndex] = minCoefficient;
-                        }
-                        
-                        
-                        // get the angle from the right-angle triangle
-                        float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
-                                                     fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
-                        float angleToSource;
-                        
-                        
-                        // find the angle we need for calculation based on the orientation of the triangle
-                        if (otherAgentPosition[0] > agentPosition[0]) {
-                            if (otherAgentPosition[2] > agentPosition[2]) {
-                                angleToSource = -90 + triangleAngle - agentBearing;
-                            } else {
-                                angleToSource = -90 - triangleAngle - agentBearing;
+                            // calculate the distance to the other agent
+                            
+                            // use the distance to the other agent to calculate the change in volume for this frame
+                            int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                            int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                            
+                            if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
+                                float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
+                                                              powf(agentPosition[1] - otherAgentPosition[1], 2) +
+                                                              powf(agentPosition[2] - otherAgentPosition[2], 2));
+                                
+                                float minCoefficient = std::min(1.0f,
+                                                                powf(0.5, (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                                distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
                             }
-                        } else {
-                            if (otherAgentPosition[2] > agentPosition[2]) {
-                                angleToSource = 90 - triangleAngle - agentBearing;
+                            
+                            
+                            // get the angle from the right-angle triangle
+                            float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
+                                                         fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
+                            float absoluteAngleToSource = 0;
+                            float bearingRelativeAngleToSource = 0;
+                            
+                            // find the angle we need for calculation based on the orientation of the triangle
+                            if (otherAgentPosition[0] > agentPosition[0]) {
+                                if (otherAgentPosition[2] > agentPosition[2]) {
+                                    absoluteAngleToSource = -90 + triangleAngle;
+                                } else {
+                                    absoluteAngleToSource = -90 - triangleAngle;
+                                }
                             } else {
-                                angleToSource = 90 + triangleAngle - agentBearing;
+                                if (otherAgentPosition[2] > agentPosition[2]) {
+                                    absoluteAngleToSource = 90 - triangleAngle;
+                                } else {
+                                    absoluteAngleToSource = 90 + triangleAngle;
+                                }
                             }
+                            
+                            if (absoluteAngleToSource > 180) {
+                                absoluteAngleToSource -= 360;
+                            } else if (absoluteAngleToSource < -180) {
+                                absoluteAngleToSource += 360;
+                            }
+                            
+                            bearingRelativeAngleToSource = absoluteAngleToSource - agentBearing;
+                            bearingRelativeAngleToSource *= (M_PI / 180);
+                            
+                            float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
+                            
+                            if (angleOfDelivery < -180) {
+                                angleOfDelivery += 360;
+                            }
+                            
+                            float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                            (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
+                            
+                            attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
+                                * otherAgentBuffer->getAttenuationRatio()
+                                * offAxisCoefficient;
+                            
+                            float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                            numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                            weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                         }
                         
-                        if (angleToSource > 180) {
-                            angleToSource -= 360;
-                        } else if (angleToSource < -180) {
-                            angleToSource += 360;
-                        }
+                        int16_t* goodChannel = bearingRelativeAngleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
+                        int16_t* delayedChannel = bearingRelativeAngleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         
-                        angleToSource *= (M_PI / 180);
-                        
-                        float sinRatio = fabsf(sinf(angleToSource));
-                        int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                        float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-                        
-                        int16_t *goodChannel = angleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
-                        int16_t *delayedChannel = angleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                        
-                        int16_t *delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                        ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
-                        : otherAgentBuffer->getNextOutput() - numSamplesDelay;
-                        
-                        
+                        int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
+                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
+                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             
                             if (s < numSamplesDelay) {
                                 // pull the earlier sample for the delayed channel
-                                
-                                int earlierSample = delaySamplePointer[s] *
-                                distanceCoeffs[lowAgentIndex][highAgentIndex] *
-                                otherAgentBuffer->getAttenuationRatio();
-                                
+                                int earlierSample = delaySamplePointer[s] * attenuationCoefficient;
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                             }
                             
-                            int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] *
-                                                     distanceCoeffs[lowAgentIndex][highAgentIndex] *
-                                                     otherAgentBuffer->getAttenuationRatio());
+                            int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
                             plateauAdditionOfSamples(goodChannel[s], currentSample);
                             
                             if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                                 plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
                                                          currentSample *
-                                                         weakChannelAmplitudeRatio *
-                                                         otherAgentBuffer->getAttenuationRatio());
+                                                         weakChannelAmplitudeRatio);
                             }
                         }
                     }
@@ -255,10 +257,11 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, const char * argv[])
-{
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+int main(int argc, const char* argv[]) {
+    signal(SIGSEGV, printStacktrace);
     setvbuf(stdout, NULL, _IOLBF, 0);
+    
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     
     ssize_t receivedBytes = 0;
     
@@ -272,49 +275,17 @@ int main(int argc, const char * argv[])
     pthread_t sendBufferThread;
     pthread_create(&sendBufferThread, NULL, sendBuffer, NULL);
     
-    int16_t *loopbackAudioPacket;
-    if (LOOPBACK_SANITY_CHECK) {
-        loopbackAudioPacket = new int16_t[1024];
-    }
-    
     sockaddr *agentAddress = new sockaddr;
-    timeval lastReceive;
-    gettimeofday(&lastReceive, NULL);
     
-    bool firstSample = true;
-
     while (true) {
         if(agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
-                                
-                //  Compute and report standard deviation for jitter calculation
-                if (firstSample) {
-                    stdev.reset();
-                    firstSample = false;
-                } else {
-                    double tDiff = (usecTimestampNow() - usecTimestamp(&lastReceive)) / 1000;
-                    stdev.addValue(tDiff);
-                    
-                    if (stdev.getSamples() > 500) {
-                        //printf("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), stdev.getStDev());
-                        stdev.reset();
-                    }
+                
+                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
+                    agentList->increaseAgentId();
                 }
                 
-                gettimeofday(&lastReceive, NULL);
-                
-                // add or update the existing interface agent
-                if (!LOOPBACK_SANITY_CHECK) {
-                    
-                    if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
-                        agentList->increaseAgentId();
-                    }
-                    
-                    agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
-                } else {
-                    memcpy(loopbackAudioPacket, packetData + 1 + (sizeof(float) * 4), 1024);
-                    agentList->getAgentSocket().send(agentAddress, loopbackAudioPacket, 1024);
-                }
+                agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
             }
         }
     }
