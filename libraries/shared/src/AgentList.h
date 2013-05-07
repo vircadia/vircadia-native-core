@@ -70,8 +70,12 @@ public:
     int updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
     void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
-    char getOwnerType();
     unsigned int getSocketListenPort();
+    
+    char getOwnerType() const { return _ownerType; }
+    
+    uint16_t getOwnerID() const { return _ownerID; }
+    void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
     
     Agent* soloAgentOfType(char agentType);
     
@@ -96,8 +100,9 @@ private:
     Agent** _agentBuckets[MAX_NUM_AGENTS / AGENTS_PER_BUCKET];
     int _numAgents;
     UDPSocket agentSocket;
-    char ownerType;
+    char _ownerType;
     unsigned int socketListenPort;
+    uint16_t _ownerID;
     uint16_t lastAgentId;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;

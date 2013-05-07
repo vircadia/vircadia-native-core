@@ -62,8 +62,9 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentBuckets(),
     _numAgents(0),
     agentSocket(newSocketListenPort),
-    ownerType(newOwnerType),
+    _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
+    _ownerID(-1),
     lastAgentId(0) {
     pthread_mutex_init(&mutex, 0);
 }
@@ -79,10 +80,6 @@ AgentList::~AgentList() {
 
 UDPSocket& AgentList::getAgentSocket() {
     return agentSocket;
-}
-
-char AgentList::getOwnerType() {
-    return ownerType;
 }
 
 unsigned int AgentList::getSocketListenPort() {
