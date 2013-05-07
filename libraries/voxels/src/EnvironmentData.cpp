@@ -11,13 +11,14 @@
 #include "PacketHeaders.h"
 
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
-// GameEngine.cpp
+// GameEngine.cpp (and the radius of the earth)
 EnvironmentData::EnvironmentData() :
     _atmosphereCenter(0, -6371000, 0),
     _atmosphereInnerRadius(6371000),
     _atmosphereOuterRadius(6530275),
     _rayleighScattering(0.0025f),
     _mieScattering(0.0010f),
+    _scatteringWavelengths(0.650f, 0.570f, 0.475f),
     _sunLocation(1000, 1000, 0),
     _sunBrightness(20.0f) {
 }
@@ -39,6 +40,9 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     
     memcpy(destinationBuffer, &_mieScattering, sizeof(_mieScattering));
     destinationBuffer += sizeof(_mieScattering);
+    
+    memcpy(destinationBuffer, &_scatteringWavelengths, sizeof(_scatteringWavelengths));
+    destinationBuffer += sizeof(_scatteringWavelengths);
     
     memcpy(destinationBuffer, &_sunLocation, sizeof(_sunLocation));
     destinationBuffer += sizeof(_sunLocation);
@@ -69,6 +73,9 @@ int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     memcpy(&_mieScattering, sourceBuffer, sizeof(_mieScattering));
     sourceBuffer += sizeof(_mieScattering);
+    
+    memcpy(&_scatteringWavelengths, sourceBuffer, sizeof(_scatteringWavelengths));
+    sourceBuffer += sizeof(_scatteringWavelengths);
     
     memcpy(&_sunLocation, sourceBuffer, sizeof(_sunLocation));
     sourceBuffer += sizeof(_sunLocation);

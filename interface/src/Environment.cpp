@@ -12,15 +12,6 @@
 #include "Environment.h"
 #include "world.h"
 
-// checks for an error, printing the info log if one is deteced
-static void errorCheck(GLhandleARB obj) {
-    if (glGetError() != GL_NO_ERROR) {
-        QByteArray log(1024, 0);
-        glGetInfoLogARB(obj, log.size(), 0, log.data());
-        qDebug() << log;
-    }
-}
-
 static GLhandleARB compileShader(int type, const QString& filename) {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -32,7 +23,6 @@ static GLhandleARB compileShader(int type, const QString& filename) {
     const char* sdata = source.constData();
     glShaderSource(shaderID, 1, &sdata, 0);
     glCompileShaderARB(shaderID);
-    errorCheck(shaderID);
     return shaderID;
 }
 
@@ -43,7 +33,6 @@ void Environment::init() {
     glAttachObjectARB(_skyFromAtmosphereProgramID, compileShader(
         GL_FRAGMENT_SHADER_ARB, "resources/shaders/SkyFromAtmosphere.frag"));
     glLinkProgramARB(_skyFromAtmosphereProgramID);
-    errorCheck(_skyFromAtmosphereProgramID);
     
     _cameraPosLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "v3CameraPos");
     _lightPosLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "v3LightPos");
@@ -65,18 +54,28 @@ void Environment::render(Camera& camera) {
     glPushMatrix();
     glTranslatef(getAtmosphereCenter().x, getAtmosphereCenter().y, getAtmosphereCenter().z);
 
+    // use the camera distance to reset the near and far distances to keep the atmosphere in the frustum
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    gluPerspective(camera.getFieldOfView(), camera.getAspectRatio(), 100, 100000000);
     
-    glUseProgramObjectARB(_skyFromAtmosphereProgramID);
+    float projection[16];
+    glGetFloatv(GL_PROJECTION_MATRIX, projection);
     glm::vec3 relativeCameraPos = camera.getPosition() - getAtmosphereCenter();
+    float near = camera.getNearClip(), far = glm::length(relativeCameraPos) + getAtmosphereOuterRadius();
+    projection[10] = (far + near) / (near - far);
+    projection[14] = (2.0f * far * near) / (near - far);
+    glLoadMatrixf(projection);
+    
+    // the constants here are from Sean O'Neil's GPU Gems entry
+    // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp
+    glUseProgramObjectARB(_skyFromAtmosphereProgramID);
     glUniform3fARB(_cameraPosLocation, relativeCameraPos.x, relativeCameraPos.y, relativeCameraPos.z);
     glm::vec3 lightDirection = glm::normalize(getSunLocation());
     glUniform3fARB(_lightPosLocation, lightDirection.x, lightDirection.y, lightDirection.z);
     glUniform3fARB(_invWavelengthLocation,
-        1 / powf(0.650f, 4.0f), 1 / powf(0.570f, 4.0f), 1 / powf(0.475f, 4.0f));
+        1 / powf(getScatteringWavelengths().r, 4.0f),
+        1 / powf(getScatteringWavelengths().g, 4.0f),
+        1 / powf(getScatteringWavelengths().b, 4.0f));
     glUniform1fARB(_innerRadiusLocation, getAtmosphereInnerRadius());
     glUniform1fARB(_krESunLocation, getRayleighScattering() * getSunBrightness());
     glUniform1fARB(_kmESunLocation, getMieScattering() * getSunBrightness());
@@ -90,7 +89,10 @@ void Environment::render(Camera& camera) {
     glUniform1fARB(_g2Location, -0.990f * -0.990f);
     
     glFrontFace(GL_CW);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
     glutSolidSphere(getAtmosphereOuterRadius(), 100, 50);
+    glDepthMask(GL_TRUE);
     glFrontFace(GL_CCW);
     
     glUseProgramObjectARB(0);
@@ -98,5 +100,5 @@ void Environment::render(Camera& camera) {
     glPopMatrix();
        
     glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+    glPopMatrix();   
 }

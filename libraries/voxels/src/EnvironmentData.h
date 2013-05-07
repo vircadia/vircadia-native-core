@@ -28,6 +28,9 @@ public:
     float getRayleighScattering() const { return _rayleighScattering; }
     float getMieScattering() const { return _mieScattering; }
     
+    void setScatteringWavelengths(const glm::vec3& wavelengths) { _scatteringWavelengths = wavelengths; }
+    const glm::vec3& getScatteringWavelengths() const { return _scatteringWavelengths; }
+    
     void setSunLocation(const glm::vec3& location) { _sunLocation = location; }
     void setSunBrightness(float brightness) { _sunBrightness = brightness; }
     const glm::vec3& getSunLocation() const { return _sunLocation; }
@@ -44,6 +47,8 @@ private:
     
     float _rayleighScattering;
     float _mieScattering;
+    
+    glm::vec3 _scatteringWavelengths;
     
     glm::vec3 _sunLocation;
     float _sunBrightness;
