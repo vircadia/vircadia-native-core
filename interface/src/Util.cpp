@@ -65,7 +65,7 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
-//  Helper function computes the angle between two 3D vectors 
+//  Helper function returns the positive angle in degrees between two 3D vectors 
 float angleBetween(glm::vec3 * v1, glm::vec3 * v2) {
     return acos((glm::dot(*v1,*v2))/(glm::length(*v1) * glm::length(*v2))) * 180.f/PI;
 }
