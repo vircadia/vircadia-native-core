@@ -14,14 +14,6 @@
 //
 //  Welcome Aboard!
 //
-//
-//  Keyboard Commands:
-//
-//  / = toggle stats display
-//  spacebar = reset gyros/head position
-//  h = render Head facing yourself (mirror)
-//  l = show incoming gyro levels
-//
 
 #include "InterfaceConfig.h"
 #include <math.h>
@@ -1385,8 +1377,7 @@ void initMenu() {
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
 }
 
-void testPointToVoxel()
-{
+void testPointToVoxel() {
 	float y=0;
 	float z=0;
 	float s=0.1;
@@ -1455,7 +1446,6 @@ void addRandomSphere(bool wantColorRandomizer) {
 	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
 
-
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_PITCH_RATE = 0.6;
 const float KEYBOARD_STRAFE_RATE = 0.03;
@@ -1509,7 +1499,6 @@ void specialkey(int k, int x, int y) {
     }    
 }
 
-
 void keyUp(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
         myAvatar.setKeyState(NO_KEY_DOWN);
@@ -1524,8 +1513,7 @@ void keyUp(unsigned char k, int x, int y) {
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
 }
 
-void key(unsigned char k, int x, int y)
-{
+void key(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
