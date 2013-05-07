@@ -60,7 +60,7 @@ const float DISTANCE_RATIO = 3.0f / 0.3f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
-const float MAX_OFF_AXIS_ATTENUATION = 0.5f;
+const float MAX_OFF_AXIS_ATTENUATION = 0.1f;
 const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -186,9 +186,12 @@ void *sendBuffer(void *args) {
                             float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
                             (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                             
+                            printf("AD: %f, OC: %f\n", angleOfDelivery, offAxisCoefficient);
+                            
                             attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
                                 * otherAgentBuffer->getAttenuationRatio()
                                 * offAxisCoefficient;
+                            
                             
                             float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
                             numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
