@@ -14,14 +14,6 @@
 //
 //  Welcome Aboard!
 //
-//
-//  Keyboard Commands:
-//
-//  / = toggle stats display
-//  spacebar = reset gyros/head position
-//  h = render Head facing yourself (mirror)
-//  l = show incoming gyro levels
-//
 
 #include "InterfaceConfig.h"
 #include <math.h>
@@ -436,17 +428,22 @@ void updateAvatar(float frametime) {
     myAvatar.setCameraAspectRatio(::viewFrustum.getAspectRatio());
     myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
     myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
-
-    //  Send my stream of head/hand data to the avatar mixer and voxel server
-    unsigned char broadcastString[200];
-    *broadcastString = PACKET_HEADER_HEAD_DATA;
     
-    int broadcastBytes = myAvatar.getBroadcastData(broadcastString + 1);
-    broadcastBytes++;
+    AgentList *agentList = AgentList::getInstance();
     
-    const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
-    
-    AgentList::getInstance()->broadcastToAgents(broadcastString, broadcastBytes, broadcastReceivers, 2);
+    if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
+        // if I know my ID, send head/hand data to the avatar mixer and voxel server
+        unsigned char broadcastString[200];
+        unsigned char* endOfBroadcastStringWrite = broadcastString;
+        
+        *(endOfBroadcastStringWrite++) = PACKET_HEADER_HEAD_DATA;
+        endOfBroadcastStringWrite += packAgentId(endOfBroadcastStringWrite, agentList->getOwnerID());
+        
+        endOfBroadcastStringWrite += myAvatar.getBroadcastData(endOfBroadcastStringWrite);
+        
+        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
+        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
+    }
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
@@ -1380,8 +1377,7 @@ void initMenu() {
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
 }
 
-void testPointToVoxel()
-{
+void testPointToVoxel() {
 	float y=0;
 	float z=0;
 	float s=0.1;
@@ -1433,8 +1429,7 @@ void setupPaintingVoxel() {
 	shiftPaintingColor();
 }
 
-void addRandomSphere(bool wantColorRandomizer)
-{
+void addRandomSphere(bool wantColorRandomizer) {
 	float r = randFloatInRange(0.05,0.1);
 	float xc = randFloatInRange(r,(1-r));
 	float yc = randFloatInRange(r,(1-r));
@@ -1450,7 +1445,6 @@ void addRandomSphere(bool wantColorRandomizer)
 
 	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
 }
-
 
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_PITCH_RATE = 0.6;
@@ -1505,7 +1499,6 @@ void specialkey(int k, int x, int y) {
     }    
 }
 
-
 void keyUp(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
         myAvatar.setKeyState(NO_KEY_DOWN);
@@ -1520,8 +1513,7 @@ void keyUp(unsigned char k, int x, int y) {
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
 }
 
-void key(unsigned char k, int x, int y)
-{
+void key(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
         if (chatEntry.key(k)) {
             myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
@@ -1765,10 +1757,6 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
-
-
-    
-        
 //Find and return the gravity vector at this location
 glm::vec3 getGravity(glm::vec3 pos) {
     //
@@ -1827,8 +1815,7 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 }
 #endif
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
     voxels.setViewFrustum(&::viewFrustum);
 
     shared_lib::printLog = & ::printLog;

@@ -62,8 +62,9 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentBuckets(),
     _numAgents(0),
     agentSocket(newSocketListenPort),
-    ownerType(newOwnerType),
+    _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
+    _ownerID(UNKNOWN_AGENT_ID),
     lastAgentId(0) {
     pthread_mutex_init(&mutex, 0);
 }
@@ -81,10 +82,6 @@ UDPSocket& AgentList::getAgentSocket() {
     return agentSocket;
 }
 
-char AgentList::getOwnerType() {
-    return ownerType;
-}
-
 unsigned int AgentList::getSocketListenPort() {
     return socketListenPort;
 }
@@ -92,7 +89,7 @@ unsigned int AgentList::getSocketListenPort() {
 void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
-            updateList(packetData, dataBytes);
+            processDomainServerList(packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_PING: {
@@ -203,7 +200,7 @@ void AgentList::increaseAgentId() {
     ++lastAgentId;
 }
 
-int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
+int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 
     char agentType;
@@ -218,14 +215,17 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     unsigned char *readPtr = packetData + 1;
     unsigned char *startPtr = packetData;
     
-    while((readPtr - startPtr) < dataBytes) {
+    while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         agentType = *readPtr++;
         readPtr += unpackAgentId(readPtr, (uint16_t *)&agentId);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
         addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType, agentId);
-    }  
+    }
+    
+    // read out our ID from the packet
+    unpackAgentId(readPtr, &_ownerID);
 
     return readAgents;
 }
