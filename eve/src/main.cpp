@@ -25,6 +25,10 @@ const int MIN_ITERATIONS_BETWEEN_AUDIO_SENDS = (MIN_AUDIO_SEND_INTERVAL_SECS * 1
 const int MAX_AUDIO_SEND_INTERVAL_SECS = 15;
 const float MAX_ITERATIONS_BETWEEN_AUDIO_SENDS = (MAX_AUDIO_SEND_INTERVAL_SECS * 1000) / DATA_SEND_INTERVAL_MSECS;
 
+const int ITERATIONS_BEFORE_HAND_GRAB = 100;
+const int HAND_GRAB_DURATION_ITERATIONS = 50;
+const int HAND_TIMER_SLEEP_ITERATIONS = 50;
+
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
 
@@ -177,11 +181,11 @@ int main(int argc, const char* argv[]) {
         // simulate the effect of pressing and un-pressing the mouse button/pad
         handStateTimer++;
         
-        if (handStateTimer == 100) {
+        if (handStateTimer == ITERATIONS_BEFORE_HAND_GRAB) {
             eve.setHandState(1);
-        } else if (handStateTimer == 150) {
+        } else if (handStateTimer == ITERATIONS_BEFORE_HAND_GRAB + HAND_GRAB_DURATION_ITERATIONS) {
             eve.setHandState(0);
-        } else if (handStateTimer >= 200) {
+        } else if (handStateTimer >= ITERATIONS_BEFORE_HAND_GRAB + HAND_GRAB_DURATION_ITERATIONS + HAND_TIMER_SLEEP_ITERATIONS) {
             handStateTimer = 0;
         }   
     }
