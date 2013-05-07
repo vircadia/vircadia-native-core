@@ -139,7 +139,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
-   
+    
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);

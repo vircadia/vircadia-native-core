@@ -29,6 +29,8 @@ const int ITERATIONS_BEFORE_HAND_GRAB = 100;
 const int HAND_GRAB_DURATION_ITERATIONS = 50;
 const int HAND_TIMER_SLEEP_ITERATIONS = 50;
 
+const float EVE_PELVIS_HEIGHT = 0.5f;
+
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
 
@@ -118,7 +120,7 @@ int main(int argc, const char* argv[]) {
     // pick a random point inside a 10x10 grid
     
     eve.setPosition(glm::vec3(randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION),
-                              1.33, // this should be the same as the avatar's pelvis standing height 
+                              EVE_PELVIS_HEIGHT, // this should be the same as the avatar's pelvis standing height
                               randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION)));
     
     // face any instance of eve down the z-axis
