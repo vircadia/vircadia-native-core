@@ -893,6 +893,8 @@ void displayOverlay() {
         audioScope.render();
         #endif
 
+       // noiseTest(WIDTH, HEIGHT);
+    
         if (displayHeadMouse && !::lookingInMirror && statsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
