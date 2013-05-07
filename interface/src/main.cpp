@@ -442,7 +442,7 @@ void updateAvatar(float frametime) {
         endOfBroadcastStringWrite += myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
         const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
-        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, 2);
+        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
     }
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.

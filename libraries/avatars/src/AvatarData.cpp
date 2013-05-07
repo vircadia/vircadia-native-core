@@ -129,7 +129,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // increment to push past the packet header and agent ID
-    sourceBuffer += 3;
+    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA) + sizeof(uint16_t);
     
     unsigned char* startPosition = sourceBuffer;
     
