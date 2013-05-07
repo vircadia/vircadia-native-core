@@ -36,6 +36,8 @@ public:
     void setAttenuationRatio(float newAttenuation);
     float getBearing();
     void setBearing(float newBearing);
+    
+    bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
 
     short diffLastWriteNextOutput();
 private:
@@ -49,6 +51,7 @@ private:
     int16_t *buffer;
     bool started;
     bool _shouldBeAddedToMix;
+    bool _shouldLoopbackForAgent;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

@@ -69,7 +69,6 @@
 
 #include "Camera.h"
 #include "Avatar.h"
-#include "Texture.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
