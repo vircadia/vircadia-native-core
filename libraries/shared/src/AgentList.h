@@ -56,7 +56,7 @@ public:
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
-    int updateList(unsigned char *packetData, size_t dataBytes);
+    int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     Agent* agentWithAddress(sockaddr *senderAddress);
     Agent* agentWithID(uint16_t agentID);
