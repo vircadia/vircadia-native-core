@@ -113,6 +113,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         attenuationRatio = attenuationByte / 255.0f;
         
         memcpy(&bearing, dataPtr, sizeof(float));
+        dataPtr += sizeof(bearing);
         
         if (bearing > 180 || bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
@@ -124,9 +125,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
                 : bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
             _shouldLoopbackForAgent = false;
-        }
-        
-        dataPtr += sizeof(float);
+        }        
         
         sourceBuffer = dataPtr;
     }
