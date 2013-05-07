@@ -123,6 +123,8 @@ void *sendBuffer(void *args) {
                       
                         float bearingRelativeAngleToSource = 0.f;
                         float attenuationCoefficient = 1.f;
+                        int numSamplesDelay = 0;
+                        float weakChannelAmplitudeRatio = 1.f;
                         
                         if (otherAgent != agent) {
                             float *agentPosition = agentRingBuffer->getPosition();
@@ -189,8 +191,8 @@ void *sendBuffer(void *args) {
                                 * offAxisCoefficient;
                             
                             float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                            int numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                            float weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                            numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                            weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                         }
                         
                         int16_t* goodChannel = bearingRelativeAngleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
