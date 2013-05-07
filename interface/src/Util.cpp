@@ -67,12 +67,11 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 
 //  Helper function returns the positive angle in degrees between two 3D vectors 
 float angleBetween(glm::vec3 * v1, glm::vec3 * v2) {
-    return acos((glm::dot(*v1,*v2))/(glm::length(*v1) * glm::length(*v2))) * 180.f/PI;
+    return acos((glm::dot(*v1, *v2)) / (glm::length(*v1) * glm::length(*v2))) * 180.f / PI;
 }
 
 //  Draw a 3D vector floating in space
-void drawVector(glm::vec3 * vector)
-{
+void drawVector(glm::vec3 * vector) {
     glDisable(GL_LIGHTING);
     glEnable(GL_POINT_SMOOTH);
     glPointSize(3.0);
@@ -101,7 +100,7 @@ void drawVector(glm::vec3 * vector)
     // Draw spheres for magnitude
     glPushMatrix();
     glColor3f(1,0,0);
-    glTranslatef(vector->x,0,0);
+    glTranslatef(vector->x, 0, 0);
     glutSolidSphere(0.02, 10, 10);
     glColor3f(0,1,0);
     glTranslatef(-vector->x, vector->y, 0);
@@ -113,39 +112,38 @@ void drawVector(glm::vec3 * vector)
 
 }
 
-void render_world_box()
-{
+void render_world_box() {
     //  Show edge of world 
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(0,0,0);
-    glVertex3f(WORLD_SIZE,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,0,0);
+    glColor3f(1, 0, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(WORLD_SIZE, 0, 0);
+    glColor3f(0, 1, 0);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,0);
+    glColor3f(0, 0, 1);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, 0, WORLD_SIZE);
     glEnd();
     //  Draw little marker dots along the axis
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE,0,0);
-    glColor3f(1,0,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(WORLD_SIZE, 0, 0);
+    glColor3f(1, 0, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,WORLD_SIZE,0);
-    glColor3f(0,1,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, WORLD_SIZE, 0);
+    glColor3f(0, 1, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,0,WORLD_SIZE);
-    glColor3f(0,0,1);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, 0, WORLD_SIZE);
+    glColor3f(0, 0, 1);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
 }
 
@@ -172,8 +170,7 @@ float widthChar(float scale, int mono, char ch) {
 }
 
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b)
-{
+              char const* string, float r, float g, float b) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
