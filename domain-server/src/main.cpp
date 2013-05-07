@@ -86,7 +86,6 @@ int main(int argc, const char * argv[])
     
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
-    int packetBytesWithoutLeadingChar;
     
     sockaddr_in agentPublicAddress, agentLocalAddress;
     agentLocalAddress.sin_family = AF_INET;
@@ -94,6 +93,8 @@ int main(int argc, const char * argv[])
     in_addr_t serverLocalAddress = getLocalAddress();
     
     agentList->startSilentAgentRemovalThread();
+    
+    uint16_t packetAgentID = 0;
     
     while (true) {
         if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
@@ -143,13 +144,17 @@ int main(int argc, const char * argv[])
                     }
                 } else {
                     double timeNow = usecTimestampNow();
+                    
                     // this is the agent, just update last receive to now
                     agent->setLastHeardMicrostamp(timeNow);
+                    
+                    // grab the ID for this agent so we can send it back with the packet
+                    packetAgentID = agent->getAgentId();
                     
                     if (packetData[0] == PACKET_HEADER_DOMAIN_RFD
                         && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
                             agent->setWakeMicrostamp(timeNow);
-                    }
+                    }                    
                 }
             }
             
@@ -160,11 +165,13 @@ int main(int argc, const char * argv[])
                 currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, soloAgent->second);
             }
             
-            if ((packetBytesWithoutLeadingChar = (currentBufferPos - startPointer))) {
-                agentList->getAgentSocket().send((sockaddr*) &agentPublicAddress,
-                                                broadcastPacket,
-                                                packetBytesWithoutLeadingChar + 1);
-            }
+            // add the agent ID to the end of the pointer
+            currentBufferPos += packAgentId(currentBufferPos, packetAgentID);
+            
+            // send the constructed list back to this agent
+            agentList->getAgentSocket().send((sockaddr*) &agentPublicAddress,
+                                             broadcastPacket,
+                                             (currentBufferPos - startPointer) + 1);
         }
     }
 

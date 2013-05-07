@@ -199,9 +199,7 @@ void *sendBuffer(void *args) {
                             
                             if (s < numSamplesDelay) {
                                 // pull the earlier sample for the delayed channel
-                                
                                 int earlierSample = delaySamplePointer[s] * attenuationCoefficient;
-                                
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
                             }
                             
