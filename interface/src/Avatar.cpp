@@ -312,7 +312,7 @@ void Avatar::setLeanSideways(float dist){
     _head.leanSideways = dist;
 }
 
-void Avatar::setMousePressed( bool mousePressed ) {
+void Avatar::setMousePressed(bool mousePressed) {
 	_mousePressed = mousePressed;
 }
 
@@ -445,7 +445,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         _avatarTouch.setMyBodyPosition(_position);
         
         Avatar * _interactingOther = NULL;
-        float closestDistance = std::numeric_limits<float>::max();;
+        float closestDistance = std::numeric_limits<float>::max();
     
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
@@ -479,7 +479,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
      
-        if ( _mousePressed ) {
+        if (_mousePressed) {
             _handState = 1;
         } else {
             _handState = 0;

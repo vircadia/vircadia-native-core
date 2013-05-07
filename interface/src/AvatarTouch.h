@@ -30,9 +30,9 @@ public:
     void setReachableRadius (float r);
     void setAbleToReachOtherAvatar (bool a) {_canReachToOtherAvatar   = a;}
     void setHandsCloseEnoughToGrasp(bool h) {_handsCloseEnoughToGrasp = h;}
-
-    bool getAbleToReachOtherAvatar () {return _canReachToOtherAvatar;}
-    bool getHandsCloseEnoughToGrasp() {return _handsCloseEnoughToGrasp;}
+    
+    bool getAbleToReachOtherAvatar () const {return _canReachToOtherAvatar;}
+    bool getHandsCloseEnoughToGrasp() const {return _handsCloseEnoughToGrasp;}
 
 private:
 

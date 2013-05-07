@@ -32,31 +32,31 @@ AvatarTouch::AvatarTouch() {
     }
 }
 
-void AvatarTouch::setMyHandPosition( glm::vec3 position ) {
+void AvatarTouch::setMyHandPosition(glm::vec3 position) {
     _myHandPosition = position;
 }
 
-void AvatarTouch::setYourHandPosition( glm::vec3 position ) {
+void AvatarTouch::setYourHandPosition(glm::vec3 position) {
     _yourHandPosition = position;
 }
 
-void AvatarTouch::setMyBodyPosition( glm::vec3 position ) {
+void AvatarTouch::setMyBodyPosition(glm::vec3 position) {
     _myBodyPosition = position;
 }
 
-void AvatarTouch::setYourBodyPosition( glm::vec3 position ) {
+void AvatarTouch::setYourBodyPosition(glm::vec3 position) {
     _yourBodyPosition = position;
 }
 
-void AvatarTouch::setMyHandState( int state ) {
+void AvatarTouch::setMyHandState(int state) {
     _myHandState = state;
 }
 
-void AvatarTouch::setYourHandState( int state ) {
+void AvatarTouch::setYourHandState(int state) {
     _yourHandState = state;
 }
 
-void AvatarTouch::setReachableRadius( float r ) {
+void AvatarTouch::setReachableRadius(float r) {
     _reachableRadius = r;
 }
 
@@ -71,7 +71,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 
         // if your hand is grasping, show it...
-        if ( _yourHandState == 1 ) {
+        if (_yourHandState == 1) {
             glPushMatrix();
             glTranslatef(_yourHandPosition.x, _yourHandPosition.y, _yourHandPosition.z);
             glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
@@ -81,13 +81,13 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         }
         
         //show beam
-        glm::vec3 v1( _myHandPosition );
-        glm::vec3 v2( _yourHandPosition );
+        glm::vec3 v1(_myHandPosition);
+        glm::vec3 v2(_yourHandPosition);
 
         if (_handsCloseEnoughToGrasp) {
-            glLineWidth( 2.0 );
+            glLineWidth(2.0);
             glColor4f( 0.7f, 0.4f, 0.1f, 0.3 );
-            glBegin( GL_LINE_STRIP );
+            glBegin(GL_LINE_STRIP);
             glVertex3f( v1.x, v1.y, v1.z );
             glVertex3f( v2.x, v2.y, v2.z );
             glEnd();
@@ -103,7 +103,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
     }
     
     // if my hand is grasping, show it...
-    if ( _myHandState == 1 ) {
+    if (_myHandState == 1) {
         glPushMatrix();
         glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
         glColor4f( 1.0, 1.0, 0.8, 0.3 ); glutSolidSphere( 0.020f, 10.0f, 10.0f );
