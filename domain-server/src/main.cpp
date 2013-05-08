@@ -118,8 +118,8 @@ int main(int argc, const char * argv[])
             if (agentList->addOrUpdateAgent((sockaddr*) &agentPublicAddress,
                                            (sockaddr*) &agentLocalAddress,
                                            agentType,
-                                           agentList->getLastAgentId())) {
-                agentList->increaseAgentId();
+                                           agentList->getLastAgentID())) {
+                agentList->increaseAgentID();
             }
             
             currentBufferPos = broadcastPacket + 1;

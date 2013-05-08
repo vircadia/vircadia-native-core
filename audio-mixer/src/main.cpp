@@ -282,8 +282,8 @@ int main(int argc, const char* argv[]) {
         if(agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                 
-                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentId())) {
-                    agentList->increaseAgentId();
+                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentID())) {
+                    agentList->increaseAgentID();
                 }
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
