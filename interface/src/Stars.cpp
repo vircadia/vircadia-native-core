@@ -34,7 +34,7 @@ float Stars::changeLOD(float fraction, float overalloc, float realloc) {
     return float(_ptrController->changeLOD(fraction, overalloc, realloc));
 } 
 
-void Stars::render(float fovY, float aspect, float nearZ) {
+void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
 
     // determine length of screen diagonal from quadrant height and aspect ratio
     float quadrantHeight = nearZ * tan(angleConvert<Degrees,Radians>(fovY) * 0.5f);
@@ -46,7 +46,7 @@ void Stars::render(float fovY, float aspect, float nearZ) {
     // pull the modelview matrix off the GL stack
     glm::mat4 view; glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
 
-    _ptrController->render(fovDiagonal, aspect, glm::affineInverse(view)); 
+    _ptrController->render(fovDiagonal, aspect, glm::affineInverse(view), alpha); 
 }
 
 

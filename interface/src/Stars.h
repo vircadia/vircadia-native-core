@@ -37,7 +37,7 @@ class Stars  {
         // Renders the starfield from a local viewer's perspective.
         // The parameters specifiy the field of view.
         // 
-        void render(float fovY, float aspect, float nearZ);
+        void render(float fovY, float aspect, float nearZ, float alpha);
 
         // 
         // Sets the resolution for FOV culling.

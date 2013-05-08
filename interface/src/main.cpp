@@ -686,8 +686,21 @@ void displaySide(Camera& whichCamera) {
     if (::starsOn) {
         // should be the first rendering pass - w/o depth buffer / lighting
 
+        // compute starfield alpha based on distance from atmosphere
+        float alpha = 1.0f;
+        if (::atmosphereOn) {
+            float height = glm::distance(whichCamera.getPosition(), environment.getAtmosphereCenter());
+            if (height < environment.getAtmosphereInnerRadius()) {
+                alpha = 0.0f;
+                
+            } else if (height < environment.getAtmosphereOuterRadius()) {
+                alpha = (height - environment.getAtmosphereInnerRadius()) /
+                    (environment.getAtmosphereOuterRadius() - environment.getAtmosphereInnerRadius());
+            }
+        }
+
         // finally render the starfield
-    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip(), alpha);
     }
 
     // draw the sky dome
