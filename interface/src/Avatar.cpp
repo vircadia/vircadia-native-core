@@ -263,32 +263,38 @@ void Avatar::reset() {
     _head.leanForward = _head.leanSideways = 0;
 }
 
-// this pertains to moving the head with the glasses
-//  Using serial data, update avatar/render position and angles
+
+//  Update avatar head rotation with sensor data
 void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
-    float measured_pitch_rate = 0.0f;
-    float measured_roll_rate = 0.0f;
+    float measuredPitchRate = 0.0f;
+    float measuredRollRate = 0.0f;
+    float measuredYawRate = 0.0f;
+    
     if (serialInterface->active && USING_INVENSENSE_MPU9150) {
-        measured_pitch_rate = serialInterface->getLastPitch();
-        _head.yawRate = serialInterface->getLastYaw();
-        measured_roll_rate = -1 * serialInterface->getLastRoll();
+        measuredPitchRate = serialInterface->getLastPitchRate();
+        measuredYawRate = serialInterface->getLastYawRate();
+        measuredRollRate = serialInterface->getLastRollRate();
     } else {
-        measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-        _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
-        measured_roll_rate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
+        measuredPitchRate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
+        measuredYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
+        measuredRollRate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
     }
     
     //  Update avatar head position based on measured gyro rates
+    const float MAX_PITCH = 45;
+    const float MIN_PITCH = -45;
+    const float MAX_YAW = 85;
+    const float MIN_YAW = -85;
+    const float MAX_ROLL = 50;
+    const float MIN_ROLL = -50;
     
-    if ((_headPitch < HEAD_MAX_PITCH) && (_headPitch > HEAD_MIN_PITCH)) {
-        addHeadPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
-    }
-        
-    addHeadRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
+    addHeadPitch(measuredPitchRate * frametime);
+    addHeadYaw(measuredYawRate * frametime);
+    addHeadRoll(measuredRollRate * frametime);
     
-    if ((_headYaw < HEAD_MAX_YAW) && (_headYaw > HEAD_MIN_YAW)) {
-         addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
-    }
+    setHeadPitch(glm::clamp(getHeadPitch(), MIN_PITCH, MAX_PITCH));
+    setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
+    setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -513,6 +519,16 @@ void Avatar::updateHead(float deltaTime) {
         _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
         _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
         _headRoll  *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
+    }
+    
+    //  For invensense gyro, decay only slightly when roughly centered
+    if (USING_INVENSENSE_MPU9150) {
+        const float RETURN_RANGE = 5.0;
+        const float RETURN_STRENGTH = 1.0;
+        if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
+
     }
     
     if (_head.noise) {
