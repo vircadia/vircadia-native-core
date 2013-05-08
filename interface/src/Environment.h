@@ -23,20 +23,33 @@ public:
     
 private:
 
+    ProgramObject* createSkyProgram(const char* from, int* locations);
+
     ProgramObject* _skyFromAtmosphereProgram;
-    int _cameraPosLocation;
-    int _lightPosLocation;
-    int _invWavelengthLocation;
-    int _innerRadiusLocation;
-    int _krESunLocation;
-    int _kmESunLocation;
-    int _kr4PiLocation;
-    int _km4PiLocation;
-    int _scaleLocation;
-    int _scaleDepthLocation;
-    int _scaleOverScaleDepthLocation;
-    int _gLocation;
-    int _g2Location;
+    ProgramObject* _skyFromSpaceProgram;
+    
+    enum {
+        CAMERA_POS_LOCATION,
+        LIGHT_POS_LOCATION,
+        INV_WAVELENGTH_LOCATION,
+        CAMERA_HEIGHT2_LOCATION,
+        OUTER_RADIUS_LOCATION,
+        OUTER_RADIUS2_LOCATION,
+        INNER_RADIUS_LOCATION,
+        KR_ESUN_LOCATION,
+        KM_ESUN_LOCATION,
+        KR_4PI_LOCATION,
+        KM_4PI_LOCATION,
+        SCALE_LOCATION,
+        SCALE_DEPTH_LOCATION,
+        SCALE_OVER_SCALE_DEPTH_LOCATION,
+        G_LOCATION,
+        G2_LOCATION,
+        LOCATION_COUNT
+    };
+    
+    int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
+    int _skyFromSpaceUniformLocations[LOCATION_COUNT];
 };
 
 #endif /* defined(__interface__Environment__) */
