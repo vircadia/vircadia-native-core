@@ -503,6 +503,7 @@ bool VoxelSystem::trueColorizeOperation(VoxelNode* node, void* extraData) {
 }
 
 void VoxelSystem::trueColorize() {
+    PerformanceWarning warn(true, "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
     printLog("setting true color for %d nodes\n", _nodeCount);
