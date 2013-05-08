@@ -12,7 +12,9 @@
 #include "VoxelTree.h"
 #include <SharedUtil.h>
 
+void addCornersAndAxisLines(VoxelTree* tree);
 void addSphereScene(VoxelTree * tree);
+void addSurfaceScene(VoxelTree * tree);
 
 
 #endif /* defined(__hifi__SceneUtil__) */
