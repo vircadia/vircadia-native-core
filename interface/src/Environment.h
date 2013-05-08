@@ -2,7 +2,7 @@
 //  Environment.h
 //  interface
 //
-//  Created by Andrzej Kapolka on 5/16/13.
+//  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
@@ -13,6 +13,7 @@
 #include "InterfaceConfig.h"
 
 class Camera;
+class ProgramObject;
 
 class Environment : public EnvironmentData {
 public:
@@ -22,7 +23,7 @@ public:
     
 private:
 
-    GLhandleARB _skyFromAtmosphereProgramID;
+    ProgramObject* _skyFromAtmosphereProgram;
     int _cameraPosLocation;
     int _lightPosLocation;
     int _invWavelengthLocation;

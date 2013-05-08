@@ -5,48 +5,31 @@
 //  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include <QFile>
-#include <QtDebug>
-
 #include "Camera.h"
 #include "Environment.h"
+#include "renderer/ProgramObject.h"
+#include "renderer/ShaderObject.h"
 #include "world.h"
 
-static GLhandleARB compileShader(int type, const QString& filename) {
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Couldn't find file." << filename;
-        return 0;
-    }
-    GLhandleARB shaderID = glCreateShaderObjectARB(type);
-    QByteArray source = file.readAll();
-    const char* sdata = source.constData();
-    glShaderSource(shaderID, 1, &sdata, 0);
-    glCompileShaderARB(shaderID);
-    return shaderID;
-}
-
 void Environment::init() {
-    _skyFromAtmosphereProgramID = glCreateProgramObjectARB();
-    glAttachObjectARB(_skyFromAtmosphereProgramID, compileShader(
-        GL_VERTEX_SHADER_ARB, "resources/shaders/SkyFromAtmosphere.vert"));
-    glAttachObjectARB(_skyFromAtmosphereProgramID, compileShader(
-        GL_FRAGMENT_SHADER_ARB, "resources/shaders/SkyFromAtmosphere.frag"));
-    glLinkProgramARB(_skyFromAtmosphereProgramID);
-    
-    _cameraPosLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "v3CameraPos");
-    _lightPosLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "v3LightPos");
-    _invWavelengthLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "v3InvWavelength");
-    _innerRadiusLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fInnerRadius");
-    _krESunLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fKrESun");
-    _kmESunLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fKmESun");
-    _kr4PiLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fKr4PI");
-    _km4PiLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fKm4PI");
-    _scaleLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fScale");
-    _scaleDepthLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fScaleDepth");
-    _scaleOverScaleDepthLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "fScaleOverScaleDepth");
-    _gLocation = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "g");
-    _g2Location = glGetUniformLocationARB(_skyFromAtmosphereProgramID, "g2");
+    _skyFromAtmosphereProgram = new ProgramObject();
+    _skyFromAtmosphereProgram->attachFromSourceFile(GL_VERTEX_SHADER_ARB, "resources/shaders/SkyFromAtmosphere.vert");
+    _skyFromAtmosphereProgram->attachFromSourceFile(GL_FRAGMENT_SHADER_ARB, "resources/shaders/SkyFromAtmosphere.frag");
+    _skyFromAtmosphereProgram->link();
+
+    _cameraPosLocation = _skyFromAtmosphereProgram->getUniformLocation("v3CameraPos");
+    _lightPosLocation = _skyFromAtmosphereProgram->getUniformLocation("v3LightPos");
+    _invWavelengthLocation = _skyFromAtmosphereProgram->getUniformLocation("v3InvWavelength");
+    _innerRadiusLocation = _skyFromAtmosphereProgram->getUniformLocation("fInnerRadius");
+    _krESunLocation = _skyFromAtmosphereProgram->getUniformLocation("fKrESun");
+    _kmESunLocation = _skyFromAtmosphereProgram->getUniformLocation("fKmESun");
+    _kr4PiLocation = _skyFromAtmosphereProgram->getUniformLocation("fKr4PI");
+    _km4PiLocation = _skyFromAtmosphereProgram->getUniformLocation("fKm4PI");
+    _scaleLocation = _skyFromAtmosphereProgram->getUniformLocation("fScale");
+    _scaleDepthLocation = _skyFromAtmosphereProgram->getUniformLocation("fScaleDepth");
+    _scaleOverScaleDepthLocation = _skyFromAtmosphereProgram->getUniformLocation("fScaleOverScaleDepth");
+    _gLocation = _skyFromAtmosphereProgram->getUniformLocation("g");
+    _g2Location = _skyFromAtmosphereProgram->getUniformLocation("g2");
 }
 
 void Environment::render(Camera& camera) {    
@@ -68,25 +51,25 @@ void Environment::render(Camera& camera) {
     
     // the constants here are from Sean O'Neil's GPU Gems entry
     // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp
-    glUseProgramObjectARB(_skyFromAtmosphereProgramID);
-    glUniform3fARB(_cameraPosLocation, relativeCameraPos.x, relativeCameraPos.y, relativeCameraPos.z);
+    _skyFromAtmosphereProgram->bind();
+    _skyFromAtmosphereProgram->setUniform(_cameraPosLocation, relativeCameraPos);
     glm::vec3 lightDirection = glm::normalize(getSunLocation());
-    glUniform3fARB(_lightPosLocation, lightDirection.x, lightDirection.y, lightDirection.z);
-    glUniform3fARB(_invWavelengthLocation,
+    _skyFromAtmosphereProgram->setUniform(_lightPosLocation, lightDirection);
+    _skyFromAtmosphereProgram->setUniform(_invWavelengthLocation,
         1 / powf(getScatteringWavelengths().r, 4.0f),
         1 / powf(getScatteringWavelengths().g, 4.0f),
         1 / powf(getScatteringWavelengths().b, 4.0f));
-    glUniform1fARB(_innerRadiusLocation, getAtmosphereInnerRadius());
-    glUniform1fARB(_krESunLocation, getRayleighScattering() * getSunBrightness());
-    glUniform1fARB(_kmESunLocation, getMieScattering() * getSunBrightness());
-    glUniform1fARB(_kr4PiLocation, getRayleighScattering() * 4.0f * PIf);
-    glUniform1fARB(_km4PiLocation, getMieScattering() * 4.0f * PIf);
-    glUniform1fARB(_scaleLocation, 1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius()));
-    glUniform1fARB(_scaleDepthLocation, 0.25f);
-    glUniform1fARB(_scaleOverScaleDepthLocation,
+    _skyFromAtmosphereProgram->setUniform(_innerRadiusLocation, getAtmosphereInnerRadius());
+    _skyFromAtmosphereProgram->setUniform(_krESunLocation, getRayleighScattering() * getSunBrightness());
+    _skyFromAtmosphereProgram->setUniform(_kmESunLocation, getMieScattering() * getSunBrightness());
+    _skyFromAtmosphereProgram->setUniform(_kr4PiLocation, getRayleighScattering() * 4.0f * PIf);
+    _skyFromAtmosphereProgram->setUniform(_km4PiLocation, getMieScattering() * 4.0f * PIf);
+    _skyFromAtmosphereProgram->setUniform(_scaleLocation, 1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius()));
+    _skyFromAtmosphereProgram->setUniform(_scaleDepthLocation, 0.25f);
+    _skyFromAtmosphereProgram->setUniform(_scaleOverScaleDepthLocation,
         (1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius())) / 0.25f);
-    glUniform1fARB(_gLocation, -0.990f);
-    glUniform1fARB(_g2Location, -0.990f * -0.990f);
+    _skyFromAtmosphereProgram->setUniform(_gLocation, -0.990f);
+    _skyFromAtmosphereProgram->setUniform(_g2Location, -0.990f * -0.990f);
     
     glFrontFace(GL_CW);
     glDepthMask(GL_FALSE);
@@ -95,7 +78,7 @@ void Environment::render(Camera& camera) {
     glDepthMask(GL_TRUE);
     glFrontFace(GL_CCW);
     
-    glUseProgramObjectARB(0);
+    _skyFromAtmosphereProgram->release();
     
     glPopMatrix();
        
