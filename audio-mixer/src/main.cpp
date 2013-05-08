@@ -60,7 +60,7 @@ const float DISTANCE_RATIO = 3.0f / 0.3f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
-const float MAX_OFF_AXIS_ATTENUATION = 0.1f;
+const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
 const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
@@ -111,7 +111,6 @@ void *sendBuffer(void *args) {
 
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
-            float agentBearing = agentRingBuffer->getBearing();
             
             int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
             
@@ -151,7 +150,7 @@ void *sendBuffer(void *args) {
                             float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
                                                          fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
                             float absoluteAngleToSource = 0;
-                            float bearingRelativeAngleToSource = 0;
+                            bearingRelativeAngleToSource = 0;
                             
                             // find the angle we need for calculation based on the orientation of the triangle
                             if (otherAgentPosition[0] > agentPosition[0]) {
@@ -168,7 +167,7 @@ void *sendBuffer(void *args) {
                                 }
                             }
                             
-                            bearingRelativeAngleToSource = absoluteAngleToSource - agentBearing;
+                            bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
                             
                             if (bearingRelativeAngleToSource > 180) {
                                 bearingRelativeAngleToSource -= 360;
@@ -176,27 +175,30 @@ void *sendBuffer(void *args) {
                                 bearingRelativeAngleToSource += 360;
                             }
                             
-                            bearingRelativeAngleToSource *= (M_PI / 180);
-                            
                             float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
+                            
+                            if (angleOfDelivery > 180) {
+                                angleOfDelivery -= 360;
+                            } else if (angleOfDelivery < -180) {
+                                angleOfDelivery += 360;
+                            }
                             
                             float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
                                 (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
-                            
-                            printf("AD: %f, OC: %f\n", angleOfDelivery, offAxisCoefficient);
                             
                             attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
                                 * otherAgentBuffer->getAttenuationRatio()
                                 * offAxisCoefficient;
                             
+                            bearingRelativeAngleToSource *= (M_PI / 180);
                             
                             float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
                             numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                             weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                         }
                         
-                        int16_t* goodChannel = bearingRelativeAngleToSource > 0  ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
-                        int16_t* delayedChannel = bearingRelativeAngleToSource > 0 ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                        int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL : clientMix;
+                        int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f ? clientMix : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         
                         int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
