@@ -13,13 +13,13 @@
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
 // GameEngine.cpp (and the radius of the earth)
 EnvironmentData::EnvironmentData() :
-    _atmosphereCenter(0, -6371000, 0),
-    _atmosphereInnerRadius(6371000),
-    _atmosphereOuterRadius(6530275),
+    _atmosphereCenter(0, -1000, 0),
+    _atmosphereInnerRadius(1000),
+    _atmosphereOuterRadius(1025),
     _rayleighScattering(0.0025f),
     _mieScattering(0.0010f),
     _scatteringWavelengths(0.650f, 0.570f, 0.475f),
-    _sunLocation(1000, 1000, 0),
+    _sunLocation(1000, 500, 0),
     _sunBrightness(20.0f) {
 }
 
