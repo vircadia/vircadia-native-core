@@ -347,7 +347,9 @@ int main(int argc, const char * argv[])
     //      1) we attempted to load a persistant file and it wasn't there
     //      2) you asked us to add a scene
     // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
-    bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
+    //
+    // TEMPORARILY DISABLED!!!
+    bool actuallyAddScene = false; // !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
     if (actuallyAddScene) {
         addSphereScene(&randomTree);
     }
