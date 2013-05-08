@@ -22,7 +22,7 @@ using namespace std;
 
 const bool  BALLS_ON                      = false;
 const bool  USING_AVATAR_GRAVITY          = true;
-const float GRAVITY_SCALE                 = 6.0f;
+const float GRAVITY_SCALE                 = 10.0f;
 const float BOUNCE                        = 0.3f;
 const float DECAY                         = 0.1;
 const float THRUST_MAG                    = 1200.0;
@@ -36,13 +36,18 @@ const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
-
 const float BODY_SPRING_DECAY             = 16.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
 const float COLLISION_BALL_FORCE          = 1.0;
 const float COLLISION_BODY_FORCE          = 6.0;
 const float COLLISION_BALL_FRICTION       = 60.0;
 const float COLLISION_BODY_FRICTION       = 0.5;
+const float HEAD_ROTATION_SCALE           = 0.70;
+const float HEAD_ROLL_SCALE               = 0.40;
+const float HEAD_MAX_PITCH                = 45;
+const float HEAD_MIN_PITCH                = -45;
+const float HEAD_MAX_YAW                  = 85;
+const float HEAD_MIN_YAW                  = -85;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
@@ -136,7 +141,6 @@ Avatar::Avatar(bool isMine) {
     _head.noise                 = 0;
     _head.returnSpringScale     = 1.0;
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _usingBodySprings           = true;
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
     _sphere                     = NULL;
@@ -186,7 +190,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
     _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
     _movedHandOffset             = otherAvatar._movedHandOffset;
-    _usingBodySprings            = otherAvatar._usingBodySprings;
     
     _orientation.set(otherAvatar._orientation);
     
@@ -276,20 +279,14 @@ void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm:
     }
     
     //  Update avatar head position based on measured gyro rates
-    const float HEAD_ROTATION_SCALE = 0.70;
-    const float HEAD_ROLL_SCALE = 0.40;
-    const float MAX_PITCH = 45;
-    const float MIN_PITCH = -45;
-    const float MAX_YAW = 85;
-    const float MIN_YAW = -85;
     
-    if ((_headPitch < MAX_PITCH) && (_headPitch > MIN_PITCH)) {
+    if ((_headPitch < HEAD_MAX_PITCH) && (_headPitch > HEAD_MIN_PITCH)) {
         addHeadPitch(measured_pitch_rate * -HEAD_ROTATION_SCALE * frametime);
     }
         
     addHeadRoll(measured_roll_rate * HEAD_ROLL_SCALE * frametime);
     
-    if ((_headYaw < MAX_YAW) && (_headYaw > MIN_YAW)) {
+    if ((_headYaw < HEAD_MAX_YAW) && (_headYaw > HEAD_MIN_YAW)) {
          addHeadYaw(_head.yawRate * HEAD_ROTATION_SCALE * frametime);
     }
 }
@@ -299,7 +296,7 @@ float Avatar::getAbsoluteHeadYaw() const {
 }
 
 void Avatar::addLean(float x, float z) {
-    //  Add Body lean as impulse
+    //Add lean as impulse
     _head.leanSideways += x;
     _head.leanForward  += z;
 }
@@ -641,12 +638,14 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
             }
         }
     
+        /*
         if (jointCollision) {
             if (!_usingBodySprings) {
                 _usingBodySprings = true;
                 initializeBodySprings();
             }
         }
+        */
     }
 }
 
@@ -747,17 +746,14 @@ void Avatar::setDisplayingHead(bool displayingHead) {
     _displayingHead = displayingHead;
 }
 
-
 static TextRenderer* textRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24);
     return renderer;
 }
 
-
 void Avatar::setGravity(glm::vec3 gravity) {
     _gravity = gravity;
 }
-
 
 void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
@@ -858,16 +854,9 @@ void Avatar::renderHead(bool lookingInMirror) {
     
     glPushMatrix();
     
-    if (_usingBodySprings) {
         glTranslatef(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.x,
                      _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.y,
                      _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.z);
-    }
-    else {
-        glTranslatef(_joint[ AVATAR_JOINT_HEAD_BASE ].position.x,
-                     _joint[ AVATAR_JOINT_HEAD_BASE ].position.y,
-                     _joint[ AVATAR_JOINT_HEAD_BASE ].position.z);
-    }
 	
     glScalef
     (
@@ -1032,7 +1021,7 @@ void Avatar::initializeSkeleton() {
 	for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
         _joint[b].isCollidable        = true;
         _joint[b].parent              = AVATAR_JOINT_NULL;
-        _joint[b].position			 = glm::vec3(0.0, 0.0, 0.0);
+        _joint[b].position            = glm::vec3(0.0, 0.0, 0.0);
         _joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0);
         _joint[b].springyPosition     = glm::vec3(0.0, 0.0, 0.0);
         _joint[b].springyVelocity     = glm::vec3(0.0, 0.0, 0.0);
@@ -1103,24 +1092,20 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_CHEST            ].radius = 0.075;
     _joint[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
     _joint[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
-    
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.029;
     _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.023;
     _joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.017;
     _joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.017;
     _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
-    
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.029;
     _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.023;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].radius = 0.015;
     _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].radius = 0.015;
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
-    
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.03;
     _joint[ AVATAR_JOINT_LEFT_KNEE		  ].radius = 0.02;
     _joint[ AVATAR_JOINT_LEFT_HEEL		  ].radius = 0.015;
     _joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.02;
-    
     _joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.03;
     _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].radius = 0.02;
     _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.015;
@@ -1132,19 +1117,16 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_CHEST            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_NECK_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.4;
     _joint[ AVATAR_JOINT_HEAD_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-	
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_LEFT_WRIST       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
     _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-	
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
 	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    
     _joint[ AVATAR_JOINT_LEFT_HIP         ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
     _joint[ AVATAR_JOINT_LEFT_KNEE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
     _joint[ AVATAR_JOINT_LEFT_HEEL        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
@@ -1258,7 +1240,7 @@ void Avatar::updateBodySprings(float deltaTime) {
         
         float length = glm::length(springVector);
 		
-        if (length > 0.0f) {
+        if (length > 0.0f) { // to avoid divide by zero
             glm::vec3 springDirection = springVector / length;
 			
             float force = (length - _joint[b].length) * BODY_SPRING_FORCE * deltaTime;
@@ -1342,56 +1324,30 @@ void Avatar::renderBody() {
         
         if (b != AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case in "renderHead"
     
-            //render bone orientation
+            //show direction vectors of the bone orientation
             //renderOrientationDirections(_joint[b].springyPosition, _joint[b].orientation, _joint[b].radius * 2.0);
             
-            if (_usingBodySprings) {
-                glColor3fv(skinColor);
-                glPushMatrix();
-                glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
-                glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
-            else {
-                glColor3fv(skinColor);
-                glPushMatrix();
-                glTranslatef(_joint[b].position.x, _joint[b].position.y, _joint[b].position.z);
-                glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
+            glColor3fv(skinColor);
+            glPushMatrix();
+            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
+            glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
+            glPopMatrix();
         }
     }
     
     // Render lines connecting the joint positions
-    if (_usingBodySprings) {
-        glColor3f(0.4f, 0.5f, 0.6f);
-        glLineWidth(3.0);
-        
-        for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
-        if (_joint[b].parent != AVATAR_JOINT_NULL) 
-            if (b != AVATAR_JOINT_HEAD_TOP) {
-                glBegin(GL_LINE_STRIP);
-                glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
-                glVertex3fv(&_joint[ b ].springyPosition.x);
-                glEnd();
-            }
+    glColor3f(0.4f, 0.5f, 0.6f);
+    glLineWidth(3.0);
+    
+    for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
+    if (_joint[b].parent != AVATAR_JOINT_NULL) 
+        if (b != AVATAR_JOINT_HEAD_TOP) {
+            glBegin(GL_LINE_STRIP);
+            glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
+            glVertex3fv(&_joint[ b ].springyPosition.x);
+            glEnd();
         }
     }
-    /*
-    else {
-        glColor3fv(skinColor);
-        glLineWidth(3.0);
-        
-        for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
-            if (_joint[b].parent != AVATAR_JOINT_NULL) {
-                glBegin(GL_LINE_STRIP);
-                glVertex3fv(&_joint[ _joint[ b ].parent ].position.x);
-                glVertex3fv(&_joint[ b ].position.x);
-                glEnd();
-            }
-        }
-    }
-    */
 }
 
 void Avatar::SetNewHeadTarget(float pitch, float yaw) {
