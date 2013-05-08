@@ -18,7 +18,7 @@ ShaderObject::~ShaderObject() {
 }
 
 bool ShaderObject::compileSourceCode(const char* data) {
-    glShaderSource(_handle, 1, &data, 0);
+    glShaderSourceARB(_handle, 1, &data, 0);
     glCompileShaderARB(_handle);
     int status;
     glGetObjectParameterivARB(_handle, GL_OBJECT_COMPILE_STATUS_ARB, &status);
