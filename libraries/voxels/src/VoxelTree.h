@@ -17,6 +17,7 @@
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
+typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
 class VoxelTree {
 public:
@@ -49,7 +50,7 @@ public:
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer, bool debug = false);
+	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, creationMode mode, bool debug = false);
 	
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
@@ -70,6 +71,8 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToFileV2(const char* filename) const;
     bool readFromFileV2(const char* filename);
+
+    unsigned long getVoxelCount();
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
@@ -78,6 +81,8 @@ private:
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+
+    static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
