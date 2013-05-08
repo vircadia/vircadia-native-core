@@ -63,11 +63,6 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
-    _tree->createSphere(r, xc, yc, zc, s, solid, wantColorRandomizer);
-    setupNewVoxelsForDrawing();
-}
-
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }

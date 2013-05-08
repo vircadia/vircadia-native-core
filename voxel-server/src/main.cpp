@@ -17,6 +17,7 @@
 #include "VoxelAgentData.h"
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <SceneUtils.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -26,6 +27,8 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #endif
+
+const char* VOXELS_PERSIST_FILE = "resources/voxels.hio2";
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -47,100 +50,6 @@ bool wantVoxelPersist = true;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
-
-void addSphere(VoxelTree * tree,bool random, bool wantColorRandomizer) {
-	float r  = random ? randFloatInRange(0.05,0.1) : 0.25;
-	float xc = random ? randFloatInRange(r,(1-r)) : 0.5;
-	float yc = random ? randFloatInRange(r,(1-r)) : 0.5;
-	float zc = random ? randFloatInRange(r,(1-r)) : 0.5;
-	float s = (1.0/256); // size of voxels to make up surface of sphere
-	bool solid = true;
-
-	printf("adding sphere:");
-	if (random)
-		printf(" random");
-	printf("\nradius=%f\n",r);
-	printf("xc=%f\n",xc);
-	printf("yc=%f\n",yc);
-	printf("zc=%f\n",zc);
-
-	tree->createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
-}
-
-int _nodeCount=0;
-bool countVoxelsOperation(VoxelNode* node, void* extraData) {
-    if (node->isColored()){
-        _nodeCount++;
-    }
-    return true; // keep going
-}
-
-void addSphereScene(VoxelTree * tree, bool wantColorRandomizer) {
-    printf("adding scene...\n");
-
-    float voxelSize = 1.f/32;
-    printf("creating corner points...\n");
-    tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
-    tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
-    tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
-    tree->createVoxel(0              , 0              , 1.0 - voxelSize, voxelSize, 0  , 0   ,255);
-    tree->createVoxel(1.0 - voxelSize, 0              , 1.0 - voxelSize, voxelSize, 255, 0   ,255);
-    tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
-    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
-    tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
-    printf("DONE creating corner points...\n");
-
-    printf("creating voxel lines...\n");
-    float lineVoxelSize = 0.99f/256;
-    rgbColor red   = {255,0,0};
-    rgbColor green = {0,255,0};
-    rgbColor blue  = {0,0,255};
-
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), lineVoxelSize, blue);
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), lineVoxelSize, red);
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), lineVoxelSize, green);
-
-    printf("DONE creating lines...\n");
-
-    int sphereBaseSize = 512;
-    printf("creating spheres...\n");
-    tree->createSphere(0.25, 0.5, 0.5, 0.5, (1.0 / sphereBaseSize), true, wantColorRandomizer);
-    printf("one sphere added...\n");
-    tree->createSphere(0.030625, 0.5, 0.5, (0.25-0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
-
-
-    printf("two spheres added...\n");
-    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), (0.75 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
-    printf("three spheres added...\n");
-    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), 0.06125, (1.0 / (sphereBaseSize * 2)), true, true);
-    printf("four spheres added...\n");
-    tree->createSphere(0.030625, (0.75 - 0.030625), 0.06125, (0.75 - 0.06125), (1.0 / (sphereBaseSize * 2)), true, true);
-    printf("five spheres added...\n");
-    tree->createSphere(0.06125, 0.125, 0.125, (0.75 - 0.125), (1.0 / (sphereBaseSize * 2)), true, true);
-
-    float radius = 0.0125f;
-    printf("6 spheres added...\n");
-    tree->createSphere(radius, 0.25, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-    printf("7 spheres added...\n");
-    tree->createSphere(radius, 0.125, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-    printf("8 spheres added...\n");
-    tree->createSphere(radius, 0.075, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-    printf("9 spheres added...\n");
-    tree->createSphere(radius, 0.05, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-    printf("10 spheres added...\n");
-    tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, (1.0 / 4096), true, true);
-    printf("11 spheres added...\n");
-
-    printf("DONE creating spheres...\n");
-
-    _nodeCount=0;
-    tree->recurseTreeWithOperation(countVoxelsOperation);
-    printf("Nodes after adding scene %d nodes\n", _nodeCount);
-
-
-    printf("DONE adding scene of spheres...\n");
-}
-
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -298,7 +207,7 @@ void persistVoxelsWhenDirty() {
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::randomTree.isDirty()) {
         printf("saving voxels to file...\n");
-        randomTree.writeToFileV2("voxels.hio2");
+        randomTree.writeToFileV2(VOXELS_PERSIST_FILE);
         randomTree.clearDirtyBit(); // tree is clean after saving
         printf("DONE saving voxels to file...\n");
     }
@@ -393,12 +302,11 @@ int main(int argc, const char * argv[])
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        persistantFileRead = ::randomTree.readFromFileV2("voxels.hio2");
+        persistantFileRead = ::randomTree.readFromFileV2(VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file...\n");
-        _nodeCount=0;
-        ::randomTree.recurseTreeWithOperation(countVoxelsOperation);
-        printf("Nodes after loading scene %d nodes\n", _nodeCount);
+        unsigned long nodeCount = ::randomTree.getVoxelCount();
+        printf("Nodes after loading scene %ld nodes\n", nodeCount);
     }
 
     // Check to see if the user passed in a command line option for loading an old style local
@@ -427,14 +335,6 @@ int main(int argc, const char * argv[])
         randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
     }
 
-    const char* ADD_SPHERE = "--AddSphere";
-    const char* ADD_RANDOM_SPHERE = "--AddRandomSphere";
-    if (cmdOptionExists(argc, argv, ADD_SPHERE)) {
-        addSphere(&randomTree,false,wantColorRandomizer);
-    } else if (cmdOptionExists(argc, argv, ADD_RANDOM_SPHERE)) {
-        addSphere(&randomTree,true,wantColorRandomizer);
-    }
-
     const char* ADD_SCENE = "--AddScene";
     bool addScene = cmdOptionExists(argc, argv, ADD_SCENE);
     const char* NO_ADD_SCENE = "--NoAddScene";
@@ -449,7 +349,7 @@ int main(int argc, const char * argv[])
     // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
     bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
     if (actuallyAddScene) {
-        addSphereScene(&randomTree,wantColorRandomizer);
+        addSphereScene(&randomTree);
     }
     
     pthread_t sendVoxelThread;
@@ -535,7 +435,7 @@ int main(int argc, const char * argv[])
 					}
 					if (0==strcmp(command,(char*)"add scene")) {
 						printf("got Z message == add scene\n");
-						addSphereScene(&randomTree,false);
+						addSphereScene(&randomTree);
 					}
                     totalLength += commandLength+1;
 				}
