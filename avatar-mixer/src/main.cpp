@@ -88,15 +88,12 @@ int main(int argc, const char* argv[]) {
                     
                     // send back a packet with other active agent data to this agent
                     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                        if (agent->getLinkedData() != NULL
-                            && !socketMatch(agentAddress, agent->getActiveSocket())) {
+                        if (agent->getLinkedData() && !socketMatch(agentAddress, agent->getActiveSocket())) {
                             currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*agent);
                         }
                     }
                     
-                    agentList->getAgentSocket().send(agentAddress,
-                                                    broadcastPacket,
-                                                    currentBufferPosition - broadcastPacket);
+                    agentList->getAgentSocket().send(agentAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                     
                     break;
                 case PACKET_HEADER_DOMAIN:

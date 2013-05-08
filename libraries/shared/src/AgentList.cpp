@@ -65,7 +65,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
-    lastAgentId(0) {
+    _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -123,7 +123,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     uint16_t agentID = -1;
     
     while ((currentPosition - startPosition) < numTotalBytes) {
-        currentPosition += unpackAgentId(currentPosition, &agentID);
+        unpackAgentId(currentPosition, &agentID);
         memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
         
         Agent* matchingAgent = agentWithID(agentID);
@@ -190,14 +190,6 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     }
 
     return NULL;
-}
-
-uint16_t AgentList::getLastAgentId() {
-    return lastAgentId;
-}
-
-void AgentList::increaseAgentId() {
-    ++lastAgentId;
 }
 
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {

@@ -26,24 +26,24 @@ Camera::Camera() {
 	_rightShift		      = 0.0;
 	_distance		      = 0.0;
 	_idealYaw		      = 0.0;
-	_targetPosition	      = glm::vec3( 0.0, 0.0, 0.0 );
-	_position		      = glm::vec3( 0.0, 0.0, 0.0 );
-	_idealPosition	      = glm::vec3( 0.0, 0.0, 0.0 );
+	_targetPosition	      = glm::vec3(0.0, 0.0, 0.0);
+	_position		      = glm::vec3(0.0, 0.0, 0.0);
+	_idealPosition	      = glm::vec3(0.0, 0.0, 0.0);
 	_orientation.setToIdentity();
 }
 
 
-void Camera::update( float deltaTime )  {
+void Camera::update(float deltaTime)  {
 
-    if ( _mode == CAMERA_MODE_NULL ) {
+    if (_mode == CAMERA_MODE_NULL) {
         _modeShift = 0.0;
     } else {
         // use iterative forces to keep the camera at the desired position and angle
-        updateFollowMode( deltaTime );
+        updateFollowMode(deltaTime);
         
-        if ( _modeShift < 1.0f ) {
+        if (_modeShift < 1.0f) {
             _modeShift += MODE_SHIFT_RATE * deltaTime;
-            if ( _modeShift > 1.0f ) {
+            if (_modeShift > 1.0f) {
                 _modeShift = 1.0f;
             }
         }
@@ -53,22 +53,19 @@ void Camera::update( float deltaTime )  {
     generateOrientation();    
 }
 
-
-
 // generate the ortho-normals for the orientation based on the three Euler angles
 void Camera::generateOrientation() {
     _orientation.setToIdentity();
-    _orientation.pitch( _pitch );
-    _orientation.yaw  ( _yaw   );
-    _orientation.roll ( _roll  );    
+    _orientation.pitch(_pitch);
+    _orientation.yaw  (_yaw  );
+    _orientation.roll (_roll );    
 }
 
-
 // use iterative forces to keep the camera at the desired position and angle
-void Camera::updateFollowMode( float deltaTime ) {        
+void Camera::updateFollowMode(float deltaTime) {        
     // derive t from tightness
     float t = _tightness * deltaTime;	
-    if ( t > 1.0 ) {
+    if (t > 1.0) {
         t = 1.0;
     }
 
@@ -113,8 +110,6 @@ void Camera::setFarClip    (float f) {
     _farClip = f; 
     _frustumNeedsReshape = true; 
 }
-
-
 
 // call to find out if the view frustum needs to be reshaped
 bool Camera::getFrustumNeedsReshape() {

@@ -429,7 +429,7 @@ void updateAvatar(float frametime) {
     myAvatar.setCameraNearClip(::viewFrustum.getNearClip());
     myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
     
-    AgentList *agentList = AgentList::getInstance();
+    AgentList* agentList = AgentList::getInstance();
     
     if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
@@ -451,9 +451,9 @@ void updateAvatar(float frametime) {
     	glm::vec3 avatarPos = myAvatar.getPosition();
 
 		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = avatarPos.x/10.0;  
-		::paintingVoxel.y = avatarPos.y/10.0;  
-		::paintingVoxel.z = avatarPos.z/10.0;
+		::paintingVoxel.x = avatarPos.x / 10.0;
+		::paintingVoxel.y = avatarPos.y / 10.0;
+		::paintingVoxel.z = avatarPos.z / 10.0;
     	
     	unsigned char* bufferOut;
     	int sizeOut;
@@ -696,8 +696,7 @@ void displaySide(Camera& whichCamera) {
     drawGroundPlaneGrid(10.f);
 	
     //  Draw voxels
-    if (showingVoxels)
-    {
+    if (showingVoxels) {
         voxels.render();
     }
 	
@@ -1029,27 +1028,27 @@ void display(void)
                 
                 // this version uses a ramp-up/ramp-down timer in the camera to determine shift between first and thirs-person view 
                 /*
-                if ( myAvatar.getSpeed() < 0.02 ) {   
+                if (myAvatar.getSpeed() < 0.02) {   
                 
-                    if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
                         myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                     }
                     
-                    //printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch	   ( thirdPersonPitch     + myCamera.getModeShift() * ( firstPersonPitch     - thirdPersonPitch     ));
-                    myCamera.setUpShift    ( thirdPersonUpShift   + myCamera.getModeShift() * ( firstPersonUpShift   - thirdPersonUpShift   ));
-                    myCamera.setDistance   ( thirdPersonDistance  + myCamera.getModeShift() * ( firstPersonDistance  - thirdPersonDistance  ));
-                    myCamera.setTightness  ( thirdPersonTightness + myCamera.getModeShift() * ( firstPersonTightness - thirdPersonTightness ));                
+                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+                    myCamera.setPitch	   (thirdPersonPitch     + myCamera.getModeShift() * (firstPersonPitch     - thirdPersonPitch    ));
+                    myCamera.setUpShift    (thirdPersonUpShift   + myCamera.getModeShift() * (firstPersonUpShift   - thirdPersonUpShift  ));
+                    myCamera.setDistance   (thirdPersonDistance  + myCamera.getModeShift() * (firstPersonDistance  - thirdPersonDistance ));
+                    myCamera.setTightness  (thirdPersonTightness + myCamera.getModeShift() * (firstPersonTightness - thirdPersonTightness));                
                 } else {
-                    if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON ) {
+                    if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
                         myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
                     }
                 
-                    //printf( "myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch	   ( firstPersonPitch     + myCamera.getModeShift() * ( thirdPersonPitch     - firstPersonPitch     ));
-                    myCamera.setUpShift    ( firstPersonUpShift   + myCamera.getModeShift() * ( thirdPersonUpShift   - firstPersonUpShift   ));
-                    myCamera.setDistance   ( firstPersonDistance  + myCamera.getModeShift() * ( thirdPersonDistance  - firstPersonDistance  ));
-                    myCamera.setTightness  ( firstPersonTightness + myCamera.getModeShift() * ( thirdPersonTightness - firstPersonTightness ));
+                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
+                    myCamera.setPitch	   (firstPersonPitch     + myCamera.getModeShift() * (thirdPersonPitch     - firstPersonPitch    ));
+                    myCamera.setUpShift    (firstPersonUpShift   + myCamera.getModeShift() * (thirdPersonUpShift   - firstPersonUpShift  ));
+                    myCamera.setDistance   (firstPersonDistance  + myCamera.getModeShift() * (thirdPersonDistance  - firstPersonDistance ));
+                    myCamera.setTightness  (firstPersonTightness + myCamera.getModeShift() * (thirdPersonTightness - firstPersonTightness));
                 }
                 */
                 
@@ -1092,7 +1091,7 @@ void display(void)
 		if (::viewFrustumFromOffset && ::frustumOn) {
 
             // set the camera to third-person view but offset so we can see the frustum
-            viewFrustumOffsetCamera.setTargetYaw(::viewFrustumOffsetYaw + myAvatar.getBodyYaw() );
+            viewFrustumOffsetCamera.setTargetYaw(::viewFrustumOffsetYaw + myAvatar.getBodyYaw());
             viewFrustumOffsetCamera.setPitch    (::viewFrustumOffsetPitch   );
             viewFrustumOffsetCamera.setRoll     (::viewFrustumOffsetRoll    ); 
             viewFrustumOffsetCamera.setUpShift  (::viewFrustumOffsetUp      );
@@ -1783,7 +1782,7 @@ glm::vec3 getGravity(glm::vec3 pos) {
 }
        
 void mouseFunc(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
             mouseX = x;
             mouseY = y;
