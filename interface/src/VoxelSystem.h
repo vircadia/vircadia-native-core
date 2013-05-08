@@ -104,6 +104,7 @@ private:
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
     double _lastViewCulling;
+    double _lastViewCullingElapsed;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
