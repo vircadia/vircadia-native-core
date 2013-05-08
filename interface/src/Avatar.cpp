@@ -266,9 +266,9 @@ void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm:
     float measured_pitch_rate = 0.0f;
     float measured_roll_rate = 0.0f;
     if (serialInterface->active && USING_INVENSENSE_MPU9150) {
-        measured_pitch_rate = serialInterface->getLastPitch();
-        _head.yawRate = serialInterface->getLastYaw();
-        measured_roll_rate = -1 * serialInterface->getLastRoll();
+        measured_pitch_rate = serialInterface->getLastPitchRate();
+        _head.yawRate = serialInterface->getLastYawRate();
+        measured_roll_rate = -1 * serialInterface->getLastRollRate();
     } else {
         measured_pitch_rate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
         _head.yawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);

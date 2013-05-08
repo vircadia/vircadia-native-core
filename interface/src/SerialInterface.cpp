@@ -173,12 +173,12 @@ void SerialInterface::renderLevels(int width, int height) {
         const int LEVEL_CORNER_X = 10;
         const int LEVEL_CORNER_Y = 200;
         
-        // Draw the text values 
-        sprintf(val, "Yaw   %d", _lastYaw);
+        // Draw the numeric degree/sec values from the gyros
+        sprintf(val, "Yaw   %4.1f", _lastYawRate);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Pitch %d", _lastPitch);
+        sprintf(val, "Pitch %4.1f", _lastPitchRate);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Roll  %d", _lastRoll);
+        sprintf(val, "Roll  %4.1f", _lastRollRate);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
         
         //  Draw the levels as horizontal lines        
@@ -187,11 +187,11 @@ void SerialInterface::renderLevels(int width, int height) {
         glColor4f(1, 1, 1, 1);
         glBegin(GL_LINES);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastYaw, LEVEL_CORNER_Y - 3);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastYawRate, LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastPitch, LEVEL_CORNER_Y + 12);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastPitchRate, LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastRoll, LEVEL_CORNER_Y + 27);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastRollRate, LEVEL_CORNER_Y + 27);
         glEnd();
         //  Draw green vertical centerline
         glColor4f(0, 1, 0, 0.5);
@@ -238,9 +238,17 @@ void SerialInterface::readData() {
         write(_serialDescriptor, "RD684306\n", 9);
         read(_serialDescriptor, gyroBuffer, 20);
         
-        convertHexToInt(gyroBuffer + 6, _lastYaw);
-        convertHexToInt(gyroBuffer + 10, _lastRoll);
-        convertHexToInt(gyroBuffer + 14, _lastPitch);
+        int rollRate, yawRate, pitchRate;
+        
+        convertHexToInt(gyroBuffer + 6, rollRate);
+        convertHexToInt(gyroBuffer + 10, yawRate);
+        convertHexToInt(gyroBuffer + 14, pitchRate);
+        
+        //  Convert the integer rates to floats
+        const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
+        _lastRollRate = (float) rollRate * LSB_TO_DEGREES_PER_SECOND;
+        _lastYawRate = (float) yawRate * LSB_TO_DEGREES_PER_SECOND;
+        _lastPitchRate = (float) pitchRate * LSB_TO_DEGREES_PER_SECOND;
         
         totalSamples++;
     } else {
