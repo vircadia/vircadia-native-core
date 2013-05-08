@@ -259,6 +259,12 @@ bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
     return inView;
 }
 
+ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const {
+    AABox box = _box; // use temporary box so we can scale it
+    box.scale(TREE_SCALE);
+    return viewFrustum.boxInFrustum(box);
+}
+
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 center = _box.getCenter() * (float)TREE_SCALE;
     float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - center.x, 2) +
