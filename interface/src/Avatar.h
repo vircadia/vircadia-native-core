@@ -142,10 +142,6 @@ public:
 
 private:
 
-    //  Do you want head to try to return to center (depends on interface detected)
-    void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
-    const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
-
     struct AvatarJoint
     {
         AvatarJointID parent;               // which joint is this joint connected to?
@@ -213,7 +209,6 @@ private:
     float       _bodyPitchDelta;
     float       _bodyYawDelta;
     float       _bodyRollDelta;
-    bool        _usingBodySprings;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
     AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
@@ -240,7 +235,7 @@ private:
     AvatarTouch _avatarTouch;
     bool        _displayingHead; // should be false if in first-person view
     bool        _returnHeadToCenter;
-    float       _distanceToNearestAvatar;    //  How close is the nearest avatar?
+    float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
 
     // private methods...
@@ -257,6 +252,10 @@ private:
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
+    
+    //  Do you want head to try to return to center (depends on interface detected)
+    void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
+    const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 };
 
 #endif
