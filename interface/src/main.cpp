@@ -1671,6 +1671,7 @@ void idle(void) {
             handControl.stop();
 		}
         
+        //  Read serial port interface devices
         if (serialPort.active && USING_INVENSENSE_MPU9150) {
             serialPort.readData();
         }
@@ -1696,7 +1697,11 @@ void idle(void) {
     
         myAvatar.setGravity(getGravity(myAvatar.getPosition()));
         myAvatar.simulate(deltaTime);
-
+        
+        //  Update audio stats for procedural sounds
+        audio.setLastAcceleration(myAvatar.getThrust());
+        audio.setLastVelocity(myAvatar.getVelocity());
+        
         glutPostRedisplay();
         lastTimeIdle = check;
     }

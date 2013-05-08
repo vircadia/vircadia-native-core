@@ -111,11 +111,8 @@ int audioCallback (const void *inputBuffer,
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     
-    //  Add some noise to the audio we got from the callback
-    
-    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
-        inputLeft[i] = (int16_t) (rand() % 65536);
-    }
+    // Add Procedural effects to input samples
+    data->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
     
     if (inputLeft != NULL) {
         
