@@ -511,7 +511,6 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
 
     // If you also iterate form the interior of the sphere to the radius, making
     // larger and larger spheres you'd end up with a solid sphere. And lots of voxels!
-    float finalRadius = wantNaturalSurface ? radius : (radius + (voxelSize / 2.0));
     bool lastLayer = false;
     while (!lastLayer) {
         lastLayer = (thisRadius + (voxelSize * 2.0) >= radius);
