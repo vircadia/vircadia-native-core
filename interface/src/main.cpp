@@ -683,11 +683,6 @@ void renderViewFrustum(ViewFrustum& viewFrustum) {
 void displaySide(Camera& whichCamera) {
     glPushMatrix();
     
-    // draw the sky dome
-    if (::atmosphereOn) {
-        environment.renderAtmosphere(whichCamera);
-    }
-    
     if (::starsOn) {
         // should be the first rendering pass - w/o depth buffer / lighting
 
@@ -695,6 +690,11 @@ void displaySide(Camera& whichCamera) {
     	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
     }
 
+    // draw the sky dome
+    if (::atmosphereOn) {
+        environment.renderAtmosphere(whichCamera);
+    }
+    
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
