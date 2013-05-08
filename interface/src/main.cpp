@@ -1428,23 +1428,6 @@ void setupPaintingVoxel() {
 	shiftPaintingColor();
 }
 
-void addRandomSphere(bool wantColorRandomizer) {
-	float r = randFloatInRange(0.05,0.1);
-	float xc = randFloatInRange(r,(1-r));
-	float yc = randFloatInRange(r,(1-r));
-	float zc = randFloatInRange(r,(1-r));
-	float s = 0.001; // size of voxels to make up surface of sphere
-	bool solid = false;
-
-	printLog("random sphere\n");
-	printLog("radius=%f\n",r);
-	printLog("xc=%f\n",xc);
-	printLog("yc=%f\n",yc);
-	printLog("zc=%f\n",zc);
-
-	voxels.createSphere(r,xc,yc,zc,s,solid,wantColorRandomizer);
-}
-
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_PITCH_RATE = 0.6;
 const float KEYBOARD_STRAFE_RATE = 0.03;
