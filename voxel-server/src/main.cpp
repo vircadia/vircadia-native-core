@@ -28,7 +28,8 @@
 #include <ifaddrs.h>
 #endif
 
-const char* VOXELS_PERSIST_FILE = "resources/voxels.hio2";
+const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.hio2";
+const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.hio2";
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -47,6 +48,8 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 VoxelTree randomTree;
 bool wantVoxelPersist = true;
+bool wantLocalDomain = false;
+
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
@@ -207,7 +210,7 @@ void persistVoxelsWhenDirty() {
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::randomTree.isDirty()) {
         printf("saving voxels to file...\n");
-        randomTree.writeToFileV2(VOXELS_PERSIST_FILE);
+        randomTree.writeToFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         randomTree.clearDirtyBit(); // tree is clean after saving
         printf("DONE saving voxels to file...\n");
     }
@@ -270,8 +273,8 @@ int main(int argc, const char * argv[])
 
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
-    bool wantLocalDomain = cmdOptionExists(argc, argv,local);
-    if (wantLocalDomain) {
+    ::wantLocalDomain = cmdOptionExists(argc, argv,local);
+    if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
         int ip = getLocalAddress();
         sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
@@ -302,7 +305,7 @@ int main(int argc, const char * argv[])
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        persistantFileRead = ::randomTree.readFromFileV2(VOXELS_PERSIST_FILE);
+        persistantFileRead = ::randomTree.readFromFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file...\n");
         unsigned long nodeCount = ::randomTree.getVoxelCount();

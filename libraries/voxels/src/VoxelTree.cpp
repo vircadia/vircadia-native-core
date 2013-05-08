@@ -933,7 +933,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
 bool VoxelTree::readFromFileV2(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
-		printLog("loading file...\n");
+		printLog("loading file %s...\n", fileName);
 		
 		// get file length....
         unsigned long fileLength = file.tellg();
@@ -956,6 +956,8 @@ void VoxelTree::writeToFileV2(const char* fileName) const {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
+		printLog("saving to file %s...\n", fileName);
+
         VoxelNodeBag nodeBag;
         nodeBag.insert(rootNode);
 
