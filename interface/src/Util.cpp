@@ -198,7 +198,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     //  Draws text on screen as stroked so it can be resized
     //
     glPushMatrix();
-    glTranslatef( static_cast<float>(x), static_cast<float>(y), 0.0f);
+    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3f(r,g,b);
     glRotated(rotate,0,0,1);
     // glLineWidth(thick);
@@ -234,7 +234,7 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
 
 
 void drawGroundPlaneGrid(float size) {
-	glColor3f( 0.4f, 0.5f, 0.3f ); 
+	glColor3f(0.4f, 0.5f, 0.3f); 
 	glLineWidth(2.0);
 		
     for (float x = 0; x <= size; x++) {
@@ -260,7 +260,7 @@ void drawGroundPlaneGrid(float size) {
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
-    glColor4f( 0.0f, 0.0f, 0.0f, darkness );
+    glColor4f(0.0f, 0.0f, 0.0f, darkness);
     
     int   num = 20;
     float y  = 0.001f;
@@ -290,7 +290,7 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
 
 void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
     glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
-    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3( 0.0f, 1.0f, 0.0f));
+    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 up    = glm::cross(right, vectorToPosition);
     
     glBegin(GL_LINE_STRIP);             
@@ -311,7 +311,7 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 }
 
 
-void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides ) {
+void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
     glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
     glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
     
@@ -332,27 +332,27 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
 }
 
 
-void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
+void renderOrientationDirections(glm::vec3 position, Orientation orientation, float size) {
 	glm::vec3 pRight	= position + orientation.getRight() * size;
-	glm::vec3 pUp		= position + orientation.getUp() * size;
+	glm::vec3 pUp		= position + orientation.getUp   () * size;
 	glm::vec3 pFront	= position + orientation.getFront() * size;
 		
-	glColor3f( 1.0f, 0.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pRight.x, pRight.y, pRight.z );
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pRight.x, pRight.y, pRight.z);
 	glEnd();
 
-	glColor3f( 0.0f, 1.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pUp.x, pUp.y, pUp.z );
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pUp.x, pUp.y, pUp.z);
 	glEnd();
 
-	glColor3f( 0.0f, 0.0f, 1.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pFront.x, pFront.y, pFront.z );
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pFront.x, pFront.y, pFront.z);
 	glEnd();
 }
 

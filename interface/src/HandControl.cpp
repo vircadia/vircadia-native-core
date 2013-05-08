@@ -33,14 +33,14 @@ HandControl::HandControl() {
    _envelope     = 0.0f;
 }
 
-void HandControl::setScreenDimensions( int width, int height ) {
+void HandControl::setScreenDimensions(int width, int height) {
    _width  = width;
    _height = height;
    _startX = _width  / 2;
    _startY = _height / 2;
 }
 
-void HandControl::update( int x, int y ) {
+void HandControl::update(int x, int y) {
     _lastX = _x;
     _lastY = _y;
     _x = x;
@@ -49,22 +49,22 @@ void HandControl::update( int x, int y ) {
     _velocityY = _y - _lastY;
 
     // if the mouse is moving, ramp up the envelope to increase amplitude of hand movement...
-    if (( _velocityX != 0 )
-    ||  ( _velocityY != 0 )) {
+    if ((_velocityX != 0)
+    ||  (_velocityY != 0)) {
         _enabled = true;
-        if ( _envelope < 1.0 ) {
+        if (_envelope < 1.0) {
             _envelope += _rampUpRate;
-            if ( _envelope >= 1.0 ) { 
+            if (_envelope >= 1.0) { 
                 _envelope = 1.0; 
             }
         }
     }
 
     // if not enabled ramp down the envelope to decrease amplitude of hand movement...
-   if ( ! _enabled ) {
-        if ( _envelope > 0.0 ) {
+   if (! _enabled) {
+        if (_envelope > 0.0) {
             _envelope -= _rampDownRate;
-            if ( _envelope <= 0.0 ) { 
+            if (_envelope <= 0.0) { 
                 _startX = _width  / 2;
                 _startY = _height / 2;
                 _envelope = 0.0; 
@@ -77,14 +77,14 @@ void HandControl::update( int x, int y ) {
     _backFront = 0.0;			
     
     // if envelope is greater than zero, apply mouse movement to values to be output 
-    if ( _envelope > 0.0 ) {
-        _leftRight += ( ( _x - _startX ) / (float)_width  ) * _envelope;
-        _downUp    += ( ( _y - _startY ) / (float)_height ) * _envelope;
+    if (_envelope > 0.0) {
+        _leftRight += ((_x - _startX) / (float)_width ) * _envelope;
+        _downUp    += ((_y - _startY) / (float)_height) * _envelope;
     }
 }
 
 glm::vec3 HandControl::getValues() {
-    return glm::vec3( _leftRight, _downUp, _backFront );
+    return glm::vec3(_leftRight, _downUp, _backFront);
 }
 
 void HandControl::stop() {
