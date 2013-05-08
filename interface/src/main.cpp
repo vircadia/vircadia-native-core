@@ -58,12 +58,15 @@
 #include "ui/MenuColumn.h"
 #include "ui/Menu.h"
 #include "ui/TextRenderer.h"
+#include "renderer/ProgramObject.h"
+#include "renderer/ShaderObject.h"
 
 #include "Camera.h"
 #include "Avatar.h"
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include "VoxelSystem.h"
+#include "Environment.h"
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
@@ -125,6 +128,8 @@ VoxelSystem voxels;
 
 bool wantToKillLocalVoxels = false;
 
+Environment environment;
+
 
 #ifndef _WIN32
 Audio audio(&audioScope, &myAvatar);
@@ -140,6 +145,7 @@ bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
 
 bool statsOn = false;               //  Whether to show onscreen text overlay with stats
 bool starsOn = false;               //  Whether to display the stars
+bool atmosphereOn = true;          //  Whether to display the atmosphere
 bool paintOn = false;               //  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
@@ -174,7 +180,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
-GLhandleARB oculusProgramID = 0;         //  The GLSL program containing the distortion shader
+ProgramObject* oculusProgram = 0;   //  The GLSL program containing the distortion shader
 float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
 
 //
@@ -298,6 +304,8 @@ void init(void) {
     voxels.init();
     voxels.setViewerAvatar(&myAvatar);
     voxels.setCamera(&myCamera);
+    
+    environment.init();
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
@@ -678,10 +686,28 @@ void displaySide(Camera& whichCamera) {
     if (::starsOn) {
         // should be the first rendering pass - w/o depth buffer / lighting
 
+        // compute starfield alpha based on distance from atmosphere
+        float alpha = 1.0f;
+        if (::atmosphereOn) {
+            float height = glm::distance(whichCamera.getPosition(), environment.getAtmosphereCenter());
+            if (height < environment.getAtmosphereInnerRadius()) {
+                alpha = 0.0f;
+                
+            } else if (height < environment.getAtmosphereOuterRadius()) {
+                alpha = (height - environment.getAtmosphereInnerRadius()) /
+                    (environment.getAtmosphereOuterRadius() - environment.getAtmosphereInnerRadius());
+            }
+        }
+
         // finally render the starfield
-    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip());
+    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip(), alpha);
     }
 
+    // draw the sky dome
+    if (::atmosphereOn) {
+        environment.renderAtmosphere(whichCamera);
+    }
+    
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
@@ -802,18 +828,16 @@ void displayOculus(Camera& whichCamera) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
         
-        GLhandleARB shaderID = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-        glShaderSourceARB(shaderID, 1, &DISTORTION_FRAGMENT_SHADER, 0);
-        glCompileShaderARB(shaderID);
-        ::oculusProgramID = glCreateProgramObjectARB();
-        glAttachObjectARB(::oculusProgramID, shaderID);
-        glLinkProgramARB(::oculusProgramID);
-        textureLocation = glGetUniformLocationARB(::oculusProgramID, "texture");
-        lensCenterLocation = glGetUniformLocationARB(::oculusProgramID, "lensCenter");
-        screenCenterLocation = glGetUniformLocationARB(::oculusProgramID, "screenCenter");
-        scaleLocation = glGetUniformLocationARB(::oculusProgramID, "scale");
-        scaleInLocation = glGetUniformLocationARB(::oculusProgramID, "scaleIn");
-        hmdWarpParamLocation = glGetUniformLocationARB(::oculusProgramID, "hmdWarpParam");
+        ::oculusProgram = new ProgramObject();
+        ::oculusProgram->attachFromSourceCode(GL_FRAGMENT_SHADER_ARB, DISTORTION_FRAGMENT_SHADER);
+        ::oculusProgram->link();
+        
+        textureLocation = ::oculusProgram->getUniformLocation("texture");
+        lensCenterLocation = ::oculusProgram->getUniformLocation("lensCenter");
+        screenCenterLocation = ::oculusProgram->getUniformLocation("screenCenter");
+        scaleLocation = ::oculusProgram->getUniformLocation("scale");
+        scaleInLocation = ::oculusProgram->getUniformLocation("scaleIn");
+        hmdWarpParamLocation = ::oculusProgram->getUniformLocation("hmdWarpParam");
         
     } else {
         glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
@@ -833,13 +857,13 @@ void displayOculus(Camera& whichCamera) {
     
     glDisable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
-    glUseProgramObjectARB(::oculusProgramID);
-    glUniform1iARB(textureLocation, 0);
-    glUniform2fARB(lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
-    glUniform2fARB(screenCenterLocation, 0.25, 0.5);
-    glUniform2fARB(scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
-    glUniform2fARB(scaleInLocation, 4, 2 / aspectRatio);
-    glUniform4fARB(hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
+    ::oculusProgram->bind();
+    ::oculusProgram->setUniform(textureLocation, 0);
+    ::oculusProgram->setUniform(lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
+    ::oculusProgram->setUniform(screenCenterLocation, 0.25, 0.5);
+    ::oculusProgram->setUniform(scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
+    ::oculusProgram->setUniform(scaleInLocation, 4, 2 / aspectRatio);
+    ::oculusProgram->setUniform(hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
 
     glColor3f(1, 0, 1);
     glBegin(GL_QUADS);
@@ -853,8 +877,8 @@ void displayOculus(Camera& whichCamera) {
     glVertex2f(0, HEIGHT);
     glEnd();
     
-    glUniform2fARB(lensCenterLocation, 0.787994, 0.5);
-    glUniform2fARB(screenCenterLocation, 0.75, 0.5);
+    ::oculusProgram->setUniform(lensCenterLocation, 0.787994, 0.5);
+    ::oculusProgram->setUniform(screenCenterLocation, 0.75, 0.5);
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.5, 0);
@@ -870,7 +894,7 @@ void displayOculus(Camera& whichCamera) {
     glEnable(GL_BLEND);           
     glDisable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glUseProgramObjectARB(0);
+    ::oculusProgram->release();
     
     glPopMatrix();
 }
@@ -1205,6 +1229,10 @@ int setStars(int state) {
     return setValue(state, &::starsOn);
 }
 
+int setAtmosphere(int state) {
+    return setValue(state, &::atmosphereOn);
+}
+
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
     int value = setValue(state, &::oculusOn);
@@ -1350,6 +1378,7 @@ void initMenu() {
     menuColumnRender = menu.addColumn("Render");
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
+    menuColumnRender->addRow("Atmosphere (A)", setAtmosphere);
     menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
@@ -1515,6 +1544,7 @@ void key(unsigned char k, int x, int y) {
     if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
+    if (k == 'A') ::atmosphereOn = !::atmosphereOn;
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
@@ -1607,6 +1637,9 @@ void* networkReceive(void* args) {
                 case PACKET_HEADER_Z_COMMAND:
                 case PACKET_HEADER_ERASE_VOXEL:
                     voxels.parseData(incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_ENVIRONMENT_DATA:
+                    environment.parseData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
@@ -1712,6 +1745,7 @@ void reshape(int width, int height) {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     } else {
+        camera.setAspectRatio(aspectRatio);
         camera.setFieldOfView(fov = 60);
     }
 
