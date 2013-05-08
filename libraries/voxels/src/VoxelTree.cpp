@@ -494,13 +494,6 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
     unsigned char green = wantColorRandomizer ? 128 : (g1 + g2) / 2;
     unsigned char blue  = wantColorRandomizer ? 128 : (b1 + b2) / 2;
 
-    // Psuedocode for creating a sphere:
-    // for (theta from 0 to 2pi):
-    //     for (phi from 0 to pi):
-    //          x = xc+r*cos(theta)*sin(phi)
-    //          y = yc+r*sin(theta)*sin(phi)
-    //          z = zc+r*cos(phi)
-
     // I want to do something smart like make these inside circles with bigger voxels, but this doesn't seem to work.
     float thisVoxelSize = voxelSize; // radius / 2.0f; 
     float thisRadius = 0.0;
