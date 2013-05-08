@@ -7,6 +7,8 @@
 
 #include <QByteArray>
 
+#include <SharedUtil.h>
+
 #include "Camera.h"
 #include "Environment.h"
 #include "renderer/ProgramObject.h"
@@ -14,6 +16,7 @@
 #include "world.h"
 
 void Environment::init() {
+    switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
 }
