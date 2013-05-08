@@ -42,7 +42,6 @@ public:
     void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
     void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();

@@ -18,6 +18,8 @@
 #include <sys/time.h>
 #endif
 
+typedef unsigned char rgbColor[3];
+
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;

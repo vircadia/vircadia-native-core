@@ -63,11 +63,6 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
-    _tree->createSphere(r, xc, yc, zc, s, solid, wantColorRandomizer);
-    setupNewVoxelsForDrawing();
-}
-
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }
@@ -508,6 +503,7 @@ bool VoxelSystem::trueColorizeOperation(VoxelNode* node, void* extraData) {
 }
 
 void VoxelSystem::trueColorize() {
+    PerformanceWarning warn(true, "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
     printLog("setting true color for %d nodes\n", _nodeCount);

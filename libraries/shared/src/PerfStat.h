@@ -87,11 +87,13 @@ private:
 	double _start;
 	const char* _message;
 	bool _renderWarningsOn;
+	bool _alwaysDisplay;
 public:
-    PerformanceWarning(bool renderWarnings, const char* message) :
+    PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false) :
         _start(usecTimestampNow()),
         _message(message),
-        _renderWarningsOn(renderWarnings) { };
+        _renderWarningsOn(renderWarnings),
+        _alwaysDisplay(alwaysDisplay) { };
     
     ~PerformanceWarning();
 };

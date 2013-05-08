@@ -170,7 +170,7 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
 // Complaints:  Brad :)
 #define GUESS_OF_VOXELCODE_SIZE 10
 #define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
-#define SIZE_OF_COLOR_DATA 3
+#define SIZE_OF_COLOR_DATA sizeof(rgbColor)
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
         
@@ -231,27 +231,26 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b ) {
 
     float xTest, yTest, zTest, sTest; 
-    xTest = yTest = zTest = sTest = 0.5; 
+    xTest = yTest = zTest = sTest = 0.5f;
 
     // First determine the voxelSize that will properly encode a 
     // voxel of size S.
-    int voxelSizeInBits = 0;
+    unsigned int voxelSizeInOctets = 1;
     while (sTest > s) {
         sTest /= 2.0;
-        voxelSizeInBits+=3;
+        voxelSizeInOctets++;
     }
 
-	unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
-	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
-	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
+    unsigned int voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
+    unsigned int voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
-    
+
     // first byte of buffer is always our size in octets
     voxelOut[0]=voxelSizeInOctets;
 
-    sTest = 0.5;  // reset sTest so we can do this again.
+    sTest = 0.5f; // reset sTest so we can do this again.
 
     unsigned char byte = 0; // we will be adding coding bits here
     int bitInByteNDX = 0; // keep track of where we are in byte as we go
@@ -260,7 +259,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
     // Now we actually fill out the voxel code
     while (octetsDone < voxelSizeInOctets) {
-        if (x > xTest) { 
+        if (x >= xTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
             xTest += sTest/2.0; 
@@ -272,14 +271,14 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7) {
+        if (bitInByteNDX == 8) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
             byte=0;
         }
 
-        if (y > yTest) { 
+        if (y >= yTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
             yTest += sTest/2.0; 
@@ -291,14 +290,14 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7) {
+        if (bitInByteNDX == 8) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
             byte=0;
         }
 
-        if (z > zTest) { 
+        if (z >= zTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
             zTest += sTest/2.0; 
@@ -310,7 +309,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
         // into our buffer. And get ready to start on a new byte
-        if (bitInByteNDX > 7) {
+        if (bitInByteNDX == 8) {
             voxelOut[byteNDX]=byte;
             byteNDX++;
             bitInByteNDX=0;
@@ -323,13 +322,13 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
     // If we've got here, and we didn't fill the last byte, we need to zero pad this
     // byte before we copy it into our buffer.
-    if (bitInByteNDX > 0 && bitInByteNDX < 7) {
+    if (bitInByteNDX > 0 && bitInByteNDX < 8) {
         // Pad the last byte
-        while (bitInByteNDX <= 7) {
+        while (bitInByteNDX < 8) {
             byte = (byte << 1) | false;
             bitInByteNDX++;
         }
-        
+    
         // Copy it into our output buffer
         voxelOut[byteNDX]=byte;
         byteNDX++;
