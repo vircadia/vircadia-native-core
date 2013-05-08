@@ -13,6 +13,8 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
+#include "renderer/ProgramObject.h"
+
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
 #include "starfield/data/BrightnessLevel.h"
@@ -70,7 +72,8 @@ namespace starfield {
         GLint*          _arrBatchOffs;
         GLsizei*        _arrBatchCount;
         GLuint          _hndVertexArray;
-        OGlProgram      _objProgram;
+        ProgramObject   _objProgram;
+        int             _alphaLocation;
 
         Tiling          _objTiling;
 
@@ -123,7 +126,8 @@ namespace starfield {
         void render(float perspective,
                     float aspect,
                     mat4 const& orientation,
-                    BrightnessLevel minBright) {
+                    BrightnessLevel minBright,
+                    float alpha) {
 
 // printLog("
 //      Stars.cpp: rendering at minimal brightness %d\n", minBright);
@@ -186,7 +190,7 @@ namespace starfield {
 #   define matrix matrix_debug
 #endif
             this->glBatch(glm::value_ptr(matrix), prepareBatch(
-                    (unsigned*) _arrBatchOffs, _itrOutIndex) );
+                    (unsigned*) _arrBatchOffs, _itrOutIndex), alpha);
 
 #if STARFIELD_DEBUG_CULLING
 #   undef matrix
@@ -463,24 +467,26 @@ namespace starfield {
 
             GLchar const* const VERTEX_SHADER =
                     "#version 120\n"
+                    "uniform float alpha;\n"
                     "void main(void) {\n"
 
                     "   vec3 c = gl_Color.rgb * 1.0125;\n"
                     "   float s = max(1.0, dot(c, c) * 0.7);\n"
 
                     "   gl_Position = ftransform();\n"
-                    "   gl_FrontColor= gl_Color;\n"
+                    "   gl_FrontColor= gl_Color * alpha;\n"
                     "   gl_PointSize = s;\n"
                     "}\n";
 
-            _objProgram.addShader(GL_VERTEX_SHADER, VERTEX_SHADER);
+            _objProgram.attachFromSourceCode(GL_VERTEX_SHADER, VERTEX_SHADER);
             GLchar const* const FRAGMENT_SHADER =
                     "#version 120\n"
                     "void main(void) {\n"
                     "   gl_FragColor = gl_Color;\n"
                     "}\n";
-            _objProgram.addShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+            _objProgram.attachFromSourceCode(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
             _objProgram.link();
+            _alphaLocation = _objProgram.getUniformLocation("alpha");
 
             glGenBuffersARB(1, & _hndVertexArray);
         }
@@ -499,7 +505,7 @@ namespace starfield {
             glBindBufferARB(GL_ARRAY_BUFFER, 0); 
         }
 
-        void glBatch(GLfloat const* matrix, GLsizei n_ranges) {
+        void glBatch(GLfloat const* matrix, GLsizei n_ranges, float alpha) {
 
 // printLog("Stars.cpp: rendering %d-multibatch\n", n_ranges);
 
@@ -527,7 +533,8 @@ namespace starfield {
             glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
             // select shader and vertex array
-            _objProgram.activate();
+            _objProgram.bind();
+            _objProgram.setUniform(_alphaLocation, alpha);
             glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
             glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
             
@@ -537,7 +544,7 @@ namespace starfield {
 
             // restore state
             glBindBufferARB(GL_ARRAY_BUFFER, 0); 
-            glUseProgram(0);
+            _objProgram.release();
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glDisable(GL_POINT_SMOOTH);
             glPopMatrix();

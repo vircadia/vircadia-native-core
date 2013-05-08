@@ -361,7 +361,7 @@ namespace starfield {
 
     public:
 
-        void render(float perspective, float angle, mat4 const& orientation) {
+        void render(float perspective, float angle, mat4 const& orientation, float alpha) {
 
 #if STARFIELD_MULTITHREADING
             // check out renderer
@@ -377,7 +377,7 @@ namespace starfield {
 #else
                 BrightnessLevel b = _valLodBrightness; 
 #endif
-                renderer->render(perspective, angle, orientation, b);
+                renderer->render(perspective, angle, orientation, b, alpha);
             }
 
 #if STARFIELD_MULTITHREADING
