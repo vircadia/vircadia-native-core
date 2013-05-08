@@ -62,8 +62,8 @@ bool usingBigSphereCollisionTest = true;
 
 char iris_texture_file[] = "resources/images/green_eye.png";
 
-float chatMessageScale = 0.001;
-float chatMessageHeight = 0.4;
+float chatMessageScale = 0.0015;
+float chatMessageHeight = 0.45;
 
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
@@ -452,6 +452,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                  
+                /*
+                //  Test:  Show angle between your fwd vector and nearest avatar
+                glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
+                                getJointPosition(AVATAR_JOINT_PELVIS);
+                glm::vec3 myForwardVector = _orientation.getFront();
+                printLog("Angle between: %f\n", angleBetween(&vectorBetweenUs, &myForwardVector));
+                */
+                
                 // test whether shoulders are close enough to allow for reaching to touch hands
                 glm::vec3 v(_position - otherAvatar->_position);
                 float distance = glm::length(v);

@@ -33,12 +33,6 @@ const int GRAVITY_SAMPLES = 200;                    //  Use the first samples to
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
-SerialInterface::~SerialInterface() {
-#ifdef __APPLE__
-    close(_serialDescriptor);
-#endif
-}
-
 void SerialInterface::pair() {
     
 #ifdef __APPLE__

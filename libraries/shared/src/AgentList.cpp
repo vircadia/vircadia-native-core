@@ -62,9 +62,10 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentBuckets(),
     _numAgents(0),
     agentSocket(newSocketListenPort),
-    ownerType(newOwnerType),
+    _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
-    lastAgentId(0) {
+    _ownerID(UNKNOWN_AGENT_ID),
+    _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -81,10 +82,6 @@ UDPSocket& AgentList::getAgentSocket() {
     return agentSocket;
 }
 
-char AgentList::getOwnerType() {
-    return ownerType;
-}
-
 unsigned int AgentList::getSocketListenPort() {
     return socketListenPort;
 }
@@ -92,7 +89,7 @@ unsigned int AgentList::getSocketListenPort() {
 void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
-            updateList(packetData, dataBytes);
+            processDomainServerList(packetData, dataBytes);
             break;
         }
         case PACKET_HEADER_PING: {
@@ -126,7 +123,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
     uint16_t agentID = -1;
     
     while ((currentPosition - startPosition) < numTotalBytes) {
-        currentPosition += unpackAgentId(currentPosition, &agentID);
+        unpackAgentId(currentPosition, &agentID);
         memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
         
         Agent* matchingAgent = agentWithID(agentID);
@@ -195,15 +192,7 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     return NULL;
 }
 
-uint16_t AgentList::getLastAgentId() {
-    return lastAgentId;
-}
-
-void AgentList::increaseAgentId() {
-    ++lastAgentId;
-}
-
-int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
+int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 
     char agentType;
@@ -218,14 +207,17 @@ int AgentList::updateList(unsigned char *packetData, size_t dataBytes) {
     unsigned char *readPtr = packetData + 1;
     unsigned char *startPtr = packetData;
     
-    while((readPtr - startPtr) < dataBytes) {
+    while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         agentType = *readPtr++;
         readPtr += unpackAgentId(readPtr, (uint16_t *)&agentId);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentPublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr *)&agentLocalSocket);
         
         addOrUpdateAgent((sockaddr *)&agentPublicSocket, (sockaddr *)&agentLocalSocket, agentType, agentId);
-    }  
+    }
+    
+    // read out our ID from the packet
+    unpackAgentId(readPtr, &_ownerID);
 
     return readAgents;
 }

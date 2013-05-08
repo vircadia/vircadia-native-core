@@ -11,6 +11,7 @@
 #include <cstring>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/noise.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <SharedUtil.h>
 
@@ -65,81 +66,108 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
-void render_vector(glm::vec3 * vec)
-{
-    //  Show edge of world 
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-    //  Draw axes
-    glColor3f(1,0,0);
-    glVertex3f(-1,0,0);
-    glVertex3f(1,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,-1,0);
-    glVertex3f(0, 1, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,-1);
-    glVertex3f(0, 0, 1);
-    // Draw vector
-    glColor3f(1,1,1);
-    glVertex3f(0,0,0);
-    glVertex3f(vec->x, vec->y, vec->z);
-    // Draw marker dots for magnitude    
-    glEnd();
-    float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
-    float particleAttenuationConstant[] = { 1.0f, 0.0f, 0.0f };
-
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
-    
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10.0);
-    glBegin(GL_POINTS);
-    glColor3f(1,0,0);
-    glVertex3f(vec->x,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,vec->y,0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,vec->z);
-    glEnd();
-
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationConstant );
+//  Helper function returns the positive angle in degrees between two 3D vectors 
+float angleBetween(glm::vec3 * v1, glm::vec3 * v2) {
+    return acos((glm::dot(*v1, *v2)) / (glm::length(*v1) * glm::length(*v2))) * 180.f / PI;
 }
 
-void render_world_box()
-{
+//  Draw a 3D vector floating in space
+void drawVector(glm::vec3 * vector) {
+    glDisable(GL_LIGHTING);
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(3.0);
+    glLineWidth(2.0);
+
+    //  Draw axes
+    glBegin(GL_LINES);
+    glColor3f(1,0,0);
+    glVertex3f(0,0,0);
+    glVertex3f(1,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,0,0);
+    glVertex3f(0, 1, 0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,0);
+    glVertex3f(0, 0, 1);
+    glEnd();
+        
+    // Draw the vector itself
+    glBegin(GL_LINES);
+    glColor3f(1,1,1);
+    glVertex3f(0,0,0);
+    glVertex3f(vector->x, vector->y, vector->z);
+    glEnd();
+    
+    // Draw spheres for magnitude
+    glPushMatrix();
+    glColor3f(1,0,0);
+    glTranslatef(vector->x, 0, 0);
+    glutSolidSphere(0.02, 10, 10);
+    glColor3f(0,1,0);
+    glTranslatef(-vector->x, vector->y, 0);
+    glutSolidSphere(0.02, 10, 10);
+    glColor3f(0,0,1);
+    glTranslatef(0, -vector->y, vector->z);
+    glutSolidSphere(0.02, 10, 10);
+    glPopMatrix();
+
+}
+
+//  Render a 2D set of squares using perlin/fractal noise
+void noiseTest(int w, int h) {
+    const float CELLS = 500;
+    const float NOISE_SCALE = 10.0;
+    float xStep = (float) w / CELLS;
+    float yStep = (float) h / CELLS;
+    glBegin(GL_QUADS);    
+    for (float x = 0; x < (float)w; x += xStep) {
+        for (float y = 0; y < (float)h; y += yStep) {
+            //  Generate a vector varying between 0-1 corresponding to the screen location 
+            glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
+            //  Set the cell color using the noise value at that location
+            float color = glm::perlin(position);
+            glColor4f(color, color, color, 1.0);
+            glVertex2f(x, y);
+            glVertex2f(x + xStep, y);
+            glVertex2f(x + xStep, y + yStep);
+            glVertex2f(x, y + yStep);
+        }
+    }
+    glEnd();
+}
+    
+void render_world_box() {
     //  Show edge of world 
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(0,0,0);
-    glVertex3f(WORLD_SIZE,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,0,0);
+    glColor3f(1, 0, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(WORLD_SIZE, 0, 0);
+    glColor3f(0, 1, 0);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,0);
+    glColor3f(0, 0, 1);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, 0, WORLD_SIZE);
     glEnd();
     //  Draw little marker dots along the axis
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE,0,0);
-    glColor3f(1,0,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(WORLD_SIZE, 0, 0);
+    glColor3f(1, 0, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,WORLD_SIZE,0);
-    glColor3f(0,1,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, WORLD_SIZE, 0);
+    glColor3f(0, 1, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,0,WORLD_SIZE);
-    glColor3f(0,0,1);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, 0, WORLD_SIZE);
+    glColor3f(0, 0, 1);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
 }
 
@@ -166,8 +194,7 @@ float widthChar(float scale, int mono, char ch) {
 }
 
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b)
-{
+              char const* string, float r, float g, float b) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
@@ -183,7 +210,6 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     glPopMatrix();
 
 }
-
 
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
@@ -206,6 +232,7 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
 	}
     glPopMatrix();
 } 
+
 
 void drawGroundPlaneGrid(float size) {
 	glColor3f(0.4f, 0.5f, 0.3f); 

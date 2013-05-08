@@ -17,13 +17,19 @@
 
 const int EVE_AGENT_LISTEN_PORT = 55441;
 
-const float RANDOM_POSITION_MAX_DIMENSION = 5.0f;
+const float RANDOM_POSITION_MAX_DIMENSION = 10.0f;
 
 const float DATA_SEND_INTERVAL_MSECS = 15;
 const float MIN_AUDIO_SEND_INTERVAL_SECS = 10;
 const int MIN_ITERATIONS_BETWEEN_AUDIO_SENDS = (MIN_AUDIO_SEND_INTERVAL_SECS * 1000) / DATA_SEND_INTERVAL_MSECS;
 const int MAX_AUDIO_SEND_INTERVAL_SECS = 15;
 const float MAX_ITERATIONS_BETWEEN_AUDIO_SENDS = (MAX_AUDIO_SEND_INTERVAL_SECS * 1000) / DATA_SEND_INTERVAL_MSECS;
+
+const int ITERATIONS_BEFORE_HAND_GRAB = 100;
+const int HAND_GRAB_DURATION_ITERATIONS = 50;
+const int HAND_TIMER_SLEEP_ITERATIONS = 50;
+
+const float EVE_PELVIS_HEIGHT = 0.5f;
 
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
@@ -48,7 +54,7 @@ void *receiveAgentData(void *args) {
                     // avatar mixer - this makes sure it won't be killed during silent agent removal
                     avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
                     
-                    if (avatarMixer != NULL) {
+                    if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                     }
                     
@@ -73,9 +79,9 @@ void *injectAudio(void *args) {
     // look for an audio mixer in our agent list
     Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
     
-    if (audioMixer != NULL) {
+    if (audioMixer) {
         // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
-        if (audioMixer->getActiveSocket() == NULL) {
+        if (!audioMixer->getActiveSocket()) {
             audioMixer->activatePublicSocket();
         }
         
@@ -113,9 +119,9 @@ int main(int argc, const char* argv[]) {
     // move eve away from the origin
     // pick a random point inside a 10x10 grid
     
-    eve.setPosition(glm::vec3(randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION), 
-                              1.33, // this should be the same as the avatar's pelvis standing height 
-                              randFloatInRange(-RANDOM_POSITION_MAX_DIMENSION, RANDOM_POSITION_MAX_DIMENSION)));
+    eve.setPosition(glm::vec3(randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION),
+                              EVE_PELVIS_HEIGHT, // this should be the same as the avatar's pelvis standing height
+                              randFloatInRange(0, RANDOM_POSITION_MAX_DIMENSION)));
     
     // face any instance of eve down the z-axis
     eve.setBodyYaw(0);
@@ -130,8 +136,6 @@ int main(int argc, const char* argv[]) {
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
-    int numBytesToSend = 0;
-    
     timeval thisSend;
     double numMicrosecondsSleep = 0;
     
@@ -145,16 +149,19 @@ int main(int argc, const char* argv[]) {
         gettimeofday(&thisSend, NULL);
         
         // find the current avatar mixer
-        Agent *avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent* avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
         
         // make sure we actually have an avatar mixer with an active socket
-        if (avatarMixer != NULL && avatarMixer->getActiveSocket() != NULL) {
+        if (agentList->getOwnerID() != UNKNOWN_AGENT_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
+            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
+            packetPosition += packAgentId(packetPosition, agentList->getOwnerID());
+            
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer
-            numBytesToSend = eve.getBroadcastData((broadcastPacket + 1));
+            packetPosition += eve.getBroadcastData(packetPosition);
             
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
-            agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, numBytesToSend);
-        }
+            agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
+        }        
 
         // temporarily disable Eve's audio sending until the file is actually available on EC2 box
         if (numIterationsLeftBeforeAudioSend == 0) {
@@ -175,13 +182,12 @@ int main(int argc, const char* argv[]) {
                                     
         // simulate the effect of pressing and un-pressing the mouse button/pad
         handStateTimer++;
-        if ( handStateTimer == 100 ) { 
+        
+        if (handStateTimer == ITERATIONS_BEFORE_HAND_GRAB) {
             eve.setHandState(1);
-        }   
-        if ( handStateTimer == 150 ) { 
+        } else if (handStateTimer == ITERATIONS_BEFORE_HAND_GRAB + HAND_GRAB_DURATION_ITERATIONS) {
             eve.setHandState(0);
-        }   
-        if ( handStateTimer >= 200 ) { 
+        } else if (handStateTimer >= ITERATIONS_BEFORE_HAND_GRAB + HAND_GRAB_DURATION_ITERATIONS + HAND_TIMER_SLEEP_ITERATIONS) {
             handStateTimer = 0;
         }   
     }
