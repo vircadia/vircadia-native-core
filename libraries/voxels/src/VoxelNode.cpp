@@ -123,7 +123,6 @@ void VoxelNode::setColorFromAverageOfChildren() {
 			colorArray[3]++;
 		}
 	}
-    
     nodeColor newColor = { 0, 0, 0, 0};
     if (colorArray[3] > 4) {
         // we need at least 4 colored children to have an average color value
@@ -179,9 +178,7 @@ void VoxelNode::setColor(const nodeColor& color) {
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
-        //if (_shouldRender) {
-            _isDirty = true;
-        //}
+        _isDirty = true;
     }
 }
 #endif
