@@ -52,9 +52,6 @@ public:
     
     UDPSocket& getAgentSocket();
     
-    uint16_t getLastAgentId();
-    void increaseAgentId();
-    
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
@@ -75,6 +72,9 @@ public:
     unsigned int getSocketListenPort();
     
     char getOwnerType() const { return _ownerType; }
+    
+    uint16_t getLastAgentID() const { return _lastAgentID; }
+    void increaseAgentID() { ++_lastAgentID; }
     
     uint16_t getOwnerID() const { return _ownerID; }
     void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
@@ -105,7 +105,7 @@ private:
     char _ownerType;
     unsigned int socketListenPort;
     uint16_t _ownerID;
-    uint16_t lastAgentId;
+    uint16_t _lastAgentID;
     pthread_t removeSilentAgentsThread;
     pthread_t checkInWithDomainServerThread;
     pthread_t pingUnknownAgentsThread;

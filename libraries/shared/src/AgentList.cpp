@@ -65,7 +65,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _ownerType(newOwnerType),
     socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
-    lastAgentId(0) {
+    _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -190,14 +190,6 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     }
 
     return NULL;
-}
-
-uint16_t AgentList::getLastAgentId() {
-    return lastAgentId;
-}
-
-void AgentList::increaseAgentId() {
-    ++lastAgentId;
 }
 
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
