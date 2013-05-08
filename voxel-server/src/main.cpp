@@ -28,6 +28,8 @@
 #include <ifaddrs.h>
 #endif
 
+const char* VOXELS_PERSIST_FILE = "resources/voxels.hio2";
+
 const int VOXEL_LISTEN_PORT = 40106;
 
 
@@ -205,7 +207,7 @@ void persistVoxelsWhenDirty() {
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::randomTree.isDirty()) {
         printf("saving voxels to file...\n");
-        randomTree.writeToFileV2("voxels.hio2");
+        randomTree.writeToFileV2(VOXELS_PERSIST_FILE);
         randomTree.clearDirtyBit(); // tree is clean after saving
         printf("DONE saving voxels to file...\n");
     }
@@ -300,7 +302,7 @@ int main(int argc, const char * argv[])
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        persistantFileRead = ::randomTree.readFromFileV2("voxels.hio2");
+        persistantFileRead = ::randomTree.readFromFileV2(VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file...\n");
         unsigned long nodeCount = ::randomTree.getVoxelCount();
