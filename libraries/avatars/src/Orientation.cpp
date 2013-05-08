@@ -20,25 +20,25 @@ Orientation::Orientation() {
 void Orientation::setToIdentity() {
 
     quat  = glm::quat();
-    right = glm::vec3( IDENTITY_RIGHT );
-	up	  = glm::vec3( IDENTITY_UP    );
-	front = glm::vec3( IDENTITY_FRONT );
+    right = glm::vec3(IDENTITY_RIGHT);
+	up	  = glm::vec3(IDENTITY_UP   );
+	front = glm::vec3(IDENTITY_FRONT);
 }
 
-void Orientation::set( Orientation o ) { 
+void Orientation::set(Orientation o) { 
 
-    quat    = o.quat;
-	right	= o.right;
-	up		= o.up;
-	front	= o.front;	
+    quat  = o.quat;
+	right = o.right;
+	up    = o.up;
+	front = o.front;	
 }
 
-void Orientation::yaw( float angle ) {
+void Orientation::yaw(float angle) {
 
     float radian = angle * PI_OVER_180;
 
-    if ( USING_QUATERNIONS ) {
-        rotateAndGenerateDirections( glm::quat( glm::vec3( 0.0f, -radian, 0.0f )) );
+    if (USING_QUATERNIONS) {
+        rotateAndGenerateDirections(glm::quat(glm::vec3(0.0f, -radian, 0.0f)));
     } else {    
         float s = sin(radian);
         float c = cos(radian);
@@ -53,12 +53,12 @@ void Orientation::yaw( float angle ) {
     }
 }
 
-void Orientation::pitch( float angle ) {
+void Orientation::pitch(float angle) {
 
     float radian = angle * PI_OVER_180;
 
-    if ( USING_QUATERNIONS ) {
-        rotateAndGenerateDirections( glm::quat( glm::vec3( radian, 0.0f, 0.0f ) ) );
+    if (USING_QUATERNIONS) {
+        rotateAndGenerateDirections(glm::quat(glm::vec3(radian, 0.0f, 0.0f)));
     } else {    
         float s = sin(radian);
         float c = cos(radian);
@@ -73,12 +73,12 @@ void Orientation::pitch( float angle ) {
     }
 }
 
-void Orientation::roll( float angle ) {
+void Orientation::roll(float angle) {
 
     float radian = angle * PI_OVER_180;
 
-    if ( USING_QUATERNIONS ) {
-        rotateAndGenerateDirections( glm::quat( glm::vec3( 0.0f, 0.0f, radian )) );
+    if (USING_QUATERNIONS) {
+        rotateAndGenerateDirections(glm::quat(glm::vec3(0.0f, 0.0f, radian)));
     } else {    
         float s = sin(radian);
         float c = cos(radian);
@@ -93,13 +93,13 @@ void Orientation::roll( float angle ) {
     }
 }
 
-void Orientation::rotate( float p, float y, float r ) {
+void Orientation::rotate(float p, float y, float r) {
     pitch(p);
     yaw  (y);
     roll (r);
 }
 
-void Orientation::rotate( glm::vec3 eulerAngles ) {
+void Orientation::rotate(glm::vec3 eulerAngles) {
 
 //this needs to be optimized!
     pitch(eulerAngles.x);
@@ -112,13 +112,13 @@ void Orientation::rotate( glm::quat rotation ) {
 }
 
 
-void Orientation::rotateAndGenerateDirections( glm::quat rotation ) {
+void Orientation::rotateAndGenerateDirections(glm::quat rotation) {
 
     quat = quat * rotation;
     
     glm::mat4 rotationMatrix = glm::mat4_cast(quat);
     
-    right = glm::vec3( glm::vec4( IDENTITY_RIGHT, 0.0f ) * rotationMatrix );
-    up    = glm::vec3( glm::vec4( IDENTITY_UP,    0.0f ) * rotationMatrix );
-    front = glm::vec3( glm::vec4( IDENTITY_FRONT, 0.0f ) * rotationMatrix );
+    right = glm::vec3(glm::vec4(IDENTITY_RIGHT, 0.0f) * rotationMatrix);
+    up    = glm::vec3(glm::vec4(IDENTITY_UP,    0.0f) * rotationMatrix);
+    front = glm::vec3(glm::vec4(IDENTITY_FRONT, 0.0f) * rotationMatrix);
 }
