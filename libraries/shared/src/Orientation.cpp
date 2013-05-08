@@ -6,10 +6,10 @@
 //-----------------------------------------------------------
 
 #include "Orientation.h"
-#include <SharedUtil.h>
-#include "avatars_Log.h"
+#include "SharedUtil.h"
+//#include "avatars_Log.h"
 
-using avatars_lib::printLog;
+//using avatars_lib::printLog;
 
 static const bool USING_QUATERNIONS = true;
 
