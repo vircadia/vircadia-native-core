@@ -32,7 +32,7 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR ui)
+foreach(SUBDIR ui renderer)
   file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
