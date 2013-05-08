@@ -307,7 +307,7 @@ int main(int argc, const char * argv[])
         printf("loading voxels from file...\n");
         persistantFileRead = ::randomTree.readFromFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        printf("DONE loading voxels from file...\n");
+        printf("DONE loading voxels from file... fileRead=%s\n", persistantFileRead ? "yes" : "no" );
         unsigned long nodeCount = ::randomTree.getVoxelCount();
         printf("Nodes after loading scene %ld nodes\n", nodeCount);
     }
@@ -350,7 +350,9 @@ int main(int argc, const char * argv[])
     //      1) we attempted to load a persistant file and it wasn't there
     //      2) you asked us to add a scene
     // HOWEVER -- we will NEVER add a scene if you explicitly tell us not to!
-    bool actuallyAddScene = !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
+    //
+    // TEMPORARILY DISABLED!!!
+    bool actuallyAddScene = false; // !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
     if (actuallyAddScene) {
         addSphereScene(&randomTree);
     }
