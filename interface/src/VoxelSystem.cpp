@@ -144,19 +144,17 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     double sinceLastViewCulling = (start - _lastViewCulling) / 1000.0;
-    
     // If the view frustum has changed, since last time, then remove nodes that are out of view
     if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) && hasViewChanged()) {
         _lastViewCulling = start;
         removeOutOfView();
         double endViewCulling = usecTimestampNow();
-        _lastViewCullingElapsed = (endViewCulling - start)/1000.0;
+        _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
     }    
     
     if (_tree->isDirty()) {
         PerformanceWarning warn(_renderWarningsOn, "calling... newTreeToArrays()");
         _callsToTreesToArrays++;
-
         if (_alwaysRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
         }
@@ -173,7 +171,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     copyWrittenDataToReadArrays();
 
     double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
+    double elapsedmsec = (end - start) / 1000.0;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
