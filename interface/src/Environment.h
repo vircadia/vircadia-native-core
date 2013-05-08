@@ -19,7 +19,7 @@ class Environment : public EnvironmentData {
 public:
 
     void init();
-    void render(Camera& camera);
+    void renderAtmosphere(Camera& camera);
     
 private:
 

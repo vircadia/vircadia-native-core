@@ -32,7 +32,7 @@ void Environment::init() {
     _g2Location = _skyFromAtmosphereProgram->getUniformLocation("g2");
 }
 
-void Environment::render(Camera& camera) {    
+void Environment::renderAtmosphere(Camera& camera) {    
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(getAtmosphereCenter().x, getAtmosphereCenter().y, getAtmosphereCenter().z);

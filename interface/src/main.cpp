@@ -145,7 +145,7 @@ bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
 
 bool statsOn = false;               //  Whether to show onscreen text overlay with stats
 bool starsOn = false;               //  Whether to display the stars
-bool environmentOn = true;          //  Whether to display the environment
+bool atmosphereOn = true;          //  Whether to display the atmosphere
 bool paintOn = false;               //  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
@@ -684,8 +684,8 @@ void displaySide(Camera& whichCamera) {
     glPushMatrix();
     
     // draw the sky dome
-    if (::environmentOn) {
-        environment.render(whichCamera);
+    if (::atmosphereOn) {
+        environment.renderAtmosphere(whichCamera);
     }
     
     if (::starsOn) {
@@ -1216,8 +1216,8 @@ int setStars(int state) {
     return setValue(state, &::starsOn);
 }
 
-int setEnvironment(int state) {
-    return setValue(state, &::environmentOn);
+int setAtmosphere(int state) {
+    return setValue(state, &::atmosphereOn);
 }
 
 int setOculus(int state) {
@@ -1365,7 +1365,7 @@ void initMenu() {
     menuColumnRender = menu.addColumn("Render");
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
-    menuColumnRender->addRow("Environment (E)", setEnvironment);
+    menuColumnRender->addRow("Atmosphere (A)", setAtmosphere);
     menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
@@ -1548,7 +1548,7 @@ void key(unsigned char k, int x, int y) {
     if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
     if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
     if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
-    if (k == 'E') ::environmentOn = !::environmentOn;
+    if (k == 'A') ::atmosphereOn = !::atmosphereOn;
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
