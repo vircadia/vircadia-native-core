@@ -38,7 +38,6 @@ class SerialInterface {
 public:
     SerialInterface() : active(false),
                         _failedOpenAttempts(0) {}
-    ~SerialInterface();
     
     void pair();
     void readData();
