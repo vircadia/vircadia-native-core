@@ -73,12 +73,10 @@ void Environment::renderAtmosphere(Camera& camera) {
     program->setUniform(locations[G_LOCATION], -0.990f);
     program->setUniform(locations[G2_LOCATION], -0.990f * -0.990f);
     
-    glFrontFace(GL_CW);
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
     glutSolidSphere(getAtmosphereOuterRadius(), 100, 50);
     glDepthMask(GL_TRUE);
-    glFrontFace(GL_CCW);
     
     program->release();
     
