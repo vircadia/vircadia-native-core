@@ -11,6 +11,7 @@
 #include <cstring>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/noise.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <SharedUtil.h>
 
@@ -65,81 +66,108 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
-void render_vector(glm::vec3 * vec)
-{
-    //  Show edge of world 
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-    //  Draw axes
-    glColor3f(1,0,0);
-    glVertex3f(-1,0,0);
-    glVertex3f(1,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,-1,0);
-    glVertex3f(0, 1, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,-1);
-    glVertex3f(0, 0, 1);
-    // Draw vector
-    glColor3f(1,1,1);
-    glVertex3f(0,0,0);
-    glVertex3f(vec->x, vec->y, vec->z);
-    // Draw marker dots for magnitude    
-    glEnd();
-    float particleAttenuationQuadratic[] =  { 0.0f, 0.0f, 2.0f }; // larger Z = smaller particles
-    float particleAttenuationConstant[] = { 1.0f, 0.0f, 0.0f };
-
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationQuadratic );
-    
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10.0);
-    glBegin(GL_POINTS);
-    glColor3f(1,0,0);
-    glVertex3f(vec->x,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,vec->y,0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,vec->z);
-    glEnd();
-
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particleAttenuationConstant );
+//  Helper function returns the positive angle in degrees between two 3D vectors 
+float angleBetween(glm::vec3 * v1, glm::vec3 * v2) {
+    return acos((glm::dot(*v1, *v2)) / (glm::length(*v1) * glm::length(*v2))) * 180.f / PI;
 }
 
-void render_world_box()
-{
+//  Draw a 3D vector floating in space
+void drawVector(glm::vec3 * vector) {
+    glDisable(GL_LIGHTING);
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(3.0);
+    glLineWidth(2.0);
+
+    //  Draw axes
+    glBegin(GL_LINES);
+    glColor3f(1,0,0);
+    glVertex3f(0,0,0);
+    glVertex3f(1,0,0);
+    glColor3f(0,1,0);
+    glVertex3f(0,0,0);
+    glVertex3f(0, 1, 0);
+    glColor3f(0,0,1);
+    glVertex3f(0,0,0);
+    glVertex3f(0, 0, 1);
+    glEnd();
+        
+    // Draw the vector itself
+    glBegin(GL_LINES);
+    glColor3f(1,1,1);
+    glVertex3f(0,0,0);
+    glVertex3f(vector->x, vector->y, vector->z);
+    glEnd();
+    
+    // Draw spheres for magnitude
+    glPushMatrix();
+    glColor3f(1,0,0);
+    glTranslatef(vector->x, 0, 0);
+    glutSolidSphere(0.02, 10, 10);
+    glColor3f(0,1,0);
+    glTranslatef(-vector->x, vector->y, 0);
+    glutSolidSphere(0.02, 10, 10);
+    glColor3f(0,0,1);
+    glTranslatef(0, -vector->y, vector->z);
+    glutSolidSphere(0.02, 10, 10);
+    glPopMatrix();
+
+}
+
+//  Render a 2D set of squares using perlin/fractal noise
+void noiseTest(int w, int h) {
+    const float CELLS = 500;
+    const float NOISE_SCALE = 10.0;
+    float xStep = (float) w / CELLS;
+    float yStep = (float) h / CELLS;
+    glBegin(GL_QUADS);    
+    for (float x = 0; x < (float)w; x += xStep) {
+        for (float y = 0; y < (float)h; y += yStep) {
+            //  Generate a vector varying between 0-1 corresponding to the screen location 
+            glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
+            //  Set the cell color using the noise value at that location
+            float color = glm::perlin(position);
+            glColor4f(color, color, color, 1.0);
+            glVertex2f(x, y);
+            glVertex2f(x + xStep, y);
+            glVertex2f(x + xStep, y + yStep);
+            glVertex2f(x, y + yStep);
+        }
+    }
+    glEnd();
+}
+    
+void render_world_box() {
     //  Show edge of world 
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(0,0,0);
-    glVertex3f(WORLD_SIZE,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,0,0);
+    glColor3f(1, 0, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(WORLD_SIZE, 0, 0);
+    glColor3f(0, 1, 0);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,0);
+    glColor3f(0, 0, 1);
+    glVertex3f(0, 0, 0);
     glVertex3f(0, 0, WORLD_SIZE);
     glEnd();
     //  Draw little marker dots along the axis
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE,0,0);
-    glColor3f(1,0,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(WORLD_SIZE, 0, 0);
+    glColor3f(1, 0, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,WORLD_SIZE,0);
-    glColor3f(0,1,0);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, WORLD_SIZE, 0);
+    glColor3f(0, 1, 0);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0,0,WORLD_SIZE);
-    glColor3f(0,0,1);
-    glutSolidSphere(0.125,10,10);
+    glTranslatef(0, 0, WORLD_SIZE);
+    glColor3f(0, 0, 1);
+    glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
 }
 
@@ -166,13 +194,12 @@ float widthChar(float scale, int mono, char ch) {
 }
 
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b)
-{
+              char const* string, float r, float g, float b) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
     glPushMatrix();
-    glTranslatef( static_cast<float>(x), static_cast<float>(y), 0.0f);
+    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3f(r,g,b);
     glRotated(rotate,0,0,1);
     // glLineWidth(thick);
@@ -184,10 +211,7 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
 
 }
 
-
-void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
-              float r, float g, float b)
-{
+void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
@@ -202,19 +226,16 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     glLineWidth(thick);
     glScalef(scale, scale, 1.0);
     len = (int) strlen(vectext);
-	for (i = 0; i < len; i++)
-	{
+	for (i = 0; i < len; i++) {
         if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
         else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
 	}
     glPopMatrix();
-    
 } 
 
-void drawGroundPlaneGrid(float size)
-{
 
-	glColor3f( 0.4f, 0.5f, 0.3f ); 
+void drawGroundPlaneGrid(float size) {
+	glColor3f(0.4f, 0.5f, 0.3f); 
 	glLineWidth(2.0);
 		
     for (float x = 0; x <= size; x++) {
@@ -240,7 +261,7 @@ void drawGroundPlaneGrid(float size)
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
-    glColor4f( 0.0f, 0.0f, 0.0f, darkness );
+    glColor4f(0.0f, 0.0f, 0.0f, darkness);
     
     int   num = 20;
     float y  = 0.001f;
@@ -267,27 +288,72 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
 }
 
 
-void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size ) {
+
+void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
+    glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
+    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 up    = glm::cross(right, vectorToPosition);
+    
+    glBegin(GL_LINE_STRIP);             
+    for (int i=0; i<numSides+1; i++) {
+        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float s = radius * sin(r);
+        float c = radius * cos(r);
+    
+        glVertex3f
+        (
+            position.x + right.x * s + up.x * c, 
+            position.y + right.y * s + up.y * c, 
+            position.z + right.z * s + up.z * c 
+        ); 
+    }
+    
+    glEnd();
+}
+
+
+void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
+    glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
+    glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
+    
+    glBegin(GL_LINE_STRIP);             
+
+    for (int i=0; i<numSides+1; i++) {
+        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float s = radius * sin(r);
+        float c = radius * cos(r);
+        glVertex3f
+        (
+            position.x + perp1.x * s + perp2.x * c, 
+            position.y + perp1.y * s + perp2.y * c, 
+            position.z + perp1.z * s + perp2.z * c 
+        ); 
+    }
+    glEnd();
+}
+
+
+void renderOrientationDirections(glm::vec3 position, Orientation orientation, float size) {
 	glm::vec3 pRight	= position + orientation.getRight() * size;
-	glm::vec3 pUp		= position + orientation.getUp() * size;
+	glm::vec3 pUp		= position + orientation.getUp   () * size;
 	glm::vec3 pFront	= position + orientation.getFront() * size;
 		
-	glColor3f( 1.0f, 0.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pRight.x, pRight.y, pRight.z );
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pRight.x, pRight.y, pRight.z);
 	glEnd();
 
-	glColor3f( 0.0f, 1.0f, 0.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pUp.x, pUp.y, pUp.z );
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pUp.x, pUp.y, pUp.z);
 	glEnd();
 
-	glColor3f( 0.0f, 0.0f, 1.0f );
-	glBegin( GL_LINE_STRIP );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( pFront.x, pFront.y, pFront.z );
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(position.x, position.y, position.z);
+	glVertex3f(pFront.x, pFront.y, pFront.z);
 	glEnd();
 }
 

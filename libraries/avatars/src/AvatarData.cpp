@@ -129,14 +129,17 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // increment to push past the packet header
-    sourceBuffer++;
+    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
     
     unsigned char* startPosition = sourceBuffer;
+    
+    // push past the agent ID
+    sourceBuffer += + sizeof(uint16_t);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
-   
+    
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);

@@ -445,12 +445,9 @@ int main(int argc, const char * argv[])
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
-                if (agentList->addOrUpdateAgent(&agentPublicAddress,
-                                               &agentPublicAddress,
-                                               AGENT_TYPE_AVATAR,
-                                               agentList->getLastAgentId())) {
-                    agentList->increaseAgentId();
-                }
+                uint16_t agentID = 0;
+                unpackAgentId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &agentID);
+                agentList->addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, AGENT_TYPE_AVATAR, agentID);
                 
                 agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
             }
