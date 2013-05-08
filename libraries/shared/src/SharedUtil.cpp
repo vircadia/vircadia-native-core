@@ -170,7 +170,7 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
 // Complaints:  Brad :)
 #define GUESS_OF_VOXELCODE_SIZE 10
 #define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
-#define SIZE_OF_COLOR_DATA 3
+#define SIZE_OF_COLOR_DATA sizeof(rgbColor)
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
         
@@ -242,7 +242,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     }
 
     unsigned int voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    unsigned int voxelBufferSize = voxelSizeInBytes+3; // 3 for color
+    unsigned int voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
