@@ -30,7 +30,7 @@ const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
 const float BODY_PITCH_WHILE_WALKING      = 30.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
-const float LIN_VEL_DECAY                 = 5.0;
+const float LIN_VEL_DECAY                 = 2.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
@@ -411,8 +411,8 @@ void Avatar::simulate(float deltaTime) {
     _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
 	
     // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.2f;
-    const float AVATAR_BRAKING_STRENGTH = 25.f;
+    const float AVATAR_BRAKING_RANGE = 1.6f;
+    const float AVATAR_BRAKING_STRENGTH = 35.f;
     if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
         _velocity *=
         (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
