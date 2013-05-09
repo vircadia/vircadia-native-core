@@ -269,16 +269,10 @@ void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterfa
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;
     
-    if (serialInterface->active && USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialInterface->getLastPitchRate();
-        measuredYawRate = serialInterface->getLastYawRate();
-        measuredRollRate = serialInterface->getLastRollRate();
-    } else {
-        measuredPitchRate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
-        measuredRollRate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    }
-    
+    measuredPitchRate = serialInterface->getLastPitchRate();
+    measuredYawRate = serialInterface->getLastYawRate();
+    measuredRollRate = serialInterface->getLastRollRate();
+   
     //  Update avatar head position based on measured gyro rates
     const float MAX_PITCH = 45;
     const float MIN_PITCH = -45;
@@ -521,14 +515,12 @@ void Avatar::updateHead(float deltaTime) {
     }
     
     //  For invensense gyro, decay only slightly when roughly centered
-    if (USING_INVENSENSE_MPU9150) {
-        const float RETURN_RANGE = 5.0;
-        const float RETURN_STRENGTH = 1.0;
-        if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
+    const float RETURN_RANGE = 15.0;
+    const float RETURN_STRENGTH = 2.0;
+    if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
+    if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
+    if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
 
-    }
     
     if (_head.noise) {
         //  Move toward new target

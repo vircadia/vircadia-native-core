@@ -131,43 +131,10 @@ void SerialInterface::initializePort(char* portname, int baud) {
  #endif
 }
 
-//  Reset Trailing averages to the current measurement
-void SerialInterface::resetTrailingAverages() {
-    for (int i = 1; i < NUM_CHANNELS; i++)  trailingAverage[i] = lastMeasured[i];
-}
-
 //  Render the serial interface channel values onscreen as vertical lines
 void SerialInterface::renderLevels(int width, int height) {
-    int i;
-    int displayX = 10;
-    const int GAP = 16;
     char val[40];
-    if (!USING_INVENSENSE_MPU9150) {
-        //  Legacy - Maple ADC gyros 
-        for(i = 0; i < NUM_CHANNELS; i++) {
-            //  Actual value
-            glLineWidth(2.0);
-            glColor4f(1, 1, 1, 1);
-            glBegin(GL_LINES);
-            glVertex2f(displayX, height * 0.95);
-            glVertex2f(displayX, height * (0.25 + 0.75f * getValue(i) / 4096));
-            glColor4f(1, 0, 0, 1);
-            glVertex2f(displayX - 3, height * (0.25 + 0.75f * getValue(i) / 4096));
-            glVertex2f(displayX, height * (0.25 + 0.75f * getValue(i) / 4096));
-            glEnd();
-            //  Trailing Average value
-            glBegin(GL_LINES);
-            glColor4f(1, 1, 1, 1);
-            glVertex2f(displayX, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
-            glVertex2f(displayX + 4, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
-            glEnd();
-            
-            sprintf(val, "%d", getValue(i));
-            drawtext(displayX - GAP / 2, (height * 0.95) + 2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
-            
-            displayX += GAP;
-        }
-    } else {
+    if (USING_INVENSENSE_MPU9150) {
         //  For invensense gyros, render as horizontal bars
         const int LEVEL_CORNER_X = 10;
         const int LEVEL_CORNER_Y = 200;
@@ -218,18 +185,6 @@ void SerialInterface::renderLevels(int width, int height) {
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
         glEnd();
     }
-    
-    //  Display Serial latency block
-    if (LED) {
-        glColor3f(1,0,0);
-        glBegin(GL_QUADS); {
-            glVertex2f(width - 100, height - 100);
-            glVertex2f(width, height - 100);
-            glVertex2f(width, height);
-            glVertex2f(width - 100, height);
-        }
-        glEnd();
-    }
 }
 
 void convertHexToInt(unsigned char* sourceBuffer, int& destinationInt) {
@@ -263,6 +218,8 @@ void SerialInterface::readData() {
         convertHexToInt(sensorBuffer + 14, accelXRate);
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * 9.80665f;
+                                                                //  From MPU-9150 register map, with setting on
+                                                                //  highest resolution = +/- 2G
         
         _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND2;
         _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND2;
@@ -296,60 +253,7 @@ void SerialInterface::readData() {
         }
 
         totalSamples++;
-    } else {
-        //  This array sets the rate of trailing averaging for each channel:
-        //  If the sensor rate is 100Hz, 0.001 will make the long term average a 10-second average
-        const float AVG_RATE[] =  {0.002, 0.002, 0.002, 0.002, 0.002, 0.002};
-        char bufchar[1];
-        
-        while (read(_serialDescriptor, &bufchar, 1) > 0) {
-            serialBuffer[serialBufferPos] = bufchar[0];
-            serialBufferPos++;
-            //  Have we reached end of a line of input?
-            if ((bufchar[0] == '\n') || (serialBufferPos >= MAX_BUFFER)) {
-                std::string serialLine(serialBuffer, serialBufferPos-1);
-                //printLog("%s\n", serialLine.c_str());
-                int spot;
-                //int channel = 0;
-                std::string val;
-                for (int i = 0; i < NUM_CHANNELS + 2; i++) {
-                    spot = serialLine.find_first_of(" ", 0);
-                    if (spot != std::string::npos) {
-                        val = serialLine.substr(0,spot);
-                        //printLog("%s\n", val.c_str());
-                        if (i < NUM_CHANNELS) lastMeasured[i] = atoi(val.c_str());
-                        else samplesAveraged = atoi(val.c_str());
-                    } else LED = atoi(serialLine.c_str());
-                    serialLine = serialLine.substr(spot+1, serialLine.length() - spot - 1);
-                }
-                
-                //  Update Trailing Averages
-                for (int i = 0; i < NUM_CHANNELS; i++) {
-                    if (totalSamples > SAMPLES_TO_DISCARD) {
-                        trailingAverage[i] = (1.f - AVG_RATE[i])*trailingAverage[i] +
-                        AVG_RATE[i]*(float)lastMeasured[i];
-                    } else {
-                        trailingAverage[i] = (float)lastMeasured[i];
-                    }
-                    
-                }
-                /*
-                //  Use a set of initial samples to compute gravity
-                if (totalSamples < GRAVITY_SAMPLES) {
-                    gravity.x += lastMeasured[ACCEL_X];
-                    gravity.y += lastMeasured[ACCEL_Y];
-                    gravity.z += lastMeasured[ACCEL_Z];
-                }
-                if (totalSamples == GRAVITY_SAMPLES) {
-                    gravity = glm::normalize(gravity);
-                    printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
-                }
-                */
-                totalSamples++;
-                serialBufferPos = 0;
-            }
-        }
-    }
+    } 
     
     if (initialSamples == totalSamples) {        
         timeval now;
@@ -372,18 +276,6 @@ void SerialInterface::resetSerial() {
     _gravity = glm::vec3(0, 0, 0);
     
     gettimeofday(&lastGoodRead, NULL);
-    
-    if (!USING_INVENSENSE_MPU9150) {        
-        //  Clear the measured and average channel data
-        for (int i = 0; i < NUM_CHANNELS; i++) {
-            lastMeasured[i] = 0;
-            trailingAverage[i] = 0.0;
-        }
-        //  Clear serial input buffer
-        for (int i = 1; i < MAX_BUFFER; i++) {
-            serialBuffer[i] = ' ';
-        }
-    }
     
 #endif
 }

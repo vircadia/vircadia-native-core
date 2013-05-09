@@ -32,7 +32,7 @@
 #define HEAD_YAW_RATE 0
 #define HEAD_ROLL_RATE 2
 
-extern const bool USING_INVENSENSE_MPU9150;
+//const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
@@ -51,13 +51,12 @@ public:
     float getLastPitchRate() const { return _lastPitchRate; }
     float getLastRollRate() const { return _lastRollRate; }
     
-    int getLED() {return LED;};
-    int getNumSamples() {return samplesAveraged;};
-    int getValue(int num) {return lastMeasured[num];};
-    int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
-    float getTrailingValue(int num) {return trailingAverage[num];};
+    //int getLED() {return LED;};
+    //int getNumSamples() {return samplesAveraged;};
+    //int getValue(int num) {return lastMeasured[num];};
+    //int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
+    //float getTrailingValue(int num) {return trailingAverage[num];};
     
-    void resetTrailingAverages();
     void renderLevels(int width, int height);
     bool active;
     glm::vec3 getGravity() {return _gravity;};
@@ -67,10 +66,6 @@ private:
     void resetSerial();
 
     int _serialDescriptor;
-    int lastMeasured[NUM_CHANNELS];
-    float trailingAverage[NUM_CHANNELS];
-    int samplesAveraged;
-    int LED;
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 _gravity;
