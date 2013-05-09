@@ -30,7 +30,7 @@ const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
 const float BODY_PITCH_WHILE_WALKING      = 30.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
-const float LIN_VEL_DECAY                 = 5.0;
+const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
@@ -408,8 +408,13 @@ void Avatar::simulate(float deltaTime) {
     _position += _velocity * deltaTime;
 
 	// decay velocity
-    _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
-	
+    float decay = 1.0 - VELOCITY_DECAY * deltaTime;
+    if ( decay < 0.0 ) {
+        _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+    } else {
+        _velocity *= decay;
+    }
+    
     // If someone is near, damp velocity as a function of closeness
     const float AVATAR_BRAKING_RANGE = 1.2f;
     const float AVATAR_BRAKING_STRENGTH = 25.f;
@@ -419,7 +424,7 @@ void Avatar::simulate(float deltaTime) {
          (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
     }
 
-    // update head information
+    // update head state
     updateHead(deltaTime);
     
     // use speed and angular velocity to determine walking vs. standing                                
