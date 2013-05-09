@@ -403,7 +403,10 @@ void Avatar::simulate(float deltaTime) {
     if  (tiltDecay < 0.0f) {tiltDecay = 0.0f;}     
     _bodyPitch *= tiltDecay;
     _bodyRoll  *= tiltDecay;
-
+    
+    //wtf? - why won't this compile? 
+    //angleBetween(&_orientation.getUp(), &_gravity);
+    
     // update position by velocity
     _position += _velocity * deltaTime;
 
