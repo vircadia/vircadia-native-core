@@ -78,6 +78,7 @@
 
 #include "ViewFrustum.h"
 #include "HandControl.h"
+#include "AvatarRenderer.h"
 
 using namespace std;
 
@@ -114,6 +115,8 @@ ViewFrustum viewFrustum;            // current state of view frustum, perspectiv
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+
+AvatarRenderer avatarRenderer;
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
