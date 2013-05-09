@@ -42,28 +42,23 @@ void SerialInterface::pair() {
     int matchStatus;
     regex_t regex;
     
-    if (_failedOpenAttempts < 2) {
-        // if we've already failed to open the detected interface twice then don't try again
-        
-        // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
-        if((devDir = opendir("/dev"))) {
-            while((entry = readdir(devDir))) {
-                regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
-                matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
-                if (matchStatus == 0) {
-                    char *serialPortname = new char[100];
-                    sprintf(serialPortname, "/dev/%s", entry->d_name);
-                    
-                    initializePort(serialPortname, 115200);
-                    
-                    delete [] serialPortname;
-                }
-                regfree(&regex);
+    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
+    if((devDir = opendir("/dev"))) {
+        while((entry = readdir(devDir))) {
+            regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
+            matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
+            if (matchStatus == 0) {
+                char *serialPortname = new char[100];
+                sprintf(serialPortname, "/dev/%s", entry->d_name);
+                
+                initializePort(serialPortname, 115200);
+                
+                delete [] serialPortname;
             }
-            closedir(devDir);
+            regfree(&regex);
         }
-    }
-    
+        closedir(devDir);
+    }    
 #endif
 }
 
@@ -76,7 +71,6 @@ void SerialInterface::initializePort(char* portname, int baud) {
     
     if (_serialDescriptor == -1) {
         printLog("Failed.\n");
-        _failedOpenAttempts++;
         return;
     }    
     struct termios options;
@@ -122,6 +116,9 @@ void SerialInterface::initializePort(char* portname, int baud) {
         
         // this disables streaming so there's no garbage data on reads
         write(_serialDescriptor, "SD\n", 3);
+        
+        // delay after disabling streaming
+        usleep(10000);
         
         // flush whatever was produced by the last two commands
         tcflush(_serialDescriptor, TCIOFLUSH);
@@ -232,26 +229,38 @@ void SerialInterface::readData() {
     int initialSamples = totalSamples;
     
     if (USING_INVENSENSE_MPU9150) { 
-        unsigned char gyroBuffer[20];
+        unsigned char sensorBuffer[36];
         
         // ask the invensense for raw gyro data
-        write(_serialDescriptor, "RD684306\n", 9);
-        read(_serialDescriptor, gyroBuffer, 20);
+        write(_serialDescriptor, "RD683B0E\n", 9);
+        read(_serialDescriptor, sensorBuffer, 36);
+        
+        int accelXRate, accelYRate, accelZRate;
+        
+        convertHexToInt(sensorBuffer + 6, accelXRate); 
+        convertHexToInt(sensorBuffer + 10, accelYRate);
+        convertHexToInt(sensorBuffer + 14, accelZRate);
+        
+        const float LSB_TO_METERS_PER_SECOND = 1.f / 2048.f;
+        
+        _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND;
+        _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND;
+        _lastAccelZ = ((float) accelZRate) * LSB_TO_METERS_PER_SECOND;
         
         int rollRate, yawRate, pitchRate;
         
-        convertHexToInt(gyroBuffer + 6, rollRate);
-        convertHexToInt(gyroBuffer + 10, yawRate);
-        convertHexToInt(gyroBuffer + 14, pitchRate);
+        convertHexToInt(sensorBuffer + 22, rollRate);
+        convertHexToInt(sensorBuffer + 26, yawRate);
+        convertHexToInt(sensorBuffer + 30, pitchRate);
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
         const float PITCH_BIAS = 2.0;                            //  Strangely, there is a small DC bias in the
                                                                  //  invensense pitch reading.  Gravity?
-
-        _lastRollRate = (float) rollRate * LSB_TO_DEGREES_PER_SECOND;
-        _lastYawRate = (float) yawRate * LSB_TO_DEGREES_PER_SECOND;
-        _lastPitchRate = (float) -pitchRate * LSB_TO_DEGREES_PER_SECOND + PITCH_BIAS;
+        
+        _lastRollRate = ((float) rollRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastYawRate = ((float) yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND + PITCH_BIAS;
         
         totalSamples++;
     } else {
