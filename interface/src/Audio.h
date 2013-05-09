@@ -30,6 +30,9 @@ public:
     
     void setWalkingState(bool newWalkState);
     
+    void setLastAcceleration(glm::vec3 a) { audioData->setLastAcceleration(a); };
+    void setLastVelocity(glm::vec3 v) { audioData->setLastVelocity(v); };
+    
     // terminates audio I/O
     bool terminate();
 private:    
