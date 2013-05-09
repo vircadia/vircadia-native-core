@@ -9,6 +9,7 @@ project(${TARGET_NAME})
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
+set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 if (APPLE)
@@ -68,6 +69,7 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
+find_package(LibOVR)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
@@ -75,18 +77,15 @@ include_directories(
     ${PROJECT_BINARY_DIR}/includes
     ${GLM_INCLUDE_DIRS} 
     ${LODEPNG_INCLUDE_DIRS}
+    ${LIBOVR_INCLUDE_DIRS}
 )
 
 find_package(Qt4 REQUIRED QtCore QtGui)
 include(${QT_USE_FILE})
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
 
-if (NOT APPLE)
-    find_package(OpenGL REQUIRED)
-    find_package(GLUT REQUIRED)
-    include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
-    target_link_libraries(${TARGET_NAME} ${OPENGL_LIBRARY})
-else (NOT APPLE)
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${LIBOVR_LIBRARY})
+
+if (APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AudioToolbox AudioToolbox)
     find_library(AudioUnit AudioUnit)
@@ -95,18 +94,33 @@ else (NOT APPLE)
     find_library(Carbon Carbon)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
-    target_link_libraries(${TARGET_NAME} ${AudioToolbox} ${AudioUnit} ${CoreAudio} 
-                          ${CoreServices} ${Carbon} ${GLUT} ${OpenGL})
-endif (NOT APPLE)
+    
+    target_link_libraries(
+        ${TARGET_NAME} 
+        ${AudioToolbox} 
+        ${AudioUnit} 
+        ${CoreAudio} 
+        ${CoreServices} 
+        ${Carbon} 
+        ${GLUT} 
+        ${OpenGL}
+    )
+else (APPLE)
+    find_package(OpenGL REQUIRED)
+    find_package(GLUT REQUIRED)
+    include_directories(${GLUT_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
+    target_link_libraries(${TARGET_NAME} ${OPENGL_LIBRARY})
+endif (APPLE)
 
 # link target to external libraries
 if (WIN32)
-  target_link_libraries(${TARGET_NAME} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
-    wsock32.lib
+    target_link_libraries(
+        ${TARGET_NAME} 
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
+        wsock32.lib
     )
 else (WIN32)
   target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARY})

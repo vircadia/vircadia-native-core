@@ -15,7 +15,8 @@
 //  Welcome Aboard!
 //
 
-#include "InterfaceConfig.h"
+
+
 #include <math.h>
 #include <string.h>
 #include <sstream>
@@ -38,6 +39,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <OVR.h>
+
+#include "InterfaceConfig.h"
 
 #include "Log.h"
 #include "shared_Log.h"
