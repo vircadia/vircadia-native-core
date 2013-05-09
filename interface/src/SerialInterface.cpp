@@ -241,7 +241,7 @@ void SerialInterface::readData() {
         convertHexToInt(sensorBuffer + 10, accelYRate);
         convertHexToInt(sensorBuffer + 14, accelZRate);
         
-        const float LSB_TO_METERS_PER_SECOND = 1.f / 2048.f;
+        const float LSB_TO_METERS_PER_SECOND = 1.f / 16384.f;
         
         _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND;
         _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND;
