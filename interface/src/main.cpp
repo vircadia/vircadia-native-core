@@ -174,6 +174,10 @@ int mouseY = 0;
 //  Mouse location at start of last down click
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
+// The current mode for mouse interaction
+enum MouseMode { ADD_VOXELS, DELETE_VOXELS };
+MouseMode mouseMode = ADD_VOXELS;
+
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
 
@@ -1662,8 +1666,8 @@ void key(unsigned char k, int x, int y) {
     if (k == '^')  ::shiftPaintingColor();        // shifts randomize color between R,G,B dominant
     if (k == '-')  ::sendVoxelServerEraseAll();    // sends erase all command to voxel server
     if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
-    if (k == '1')  ::addVoxelUnderCursor();
-    if (k == '2')  ::deleteVoxelUnderCursor();
+    if (k == '1')  ::mouseMode = ADD_VOXELS;
+    if (k == '2')  ::mouseMode = DELETE_VOXELS;
     if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
@@ -1767,9 +1771,7 @@ void idle(void) {
         myAvatar.setHandMovementValues(handControl.getValues());        
         
         // tell my avatar if the mouse is being pressed...
-        if (mousePressed) {
-            myAvatar.setMousePressed(mousePressed);
-        }
+        myAvatar.setMousePressed(mousePressed);
            
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
@@ -1889,17 +1891,35 @@ glm::vec3 getGravity(glm::vec3 pos) {
 }
        
 void mouseFunc(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
-            mouseX = x;
-            mouseY = y;
-            mousePressed = 1;
-        } else if (state == GLUT_UP) {
-            mouseX = x;
-            mouseY = y;
-            mousePressed = 0;
-        }
-    }    
+    mouseX = x;
+    mouseY = y;
+    
+    switch (button) {
+        case GLUT_LEFT_BUTTON:
+            if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
+                mousePressed = 1;
+                if (::mouseMode == ADD_VOXELS) {
+                    addVoxelUnderCursor();
+                    
+                } else { // ::mouseMode == DELETE_VOXELS
+                    deleteVoxelUnderCursor();    
+                }
+            } else {
+                mousePressed = 0;
+            }
+            break;
+        
+        case GLUT_RIGHT_BUTTON:
+            if (state == GLUT_DOWN) {
+                if (::mouseMode == ADD_VOXELS) {
+                    deleteVoxelUnderCursor();
+                    
+                } else { // ::mouseMode == DELETE_VOXELS
+                    addVoxelUnderCursor();
+                }
+            }
+            break;
+    }
 }
 
 void motionFunc(int x, int y) {
