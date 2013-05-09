@@ -30,7 +30,7 @@ const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
 const float BODY_PITCH_WHILE_WALKING      = 30.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
-const float LIN_VEL_DECAY                 = 2.0;
+const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
@@ -47,6 +47,8 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
+const float AVATAR_BRAKING_RANGE          = 1.6f;
+const float AVATAR_BRAKING_STRENGTH       = 30.0f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
@@ -403,23 +405,33 @@ void Avatar::simulate(float deltaTime) {
     if  (tiltDecay < 0.0f) {tiltDecay = 0.0f;}     
     _bodyPitch *= tiltDecay;
     _bodyRoll  *= tiltDecay;
-
+    
+    //the following will be used to make the avatar upright no matter what gravity is
+    //float f = angleBetween(_orientation.getUp(), _gravity);
+    
     // update position by velocity
     _position += _velocity * deltaTime;
 
 	// decay velocity
-    _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
-	
-    // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.6f;
-    const float AVATAR_BRAKING_STRENGTH = 35.f;
-    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
-        _velocity *=
-        (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
-         (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
+    float decay = 1.0 - VELOCITY_DECAY * deltaTime;
+    if ( decay < 0.0 ) {
+        _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+    } else {
+        _velocity *= decay;
     }
-
-    // update head information
+    
+    // If another avatar is near, dampen velocity as a function of closeness
+    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {    
+        float closeness = 1.0f - (_distanceToNearestAvatar / AVATAR_BRAKING_RANGE);
+        float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
+        if ( drag > 0.0f ) {
+            _velocity *= drag;
+        } else {
+            _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+        }
+    }
+    
+    // update head state
     updateHead(deltaTime);
     
     // use speed and angular velocity to determine walking vs. standing                                
@@ -458,8 +470,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 //  Test:  Show angle between your fwd vector and nearest avatar
                 glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
                                 getJointPosition(AVATAR_JOINT_PELVIS);
-                glm::vec3 myForwardVector = _orientation.getFront();
-                printLog("Angle between: %f\n", angleBetween(&vectorBetweenUs, &myForwardVector));
+                printLog("Angle between: %f\n", angleBetween(vectorBetweenUs, _orientation.getFront()));
                 */
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
@@ -474,8 +485,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
         if (_interactingOther) {
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
-            _avatarTouch.setYourHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
+            _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
+            
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
+            _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
+            
+            //_handHoldingPosition
+            
         }
         
     }//if (_isMine)
@@ -504,14 +521,39 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
+    // hold on to this - used for testing....
+    /*
+    static float test = 0.0f;
+    test += deltaTime;
+    _head.leanForward  = 0.02 * sin( test * 0.2f );
+    _head.leanSideways = 0.02 * sin( test * 0.3f );
+    */
+
     //apply the head lean values to the springy position...
     if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition += headLean;
+
+        // this is not a long-term solution, but it works ok for initial purposes...
+        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
+        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
+        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
+        
+        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
+        
+        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
-    
+
     //  Decay head back to center if turned on
     if (_returnHeadToCenter) {
         //  Decay back toward center

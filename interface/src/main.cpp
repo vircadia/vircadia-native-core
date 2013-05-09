@@ -1767,9 +1767,7 @@ void idle(void) {
         myAvatar.setHandMovementValues(handControl.getValues());        
         
         // tell my avatar if the mouse is being pressed...
-        if (mousePressed) {
-            myAvatar.setMousePressed(mousePressed);
-        }
+        myAvatar.setMousePressed(mousePressed);
            
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
@@ -1889,18 +1887,19 @@ glm::vec3 getGravity(glm::vec3 pos) {
 }
        
 void mouseFunc(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
+    if ( !menu.mouseClick(x, y)) { // if a menu item was not clicked or unclicked...
+        if ( button == GLUT_LEFT_BUTTON ) {
             mouseX = x;
             mouseY = y;
-            mousePressed = 1;
-        } else if (state == GLUT_UP) {
-            mouseX = x;
-            mouseY = y;
-            mousePressed = 0;
+            if (state == GLUT_DOWN ) {
+                mousePressed = 1;
+            } else if (state == GLUT_UP ) {
+                mousePressed = 0;
+            }
         }
-    }    
+    }
 }
+
 
 void motionFunc(int x, int y) {
     mouseX = x;
