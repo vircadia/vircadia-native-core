@@ -522,10 +522,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 void Avatar::updateHead(float deltaTime) {
 
     // hold on to this - used for testing....
+    /*
     static float test = 0.0f;
     test += deltaTime;
     _head.leanForward  = 0.02 * sin( test * 0.2f );
     _head.leanSideways = 0.02 * sin( test * 0.3f );
+    */
 
     //apply the head lean values to the springy position...
     if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) 
