@@ -78,7 +78,6 @@ void attachNewBufferToAgent(Agent *newAgent) {
 }
 
 int main(int argc, const char* argv[]) {
-    signal(SIGSEGV, printStacktrace);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
