@@ -1006,22 +1006,6 @@ void display(void)
     glPushMatrix();  {
         glLoadIdentity();
     
-        //  Setup 3D lights
-        glEnable(GL_COLOR_MATERIAL);
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-        
-        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
-        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-        
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-        glMateriali(GL_FRONT, GL_SHININESS, 96);
-
         // camera settings
         if (::lookingInMirror) {
             // set the camera to looking at my own face
@@ -1153,7 +1137,23 @@ void display(void)
         glRotatef   (180.0 - whichCamera.getYaw(),	 IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
 
         glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
-
+        
+        //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+        
+        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
+        
         if (::oculusOn) {
             displayOculus(whichCamera);
             
