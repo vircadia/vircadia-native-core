@@ -43,11 +43,15 @@ private:
     glm::vec3 _yourBodyPosition;
     glm::vec3 _myHandPosition;
     glm::vec3 _yourHandPosition;
+    glm::vec3 _vectorBetweenHands;
     int       _myHandState;
     int       _yourHandState;
     bool      _canReachToOtherAvatar;
     bool      _handsCloseEnoughToGrasp;
     float     _reachableRadius;
+    
+    void generateBeamBetweenHands();
+    void renderBeamBetweenHands();
 };
 
 #endif

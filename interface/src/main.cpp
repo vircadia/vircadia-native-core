@@ -1895,7 +1895,11 @@ glm::vec3 getGravity(glm::vec3 pos) {
 }
        
 void mouseFunc(int button, int state, int x, int y) {
-    if ( !menu.mouseClick(x, y)) { // if a menu item was not clicked or unclicked...
+
+    //catch mouse actiond on the menu
+    bool menuClickedOrUnclicked = menu.mouseClick(x, y);
+
+    if (!menuClickedOrUnclicked) {
         if ( button == GLUT_LEFT_BUTTON ) {
             mouseX = x;
             mouseY = y;
