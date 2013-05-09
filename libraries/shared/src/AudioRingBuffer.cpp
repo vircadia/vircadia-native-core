@@ -10,118 +10,63 @@
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
-    ringBufferLengthSamples(ringSamples),
-    bufferLengthSamples(bufferSamples),
-    endOfLastWrite(NULL),
-    started(false),
+    _ringBufferLengthSamples(ringSamples),
+    _bufferLengthSamples(bufferSamples),
+    _endOfLastWrite(NULL),
+    _started(false),
     _shouldBeAddedToMix(false),
     _shouldLoopbackForAgent(false) {
-    buffer = new int16_t[ringBufferLengthSamples];
-    nextOutput = buffer;
+        
+    _buffer = new int16_t[_ringBufferLengthSamples];
+    _nextOutput = _buffer;
 };
 
 AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
-    ringBufferLengthSamples = otherRingBuffer.ringBufferLengthSamples;
-    bufferLengthSamples = otherRingBuffer.bufferLengthSamples;
-    started = otherRingBuffer.started;
+    _ringBufferLengthSamples = otherRingBuffer._ringBufferLengthSamples;
+    _bufferLengthSamples = otherRingBuffer._bufferLengthSamples;
+    _started = otherRingBuffer._started;
     _shouldBeAddedToMix = otherRingBuffer._shouldBeAddedToMix;
     _shouldLoopbackForAgent = otherRingBuffer._shouldLoopbackForAgent;
     
-    buffer = new int16_t[ringBufferLengthSamples];
-    memcpy(buffer, otherRingBuffer.buffer, sizeof(int16_t) * ringBufferLengthSamples);
+    _buffer = new int16_t[_ringBufferLengthSamples];
+    memcpy(_buffer, otherRingBuffer._buffer, sizeof(int16_t) * _ringBufferLengthSamples);
     
-    nextOutput = buffer + (otherRingBuffer.nextOutput - otherRingBuffer.buffer);
-    endOfLastWrite = buffer + (otherRingBuffer.endOfLastWrite - otherRingBuffer.buffer);
+    _nextOutput = _buffer + (otherRingBuffer._nextOutput - otherRingBuffer._buffer);
+    _endOfLastWrite = _buffer + (otherRingBuffer._endOfLastWrite - otherRingBuffer._buffer);
 }
 
 AudioRingBuffer::~AudioRingBuffer() {
-    delete[] buffer;
+    delete[] _buffer;
 };
 
 AudioRingBuffer* AudioRingBuffer::clone() const {
     return new AudioRingBuffer(*this);
 }
 
-int16_t* AudioRingBuffer::getNextOutput() {
-    return nextOutput;
-}
-
-void AudioRingBuffer::setNextOutput(int16_t *newPointer) {
-    nextOutput = newPointer;
-}
-
-int16_t* AudioRingBuffer::getEndOfLastWrite() {
-    return endOfLastWrite;
-}
-
-void AudioRingBuffer::setEndOfLastWrite(int16_t *newPointer) {
-    endOfLastWrite = newPointer;
-}
-
-int16_t* AudioRingBuffer::getBuffer() {
-    return buffer;
-}
-
-bool AudioRingBuffer::isStarted() {
-    return started;
-}
-
-void AudioRingBuffer::setStarted(bool status) {
-    started = status;
-}
-
-float* AudioRingBuffer::getPosition() {
-    return position;
-}
-
-void AudioRingBuffer::setPosition(float *newPosition) {
-    position[0] = newPosition[0];
-    position[1] = newPosition[1];
-    position[2] = newPosition[2];
-}
-
-float AudioRingBuffer::getAttenuationRatio() {
-    return attenuationRatio;
-}
-
-void AudioRingBuffer::setAttenuationRatio(float newAttenuation) {
-    attenuationRatio = newAttenuation;
-}
-
-float AudioRingBuffer::getBearing() {
-    return bearing;
-}
-
-void AudioRingBuffer::setBearing(float newBearing) {
-    bearing = newBearing;
-}
-
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
 int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    if (numBytes > (bufferLengthSamples * sizeof(int16_t))) {
+    if (numBytes > (_bufferLengthSamples * sizeof(int16_t))) {
         
         unsigned char *dataPtr = sourceBuffer + 1;
         
-        for (int p = 0; p < 3; p ++) {
-            memcpy(&position[p], dataPtr, sizeof(float));
-            dataPtr += sizeof(float);
-        }
+        memcpy(&_position, dataPtr, sizeof(_position));
+        dataPtr += (sizeof(_position));
         
         unsigned int attenuationByte = *(dataPtr++);
-        attenuationRatio = attenuationByte / 255.0f;
+        _attenuationRatio = attenuationByte / 255.0f;
         
-        memcpy(&bearing, dataPtr, sizeof(float));
-        dataPtr += sizeof(bearing);
+        memcpy(&_bearing, dataPtr, sizeof(float));
+        dataPtr += sizeof(_bearing);
         
-        if (bearing > 180 || bearing < -180) {
+        if (_bearing > 180 || _bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
             _shouldLoopbackForAgent = true;
             
             // correct the bearing
-            bearing = bearing  > 0
-                ? bearing - AGENT_LOOPBACK_MODIFIER
-                : bearing + AGENT_LOOPBACK_MODIFIER;
+            _bearing = _bearing  > 0
+                ? _bearing - AGENT_LOOPBACK_MODIFIER
+                : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
             _shouldLoopbackForAgent = false;
         }        
@@ -129,33 +74,33 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         sourceBuffer = dataPtr;
     }
 
-    if (endOfLastWrite == NULL) {
-        endOfLastWrite = buffer;
-    } else if (diffLastWriteNextOutput() > ringBufferLengthSamples - bufferLengthSamples) {
-        endOfLastWrite = buffer;
-        nextOutput = buffer;
-        started = false;
+    if (!_endOfLastWrite) {
+        _endOfLastWrite = _buffer;
+    } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
+        _endOfLastWrite = _buffer;
+        _nextOutput = _buffer;
+        _started = false;
     }
     
-    memcpy(endOfLastWrite, sourceBuffer, bufferLengthSamples * sizeof(int16_t));
+    memcpy(_endOfLastWrite, sourceBuffer, _bufferLengthSamples * sizeof(int16_t));
     
-    endOfLastWrite += bufferLengthSamples;
+    _endOfLastWrite += _bufferLengthSamples;
     
-    if (endOfLastWrite >= buffer + ringBufferLengthSamples) {
-        endOfLastWrite = buffer;
+    if (_endOfLastWrite >= _buffer + _ringBufferLengthSamples) {
+        _endOfLastWrite = _buffer;
     }
     
     return numBytes;
 }
 
 short AudioRingBuffer::diffLastWriteNextOutput() {
-    if (endOfLastWrite == NULL) {
+    if (!_endOfLastWrite) {
         return 0;
     } else {
-        short sampleDifference = endOfLastWrite - nextOutput;
+        short sampleDifference = _endOfLastWrite - _nextOutput;
         
         if (sampleDifference < 0) {
-            sampleDifference += ringBufferLengthSamples;
+            sampleDifference += _ringBufferLengthSamples;
         }
         
         return sampleDifference;
