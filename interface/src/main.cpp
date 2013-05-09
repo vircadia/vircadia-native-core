@@ -1487,6 +1487,20 @@ void setupPaintingVoxel() {
     shiftPaintingColor();
 }
 
+void addVoxel(VoxelDetail& detail) {
+    unsigned char* bufferOut;
+    int sizeOut;
+
+    if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        delete bufferOut;
+    }
+}
+
+void addVoxelInFrontOfAvatar() {
+    
+}
+
 void addVoxelUnderCursor() {
     glm::vec3 origin, direction;
     viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
@@ -1521,13 +1535,7 @@ void addVoxelUnderCursor() {
                 detail.z += detail.s;
                 break;
         }
-        unsigned char* bufferOut;
-        int sizeOut;
-    
-        if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-            delete bufferOut;
-        }
+        addVoxel(detail);
     }
 }
 
@@ -1668,6 +1676,7 @@ void key(unsigned char k, int x, int y) {
     if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
     if (k == '1')  ::mouseMode = ADD_VOXELS;
     if (k == '2')  ::mouseMode = DELETE_VOXELS;
+    if (k == '3')  addVoxelInFrontOfAvatar();
     if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
