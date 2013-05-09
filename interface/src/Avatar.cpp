@@ -949,7 +949,13 @@ void Avatar::renderHead(bool lookingInMirror) {
     glColor3f(0,0,0);
     glRotatef(_head.mouthPitch, 1, 0, 0);
     glRotatef(_head.mouthYaw, 0, 0, 1);
-    glScalef(_head.mouthWidth*(.7 + sqrt(_head.averageLoudness)/60.0), _head.mouthHeight*(1.0 + sqrt(_head.averageLoudness)/30.0), 1);
+    if (_head.averageLoudness > 1.f) {
+        glScalef(_head.mouthWidth * (.7f + sqrt(_head.averageLoudness) /60.f),
+                 _head.mouthHeight * (1.f + sqrt(_head.averageLoudness) /30.f), 1);
+    } else {
+        glScalef(_head.mouthWidth, _head.mouthHeight, 1);
+    }
+
     glutSolidCube(0.5);
     glPopMatrix();
     
