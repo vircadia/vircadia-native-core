@@ -505,11 +505,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
-            _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
-            
-            //_handHoldingPosition
-            
+            if ( _avatarTouch.getAbleToReachOtherAvatar()) {            
+                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
+                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
+            }
         }
         
     }//if (_isMine)
@@ -529,10 +528,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         }
         
         _avatarTouch.setMyHandState(_handState);
-        
-        if (_handState == 1) {
-            _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
-        }
+        _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
     }
 }
 
