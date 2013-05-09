@@ -40,8 +40,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <OVR.h>
-
 #include "InterfaceConfig.h"
 
 #include "Log.h"
@@ -83,6 +81,7 @@
 #include "ViewFrustum.h"
 #include "HandControl.h"
 #include "AvatarRenderer.h"
+#include "OculusManager.h"
 
 using namespace std;
 
@@ -327,18 +326,7 @@ void init(void) {
     myAvatar.setPosition(start_location);
     myCamera.setPosition(start_location);
     
-    
-#ifdef MARKER_CAPTURE
-    if(marker_capture_enabled){
-        marker_capturer.position_updated(&position_updated);
-        marker_capturer.frame_updated(&marker_frame_available);
-        if(!marker_capturer.init_capture()){
-            printLog("Camera-based marker capture initialized.\n");
-        }else{
-            printLog("Error initializing camera-based marker capture.\n");
-        }
-    }
-#endif
+    OculusManager::connect();
     
     gettimeofday(&timerStart, NULL);
     gettimeofday(&lastTimeIdle, NULL);

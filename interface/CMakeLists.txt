@@ -94,6 +94,7 @@ if (APPLE)
     find_library(Carbon Carbon)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
+    find_library(IOKit IOKit)
     
     target_link_libraries(
         ${TARGET_NAME} 
@@ -104,6 +105,7 @@ if (APPLE)
         ${Carbon} 
         ${GLUT} 
         ${OpenGL}
+        ${IOKit}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
