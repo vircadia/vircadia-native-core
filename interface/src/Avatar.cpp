@@ -1249,6 +1249,11 @@ void Avatar::initializeBodySprings() {
 }
 
 void Avatar::updateBodySprings(float deltaTime) {
+    //  Check for a large repositioning, and re-initialize body springs if this has happened
+    const float BEYOND_BODY_SPRING_RANGE = 2.f;
+    if (glm::length(_position - _joint[AVATAR_JOINT_PELVIS].springyPosition) > BEYOND_BODY_SPRING_RANGE) {
+        initializeBodySprings();
+    }
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         glm::vec3 springVector(_joint[b].springyPosition);
         
