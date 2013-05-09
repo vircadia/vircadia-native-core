@@ -82,3 +82,39 @@ VoxelNode* VoxelNodeBag::extract() {
     }
     return NULL;
 }
+
+bool VoxelNodeBag::contains(VoxelNode* node) {
+    for (int i = 0; i < _elementsInUse; i++) {
+        // just compare the pointers... that's good enough
+        if (_bagElements[i] == node) {
+            return true; // exit early!!
+        }
+        // if we're past where it should be, then it's not here!
+        if (_bagElements[i] > node) {
+            return false;
+        }
+    }
+    // if we made it through the entire bag, it's not here!
+    return false;
+}
+
+void VoxelNodeBag::remove(VoxelNode* node) {
+    int foundAt = -1;
+    for (int i = 0; i < _elementsInUse; i++) {
+        // just compare the pointers... that's good enough
+        if (_bagElements[i] == node) {
+            foundAt = i;
+            break;
+        }
+        // if we're past where it should be, then it's not here!
+        if (_bagElements[i] > node) {
+            break;
+        }
+    }
+    // if we found it, then we need to remove it....
+    if (foundAt != -1) {
+        memmove(&_bagElements[foundAt], &_bagElements[foundAt + 1], (_elementsInUse - foundAt) * sizeof(VoxelNode*));
+        _elementsInUse--;
+    }
+}
+

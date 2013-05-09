@@ -82,8 +82,8 @@ public:
     Avatar* clone() const;
 
     void  reset();
-    void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
-   
+    
+    void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void  setNoise (float mag) {_head.noise = mag;}
     void  setScale(float s) {_head.scale = s; };
     void  setRenderYaw(float y) {_renderYaw = y;}
@@ -102,9 +102,13 @@ public:
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
     const glm::vec3& getHeadPosition() const ;
-    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
+
+    //const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
+    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; };
+
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
     float getSpeed() const { return _speed; };
+    const glm::vec3& getVelocity() const { return _velocity; };
     float getGirth();
     float getHeight();
     

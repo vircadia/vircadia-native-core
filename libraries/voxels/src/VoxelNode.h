@@ -57,6 +57,7 @@ public:
     
     bool isColored() const { return (_trueColor[3]==1); }; 
     bool isInView(const ViewFrustum& viewFrustum) const; 
+    ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     bool isLeaf() const;
     void printDebugDetails(const char* label) const;
