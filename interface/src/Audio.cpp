@@ -111,7 +111,8 @@ int audioCallback (const void *inputBuffer,
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     
-    // printLog("Audio callback at %6.0f\n", usecTimestampNow()/1000);
+    // Add Procedural effects to input samples
+    data->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
     
     if (inputLeft != NULL) {
         

@@ -220,6 +220,11 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
 }
 
 int VoxelSystem::newway__updateNodeInArray(VoxelNode* node) {
+    // If we've run out of room, then just bail...
+    if (_voxelsInWriteArrays >= MAX_VOXELS_PER_SYSTEM) {
+        return 0;
+    }
+    
     if (node->getShouldRender()) {
         glm::vec3 startVertex = node->getCorner();
         float voxelScale = node->getScale();

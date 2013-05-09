@@ -78,6 +78,7 @@
 
 #include "ViewFrustum.h"
 #include "HandControl.h"
+#include "AvatarRenderer.h"
 
 using namespace std;
 
@@ -114,6 +115,8 @@ ViewFrustum viewFrustum;            // current state of view frustum, perspectiv
 Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+
+AvatarRenderer avatarRenderer;
 
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -1710,6 +1713,7 @@ void idle(void) {
             handControl.stop();
 		}
         
+        //  Read serial port interface devices
         if (serialPort.active && USING_INVENSENSE_MPU9150) {
             serialPort.readData();
         }
@@ -1735,7 +1739,11 @@ void idle(void) {
     
         myAvatar.setGravity(getGravity(myAvatar.getPosition()));
         myAvatar.simulate(deltaTime);
-
+        
+        //  Update audio stats for procedural sounds
+        audio.setLastAcceleration(myAvatar.getThrust());
+        audio.setLastVelocity(myAvatar.getVelocity());
+        
         glutPostRedisplay();
         lastTimeIdle = check;
     }

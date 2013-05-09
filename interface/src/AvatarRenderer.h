@@ -16,10 +16,12 @@ class AvatarRenderer {
 public:
 
     AvatarRenderer();
-    void render(Avatar *avatar, bool lookingInMirror);
+    void render(Avatar *avatarToRender, bool lookingInMirror, glm::vec3 cameraPosition );
 
 private:
 
+    Avatar *avatar;
+    void renderBody();
 };
 
 #endif
