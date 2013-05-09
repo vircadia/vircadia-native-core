@@ -11,6 +11,7 @@
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
+#include <SharedUtil.h>
 #include <UDPSocket.h>
 #include <AgentData.h>
 #include <VoxelTree.h>
@@ -63,6 +64,9 @@ public:
 
     void removeOutOfView();
     bool hasViewChanged();
+    
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                             VoxelDetail& detail, float& distance, BoxFace& face);
     
 private:
     int  _callsToTreesToArrays;
