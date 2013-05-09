@@ -750,11 +750,7 @@ void displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (::frustumOn) renderViewFrustum(::viewFrustum);
-
-    //Render my own avatar
-	myAvatar.render(::lookingInMirror, ::myCamera.getPosition());
-    avatarRenderer.render(&myAvatar, ::lookingInMirror, ::myCamera.getPosition());
-    
+	
 	glPopMatrix();
 }
 
