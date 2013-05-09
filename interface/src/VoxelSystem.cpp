@@ -680,9 +680,10 @@ void VoxelSystem::removeOutOfView() {
     }
 }
 
-bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelDetail& detail, float& distance) {
+bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                      VoxelDetail& detail, float& distance, BoxFace& face) {
     VoxelNode* node;
-    if (!_tree->findRayIntersection(origin, direction, node, distance)) {
+    if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
         return false;
     }
     detail.x = node->getCorner().x;

@@ -1489,11 +1489,34 @@ void addVoxelUnderCursor() {
     
     VoxelDetail detail;
     float distance;
-    if (voxels.findRayIntersection(origin, direction, detail, distance)) {
-        // get the hit location relative to the center of the voxel
-        float half = detail.s * 0.5f;
-        glm::vec3 hit = origin + distance*direction - glm::vec3(detail.x + half, detail.y + half, detail.z + half);
-        
+    BoxFace face;
+    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
+        // use the face to determine the side on which to create a neighbor
+        switch (face) {
+            case MIN_X_FACE:
+                detail.x -= detail.s;
+                break;
+            
+            case MAX_X_FACE:
+                detail.x += detail.s;
+                break;
+            
+            case MIN_Y_FACE:
+                detail.y -= detail.s;
+                break;
+            
+            case MAX_Y_FACE:
+                detail.y += detail.s;
+                break;
+            
+            case MIN_Z_FACE:
+                detail.z -= detail.s;
+                break;
+                
+            case MAX_Z_FACE:
+                detail.z += detail.s;
+                break;
+        }
         unsigned char* bufferOut;
 	    int sizeOut;
 	
@@ -1510,7 +1533,8 @@ void deleteVoxelUnderCursor() {
     
     VoxelDetail detail;
     float distance;
-    if (voxels.findRayIntersection(origin, direction, detail, distance)) {
+    BoxFace face;
+    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
         unsigned char* bufferOut;
 	    int sizeOut;
 	
