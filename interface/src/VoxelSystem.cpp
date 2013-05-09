@@ -832,7 +832,8 @@ void VoxelSystem::removeOutOfView() {
     removeOutOfViewArgs args(this);
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
 
-    if (_renderWarningsOn) {
+    bool showRemoveDebugDetails = false;
+    if (showRemoveDebugDetails) {
         printLog("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d \n", 
                 args.nodesScanned, args.nodesRemoved, args.nodesInside, 
                 args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
