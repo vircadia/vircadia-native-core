@@ -5,7 +5,6 @@
 //  Created by Philip Rosedale on 9/11/12.
 //	adapted by Jeffrey Ventrella
 //  Copyright (c) 2013 Physical, Inc.. All rights reserved.
-//
 
 #include <glm/glm.hpp>
 #include <vector>
@@ -31,7 +30,7 @@ const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
 const float BODY_PITCH_WHILE_WALKING      = 30.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
-const float LIN_VEL_DECAY                 = 5.0;
+const float LIN_VEL_DECAY                 = 2.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
@@ -265,7 +264,7 @@ void Avatar::reset() {
 
 
 //  Update avatar head rotation with sensor data
-void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;
@@ -412,8 +411,8 @@ void Avatar::simulate(float deltaTime) {
     _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
 	
     // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.2f;
-    const float AVATAR_BRAKING_STRENGTH = 25.f;
+    const float AVATAR_BRAKING_RANGE = 1.6f;
+    const float AVATAR_BRAKING_STRENGTH = 35.f;
     if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
         _velocity *=
         (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
@@ -950,7 +949,13 @@ void Avatar::renderHead(bool lookingInMirror) {
     glColor3f(0,0,0);
     glRotatef(_head.mouthPitch, 1, 0, 0);
     glRotatef(_head.mouthYaw, 0, 0, 1);
-    glScalef(_head.mouthWidth*(.7 + sqrt(_head.averageLoudness)/60.0), _head.mouthHeight*(1.0 + sqrt(_head.averageLoudness)/30.0), 1);
+    if (_head.averageLoudness > 1.f) {
+        glScalef(_head.mouthWidth * (.7f + sqrt(_head.averageLoudness) /60.f),
+                 _head.mouthHeight * (1.f + sqrt(_head.averageLoudness) /30.f), 1);
+    } else {
+        glScalef(_head.mouthWidth, _head.mouthHeight, 1);
+    }
+
     glutSolidCube(0.5);
     glPopMatrix();
     

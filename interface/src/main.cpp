@@ -78,6 +78,7 @@
 
 #include "ViewFrustum.h"
 #include "HandControl.h"
+#include "AvatarRenderer.h"
 
 using namespace std;
 
@@ -115,6 +116,8 @@ Avatar myAvatar(true);            // The rendered avatar of oneself
 Camera myCamera;                  // My view onto the world (sometimes on myself :)
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
 
+AvatarRenderer avatarRenderer;
+
 //  Starfield information
 char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 char starCacheFile[] = "cachedStars.txt";
@@ -123,8 +126,6 @@ Stars stars;
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 VoxelSystem voxels;
-
-bool wantToKillLocalVoxels = false;
 
 Environment environment;
 
@@ -152,6 +153,8 @@ unsigned char dominantColor = 0;    //	The dominant color of the voxel we're pai
 bool perfStatsOn = false;			//  Do we want to display perfStats?
 
 bool logOn = true;                  //  Whether to show on-screen log
+
+bool wantToKillLocalVoxels = false;
 
 int noiseOn = 0;					//  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
@@ -371,20 +374,29 @@ void reset_sensors() {
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
-void updateAvatar(float frametime) {
-    float gyroPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
-    float gyroYawRate   = serialPort.getRelativeValue(HEAD_YAW_RATE  );
+void updateAvatar(float deltaTime) {
     
-    myAvatar.UpdateGyros(frametime, &serialPort, &gravity);
-		
+    // Update my avatar's head position from gyros
+    myAvatar.updateHeadFromGyros(deltaTime, &serialPort, &gravity);
+
+    //  Grab latest readings from the gyros
+    float measuredYawRate, measuredPitchRate;
+    if (USING_INVENSENSE_MPU9150) {
+        measuredPitchRate = serialPort.getLastPitchRate();
+        measuredYawRate = serialPort.getLastYawRate();
+    } else {
+        measuredPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
+        measuredYawRate = serialPort.getRelativeValue(HEAD_YAW_RATE);
+    }
+        
     //  Update gyro-based mouse (X,Y on screen)
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
-    if (powf(gyroYawRate*gyroYawRate + 
-             gyroPitchRate*gyroPitchRate, 0.5) > MIN_MOUSE_RATE)
+    if (powf(measuredYawRate * measuredYawRate +
+             measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE)
     {
-        headMouseX += gyroYawRate*MOUSE_SENSITIVITY;
-        headMouseY += gyroPitchRate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH; 
+        headMouseX += measuredYawRate*MOUSE_SENSITIVITY;
+        headMouseY += measuredPitchRate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH;
     }
     headMouseX = max(headMouseX, 0);
     headMouseX = min(headMouseX, WIDTH);
@@ -394,26 +406,31 @@ void updateAvatar(float frametime) {
     //  Update head and body pitch and yaw based on measured gyro rates
     if (::gyroLook) {
         // Yaw
-        const float MIN_YAW_RATE = 50;
-        const float YAW_SENSITIVITY = 1.0;
+        const float MIN_YAW_RATE = 20.f;
+        const float YAW_MAGNIFY = 3.0;
 
-        if (fabs(gyroYawRate) > MIN_YAW_RATE) {
-            float addToBodyYaw = (gyroYawRate > 0.f)
-                                    ? gyroYawRate - MIN_YAW_RATE : gyroYawRate + MIN_YAW_RATE;
+        if (fabs(measuredYawRate) > MIN_YAW_RATE) {
+            float addToBodyYaw = (measuredYawRate > 0.f)
+                                    ? measuredYawRate - MIN_YAW_RATE : measuredYawRate + MIN_YAW_RATE;
             
-            myAvatar.addBodyYaw(-addToBodyYaw * YAW_SENSITIVITY * frametime);
+            //  If we are rotating the body (render angle), move the head reverse amount to compensate 
+            myAvatar.addBodyYaw(-addToBodyYaw * YAW_MAGNIFY * deltaTime);
+            myAvatar.addHeadYaw(addToBodyYaw * YAW_MAGNIFY * deltaTime);
         }
-        // Pitch   NOTE: PER - Need to make camera able to pitch first!
-        /*
-        const float MIN_PITCH_RATE = 50;
-        const float PITCH_SENSITIVITY = 1.0;
+        // Pitch   
+        const float MIN_PITCH_RATE = 20.f;
+        const float PITCH_MAGNIFY = 2.0;
 
-        if (fabs(gyroPitchRate) > MIN_PITCH_RATE) {
-            float addToBodyPitch = (gyroPitchRate > 0.f) 
-                                    ? gyroPitchRate - MIN_PITCH_RATE : gyroPitchRate + MIN_PITCH_RATE;
+        if (fabs(measuredPitchRate) > MIN_PITCH_RATE) {
+            float addToBodyPitch = (measuredPitchRate > 0.f) 
+                                    ? measuredPitchRate - MIN_PITCH_RATE : measuredPitchRate + MIN_PITCH_RATE;
             
-            myAvatar.addBodyPitch(addToBodyPitch * PITCH_SENSITIVITY * frametime);
-        */
+            myAvatar.setRenderPitch(myAvatar.getRenderPitch() + addToBodyPitch * PITCH_MAGNIFY * deltaTime);
+
+        }
+        //  Always decay the render pitch, assuming that we are never going to want to permanently look up or down
+        const float RENDER_PITCH_DECAY = 1.0;
+        myAvatar.setRenderPitch(myAvatar.getRenderPitch() * (1.f - RENDER_PITCH_DECAY * deltaTime));
     }
     
     //  Get audio loudness data from audio input device
@@ -438,7 +455,6 @@ void updateAvatar(float frametime) {
     myAvatar.setCameraFarClip(::viewFrustum.getFarClip());
     
     AgentList* agentList = AgentList::getInstance();
-    
     if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
         unsigned char broadcastString[200];
@@ -912,7 +928,7 @@ void displayOverlay() {
     
         #ifndef _WIN32
         audio.render(WIDTH, HEIGHT);
-        audioScope.render();
+        audioScope.render(20, HEIGHT - 200);
         #endif
 
        //noiseTest(WIDTH, HEIGHT);
@@ -1024,12 +1040,12 @@ void display(void)
             //float firstPersonDistance  =   0.0f;
             //float firstPersonTightness = 100.0f;
 
-            float firstPersonPitch     =  20.0f;
+            float firstPersonPitch     =  20.0f + myAvatar.getRenderPitch();
             float firstPersonUpShift   =   0.1f;
             float firstPersonDistance  =   0.4f;
             float firstPersonTightness = 100.0f;
 
-            float thirdPersonPitch     =   0.0f;
+            float thirdPersonPitch     =   0.0f + myAvatar.getRenderPitch();
             float thirdPersonUpShift   =  -0.2f;
             float thirdPersonDistance  =   1.2f;
             float thirdPersonTightness =   8.0f;
@@ -1095,12 +1111,14 @@ void display(void)
         myCamera.update( 1.f/FPS );
         
         // Render anything (like HUD items) that we want to be in 3D but not in worldspace
+        /*
         const float HUD_Z_OFFSET = -5.f;
         glPushMatrix();
         glm::vec3 test(0.5, 0.5, 0.5);
         glTranslatef(1, 1, HUD_Z_OFFSET);
         drawVector(&test);
         glPopMatrix();
+         */
         
 		
 		// Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -1700,7 +1718,7 @@ void idle(void) {
             serialPort.readData();
         }
         
-        //  Sample hardware, update view frustum if needed, Lsend avatar data to mixer/agents
+        //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
         updateAvatar(deltaTime);
 
         // read incoming packets from network
