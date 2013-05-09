@@ -41,8 +41,8 @@ public:
 
     short diffLastWriteNextOutput();
 private:
-    int ringBufferLengthSamples;
-    int bufferLengthSamples;
+    int _ringBufferLengthSamples;
+    int _bufferLengthSamples;
     float position[3];
     float attenuationRatio;
     float bearing;
