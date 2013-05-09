@@ -63,7 +63,8 @@ public:
     void clearDirtyBit() { _isDirty = false; };
     unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode*& node, float& distance);
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                             VoxelNode*& node, float& distance, BoxFace& face);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
 	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
