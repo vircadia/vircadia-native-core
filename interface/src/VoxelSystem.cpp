@@ -870,3 +870,20 @@ void VoxelSystem::falseColorizeRandomEveryOther() {
         args.totalNodes, args.colorableNodes, args.coloredNodes);
     setupNewVoxelsForDrawing();
 }
+
+bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                      VoxelDetail& detail, float& distance, BoxFace& face) {
+    VoxelNode* node;
+    if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
+        return false;
+    }
+    detail.x = node->getCorner().x;
+    detail.y = node->getCorner().y;
+    detail.z = node->getCorner().z;
+    detail.s = node->getScale();
+    detail.red = node->getColor()[0];
+    detail.green = node->getColor()[1];
+    detail.blue = node->getColor()[2];
+    return true;
+}
+

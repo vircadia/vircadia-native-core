@@ -67,8 +67,8 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 }
 
 //  Helper function returns the positive angle in degrees between two 3D vectors 
-float angleBetween(glm::vec3 * v1, glm::vec3 * v2) {
-    return acos((glm::dot(*v1, *v2)) / (glm::length(*v1) * glm::length(*v2))) * 180.f / PI;
+float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PI;
 }
 
 //  Draw a 3D vector floating in space

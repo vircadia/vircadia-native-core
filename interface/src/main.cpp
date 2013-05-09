@@ -70,7 +70,6 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
@@ -148,15 +147,15 @@ bool renderStarsOn = true;          //  Whether to display the stars
 bool renderAtmosphereOn = true;     //  Whether to display the atmosphere
 bool renderAvatarsOn = true;        //  Whether to render avatars 
 bool paintOn = false;               //  Whether to paint voxels as you fly around
-VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
-unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
-bool perfStatsOn = false;			//  Do we want to display perfStats?
+VoxelDetail paintingVoxel;          //    The voxel we're painting if we're painting
+unsigned char dominantColor = 0;    //    The dominant color of the voxel we're painting
+bool perfStatsOn = false;            //  Do we want to display perfStats?
 
 bool logOn = true;                  //  Whether to show on-screen log
 
 bool wantToKillLocalVoxels = false;
 
-int noiseOn = 0;					//  Whether to add random noise 
+int noiseOn = 0;                    //  Whether to add random noise 
 float noise = 1.0;                  //  Overall magnitude scaling for random noise levels 
 
 bool gyroLook = true;               //  Whether to allow the gyro data from head to move your view
@@ -211,11 +210,11 @@ void Timer(int extra) {
     FPS = (float)frameCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
     packetsPerSecond = (float)packetCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
     bytesPerSecond = (float)bytesCount / ((float)diffclock(&timerStart, &timerEnd) / 1000.f);
-   	frameCount = 0;
+       frameCount = 0;
     packetCount = 0;
     bytesCount = 0;
     
-	glutTimerFunc(1000,Timer,0);
+    glutTimerFunc(1000,Timer,0);
     gettimeofday(&timerStart, NULL);
     
     // if we haven't detected gyros, check for them now
@@ -240,27 +239,27 @@ void displayStats(void) {
     voxelStats << "Voxels Rendered: " << voxels.getVoxelsRendered() / 1000.f << "K Updated: " << voxels.getVoxelsUpdated()/1000.f << "K";
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
-	voxelStats.str("");
-	voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() / 1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
+    voxelStats.str("");
+    voxelStats << "Voxels Created: " << voxels.getVoxelsCreated() / 1000.f << "K (" << voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
     << "Kps) ";
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
-	voxelStats.str("");
-	voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() / 1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage() / 1000.f
+    voxelStats.str("");
+    voxelStats << "Voxels Colored: " << voxels.getVoxelsColored() / 1000.f << "K (" << voxels.getVoxelsColoredPerSecondAverage() / 1000.f
     << "Kps) ";
     drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
-	voxelStats.str("");
-	voxelStats << "Voxel Bits Read: " << voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
+    voxelStats.str("");
+    voxelStats << "Voxel Bits Read: " << voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
     << "M (" << voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
     drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
-	voxelStats.str("");
-	float voxelsBytesPerColored = voxels.getVoxelsColored()
+    voxelStats.str("");
+    float voxelsBytesPerColored = voxels.getVoxelsColored()
         ? ((float) voxels.getVoxelsBytesRead() / voxels.getVoxelsColored())
         : 0;
     
-	voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
+    voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
@@ -276,19 +275,19 @@ void displayStats(void) {
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
     
-	if (::perfStatsOn) {
-		// Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
-		char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
-		int lines = PerfStat::DumpStats(perfStatLinesArray);
-		int atZ = 150; // arbitrary place on screen that looks good
-		for (int line=0; line < lines; line++) {
-			drawtext(10, statsVerticalOffset + atZ, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
-			delete perfStatLinesArray[line]; // we're responsible for cleanup
-			perfStatLinesArray[line]=NULL;
-			atZ+=20; // height of a line
-		}
-		delete []perfStatLinesArray; // we're responsible for cleanup
-	}
+    if (::perfStatsOn) {
+        // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
+        char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
+        int lines = PerfStat::DumpStats(perfStatLinesArray);
+        int atZ = 150; // arbitrary place on screen that looks good
+        for (int line=0; line < lines; line++) {
+            drawtext(10, statsVerticalOffset + atZ, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+            delete perfStatLinesArray[line]; // we're responsible for cleanup
+            perfStatLinesArray[line]=NULL;
+            atZ+=20; // height of a line
+        }
+        delete []perfStatLinesArray; // we're responsible for cleanup
+    }
 }
 
 void initDisplay(void) {
@@ -321,9 +320,9 @@ void init(void) {
         myAvatar.setNoise(noise);
     }
     myAvatar.setPosition(start_location);
-	myCamera.setPosition(start_location);
+    myCamera.setPosition(start_location);
     
-	
+    
 #ifdef MARKER_CAPTURE
     if(marker_capture_enabled){
         marker_capturer.position_updated(&position_updated);
@@ -472,25 +471,25 @@ void updateAvatar(float deltaTime) {
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
     if (::paintOn) {
     
-    	glm::vec3 avatarPos = myAvatar.getPosition();
+        glm::vec3 avatarPos = myAvatar.getPosition();
 
-		// For some reason, we don't want to flip X and Z here.
-		::paintingVoxel.x = avatarPos.x / 10.0;
-		::paintingVoxel.y = avatarPos.y / 10.0;
-		::paintingVoxel.z = avatarPos.z / 10.0;
-    	
-    	unsigned char* bufferOut;
-    	int sizeOut;
-    	
-		if (::paintingVoxel.x >= 0.0 && ::paintingVoxel.x <= 1.0 &&
-			::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
-			::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
+        // For some reason, we don't want to flip X and Z here.
+        ::paintingVoxel.x = avatarPos.x / 10.0;
+        ::paintingVoxel.y = avatarPos.y / 10.0;
+        ::paintingVoxel.z = avatarPos.z / 10.0;
+        
+        unsigned char* bufferOut;
+        int sizeOut;
+        
+        if (::paintingVoxel.x >= 0.0 && ::paintingVoxel.x <= 1.0 &&
+            ::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
+            ::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-			if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
+            if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
                 AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-				delete bufferOut;
-			}
-		}
+                delete bufferOut;
+            }
+        }
     }
 }
 
@@ -498,7 +497,7 @@ void updateAvatar(float deltaTime) {
 // loadViewFrustum()
 //
 // Description: this will load the view frustum bounds for EITHER the head
-// 				or the "myCamera". 
+//                 or the "myCamera". 
 //
 
 // These global scoped variables are used by our loadViewFrustum() and renderViewFrustum functions below, but are also
@@ -515,19 +514,19 @@ float viewFrustumOffsetDistance = 25.0;
 float viewFrustumOffsetUp       = 0.0;
 
 void loadViewFrustum(ViewFrustum& viewFrustum) {
-	// We will use these below, from either the camera or head vectors calculated above	
-	glm::vec3 position;
-	glm::vec3 direction;
-	glm::vec3 up;
-	glm::vec3 right;
-	float fov, nearClip, farClip;
-	
-	// Camera or Head?
-	if (::cameraFrustum) {
-		position = ::myCamera.getPosition();
-	} else {
-		position = ::myAvatar.getHeadPosition();
-	}
+    // We will use these below, from either the camera or head vectors calculated above    
+    glm::vec3 position;
+    glm::vec3 direction;
+    glm::vec3 up;
+    glm::vec3 right;
+    float fov, nearClip, farClip;
+    
+    // Camera or Head?
+    if (::cameraFrustum) {
+        position = ::myCamera.getPosition();
+    } else {
+        position = ::myAvatar.getHeadPosition();
+    }
     
     fov         = ::myCamera.getFieldOfView();
     nearClip    = ::myCamera.getNearClip();
@@ -550,7 +549,7 @@ void loadViewFrustum(ViewFrustum& viewFrustum) {
     printf("farClip=%f\n", farClip);
     */
     
-    // Set the viewFrustum up with the correct position and orientation of the camera	
+    // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
     viewFrustum.setOrientation(direction,up,right);
     
@@ -567,7 +566,7 @@ void loadViewFrustum(ViewFrustum& viewFrustum) {
 // renderViewFrustum()
 //
 // Description: this will render the view frustum bounds for EITHER the head
-// 				or the "myCamera". 
+//                 or the "myCamera". 
 //
 // Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
 // We can draw it with each of these parts:
@@ -594,102 +593,102 @@ void renderViewFrustum(ViewFrustum& viewFrustum) {
 
     // Load it with the latest details!
     loadViewFrustum(viewFrustum);
-	
+    
     glm::vec3 position  = viewFrustum.getPosition();
     glm::vec3 direction = viewFrustum.getDirection();
     glm::vec3 up        = viewFrustum.getUp();
     glm::vec3 right     = viewFrustum.getRight();
-	
+    
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
 
-	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_VECTORS) {
-		// Calculate the origin direction vectors
-		glm::vec3 lookingAt      = position + (direction * 0.2f);
-		glm::vec3 lookingAtUp    = position + (up * 0.2f);
-		glm::vec3 lookingAtRight = position + (right * 0.2f);
+    if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_VECTORS) {
+        // Calculate the origin direction vectors
+        glm::vec3 lookingAt      = position + (direction * 0.2f);
+        glm::vec3 lookingAtUp    = position + (up * 0.2f);
+        glm::vec3 lookingAtRight = position + (right * 0.2f);
 
-		// Looking At = white
-		glColor3f(1,1,1);
-		glVertex3f(position.x, position.y, position.z);
-		glVertex3f(lookingAt.x, lookingAt.y, lookingAt.z);
+        // Looking At = white
+        glColor3f(1,1,1);
+        glVertex3f(position.x, position.y, position.z);
+        glVertex3f(lookingAt.x, lookingAt.y, lookingAt.z);
 
-		// Looking At Up = purple
-		glColor3f(1,0,1);
-		glVertex3f(position.x, position.y, position.z);
-		glVertex3f(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
+        // Looking At Up = purple
+        glColor3f(1,0,1);
+        glVertex3f(position.x, position.y, position.z);
+        glVertex3f(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
 
-		// Looking At Right = cyan
-		glColor3f(0,1,1);
-		glVertex3f(position.x, position.y, position.z);
-		glVertex3f(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
-	}
+        // Looking At Right = cyan
+        glColor3f(0,1,1);
+        glVertex3f(position.x, position.y, position.z);
+        glVertex3f(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
+    }
 
-	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
-			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
-		// Drawing the bounds of the frustum
-		// viewFrustum.getNear plane - bottom edge 
-		glColor3f(1,0,0);
-		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+    if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
+            || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
+        // Drawing the bounds of the frustum
+        // viewFrustum.getNear plane - bottom edge 
+        glColor3f(1,0,0);
+        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
 
-		// viewFrustum.getNear plane - top edge
-		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+        // viewFrustum.getNear plane - top edge
+        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
 
-		// viewFrustum.getNear plane - right edge
-		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+        // viewFrustum.getNear plane - right edge
+        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
 
-		// viewFrustum.getNear plane - left edge
-		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-	}
+        // viewFrustum.getNear plane - left edge
+        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+    }
 
-	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
-			|| ::frustumDrawingMode == FRUSTUM_DRAW_MODE_FAR_PLANE) {
-		// viewFrustum.getFar plane - bottom edge 
-		glColor3f(0,1,0); // GREEN!!!
-		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+    if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES
+            || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_FAR_PLANE) {
+        // viewFrustum.getFar plane - bottom edge 
+        glColor3f(0,1,0); // GREEN!!!
+        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
 
-		// viewFrustum.getFar plane - top edge
-		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+        // viewFrustum.getFar plane - top edge
+        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
-		// viewFrustum.getFar plane - right edge
-		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+        // viewFrustum.getFar plane - right edge
+        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
-		// viewFrustum.getFar plane - left edge
-		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-	}
+        // viewFrustum.getFar plane - left edge
+        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+    }
 
-	if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES) {
-		// RIGHT PLANE IS CYAN
-		// right plane - bottom edge - viewFrustum.getNear to distant 
-		glColor3f(0,1,1);
-		glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-		glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+    if (::frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || ::frustumDrawingMode == FRUSTUM_DRAW_MODE_PLANES) {
+        // RIGHT PLANE IS CYAN
+        // right plane - bottom edge - viewFrustum.getNear to distant 
+        glColor3f(0,1,1);
+        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
 
-		// right plane - top edge - viewFrustum.getNear to distant
-		glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-		glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+        // right plane - top edge - viewFrustum.getNear to distant
+        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
 
-		// LEFT PLANE IS BLUE
-		// left plane - bottom edge - viewFrustum.getNear to distant
-		glColor3f(0,0,1);
-		glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-		glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+        // LEFT PLANE IS BLUE
+        // left plane - bottom edge - viewFrustum.getNear to distant
+        glColor3f(0,0,1);
+        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
 
-		// left plane - top edge - viewFrustum.getNear to distant
-		glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-		glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-	}
+        // left plane - top edge - viewFrustum.getNear to distant
+        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+    }
 
     glEnd();
     glEnable(GL_LIGHTING);
@@ -716,7 +715,7 @@ void displaySide(Camera& whichCamera) {
         }
 
         // finally render the starfield
-    	stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip(), alpha);
+        stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip(), alpha);
     }
 
     // draw the sky dome
@@ -727,8 +726,8 @@ void displaySide(Camera& whichCamera) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
-	// draw a red sphere  
-	float sphereRadius = 0.25f;
+    // draw a red sphere  
+    float sphereRadius = 0.25f;
     glColor3f(1,0,0);
     glPushMatrix();
         glutSolidSphere(sphereRadius, 15, 15);
@@ -736,12 +735,12 @@ void displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     drawGroundPlaneGrid(10.f);
-	
+    
     //  Draw voxels
     if (renderVoxels) {
         voxels.render();
     }
-	
+    
     if (::renderAvatarsOn) {
         //  Render avatars of other agents
         AgentList* agentList = AgentList::getInstance();
@@ -763,8 +762,8 @@ void displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (::frustumOn) renderViewFrustum(::viewFrustum);
-	
-	glPopMatrix();
+    
+    glPopMatrix();
 }
 
 // this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
@@ -986,11 +985,11 @@ void displayOverlay() {
     
     if (::paintOn) {
     
-		char paintMessage[100];
-		sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
-			::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
-			(unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
-		drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+        char paintMessage[100];
+        sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
+            ::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
+            (unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
+        drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
     glPopMatrix();
@@ -998,7 +997,7 @@ void displayOverlay() {
 
 void display(void)
 {
-	PerfStat("display");
+    PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1007,22 +1006,6 @@ void display(void)
     glPushMatrix();  {
         glLoadIdentity();
     
-        //  Setup 3D lights
-        glEnable(GL_COLOR_MATERIAL);
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-        
-        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
-        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-        
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-        glMateriali(GL_FRONT, GL_SHININESS, 96);
-
         // camera settings
         if (::lookingInMirror) {
             // set the camera to looking at my own face
@@ -1030,10 +1013,10 @@ void display(void)
             myCamera.setTargetYaw       (myAvatar.getBodyYaw() - 180.0f); // 180 degrees from body yaw
             myCamera.setPitch           (0.0);
             myCamera.setRoll            (0.0);
-            myCamera.setUpShift         (0.0);	
+            myCamera.setUpShift         (0.0);    
             myCamera.setDistance        (0.2);
             myCamera.setTightness       (100.0f);
-		} else {
+        } else {
 
             //float firstPersonPitch     =  20.0f;
             //float firstPersonUpShift   =   0.0f;
@@ -1063,7 +1046,7 @@ void display(void)
                     }
                 }
 
-                myCamera.setPitch	   (thirdPersonPitch     + ff * (firstPersonPitch     - thirdPersonPitch    ));
+                myCamera.setPitch       (thirdPersonPitch     + ff * (firstPersonPitch     - thirdPersonPitch    ));
                 myCamera.setUpShift    (thirdPersonUpShift   + ff * (firstPersonUpShift   - thirdPersonUpShift  ));
                 myCamera.setDistance   (thirdPersonDistance  + ff * (firstPersonDistance  - thirdPersonDistance ));
                 myCamera.setTightness  (thirdPersonTightness + ff * (firstPersonTightness - thirdPersonTightness));                
@@ -1077,7 +1060,7 @@ void display(void)
                     }
                     
                     //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch	   (thirdPersonPitch     + myCamera.getModeShift() * (firstPersonPitch     - thirdPersonPitch    ));
+                    myCamera.setPitch       (thirdPersonPitch     + myCamera.getModeShift() * (firstPersonPitch     - thirdPersonPitch    ));
                     myCamera.setUpShift    (thirdPersonUpShift   + myCamera.getModeShift() * (firstPersonUpShift   - thirdPersonUpShift  ));
                     myCamera.setDistance   (thirdPersonDistance  + myCamera.getModeShift() * (firstPersonDistance  - thirdPersonDistance ));
                     myCamera.setTightness  (thirdPersonTightness + myCamera.getModeShift() * (firstPersonTightness - thirdPersonTightness));                
@@ -1087,7 +1070,7 @@ void display(void)
                     }
                 
                     //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch	   (firstPersonPitch     + myCamera.getModeShift() * (thirdPersonPitch     - firstPersonPitch    ));
+                    myCamera.setPitch       (firstPersonPitch     + myCamera.getModeShift() * (thirdPersonPitch     - firstPersonPitch    ));
                     myCamera.setUpShift    (firstPersonUpShift   + myCamera.getModeShift() * (thirdPersonUpShift   - firstPersonUpShift  ));
                     myCamera.setDistance   (firstPersonDistance  + myCamera.getModeShift() * (thirdPersonDistance  - firstPersonDistance ));
                     myCamera.setTightness  (firstPersonTightness + myCamera.getModeShift() * (thirdPersonTightness - firstPersonTightness));
@@ -1104,7 +1087,7 @@ void display(void)
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
             myCamera.setTargetYaw     (myAvatar.getBodyYaw());
             myCamera.setRoll          (0.0);
-		}
+        }
                 
         // important...
 
@@ -1120,19 +1103,19 @@ void display(void)
         glPopMatrix();
          */
         
-		
-		// Note: whichCamera is used to pick between the normal camera myCamera for our 
-		// main camera, vs, an alternate camera. The alternate camera we support right now
-		// is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
-		// to add other cameras.
-		//
-		// Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
-		// code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
-		// myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-		Camera whichCamera = myCamera;
-		Camera viewFrustumOffsetCamera = myCamera;
+        
+        // Note: whichCamera is used to pick between the normal camera myCamera for our 
+        // main camera, vs, an alternate camera. The alternate camera we support right now
+        // is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
+        // to add other cameras.
+        //
+        // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
+        // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
+        // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
+        Camera whichCamera = myCamera;
+        Camera viewFrustumOffsetCamera = myCamera;
 
-		if (::viewFrustumFromOffset && ::frustumOn) {
+        if (::viewFrustumFromOffset && ::frustumOn) {
 
             // set the camera to third-person view but offset so we can see the frustum
             viewFrustumOffsetCamera.setTargetYaw(::viewFrustumOffsetYaw + myAvatar.getBodyYaw());
@@ -1142,19 +1125,35 @@ void display(void)
             viewFrustumOffsetCamera.setDistance (::viewFrustumOffsetDistance);
             viewFrustumOffsetCamera.update(1.f/FPS);
             whichCamera = viewFrustumOffsetCamera;
-        }		
+        }        
 
-		// transform view according to whichCamera
-		// could be myCamera (if in normal mode)
-		// or could be viewFrustumOffsetCamera if in offset mode
-		// I changed the ordering here - roll is FIRST (JJV) 
+        // transform view according to whichCamera
+        // could be myCamera (if in normal mode)
+        // or could be viewFrustumOffsetCamera if in offset mode
+        // I changed the ordering here - roll is FIRST (JJV) 
 
         glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
         glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-        glRotatef   (180.0 - whichCamera.getYaw(),	 IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
+        glRotatef   (180.0 - whichCamera.getYaw(),     IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
 
         glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
-
+        
+        //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+        
+        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
+        
         if (::oculusOn) {
             displayOculus(whichCamera);
             
@@ -1312,7 +1311,7 @@ int quitApp(int state) {
 
 int setFrustumRenderMode(int state) {
     if (state == MENU_ROW_PICKED) {
-		::frustumDrawingMode = (::frustumDrawingMode+1)%FRUSTUM_DRAW_MODE_COUNT;
+        ::frustumDrawingMode = (::frustumDrawingMode+1)%FRUSTUM_DRAW_MODE_COUNT;
     }
     return ::frustumDrawingMode;
 }
@@ -1376,25 +1375,25 @@ const char* modeNear    = " - Near ";
 const char* modeFar     = " - Far "; 
 
 const char* getFrustumRenderModeName(int state) {
-	const char * mode;
-	switch (state) {
-		case FRUSTUM_DRAW_MODE_ALL: 
-			mode = modeAll;
-			break;
-		case FRUSTUM_DRAW_MODE_VECTORS: 
-			mode = modeVectors;
-			break;
-		case FRUSTUM_DRAW_MODE_PLANES:
-			mode = modePlanes;
-			break;
-		case FRUSTUM_DRAW_MODE_NEAR_PLANE: 
-			mode = modeNear;
-			break;
-		case FRUSTUM_DRAW_MODE_FAR_PLANE: 
-			mode = modeFar;
-			break;
-	}
-	return mode;
+    const char * mode;
+    switch (state) {
+        case FRUSTUM_DRAW_MODE_ALL: 
+            mode = modeAll;
+            break;
+        case FRUSTUM_DRAW_MODE_VECTORS: 
+            mode = modeVectors;
+            break;
+        case FRUSTUM_DRAW_MODE_PLANES:
+            mode = modePlanes;
+            break;
+        case FRUSTUM_DRAW_MODE_NEAR_PLANE: 
+            mode = modeNear;
+            break;
+        case FRUSTUM_DRAW_MODE_FAR_PLANE: 
+            mode = modeFar;
+            break;
+    }
+    return mode;
 }
 
 void initMenu() {
@@ -1441,55 +1440,117 @@ void initMenu() {
 }
 
 void testPointToVoxel() {
-	float y=0;
-	float z=0;
-	float s=0.1;
-	for (float x=0; x<=1; x+= 0.05) {
-		printLog(" x=%f");
+    float y=0;
+    float z=0;
+    float s=0.1;
+    for (float x=0; x<=1; x+= 0.05) {
+        printLog(" x=%f");
 
-		unsigned char red   = 200; //randomColorValue(65);
-		unsigned char green = 200; //randomColorValue(65);
-		unsigned char blue  = 200; //randomColorValue(65);
-	
-		unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
-		printVoxelCode(voxelCode);
-		delete voxelCode;
-		printLog("\n");
-	}
+        unsigned char red   = 200; //randomColorValue(65);
+        unsigned char green = 200; //randomColorValue(65);
+        unsigned char blue  = 200; //randomColorValue(65);
+    
+        unsigned char* voxelCode = pointToVoxel(x, y, z, s,red,green,blue);
+        printVoxelCode(voxelCode);
+        delete voxelCode;
+        printLog("\n");
+    }
 }
 
 void sendVoxelServerEraseAll() {
-	char message[100];
+    char message[100];
     sprintf(message,"%c%s",'Z',"erase all");
-	int messageSize = strlen(message) + 1;
-	AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
+    int messageSize = strlen(message) + 1;
+    AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void sendVoxelServerAddScene() {
-	char message[100];
+    char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
-	int messageSize = strlen(message) + 1;
-	AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL, 1);
+    int messageSize = strlen(message) + 1;
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
 void shiftPaintingColor()
 {
     // About the color of the paintbrush... first determine the dominant color
     ::dominantColor = (::dominantColor+1)%3; // 0=red,1=green,2=blue
-	::paintingVoxel.red   = (::dominantColor==0)?randIntInRange(200,255):randIntInRange(40,100);
-	::paintingVoxel.green = (::dominantColor==1)?randIntInRange(200,255):randIntInRange(40,100);
-	::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
+    ::paintingVoxel.red   = (::dominantColor==0)?randIntInRange(200,255):randIntInRange(40,100);
+    ::paintingVoxel.green = (::dominantColor==1)?randIntInRange(200,255):randIntInRange(40,100);
+    ::paintingVoxel.blue  = (::dominantColor==2)?randIntInRange(200,255):randIntInRange(40,100);
 }
 
 void setupPaintingVoxel() {
-	glm::vec3 avatarPos = myAvatar.getPosition();
+    glm::vec3 avatarPos = myAvatar.getPosition();
 
-	::paintingVoxel.x = avatarPos.z/-10.0;	// voxel space x is negative z head space
-	::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
-	::paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
-	::paintingVoxel.s = 1.0/256;
-	
-	shiftPaintingColor();
+    ::paintingVoxel.x = avatarPos.z/-10.0;    // voxel space x is negative z head space
+    ::paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
+    ::paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
+    ::paintingVoxel.s = 1.0/256;
+    
+    shiftPaintingColor();
+}
+
+void addVoxelUnderCursor() {
+    glm::vec3 origin, direction;
+    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+    
+    VoxelDetail detail;
+    float distance;
+    BoxFace face;
+    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
+        // use the face to determine the side on which to create a neighbor
+        switch (face) {
+            case MIN_X_FACE:
+                detail.x -= detail.s;
+                break;
+            
+            case MAX_X_FACE:
+                detail.x += detail.s;
+                break;
+            
+            case MIN_Y_FACE:
+                detail.y -= detail.s;
+                break;
+            
+            case MAX_Y_FACE:
+                detail.y += detail.s;
+                break;
+            
+            case MIN_Z_FACE:
+                detail.z -= detail.s;
+                break;
+                
+            case MAX_Z_FACE:
+                detail.z += detail.s;
+                break;
+        }
+        unsigned char* bufferOut;
+        int sizeOut;
+    
+        if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            delete bufferOut;
+        }
+    }
+}
+
+void deleteVoxelUnderCursor() {
+    glm::vec3 origin, direction;
+    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+    
+    VoxelDetail detail;
+    float distance;
+    BoxFace face;
+    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
+        unsigned char* bufferOut;
+        int sizeOut;
+    
+        if (createVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            delete bufferOut;
+        }
+    }
 }
 
 const float KEYBOARD_YAW_RATE = 0.8;
@@ -1574,42 +1635,44 @@ void key(unsigned char k, int x, int y) {
         return;
     }
     
-	//  Process keypresses 
- 	if (k == 'q' || k == 'Q')  ::terminate();
-    if (k == '/')  ::renderStatsOn = !::renderStatsOn;		// toggle stats
-    if (k == '*')  ::renderStarsOn = !::renderStarsOn;		// toggle stars
-    if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;		// toggle voxels
+    //  Process keypresses 
+     if (k == 'q' || k == 'Q')  ::terminate();
+    if (k == '/')  ::renderStatsOn = !::renderStatsOn;        // toggle stats
+    if (k == '*')  ::renderStarsOn = !::renderStarsOn;        // toggle stars
+    if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;        // toggle voxels
     if (k == 'A') ::renderAtmosphereOn = !::renderAtmosphereOn;
-    if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
-    if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
+    if (k == 'F')  ::frustumOn = !::frustumOn;        // toggle view frustum debugging
+    if (k == 'C')  ::cameraFrustum = !::cameraFrustum;    // toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
     if (k == 'f') setFullscreen(!::fullscreen);
     if (k == 'o') setOculus(!::oculusOn);
     
-	if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
-	if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
-	if (k == '{') ::viewFrustumOffsetPitch     -= 0.5;
-	if (k == '}') ::viewFrustumOffsetPitch     += 0.5;
-	if (k == '(') ::viewFrustumOffsetRoll      -= 0.5;
-	if (k == ')') ::viewFrustumOffsetRoll      += 0.5;
-	if (k == '<') ::viewFrustumOffsetDistance  -= 0.5;
-	if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
-	if (k == ',') ::viewFrustumOffsetUp        -= 0.05;
-	if (k == '.') ::viewFrustumOffsetUp        += 0.05;
+    if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
+    if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
+    if (k == '{') ::viewFrustumOffsetPitch     -= 0.5;
+    if (k == '}') ::viewFrustumOffsetPitch     += 0.5;
+    if (k == '(') ::viewFrustumOffsetRoll      -= 0.5;
+    if (k == ')') ::viewFrustumOffsetRoll      += 0.5;
+    if (k == '<') ::viewFrustumOffsetDistance  -= 0.5;
+    if (k == '>') ::viewFrustumOffsetDistance  += 0.5;
+    if (k == ',') ::viewFrustumOffsetUp        -= 0.05;
+    if (k == '.') ::viewFrustumOffsetUp        += 0.05;
 
-//	if (k == '|') ViewFrustum::fovAngleAdust   -= 0.05;
-//	if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
+//    if (k == '|') ViewFrustum::fovAngleAdust   -= 0.05;
+//    if (k == '\\') ViewFrustum::fovAngleAdust  += 0.05;
 
-	if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
+    if (k == 'R') setFrustumRenderMode(MENU_ROW_PICKED);
 
     if (k == '&') {
-    	::paintOn = !::paintOn;		// toggle paint
-    	::setupPaintingVoxel();		// also randomizes colors
+        ::paintOn = !::paintOn;        // toggle paint
+        ::setupPaintingVoxel();        // also randomizes colors
     }
-    if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
-    if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
-    if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
-	if (k == 'n' || k == 'N') 
+    if (k == '^')  ::shiftPaintingColor();        // shifts randomize color between R,G,B dominant
+    if (k == '-')  ::sendVoxelServerEraseAll();    // sends erase all command to voxel server
+    if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
+    if (k == '1')  ::addVoxelUnderCursor();
+    if (k == '2')  ::deleteVoxelUnderCursor();
+    if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
         if (noiseOn)
@@ -1703,23 +1766,21 @@ void idle(void) {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
     if (diffclock(&lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-		
+        
         float deltaTime = 1.f/FPS;
 
         // update behaviors for avatar hand movement: handControl takes mouse values as input, 
         // and gives back 3D values modulated for smooth transitioning between interaction modes.
         handControl.update(mouseX, mouseY);
-        myAvatar.setHandMovementValues(handControl.getValues());		
+        myAvatar.setHandMovementValues(handControl.getValues());        
         
-		// tell my avatar if the mouse is being pressed...
-        if (mousePressed) {
-            myAvatar.setMousePressed(mousePressed);
-        }
+        // tell my avatar if the mouse is being pressed...
+        myAvatar.setMousePressed(mousePressed);
            
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
-		}
+        }
         
         //  Read serial port interface devices
         if (serialPort.active && USING_INVENSENSE_MPU9150) {
@@ -1732,8 +1793,8 @@ void idle(void) {
         // read incoming packets from network
         if (!enableNetworkThread) {
             networkReceive(0);
-		}
-		
+        }
+        
         //loop through all the remote avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
         agentList->lock();
@@ -1834,29 +1895,30 @@ glm::vec3 getGravity(glm::vec3 pos) {
 }
        
 void mouseFunc(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
+    if ( !menu.mouseClick(x, y)) { // if a menu item was not clicked or unclicked...
+        if ( button == GLUT_LEFT_BUTTON ) {
             mouseX = x;
             mouseY = y;
-            mousePressed = 1;
-        } else if (state == GLUT_UP) {
-            mouseX = x;
-            mouseY = y;
-            mousePressed = 0;
+            if (state == GLUT_DOWN ) {
+                mousePressed = 1;
+            } else if (state == GLUT_UP ) {
+                mousePressed = 0;
+            }
         }
-    }	
+    }
 }
 
+
 void motionFunc(int x, int y) {
-	mouseX = x;
-	mouseY = y;
+    mouseX = x;
+    mouseY = y;
 }
 
 void mouseoverFunc(int x, int y){
     menu.mouseOver(x, y);
 
-	mouseX = x;
-	mouseY = y;
+    mouseX = x;
+    mouseY = y;
 }
 
 void attachNewHeadToAgent(Agent *newAgent) {
@@ -1892,14 +1954,14 @@ int main(int argc, const char * argv[]) {
     gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
-		strcpy(DOMAIN_IP,domainIP);
-	}
+        strcpy(DOMAIN_IP,domainIP);
+    }
 
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, argv, "--local")) {
-    	printLog("Local Domain MODE!\n");
-		int ip = getLocalAddress();
-		sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        printLog("Local Domain MODE!\n");
+        int ip = getLocalAddress();
+        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
     // the callback for our instance of AgentList is attachNewHeadToAgent
@@ -1948,30 +2010,30 @@ int main(int argc, const char * argv[]) {
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-	glutKeyboardFunc(key);
+    glutKeyboardFunc(key);
     glutKeyboardUpFunc(keyUp);
     glutSpecialFunc(specialkey);
     glutSpecialUpFunc(specialkeyUp);
-	glutMotionFunc(motionFunc);
+    glutMotionFunc(motionFunc);
     glutPassiveMotionFunc(mouseoverFunc);
-	glutMouseFunc(mouseFunc);
+    glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
-	
+    
     init();
     printLog( "Init() complete.\n" );
 
-	// Check to see if the user passed in a command line option for randomizing colors
-	if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
-		wantColorRandomizer = false;
-	}
-	
-	// Check to see if the user passed in a command line option for loading a local
-	// Voxel File. If so, load it now.
+    // Check to see if the user passed in a command line option for randomizing colors
+    if (cmdOptionExists(argc, argv, "--NoColorRandomizer")) {
+        wantColorRandomizer = false;
+    }
+    
+    // Check to see if the user passed in a command line option for loading a local
+    // Voxel File. If so, load it now.
     const char* voxelsFilename = getCmdOption(argc, argv, "-i");
     if (voxelsFilename) {
-	    voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+        voxels.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
         printLog("Local Voxel File loaded.\n");
-	}
+    }
     
     // create thread for receipt of data via UDP
     if (enableNetworkThread) {

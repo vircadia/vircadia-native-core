@@ -95,7 +95,7 @@ static bool findIntersection(float origin, float direction, float corner, float 
     return false;
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
         distance = 0;
@@ -105,14 +105,23 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     float axisDistance;
     if ((findIntersection(origin.x, direction.x, _corner.x, _size.x, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z)) ||
-        (findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z))) {
+        distance = axisDistance;
+        face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
+        return true;
+    }
+    if ((findIntersection(origin.y, direction.y, _corner.y, _size.y, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z)) ||
-        (findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _size.z))) {
+        distance = axisDistance;
+        face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
+        return true;
+    }
+    if ((findIntersection(origin.z, direction.z, _corner.z, _size.z, axisDistance) && axisDistance >= 0 &&
             isWithin(origin.y + axisDistance*direction.y, _corner.y, _size.y) &&
             isWithin(origin.x + axisDistance*direction.x, _corner.x, _size.x))) {
         distance = axisDistance;
+        face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE; 
         return true;
     }
     return false;

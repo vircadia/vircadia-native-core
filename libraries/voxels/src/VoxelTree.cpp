@@ -605,6 +605,7 @@ public:
     glm::vec3 direction;
     VoxelNode*& node;
     float& distance;
+    BoxFace& face;
     bool found;
 };
 
@@ -612,7 +613,8 @@ bool findRayOperation(VoxelNode* node, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     AABox box = node->getAABox();
     float distance;
-    if (!box.findRayIntersection(args->origin, args->direction, distance)) {
+    BoxFace face;
+    if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
         return false;
     }
     if (!node->isLeaf()) {
@@ -621,14 +623,16 @@ bool findRayOperation(VoxelNode* node, void* extraData) {
     if (!args->found || distance < args->distance) {
         args->node = node;
         args->distance = distance;
+        args->face = face;
         args->found = true;
     }
     return false;
 }
 
-bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelNode*& node, float& distance)
+bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                    VoxelNode*& node, float& distance, BoxFace& face)
 {
-    RayArgs args = { origin / (float)TREE_SCALE, direction, node, distance };
+    RayArgs args = { origin / (float)TREE_SCALE, direction, node, distance, face };
     recurseTreeWithOperation(findRayOperation, &args);
     return args.found;
 }
