@@ -11,7 +11,14 @@
 
 #include <glm/glm.hpp>
 
-const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.1;
+enum AvatarHandState
+{
+	HAND_STATE_NULL = -1,
+	HAND_STATE_OPEN,
+    HAND_STATE_GRASPING,
+	HAND_STATE_POINTING,
+	NUM_HAND_STATES
+};
 
 class AvatarTouch {
 public:
@@ -38,6 +45,7 @@ private:
 
     static const int NUM_POINTS = 100;
     
+    //bool      _holdingHands;
     glm::vec3 _point [NUM_POINTS];
     glm::vec3 _myBodyPosition;
     glm::vec3 _yourBodyPosition;

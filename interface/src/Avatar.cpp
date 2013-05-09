@@ -488,10 +488,23 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
-            if ( _avatarTouch.getHandsCloseEnoughToGrasp()) {            
-                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
-                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
+            //printf("_handState = %d, _interactingOther->_handState = %d\n", _handState, _interactingOther->_handState);
+
+            if ( _avatarTouch.getHandsCloseEnoughToGrasp()) {     
+                        
+                if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState==HAND_STATE_GRASPING)) {
+                    _handHoldingPosition += 
+                    (
+                        _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition
+                        - _handHoldingPosition
+                    ) * 0.01f;
+                              
+                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+                }
             }
+        }
+        else {
+            _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
         }
         
     }//if (_isMine)
@@ -505,9 +518,9 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
      
         if (_mousePressed) {
-            _handState = 1;
+            _handState = HAND_STATE_GRASPING;
         } else {
-            _handState = 0;
+            _handState = HAND_STATE_NULL;
         }
         
         _avatarTouch.setMyHandState(_handState);

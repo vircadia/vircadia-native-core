@@ -13,6 +13,7 @@
 #include "Util.h"
 
 const float THREAD_RADIUS = 0.012;
+const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.1;
 
 AvatarTouch::AvatarTouch() {
 
@@ -21,9 +22,10 @@ AvatarTouch::AvatarTouch() {
     _myBodyPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
     _yourBodyPosition   = glm::vec3(0.0f, 0.0f, 0.0f);
     _vectorBetweenHands = glm::vec3(0.0f, 0.0f, 0.0f);
-    _myHandState        = 0;
-    _yourHandState      = 0;  
+    _myHandState        = HAND_STATE_NULL;
+    _yourHandState      = HAND_STATE_NULL;  
     _reachableRadius    = 0.0f;  
+    //_holdingHands       = false;
     
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
@@ -96,8 +98,13 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
 
         renderBeamBetweenHands();
 
+        if (_handsCloseEnoughToGrasp) {
+            glColor3f(0.9, 0.3, 0.3);
+            renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP / 3.0f, 20, cameraPosition);
+        }
+        
         // if your hand is grasping, show it...
-        if (_yourHandState == 1) {
+        if (_yourHandState == HAND_STATE_GRASPING) {
             glPushMatrix();
             glTranslatef(_yourHandPosition.x, _yourHandPosition.y, _yourHandPosition.z);
             glColor4f(1.0, 1.0, 0.8, 0.3); glutSolidSphere(0.020f, 10.0f, 10.0f);
@@ -108,7 +115,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
      }
     
     // if my hand is grasping, show it...
-    if (_myHandState == 1) {
+    if (_myHandState == HAND_STATE_GRASPING) {
         glPushMatrix();
         glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
         glColor4f(1.0, 1.0, 0.8, 0.3); glutSolidSphere(0.020f, 10.0f, 10.0f);
