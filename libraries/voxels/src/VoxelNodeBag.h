@@ -28,6 +28,8 @@ public:
     
     void insert(VoxelNode* node); // put a node into the bag
     VoxelNode* extract(); // pull a node out of the bag (could come in any order)
+    bool contains(VoxelNode* node); // is this node in the bag?
+    void remove(VoxelNode* node); // remove a specific item from the bag
     
     bool isEmpty() const { return (_elementsInUse == 0); };
     int count() const { return _elementsInUse; };
