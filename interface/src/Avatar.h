@@ -102,7 +102,10 @@ public:
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
     const glm::vec3& getHeadPosition() const ;
-    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
+
+    //const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
+    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; };
+
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
     float getSpeed() const { return _speed; };
     float getGirth();

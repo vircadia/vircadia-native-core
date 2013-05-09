@@ -5,7 +5,6 @@
 //  Created by Philip Rosedale on 9/11/12.
 //	adapted by Jeffrey Ventrella
 //  Copyright (c) 2013 Physical, Inc.. All rights reserved.
-//
 
 #include <glm/glm.hpp>
 #include <vector>
