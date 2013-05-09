@@ -175,8 +175,9 @@ int mouseY = 0;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 // The current mode for mouse interaction
-enum MouseMode { ADD_VOXELS, DELETE_VOXELS };
-MouseMode mouseMode = ADD_VOXELS;
+enum MouseMode { ADD_VOXEL_MODE, DELETE_VOXEL_MODE };
+MouseMode mouseMode = ADD_VOXEL_MODE;
+VoxelDetail mouseVoxel; // details of the voxel under the mouse cursor
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
@@ -374,6 +375,16 @@ void reset_sensors() {
     }
 }
 
+void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+    unsigned char* bufferOut;
+    int sizeOut;
+
+    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        delete bufferOut;
+    }
+}
+
 //
 //  Using gyro data, update both view frustum and avatar head position
 //
@@ -482,17 +493,11 @@ void updateAvatar(float deltaTime) {
         ::paintingVoxel.y = avatarPos.y / 10.0;
         ::paintingVoxel.z = avatarPos.z / 10.0;
         
-        unsigned char* bufferOut;
-        int sizeOut;
-        
         if (::paintingVoxel.x >= 0.0 && ::paintingVoxel.x <= 1.0 &&
             ::paintingVoxel.y >= 0.0 && ::paintingVoxel.y <= 1.0 &&
             ::paintingVoxel.z >= 0.0 && ::paintingVoxel.z <= 1.0) {
 
-            if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &::paintingVoxel, bufferOut, sizeOut)){
-                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-                delete bufferOut;
-            }
+            sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, ::paintingVoxel);
         }
     }
 }
@@ -743,6 +748,20 @@ void displaySide(Camera& whichCamera) {
     //  Draw voxels
     if (renderVoxels) {
         voxels.render();
+    }
+    
+    // indicate what we'll be adding/removing in mouse mode, if anything
+    if (::mouseVoxel.s != 0) {
+        glPushMatrix();
+        glColor3ub(::mouseVoxel.red, ::mouseVoxel.green, ::mouseVoxel.blue);
+        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+        glTranslatef(::mouseVoxel.x + ::mouseVoxel.s*0.5f,
+                     ::mouseVoxel.y + ::mouseVoxel.s*0.5f,
+                     ::mouseVoxel.z + ::mouseVoxel.s*0.5f);
+        glLineWidth(4.0f);
+        glutWireCube(::mouseVoxel.s);
+        glLineWidth(1.0f);
+        glPopMatrix();
     }
     
     if (::renderAvatarsOn) {
@@ -1487,73 +1506,31 @@ void setupPaintingVoxel() {
     shiftPaintingColor();
 }
 
-void addVoxel(VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-
-    if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-        delete bufferOut;
-    }
-}
-
 void addVoxelInFrontOfAvatar() {
+    VoxelDetail detail;
     
+    glm::vec3 position = (myAvatar.getPosition() + myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
+    detail.s = 1.0f / 1024;
+    
+    detail.x = detail.s * floor(position.x / detail.s);
+    detail.y = detail.s * floor(position.y / detail.s);
+    detail.z = detail.s * floor(position.z / detail.s);
+    detail.red = 128;
+    detail.green = 128;
+    detail.blue = 128;
+    
+    sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, detail);
 }
 
 void addVoxelUnderCursor() {
-    glm::vec3 origin, direction;
-    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
-    
-    VoxelDetail detail;
-    float distance;
-    BoxFace face;
-    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
-        // use the face to determine the side on which to create a neighbor
-        switch (face) {
-            case MIN_X_FACE:
-                detail.x -= detail.s;
-                break;
-            
-            case MAX_X_FACE:
-                detail.x += detail.s;
-                break;
-            
-            case MIN_Y_FACE:
-                detail.y -= detail.s;
-                break;
-            
-            case MAX_Y_FACE:
-                detail.y += detail.s;
-                break;
-            
-            case MIN_Z_FACE:
-                detail.z -= detail.s;
-                break;
-                
-            case MAX_Z_FACE:
-                detail.z += detail.s;
-                break;
-        }
-        addVoxel(detail);
+    if (::mouseVoxel.s != 0) {    
+        sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, ::mouseVoxel);
     }
 }
 
 void deleteVoxelUnderCursor() {
-    glm::vec3 origin, direction;
-    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
-    
-    VoxelDetail detail;
-    float distance;
-    BoxFace face;
-    if (voxels.findRayIntersection(origin, direction, detail, distance, face)) {
-        unsigned char* bufferOut;
-        int sizeOut;
-    
-        if (createVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-            delete bufferOut;
-        }
+    if (::mouseVoxel.s != 0) {
+        sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, ::mouseVoxel);
     }
 }
 
@@ -1674,8 +1651,8 @@ void key(unsigned char k, int x, int y) {
     if (k == '^')  ::shiftPaintingColor();        // shifts randomize color between R,G,B dominant
     if (k == '-')  ::sendVoxelServerEraseAll();    // sends erase all command to voxel server
     if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
-    if (k == '1')  ::mouseMode = ADD_VOXELS;
-    if (k == '2')  ::mouseMode = DELETE_VOXELS;
+    if (k == '1')  ::mouseMode = ADD_VOXEL_MODE;
+    if (k == '2')  ::mouseMode = DELETE_VOXEL_MODE;
     if (k == '3')  addVoxelInFrontOfAvatar();
     if (k == 'n' || k == 'N') 
     {
@@ -1764,6 +1741,28 @@ void* networkReceive(void* args) {
     return NULL; 
 }
 
+glm::vec3 getFaceVector(BoxFace face) {
+    switch (face) {
+        case MIN_X_FACE:
+            return glm::vec3(-1, 0, 0);
+        
+        case MAX_X_FACE:
+            return glm::vec3(1, 0, 0);
+        
+        case MIN_Y_FACE:
+            return glm::vec3(0, -1, 0);
+        
+        case MAX_Y_FACE:
+            return glm::vec3(0, 1, 0);
+        
+        case MIN_Z_FACE:
+            return glm::vec3(0, 0, -1);
+            
+        case MAX_Z_FACE:
+            return glm::vec3(0, 0, 1);
+    }
+}
+
 void idle(void) {
     timeval check;
     gettimeofday(&check, NULL);
@@ -1781,7 +1780,29 @@ void idle(void) {
         
         // tell my avatar if the mouse is being pressed...
         myAvatar.setMousePressed(mousePressed);
-           
+        
+        // check what's under the mouse and update the mouse voxel
+        glm::vec3 origin, direction;
+        viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+
+        float distance;
+        BoxFace face;
+        ::mouseVoxel.s = 0.0f;
+        if (voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
+            if (::mouseMode == ADD_VOXEL_MODE) {
+                // use the face to determine the side on which to create a neighbor
+                glm::vec3 offset = getFaceVector(face);
+                ::mouseVoxel.x += offset.x * ::mouseVoxel.s;
+                ::mouseVoxel.y += offset.y * ::mouseVoxel.s;
+                ::mouseVoxel.z += offset.z * ::mouseVoxel.s;
+            
+            } else {
+                // red indicates deletion
+                ::mouseVoxel.red = 255;
+                ::mouseVoxel.green = ::mouseVoxel.blue = 0;
+            }
+        }
+        
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
@@ -1907,10 +1928,10 @@ void mouseFunc(int button, int state, int x, int y) {
         case GLUT_LEFT_BUTTON:
             if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
                 mousePressed = 1;
-                if (::mouseMode == ADD_VOXELS) {
+                if (::mouseMode == ADD_VOXEL_MODE) {
                     addVoxelUnderCursor();
                     
-                } else { // ::mouseMode == DELETE_VOXELS
+                } else { // ::mouseMode == DELETE_VOXEL_MODE
                     deleteVoxelUnderCursor();    
                 }
             } else {
@@ -1920,10 +1941,10 @@ void mouseFunc(int button, int state, int x, int y) {
         
         case GLUT_RIGHT_BUTTON:
             if (state == GLUT_DOWN) {
-                if (::mouseMode == ADD_VOXELS) {
+                if (::mouseMode == ADD_VOXEL_MODE) {
                     deleteVoxelUnderCursor();
                     
-                } else { // ::mouseMode == DELETE_VOXELS
+                } else { // ::mouseMode == DELETE_VOXEL_MODE
                     addVoxelUnderCursor();
                 }
             }
