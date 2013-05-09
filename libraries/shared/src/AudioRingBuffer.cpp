@@ -9,15 +9,13 @@
 #include <cstring>
 #include "AudioRingBuffer.h"
 
-AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) {
-    ringBufferLengthSamples = ringSamples;
-    bufferLengthSamples = bufferSamples;
-    
-    started = false;
-    _shouldBeAddedToMix = false;
-    
-    endOfLastWrite = NULL;
-    
+AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
+    ringBufferLengthSamples(ringSamples),
+    bufferLengthSamples(bufferSamples),
+    endOfLastWrite(NULL),
+    started(false),
+    _shouldBeAddedToMix(false),
+    _shouldLoopbackForAgent(false) {
     buffer = new int16_t[ringBufferLengthSamples];
     nextOutput = buffer;
 };
@@ -27,6 +25,7 @@ AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
     bufferLengthSamples = otherRingBuffer.bufferLengthSamples;
     started = otherRingBuffer.started;
     _shouldBeAddedToMix = otherRingBuffer._shouldBeAddedToMix;
+    _shouldLoopbackForAgent = otherRingBuffer._shouldLoopbackForAgent;
     
     buffer = new int16_t[ringBufferLengthSamples];
     memcpy(buffer, otherRingBuffer.buffer, sizeof(int16_t) * ringBufferLengthSamples);
@@ -149,8 +148,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     return numBytes;
 }
 
-short AudioRingBuffer::diffLastWriteNextOutput()
-{
+short AudioRingBuffer::diffLastWriteNextOutput() {
     if (endOfLastWrite == NULL) {
         return 0;
     } else {
