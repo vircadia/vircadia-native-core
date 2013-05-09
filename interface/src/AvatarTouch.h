@@ -35,17 +35,20 @@ public:
     void setMyHandState     (int state);
     void setYourHandState   (int state);
     void setReachableRadius (float r);
+    
     void setAbleToReachOtherAvatar (bool a) {_canReachToOtherAvatar   = a;}
     void setHandsCloseEnoughToGrasp(bool h) {_handsCloseEnoughToGrasp = h;}
+    void setHoldingHands           (bool h) {_weAreHoldingHands       = h;}
     
-    bool getAbleToReachOtherAvatar () const {return _canReachToOtherAvatar;}
+    bool getAbleToReachOtherAvatar () const {return _canReachToOtherAvatar;  }
     bool getHandsCloseEnoughToGrasp() const {return _handsCloseEnoughToGrasp;}
+    bool getHoldingHands           () const {return _weAreHoldingHands;      }
 
 private:
 
     static const int NUM_POINTS = 100;
     
-    //bool      _holdingHands;
+    bool      _weAreHoldingHands;
     glm::vec3 _point [NUM_POINTS];
     glm::vec3 _myBodyPosition;
     glm::vec3 _yourBodyPosition;

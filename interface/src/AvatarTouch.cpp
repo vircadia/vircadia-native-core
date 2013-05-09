@@ -25,7 +25,7 @@ AvatarTouch::AvatarTouch() {
     _myHandState        = HAND_STATE_NULL;
     _yourHandState      = HAND_STATE_NULL;  
     _reachableRadius    = 0.0f;  
-    //_holdingHands       = false;
+    _weAreHoldingHands  = false;
     
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
@@ -91,17 +91,28 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
 
     if (_canReachToOtherAvatar) {
 
+        //show circle indicating that we can reach out to each other...
         glColor4f(0.3, 0.4, 0.5, 0.5); 
         glm::vec3 p(_yourBodyPosition);
         p.y = 0.0005f;
         renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 
-        renderBeamBetweenHands();
-
-        if (_handsCloseEnoughToGrasp) {
-            glColor3f(0.9, 0.3, 0.3);
+        // show is we are golding hands...
+        if (_weAreHoldingHands) {
+            glColor4f(0.9, 0.3, 0.3, 0.5);
             renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP / 3.0f, 20, cameraPosition);
         }
+
+        //render the beam between our hands indicting that we can reach out and grasp hands...
+        renderBeamBetweenHands();
+
+        /*
+        //show that our hands are close enough to grasp..
+        if (_handsCloseEnoughToGrasp) {
+            glColor4f(0.9, 0.3, 0.3, 0.5);
+            renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP / 3.0f, 20, cameraPosition);
+        }
+        */
         
         // if your hand is grasping, show it...
         if (_yourHandState == HAND_STATE_GRASPING) {

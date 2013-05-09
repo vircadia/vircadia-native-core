@@ -466,12 +466,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                  
-                /*
-                //  Test:  Show angle between your fwd vector and nearest avatar
-                glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
-                                getJointPosition(AVATAR_JOINT_PELVIS);
-                printLog("Angle between: %f\n", angleBetween(vectorBetweenUs, _orientation.getFront()));
-                */
+                //Test:  Show angle between your fwd vector and nearest avatar
+                //glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
+                //                getJointPosition(AVATAR_JOINT_PELVIS);
+                //printLog("Angle between: %f\n", angleBetween(vectorBetweenUs, _orientation.getFront()));
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
                 glm::vec3 v(_position - otherAvatar->_position);
@@ -488,22 +486,30 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
-            //printf("_handState = %d, _interactingOther->_handState = %d\n", _handState, _interactingOther->_handState);
-
-            if ( _avatarTouch.getHandsCloseEnoughToGrasp()) {     
-                        
+            //if hand-holding is initiated by either avatar, turn on hand-holding...
+            if (_avatarTouch.getHandsCloseEnoughToGrasp()) {     
                 if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState==HAND_STATE_GRASPING)) {
-                    _handHoldingPosition += 
-                    (
-                        _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition
-                        - _handHoldingPosition
-                    ) * 0.01f;
-                              
-                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+                    if (!_avatarTouch.getHoldingHands())
+                    {
+                        _avatarTouch.setHoldingHands(true);
+                    }                    
                 }
             }
+            
+            if (!_avatarTouch.getAbleToReachOtherAvatar()) {
+                _avatarTouch.setHoldingHands(false);                
+            }
         }
-        else {
+        
+        //if holding hands, apply the appropriate forces
+        if (_avatarTouch.getHoldingHands()) {
+            _handHoldingPosition += 
+            (
+                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition
+                - _handHoldingPosition
+            ) * 0.1f;
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+        } else {
             _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
         }
         
@@ -513,8 +519,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     // NOTE - the following must be called on all avatars - not just _isMine
     updateArmIKAndConstraints(deltaTime);
     
+    //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
     if (_isMine) {
-        //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
      
         if (_mousePressed) {
