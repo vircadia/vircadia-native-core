@@ -50,7 +50,6 @@ private:
     bool      _handsCloseEnoughToGrasp;
     float     _reachableRadius;
     
-    void generateBeamBetweenHands();
     void renderBeamBetweenHands();
 };
 

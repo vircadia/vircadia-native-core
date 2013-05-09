@@ -488,7 +488,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
-            if ( _avatarTouch.getAbleToReachOtherAvatar()) {            
+            if ( _avatarTouch.getHandsCloseEnoughToGrasp()) {            
                 _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
                 _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
             }
@@ -531,7 +531,7 @@ void Avatar::updateHead(float deltaTime) {
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;
 
-        // this is not a long-term solution, but it works ok for initial purposes...
+        // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
         _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
