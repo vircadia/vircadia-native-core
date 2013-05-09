@@ -120,8 +120,6 @@ char starFile[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 char starCacheFile[] = "cachedStars.txt";
 Stars stars;
 
-bool showingVoxels = true;
-
 glm::vec3 box(WORLD_SIZE,WORLD_SIZE,WORLD_SIZE);
 
 VoxelSystem voxels;
@@ -136,16 +134,18 @@ Audio audio(&audioScope, &myAvatar);
 #endif
 
 #define IDLE_SIMULATE_MSECS 16           //  How often should call simulate and other stuff 
-                                         //  in the idle loop?
+                                         //  in the idle loop?  (60 FPS is default)
 
-//  Where one's own agent begins in the world (needs to become a dynamic thing passed to the program)
-glm::vec3 start_location(6.1f, 0, 1.4f);
+
+glm::vec3 start_location(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
+                                           // (will be overwritten if avatar data file is found)
 
 bool renderWarningsOn = false;      //  Whether to show render pipeline warnings
-
-bool statsOn = false;               //  Whether to show onscreen text overlay with stats
-bool starsOn = false;               //  Whether to display the stars
-bool atmosphereOn = true;          //  Whether to display the atmosphere
+bool renderStatsOn = false;         //  Whether to show onscreen text overlay with stats
+bool renderVoxels = true;           //  Whether to render voxels
+bool renderStarsOn = true;          //  Whether to display the stars
+bool renderAtmosphereOn = true;     //  Whether to display the atmosphere
+bool renderAvatarsOn = true;        //  Whether to render avatars 
 bool paintOn = false;               //  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;          //	The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //	The dominant color of the voxel we're painting
@@ -683,12 +683,12 @@ void renderViewFrustum(ViewFrustum& viewFrustum) {
 void displaySide(Camera& whichCamera) {
     glPushMatrix();
     
-    if (::starsOn) {
+    if (::renderStarsOn) {
         // should be the first rendering pass - w/o depth buffer / lighting
 
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
-        if (::atmosphereOn) {
+        if (::renderAtmosphereOn) {
             float height = glm::distance(whichCamera.getPosition(), environment.getAtmosphereCenter());
             if (height < environment.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
@@ -704,7 +704,7 @@ void displaySide(Camera& whichCamera) {
     }
 
     // draw the sky dome
-    if (::atmosphereOn) {
+    if (::renderAtmosphereOn) {
         environment.renderAtmosphere(whichCamera);
     }
     
@@ -722,29 +722,31 @@ void displaySide(Camera& whichCamera) {
     drawGroundPlaneGrid(10.f);
 	
     //  Draw voxels
-    if (showingVoxels) {
+    if (renderVoxels) {
         voxels.render();
     }
 	
-    //  Render avatars of other agents
-    AgentList* agentList = AgentList::getInstance();
-    agentList->lock();
-    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-            Avatar *avatar = (Avatar *)agent->getLinkedData();
-            avatar->render(0, ::myCamera.getPosition());
+    if (::renderAvatarsOn) {
+        //  Render avatars of other agents
+        AgentList* agentList = AgentList::getInstance();
+        agentList->lock();
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+                Avatar *avatar = (Avatar *)agent->getLinkedData();
+                avatar->render(0, ::myCamera.getPosition());
+            }
         }
+        agentList->unlock();
+        
+        // Render my own Avatar 
+        myAvatar.render(::lookingInMirror, ::myCamera.getPosition());
     }
-    agentList->unlock();
     
     //  Render the world box
-    if (!::lookingInMirror && ::statsOn) { render_world_box(); }
+    if (!::lookingInMirror && ::renderStatsOn) { render_world_box(); }
     
     // brad's frustum for debugging
     if (::frustumOn) renderViewFrustum(::viewFrustum);
-
-    //Render my own avatar
-	myAvatar.render(::lookingInMirror, ::myCamera.getPosition());
 	
 	glPopMatrix();
 }
@@ -915,7 +917,7 @@ void displayOverlay() {
 
        //noiseTest(WIDTH, HEIGHT);
     
-        if (displayHeadMouse && !::lookingInMirror && statsOn) {
+        if (displayHeadMouse && !::lookingInMirror && renderStatsOn) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -937,7 +939,7 @@ void displayOverlay() {
     glLineWidth(1.0f);
     glPointSize(1.0f);
     
-    if (::statsOn) { displayStats(); }
+    if (::renderStatsOn) { displayStats(); }
     if (::logOn) { logger.render(WIDTH, HEIGHT); }
         
     //  Show menu
@@ -1222,16 +1224,22 @@ int setFullscreen(int state) {
 }
 
 int setVoxels(int state) {
-    return setValue(state, &::showingVoxels);
+    return setValue(state, &::renderVoxels);
 }
 
 int setStars(int state) {
-    return setValue(state, &::starsOn);
+    return setValue(state, &::renderStarsOn);
 }
 
 int setAtmosphere(int state) {
-    return setValue(state, &::atmosphereOn);
+    return setValue(state, &::renderAtmosphereOn);
 }
+
+int setRenderAvatars(int state) {
+    return setValue(state, &::renderAvatarsOn);
+}
+
+
 
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
@@ -1243,7 +1251,7 @@ int setOculus(int state) {
 }
 
 int setStats(int state) {
-    return setValue(state, &::statsOn);
+    return setValue(state, &::renderStatsOn);
 }
 
 int setMenu(int state) {
@@ -1379,6 +1387,7 @@ void initMenu() {
     menuColumnRender->addRow("Voxels (V)", setVoxels);
     menuColumnRender->addRow("Stars (*)", setStars);
     menuColumnRender->addRow("Atmosphere (A)", setAtmosphere);
+    menuColumnRender->addRow("Avatars", setRenderAvatars);
     menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
@@ -1541,10 +1550,10 @@ void key(unsigned char k, int x, int y) {
     
 	//  Process keypresses 
  	if (k == 'q' || k == 'Q')  ::terminate();
-    if (k == '/')  ::statsOn = !::statsOn;		// toggle stats
-    if (k == '*')  ::starsOn = !::starsOn;		// toggle stars
-    if (k == 'V' || k == 'v')  ::showingVoxels = !::showingVoxels;		// toggle voxels
-    if (k == 'A') ::atmosphereOn = !::atmosphereOn;
+    if (k == '/')  ::renderStatsOn = !::renderStatsOn;		// toggle stats
+    if (k == '*')  ::renderStarsOn = !::renderStarsOn;		// toggle stars
+    if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;		// toggle voxels
+    if (k == 'A') ::renderAtmosphereOn = !::renderAtmosphereOn;
     if (k == 'F')  ::frustumOn = !::frustumOn;		// toggle view frustum debugging
     if (k == 'C')  ::cameraFrustum = !::cameraFrustum;	// toggle which frustum to look at
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
