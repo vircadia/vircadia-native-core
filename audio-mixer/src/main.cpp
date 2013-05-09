@@ -144,8 +144,8 @@ int main(int argc, const char* argv[]) {
                         float weakChannelAmplitudeRatio = 1.f;
                         
                         if (otherAgent != agent) {
-                            float *agentPosition = agentRingBuffer->getPosition();
-                            float *otherAgentPosition = otherAgentBuffer->getPosition();
+                            Position agentPosition = agentRingBuffer->getPosition();
+                            Position otherAgentPosition = otherAgentBuffer->getPosition();
                             
                             // calculate the distance to the other agent
                             
@@ -154,9 +154,9 @@ int main(int argc, const char* argv[]) {
                             int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
                             
                             if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
-                                float distanceToAgent = sqrtf(powf(agentPosition[0] - otherAgentPosition[0], 2) +
-                                                              powf(agentPosition[1] - otherAgentPosition[1], 2) +
-                                                              powf(agentPosition[2] - otherAgentPosition[2], 2));
+                                float distanceToAgent = sqrtf(powf(agentPosition.x - otherAgentPosition.x, 2) +
+                                                              powf(agentPosition.y - otherAgentPosition.y, 2) +
+                                                              powf(agentPosition.z - otherAgentPosition.z, 2));
                                 
                                 float minCoefficient = std::min(1.0f,
                                                                 powf(0.5,
@@ -166,20 +166,20 @@ int main(int argc, const char* argv[]) {
                             
                             
                             // get the angle from the right-angle triangle
-                            float triangleAngle = atan2f(fabsf(agentPosition[2] - otherAgentPosition[2]),
-                                                         fabsf(agentPosition[0] - otherAgentPosition[0])) * (180 / M_PI);
+                            float triangleAngle = atan2f(fabsf(agentPosition.z - otherAgentPosition.z),
+                                                         fabsf(agentPosition.x - otherAgentPosition.x)) * (180 / M_PI);
                             float absoluteAngleToSource = 0;
                             bearingRelativeAngleToSource = 0;
                             
                             // find the angle we need for calculation based on the orientation of the triangle
-                            if (otherAgentPosition[0] > agentPosition[0]) {
-                                if (otherAgentPosition[2] > agentPosition[2]) {
+                            if (otherAgentPosition.x > agentPosition.x) {
+                                if (otherAgentPosition.z > agentPosition.z) {
                                     absoluteAngleToSource = -90 + triangleAngle;
                                 } else {
                                     absoluteAngleToSource = -90 - triangleAngle;
                                 }
                             } else {
-                                if (otherAgentPosition[2] > agentPosition[2]) {
+                                if (otherAgentPosition.z > agentPosition.z) {
                                     absoluteAngleToSource = 90 - triangleAngle;
                                 } else {
                                     absoluteAngleToSource = 90 + triangleAngle;
