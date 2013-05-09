@@ -56,6 +56,7 @@ public:
     void trueColorize();
     void falseColorizeInView(ViewFrustum* viewFrustum);
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
+    void falseColorizeRandomEveryOther();
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -78,6 +79,7 @@ private:
     static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
@@ -116,12 +118,15 @@ private:
     ViewFrustum _lastKnowViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
+    void cleanupRemovedVoxels();
+
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
+
     void updateVBOs();
-    void updateFullVBOs();
-    void updatePartialVBOs();
-    void cleanupRemovedVoxels();
+    void updateFullVBOs(); // all voxels in the VBO
+    void updatePartialVBOs(); // multiple segments, only dirty voxels
+    void updateJustEnoughVBOs(); // single segment from first dirty, to last dirty, may include clean voxels
     
     bool _voxelsDirty;
 };
