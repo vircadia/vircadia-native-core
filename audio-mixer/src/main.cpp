@@ -22,7 +22,6 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
-#include <Stacktrace.h>
 
 #include "AudioRingBuffer.h"
 #include "PacketHeaders.h"
