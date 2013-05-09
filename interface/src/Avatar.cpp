@@ -488,8 +488,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
-            //_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition = 
-            //_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
+            _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
             
             //_handHoldingPosition
             
@@ -530,8 +530,7 @@ void Avatar::updateHead(float deltaTime) {
     */
 
     //apply the head lean values to the springy position...
-    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) 
-    {
+    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;

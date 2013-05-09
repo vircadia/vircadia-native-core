@@ -13,23 +13,23 @@
 
 Camera::Camera() {
     _frustumNeedsReshape  = false;
-	_mode			= CAMERA_MODE_THIRD_PERSON;
-	_tightness		= 10.0; // default
-	_fieldOfView    = 60.0; // default
-	_nearClip       = 0.08; // default
-	_farClip        = 50.0 * TREE_SCALE; // default
+    _mode           = CAMERA_MODE_THIRD_PERSON;
+    _tightness      = 10.0; // default
+    _fieldOfView    = 60.0; // default
+    _nearClip       = 0.08; // default
+    _farClip        = 50.0 * TREE_SCALE; // default
     _modeShift      = 0.0;
-	_yaw            = 0.0;
-	_pitch			= 0.0;
-	_roll			= 0.0;
-	_upShift		= 0.0;
-	_rightShift		= 0.0;
-	_distance		= 0.0;
-	_idealYaw		= 0.0;
-	_targetPosition	= glm::vec3(0.0, 0.0, 0.0);
-	_position		= glm::vec3(0.0, 0.0, 0.0);
-	_idealPosition	= glm::vec3(0.0, 0.0, 0.0);
-	_orientation.setToIdentity();
+    _yaw            = 0.0;
+    _pitch          = 0.0;
+    _roll           = 0.0;
+    _upShift        = 0.0;
+    _rightShift     = 0.0;
+    _distance       = 0.0;
+    _idealYaw       = 0.0;
+    _targetPosition = glm::vec3(0.0, 0.0, 0.0);
+    _position       = glm::vec3(0.0, 0.0, 0.0);
+    _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
+    _orientation.setToIdentity();
 }
 
 
