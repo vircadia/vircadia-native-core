@@ -29,7 +29,7 @@ int serialBufferPos = 0;
 const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const short SAMPLES_TO_DISCARD = 100;               //  Throw out the first few samples
-const int GRAVITY_SAMPLES = 200;                    //  Use the first samples to compute gravity vector
+const int GRAVITY_SAMPLES = 60;                     //  Use the first samples to compute gravity vector
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
@@ -139,34 +139,36 @@ void SerialInterface::resetTrailingAverages() {
 //  Render the serial interface channel values onscreen as vertical lines
 void SerialInterface::renderLevels(int width, int height) {
     int i;
-    int disp_x = 10;
+    int displayX = 10;
     const int GAP = 16;
     char val[40];
     if (!USING_INVENSENSE_MPU9150) {
+        //  Legacy - Maple ADC gyros 
         for(i = 0; i < NUM_CHANNELS; i++) {
             //  Actual value
             glLineWidth(2.0);
             glColor4f(1, 1, 1, 1);
             glBegin(GL_LINES);
-            glVertex2f(disp_x, height * 0.95);
-            glVertex2f(disp_x, height * (0.25 + 0.75f * getValue(i) / 4096));
+            glVertex2f(displayX, height * 0.95);
+            glVertex2f(displayX, height * (0.25 + 0.75f * getValue(i) / 4096));
             glColor4f(1, 0, 0, 1);
-            glVertex2f(disp_x - 3, height * (0.25 + 0.75f * getValue(i) / 4096));
-            glVertex2f(disp_x, height * (0.25 + 0.75f * getValue(i) / 4096));
+            glVertex2f(displayX - 3, height * (0.25 + 0.75f * getValue(i) / 4096));
+            glVertex2f(displayX, height * (0.25 + 0.75f * getValue(i) / 4096));
             glEnd();
             //  Trailing Average value
             glBegin(GL_LINES);
             glColor4f(1, 1, 1, 1);
-            glVertex2f(disp_x, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
-            glVertex2f(disp_x + 4, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
+            glVertex2f(displayX, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
+            glVertex2f(displayX + 4, height * (0.25 + 0.75f * getTrailingValue(i) / 4096));
             glEnd();
             
             sprintf(val, "%d", getValue(i));
-            drawtext(disp_x - GAP / 2, (height * 0.95) + 2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
+            drawtext(displayX - GAP / 2, (height * 0.95) + 2, 0.08, 90, 1.0, 0, val, 0, 1, 0);
             
-            disp_x += GAP;
+            displayX += GAP;
         }
     } else {
+        //  For invensense gyros, render as horizontal bars
         const int LEVEL_CORNER_X = 10;
         const int LEVEL_CORNER_Y = 200;
         
@@ -177,18 +179,37 @@ void SerialInterface::renderLevels(int width, int height) {
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
         sprintf(val, "Roll  %4.1f", _lastRollRate);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        sprintf(val, "X     %4.3f", _lastAccelX);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        sprintf(val, "Y     %4.3f", _lastAccelY);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        sprintf(val, "Z     %4.3f", _lastAccelZ);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
         
         //  Draw the levels as horizontal lines        
         const int LEVEL_CENTER = 150;
+        const float ACCEL_VIEW_SCALING = 50.f;
         glLineWidth(2.0);
         glColor4f(1, 1, 1, 1);
         glBegin(GL_LINES);
+        // Gyro rates
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastYawRate, LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastPitchRate, LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastRollRate, LEVEL_CORNER_Y + 27);
+        // Acceleration
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelX - _gravity.x)* ACCEL_VIEW_SCALING),
+                   LEVEL_CORNER_Y + 42);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelY - _gravity.y) * ACCEL_VIEW_SCALING),
+                   LEVEL_CORNER_Y + 57);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelZ - _gravity.z) * ACCEL_VIEW_SCALING),
+                   LEVEL_CORNER_Y + 72);
+
         glEnd();
         //  Draw green vertical centerline
         glColor4f(0, 1, 0, 0.5);
@@ -237,15 +258,15 @@ void SerialInterface::readData() {
         
         int accelXRate, accelYRate, accelZRate;
         
-        convertHexToInt(sensorBuffer + 6, accelXRate); 
+        convertHexToInt(sensorBuffer + 6, accelZRate);
         convertHexToInt(sensorBuffer + 10, accelYRate);
-        convertHexToInt(sensorBuffer + 14, accelZRate);
+        convertHexToInt(sensorBuffer + 14, accelXRate);
         
-        const float LSB_TO_METERS_PER_SECOND = 1.f / 16384.f;
+        const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * 9.80665f;
         
-        _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND;
-        _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND;
-        _lastAccelZ = ((float) accelZRate) * LSB_TO_METERS_PER_SECOND;
+        _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND2;
+        _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND2;
+        _lastAccelZ = ((float) -accelZRate) * LSB_TO_METERS_PER_SECOND2;
         
         int rollRate, yawRate, pitchRate;
         
@@ -262,6 +283,18 @@ void SerialInterface::readData() {
         _lastYawRate = ((float) yawRate) * LSB_TO_DEGREES_PER_SECOND;
         _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND + PITCH_BIAS;
         
+        //  Accumulate an initial reading for gravity
+        //  Use a set of initial samples to compute gravity
+        if (totalSamples < GRAVITY_SAMPLES) {
+            _gravity.x += _lastAccelX;
+            _gravity.y += _lastAccelY;
+            _gravity.z += _lastAccelZ;
+        }
+        if (totalSamples == GRAVITY_SAMPLES) {
+            _gravity /= (float) totalSamples;
+            printLog("Gravity: %f\n", glm::length(_gravity));
+        }
+
         totalSamples++;
     } else {
         //  This array sets the rate of trailing averaging for each channel:
@@ -300,7 +333,7 @@ void SerialInterface::readData() {
                     }
                     
                 }
-                
+                /*
                 //  Use a set of initial samples to compute gravity
                 if (totalSamples < GRAVITY_SAMPLES) {
                     gravity.x += lastMeasured[ACCEL_X];
@@ -311,7 +344,7 @@ void SerialInterface::readData() {
                     gravity = glm::normalize(gravity);
                     printLog("gravity: %f,%f,%f\n", gravity.x, gravity.y, gravity.z);
                 }
-                
+                */
                 totalSamples++;
                 serialBufferPos = 0;
             }
@@ -336,12 +369,11 @@ void SerialInterface::resetSerial() {
 #ifdef __APPLE__
     active = false;
     totalSamples = 0;
+    _gravity = glm::vec3(0, 0, 0);
     
     gettimeofday(&lastGoodRead, NULL);
     
-    if (!USING_INVENSENSE_MPU9150) {
-        gravity = glm::vec3(0, -1, 0);
-        
+    if (!USING_INVENSENSE_MPU9150) {        
         //  Clear the measured and average channel data
         for (int i = 0; i < NUM_CHANNELS; i++) {
             lastMeasured[i] = 0;

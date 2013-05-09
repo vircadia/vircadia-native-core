@@ -60,7 +60,7 @@ public:
     void resetTrailingAverages();
     void renderLevels(int width, int height);
     bool active;
-    glm::vec3 getGravity() {return gravity;};
+    glm::vec3 getGravity() {return _gravity;};
     
 private:
     void initializePort(char* portname, int baud);
@@ -73,7 +73,7 @@ private:
     int LED;
     int totalSamples;
     timeval lastGoodRead;
-    glm::vec3 gravity;
+    glm::vec3 _gravity;
     float _lastAccelX;
     float _lastAccelY;
     float _lastAccelZ;
