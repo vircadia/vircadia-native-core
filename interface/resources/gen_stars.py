@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #
 # gen_stars.py
 # interface
@@ -12,7 +14,7 @@ from random import random,randint
 from math import sqrt, hypot, atan2, pi, fmod, degrees
 from sys import argv,stderr
 
-hemisphere_only, equator, meridians= False, 1000, 1000
+hemisphere_only, equator, meridians= False, 0, 1000
 
 n_random = 100000
 if len(argv) > 1:
@@ -50,10 +52,13 @@ for i in range(n_random):
     g = max(0,min(255,w + randint(-20,60)))
     b = max(0,min(255,w + randint(-10,100)))
     # position
-    x,y,z = random()*2-1,random(),random()*2-1
-    if not hemisphere_only:
-        y = y*2-1
-    l = sqrt(x*x + y*y + z*z)
+    while True:
+        x,y,z = random()*2-1,random(),random()*2-1
+        if not hemisphere_only:
+            y = y*2-1
+        l = sqrt(x*x + y*y + z*z)
+        if l <= 1.0:
+            break
     x /= l; y /= l; z /= l
     xz = hypot(x,z)
 
