@@ -72,7 +72,7 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
 }
 
 void attachNewBufferToAgent(Agent *newAgent) {
-    if (newAgent->getLinkedData() == NULL) {
+    if (!newAgent->getLinkedData()) {
         newAgent->setLinkedData(new AudioRingBuffer(RING_BUFFER_SAMPLES, BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
     }
 }
@@ -89,9 +89,9 @@ int main(int argc, const char* argv[]) {
     agentList->startSilentAgentRemovalThread();
     agentList->startDomainServerCheckInThread();
 
-    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
+    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
 
-    sockaddr *agentAddress = new sockaddr;
+    sockaddr* agentAddress = new sockaddr;
 
     // make sure our agent socket is non-blocking
     agentList->getAgentSocket().setBlocking(false);
@@ -106,7 +106,7 @@ int main(int argc, const char* argv[]) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
             
-            if (agentBuffer->getEndOfLastWrite() != NULL) {
+            if (agentBuffer->getEndOfLastWrite()) {
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
                     printf("Held back buffer for agent with ID %d.\n", agent->getAgentId());
@@ -217,15 +217,15 @@ int main(int argc, const char* argv[]) {
                         }
                         
                         int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                        ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                        : clientMix;
+                            ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                            : clientMix;
                         int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                        ? clientMix
-                        : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            ? clientMix
+                            : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         
                         int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                        ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
-                        : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
+                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             

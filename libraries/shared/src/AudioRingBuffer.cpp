@@ -50,8 +50,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         
         unsigned char *dataPtr = sourceBuffer + 1;
         
-        memcpy(&_position, dataPtr, sizeof(_position.x) * 3);
-        dataPtr += (sizeof(_position.x) * 3);
+        memcpy(&_position, dataPtr, sizeof(_position));
+        dataPtr += (sizeof(_position));
         
         unsigned int attenuationByte = *(dataPtr++);
         _attenuationRatio = attenuationByte / 255.0f;
@@ -74,7 +74,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         sourceBuffer = dataPtr;
     }
 
-    if (_endOfLastWrite == NULL) {
+    if (!_endOfLastWrite) {
         _endOfLastWrite = _buffer;
     } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
         _endOfLastWrite = _buffer;
@@ -94,7 +94,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 short AudioRingBuffer::diffLastWriteNextOutput() {
-    if (_endOfLastWrite == NULL) {
+    if (!_endOfLastWrite) {
         return 0;
     } else {
         short sampleDifference = _endOfLastWrite - _nextOutput;

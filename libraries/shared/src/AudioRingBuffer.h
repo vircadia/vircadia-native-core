@@ -28,10 +28,10 @@ public:
     AudioRingBuffer* clone() const;
 
     int16_t* getNextOutput() const { return _nextOutput; }
-    void setNextOutput(int16_t *nextOutput) { _nextOutput = nextOutput; }
+    void setNextOutput(int16_t* nextOutput) { _nextOutput = nextOutput; }
     
     int16_t* getEndOfLastWrite() const { return _endOfLastWrite; }
-    void setEndOfLastWrite(int16_t *endOfLastWrite) { _endOfLastWrite = endOfLastWrite; }
+    void setEndOfLastWrite(int16_t* endOfLastWrite) { _endOfLastWrite = endOfLastWrite; }
     
     int16_t* getBuffer() const { return _buffer; }
     
