@@ -93,6 +93,9 @@ int main(int argc, const char* argv[]) {
 
     sockaddr *agentAddress = new sockaddr;
 
+    // make sure our agent socket is non-blocking
+    agentList->getAgentSocket().setBlocking(false);
+    
     int nextFrame = 0;
     timeval startTime;
     
