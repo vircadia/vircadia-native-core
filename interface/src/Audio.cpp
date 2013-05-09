@@ -436,15 +436,15 @@ float Audio::getInputLoudness() const {
 void Audio::render(int screenWidth, int screenHeight)
 {
     if (initialized) {
-        glLineWidth(3);
+        glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
         
-        int startX = 50.0;
+        int startX = 20.0;
         int currentX = startX;
-        int topY = screenHeight - 90;
-        int bottomY = screenHeight - 50;
-        float frameWidth = 50.0;
+        int topY = screenHeight - 40;
+        int bottomY = screenHeight - 20;
+        float frameWidth = 20.0;
         float halfY = topY + ((bottomY - topY) / 2.0);
         
         // draw the lines for the base of the ring buffer
@@ -484,10 +484,10 @@ void Audio::render(int screenWidth, int screenHeight)
         }
         
         glBegin(GL_QUADS);
-        glVertex2f(startX, topY + 5);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, topY + 5);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, bottomY - 5);
-        glVertex2f(startX, bottomY - 5);
+        glVertex2f(startX, topY + 2);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, topY + 2);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, bottomY - 2);
+        glVertex2f(startX, bottomY - 2);
         glEnd();
         
         if (audioData->averagedLatency == 0.0) audioData->averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
@@ -504,7 +504,7 @@ void Audio::render(int screenWidth, int screenHeight)
         
         char out[40];
         sprintf(out, "%3.0f\n", audioData->averagedLatency);
-        drawtext(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 10, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 10, topY-10, 0.10, 0, 1, 0, out, 1,1,0);
         //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
@@ -520,13 +520,10 @@ void Audio::render(int screenWidth, int screenHeight)
         glEnd();
         
         sprintf(out,"%3.1f\n", audioData->measuredJitter);
-        drawtext(startX + jitterPels - 5, topY-10, 0.08, 0, 1, 0, out, 0,1,1);
+        drawtext(startX + jitterPels - 5, topY-10, 0.10, 0, 1, 0, out, 0,1,1);
         
         sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
-        drawtext(startX - 10, bottomY + 20, 0.1, 0, 1, 0, out, 1, 0, 0);
-        
-        sprintf(out, "%hd samples\n", JITTER_BUFFER_SAMPLES);
-        drawtext(startX - 10, bottomY + 35, 0.1, 0, 1, 0, out, 1, 0, 0);
+        drawtext(startX - 10, bottomY + 15, 0.1, 0, 1, 0, out, 1, 0, 0);
     }
 }
 

@@ -265,7 +265,7 @@ void Avatar::reset() {
 
 
 //  Update avatar head rotation with sensor data
-void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;

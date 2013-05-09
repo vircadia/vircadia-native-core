@@ -36,7 +36,7 @@ public:
 
     void addSamples(unsigned ch, short const* data, unsigned n);
     
-    void render();
+    void render(int x, int y);
 
     void setLowpass(float w) { assert(w > 0.0f && w <= 1.0f); _valLowpass = w; }
     void setDownsampling(unsigned f) { assert(f > 0); _valDownsample = f; }
