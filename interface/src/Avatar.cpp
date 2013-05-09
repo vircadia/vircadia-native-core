@@ -47,6 +47,8 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
+const float AVATAR_BRAKING_RANGE          = 1.6f;
+const float AVATAR_BRAKING_STRENGTH       = 30.0f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
@@ -404,8 +406,8 @@ void Avatar::simulate(float deltaTime) {
     _bodyPitch *= tiltDecay;
     _bodyRoll  *= tiltDecay;
     
-    //wtf? - why won't this compile? 
-    //angleBetween(&_orientation.getUp(), &_gravity);
+    //the following will be used to make the avatar upright no matter what gravity is
+    //float f = angleBetween(_orientation.getUp(), _gravity);
     
     // update position by velocity
     _position += _velocity * deltaTime;
@@ -418,15 +420,17 @@ void Avatar::simulate(float deltaTime) {
         _velocity *= decay;
     }
     
-    // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.6f;
-    const float AVATAR_BRAKING_STRENGTH = 35.f;
-    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
-        _velocity *=
-        (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
-         (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
+    // If another avatar is near, dampen velocity as a function of closeness
+    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {    
+        float closeness = 1.0f - (_distanceToNearestAvatar / AVATAR_BRAKING_RANGE);
+        float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
+        if ( drag > 0.0f ) {
+            _velocity *= drag;
+        } else {
+            _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+        }
     }
-
+    
     // update head state
     updateHead(deltaTime);
     
@@ -466,8 +470,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 //  Test:  Show angle between your fwd vector and nearest avatar
                 glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
                                 getJointPosition(AVATAR_JOINT_PELVIS);
-                glm::vec3 myForwardVector = _orientation.getFront();
-                printLog("Angle between: %f\n", angleBetween(&vectorBetweenUs, &myForwardVector));
+                printLog("Angle between: %f\n", angleBetween(vectorBetweenUs, _orientation.getFront()));
                 */
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
