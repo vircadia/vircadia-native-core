@@ -264,7 +264,7 @@ void Avatar::reset() {
 
 
 //  Update avatar head rotation with sensor data
-void Avatar::UpdateGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;
@@ -416,8 +416,8 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.2f;
-    const float AVATAR_BRAKING_STRENGTH = 25.f;
+    const float AVATAR_BRAKING_RANGE = 1.6f;
+    const float AVATAR_BRAKING_STRENGTH = 35.f;
     if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
         _velocity *=
         (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
@@ -954,7 +954,13 @@ void Avatar::renderHead(bool lookingInMirror) {
     glColor3f(0,0,0);
     glRotatef(_head.mouthPitch, 1, 0, 0);
     glRotatef(_head.mouthYaw, 0, 0, 1);
-    glScalef(_head.mouthWidth*(.7 + sqrt(_head.averageLoudness)/60.0), _head.mouthHeight*(1.0 + sqrt(_head.averageLoudness)/30.0), 1);
+    if (_head.averageLoudness > 1.f) {
+        glScalef(_head.mouthWidth * (.7f + sqrt(_head.averageLoudness) /60.f),
+                 _head.mouthHeight * (1.f + sqrt(_head.averageLoudness) /30.f), 1);
+    } else {
+        glScalef(_head.mouthWidth, _head.mouthHeight, 1);
+    }
+
     glutSolidCube(0.5);
     glPopMatrix();
     

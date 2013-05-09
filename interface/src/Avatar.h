@@ -82,8 +82,8 @@ public:
     Avatar* clone() const;
 
     void  reset();
-    void  UpdateGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
-   
+    
+    void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void  setNoise (float mag) {_head.noise = mag;}
     void  setScale(float s) {_head.scale = s; };
     void  setRenderYaw(float y) {_renderYaw = y;}

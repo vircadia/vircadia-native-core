@@ -80,7 +80,7 @@ void Oscilloscope::addSamples(unsigned ch, short const* data, unsigned n) {
     _arrWritePos[ch] = newWritePos;
 }
         
-void Oscilloscope::render() {
+void Oscilloscope::render(int x, int y) {
 
     if (! enabled) {
         return;
@@ -113,8 +113,9 @@ void Oscilloscope::render() {
         }
     } 
     
+    glLineWidth(2.0);
     glPushMatrix();
-    glTranslatef(0.0f, _valHeight / 2.0f, 0.0f);
+    glTranslatef((float)x + 0.0f, (float)y + _valHeight / 2.0f, 0.0f);
     glScaled(1.0f, _valHeight / 32767.0f, 1.0f);
     glVertexPointer(2, GL_SHORT, 0, _arrVertices);
     glEnableClientState(GL_VERTEX_ARRAY);
