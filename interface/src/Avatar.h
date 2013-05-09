@@ -105,6 +105,7 @@ public:
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
     float getSpeed() const { return _speed; };
+    const glm::vec3& getVelocity() const { return _velocity; };
     float getGirth();
     float getHeight();
     

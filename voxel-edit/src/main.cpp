@@ -12,7 +12,21 @@
 
 VoxelTree myTree;
 
-void voxelTutorial(VoxelTree* tree) {
+int _nodeCount=0;
+bool countVoxelsOperation(VoxelNode* node, void* extraData) {
+    if (node->isColored()){
+        _nodeCount++;
+    }
+    return true; // keep going
+}
+
+void addLandscape(VoxelTree * tree) {
+    printf("Adding Landscape...\n");
+}
+
+void addScene(VoxelTree * tree) {
+    printf("adding scene...\n");
+
     // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
     float voxelSize = 0.5f / TREE_SCALE;
 
