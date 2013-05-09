@@ -147,19 +147,37 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     // If the view frustum has changed, since last time, then remove nodes that are out of view
     if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) && hasViewChanged()) {
         _lastViewCulling = start;
+
+        // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
+        // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
+        // can be expensive).
         removeOutOfView();
+        
+        // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
+        // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
+        // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
+        cleanupRemovedVoxels();
+
         double endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
     }    
     
     if (_tree->isDirty()) {
-        PerformanceWarning warn(_renderWarningsOn, "calling... newTreeToArrays()");
+        static char buffer[64] = { 0 };
+        if (_renderWarningsOn) { 
+            sprintf(buffer, "newTreeToArrays() _alwaysRenderFullVBO=%s", (_alwaysRenderFullVBO ? "yes" : "no")); 
+        };
+        PerformanceWarning warn(_renderWarningsOn, buffer);
         _callsToTreesToArrays++;
         if (_alwaysRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
+        
+        // since we called treeToArrays, we can assume that our VBO is in sync, and so partial updates to the VBOs are
+        // ok again, until/unless we call removeOutOfView() 
+        _alwaysRenderFullVBO = false; 
     } else {
         _voxelsUpdated = 0;
     }
@@ -174,6 +192,16 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     double elapsedmsec = (end - start) / 1000.0;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
+}
+
+void VoxelSystem::cleanupRemovedVoxels() {
+    PerformanceWarning warn(_renderWarningsOn, "cleanupRemovedVoxels()");
+    if (!_removedVoxels.isEmpty()) {
+        while (!_removedVoxels.isEmpty()) {
+            delete _removedVoxels.extract();
+        }
+        _alwaysRenderFullVBO = true; // if we remove voxels, we must update our full VBOs
+    }
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays() {
@@ -374,7 +402,11 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::updateVBOs() {
-    PerformanceWarning warn(_renderWarningsOn, "updateVBOs()"); // would like to include _callsToTreesToArrays
+    static char buffer[40] = { 0 };
+    if (_renderWarningsOn) { 
+        sprintf(buffer, "updateVBOs() _alwaysRenderFullVBO=%s", (_alwaysRenderFullVBO ? "yes" : "no")); 
+    };
+    PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
         if (_alwaysRenderFullVBO) {
             glBufferIndex segmentStart = 0;
@@ -673,9 +705,9 @@ void VoxelSystem::removeOutOfView() {
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
 
     if (_renderWarningsOn) {
-        printLog("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld bag.count()=%d \n", 
+        printLog("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d \n", 
                 args.nodesScanned, args.nodesRemoved, args.nodesInside, 
-                args.nodesIntersect, args.nodesOutside, args.dontRecurseBag.count()
+                args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
             );
     }
 }

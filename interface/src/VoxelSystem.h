@@ -119,6 +119,7 @@ private:
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
     void updateVBOs();
+    void cleanupRemovedVoxels();
     
     bool _voxelsDirty;
 };
