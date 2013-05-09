@@ -175,7 +175,7 @@ int mouseY = 0;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 // The current mode for mouse interaction
-enum MouseMode { ADD_VOXEL_MODE, DELETE_VOXEL_MODE };
+enum MouseMode { ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
 MouseMode mouseMode = ADD_VOXEL_MODE;
 VoxelDetail mouseVoxel; // details of the voxel under the mouse cursor
 
@@ -1653,7 +1653,8 @@ void key(unsigned char k, int x, int y) {
     if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
     if (k == '1')  ::mouseMode = ADD_VOXEL_MODE;
     if (k == '2')  ::mouseMode = DELETE_VOXEL_MODE;
-    if (k == '3')  addVoxelInFrontOfAvatar();
+    if (k == '3')  ::mouseMode = COLOR_VOXEL_MODE;
+    if (k == '4')  addVoxelInFrontOfAvatar();
     if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
@@ -1796,7 +1797,12 @@ void idle(void) {
                 ::mouseVoxel.y += offset.y * ::mouseVoxel.s;
                 ::mouseVoxel.z += offset.z * ::mouseVoxel.s;
             
-            } else {
+            } else if (::mouseMode == COLOR_VOXEL_MODE) {
+                ::mouseVoxel.red = 0;
+                ::mouseVoxel.green = 255;
+                ::mouseVoxel.blue = 0;
+                
+            } else { // ::mouseMode == DELETE_VOXEL_MODE
                 // red indicates deletion
                 ::mouseVoxel.red = 255;
                 ::mouseVoxel.green = ::mouseVoxel.blue = 0;
@@ -1928,9 +1934,9 @@ void mouseFunc(int button, int state, int x, int y) {
         case GLUT_LEFT_BUTTON:
             if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
                 mousePressed = 1;
-                if (::mouseMode == ADD_VOXEL_MODE) {
+                if (::mouseMode == ADD_VOXEL_MODE || ::mouseMode == COLOR_VOXEL_MODE) {
                     addVoxelUnderCursor();
-                    
+                
                 } else { // ::mouseMode == DELETE_VOXEL_MODE
                     deleteVoxelUnderCursor();    
                 }
@@ -1941,12 +1947,7 @@ void mouseFunc(int button, int state, int x, int y) {
         
         case GLUT_RIGHT_BUTTON:
             if (state == GLUT_DOWN) {
-                if (::mouseMode == ADD_VOXEL_MODE) {
-                    deleteVoxelUnderCursor();
-                    
-                } else { // ::mouseMode == DELETE_VOXEL_MODE
-                    addVoxelUnderCursor();
-                }
+                deleteVoxelUnderCursor();
             }
             break;
     }
