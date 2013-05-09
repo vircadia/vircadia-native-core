@@ -24,7 +24,7 @@ void addLandscape(VoxelTree * tree) {
     printf("Adding Landscape...\n");
 }
 
-void addScene(VoxelTree * tree) {
+void voxelTutorial(VoxelTree * tree) {
     printf("adding scene...\n");
 
     // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
