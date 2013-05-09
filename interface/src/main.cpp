@@ -70,7 +70,6 @@
 #include "Oscilloscope.h"
 #include "UDPSocket.h"
 #include "SerialInterface.h"
-#include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
@@ -1457,6 +1456,44 @@ void setupPaintingVoxel() {
 	shiftPaintingColor();
 }
 
+void addVoxelUnderCursor() {
+    glm::vec3 origin, direction;
+    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+    
+    VoxelDetail detail;
+    float distance;
+    if (voxels.findRayIntersection(origin, direction, detail, distance)) {
+        // get the hit location relative to the center of the voxel
+        float half = detail.s * 0.5f;
+        glm::vec3 hit = origin + distance*direction - glm::vec3(detail.x + half, detail.y + half, detail.z + half);
+        
+        unsigned char* bufferOut;
+	    int sizeOut;
+	
+		if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+			delete bufferOut;
+		}
+	}
+}
+
+void deleteVoxelUnderCursor() {
+    glm::vec3 origin, direction;
+    viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+    
+    VoxelDetail detail;
+    float distance;
+    if (voxels.findRayIntersection(origin, direction, detail, distance)) {
+        unsigned char* bufferOut;
+	    int sizeOut;
+	
+		if (createVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+			delete bufferOut;
+		}
+	}
+}
+
 const float KEYBOARD_YAW_RATE = 0.8;
 const float KEYBOARD_PITCH_RATE = 0.6;
 const float KEYBOARD_STRAFE_RATE = 0.03;
@@ -1574,6 +1611,8 @@ void key(unsigned char k, int x, int y) {
     if (k == '^')  ::shiftPaintingColor();		// shifts randomize color between R,G,B dominant
     if (k == '-')  ::sendVoxelServerEraseAll();	// sends erase all command to voxel server
     if (k == '%')  ::sendVoxelServerAddScene();	// sends add scene command to voxel server
+    if (k == '1')  ::addVoxelUnderCursor();
+    if (k == '2')  ::deleteVoxelUnderCursor();
 	if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 

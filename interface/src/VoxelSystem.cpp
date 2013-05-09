@@ -613,3 +613,18 @@ void VoxelSystem::removeOutOfView() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
 }
+
+bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, VoxelDetail& detail, float& distance) {
+    VoxelNode* node;
+    if (!_tree->findRayIntersection(origin, direction, node, distance)) {
+        return false;
+    }
+    detail.x = node->getCorner().x;
+    detail.y = node->getCorner().y;
+    detail.z = node->getCorner().z;
+    detail.s = node->getScale();
+    detail.red = node->getColor()[0];
+    detail.green = node->getColor()[1];
+    detail.blue = node->getColor()[2];
+    return true;
+}
