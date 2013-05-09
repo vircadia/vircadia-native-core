@@ -13,6 +13,15 @@
 
 #include <glm/glm.hpp>
 
+enum BoxFace {
+    MIN_X_FACE,
+    MAX_X_FACE,
+    MIN_Y_FACE,
+    MAX_Y_FACE,
+    MIN_Z_FACE,
+    MAX_Z_FACE
+};
+
 class AABox 
 {
 
@@ -37,7 +46,7 @@ public:
 	const glm::vec3& getCenter() const { return _center; };
 
     bool contains(const glm::vec3& point) const;
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 private:
 	glm::vec3 _corner;
