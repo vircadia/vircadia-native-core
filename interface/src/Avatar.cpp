@@ -487,6 +487,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
+            
+            //_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition = 
+            //_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition;
+            
+            //_handHoldingPosition
+            
         }
         
     }//if (_isMine)
@@ -515,14 +521,38 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
+    // hold on to this - used for testing....
+    static float test = 0.0f;
+    test += deltaTime;
+    _head.leanForward  = 0.02 * sin( test * 0.2f );
+    _head.leanSideways = 0.02 * sin( test * 0.3f );
+
     //apply the head lean values to the springy position...
-    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
+    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) 
+    {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition += headLean;
+
+        // this is not a long-term solution, but it works ok for initial purposes...
+        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
+        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
+        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
+        
+        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
+        
+        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
-    
+
     //  Decay head back to center if turned on
     if (_returnHeadToCenter) {
         //  Decay back toward center

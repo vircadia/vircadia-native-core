@@ -113,7 +113,6 @@ if (_canReachToOtherAvatar)
     }
 }
 
-
 void AvatarTouch::simulate (float deltaTime) {
 
     glm::vec3 v = _yourBodyPosition - _myBodyPosition;
