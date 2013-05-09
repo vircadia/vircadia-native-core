@@ -50,16 +50,11 @@ public:
     float getLastYawRate() const { return _lastYawRate; }
     float getLastPitchRate() const { return _lastPitchRate; }
     float getLastRollRate() const { return _lastRollRate; }
-    
-    //int getLED() {return LED;};
-    //int getNumSamples() {return samplesAveraged;};
-    //int getValue(int num) {return lastMeasured[num];};
-    //int getRelativeValue(int num) {return static_cast<int>(lastMeasured[num] - trailingAverage[num]);};
-    //float getTrailingValue(int num) {return trailingAverage[num];};
+    glm::vec3 getLastAcceleration() { return glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ); };
+    glm::vec3 getGravity() {return _gravity;};
     
     void renderLevels(int width, int height);
     bool active;
-    glm::vec3 getGravity() {return _gravity;};
     
 private:
     void initializePort(char* portname, int baud);
