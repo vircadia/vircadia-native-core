@@ -63,8 +63,8 @@ void AvatarTouch::setReachableRadius(float r) {
 
 void AvatarTouch::render(glm::vec3 cameraPosition) {
 
-    if (_canReachToOtherAvatar) {
-    
+if (_canReachToOtherAvatar) 
+{
         glColor4f(0.3, 0.4, 0.5, 0.5); 
         glm::vec3 p(_yourBodyPosition);
         p.y = 0.0005f;
