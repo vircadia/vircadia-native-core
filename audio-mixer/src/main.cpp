@@ -22,7 +22,6 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
-#include <Stacktrace.h>
 
 #include "AudioRingBuffer.h"
 #include "PacketHeaders.h"
@@ -258,8 +257,7 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, const char* argv[]) {
-    signal(SIGSEGV, printStacktrace);
+int main(int argc, const char* argv[]) {    
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
