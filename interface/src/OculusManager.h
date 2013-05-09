@@ -17,7 +17,16 @@ using namespace OVR;
 class OculusManager {
 public:
     static void connect();
+    
+    static bool isConnected() { return _isConnected; }
+    
+    static float getYaw();
+    static float getPitch();
+    static float getRoll();
 private:
+    static void setFloatToAxisAngle(Vector3<float>& axis, float& floatToSet);
+    
+    static bool _isConnected;
     static SensorFusion* _sensorFusion;
 };
 
