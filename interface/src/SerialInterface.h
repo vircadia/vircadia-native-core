@@ -37,7 +37,12 @@ extern const bool USING_INVENSENSE_MPU9150;
 class SerialInterface {
 public:
     SerialInterface() : active(false),
-                        _failedOpenAttempts(0) {}
+                        _lastAccelX(0),
+                        _lastAccelY(0),
+                        _lastAccelZ(0),
+                        _lastYawRate(0),
+                        _lastPitchRate(0),
+                        _lastRollRate(0) {}
     
     void pair();
     void readData();
@@ -69,10 +74,12 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 gravity;
+    float _lastAccelX;
+    float _lastAccelY;
+    float _lastAccelZ;
     float _lastYawRate;         //  Rates are in degrees per second. 
     float _lastPitchRate;
     float _lastRollRate;
-    int _failedOpenAttempts;
 };
 
 #endif
