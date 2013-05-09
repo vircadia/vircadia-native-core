@@ -94,9 +94,9 @@ public:
     
     typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
-    int pointInFrustum(const glm::vec3& point) const;
-    int sphereInFrustum(const glm::vec3& center, float radius) const;
-    int boxInFrustum(const AABox& box) const;
+    ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
+    ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
+    ViewFrustum::location boxInFrustum(const AABox& box) const;
     
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo) const;

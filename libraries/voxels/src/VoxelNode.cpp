@@ -123,7 +123,6 @@ void VoxelNode::setColorFromAverageOfChildren() {
 			colorArray[3]++;
 		}
 	}
-    
     nodeColor newColor = { 0, 0, 0, 0};
     if (colorArray[3] > 4) {
         // we need at least 4 colored children to have an average color value
@@ -179,9 +178,7 @@ void VoxelNode::setColor(const nodeColor& color) {
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
-        //if (_shouldRender) {
-            _isDirty = true;
-        //}
+        _isDirty = true;
     }
 }
 #endif
@@ -260,6 +257,12 @@ bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
     box.scale(TREE_SCALE);
     bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
     return inView;
+}
+
+ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const {
+    AABox box = _box; // use temporary box so we can scale it
+    box.scale(TREE_SCALE);
+    return viewFrustum.boxInFrustum(box);
 }
 
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {

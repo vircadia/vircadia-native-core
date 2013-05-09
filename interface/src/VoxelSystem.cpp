@@ -63,11 +63,6 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, bool wantColorRandomizer) {
-    _tree->createSphere(r, xc, yc, zc, s, solid, wantColorRandomizer);
-    setupNewVoxelsForDrawing();
-}
-
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }
@@ -144,22 +139,22 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     double start = usecTimestampNow();
     double sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000.0;
     
-    if (sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed,SIXTY_FPS_IN_MILLISECONDS)) {
+    if (sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
     double sinceLastViewCulling = (start - _lastViewCulling) / 1000.0;
-    
     // If the view frustum has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= VIEW_CULLING_RATE_IN_MILLISECONDS) && hasViewChanged()) {
+    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) && hasViewChanged()) {
         _lastViewCulling = start;
         removeOutOfView();
+        double endViewCulling = usecTimestampNow();
+        _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
     }    
     
     if (_tree->isDirty()) {
         PerformanceWarning warn(_renderWarningsOn, "calling... newTreeToArrays()");
         _callsToTreesToArrays++;
-
         if (_alwaysRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
         }
@@ -176,7 +171,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     copyWrittenDataToReadArrays();
 
     double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
+    double elapsedmsec = (end - start) / 1000.0;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
@@ -225,6 +220,11 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
 }
 
 int VoxelSystem::newway__updateNodeInArray(VoxelNode* node) {
+    // If we've run out of room, then just bail...
+    if (_voxelsInWriteArrays >= MAX_VOXELS_PER_SYSTEM) {
+        return 0;
+    }
+    
     if (node->getShouldRender()) {
         glm::vec3 startVertex = node->getCorner();
         float voxelScale = node->getScale();
@@ -299,7 +299,7 @@ void VoxelSystem::init() {
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;
     _setupNewVoxelsForDrawingLastElapsed = 0;
-    _lastViewCulling = 0;
+    _lastViewCullingElapsed = _lastViewCulling = 0;
 
     // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
@@ -508,6 +508,7 @@ bool VoxelSystem::trueColorizeOperation(VoxelNode* node, void* extraData) {
 }
 
 void VoxelSystem::trueColorize() {
+    PerformanceWarning warn(true, "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
     printLog("setting true color for %d nodes\n", _nodeCount);
@@ -587,17 +588,71 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     setupNewVoxelsForDrawing();
 }
 
+// combines the removeOutOfView args into a single class
+class removeOutOfViewArgs {
+public:
+    VoxelSystem*    thisVoxelSystem;
+    VoxelNodeBag    dontRecurseBag;
+    unsigned long   nodesScanned;
+    unsigned long   nodesRemoved;
+    unsigned long   nodesInside;
+    unsigned long   nodesIntersect;
+    unsigned long   nodesOutside;
+    
+    removeOutOfViewArgs(VoxelSystem* voxelSystem) :
+        thisVoxelSystem(voxelSystem),
+        dontRecurseBag(),
+        nodesScanned(0),
+        nodesRemoved(0),
+        nodesInside(0),
+        nodesIntersect(0),
+        nodesOutside(0)
+    { }
+};
+
 // "Remove" voxels from the tree that are not in view. We don't actually delete them,
 // we remove them from the tree and place them into a holding area for later deletion
 bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
-    VoxelSystem* thisVoxelSystem = (VoxelSystem*) extraData;
-    _nodeCount++;
+    removeOutOfViewArgs* args = (removeOutOfViewArgs*)extraData;
+
+    // If our node was previously added to the don't recurse bag, then return false to
+    // stop the further recursion. This means that the whole node and it's children are
+    // known to be in view, so don't recurse them
+    if (args->dontRecurseBag.contains(node)) {
+        args->dontRecurseBag.remove(node);
+        return false; // stop recursion
+    }
+    
+    VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
+    args->nodesScanned++;
     // Need to operate on our child nodes, so we can remove them
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
-        if (childNode && !childNode->isInView(*thisVoxelSystem->_viewFrustum)) {
-            node->removeChildAtIndex(i);
-            thisVoxelSystem->_removedVoxels.insert(childNode);
+        if (childNode) {
+            ViewFrustum::location inFrustum = childNode->inFrustum(*thisVoxelSystem->_viewFrustum);
+            switch (inFrustum) {
+                case ViewFrustum::OUTSIDE: {
+                    args->nodesOutside++;
+                    args->nodesRemoved++;
+                    node->removeChildAtIndex(i);
+                    thisVoxelSystem->_removedVoxels.insert(childNode);
+                    // by removing the child, it will not get recursed!
+                } break;
+                case ViewFrustum::INSIDE: {
+                    // if the child node is fully INSIDE the view, then there's no need to recurse it
+                    // because we know all it's children will also be in the view, so we want to 
+                    // tell the caller to NOT recurse this child
+                    args->nodesInside++;
+                    args->dontRecurseBag.insert(childNode);
+                } break;
+                case ViewFrustum::INTERSECT: {
+                    // if the child node INTERSECTs the view, then we don't want to remove it because
+                    // it is at least partially in view. But we DO want to recurse the children because
+                    // some of them may not be in view... nothing specifically to do, just keep iterating
+                    // the children
+                    args->nodesIntersect++;
+                } break;
+            }
         }
     }
     return true; // keep going!
@@ -613,7 +668,14 @@ bool VoxelSystem::hasViewChanged() {
 }
 
 void VoxelSystem::removeOutOfView() {
-    PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()"); // would like to include removedCount, _nodeCount, _removedVoxels.count()
-    _nodeCount = 0;
-    _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)this);
+    PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()");
+    removeOutOfViewArgs args(this);
+    _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
+
+    if (_renderWarningsOn) {
+        printLog("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld bag.count()=%d \n", 
+                args.nodesScanned, args.nodesRemoved, args.nodesInside, 
+                args.nodesIntersect, args.nodesOutside, args.dontRecurseBag.count()
+            );
+    }
 }

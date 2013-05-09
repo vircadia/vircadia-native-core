@@ -42,9 +42,9 @@ public:
     void pair();
     void readData();
     
-    int getLastYaw() const { return _lastYaw; }
-    int getLastPitch() const { return _lastPitch; }
-    int getLastRoll() const { return _lastRoll; }
+    float getLastYawRate() const { return _lastYawRate; }
+    float getLastPitchRate() const { return _lastPitchRate; }
+    float getLastRollRate() const { return _lastRollRate; }
     
     int getLED() {return LED;};
     int getNumSamples() {return samplesAveraged;};
@@ -69,9 +69,9 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 gravity;
-    int _lastYaw;
-    int _lastPitch;
-    int _lastRoll;
+    float _lastYawRate;         //  Rates are in degrees per second. 
+    float _lastPitchRate;
+    float _lastRollRate;
     int _failedOpenAttempts;
 };
 
