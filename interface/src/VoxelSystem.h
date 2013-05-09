@@ -79,8 +79,8 @@ private:
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
 
-    int newway__updateNodeInArray(VoxelNode* node);
-    int oldway__updateNodeInArray(VoxelNode* node);
+    int updateNodeInArraysAsFullVBO(VoxelNode* node);
+    int updateNodeInArraysAsPartialVBO(VoxelNode* node);
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
@@ -99,7 +99,7 @@ private:
     unsigned long _voxelsInReadArrays;
     unsigned long _unusedArraySpace;
     
-    bool _alwaysRenderFullVBO;
+    bool _renderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
@@ -119,6 +119,8 @@ private:
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
     void updateVBOs();
+    void updateFullVBOs();
+    void updatePartialVBOs();
     void cleanupRemovedVoxels();
     
     bool _voxelsDirty;
