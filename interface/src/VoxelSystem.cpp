@@ -292,6 +292,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     assert(_viewFrustum); // you must set up _viewFrustum before calling this
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
+    bool  isLeaf          = node->isLeaf();
     // if it's colored, we might need to render it!
     if (node->isColored()) {
         float distanceToNode  = node->distanceToCamera(*_viewFrustum);
@@ -299,13 +300,15 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
         bool  inBoundary      = (distanceToNode <= boundary);
         bool  inChildBoundary = (distanceToNode <= childBoundary);
-        shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+        shouldRender = (isLeaf && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
     node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (node->getChildAtIndex(i)) {
-            voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+    if (!isLeaf) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            if (node->getChildAtIndex(i)) {
+                voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+            }
         }
     }
     if (_renderFullVBO) {
@@ -886,7 +889,8 @@ public:
         coloredNodes(0),
         nodesInVBO(0),
         nodesInVBOOverExpectedMax(0),
-        duplicateVBOIndex(0)
+        duplicateVBOIndex(0),
+        leafNodes(0)
         {
             memset(hasIndexFound, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
         };
@@ -898,15 +902,20 @@ public:
     unsigned long nodesInVBO;
     unsigned long nodesInVBOOverExpectedMax;
     unsigned long duplicateVBOIndex;
+    unsigned long leafNodes;
+
     unsigned long expectedMax;
     
-    bool colorThis;
     bool hasIndexFound[MAX_VOXELS_PER_SYSTEM];
 };
 
 bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData) {
     collectStatsForTreesAndVBOsArgs* args = (collectStatsForTreesAndVBOsArgs*)extraData;
     args->totalNodes++;
+
+    if (node->isLeaf()) {
+        args->leafNodes++;
+    }
 
     if (node->isColored()) {
         args->coloredNodes++;
@@ -939,6 +948,7 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
 }
 
 void VoxelSystem::collectStatsForTreesAndVBOs() {
+    PerformanceWarning warn(true, "collectStatsForTreesAndVBOs()", true);
 
     glBufferIndex minDirty = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxDirty = 0;
@@ -957,8 +967,10 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", (_voxelsDirty ? "yes" : "no"), 
         _voxelsInWriteArrays, minDirty, maxDirty);
 
-    printLog("stats: total %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
-        args.totalNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes, 
+    printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
+        args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
+
+    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
