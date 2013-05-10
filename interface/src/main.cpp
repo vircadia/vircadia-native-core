@@ -186,11 +186,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
 ProgramObject* oculusProgram = 0;   //  The GLSL program containing the distortion shader
-float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
-
-//
-//  Serial USB Variables
-// 
+float oculusDistortionScale = 1.25; //  Controls the Oculus field of viewa
 
 SerialInterface serialPort;
 
