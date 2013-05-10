@@ -14,7 +14,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv) {
     // simple menu bar (will only appear on OS X, for now)
     QMenuBar* menuBar = new QMenuBar();
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(testSlot()));
+    fileMenu->addAction("Test", this, SLOT(testSlot()));
 }
 
 void Application::testSlot() {
