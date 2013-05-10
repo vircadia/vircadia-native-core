@@ -509,8 +509,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         if (_avatarTouch.getHoldingHands()) {
             
             glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _handHoldingPosition;
-            glm::vec3 force = (vectorToOtherHand + vectorToMyHand) * 20.0f * deltaTime;
+            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position        - _handHoldingPosition;
+            glm::vec3 force
+            = vectorToOtherHand * 30.0f * deltaTime 
+            + vectorToMyHand    * 10.0f * deltaTime;
                 
             _handHoldingPosition += force;
             _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
