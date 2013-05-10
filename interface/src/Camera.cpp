@@ -7,6 +7,7 @@
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
+#include <OculusManager.h>
 // #include "Log.h"
 
 #include "Camera.h"
@@ -69,8 +70,14 @@ void Camera::updateFollowMode(float deltaTime) {
         t = 1.0;
     }
 
-    // update _yaw (before position!) 
-    _yaw += (_idealYaw - _yaw) * t;
+    // update _yaw (before position!)
+    if (OculusManager::isConnected()) {
+        // if using the oculus, just set the yaw
+        _yaw = _idealYaw;
+    } else {
+        _yaw += (_idealYaw - _yaw) * t;
+    }
+    
     _orientation.yaw(_yaw);
             
     float radian = (_yaw / 180.0) * PIE;

@@ -425,6 +425,13 @@ void updateAvatar(float deltaTime) {
         myAvatar.setRenderPitch(myAvatar.getRenderPitch() * (1.f - RENDER_PITCH_DECAY * deltaTime));
     }
     
+    if (OculusManager::isConnected()) {
+        float yaw, pitch, roll;
+        OculusManager::getEulerAngles(yaw, pitch, roll);
+        myAvatar.setBodyYaw(yaw);
+        myAvatar.setRenderPitch(pitch);
+    }
+    
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
         myAvatar.setLoudness(audio.getInputLoudness());
