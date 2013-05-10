@@ -232,7 +232,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         bool  inChildBoundary = (distanceToNode <= childBoundary);
         shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
-    node->setShouldRender(shouldRender && !node->deleteMe());
+    node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (node->getChildAtIndex(i)) {
@@ -249,7 +249,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     // then it means our VBOs are "clean" and our vertices have been removed or not added. So we can now
     // safely remove the node from the tree and actually delete it.
     // otherwise honor our calculated shouldRender
-    if (node->deleteMe()) {
+    if (node->isStagedForDeletion()) {
         _tree->deleteVoxelCodeFromTree(node->getOctalCode());
     }
     
@@ -915,7 +915,7 @@ void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
     VoxelNode* node = _tree->getVoxelAt(x, y, z, s);
     if (node) {
         // tell the node we want it deleted
-        node->pleaseDeleteMe();
+        node->stageForDeletion();
         
         // tree is now dirty
         _tree->setDirtyBit();

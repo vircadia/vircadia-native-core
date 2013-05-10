@@ -27,7 +27,7 @@ private:
     glBufferIndex _glBufferIndex;
     bool _isDirty;
     bool _shouldRender;
-    bool _deleteMe;
+    bool _isStagedForDeletion;
     AABox _box;
     unsigned char* _octalCode;
     VoxelNode* _children[8];
@@ -73,8 +73,8 @@ public:
     bool getShouldRender() const { return _shouldRender; }
 
     // Used by VoxelSystem to mark a node as to be deleted on next render pass
-    void pleaseDeleteMe() { _deleteMe = true; };
-    bool deleteMe() const { return _deleteMe; }
+    void stageForDeletion() { _isStagedForDeletion = true; };
+    bool isStagedForDeletion() const { return _isStagedForDeletion; }
 
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
