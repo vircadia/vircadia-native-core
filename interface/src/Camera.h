@@ -16,7 +16,7 @@ enum CameraMode
     CAMERA_MODE_NULL = -1,
     CAMERA_MODE_THIRD_PERSON,
     CAMERA_MODE_FIRST_PERSON,
-    CAMERA_MODE_MY_OWN_FACE,
+    CAMERA_MODE_MIRROR,
     NUM_CAMERA_MODES
 };
 
@@ -39,6 +39,7 @@ public:
     void setTargetYaw     ( float       y ) { _idealYaw       = y; }
     void setPosition      ( glm::vec3   p ) { _position       = p; }
     void setTightness     ( float       t ) { _tightness      = t; }
+    void setTargetRotation( float yaw, float pitch, float roll );
     
     void setMode          ( CameraMode  m );
     void setFieldOfView   ( float       f );
@@ -78,6 +79,8 @@ private:
 	float		_upShift;
 	float		_rightShift;
 	float		_idealYaw;
+	float		_idealPitch;
+	float		_idealRoll;
 	float		_distance;
 	float		_tightness;
 	Orientation	_orientation;

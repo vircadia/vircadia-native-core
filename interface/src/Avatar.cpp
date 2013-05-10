@@ -317,6 +317,10 @@ float Avatar::getAbsoluteHeadYaw() const {
     return _bodyYaw + _headYaw;
 }
 
+float Avatar::getAbsoluteHeadPitch() const {
+    return _bodyPitch + _headPitch;
+}
+
 void Avatar::addLean(float x, float z) {
     //Add lean as impulse
     _head.leanSideways += x;
@@ -700,9 +704,6 @@ void Avatar::updateHead(float deltaTime) {
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
-
-
-
 
 
 float Avatar::getHeight() {
