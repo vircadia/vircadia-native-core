@@ -621,7 +621,7 @@ bool findRayOperation(VoxelNode* node, void* extraData) {
         return true; // recurse on children
     }
     distance *= TREE_SCALE;
-    if (node->getShouldRender() && (!args->found || distance < args->distance)) {
+    if (node->isColored() && (!args->found || distance < args->distance)) {
         args->node = node;
         args->distance = distance;
         args->face = face;
