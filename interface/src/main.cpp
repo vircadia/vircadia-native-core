@@ -1991,13 +1991,17 @@ int main(int argc, const char * argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
+    printLog( "Created Display Window.\n" );
     
     #ifdef _WIN32
     glewInit();
+    printLog( "Glew Init complete.\n" );
+
     #endif
         
     // we need to create a QApplication instance in order to use Qt's font rendering
     app = new QApplication(argc, const_cast<char**>(argv));
+    printLog( "Created QT Application.\n" );
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
@@ -2005,11 +2009,9 @@ int main(int argc, const char * argv[]) {
     viewFrustumOffsetCamera.setNearClip(0.1);
     viewFrustumOffsetCamera.setFarClip(500.0*TREE_SCALE);
 
-    printLog( "Created Display Window.\n" );
-        
+    
     initMenu();
     initDisplay();
-    printLog( "Initialized Display.\n" );
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -2021,6 +2023,8 @@ int main(int argc, const char * argv[]) {
     glutPassiveMotionFunc(mouseoverFunc);
     glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
+    printLog( "Initialized Display.\n" );
+
     
     init();
     printLog( "Init() complete.\n" );
