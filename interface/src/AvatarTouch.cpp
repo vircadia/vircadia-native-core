@@ -13,20 +13,19 @@
 #include "Util.h"
 
 const float THREAD_RADIUS = 0.012;
-const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.1;
+const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.2;
 
 AvatarTouch::AvatarTouch() {
 
-    _myHandPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _yourHandPosition   = glm::vec3(0.0f, 0.0f, 0.0f);
-    _myBodyPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _yourBodyPosition   = glm::vec3(0.0f, 0.0f, 0.0f);
-    _vectorBetweenHands = glm::vec3(0.0f, 0.0f, 0.0f);
-    _myHandState        = HAND_STATE_NULL;
-    _yourHandState      = HAND_STATE_NULL;  
-    _reachableRadius    = 0.0f;  
-    _weAreHoldingHands  = false;
-    
+    _myHandPosition          = glm::vec3(0.0f, 0.0f, 0.0f);
+    _yourHandPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
+    _myBodyPosition          = glm::vec3(0.0f, 0.0f, 0.0f);
+    _yourBodyPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
+    _vectorBetweenHands      = glm::vec3(0.0f, 0.0f, 0.0f);
+    _myHandState             = HAND_STATE_NULL;
+    _yourHandState           = HAND_STATE_NULL;  
+    _reachableRadius         = 0.0f;  
+    _weAreHoldingHands       = false;
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
 
@@ -63,7 +62,6 @@ void AvatarTouch::setReachableRadius(float r) {
     _reachableRadius = r;
 }
 
-
 void AvatarTouch::simulate (float deltaTime) {
 
     glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
@@ -83,9 +81,7 @@ void AvatarTouch::simulate (float deltaTime) {
     } else {
         _canReachToOtherAvatar = false;
     }    
- }
- 
-
+}
 
 void AvatarTouch::render(glm::vec3 cameraPosition) {
 

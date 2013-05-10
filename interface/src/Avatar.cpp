@@ -529,21 +529,25 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //if holding hands, apply the appropriate forces
         if (_avatarTouch.getHoldingHands()) {
             
+            /*
             glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position        - _handHoldingPosition;
+            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
             
-            float myInfluence   = 30.0f;
-            float yourInfluence = 30.0f;
+            float force = 200.0 * deltaTime;
             
-            glm::vec3 myForce   = vectorToMyHand    * myInfluence   * deltaTime;
-            glm::vec3 yourForce = vectorToOtherHand * yourInfluence * deltaTime;
-            
-            if (_handState                    == HAND_STATE_GRASPING) {myForce   *= 2.0f; }
-            if (_interactingOther->_handState == HAND_STATE_GRASPING) {yourForce *= 2.0f; }
+            force = 1.0f;
+
+            if (force > 0.9f) { force = 0.9f; }
                 
-            _handHoldingPosition += myForce + yourForce;
+            _handHoldingPosition += vectorToMyHand * force + vectorToOtherHand * force;
             
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;     
+            */
+            
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = 
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position + 
+            ( _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position) * 0.5f;       
+                
         } else {
             _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
         }        
