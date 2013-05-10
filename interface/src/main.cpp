@@ -103,8 +103,8 @@ int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
-CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
-//CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
+//CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
+CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
