@@ -31,8 +31,6 @@
 #include <ifaddrs.h>
 #endif
 
-#include <QApplication>
-
 #include <pthread.h> 
 
 #include <glm/glm.hpp>
@@ -61,6 +59,7 @@
 #include "renderer/ProgramObject.h"
 #include "renderer/ShaderObject.h"
 
+#include "Application.h"
 #include "Camera.h"
 #include "Avatar.h"
 #include <AgentList.h>
@@ -85,8 +84,6 @@ void reshape(int width, int height); // will be defined below
 void loadViewFrustum(ViewFrustum& viewFrustum);  // will be defined below
 
 glm::vec3 getGravity(glm::vec3 pos); //get the local gravity vector at this location in the universe
-
-QApplication* app;
 
 bool enableNetworkThread = true;
 pthread_t networkReceiveThread;
@@ -2042,9 +2039,9 @@ int main(int argc, const char * argv[]) {
     #endif
         
     // we need to create a QApplication instance in order to use Qt's font rendering
-    app = new QApplication(argc, const_cast<char**>(argv));
+    Application app(argc, const_cast<char**>(argv));
     printLog( "Created QT Application.\n" );
-
+    
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
