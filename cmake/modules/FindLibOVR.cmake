@@ -20,8 +20,6 @@ else (LIBOVR_LIBRARY AND LIBOVR_INCLUDE_DIRS)
 
   if (APPLE)
       set(LIBOVR_LIBRARY ${LIBOVR_ROOT_DIR}/Lib/MacOS/libovr.a)
-  else (UNIX)
-      set(LIBOVR_LIBRARY ${LIBOVR_ROOT_DIR}/Lib/x64/libovr64.lib)
   else (WIN32)
       set(LIBOVR_LIBRARY ${LIBOVR_ROOT_DIR}/Lib/Win32/libovr.lib)
   endif ()
