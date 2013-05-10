@@ -68,6 +68,8 @@ public:
     
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
+
+    void collectStatsForTreesAndVBOs();
     
 private:
     int  _callsToTreesToArrays;
@@ -84,6 +86,7 @@ private:
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
+    static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
@@ -127,12 +130,14 @@ private:
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
 
+    bool _voxelsDirty;
+
+public:
     void updateVBOs();
     void updateFullVBOs(); // all voxels in the VBO
     void updatePartialVBOs(); // multiple segments, only dirty voxels
     void updateJustEnoughVBOs(); // single segment from first dirty, to last dirty, may include clean voxels
     
-    bool _voxelsDirty;
 };
 
 #endif

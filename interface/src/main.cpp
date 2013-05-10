@@ -1337,6 +1337,13 @@ int doFalseRandomizeEveryOtherVoxelColors(int state) {
     return state;
 }
 
+int doTreeStats(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    return state;
+}
+
 int doFalseRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.falseColorizeRandom();
@@ -1437,6 +1444,7 @@ void initMenu() {
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
     menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
+    menuColumnDebug->addRow("Calculate Tree Stats", doTreeStats);
 }
 
 void testPointToVoxel() {
@@ -1636,7 +1644,12 @@ void key(unsigned char k, int x, int y) {
     }
     
     //  Process keypresses 
-     if (k == 'q' || k == 'Q')  ::terminate();
+
+    if (k == 'S') {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    
+    if (k == 'q' || k == 'Q')  ::terminate();
     if (k == '/')  ::renderStatsOn = !::renderStatsOn;        // toggle stats
     if (k == '*')  ::renderStarsOn = !::renderStarsOn;        // toggle stars
     if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;        // toggle voxels

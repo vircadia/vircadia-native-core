@@ -94,6 +94,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     VoxelNode* returnedChild = _children[childIndex];
     if (_children[childIndex]) {
         _children[childIndex] = NULL;
+        _isDirty = true;
     }
     return returnedChild;
 }

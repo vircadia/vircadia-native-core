@@ -268,6 +268,7 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
             *(writeColorsAt  +j) = node->getColor()[j % 3];
         }
         node->setBufferIndex(nodeIndex);
+        _voxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
     }    
@@ -280,8 +281,8 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
         return 0;
     }
     
-    // Now, if we've changed any attributes (our renderness, our color, etc) then update the Arrays... for us
-    if (node->isDirty() && (node->getShouldRender() || node->isKnownBufferIndex())) {
+    // Now, if we've changed any attributes (our renderness, our color, etc) then update the Arrays...
+    if (node->isDirty()) {
         glm::vec3 startVertex;
         float voxelScale = 0;
         // If we're should render, use our legit location and scale, 
@@ -301,8 +302,9 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
             nodeIndex = node->getBufferIndex();
         } else {
             nodeIndex = _voxelsInWriteArrays;
+            node->setBufferIndex(nodeIndex);
+            _voxelsInWriteArrays++;
         }
-        
         _voxelDirtyArray[nodeIndex] = true;
 
         // populate the array with points for the 8 vertices
@@ -312,10 +314,6 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
             GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
             *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
             *(writeColorsAt  +j) = node->getColor()[j % 3];
-        }
-        if (!node->isKnownBufferIndex()) {
-            node->setBufferIndex(nodeIndex);
-            _voxelsInWriteArrays++; // our know vertices in the arrays
         }
         return 1; // updated!
     }
@@ -424,11 +422,10 @@ void VoxelSystem::updateFullVBOs() {
     glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
     
     // consider the _voxelDirtyArray[] clean!
-    memset(_voxelDirtyArray, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
+    memset(_voxelDirtyArray, false, _voxelsInWriteArrays * sizeof(bool));
 }
 
 void VoxelSystem::updatePartialVBOs() {
-    int segmentCount = 0;
     glBufferIndex segmentStart = 0;
     glBufferIndex segmentEnd = 0;
     bool inSegment = false;
@@ -457,11 +454,6 @@ void VoxelSystem::updatePartialVBOs() {
                 GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
                 glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
                 glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-
-                // debug
-                segmentCount++;
-                printLog("updatePartialVBOs() start=%ld, end=%ld, length=%ld, segmentCount=%d \n", 
-                    segmentStart, segmentEnd, segmentLength, segmentCount);
             }
             _voxelDirtyArray[i] = false; // consider us clean!
         }
@@ -482,43 +474,7 @@ void VoxelSystem::updatePartialVBOs() {
         GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-
-        // debug
-        segmentCount++;
-        printLog("updatePartialVBOs() start=%ld, end=%ld, length=%ld, segmentCount=%d \n", 
-            segmentStart, segmentEnd, segmentLength, segmentCount);
     }
-}
-
-void debugOpenGLError(const char* label) {
-    GLenum error = glGetError();
-    const char* errorMessage;
-    switch (error) {
-        case GL_NO_ERROR:
-            return;
-        case GL_INVALID_ENUM:
-            errorMessage = "GL_INVALID_ENUM";
-            break;
-        case GL_INVALID_VALUE:
-            errorMessage = "GL_INVALID_VALUE";
-            break;
-        case GL_INVALID_OPERATION:
-            errorMessage = "GL_INVALID_OPERATION";
-            break;
-        case GL_STACK_OVERFLOW:
-            errorMessage = "GL_STACK_OVERFLOW";
-            break;
-        case GL_STACK_UNDERFLOW:
-            errorMessage = "GL_STACK_UNDERFLOW";
-            break;
-        case GL_OUT_OF_MEMORY:
-            errorMessage = "GL_OUT_OF_MEMORY";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            errorMessage = "GL_INVALID_FRAMEBUFFER_OPERATION";
-            break;
-    }
-    printLog("%s generated %s", label, errorMessage);
 }
 
 void VoxelSystem::updateJustEnoughVBOs() {
@@ -538,31 +494,17 @@ void VoxelSystem::updateJustEnoughVBOs() {
     if (somethingDirty) {
         glBufferIndex segmentStart = minDirty;
         glBufferIndex segmentEnd = maxDirty;
-
-glGetError(); // clear errors
-
         int segmentLength = (segmentEnd - segmentStart) + 1;
         GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
         GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
         GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-debugOpenGLError("glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID)");
-
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-debugOpenGLError("glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom)");
-
         segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
         segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
         GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-debugOpenGLError("glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID)");
-
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-debugOpenGLError("glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom)");
-
-        // debug
-        printLog("updateJustEnoughVBOs() start=%ld, end=%ld, length=%ld, \n", segmentStart, segmentEnd, segmentLength);
     }
 }
 
@@ -574,8 +516,7 @@ void VoxelSystem::updateVBOs() {
     PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
         // updatePartialVBOs() is not yet working. For now, ALWAYS call updateFullVBOs()
-        bool alwaysRenderFullVBO = true;
-        if (alwaysRenderFullVBO || _renderFullVBO) {
+        if (_renderFullVBO) {
             updateFullVBOs();
         } else {
             updateJustEnoughVBOs();
@@ -832,6 +773,9 @@ void VoxelSystem::removeOutOfView() {
     removeOutOfViewArgs args(this);
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
 
+    if (args.nodesRemoved) {
+        _tree->setDirtyBit();
+    }
     bool showRemoveDebugDetails = false;
     if (showRemoveDebugDetails) {
         printLog("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d \n", 
@@ -839,6 +783,22 @@ void VoxelSystem::removeOutOfView() {
                 args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
             );
     }
+}
+
+bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                      VoxelDetail& detail, float& distance, BoxFace& face) {
+    VoxelNode* node;
+    if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
+        return false;
+    }
+    detail.x = node->getCorner().x;
+    detail.y = node->getCorner().y;
+    detail.z = node->getCorner().z;
+    detail.s = node->getScale();
+    detail.red = node->getColor()[0];
+    detail.green = node->getColor()[1];
+    detail.blue = node->getColor()[2];
+    return true;
 }
 
 class falseColorizeRandomEveryOtherArgs {
@@ -872,19 +832,101 @@ void VoxelSystem::falseColorizeRandomEveryOther() {
     setupNewVoxelsForDrawing();
 }
 
-bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                      VoxelDetail& detail, float& distance, BoxFace& face) {
-    VoxelNode* node;
-    if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
-        return false;
+class collectStatsForTreesAndVBOsArgs {
+public:
+    collectStatsForTreesAndVBOsArgs() : 
+        totalNodes(0), 
+        dirtyNodes(0), 
+        shouldRenderNodes(0),
+        coloredNodes(0),
+        nodesInVBO(0),
+        nodesInVBOOverExpectedMax(0),
+        duplicateVBOIndex(0)
+        {
+            memset(hasIndexFound, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
+        };
+
+    unsigned long totalNodes;
+    unsigned long dirtyNodes;
+    unsigned long shouldRenderNodes;
+    unsigned long coloredNodes;
+    unsigned long nodesInVBO;
+    unsigned long nodesInVBOOverExpectedMax;
+    unsigned long duplicateVBOIndex;
+    unsigned long expectedMax;
+    
+    bool colorThis;
+    bool hasIndexFound[MAX_VOXELS_PER_SYSTEM];
+};
+
+bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData) {
+    collectStatsForTreesAndVBOsArgs* args = (collectStatsForTreesAndVBOsArgs*)extraData;
+    args->totalNodes++;
+
+    if (node->isColored()) {
+        args->coloredNodes++;
     }
-    detail.x = node->getCorner().x;
-    detail.y = node->getCorner().y;
-    detail.z = node->getCorner().z;
-    detail.s = node->getScale();
-    detail.red = node->getColor()[0];
-    detail.green = node->getColor()[1];
-    detail.blue = node->getColor()[2];
-    return true;
+
+    if (node->getShouldRender()) {
+        args->shouldRenderNodes++;
+    }
+
+    if (node->isDirty()) {
+        args->dirtyNodes++;
+    }
+
+    if (node->isKnownBufferIndex()) {
+        args->nodesInVBO++;
+        unsigned long nodeIndex = node->getBufferIndex();
+        if (args->hasIndexFound[nodeIndex]) {
+            args->duplicateVBOIndex++;
+            printLog("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s \n", nodeIndex, 
+                    node->isDirty() ? "yes" : "no" , node->getShouldRender()  ? "yes" : "no" );
+        } else {
+            args->hasIndexFound[nodeIndex] = true;
+        }
+        if (nodeIndex > args->expectedMax) {
+            args->nodesInVBOOverExpectedMax++;
+        }
+    }
+
+    return true; // keep going!
 }
 
+void VoxelSystem::collectStatsForTreesAndVBOs() {
+
+    glBufferIndex minDirty = GLBUFFER_INDEX_UNKNOWN;
+    glBufferIndex maxDirty = 0;
+
+    for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
+        if (_voxelDirtyArray[i]) {
+            minDirty = std::min(minDirty,i);
+            maxDirty = std::max(maxDirty,i);
+        }
+    }
+
+    collectStatsForTreesAndVBOsArgs args;
+    args.expectedMax = _voxelsInWriteArrays;
+    _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
+
+    printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", (_voxelsDirty ? "yes" : "no"), 
+        _voxelsInWriteArrays, minDirty, maxDirty);
+
+    printLog("stats: total %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
+        args.totalNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes, 
+        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex);
+
+    glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
+    glBufferIndex maxInVBO = 0;
+
+    for (glBufferIndex i = 0; i < MAX_VOXELS_PER_SYSTEM; i++) {
+        if (args.hasIndexFound[i]) {
+            minInVBO = std::min(minInVBO,i);
+            maxInVBO = std::max(maxInVBO,i);
+        }
+    }
+
+    printLog("minInVBO=%ld maxInVBO=%ld _voxelsInWriteArrays=%ld _voxelsInReadArrays=%ld\n", 
+            minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
+
+}
