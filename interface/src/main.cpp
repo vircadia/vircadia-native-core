@@ -1892,10 +1892,11 @@ glm::vec3 getGravity(glm::vec3 pos) {
         return glm::vec3(0.f, 0.f, 0.f);
     }
 }
-       
+
+
 void mouseFunc(int button, int state, int x, int y) {
 
-    //catch mouse actiond on the menu
+    //catch mouse actions on the menu
     bool menuClickedOrUnclicked = menu.mouseClick(x, y);
 
     if (!menuClickedOrUnclicked) {
