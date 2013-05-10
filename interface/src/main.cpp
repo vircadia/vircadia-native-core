@@ -98,12 +98,13 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-int WIDTH = 1200;                   //  Window size
+int WIDTH = 1200; //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
-bool USING_FIRST_PERSON_EFFECT = false;
+//CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
+CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
@@ -112,7 +113,7 @@ Oscilloscope audioScope(256,200,true);
 ViewFrustum viewFrustum;            // current state of view frustum, perspective, orientation, etc.
 
 Avatar myAvatar(true);            // The rendered avatar of oneself
-Camera myCamera;                  // My view onto the world (sometimes on myself :)
+Camera myCamera;                  // My view onto the world 
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
 
 AvatarRenderer avatarRenderer;
@@ -325,8 +326,10 @@ void init(void) {
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
+    
     myAvatar.setPosition(start_location);
     myCamera.setPosition(start_location);
+    myCamera.setMode(defaultCameraMode);
     
     
 #ifdef MARKER_CAPTURE
@@ -370,10 +373,6 @@ void reset_sensors() {
     headMouseY = HEIGHT/2;
     
     myAvatar.reset();
-    
-    if (serialPort.active) {
-        serialPort.resetTrailingAverages();
-    }
 }
 
 void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
@@ -395,15 +394,9 @@ void updateAvatar(float deltaTime) {
     myAvatar.updateHeadFromGyros(deltaTime, &serialPort, &gravity);
 
     //  Grab latest readings from the gyros
-    float measuredYawRate, measuredPitchRate;
-    if (USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialPort.getLastPitchRate();
-        measuredYawRate = serialPort.getLastYawRate();
-    } else {
-        measuredPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialPort.getRelativeValue(HEAD_YAW_RATE);
-    }
-        
+    float measuredPitchRate = serialPort.getLastPitchRate();
+    float measuredYawRate = serialPort.getLastYawRate();
+    
     //  Update gyro-based mouse (X,Y on screen)
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -1031,90 +1024,32 @@ void display(void)
         glLoadIdentity();
     
         // camera settings
-        if (::lookingInMirror) {
-            // set the camera to looking at my own face
-            myCamera.setTargetPosition  (myAvatar.getHeadPosition());
-            myCamera.setTargetYaw       (myAvatar.getBodyYaw() - 180.0f); // 180 degrees from body yaw
-            myCamera.setPitch           (0.0);
-            myCamera.setRoll            (0.0);
-            myCamera.setUpShift         (0.0);    
-            myCamera.setDistance        (0.2);
-            myCamera.setTightness       (100.0f);
-        } else {
-
-            //float firstPersonPitch     =  20.0f;
-            //float firstPersonUpShift   =   0.0f;
-            //float firstPersonDistance  =   0.0f;
-            //float firstPersonTightness = 100.0f;
-
-            float firstPersonPitch     =  20.0f + myAvatar.getRenderPitch();
-            float firstPersonUpShift   =   0.1f;
-            float firstPersonDistance  =   0.4f;
-            float firstPersonTightness = 100.0f;
-
-            float thirdPersonPitch     =   0.0f + myAvatar.getRenderPitch();
-            float thirdPersonUpShift   =  -0.2f;
-            float thirdPersonDistance  =   1.2f;
-            float thirdPersonTightness =   8.0f;
-                        
-            if (USING_FIRST_PERSON_EFFECT) {
-                float ff = 0.0;
-                float min = 0.1;
-                float max = 0.5;
-
-                if (myAvatar.getIsNearInteractingOther()){
-                    if (myAvatar.getSpeed() < max) {
-                    
-                        float s = (myAvatar.getSpeed()- min)/max ;    
-                        ff = 1.0 - s;
-                    }
-                }
-
-                myCamera.setPitch       (thirdPersonPitch     + ff * (firstPersonPitch     - thirdPersonPitch    ));
-                myCamera.setUpShift    (thirdPersonUpShift   + ff * (firstPersonUpShift   - thirdPersonUpShift  ));
-                myCamera.setDistance   (thirdPersonDistance  + ff * (firstPersonDistance  - thirdPersonDistance ));
-                myCamera.setTightness  (thirdPersonTightness + ff * (firstPersonTightness - thirdPersonTightness));                
-                
-                // this version uses a ramp-up/ramp-down timer in the camera to determine shift between first and thirs-person view 
-                /*
-                if (myAvatar.getSpeed() < 0.02) {   
-                
-                    if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                        myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    }
-                    
-                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch       (thirdPersonPitch     + myCamera.getModeShift() * (firstPersonPitch     - thirdPersonPitch    ));
-                    myCamera.setUpShift    (thirdPersonUpShift   + myCamera.getModeShift() * (firstPersonUpShift   - thirdPersonUpShift  ));
-                    myCamera.setDistance   (thirdPersonDistance  + myCamera.getModeShift() * (firstPersonDistance  - thirdPersonDistance ));
-                    myCamera.setTightness  (thirdPersonTightness + myCamera.getModeShift() * (firstPersonTightness - thirdPersonTightness));                
-                } else {
-                    if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                    }
-                
-                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch       (firstPersonPitch     + myCamera.getModeShift() * (thirdPersonPitch     - firstPersonPitch    ));
-                    myCamera.setUpShift    (firstPersonUpShift   + myCamera.getModeShift() * (thirdPersonUpShift   - firstPersonUpShift  ));
-                    myCamera.setDistance   (firstPersonDistance  + myCamera.getModeShift() * (thirdPersonDistance  - firstPersonDistance ));
-                    myCamera.setTightness  (firstPersonTightness + myCamera.getModeShift() * (thirdPersonTightness - firstPersonTightness));
-                }
-                */
-                
-            } else {
-                myCamera.setPitch    (thirdPersonPitch    );
-                myCamera.setUpShift  (thirdPersonUpShift  );
-                myCamera.setDistance (thirdPersonDistance );
-                myCamera.setTightness(thirdPersonTightness);
-            }
-                
+        if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            myAvatar.setDisplayingHead(true);            
+            myCamera.setUpShift       (0.0);    
+            myCamera.setDistance      (0.2);
+            myCamera.setTightness     (100.0f);
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetYaw     (myAvatar.getBodyYaw());
-            myCamera.setRoll          (0.0);
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
+            
+        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            myAvatar.setDisplayingHead(false);            
+            myCamera.setUpShift       (0.0f);
+            myCamera.setDistance      (0.0f);
+            myCamera.setTightness     (100.0f); 
+            myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
+            
+        } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            myAvatar.setDisplayingHead(true);            
+            myCamera.setUpShift       (-0.2f);
+            myCamera.setDistance      (1.5f);
+            myCamera.setTightness     (8.0f);
+            myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw(), 0.0f, 0.0f);
         }
                 
         // important...
-
         myCamera.update( 1.f/FPS );
         
         // Render anything (like HUD items) that we want to be in 3D but not in worldspace
@@ -1354,6 +1289,20 @@ int doRandomizeVoxelColors(int state) {
     return state;
 }
 
+int doFalseRandomizeEveryOtherVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.falseColorizeRandomEveryOther();
+    }
+    return state;
+}
+
+int doTreeStats(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    return state;
+}
+
 int doFalseRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.falseColorizeRandom();
@@ -1450,9 +1399,11 @@ void initMenu() {
     menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxel Every Other Randomly", doFalseRandomizeEveryOtherVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
     menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
+    menuColumnDebug->addRow("Calculate Tree Stats", doTreeStats);
 }
 
 void testPointToVoxel() {
@@ -1521,17 +1472,27 @@ void addVoxelInFrontOfAvatar() {
     detail.blue = 128;
     
     sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, detail);
+    
+    // create the voxel locally so it appears immediately            
+    voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue);
 }
 
 void addVoxelUnderCursor() {
     if (::mouseVoxel.s != 0) {    
         sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, ::mouseVoxel);
+        
+        // create the voxel locally so it appears immediately            
+        voxels.createVoxel(::mouseVoxel.x, ::mouseVoxel.y, ::mouseVoxel.z, ::mouseVoxel.s,
+                           ::mouseVoxel.red, ::mouseVoxel.green, ::mouseVoxel.blue);
     }
 }
 
 void deleteVoxelUnderCursor() {
     if (::mouseVoxel.s != 0) {
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, ::mouseVoxel);
+        
+        // delete the voxel locally so it disappears immediately            
+        voxels.deleteVoxelAt(::mouseVoxel.x, ::mouseVoxel.y, ::mouseVoxel.z, ::mouseVoxel.s);
     }
 }
 
@@ -1618,7 +1579,12 @@ void key(unsigned char k, int x, int y) {
     }
     
     //  Process keypresses 
-     if (k == 'q' || k == 'Q')  ::terminate();
+
+    if (k == 'S') {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    
+    if (k == 'q' || k == 'Q')  ::terminate();
     if (k == '/')  ::renderStatsOn = !::renderStatsOn;        // toggle stats
     if (k == '*')  ::renderStarsOn = !::renderStarsOn;        // toggle stars
     if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;        // toggle voxels
@@ -1675,6 +1641,12 @@ void key(unsigned char k, int x, int y) {
         ::lookingInMirror = !::lookingInMirror;
         #ifndef _WIN32
         audio.setMixerLoopbackFlag(::lookingInMirror);
+        
+        if (::lookingInMirror) {
+            myCamera.setMode(CAMERA_MODE_MIRROR);
+        } else {
+            myCamera.setMode(defaultCameraMode);
+        }
         #endif
     }
     
@@ -1834,7 +1806,7 @@ void idle(void) {
         }
         
         //  Read serial port interface devices
-        if (serialPort.active && USING_INVENSENSE_MPU9150) {
+        if (serialPort.active) {
             serialPort.readData();
         }
         
@@ -1868,10 +1840,6 @@ void idle(void) {
         lastTimeIdle = check;
     }
     
-    //  Read serial data 
-    if (serialPort.active && !USING_INVENSENSE_MPU9150) {
-        serialPort.readData();
-    }
 }
 
 void reshape(int width, int height) {
@@ -1944,14 +1912,18 @@ glm::vec3 getGravity(glm::vec3 pos) {
         return glm::vec3(0.f, 0.f, 0.f);
     }
 }
-       
+
+
 void mouseFunc(int button, int state, int x, int y) {
-    mouseX = x;
-    mouseY = y;
-    
-    switch (button) {
-        case GLUT_LEFT_BUTTON:
-            if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
+    //catch mouse actions on the menu
+    bool menuClickedOrUnclicked = menu.mouseClick(x, y);
+
+    if (!menuClickedOrUnclicked) {
+        if (button == GLUT_LEFT_BUTTON) {
+            mouseX = x;
+            mouseY = y;
+            
+            if (state == GLUT_DOWN) {
                 mousePressed = 1;
                 if (::mouseMode == ADD_VOXEL_MODE || ::mouseMode == COLOR_VOXEL_MODE) {
                     addVoxelUnderCursor();
@@ -1959,18 +1931,15 @@ void mouseFunc(int button, int state, int x, int y) {
                 } else { // ::mouseMode == DELETE_VOXEL_MODE
                     deleteVoxelUnderCursor();    
                 }
-            } else {
+            } else if (state == GLUT_UP) {
                 mousePressed = 0;
             }
-            break;
-        
-        case GLUT_RIGHT_BUTTON:
-            if (state == GLUT_DOWN) {
-                deleteVoxelUnderCursor();
-            }
-            break;
+        } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+            deleteVoxelUnderCursor();
+        }
     }
 }
+
 
 void motionFunc(int x, int y) {
     mouseX = x;
@@ -1997,6 +1966,10 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 #endif
 
 int main(int argc, const char * argv[]) {
+    
+    gettimeofday(&applicationStartupTime, NULL);
+    printLog("Interface Startup:\n");
+    
     voxels.setViewFrustum(&::viewFrustum);
 
     shared_lib::printLog = & ::printLog;
@@ -2014,7 +1987,6 @@ int main(int argc, const char * argv[]) {
         AgentList::getInstance()->getAgentSocket().setBlocking(false);
     }
     
-    gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
         strcpy(DOMAIN_IP,domainIP);
@@ -2051,13 +2023,17 @@ int main(int argc, const char * argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Interface");
+    printLog( "Created Display Window.\n" );
     
     #ifdef _WIN32
     glewInit();
+    printLog( "Glew Init complete.\n" );
+
     #endif
         
     // we need to create a QApplication instance in order to use Qt's font rendering
     app = new QApplication(argc, const_cast<char**>(argv));
+    printLog( "Created QT Application.\n" );
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
@@ -2065,11 +2041,9 @@ int main(int argc, const char * argv[]) {
     viewFrustumOffsetCamera.setNearClip(0.1);
     viewFrustumOffsetCamera.setFarClip(500.0*TREE_SCALE);
 
-    printLog( "Created Display Window.\n" );
-        
+    
     initMenu();
     initDisplay();
-    printLog( "Initialized Display.\n" );
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -2081,6 +2055,8 @@ int main(int argc, const char * argv[]) {
     glutPassiveMotionFunc(mouseoverFunc);
     glutMouseFunc(mouseFunc);
     glutIdleFunc(idle);
+    printLog( "Initialized Display.\n" );
+
     
     init();
     printLog( "Init() complete.\n" );

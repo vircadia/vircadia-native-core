@@ -29,7 +29,7 @@ const int ITERATIONS_BEFORE_HAND_GRAB = 100;
 const int HAND_GRAB_DURATION_ITERATIONS = 50;
 const int HAND_TIMER_SLEEP_ITERATIONS = 50;
 
-const float EVE_PELVIS_HEIGHT = 0.5f;
+const float EVE_PELVIS_HEIGHT = 0.565925f;
 
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;

@@ -254,15 +254,13 @@ void Agent::printLog(Agent const& agent) {
     char publicAddressBuffer[16] = {'\0'};
     unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, agent.publicSocket);
     
-    char localAddressBuffer[16] = {'\0'};
-    unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, agent.localSocket);
+    //char localAddressBuffer[16] = {'\0'};
+    //unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, agent.localSocket);
     
-    ::printLog("ID: %d T: %s (%c) PA: %s:%d LA: %s:%d\n",
+    ::printLog("# %d %s (%c) @ %s:%d\n",
                agent.agentId,
                agent.getTypeName(),
                agent.type,
                publicAddressBuffer,
-               publicAddressPort,
-               localAddressBuffer,
-               localAddressPort);
+               publicAddressPort);
 }

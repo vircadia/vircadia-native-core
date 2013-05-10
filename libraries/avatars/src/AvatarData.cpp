@@ -42,6 +42,8 @@ AvatarData::AvatarData() :
     _headYaw(0),
     _headPitch(0),
     _headRoll(0),
+    _headLeanSideways(0),
+    _headLeanForward(0),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraDirection(0,0,0),
@@ -84,7 +86,13 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headRoll);
     
-    // Hand Position 
+    // Head lean X,Z (head lateral and fwd/back motion relative to torso)
+    memcpy(destinationBuffer, &_headLeanSideways, sizeof(float));
+    destinationBuffer += sizeof(float);
+    memcpy(destinationBuffer, &_headLeanForward, sizeof(float));
+    destinationBuffer += sizeof(float);
+
+    // Hand Position
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
     
@@ -149,6 +157,12 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headRoll);
+
+    //  Head position relative to pelvis
+    memcpy(&_headLeanSideways, sourceBuffer, sizeof(float));
+    sourceBuffer += sizeof(float);
+    memcpy(&_headLeanForward, sourceBuffer, sizeof(float));
+    sourceBuffer += sizeof(float);
 
     // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);

@@ -14,9 +14,9 @@ from random import random,randint
 from math import sqrt, hypot, atan2, pi, fmod, degrees
 from sys import argv,stderr
 
-hemisphere_only, equator, meridians= False, 0, 1000
+hemisphere_only, equator, meridians=False, 0, 1000
 
-n_random = 100000
+n_random = 50000
 if len(argv) > 1:
     n_random = int(argv[1])
 
@@ -35,9 +35,9 @@ def meridian(azimuth,n,(r0,g0,b0),(r1,g1,b1)):
         print "%f %f #%02x%02x%02x" % (azimuth,altitude,r,g,b)
         print "%f %f #%02x%02x%02x" % (azimuth,-altitude,r,g,b)
 
-if meridians:
-    meridian( 0,meridians,(255,255,255), (180, 60,255)) # N->S
-    meridian(90,meridians,( 80,255, 80), (255,240, 40)) # E->W
+#if meridians:
+    #meridian( 0,meridians,(255,255,255), (180, 60,255)) # N->S
+    #meridian(90,meridians,( 80,255, 80), (255,240, 40)) # E->W
 
 if equator:
     azis = 360.0/equator

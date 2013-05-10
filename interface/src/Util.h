@@ -44,7 +44,7 @@ void noiseTest(int w, int h);
 
 void drawVector(glm::vec3* vector);
 
-float angleBetween(glm::vec3 * v1, glm::vec3 * v2); 
+float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
 
 double diffclock(timeval *clock1,timeval *clock2);
 

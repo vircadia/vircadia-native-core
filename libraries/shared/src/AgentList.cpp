@@ -284,7 +284,7 @@ void AgentList::addAgentToList(Agent* newAgent) {
     
     ++_numAgents;
     
-    printLog("Added agent - ");
+    printLog("Added ");
     Agent::printLog(*newAgent);
 }
 
@@ -377,7 +377,7 @@ void *removeSilentAgents(void *args) {
             if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
             	&& agent->getType() != AGENT_TYPE_VOXEL) {
                 
-                printLog("Killing agent - ");
+                printLog("Killed ");
                 Agent::printLog(*agent);
                 
                 agent->setAlive(false);
@@ -416,12 +416,12 @@ void *checkInWithDomainServer(void *args) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain server: %s - %s\n", DOMAIN_HOSTNAME, DOMAIN_IP);
+            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
             
         } else {
             printLog("Failed lookup domainserver\n");
         }
-    } else printLog("Using static domainserver IP: %s\n", DOMAIN_IP);
+    } else printLog("Domain Server IP: %s\n", DOMAIN_IP);
     
     AgentList* parentAgentList = (AgentList*) args;
     
