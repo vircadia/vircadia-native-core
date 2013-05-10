@@ -266,21 +266,15 @@ void Avatar::reset() {
 
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;
     
-    if (serialInterface->active && USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialInterface->getLastPitchRate();
-        measuredYawRate = serialInterface->getLastYawRate();
-        measuredRollRate = serialInterface->getLastRollRate();
-    } else {
-        measuredPitchRate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
-        measuredRollRate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    }
-    
+    measuredPitchRate = serialInterface->getLastPitchRate();
+    measuredYawRate = serialInterface->getLastYawRate();
+    measuredRollRate = serialInterface->getLastRollRate();
+   
     //  Update avatar head position based on measured gyro rates
     const float MAX_PITCH = 45;
     const float MIN_PITCH = -45;
@@ -289,13 +283,34 @@ void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterfa
     const float MAX_ROLL = 50;
     const float MIN_ROLL = -50;
     
-    addHeadPitch(measuredPitchRate * frametime);
-    addHeadYaw(measuredYawRate * frametime);
-    addHeadRoll(measuredRollRate * frametime);
+    addHeadPitch(measuredPitchRate * deltaTime);
+    addHeadYaw(measuredYawRate * deltaTime);
+    addHeadRoll(measuredRollRate * deltaTime);
     
     setHeadPitch(glm::clamp(getHeadPitch(), MIN_PITCH, MAX_PITCH));
     setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
     setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
+    
+    //  Update head lean distance based on accelerometer data
+    const float LEAN_SENSITIVITY = 0.15;
+    const float LEAN_MAX = 0.45;
+    const float LEAN_AVERAGING = 10.0;
+    glm::vec3 headRotationRates(getHeadPitch(), getHeadYaw(), getHeadRoll());
+    float headRateMax = 50.f;
+    
+    
+    glm::vec3 leaning = (serialInterface->getLastAcceleration() -  serialInterface->getGravity())
+                        * LEAN_SENSITIVITY
+                        * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
+    leaning.y = 0.f;
+    if (glm::length(leaning) < LEAN_MAX) {
+        _head.leanForward = _head.leanForward * (1.f - LEAN_AVERAGING * deltaTime) +
+                                (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY;
+        _head.leanSideways = _head.leanSideways * (1.f - LEAN_AVERAGING * deltaTime) +
+                                (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY;
+    }
+    setHeadLeanSideways(_head.leanSideways);
+    setHeadLeanForward(_head.leanForward); 
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -328,6 +343,8 @@ void Avatar::simulate(float deltaTime) {
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
+    
+    // if other avatar, update head position from network data
     
 	// update avatar skeleton
 	updateSkeleton();
@@ -549,14 +566,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
-    // hold on to this - used for testing....
-    /*
-    static float test = 0.0f;
-    test += deltaTime;
-    _head.leanForward  = 0.02 * sin( test * 0.2f );
-    _head.leanSideways = 0.02 * sin( test * 0.3f );
-    */
-
+    // Get head position data from network for other people
+    if (!_isMine) {
+        _head.leanSideways = getHeadLeanSideways();
+        _head.leanForward = getHeadLeanForward(); 
+    }
+    
     //apply the head lean values to the springy position...
     if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
         glm::vec3 headLean = 
@@ -583,7 +598,7 @@ void Avatar::updateHead(float deltaTime) {
     }
 
     //  Decay head back to center if turned on
-    if (_returnHeadToCenter) {
+    if (_isMine && _returnHeadToCenter) {
         //  Decay back toward center
         _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
         _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
@@ -591,15 +606,14 @@ void Avatar::updateHead(float deltaTime) {
     }
     
     //  For invensense gyro, decay only slightly when roughly centered
-    if (USING_INVENSENSE_MPU9150) {
-        const float RETURN_RANGE = 5.0;
-        const float RETURN_STRENGTH = 1.0;
+    if (_isMine) {
+        const float RETURN_RANGE = 15.0;
+        const float RETURN_STRENGTH = 2.0;
         if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
-
     }
-    
+
     if (_head.noise) {
         //  Move toward new target
         _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;

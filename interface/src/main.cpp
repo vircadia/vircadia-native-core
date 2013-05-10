@@ -364,10 +364,6 @@ void reset_sensors() {
     headMouseY = HEIGHT/2;
     
     myAvatar.reset();
-    
-    if (serialPort.active) {
-        serialPort.resetTrailingAverages();
-    }
 }
 
 //
@@ -379,15 +375,9 @@ void updateAvatar(float deltaTime) {
     myAvatar.updateHeadFromGyros(deltaTime, &serialPort, &gravity);
 
     //  Grab latest readings from the gyros
-    float measuredYawRate, measuredPitchRate;
-    if (USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialPort.getLastPitchRate();
-        measuredYawRate = serialPort.getLastYawRate();
-    } else {
-        measuredPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialPort.getRelativeValue(HEAD_YAW_RATE);
-    }
-        
+    float measuredPitchRate = serialPort.getLastPitchRate();
+    float measuredYawRate = serialPort.getLastYawRate();
+    
     //  Update gyro-based mouse (X,Y on screen)
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -1330,6 +1320,20 @@ int doRandomizeVoxelColors(int state) {
     return state;
 }
 
+int doFalseRandomizeEveryOtherVoxelColors(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.falseColorizeRandomEveryOther();
+    }
+    return state;
+}
+
+int doTreeStats(int state) {
+    if (state == MENU_ROW_PICKED) {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    return state;
+}
+
 int doFalseRandomizeVoxelColors(int state) {
     if (state == MENU_ROW_PICKED) {
         ::voxels.falseColorizeRandom();
@@ -1426,9 +1430,11 @@ void initMenu() {
     menuColumnDebug->addRow("Kill Local Voxels", doKillLocalVoxels);
     menuColumnDebug->addRow("Randomize Voxel TRUE Colors", doRandomizeVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels Randomly", doFalseRandomizeVoxelColors);
+    menuColumnDebug->addRow("FALSE Color Voxel Every Other Randomly", doFalseRandomizeEveryOtherVoxelColors);
     menuColumnDebug->addRow("FALSE Color Voxels by Distance", doFalseColorizeByDistance);
     menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
+    menuColumnDebug->addRow("Calculate Tree Stats", doTreeStats);
 }
 
 void testPointToVoxel() {
@@ -1628,7 +1634,12 @@ void key(unsigned char k, int x, int y) {
     }
     
     //  Process keypresses 
-     if (k == 'q' || k == 'Q')  ::terminate();
+
+    if (k == 'S') {
+        ::voxels.collectStatsForTreesAndVBOs();
+    }
+    
+    if (k == 'q' || k == 'Q')  ::terminate();
     if (k == '/')  ::renderStatsOn = !::renderStatsOn;        // toggle stats
     if (k == '*')  ::renderStarsOn = !::renderStarsOn;        // toggle stars
     if (k == 'V' || k == 'v')  ::renderVoxels = !::renderVoxels;        // toggle voxels
@@ -1775,7 +1786,7 @@ void idle(void) {
         }
         
         //  Read serial port interface devices
-        if (serialPort.active && USING_INVENSENSE_MPU9150) {
+        if (serialPort.active) {
             serialPort.readData();
         }
         
@@ -1809,10 +1820,6 @@ void idle(void) {
         lastTimeIdle = check;
     }
     
-    //  Read serial data 
-    if (serialPort.active && !USING_INVENSENSE_MPU9150) {
-        serialPort.readData();
-    }
 }
 
 void reshape(int width, int height) {
