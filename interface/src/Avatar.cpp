@@ -516,37 +516,46 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     }                    
                 }
             }
+
+            glm::vec3 vectorFromMyHandToYourHand
+            (
+                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - 
+                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
+            );
             
+            float distanceBetweenOurHands = glm::length(vectorFromMyHandToYourHand);
+
+            /*
+            // if my arm can no longer reach the other hand, turn off hand-holding
             if (!_avatarTouch.getAbleToReachOtherAvatar()) {
                 _avatarTouch.setHoldingHands(false);                
             }
+            if (distanceBetweenOurHands > _maxArmLength) {
+                _avatarTouch.setHoldingHands(false);                
+            }
+            */
 
+            // if neither of us are grasping, turn off hand-holding
             if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
                 _avatarTouch.setHoldingHands(false);                
             }
-        }
-        
-        //if holding hands, apply the appropriate forces
-        if (_avatarTouch.getHoldingHands()) {
-            
-            glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position        - _handHoldingPosition;
-            
-            float myInfluence   = 30.0f;
-            float yourInfluence = 30.0f;
-            
-            glm::vec3 myForce   = vectorToMyHand    * myInfluence   * deltaTime;
-            glm::vec3 yourForce = vectorToOtherHand * yourInfluence * deltaTime;
-            
-            if (_handState                    == HAND_STATE_GRASPING) {myForce   *= 2.0f; }
-            if (_interactingOther->_handState == HAND_STATE_GRASPING) {yourForce *= 2.0f; }
+
+
+            //if holding hands, apply the appropriate forces
+            if (_avatarTouch.getHoldingHands()) {
+                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
+                ( 
+                    _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position 
+                    - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
+                ) * 0.5f; 
                 
-            _handHoldingPosition += myForce + yourForce;
-            
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
-        } else {
-            _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-        }        
+                if (distanceBetweenOurHands > 0.2) {
+                    float force = 700.0f * deltaTime;
+                    if (force > 1.0f) {force = 1.0f;}
+                    _velocity += vectorFromMyHandToYourHand * force;
+                }
+            }
+        }
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
@@ -1262,7 +1271,7 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_LEFT_HEEL ].radius +
     _joint[ AVATAR_JOINT_LEFT_HEEL ].length +
     _joint[ AVATAR_JOINT_LEFT_KNEE ].length;
-    printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
+    //printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
     
     _height = 
     (
@@ -1277,7 +1286,7 @@ void Avatar::initializeSkeleton() {
         _joint[ AVATAR_JOINT_HEAD_BASE ].length +
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
     );
-    printf("_height = %f\n", _height);
+    //printf("_height = %f\n", _height);
     
     // generate joint positions by updating the skeleton
     updateSkeleton();
