@@ -1529,6 +1529,9 @@ void addVoxelUnderCursor() {
         if (createVoxelEditMessage(PACKET_HEADER_SET_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
             AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
             delete bufferOut;
+
+            // create the voxel locally so it appears immediately            
+            voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue);
         }
     }
 }
@@ -1547,6 +1550,10 @@ void deleteVoxelUnderCursor() {
         if (createVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, 0, 1, &detail, bufferOut, sizeOut)){
             AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
             delete bufferOut;
+
+            // delete the voxel locally so it disappears immediately            
+            voxels.deleteVoxelAt(detail.x, detail.y, detail.z, detail.s);
+
         }
     }
 }
