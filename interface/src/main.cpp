@@ -1938,6 +1938,10 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 #endif
 
 int main(int argc, const char * argv[]) {
+    
+    gettimeofday(&applicationStartupTime, NULL);
+    printLog("Interface Startup:\n");
+    
     voxels.setViewFrustum(&::viewFrustum);
 
     shared_lib::printLog = & ::printLog;
@@ -1955,7 +1959,6 @@ int main(int argc, const char * argv[]) {
         AgentList::getInstance()->getAgentSocket().setBlocking(false);
     }
     
-    gettimeofday(&applicationStartupTime, NULL);
     const char* domainIP = getCmdOption(argc, argv, "--domain");
     if (domainIP) {
         strcpy(DOMAIN_IP,domainIP);
