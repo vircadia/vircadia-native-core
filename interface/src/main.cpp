@@ -15,8 +15,6 @@
 //  Welcome Aboard!
 //
 
-
-
 #include <math.h>
 #include <string.h>
 #include <sstream>
@@ -421,8 +419,10 @@ void updateAvatar(float deltaTime) {
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
+        
         myAvatar.setBodyYaw(yaw);
-        myAvatar.setRenderPitch(pitch);
+        myAvatar.setHeadPitch(-pitch);
+        myAvatar.setHeadRoll(-roll);
     }
     
     //  Get audio loudness data from audio input device
@@ -1008,14 +1008,18 @@ void display(void)
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
             myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
             
-        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || OculusManager::isConnected()) {
             myAvatar.setDisplayingHead(false);            
             myCamera.setUpShift       (0.0f);
             myCamera.setDistance      (0.0f);
             myCamera.setTightness     (100.0f); 
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
             
+            if (OculusManager::isConnected()) {
+                myCamera.setTargetRotation(myAvatar.getBodyYaw(), -myAvatar.getHeadPitch(), myAvatar.getHeadRoll());
+            } else {
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
+            }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
             myCamera.setUpShift       (-0.2f);

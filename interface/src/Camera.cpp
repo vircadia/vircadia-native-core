@@ -74,13 +74,18 @@ void Camera::updateFollowMode(float deltaTime) {
 
     // update _yaw (before position!)
     if (OculusManager::isConnected()) {
-        // if using the oculus, just set the yaw
         _yaw = _idealYaw;
+        _pitch = _idealPitch;
+        _roll = _idealRoll;
     } else {
-        _yaw += (_idealYaw - _yaw) * t;
+        _yaw   += (_idealYaw   - _yaw  ) * t;
+        _pitch += (_idealPitch - _pitch) * t;
+        _roll  += (_idealRoll  - _roll ) * t;
     }
-    
-    _orientation.yaw(_yaw);
+
+    _orientation.yaw  (_yaw  );
+    _orientation.pitch(_pitch);
+    _orientation.roll (_roll );
             
     float radian = (_yaw / 180.0) * PIE;
 
