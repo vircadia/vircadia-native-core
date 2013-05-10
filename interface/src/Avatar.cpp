@@ -545,7 +545,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             */
             
 _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
-( _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position) * 0.9f;       
+( _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position) * 0.5f;       
                 
         } else {
             _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
