@@ -527,23 +527,30 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 _avatarTouch.setHoldingHands(false);                
             }
 
-            glm::vec3 v(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-            float distance = glm::length(v);
+            glm::vec3 vectorFromMyHandToYourHand
+            (
+                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - 
+                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
+            );
+            float distanceBetweenOurHands = glm::length(vectorFromMyHandToYourHand);
 
-            if (distance > _maxArmLength) {
+            if (distanceBetweenOurHands > _maxArmLength) {
                 _avatarTouch.setHoldingHands(false);                
             }
+
+            //if holding hands, apply the appropriate forces
+            if (_avatarTouch.getHoldingHands()) {
+                _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
+                ( 
+                    _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position 
+                    - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
+                ) * 0.5f; 
+                
+                if (distanceBetweenOurHands > 0.2) {
+                    _velocity += vectorFromMyHandToYourHand * 30.0f * deltaTime;
+                }
+            }
         }
-        
-        //if holding hands, apply the appropriate forces
-        if (_avatarTouch.getHoldingHands()) {
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
-            ( 
-                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position 
-                - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
-            ) * 0.5f; 
-        }
-    
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
