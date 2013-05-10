@@ -9,11 +9,13 @@
 #include "OculusManager.h"
 #include <glm/glm.hpp>
 
+#ifdef __APPLE__
 bool OculusManager::_isConnected = false;
 Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
 SensorFusion OculusManager::_sensorFusion;
+#endif
 
 void OculusManager::connect() {
 #ifdef __APPLE__
