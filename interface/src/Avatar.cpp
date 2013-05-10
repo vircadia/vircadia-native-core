@@ -517,39 +517,33 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 }
             }
             
+            // if I can no longer reach the otherhand, turn off hand-holding
             if (!_avatarTouch.getAbleToReachOtherAvatar()) {
                 _avatarTouch.setHoldingHands(false);                
             }
 
+            // if neither of us are grasping, turn off hand-holding
             if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
+                _avatarTouch.setHoldingHands(false);                
+            }
+
+            glm::vec3 v(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+            float distance = glm::length(v);
+
+            if (distance > _maxArmLength) {
                 _avatarTouch.setHoldingHands(false);                
             }
         }
         
         //if holding hands, apply the appropriate forces
         if (_avatarTouch.getHoldingHands()) {
-            
-            /*
-            glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            
-            float force = 200.0 * deltaTime;
-            
-            force = 1.0f;
-
-            if (force > 0.9f) { force = 0.9f; }
-                
-            _handHoldingPosition += vectorToMyHand * force + vectorToOtherHand * force;
-            
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;     
-            */
-            
-_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
-( _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position) * 0.5f;       
-                
-        } else {
-            _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-        }        
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
+            ( 
+                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position 
+                - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
+            ) * 0.5f; 
+        }
+    
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
