@@ -398,13 +398,14 @@ void updateAvatar(float deltaTime) {
     float measuredYawRate = serialPort.getLastYawRate();
     
     //  Update gyro-based mouse (X,Y on screen)
-    const float MIN_MOUSE_RATE = 30.0;
-    const float MOUSE_SENSITIVITY = 0.1f;
+    const float MIN_MOUSE_RATE = 1.0;
+    const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
+    const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
              measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE)
     {
-        headMouseX += measuredYawRate*MOUSE_SENSITIVITY;
-        headMouseY += measuredPitchRate*MOUSE_SENSITIVITY*(float)HEIGHT/(float)WIDTH;
+        headMouseX += measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
+        headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
     }
     headMouseX = max(headMouseX, 0);
     headMouseX = min(headMouseX, WIDTH);
@@ -413,32 +414,17 @@ void updateAvatar(float deltaTime) {
     
     //  Update head and body pitch and yaw based on measured gyro rates
     if (::gyroLook) {
-        // Yaw
-        const float MIN_YAW_RATE = 20.f;
-        const float YAW_MAGNIFY = 3.0;
+        // Render Yaw
+        float renderYawSpring = fabs(headMouseX - WIDTH / 2.f) / (WIDTH / 2.f);
+        const float RENDER_YAW_MULTIPLY = 4.f;
+        myAvatar.setRenderYaw((1.f - renderYawSpring * deltaTime) * myAvatar.getRenderYaw() +
+                              renderYawSpring * deltaTime * -myAvatar.getHeadYaw() * RENDER_YAW_MULTIPLY);
+        // Render Pitch
+        float renderPitchSpring = fabs(headMouseY - HEIGHT / 2.f) / (HEIGHT / 2.f);
+        const float RENDER_PITCH_MULTIPLY = 4.f;
+        myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * myAvatar.getRenderPitch() +
+                                renderPitchSpring * deltaTime * -myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
 
-        if (fabs(measuredYawRate) > MIN_YAW_RATE) {
-            float addToBodyYaw = (measuredYawRate > 0.f)
-                                    ? measuredYawRate - MIN_YAW_RATE : measuredYawRate + MIN_YAW_RATE;
-            
-            //  If we are rotating the body (render angle), move the head reverse amount to compensate 
-            myAvatar.addBodyYaw(-addToBodyYaw * YAW_MAGNIFY * deltaTime);
-            myAvatar.addHeadYaw(addToBodyYaw * YAW_MAGNIFY * deltaTime);
-        }
-        // Pitch   
-        const float MIN_PITCH_RATE = 20.f;
-        const float PITCH_MAGNIFY = 2.0;
-
-        if (fabs(measuredPitchRate) > MIN_PITCH_RATE) {
-            float addToBodyPitch = (measuredPitchRate > 0.f) 
-                                    ? measuredPitchRate - MIN_PITCH_RATE : measuredPitchRate + MIN_PITCH_RATE;
-            
-            myAvatar.setRenderPitch(myAvatar.getRenderPitch() + addToBodyPitch * PITCH_MAGNIFY * deltaTime);
-
-        }
-        //  Always decay the render pitch, assuming that we are never going to want to permanently look up or down
-        const float RENDER_PITCH_DECAY = 1.0;
-        myAvatar.setRenderPitch(myAvatar.getRenderPitch() * (1.f - RENDER_PITCH_DECAY * deltaTime));
     }
     
     //  Get audio loudness data from audio input device
@@ -949,7 +935,7 @@ void displayOverlay() {
 
        //noiseTest(WIDTH, HEIGHT);
     
-        if (displayHeadMouse && !::lookingInMirror && renderStatsOn) {
+    if (displayHeadMouse && !::lookingInMirror && USING_INVENSENSE_MPU9150) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
