@@ -1262,7 +1262,7 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_LEFT_HEEL ].radius +
     _joint[ AVATAR_JOINT_LEFT_HEEL ].length +
     _joint[ AVATAR_JOINT_LEFT_KNEE ].length;
-    printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
+    //printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
     
     _height = 
     (
@@ -1277,7 +1277,7 @@ void Avatar::initializeSkeleton() {
         _joint[ AVATAR_JOINT_HEAD_BASE ].length +
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
     );
-    printf("_height = %f\n", _height);
+    //printf("_height = %f\n", _height);
     
     // generate joint positions by updating the skeleton
     updateSkeleton();
