@@ -27,6 +27,7 @@ private:
     glBufferIndex _glBufferIndex;
     bool _isDirty;
     bool _shouldRender;
+    bool _isStagedForDeletion;
     AABox _box;
     unsigned char* _octalCode;
     VoxelNode* _children[8];
@@ -66,8 +67,14 @@ public:
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; };
+
+    // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
+
+    // Used by VoxelSystem to mark a node as to be deleted on next render pass
+    void stageForDeletion() { _isStagedForDeletion = true; };
+    bool isStagedForDeletion() const { return _isStagedForDeletion; }
 
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);

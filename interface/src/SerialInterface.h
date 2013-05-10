@@ -32,7 +32,7 @@
 #define HEAD_YAW_RATE 0
 #define HEAD_ROLL_RATE 2
 
-//const bool USING_INVENSENSE_MPU9150;
+extern const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
