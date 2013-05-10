@@ -1913,7 +1913,6 @@ void mouseFunc(int button, int state, int x, int y) {
     if (::menuDisplayed && !menuFound) {
         ::menuDisplayed = false;
         menu.hidePopupMenu();
-        //menu.render(WIDTH,HEIGHT); // will hide the menu
     }
     
     // In menu displayed mode use old logic
