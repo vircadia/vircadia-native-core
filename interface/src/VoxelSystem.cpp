@@ -232,7 +232,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         bool  inChildBoundary = (distanceToNode <= childBoundary);
         shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
-    node->setShouldRender(shouldRender);
+    node->setShouldRender(shouldRender && !node->deleteMe());
     // let children figure out their renderness
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (node->getChildAtIndex(i)) {
@@ -244,6 +244,15 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     } else {
         voxelsUpdated += updateNodeInArraysAsPartialVBO(node);
     }
+    
+    // If the node has been asked to be deleted, but we've gotten to here, after updateNodeInArraysXXX()
+    // then it means our VBOs are "clean" and our vertices have been removed or not added. So we can now
+    // safely remove the node from the tree and actually delete it.
+    // otherwise honor our calculated shouldRender
+    if (node->deleteMe()) {
+        _tree->deleteVoxelCodeFromTree(node->getOctalCode());
+    }
+    
     node->clearDirtyBit(); // always clear the dirty bit, even if it doesn't need to be rendered
     return voxelsUpdated;
 }
@@ -901,9 +910,19 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) { 
-    //printLog("VoxelSystem::deleteVoxelAt(%f,%f,%f,%f)\n",x,y,z,s);
-    _tree->deleteVoxelAt(x, y, z, s); 
-    setupNewVoxelsForDrawing(); 
+    printLog("VoxelSystem::deleteVoxelAt(%f,%f,%f,%f)\n",x,y,z,s);
+
+    VoxelNode* node = _tree->getVoxelAt(x, y, z, s);
+    if (node) {
+        // tell the node we want it deleted
+        node->pleaseDeleteMe();
+        
+        // tree is now dirty
+        _tree->setDirtyBit();
+        
+        // redraw!
+        setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
+    }
 };
 
 VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const { 
