@@ -1019,7 +1019,7 @@ void display(void)
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
             myCamera.setUpShift       (-0.2f);
-            myCamera.setDistance      (1.2f);
+            myCamera.setDistance      (1.5f);
             myCamera.setTightness     (8.0f);
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
             myCamera.setTargetRotation(myAvatar.getBodyYaw(), 0.0f, 0.0f);
