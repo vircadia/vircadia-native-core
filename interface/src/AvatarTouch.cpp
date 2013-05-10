@@ -12,7 +12,7 @@
 #include "InterfaceConfig.h"
 #include "Util.h"
 
-const float THREAD_RADIUS = 0.012;
+const float THREAD_RADIUS = 0.007;
 const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.2;
 
 AvatarTouch::AvatarTouch() {
@@ -118,22 +118,20 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
             */
         }
 
-        //render the beam between our hands indicting that we can reach out and grasp hands...
-        //renderBeamBetweenHands();
-
         //show that our hands are close enough to grasp..
         if (_handsCloseEnoughToGrasp) {
             glColor4f(0.9, 0.3, 0.3, 0.5);
-            renderSphereOutline(_myHandPosition, 0.030f, 20, cameraPosition);
+            renderSphereOutline(_myHandPosition,   0.03f, 20, cameraPosition);
+            renderSphereOutline(_yourHandPosition, 0.03f, 20, cameraPosition);
         }
         
         // if your hand is grasping, show it...
         if (_yourHandState == HAND_STATE_GRASPING) {
             glPushMatrix();
             glTranslatef(_yourHandPosition.x, _yourHandPosition.y, _yourHandPosition.z);
-            glColor4f(1.0, 1.0, 0.8, 0.3); glutSolidSphere(0.020f, 10.0f, 10.0f);
-            glColor4f(1.0, 1.0, 0.4, 0.2); glutSolidSphere(0.025f, 10.0f, 10.0f);
-            glColor4f(1.0, 1.0, 0.2, 0.1); glutSolidSphere(0.030f, 10.0f, 10.0f);
+            glColor4f(1.0, 0.7, 0.8, 0.4); glutSolidSphere(0.020f, 10.0f, 10.0f);
+            glColor4f(1.0, 0.7, 0.4, 0.3); glutSolidSphere(0.025f, 10.0f, 10.0f);
+            glColor4f(1.0, 0.7, 0.2, 0.2); glutSolidSphere(0.030f, 10.0f, 10.0f);
             glPopMatrix();
         }
      }
@@ -142,9 +140,9 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
     if (_myHandState == HAND_STATE_GRASPING) {
         glPushMatrix();
         glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
-        glColor4f(1.0, 1.0, 0.8, 0.3); glutSolidSphere(0.020f, 10.0f, 10.0f);
-        glColor4f(1.0, 1.0, 0.4, 0.2); glutSolidSphere(0.025f, 10.0f, 10.0f);
-        glColor4f(1.0, 1.0, 0.2, 0.1); glutSolidSphere(0.030f, 10.0f, 10.0f);
+        glColor4f(1.0, 0.7, 0.8, 0.4); glutSolidSphere(0.020f, 10.0f, 10.0f);
+        glColor4f(1.0, 0.7, 0.4, 0.3); glutSolidSphere(0.025f, 10.0f, 10.0f);
+        glColor4f(1.0, 0.7, 0.2, 0.2); glutSolidSphere(0.030f, 10.0f, 10.0f);
         glPopMatrix();
     }
 }
@@ -156,16 +154,14 @@ void AvatarTouch::renderBeamBetweenHands() {
     glm::vec3 v1(_myHandPosition);
     glm::vec3 v2(_yourHandPosition);
 
-    /*
-    glLineWidth(2.0);
-    glColor4f(0.9f, 0.9f, 0.1f, 0.7);
+    glLineWidth(3.0);
+    glColor4f(0.9f, 0.9f, 0.1f, 0.6);
     glBegin(GL_LINE_STRIP);
     glVertex3f(v1.x, v1.y, v1.z);
     glVertex3f(v2.x, v2.y, v2.z);
     glEnd();
-    */
 
-    glColor3f(0.0f, 0.0f, 0.0f);
+    glColor3f(0.5f, 0.3f, 0.0f);
     for (int p=0; p<NUM_POINTS; p++) {
 
         _point[p] = _myHandPosition + _vectorBetweenHands * ((float)p / (float)NUM_POINTS);
