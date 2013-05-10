@@ -87,7 +87,6 @@ include_directories(
 )
 
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARY})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
@@ -110,6 +109,7 @@ if (APPLE)
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
+        ${LIBOVR_LIBRARY}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
