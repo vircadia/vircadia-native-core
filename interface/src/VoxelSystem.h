@@ -57,6 +57,7 @@ public:
     void trueColorize();
     void falseColorizeInView(ViewFrustum* viewFrustum);
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
+    void falseColorizeRandomEveryOther();
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -67,6 +68,8 @@ public:
     
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
+
+    void collectStatsForTreesAndVBOs();
     
 private:
     int  _callsToTreesToArrays;
@@ -82,9 +85,11 @@ private:
     static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
     static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
+    static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
 
-    int newway__updateNodeInArray(VoxelNode* node);
-    int oldway__updateNodeInArray(VoxelNode* node);
+    int updateNodeInArraysAsFullVBO(VoxelNode* node);
+    int updateNodeInArraysAsPartialVBO(VoxelNode* node);
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
@@ -103,7 +108,7 @@ private:
     unsigned long _voxelsInReadArrays;
     unsigned long _unusedArraySpace;
     
-    bool _alwaysRenderFullVBO;
+    bool _renderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
@@ -120,11 +125,18 @@ private:
     ViewFrustum _lastKnowViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
+    void cleanupRemovedVoxels();
+
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays();
-    void updateVBOs();
-    
+
     bool _voxelsDirty;
+
+public:
+    void updateVBOs();
+    void updateFullVBOs(); // all voxels in the VBO
+    void updatePartialVBOs(); // multiple segments, only dirty voxels
+    
 };
 
 #endif
