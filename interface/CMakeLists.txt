@@ -61,6 +61,9 @@ include(${QT_USE_FILE})
 # run qt moc on qt-enabled headers
 qt4_wrap_cpp(INTERFACE_SRCS src/Application.h)
 
+find_package(LibOVR)
+target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARY})
+
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
@@ -75,7 +78,6 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
-find_package(LibOVR)
 
 # include headers for external libraries and InterfaceConfig.
 include_directories(
@@ -87,7 +89,6 @@ include_directories(
 )
 
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARY})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
