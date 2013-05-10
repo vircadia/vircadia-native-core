@@ -1917,7 +1917,7 @@ void mouseFunc(int button, int state, int x, int y) {
     
     // In menu displayed mode use old logic
     if (::menuDisplayed) {
-        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
+        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
             if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
                 mouseX = x;
                 mouseY = y;
