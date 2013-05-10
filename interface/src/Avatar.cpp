@@ -516,27 +516,30 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     }                    
                 }
             }
-            
-            // if I can no longer reach the otherhand, turn off hand-holding
-            if (!_avatarTouch.getAbleToReachOtherAvatar()) {
-                _avatarTouch.setHoldingHands(false);                
-            }
-
-            // if neither of us are grasping, turn off hand-holding
-            if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
-                _avatarTouch.setHoldingHands(false);                
-            }
 
             glm::vec3 vectorFromMyHandToYourHand
             (
                 _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - 
                 _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
             );
+            
             float distanceBetweenOurHands = glm::length(vectorFromMyHandToYourHand);
 
+            /*
+            // if my arm can no longer reach the other hand, turn off hand-holding
+            if (!_avatarTouch.getAbleToReachOtherAvatar()) {
+                _avatarTouch.setHoldingHands(false);                
+            }
             if (distanceBetweenOurHands > _maxArmLength) {
                 _avatarTouch.setHoldingHands(false);                
             }
+            */
+
+            // if neither of us are grasping, turn off hand-holding
+            if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
+                _avatarTouch.setHoldingHands(false);                
+            }
+
 
             //if holding hands, apply the appropriate forces
             if (_avatarTouch.getHoldingHands()) {
@@ -547,7 +550,9 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 ) * 0.5f; 
                 
                 if (distanceBetweenOurHands > 0.2) {
-                    _velocity += vectorFromMyHandToYourHand * 30.0f * deltaTime;
+                    float force = 700.0f * deltaTime;
+                    if (force > 1.0f) {force = 1.0f;}
+                    _velocity += vectorFromMyHandToYourHand * force;
                 }
             }
         }
