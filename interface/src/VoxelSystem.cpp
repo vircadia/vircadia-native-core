@@ -292,7 +292,6 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     assert(_viewFrustum); // you must set up _viewFrustum before calling this
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
-    bool  isLeaf          = node->isLeaf();
     // if it's colored, we might need to render it!
     if (node->isColored()) {
         float distanceToNode  = node->distanceToCamera(*_viewFrustum);
@@ -300,11 +299,11 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
         bool  inBoundary      = (distanceToNode <= boundary);
         bool  inChildBoundary = (distanceToNode <= childBoundary);
-        shouldRender = (isLeaf && inChildBoundary) || (inBoundary && !inChildBoundary);
+        shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
     node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
-    if (!isLeaf) {
+    if (!node->isLeaf()) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (node->getChildAtIndex(i)) {
                 voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
