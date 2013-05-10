@@ -50,7 +50,7 @@ namespace starfield {
 
                 return false;
             }
-            printLog("Stars.cpp: read %u vertices, using %lu\n", _valRecordsRead, _ptrVertices->size());
+            printLog("Loaded %u stars.\n", _valRecordsRead);
 
             return true;
         }

@@ -14,23 +14,25 @@
 
 Camera::Camera() {
     _frustumNeedsReshape  = false;
-	_mode			  = CAMERA_MODE_THIRD_PERSON;
-	_tightness		      = 10.0; // default
-	_fieldOfView          = 60.0; // default
-	_nearClip             = 0.08; // default
-	_farClip              = 50.0 * TREE_SCALE; // default
-    _modeShift            = 0.0;
-	_yaw                  = 0.0;
-	_pitch			      = 0.0;
-	_roll			      = 0.0;
-	_upShift		      = 0.0;
-	_rightShift		      = 0.0;
-	_distance		      = 0.0;
-	_idealYaw		      = 0.0;
-	_targetPosition	      = glm::vec3(0.0, 0.0, 0.0);
-	_position		      = glm::vec3(0.0, 0.0, 0.0);
-	_idealPosition	      = glm::vec3(0.0, 0.0, 0.0);
-	_orientation.setToIdentity();
+    _mode           = CAMERA_MODE_THIRD_PERSON;
+    _tightness      = 10.0; // default
+    _fieldOfView    = 60.0; // default
+    _nearClip       = 0.08; // default
+    _farClip        = 50.0 * TREE_SCALE; // default
+    _modeShift      = 0.0;
+    _yaw            = 0.0;
+    _pitch          = 0.0;
+    _roll           = 0.0;
+    _upShift        = 0.0;
+    _rightShift     = 0.0;
+    _distance       = 0.0;
+    _idealYaw       = 0.0;
+    _idealPitch     = 0.0;
+    _idealRoll      = 0.0;
+    _targetPosition = glm::vec3(0.0, 0.0, 0.0);
+    _position       = glm::vec3(0.0, 0.0, 0.0);
+    _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
+    _orientation.setToIdentity();
 }
 
 
@@ -39,7 +41,7 @@ void Camera::update(float deltaTime)  {
     if (_mode == CAMERA_MODE_NULL) {
         _modeShift = 0.0;
     } else {
-        // use iterative forces to keep the camera at the desired position and angle
+        // use iterative forces to push the camera towards the desired position and angle
         updateFollowMode(deltaTime);
         
         if (_modeShift < 1.0f) {
@@ -96,6 +98,12 @@ void Camera::updateFollowMode(float deltaTime) {
 void Camera::setMode(CameraMode  m) { 
     _mode = m;
     _modeShift = 0.0f; 
+}
+
+void Camera::setTargetRotation( float yaw, float pitch, float roll ) {
+    _idealYaw   = yaw;
+    _idealPitch = pitch;
+    _idealRoll  = roll;
 }
 
 void Camera::setFieldOfView(float f) { 

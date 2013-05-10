@@ -30,7 +30,7 @@ const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
 const float BODY_PITCH_WHILE_WALKING      = 30.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
-const float LIN_VEL_DECAY                 = 2.0;
+const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
@@ -47,6 +47,8 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
+const float AVATAR_BRAKING_RANGE          = 1.6f;
+const float AVATAR_BRAKING_STRENGTH       = 30.0f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
@@ -264,21 +266,15 @@ void Avatar::reset() {
 
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
     float measuredRollRate = 0.0f;
     float measuredYawRate = 0.0f;
     
-    if (serialInterface->active && USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialInterface->getLastPitchRate();
-        measuredYawRate = serialInterface->getLastYawRate();
-        measuredRollRate = serialInterface->getLastRollRate();
-    } else {
-        measuredPitchRate = serialInterface->getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialInterface->getRelativeValue(HEAD_YAW_RATE);
-        measuredRollRate = serialInterface->getRelativeValue(HEAD_ROLL_RATE);
-    }
-    
+    measuredPitchRate = serialInterface->getLastPitchRate();
+    measuredYawRate = serialInterface->getLastYawRate();
+    measuredRollRate = serialInterface->getLastRollRate();
+   
     //  Update avatar head position based on measured gyro rates
     const float MAX_PITCH = 45;
     const float MIN_PITCH = -45;
@@ -287,17 +283,42 @@ void Avatar::updateHeadFromGyros(float frametime, SerialInterface* serialInterfa
     const float MAX_ROLL = 50;
     const float MIN_ROLL = -50;
     
-    addHeadPitch(measuredPitchRate * frametime);
-    addHeadYaw(measuredYawRate * frametime);
-    addHeadRoll(measuredRollRate * frametime);
+    addHeadPitch(measuredPitchRate * deltaTime);
+    addHeadYaw(measuredYawRate * deltaTime);
+    addHeadRoll(measuredRollRate * deltaTime);
     
     setHeadPitch(glm::clamp(getHeadPitch(), MIN_PITCH, MAX_PITCH));
     setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
     setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
+    
+    //  Update head lean distance based on accelerometer data
+    const float LEAN_SENSITIVITY = 0.15;
+    const float LEAN_MAX = 0.45;
+    const float LEAN_AVERAGING = 10.0;
+    glm::vec3 headRotationRates(getHeadPitch(), getHeadYaw(), getHeadRoll());
+    float headRateMax = 50.f;
+    
+    
+    glm::vec3 leaning = (serialInterface->getLastAcceleration() -  serialInterface->getGravity())
+                        * LEAN_SENSITIVITY
+                        * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
+    leaning.y = 0.f;
+    if (glm::length(leaning) < LEAN_MAX) {
+        _head.leanForward = _head.leanForward * (1.f - LEAN_AVERAGING * deltaTime) +
+                                (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY;
+        _head.leanSideways = _head.leanSideways * (1.f - LEAN_AVERAGING * deltaTime) +
+                                (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY;
+    }
+    setHeadLeanSideways(_head.leanSideways);
+    setHeadLeanForward(_head.leanForward); 
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
     return _bodyYaw + _headYaw;
+}
+
+float Avatar::getAbsoluteHeadPitch() const {
+    return _bodyPitch + _headPitch;
 }
 
 void Avatar::addLean(float x, float z) {
@@ -326,6 +347,8 @@ void Avatar::simulate(float deltaTime) {
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
+    
+    // if other avatar, update head position from network data
     
 	// update avatar skeleton
 	updateSkeleton();
@@ -403,23 +426,33 @@ void Avatar::simulate(float deltaTime) {
     if  (tiltDecay < 0.0f) {tiltDecay = 0.0f;}     
     _bodyPitch *= tiltDecay;
     _bodyRoll  *= tiltDecay;
-
+    
+    //the following will be used to make the avatar upright no matter what gravity is
+    //float f = angleBetween(_orientation.getUp(), _gravity);
+    
     // update position by velocity
     _position += _velocity * deltaTime;
 
 	// decay velocity
-    _velocity *= (1.0 - LIN_VEL_DECAY * deltaTime);
-	
-    // If someone is near, damp velocity as a function of closeness
-    const float AVATAR_BRAKING_RANGE = 1.6f;
-    const float AVATAR_BRAKING_STRENGTH = 35.f;
-    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {
-        _velocity *=
-        (1.f - deltaTime * AVATAR_BRAKING_STRENGTH *
-         (AVATAR_BRAKING_RANGE - _distanceToNearestAvatar));
+    float decay = 1.0 - VELOCITY_DECAY * deltaTime;
+    if ( decay < 0.0 ) {
+        _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+    } else {
+        _velocity *= decay;
     }
-
-    // update head information
+    
+    // If another avatar is near, dampen velocity as a function of closeness
+    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {    
+        float closeness = 1.0f - (_distanceToNearestAvatar / AVATAR_BRAKING_RANGE);
+        float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
+        if ( drag > 0.0f ) {
+            _velocity *= drag;
+        } else {
+            _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+        }
+    }
+    
+    // update head state
     updateHead(deltaTime);
     
     // use speed and angular velocity to determine walking vs. standing                                
@@ -454,13 +487,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                  
-                /*
-                //  Test:  Show angle between your fwd vector and nearest avatar
-                glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
-                                getJointPosition(AVATAR_JOINT_PELVIS);
-                glm::vec3 myForwardVector = _orientation.getFront();
-                printLog("Angle between: %f\n", angleBetween(&vectorBetweenUs, &myForwardVector));
-                */
+                //Test:  Show angle between your fwd vector and nearest avatar
+                //glm::vec3 vectorBetweenUs = otherAvatar->getJointPosition(AVATAR_JOINT_PELVIS) -
+                //                getJointPosition(AVATAR_JOINT_PELVIS);
+                //printLog("Angle between: %f\n", angleBetween(vectorBetweenUs, _orientation.getFront()));
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
                 glm::vec3 v(_position - otherAvatar->_position);
@@ -474,46 +504,105 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
         if (_interactingOther) {
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
-            _avatarTouch.setYourHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
+            _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
+            
+            //if hand-holding is initiated by either avatar, turn on hand-holding...
+            if (_avatarTouch.getHandsCloseEnoughToGrasp()) {     
+                if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState == HAND_STATE_GRASPING)) {
+                    if (!_avatarTouch.getHoldingHands())
+                    {
+                        _avatarTouch.setHoldingHands(true);
+                    }                    
+                }
+            }
+            
+            if (!_avatarTouch.getAbleToReachOtherAvatar()) {
+                _avatarTouch.setHoldingHands(false);                
+            }
+
+            if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
+                _avatarTouch.setHoldingHands(false);                
+            }
         }
         
+        //if holding hands, apply the appropriate forces
+        if (_avatarTouch.getHoldingHands()) {
+            
+            glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
+            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position        - _handHoldingPosition;
+            
+            float myInfluence   = 30.0f;
+            float yourInfluence = 30.0f;
+            
+            glm::vec3 myForce   = vectorToMyHand    * myInfluence   * deltaTime;
+            glm::vec3 yourForce = vectorToOtherHand * yourInfluence * deltaTime;
+            
+            if (_handState                    == HAND_STATE_GRASPING) {myForce   *= 2.0f; }
+            if (_interactingOther->_handState == HAND_STATE_GRASPING) {yourForce *= 2.0f; }
+                
+            _handHoldingPosition += myForce + yourForce;
+            
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+        } else {
+            _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
+        }        
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
     updateArmIKAndConstraints(deltaTime);
     
+    //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
     if (_isMine) {
-        //Set the vector we send for hand position to other people to be our right hand
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
      
         if (_mousePressed) {
-            _handState = 1;
+            _handState = HAND_STATE_GRASPING;
         } else {
-            _handState = 0;
+            _handState = HAND_STATE_NULL;
         }
         
         _avatarTouch.setMyHandState(_handState);
-        
-        if (_handState == 1) {
-            _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
-        }
+        _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
     }
 }
 
 void Avatar::updateHead(float deltaTime) {
 
+    // Get head position data from network for other people
+    if (!_isMine) {
+        _head.leanSideways = getHeadLeanSideways();
+        _head.leanForward = getHeadLeanForward(); 
+    }
+    
     //apply the head lean values to the springy position...
     if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
         glm::vec3 headLean = 
         _orientation.getRight() * _head.leanSideways +
         _orientation.getFront() * _head.leanForward;
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition += headLean;
+
+        // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
+        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
+        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
+        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
+        
+        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
+        
+        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
-    
+
     //  Decay head back to center if turned on
-    if (_returnHeadToCenter) {
+    if (_isMine && _returnHeadToCenter) {
         //  Decay back toward center
         _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
         _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
@@ -521,15 +610,14 @@ void Avatar::updateHead(float deltaTime) {
     }
     
     //  For invensense gyro, decay only slightly when roughly centered
-    if (USING_INVENSENSE_MPU9150) {
-        const float RETURN_RANGE = 5.0;
-        const float RETURN_STRENGTH = 1.0;
+    if (_isMine) {
+        const float RETURN_RANGE = 15.0;
+        const float RETURN_STRENGTH = 2.0;
         if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
-
     }
-    
+
     if (_head.noise) {
         //  Move toward new target
         _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
@@ -616,9 +704,6 @@ void Avatar::updateHead(float deltaTime) {
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
 }
-
-
-
 
 
 float Avatar::getHeight() {
@@ -1083,54 +1168,62 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_TOES		  ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
     // specify the default pose position
-    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.0 );
-    _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
-    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.0  );
-    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.1,  -0.01 );
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.01 );
+    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.0 );
+    _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.01 );
+    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.01  );
+    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.12,  -0.01 );
+    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.00 );
+    
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04, -0.01 );
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.03,  0.0,  -0.01 );
-    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.05,  0.0,  -0.01 );
+    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.16,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_WRIST		  ].defaultPosePosition = glm::vec3(  0.0,  -0.117,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+    
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04, -0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.03,  0.0,  -0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.13,  0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.11,  0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.07,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.04,  0.0,  -0.02 );
-    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.02 );
-    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22, -0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].defaultPosePosition = glm::vec3(  0.05,  0.0,  -0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.16,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.117,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+    
+    _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.05,  0.0,  -0.02 );
+    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27,  0.02 );
+    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27, -0.01 );
     _joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
-    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.04,  0.0,  -0.02 );
-    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22,  0.02 );
-    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.22, -0.01 );
+    
+    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.05,  0.0,  -0.02 );
+    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27,  0.02 );
+    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27, -0.01 );
     _joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
     
-    // specify the radii of the bone positions
-    _joint[ AVATAR_JOINT_PELVIS           ].radius = 0.06;
-    _joint[ AVATAR_JOINT_TORSO            ].radius = 0.055;
-    _joint[ AVATAR_JOINT_CHEST            ].radius = 0.075;
+    // specify the radii of the joints
+    _joint[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
+    _joint[ AVATAR_JOINT_TORSO            ].radius = 0.065;
+    _joint[ AVATAR_JOINT_CHEST            ].radius = 0.08;
     _joint[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
     _joint[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.029;
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.023;
-    _joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.017;
-    _joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.017;
+    
+    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.04;
+    _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.03;
+    _joint[ AVATAR_JOINT_LEFT_ELBOW	      ].radius = 0.02;
+    _joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.02;
     _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.029;
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.023;
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].radius = 0.015;
-    _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].radius = 0.015;
+    
+    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.04;
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].radius = 0.03;
+    _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].radius = 0.02;
+    _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].radius = 0.02;
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
-    _joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.03;
-    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].radius = 0.02;
-    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].radius = 0.015;
-    _joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.02;
-    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.03;
-    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].radius = 0.02;
-    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.015;
-    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.02;
+    
+    _joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.04;
+    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].radius = 0.025;
+    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].radius = 0.025;
+    _joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.027;
+    
+    _joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.04;
+    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].radius = 0.025;
+    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.025;
+    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.027;
     
     // specify the tightness of the springy positions as far as attraction to rigid body
     _joint[ AVATAR_JOINT_PELVIS           ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 1.0;
@@ -1169,6 +1262,7 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_LEFT_HEEL ].radius +
     _joint[ AVATAR_JOINT_LEFT_HEEL ].length +
     _joint[ AVATAR_JOINT_LEFT_KNEE ].length;
+    printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
     
     _height = 
     (
@@ -1183,11 +1277,11 @@ void Avatar::initializeSkeleton() {
         _joint[ AVATAR_JOINT_HEAD_BASE ].length +
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius
     );
-    //printf("_height = %f\n", _height);
+    printf("_height = %f\n", _height);
     
-    // generate world positions
+    // generate joint positions by updating the skeleton
     updateSkeleton();
-
+    
     //set spring positions to be in the skeleton bone positions
     initializeBodySprings();
 }
