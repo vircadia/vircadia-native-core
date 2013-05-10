@@ -96,6 +96,7 @@ void UrlReader::getinfo(char const*& url,
         if (time > s.st_mtime) {
             // file on server is newer -> update cache file
             _ptrCacheFile = fopen(_strCacheFile, "wb");
+            printf("From URL: ");
             if (_ptrCacheFile != 0l) {
                 _valCacheMode = cache_write;
             }
@@ -108,6 +109,7 @@ void UrlReader::getinfo(char const*& url,
                 }
             }
             _ptrCacheFile = fopen(_strCacheFile, "rb");
+            printf("From file: ");
             if (_ptrCacheFile != 0l) {
                 _valCacheMode = cache_read;
             }
