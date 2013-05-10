@@ -143,11 +143,12 @@ bool renderStatsOn = false;         //  Whether to show onscreen text overlay wi
 bool renderVoxels = true;           //  Whether to render voxels
 bool renderStarsOn = true;          //  Whether to display the stars
 bool renderAtmosphereOn = true;     //  Whether to display the atmosphere
-bool renderAvatarsOn = true;        //  Whether to render avatars 
+bool renderAvatarsOn = true;        //  Whether to render avatars
+bool renderFirstPersonOn = false;   //  Whether to render in first person 
 bool paintOn = false;               //  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;          //    The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //    The dominant color of the voxel we're painting
-bool perfStatsOn = false;            //  Do we want to display perfStats?
+bool perfStatsOn = false;           //  Do we want to display perfStats?
 
 bool logOn = true;                  //  Whether to show on-screen log
 
@@ -1198,7 +1199,12 @@ int setRenderAvatars(int state) {
     return setValue(state, &::renderAvatarsOn);
 }
 
-
+int setRenderFirstPerson(int state) {
+    bool value = setValue(state, &::renderFirstPersonOn);
+    if (::renderFirstPersonOn) { myCamera.setMode(CAMERA_MODE_FIRST_PERSON); }
+    else { myCamera.setMode(CAMERA_MODE_THIRD_PERSON); }
+    return value;
+}
 
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
@@ -1361,6 +1367,7 @@ void initMenu() {
     menuColumnRender->addRow("Stars (*)", setStars);
     menuColumnRender->addRow("Atmosphere (A)", setAtmosphere);
     menuColumnRender->addRow("Avatars", setRenderAvatars);
+    menuColumnRender->addRow("First Person (p)", setRenderFirstPerson);
     menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
@@ -1577,6 +1584,8 @@ void key(unsigned char k, int x, int y) {
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
     if (k == 'f') setFullscreen(!::fullscreen);
     if (k == 'o') setOculus(!::oculusOn);
+    
+    if (k == 'p') myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     
     if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
     if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
