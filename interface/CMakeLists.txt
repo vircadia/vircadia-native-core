@@ -86,7 +86,8 @@ include_directories(
     ${LIBOVR_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${LIBOVR_LIBRARY})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARY})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
