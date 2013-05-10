@@ -364,10 +364,6 @@ void reset_sensors() {
     headMouseY = HEIGHT/2;
     
     myAvatar.reset();
-    
-    if (serialPort.active) {
-        serialPort.resetTrailingAverages();
-    }
 }
 
 //
@@ -379,15 +375,9 @@ void updateAvatar(float deltaTime) {
     myAvatar.updateHeadFromGyros(deltaTime, &serialPort, &gravity);
 
     //  Grab latest readings from the gyros
-    float measuredYawRate, measuredPitchRate;
-    if (USING_INVENSENSE_MPU9150) {
-        measuredPitchRate = serialPort.getLastPitchRate();
-        measuredYawRate = serialPort.getLastYawRate();
-    } else {
-        measuredPitchRate = serialPort.getRelativeValue(HEAD_PITCH_RATE);
-        measuredYawRate = serialPort.getRelativeValue(HEAD_YAW_RATE);
-    }
-        
+    float measuredPitchRate = serialPort.getLastPitchRate();
+    float measuredYawRate = serialPort.getLastYawRate();
+    
     //  Update gyro-based mouse (X,Y on screen)
     const float MIN_MOUSE_RATE = 30.0;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -1775,7 +1765,7 @@ void idle(void) {
         }
         
         //  Read serial port interface devices
-        if (serialPort.active && USING_INVENSENSE_MPU9150) {
+        if (serialPort.active) {
             serialPort.readData();
         }
         
@@ -1809,10 +1799,6 @@ void idle(void) {
         lastTimeIdle = check;
     }
     
-    //  Read serial data 
-    if (serialPort.active && !USING_INVENSENSE_MPU9150) {
-        serialPort.readData();
-    }
 }
 
 void reshape(int width, int height) {
