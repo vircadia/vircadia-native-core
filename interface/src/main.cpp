@@ -98,12 +98,13 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-int WIDTH = 1200;                   //  Window size
+int WIDTH = 1200; //  Window size
 int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
-bool USING_FIRST_PERSON_EFFECT = false;
+//CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
+CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
 
 bool wantColorRandomizer = true;    // for addSphere and load file
 
@@ -112,7 +113,7 @@ Oscilloscope audioScope(256,200,true);
 ViewFrustum viewFrustum;            // current state of view frustum, perspective, orientation, etc.
 
 Avatar myAvatar(true);            // The rendered avatar of oneself
-Camera myCamera;                  // My view onto the world (sometimes on myself :)
+Camera myCamera;                  // My view onto the world 
 Camera viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
 
 AvatarRenderer avatarRenderer;
@@ -319,8 +320,10 @@ void init(void) {
     if (noiseOn) {   
         myAvatar.setNoise(noise);
     }
+    
     myAvatar.setPosition(start_location);
     myCamera.setPosition(start_location);
+    myCamera.setMode(defaultCameraMode);
     
     
 #ifdef MARKER_CAPTURE
@@ -997,90 +1000,32 @@ void display(void)
         glLoadIdentity();
     
         // camera settings
-        if (::lookingInMirror) {
-            // set the camera to looking at my own face
-            myCamera.setTargetPosition  (myAvatar.getHeadPosition());
-            myCamera.setTargetYaw       (myAvatar.getBodyYaw() - 180.0f); // 180 degrees from body yaw
-            myCamera.setPitch           (0.0);
-            myCamera.setRoll            (0.0);
-            myCamera.setUpShift         (0.0);    
-            myCamera.setDistance        (0.2);
-            myCamera.setTightness       (100.0f);
-        } else {
-
-            //float firstPersonPitch     =  20.0f;
-            //float firstPersonUpShift   =   0.0f;
-            //float firstPersonDistance  =   0.0f;
-            //float firstPersonTightness = 100.0f;
-
-            float firstPersonPitch     =  20.0f + myAvatar.getRenderPitch();
-            float firstPersonUpShift   =   0.1f;
-            float firstPersonDistance  =   0.4f;
-            float firstPersonTightness = 100.0f;
-
-            float thirdPersonPitch     =   0.0f + myAvatar.getRenderPitch();
-            float thirdPersonUpShift   =  -0.2f;
-            float thirdPersonDistance  =   1.2f;
-            float thirdPersonTightness =   8.0f;
-                        
-            if (USING_FIRST_PERSON_EFFECT) {
-                float ff = 0.0;
-                float min = 0.1;
-                float max = 0.5;
-
-                if (myAvatar.getIsNearInteractingOther()){
-                    if (myAvatar.getSpeed() < max) {
-                    
-                        float s = (myAvatar.getSpeed()- min)/max ;    
-                        ff = 1.0 - s;
-                    }
-                }
-
-                myCamera.setPitch       (thirdPersonPitch     + ff * (firstPersonPitch     - thirdPersonPitch    ));
-                myCamera.setUpShift    (thirdPersonUpShift   + ff * (firstPersonUpShift   - thirdPersonUpShift  ));
-                myCamera.setDistance   (thirdPersonDistance  + ff * (firstPersonDistance  - thirdPersonDistance ));
-                myCamera.setTightness  (thirdPersonTightness + ff * (firstPersonTightness - thirdPersonTightness));                
-                
-                // this version uses a ramp-up/ramp-down timer in the camera to determine shift between first and thirs-person view 
-                /*
-                if (myAvatar.getSpeed() < 0.02) {   
-                
-                    if (myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                        myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    }
-                    
-                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch       (thirdPersonPitch     + myCamera.getModeShift() * (firstPersonPitch     - thirdPersonPitch    ));
-                    myCamera.setUpShift    (thirdPersonUpShift   + myCamera.getModeShift() * (firstPersonUpShift   - thirdPersonUpShift  ));
-                    myCamera.setDistance   (thirdPersonDistance  + myCamera.getModeShift() * (firstPersonDistance  - thirdPersonDistance ));
-                    myCamera.setTightness  (thirdPersonTightness + myCamera.getModeShift() * (firstPersonTightness - thirdPersonTightness));                
-                } else {
-                    if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                    }
-                
-                    //printf("myCamera.getModeShift() = %f\n", myCamera.getModeShift());
-                    myCamera.setPitch       (firstPersonPitch     + myCamera.getModeShift() * (thirdPersonPitch     - firstPersonPitch    ));
-                    myCamera.setUpShift    (firstPersonUpShift   + myCamera.getModeShift() * (thirdPersonUpShift   - firstPersonUpShift  ));
-                    myCamera.setDistance   (firstPersonDistance  + myCamera.getModeShift() * (thirdPersonDistance  - firstPersonDistance ));
-                    myCamera.setTightness  (firstPersonTightness + myCamera.getModeShift() * (thirdPersonTightness - firstPersonTightness));
-                }
-                */
-                
-            } else {
-                myCamera.setPitch    (thirdPersonPitch    );
-                myCamera.setUpShift  (thirdPersonUpShift  );
-                myCamera.setDistance (thirdPersonDistance );
-                myCamera.setTightness(thirdPersonTightness);
-            }
-                
+        if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            myAvatar.setDisplayingHead(true);            
+            myCamera.setUpShift       (0.0);    
+            myCamera.setDistance      (0.2);
+            myCamera.setTightness     (100.0f);
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetYaw     (myAvatar.getBodyYaw());
-            myCamera.setRoll          (0.0);
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
+            
+        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            myAvatar.setDisplayingHead(false);            
+            myCamera.setUpShift       (0.0f);
+            myCamera.setDistance      (0.0f);
+            myCamera.setTightness     (100.0f); 
+            myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
+            
+        } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            myAvatar.setDisplayingHead(true);            
+            myCamera.setUpShift       (-0.2f);
+            myCamera.setDistance      (1.2f);
+            myCamera.setTightness     (8.0f);
+            myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw(), 0.0f, 0.0f);
         }
                 
         // important...
-
         myCamera.update( 1.f/FPS );
         
         // Render anything (like HUD items) that we want to be in 3D but not in worldspace
@@ -1699,6 +1644,12 @@ void key(unsigned char k, int x, int y) {
         ::lookingInMirror = !::lookingInMirror;
         #ifndef _WIN32
         audio.setMixerLoopbackFlag(::lookingInMirror);
+        
+        if (::lookingInMirror) {
+            myCamera.setMode(CAMERA_MODE_MIRROR);
+        } else {
+            myCamera.setMode(defaultCameraMode);
+        }
         #endif
     }
     

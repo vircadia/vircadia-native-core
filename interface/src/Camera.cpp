@@ -26,6 +26,8 @@ Camera::Camera() {
     _rightShift     = 0.0;
     _distance       = 0.0;
     _idealYaw       = 0.0;
+    _idealPitch     = 0.0;
+    _idealRoll      = 0.0;
     _targetPosition = glm::vec3(0.0, 0.0, 0.0);
     _position       = glm::vec3(0.0, 0.0, 0.0);
     _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
@@ -70,8 +72,13 @@ void Camera::updateFollowMode(float deltaTime) {
     }
 
     // update _yaw (before position!) 
-    _yaw += (_idealYaw - _yaw) * t;
-    _orientation.yaw(_yaw);
+    _yaw   += (_idealYaw   - _yaw  ) * t;
+    _pitch += (_idealPitch - _pitch) * t;
+    _roll  += (_idealRoll  - _roll ) * t;
+
+    _orientation.yaw  (_yaw  );
+    _orientation.pitch(_pitch);
+    _orientation.roll (_roll );
             
     float radian = (_yaw / 180.0) * PIE;
 
@@ -89,6 +96,12 @@ void Camera::updateFollowMode(float deltaTime) {
 void Camera::setMode(CameraMode  m) { 
     _mode = m;
     _modeShift = 0.0f; 
+}
+
+void Camera::setTargetRotation( float yaw, float pitch, float roll ) {
+    _idealYaw   = yaw;
+    _idealPitch = pitch;
+    _idealRoll  = roll;
 }
 
 void Camera::setFieldOfView(float f) { 

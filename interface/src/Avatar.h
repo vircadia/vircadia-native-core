@@ -98,6 +98,7 @@ public:
     bool  getIsNearInteractingOther();
         
     float getAbsoluteHeadYaw() const;
+    float getAbsoluteHeadPitch() const;
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
