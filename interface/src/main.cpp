@@ -178,6 +178,7 @@ int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 enum MouseMode { ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
 MouseMode mouseMode = ADD_VOXEL_MODE;
 VoxelDetail mouseVoxel; // details of the voxel under the mouse cursor
+float mouseVoxelScale = 1.0f / 1024.0f; // the scale for adding/removing voxels
 
 Menu menu;       // main menu
 int menuOn = 1;  //  Whether to show onscreen menu
@@ -1510,7 +1511,7 @@ void addVoxelInFrontOfAvatar() {
     VoxelDetail detail;
     
     glm::vec3 position = (myAvatar.getPosition() + myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
-    detail.s = 1.0f / 1024;
+    detail.s = ::mouseVoxelScale;
     
     detail.x = detail.s * floor(position.x / detail.s);
     detail.y = detail.s * floor(position.y / detail.s);
@@ -1655,6 +1656,8 @@ void key(unsigned char k, int x, int y) {
     if (k == '2')  ::mouseMode = DELETE_VOXEL_MODE;
     if (k == '3')  ::mouseMode = COLOR_VOXEL_MODE;
     if (k == '4')  addVoxelInFrontOfAvatar();
+    if (k == '5')  ::mouseVoxelScale /= 2;
+    if (k == '6')  ::mouseVoxelScale *= 2; 
     if (k == 'n' || k == 'N') 
     {
         noiseOn = !noiseOn;                   // Toggle noise 
@@ -1790,6 +1793,22 @@ void idle(void) {
         BoxFace face;
         ::mouseVoxel.s = 0.0f;
         if (voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
+            // find the nearest voxel with the desired scale
+            if (::mouseVoxelScale > ::mouseVoxel.s) {
+                ::mouseVoxel.x = ::mouseVoxelScale * floorf(::mouseVoxel.x / ::mouseVoxelScale); 
+                ::mouseVoxel.y = ::mouseVoxelScale * floorf(::mouseVoxel.y / ::mouseVoxelScale); 
+                ::mouseVoxel.z = ::mouseVoxelScale * floorf(::mouseVoxel.z / ::mouseVoxelScale);
+                ::mouseVoxel.s = ::mouseVoxelScale;
+            
+            } else if (::mouseVoxelScale < ::mouseVoxel.s) {
+                glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
+                    getFaceVector(face) * (::mouseVoxelScale * 0.5f);
+                ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
+                ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
+                ::mouseVoxel.z = ::mouseVoxelScale * floorf(pt.z / ::mouseVoxelScale);
+                ::mouseVoxel.s = ::mouseVoxelScale;
+            }
+                
             if (::mouseMode == ADD_VOXEL_MODE) {
                 // use the face to determine the side on which to create a neighbor
                 glm::vec3 offset = getFaceVector(face);
