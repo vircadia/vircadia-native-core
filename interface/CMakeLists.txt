@@ -54,6 +54,12 @@ if (APPLE)
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_RSRCS})
 endif (APPLE)
 
+find_package(Qt4 REQUIRED QtCore QtGui)
+include(${QT_USE_FILE})
+
+# run qt moc on qt-enabled headers
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h)
+
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
@@ -77,8 +83,6 @@ include_directories(
     ${LODEPNG_INCLUDE_DIRS}
 )
 
-find_package(Qt4 REQUIRED QtCore QtGui)
-include(${QT_USE_FILE})
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
 
 if (NOT APPLE)
