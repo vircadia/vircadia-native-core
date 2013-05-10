@@ -503,12 +503,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         
         //if holding hands, apply the appropriate forces
         if (_avatarTouch.getHoldingHands()) {
-            _handHoldingPosition += 
-            (
-                _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition
-                - _handHoldingPosition
-            ) * 0.1f;
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+            
+            glm::vec3 vector = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
+            glm::vec3 force = vector * 0.1f;
+                
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += force;
+            //_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
         } else {
             _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
         }
