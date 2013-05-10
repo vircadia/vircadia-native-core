@@ -20,14 +20,13 @@ public:
     
     static bool isConnected() { return _isConnected; }
     
-    static float getYaw();
-    static float getPitch();
-    static float getRoll();
-private:
-    static void setFloatToAxisAngle(Vector3<float>& axis, float& floatToSet);
-    
+    static void getEulerAngles(float& yaw, float& pitch, float& roll);
+private:    
     static bool _isConnected;
-    static SensorFusion* _sensorFusion;
+    static Ptr<DeviceManager> _deviceManager;
+    static Ptr<HMDDevice> _hmdDevice;
+    static Ptr<SensorDevice> _sensorDevice;
+    static SensorFusion _sensorFusion;
 };
 
 #endif /* defined(__hifi__OculusManager__) */

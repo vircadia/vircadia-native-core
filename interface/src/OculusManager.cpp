@@ -7,49 +7,33 @@
 //
 
 #include "OculusManager.h"
+#include <glm/glm.hpp>
 
 bool OculusManager::_isConnected = false;
-SensorFusion* OculusManager::_sensorFusion = NULL;
+Ptr<DeviceManager> OculusManager::_deviceManager;
+Ptr<HMDDevice> OculusManager::_hmdDevice;
+Ptr<SensorDevice> OculusManager::_sensorDevice;
+SensorFusion OculusManager::_sensorFusion;
 
 void OculusManager::connect() {
     System::Init();
-    Ptr<DeviceManager> deviceManager = *DeviceManager::Create();
-    Ptr<HMDDevice> oculus = *deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
+    _deviceManager = *DeviceManager::Create();
+    _hmdDevice = *_deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
 
-    if (oculus) {
+    if (_hmdDevice) {
         _isConnected = true;
         
-        Ptr<SensorDevice> sensor = *oculus->GetSensor();
-        _sensorFusion = new SensorFusion(sensor);
+        _sensorDevice = *_hmdDevice->GetSensor();
+        _sensorFusion.AttachToSensor(_sensorDevice);
     }
 }
 
-void OculusManager::setFloatToAxisAngle(Vector3<float>& axis, float& floatToSet) {
-    Quatf orientation = _sensorFusion->GetOrientation();
-    orientation.GetAxisAngle(&axis, &floatToSet);
-}
-
-float OculusManager::getYaw() {
-    float yaw = 0.f;
-    Vector3<float> yAxis = Vector3<float>(0.f, 1.f, 0.f);
+void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
+    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     
-    setFloatToAxisAngle(yAxis, yaw);
-    return yaw;    
-}
-
-float OculusManager::getPitch() {
-    float pitch = 0.f;
-    Vector3<float> xAxis = Vector3<float>(1.f, 0.f, 0.f);
-    
-    setFloatToAxisAngle(xAxis, pitch);
-    return pitch;
-}
-
-float OculusManager::getRoll() {
-    float roll = 0.f;
-    Vector3<float> zAxis = Vector3<float>(0.f, 0.f, 1.f);
-    
-    setFloatToAxisAngle(zAxis, roll);
-    return roll;
+    // convert each angle to degrees
+    yaw = glm::degrees(yaw);
+    pitch = glm::degrees(pitch);
+    roll = glm::degrees(roll);
 }
 
