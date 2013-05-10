@@ -97,6 +97,9 @@ private:
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
 
+    void copyWrittenDataToReadArraysFullVBOs();
+    void copyWrittenDataToReadArraysPartialVBOs();
+
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
