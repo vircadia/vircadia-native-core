@@ -15,7 +15,6 @@
 //  Welcome Aboard!
 //
 
-#include "InterfaceConfig.h"
 #include <math.h>
 #include <string.h>
 #include <sstream>
@@ -36,6 +35,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "InterfaceConfig.h"
 
 #include "Log.h"
 #include "shared_Log.h"
@@ -77,6 +78,7 @@
 #include "ViewFrustum.h"
 #include "HandControl.h"
 #include "AvatarRenderer.h"
+#include "OculusManager.h"
 
 using namespace std;
 
@@ -188,11 +190,7 @@ bool chatEntryOn = false;  //  Whether to show the chat entry
 bool oculusOn = false;              //  Whether to configure the display for the Oculus Rift
 GLuint oculusTextureID = 0;         //  The texture to which we render for Oculus distortion
 ProgramObject* oculusProgram = 0;   //  The GLSL program containing the distortion shader
-float oculusDistortionScale = 1.25; //  Controls the Oculus field of view
-
-//
-//  Serial USB Variables
-// 
+float oculusDistortionScale = 1.25; //  Controls the Oculus field of viewa
 
 SerialInterface serialPort;
 
@@ -329,18 +327,7 @@ void init(void) {
     myCamera.setPosition(start_location);
     myCamera.setMode(defaultCameraMode);
     
-    
-#ifdef MARKER_CAPTURE
-    if(marker_capture_enabled){
-        marker_capturer.position_updated(&position_updated);
-        marker_capturer.frame_updated(&marker_frame_available);
-        if(!marker_capturer.init_capture()){
-            printLog("Camera-based marker capture initialized.\n");
-        }else{
-            printLog("Error initializing camera-based marker capture.\n");
-        }
-    }
-#endif
+    OculusManager::connect();
     
     gettimeofday(&timerStart, NULL);
     gettimeofday(&lastTimeIdle, NULL);
@@ -423,6 +410,15 @@ void updateAvatar(float deltaTime) {
         myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
 
+    }
+    
+    if (OculusManager::isConnected()) {
+        float yaw, pitch, roll;
+        OculusManager::getEulerAngles(yaw, pitch, roll);
+        
+        myAvatar.setHeadYaw(-yaw);
+        myAvatar.setHeadPitch(pitch);
+        myAvatar.setHeadRoll(roll);
     }
     
     //  Get audio loudness data from audio input device
@@ -1016,14 +1012,20 @@ void display(void)
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
             myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
             
-        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || OculusManager::isConnected()) {
             myAvatar.setDisplayingHead(false);            
             myCamera.setUpShift       (0.0f);
             myCamera.setDistance      (0.0f);
             myCamera.setTightness     (100.0f); 
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
             
+            if (OculusManager::isConnected()) {
+                myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(),
+                                           -myAvatar.getHeadPitch(),
+                                           myAvatar.getHeadRoll());
+            } else {
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
+            }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
             myCamera.setUpShift       (-0.2f);
