@@ -901,7 +901,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) { 
-    printLog("VoxelSystem::deleteVoxelAt(%f,%f,%f,%f)\n",x,y,z,s);
+    //printLog("VoxelSystem::deleteVoxelAt(%f,%f,%f,%f)\n",x,y,z,s);
     _tree->deleteVoxelAt(x, y, z, s); 
     setupNewVoxelsForDrawing(); 
 };
