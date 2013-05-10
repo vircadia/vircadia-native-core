@@ -100,9 +100,13 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         // show is we are golding hands...
         if (_weAreHoldingHands) {
             glColor4f(0.9, 0.3, 0.3, 0.5);
-            renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.3f, 20, cameraPosition);
-            renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.2f, 20, cameraPosition);
-            renderSphereOutline(_myHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.1f, 20, cameraPosition);
+            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.3f, 20, cameraPosition);
+            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.2f, 20, cameraPosition);
+            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.1f, 20, cameraPosition);
+
+            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.3f, 20, cameraPosition);
+            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.2f, 20, cameraPosition);
+            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.1f, 20, cameraPosition);
         }
 
         //render the beam between our hands indicting that we can reach out and grasp hands...

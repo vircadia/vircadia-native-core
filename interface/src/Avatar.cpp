@@ -499,20 +499,24 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             if (!_avatarTouch.getAbleToReachOtherAvatar()) {
                 _avatarTouch.setHoldingHands(false);                
             }
+
+            if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
+                _avatarTouch.setHoldingHands(false);                
+            }
         }
         
         //if holding hands, apply the appropriate forces
         if (_avatarTouch.getHoldingHands()) {
             
-            glm::vec3 vector = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
-            glm::vec3 force = vector * 0.1f;
+            glm::vec3 vectorToOtherHand = _interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition - _handHoldingPosition;
+            glm::vec3 vectorToMyHand    =                    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position - _handHoldingPosition;
+            glm::vec3 force = (vectorToOtherHand + vectorToMyHand) * 20.0f * deltaTime;
                 
-            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += force;
-            //_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
+            _handHoldingPosition += force;
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handHoldingPosition;                
         } else {
             _handHoldingPosition = _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-        }
-        
+        }        
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
