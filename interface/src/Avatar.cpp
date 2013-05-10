@@ -505,7 +505,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             
             //if hand-holding is initiated by either avatar, turn on hand-holding...
             if (_avatarTouch.getHandsCloseEnoughToGrasp()) {     
-                if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState==HAND_STATE_GRASPING)) {
+                if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState == HAND_STATE_GRASPING)) {
                     if (!_avatarTouch.getHoldingHands())
                     {
                         _avatarTouch.setHoldingHands(true);
