@@ -86,9 +86,6 @@ include_directories(
     ${LIBOVR_INCLUDE_DIRS}
 )
 
-find_package(Qt4 REQUIRED QtCore QtGui)
-include(${QT_USE_FILE})
-
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${LIBOVR_LIBRARY})
 
 if (APPLE)
