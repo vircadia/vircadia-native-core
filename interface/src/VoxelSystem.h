@@ -136,7 +136,6 @@ public:
     void updateVBOs();
     void updateFullVBOs(); // all voxels in the VBO
     void updatePartialVBOs(); // multiple segments, only dirty voxels
-    void updateJustEnoughVBOs(); // single segment from first dirty, to last dirty, may include clean voxels
     
 };
 

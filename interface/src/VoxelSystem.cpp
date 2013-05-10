@@ -477,37 +477,6 @@ void VoxelSystem::updatePartialVBOs() {
     }
 }
 
-void VoxelSystem::updateJustEnoughVBOs() {
-    bool somethingDirty = false;
-    glBufferIndex minDirty = GLBUFFER_INDEX_UNKNOWN;
-    glBufferIndex maxDirty = 0;
-
-    for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
-        if (_voxelDirtyArray[i]) {
-            somethingDirty = true;
-            minDirty = std::min(minDirty,i);
-            maxDirty = std::max(maxDirty,i);
-            _voxelDirtyArray[i] = false;
-        }
-    }
-
-    if (somethingDirty) {
-        glBufferIndex segmentStart = minDirty;
-        glBufferIndex segmentEnd = maxDirty;
-        int segmentLength = (segmentEnd - segmentStart) + 1;
-        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-    }
-}
-
 void VoxelSystem::updateVBOs() {
     static char buffer[40] = { 0 };
     if (_renderWarningsOn) { 
@@ -519,8 +488,7 @@ void VoxelSystem::updateVBOs() {
         if (_renderFullVBO) {
             updateFullVBOs();
         } else {
-            updateJustEnoughVBOs();
-            //updatePartialVBOs(); // too many small segments?
+            updatePartialVBOs(); // too many small segments?
         }
         _voxelsDirty = false;
     }
