@@ -24,6 +24,7 @@ public:
     void render(int screenwidth, int screenheight);
     void renderColumn(int i);
     MenuColumn* addColumn(const char *columnName);
+    void hidePopupMenu() { currentColumn = -1; };
 private:
     std::vector<MenuColumn> columns;
     int currentColumn;

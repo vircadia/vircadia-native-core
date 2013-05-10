@@ -1899,12 +1899,36 @@ glm::vec3 getGravity(glm::vec3 pos) {
     }
 }
 
-
+bool menuDisplayed = false;
 void mouseFunc(int button, int state, int x, int y) {
-    //catch mouse actions on the menu
-    bool menuClickedOrUnclicked = menu.mouseClick(x, y);
+    bool menuFound = menu.mouseClick(x, y);
 
-    if (!menuClickedOrUnclicked) {
+    // If we didn't previously have the menu displayed, and we did just click on the menu, then
+    // go into menuDisplayed mode....
+    if (!::menuDisplayed && menuFound) {
+        ::menuDisplayed = true;
+    }
+
+    // If the menu was displayed, and we're not over a menu, then leave menu mode
+    if (::menuDisplayed && !menuFound) {
+        ::menuDisplayed = false;
+        menu.hidePopupMenu();
+    }
+    
+    // In menu displayed mode use old logic
+    if (::menuDisplayed) {
+        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+            if (state == GLUT_DOWN && !menu.mouseClick(x, y)) {
+                mouseX = x;
+                mouseY = y;
+                mousePressed = 1;
+            } else if (state == GLUT_UP) {
+                mouseX = x;
+                mouseY = y;
+                mousePressed = 0;
+            }
+        }
+    } else {
         if (button == GLUT_LEFT_BUTTON) {
             mouseX = x;
             mouseY = y;
