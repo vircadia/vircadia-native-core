@@ -135,6 +135,9 @@ int main(int argc, const char* argv[]) {
     // read eve's audio data
     AudioInjector eveAudioInjector("/etc/highfidelity/eve/resources/eve.raw");
     
+    // lower Eve's volume by setting the attentuation modifier (this is a value out of 255)
+    eveAudioInjector.setAttenuationModifier(190);
+    
     // register the callback for agent data creation
     agentList->linkedDataCreateCallback = createAvatarDataForAgent;
     
