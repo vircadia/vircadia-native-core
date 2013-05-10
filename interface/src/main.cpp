@@ -420,9 +420,9 @@ void updateAvatar(float deltaTime) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
         
-        myAvatar.setBodyYaw(yaw);
-        myAvatar.setHeadPitch(-pitch);
-        myAvatar.setHeadRoll(-roll);
+        myAvatar.setHeadYaw(-yaw);
+        myAvatar.setHeadPitch(pitch);
+        myAvatar.setHeadRoll(roll);
     }
     
     //  Get audio loudness data from audio input device
@@ -1016,7 +1016,9 @@ void display(void)
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
             
             if (OculusManager::isConnected()) {
-                myCamera.setTargetRotation(myAvatar.getBodyYaw(), -myAvatar.getHeadPitch(), myAvatar.getHeadRoll());
+                myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(),
+                                           -myAvatar.getHeadPitch(),
+                                           myAvatar.getHeadRoll());
             } else {
                 myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
             }
