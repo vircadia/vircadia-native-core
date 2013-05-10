@@ -31,6 +31,8 @@ const int HAND_TIMER_SLEEP_ITERATIONS = 50;
 
 const float EVE_PELVIS_HEIGHT = 0.565925f;
 
+const float AUDIO_INJECT_PROXIMITY = 0.4f;
+
 bool stopReceiveAgentDataThread;
 bool injectAudioThreadRunning = false;
 
@@ -43,20 +45,14 @@ void *receiveAgentData(void *args) {
     unsigned char incomingPacket[MAX_PACKET_SIZE];
     
     AgentList* agentList = AgentList::getInstance();
-    Agent* avatarMixer = NULL;
     
     while (!::stopReceiveAgentDataThread) {
         if (agentList->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) { 
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     // this is the positional data for other agents
-                    // eve doesn't care about this for now, so let's just update the receive time for the
-                    // avatar mixer - this makes sure it won't be killed during silent agent removal
-                    avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
-                    
-                    if (avatarMixer) {
-                        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-                    }
+                    // pass that off to the agentList processBulkAgentData method
+                    agentList->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived);
                     
                     break;
                 default:
@@ -92,6 +88,12 @@ void *injectAudio(void *args) {
     ::injectAudioThreadRunning = false;
     pthread_exit(0);
     return NULL;
+}
+
+void createAvatarDataForAgent(Agent *agent) {
+    if (!agent->getLinkedData()) {
+        agent->setLinkedData(new AvatarData());
+    }
 }
 
 int main(int argc, const char* argv[]) {
@@ -133,13 +135,15 @@ int main(int argc, const char* argv[]) {
     // read eve's audio data
     AudioInjector eveAudioInjector("/etc/highfidelity/eve/resources/eve.raw");
     
+    // register the callback for agent data creation
+    agentList->linkedDataCreateCallback = createAvatarDataForAgent;
+    
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
     timeval thisSend;
     double numMicrosecondsSleep = 0;
-    
-    int numIterationsLeftBeforeAudioSend = 0;
+  
     pthread_t injectAudioThread;
     
     int handStateTimer = 0;
@@ -162,24 +166,23 @@ int main(int argc, const char* argv[]) {
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
             agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
         }        
-
-        // temporarily disable Eve's audio sending until the file is actually available on EC2 box
-        if (numIterationsLeftBeforeAudioSend == 0) {
-            if (!::injectAudioThreadRunning) {
-                pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
+        
+        if (!::injectAudioThreadRunning) {
+            // enumerate the other agents to decide if one is close enough that eve should talk
+            for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+                AvatarData *avatarData = (AvatarData*) agent->getLinkedData();
                 
-                numIterationsLeftBeforeAudioSend = randIntInRange(MIN_ITERATIONS_BETWEEN_AUDIO_SENDS,
-                                                                  MAX_ITERATIONS_BETWEEN_AUDIO_SENDS);
+                if (avatarData) {
+                    glm::vec3 tempVector = eve.getPosition() - avatarData->getPosition();
+                    float squareDistance = glm::dot(tempVector, tempVector);
+                    
+                    if (squareDistance <= AUDIO_INJECT_PROXIMITY) {
+                        pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
+                    }
+                }            
             }
-        } else {
-            numIterationsLeftBeforeAudioSend--;
         }
         
-        // sleep for the correct amount of time to have data send be consistently timed
-        if ((numMicrosecondsSleep = (DATA_SEND_INTERVAL_MSECS * 1000) - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
-            usleep(numMicrosecondsSleep);
-        }   
-                                    
         // simulate the effect of pressing and un-pressing the mouse button/pad
         handStateTimer++;
         
@@ -189,6 +192,11 @@ int main(int argc, const char* argv[]) {
             eve.setHandState(0);
         } else if (handStateTimer >= ITERATIONS_BEFORE_HAND_GRAB + HAND_GRAB_DURATION_ITERATIONS + HAND_TIMER_SLEEP_ITERATIONS) {
             handStateTimer = 0;
+        }
+        
+        // sleep for the correct amount of time to have data send be consistently timed
+        if ((numMicrosecondsSleep = (DATA_SEND_INTERVAL_MSECS * 1000) - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
+            usleep(numMicrosecondsSleep);
         }   
     }
     
