@@ -44,6 +44,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
     _isDirty = true;
     _shouldRender = false;
+    _isStagedForDeletion = false;
     
     calculateAABox();
 }
