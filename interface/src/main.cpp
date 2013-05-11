@@ -325,8 +325,8 @@ void init(void) {
     
     handControl.setScreenDimensions(::screenWidth, ::screenHeight);
 
-    headMouseX = WIDTH /2;
-    headMouseY = HEIGHT/2; 
+    headMouseX = ::screenWidth /2;
+    headMouseY = ::screenHeight/2; 
 
     stars.readInput(starFile, starCacheFile, 0);
   
