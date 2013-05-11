@@ -38,7 +38,6 @@ class AudioData {
         float lastInputLoudness;
     
         bool mixerLoopbackFlag;
-        bool playWalkSound;
     
         //  Added avatar acceleration and velocity for procedural effects sounds from client
         void setLastVelocity(glm::vec3 v) { _lastVelocity = v; };

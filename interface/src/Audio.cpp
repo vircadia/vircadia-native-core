@@ -357,10 +357,6 @@ bool Audio::getMixerLoopbackFlag() {
     return audioData->mixerLoopbackFlag;
 }
 
-void Audio::setWalkingState(bool newWalkState) {
-    audioData->playWalkSound = newWalkState;
-}
-
 /**
  * Initialize portaudio and start an audio stream.
  * Should be called at the beginning of program exection.

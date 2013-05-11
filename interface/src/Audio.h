@@ -28,8 +28,6 @@ public:
     float getInputLoudness() const;
     void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
     
-    void setWalkingState(bool newWalkState);
-    
     void setLastAcceleration(glm::vec3 a) { audioData->setLastAcceleration(a); };
     void setLastVelocity(glm::vec3 v) { audioData->setLastVelocity(v); };
     
