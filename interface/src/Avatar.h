@@ -20,8 +20,6 @@
 #include "Balls.h"
 #include "Head.h"
 
-//enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
-
 enum DriveKeys
 {
     FWD = 0,
@@ -83,10 +81,8 @@ public:
     Avatar* clone() const;
 
     void  reset();
-    
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void  setNoise (float mag) {_head.noise = mag;}
-    void  setScale(float s) {_head.scale = s; };
     void  setRenderYaw(float y) {_renderYaw = y;}
     void  setRenderPitch(float p) {_renderPitch = p;}
     float getRenderYaw() {return _renderYaw;}
@@ -125,11 +121,6 @@ public:
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );
     
-    float getAverageLoudness() {return _head.averageLoudness;};
-    void  setAverageLoudness(float al) {_head.averageLoudness = al;};
-     
-//void SetNewHeadTarget(float, float);
-
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
@@ -199,7 +190,6 @@ private:
     Balls*      _balls;
     AvatarTouch _avatarTouch;
     bool        _displayingHead; // should be false if in first-person view
-    //bool        _returnHeadToCenter;
     float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
 
@@ -216,7 +206,6 @@ private:
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
-    void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
 };
 
 #endif

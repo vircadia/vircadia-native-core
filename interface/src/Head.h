@@ -32,11 +32,14 @@ public:
     void setAudioLoudness(float loudness);
     void render(bool lookingInMirror, float bodyYaw);
     void setNewTarget(float, float);
-
+    void setSpringScale(float s) { returnSpringScale = s; }
     
     //  Do you want head to try to return to center (depends on interface detected)
     void setReturnToCenter(bool r) { returnHeadToCenter = r; }
     const bool getReturnToCenter() const { return returnHeadToCenter; }
+    
+    float getAverageLoudness() {return averageLoudness;};
+    void  setAverageLoudness(float al) { averageLoudness = al;};
     
 //private:
 // I am making these public for now - just to get the code moved over quickly!

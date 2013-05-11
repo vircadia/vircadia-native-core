@@ -24,7 +24,6 @@ const bool  BALLS_ON                      = false;
 const bool  USING_AVATAR_GRAVITY          = true;
 const float GRAVITY_SCALE                 = 10.0f;
 const float BOUNCE                        = 0.3f;
-//const float DECAY                         = 0.1;
 const float THRUST_MAG                    = 1200.0;
 const float YAW_MAG                       = 500.0;
 const float BODY_SPIN_FRICTION            = 5.0;
@@ -53,6 +52,8 @@ const float AVATAR_BRAKING_STRENGTH       = 30.0f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
+
+/*
 float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
@@ -65,9 +66,10 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
-bool usingBigSphereCollisionTest = true;
 
 //char iris_texture_file[] = "resources/images/green_eye.png";
+*/
+bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
@@ -1471,13 +1473,6 @@ void Avatar::renderBody() {
     }
 }
 
-/*
-void Avatar::SetNewHeadTarget(float pitch, float yaw) {
-    _head.pitchTarget = pitch;
-    _head.yawTarget   = yaw;
-}
-*/
-
 //
 // Process UDP interface data from Android transmitter or Google Glass
 //
@@ -1517,7 +1512,7 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         gettimeofday(&_transmitterTimer, NULL);
         if (deviceType == DEVICE_GLASS) {
             _head.setReturnToCenter(true);
-            setHeadSpringScale(10.f);
+            _head.setSpringScale(10.f);
             printLog("Using Google Glass to drive head, springs ON.\n");
 
         } else {
@@ -1530,6 +1525,7 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         
         _transmitterInitialReading = glm::vec3(rot3, rot2, rot1);
     }
+    
     const int TRANSMITTER_COUNT = 100;
     if (_transmitterPackets % TRANSMITTER_COUNT == 0) {
         // Every 100 packets, record the observed Hz of the transmitter data
