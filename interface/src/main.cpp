@@ -1203,8 +1203,11 @@ int setRenderAvatars(int state) {
 
 int setRenderFirstPerson(int state) {
     bool value = setValue(state, &::renderFirstPersonOn);
-    if (::renderFirstPersonOn) { myCamera.setMode(CAMERA_MODE_FIRST_PERSON); }
-    else { myCamera.setMode(CAMERA_MODE_THIRD_PERSON); }
+    if (::renderFirstPersonOn) {
+        myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+    } else {
+        myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+    }
     return value;
 }
 
@@ -1586,9 +1589,7 @@ void key(unsigned char k, int x, int y) {
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
     if (k == 'f') setFullscreen(!::fullscreen);
     if (k == 'o') setOculus(!::oculusOn);
-    
-    if (k == 'p') myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-    
+    if (k == 'p') setRenderFirstPerson(!::renderFirstPersonOn);
     if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
     if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
     if (k == '{') ::viewFrustumOffsetPitch     -= 0.5;
