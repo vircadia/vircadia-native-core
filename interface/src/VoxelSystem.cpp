@@ -989,19 +989,10 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) { 
-    printLog("VoxelSystem::deleteVoxelAt(%f,%f,%f,%f)\n",x,y,z,s);
-
-    VoxelNode* node = _tree->getVoxelAt(x, y, z, s);
-    if (node) {
-        // tell the node we want it deleted
-        node->stageForDeletion();
-        
-        // tree is now dirty
-        _tree->setDirtyBit();
-        
-        // redraw!
-        setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
-    }
+    _tree->deleteVoxelAt(x, y, z, s, true);
+    
+    // redraw!
+    setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
 };
 
 VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const { 

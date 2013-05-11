@@ -726,7 +726,12 @@ void displaySide(Camera& whichCamera) {
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (::mouseVoxel.s != 0) {
         glPushMatrix();
-        glColor3ub(::mouseVoxel.red, ::mouseVoxel.green, ::mouseVoxel.blue);
+        if (::mouseMode == ADD_VOXEL_MODE) {
+            // use a contrasting color so that we can see what we're doing
+            glColor3ub(~::mouseVoxel.red, ~::mouseVoxel.green, ~::mouseVoxel.blue);
+        } else {
+            glColor3ub(::mouseVoxel.red, ::mouseVoxel.green, ::mouseVoxel.blue);
+        }
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         glTranslatef(::mouseVoxel.x + ::mouseVoxel.s*0.5f,
                      ::mouseVoxel.y + ::mouseVoxel.s*0.5f,
@@ -1752,33 +1757,37 @@ void idle(void) {
         if (voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
             // find the nearest voxel with the desired scale
             if (::mouseVoxelScale > ::mouseVoxel.s) {
+                // choose the larger voxel that encompasses the one selected
                 ::mouseVoxel.x = ::mouseVoxelScale * floorf(::mouseVoxel.x / ::mouseVoxelScale); 
                 ::mouseVoxel.y = ::mouseVoxelScale * floorf(::mouseVoxel.y / ::mouseVoxelScale); 
                 ::mouseVoxel.z = ::mouseVoxelScale * floorf(::mouseVoxel.z / ::mouseVoxelScale);
                 ::mouseVoxel.s = ::mouseVoxelScale;
             
-            } else if (::mouseVoxelScale < ::mouseVoxel.s) {
-                glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
-                    getFaceVector(face) * (::mouseVoxelScale * 0.5f);
-                ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
-                ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
-                ::mouseVoxel.z = ::mouseVoxelScale * floorf(pt.z / ::mouseVoxelScale);
-                ::mouseVoxel.s = ::mouseVoxelScale;
+            } else {
+                glm::vec3 faceVector = getFaceVector(face);
+                if (::mouseVoxelScale < ::mouseVoxel.s) {
+                    // find the closest contained voxel
+                    glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
+                        faceVector * (::mouseVoxelScale * 0.5f);
+                    ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
+                    ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
+                    ::mouseVoxel.z = ::mouseVoxelScale * floorf(pt.z / ::mouseVoxelScale);
+                    ::mouseVoxel.s = ::mouseVoxelScale;
+                }
+                if (::mouseMode == ADD_VOXEL_MODE) {
+                    // use the face to determine the side on which to create a neighbor
+                    ::mouseVoxel.x += faceVector.x * ::mouseVoxel.s;
+                    ::mouseVoxel.y += faceVector.y * ::mouseVoxel.s;
+                    ::mouseVoxel.z += faceVector.z * ::mouseVoxel.s;
+                }
             }
                 
-            if (::mouseMode == ADD_VOXEL_MODE) {
-                // use the face to determine the side on which to create a neighbor
-                glm::vec3 offset = getFaceVector(face);
-                ::mouseVoxel.x += offset.x * ::mouseVoxel.s;
-                ::mouseVoxel.y += offset.y * ::mouseVoxel.s;
-                ::mouseVoxel.z += offset.z * ::mouseVoxel.s;
-            
-            } else if (::mouseMode == COLOR_VOXEL_MODE) {
+            if (::mouseMode == COLOR_VOXEL_MODE) {
                 ::mouseVoxel.red = 0;
                 ::mouseVoxel.green = 255;
                 ::mouseVoxel.blue = 0;
                 
-            } else { // ::mouseMode == DELETE_VOXEL_MODE
+            } else if (::mouseMode == DELETE_VOXEL_MODE) {
                 // red indicates deletion
                 ::mouseVoxel.red = 255;
                 ::mouseVoxel.green = ::mouseVoxel.blue = 0;
