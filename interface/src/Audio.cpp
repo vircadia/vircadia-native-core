@@ -71,11 +71,6 @@ float flangeIntensity = 0;
 float flangeRate = 0;
 float flangeWeight = 0;
 
-int16_t *walkingSoundArray;
-int walkingSoundSamples;
-int samplesLeftForWalk = 0;
-int16_t *sampleWalkPointer;
-
 timeval firstPlaybackTimer;
 int packetsReceivedThisPlayback = 0;
 float usecsAtStartup = 0;
@@ -357,10 +352,6 @@ bool Audio::getMixerLoopbackFlag() {
     return audioData->mixerLoopbackFlag;
 }
 
-void Audio::setWalkingState(bool newWalkState) {
-    audioData->playWalkSound = newWalkState;
-}
-
 /**
  * Initialize portaudio and start an audio stream.
  * Should be called at the beginning of program exection.
@@ -368,23 +359,7 @@ void Audio::setWalkingState(bool newWalkState) {
  * @return  Returns true if successful or false if an error occurred.
 Use Audio::getError() to retrieve the error code.
  */
-Audio::Audio(Oscilloscope *s, Avatar *linkedAvatar)
-{
-    // read the walking sound from the raw file and store it
-    // in the in memory array
-    
-    switchToResourcesParentIfRequired();
-    FILE *soundFile = fopen("resources/audio/walking.raw", "r");
-    
-    // get length of file:
-    std::fseek(soundFile, 0, SEEK_END);
-    walkingSoundSamples = std::ftell(soundFile) / sizeof(int16_t);
-    walkingSoundArray = new int16_t[walkingSoundSamples];
-    std::rewind(soundFile);
-    
-    std::fread(walkingSoundArray, sizeof(int16_t), walkingSoundSamples, soundFile);
-    std::fclose(soundFile);
-    
+Audio::Audio(Oscilloscope* s, Avatar* linkedAvatar) {    
     paError = Pa_Initialize();
     if (paError != paNoError) goto error;
     

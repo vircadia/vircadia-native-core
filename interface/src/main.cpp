@@ -214,7 +214,6 @@ double elapsedTime;
 timeval applicationStartupTime;
 bool justStarted = true;
 
-
 //  Every second, check the frame rates and other stuff
 void Timer(int extra) {
     gettimeofday(&timerEnd, NULL);
@@ -378,9 +377,7 @@ void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-//
 //  Using gyro data, update both view frustum and avatar head position
-//
 void updateAvatar(float deltaTime) {
     
     // Update my avatar's head position from gyros
@@ -1234,8 +1231,6 @@ int setRenderAvatars(int state) {
     return setValue(state, &::renderAvatarsOn);
 }
 
-
-
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
     int value = setValue(state, &::oculusOn);
@@ -1562,9 +1557,6 @@ void specialkey(int k, int x, int y) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(RIGHT, 1);
             else myAvatar.setDriveKeys(ROT_RIGHT, 1);   
         }
-#ifndef _WIN32
-        audio.setWalkingState(true);
-#endif
     }    
 }
 
@@ -1860,7 +1852,6 @@ void idle(void) {
         glutPostRedisplay();
         lastTimeIdle = check;
     }
-    
 }
 
 void reshape(int width, int height) {
