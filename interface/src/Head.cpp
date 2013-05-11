@@ -3,10 +3,8 @@
 //  hifi
 //
 //  Created by Jeffrey on May, 10, 2013
+//  Copyright (c) 2013 Physical, Inc.. All rights reserved.
 //
-// To avoid code bloat in Avatar.cpp, and to keep all head-related code in one place, 
-// I have started moving the head code over to its own class. But it's gonna require 
-// some work - so this is not done yet. 
 
 #include "Head.h"
 #include <vector>

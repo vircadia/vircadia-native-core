@@ -105,6 +105,7 @@ int HEIGHT = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
+bool  USING_MOUSE_VIEW_SHIFT = false;
 float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
 float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(WIDTH  * 0.2f);
 float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(HEIGHT * 0.2f);
@@ -417,30 +418,32 @@ void updateAvatar(float deltaTime) {
     }
     
     
-    //make it so that when your mouse hits the edge of the screen, the camera shifts
-    float rightBoundary  = (float)WIDTH  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
-    float bottomBoundary = (float)HEIGHT - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
-    
-    if (mouseX > rightBoundary) {
-        float f = (mouseX - rightBoundary) / ( (float)WIDTH - rightBoundary);
-        mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-        if (mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
-    } else if (mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
-        float f = 1.0 - (mouseX / MOUSE_VIEW_SHIFT_YAW_MARGIN);
-        mouseViewShiftYaw -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-        if (mouseViewShiftYaw < -MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = -MOUSE_VIEW_SHIFT_YAW_LIMIT; }
+    if (USING_MOUSE_VIEW_SHIFT)
+    {
+        //make it so that when your mouse hits the edge of the screen, the camera shifts
+        float rightBoundary  = (float)WIDTH  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
+        float bottomBoundary = (float)HEIGHT - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
+        
+        if (mouseX > rightBoundary) {
+            float f = (mouseX - rightBoundary) / ( (float)WIDTH - rightBoundary);
+            mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
+        } else if (mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
+            float f = 1.0 - (mouseX / MOUSE_VIEW_SHIFT_YAW_MARGIN);
+            mouseViewShiftYaw -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftYaw < -MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = -MOUSE_VIEW_SHIFT_YAW_LIMIT; }
+        }
+        if (mouseY < MOUSE_VIEW_SHIFT_PITCH_MARGIN) {
+            float f = 1.0 - (mouseY / MOUSE_VIEW_SHIFT_PITCH_MARGIN);
+            mouseViewShiftPitch += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if ( mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
+        }
+        else if (mouseY > bottomBoundary) {
+            float f = (mouseY - bottomBoundary) / ((float)HEIGHT - bottomBoundary);
+             mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
+        }
     }
-    if (mouseY < MOUSE_VIEW_SHIFT_PITCH_MARGIN) {
-        float f = 1.0 - (mouseY / MOUSE_VIEW_SHIFT_PITCH_MARGIN);
-        mouseViewShiftPitch += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-        if ( mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-    }
-    else if (mouseY > bottomBoundary) {
-        float f = (mouseY - bottomBoundary) / ((float)HEIGHT - bottomBoundary);
-         mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-        if (mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-    }
-    
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -1814,7 +1817,7 @@ void idle(void) {
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
-            mouseViewShiftYaw *= 0.9;
+            mouseViewShiftYaw   *= 0.9;
             mouseViewShiftPitch *= 0.9;
         }
         

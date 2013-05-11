@@ -460,6 +460,7 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
+
     
     // update head state
     _head.setPositionRotationAndScale(
@@ -880,7 +881,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     // render head
     if (_displayingHead) {
-        //renderHead(lookingInMirror);
         _head.render(lookingInMirror, _bodyYaw);
     }
     
