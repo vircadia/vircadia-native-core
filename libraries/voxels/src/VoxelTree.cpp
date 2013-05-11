@@ -254,6 +254,34 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
             _isDirty = true;
         }
+    } else {
+        // we need to break up ancestors until we get to the right level
+        if (!nodeToDelete->isColored()) {
+            return;
+        }
+        nodeColor color;
+        nodeColor noColor;
+        memcpy(color, nodeToDelete->getColor(), sizeof(nodeColor));
+        memcpy(noColor, nodeToDelete->getColor(), sizeof(nodeColor));
+        noColor[3] = 0;
+        
+        while (true) {
+            nodeToDelete->setColor(noColor);
+            int index = branchIndexWithDescendant(nodeToDelete->getOctalCode(), codeBuffer);
+            for (int i = 0; i < 8; i++) {
+                if (i != index) {
+                    nodeToDelete->addChildAtIndex(i);
+                    nodeToDelete->getChildAtIndex(i)->setColor(color);
+                }
+            }
+            if (*nodeToDelete->getOctalCode() == *codeBuffer - 1) {
+                break;
+            }
+            nodeToDelete->addChildAtIndex(index);
+            nodeToDelete = nodeToDelete->getChildAtIndex(index);
+        }
+        reaverageVoxelColors(rootNode);
+        _isDirty = true;
     }
 }
 
@@ -271,6 +299,11 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     if (*lastCreatedNode->getOctalCode() != *codeColorBuffer) {
         lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
         _isDirty = true;
+    } else {
+        // if it does exist, make sure it has no children
+        for (int i = 0; i < 8; i++) {
+            lastCreatedNode->deleteChildAtIndex(i);
+        }
     }
 
     // give this node its color
