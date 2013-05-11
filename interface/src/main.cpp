@@ -205,7 +205,6 @@ double elapsedTime;
 timeval applicationStartupTime;
 bool justStarted = true;
 
-
 //  Every second, check the frame rates and other stuff
 void Timer(int extra) {
     gettimeofday(&timerEnd, NULL);
@@ -369,9 +368,7 @@ void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-//
 //  Using gyro data, update both view frustum and avatar head position
-//
 void updateAvatar(float deltaTime) {
     
     // Update my avatar's head position from gyros
@@ -1200,8 +1197,6 @@ int setRenderAvatars(int state) {
     return setValue(state, &::renderAvatarsOn);
 }
 
-
-
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
     int value = setValue(state, &::oculusOn);
@@ -1824,7 +1819,6 @@ void idle(void) {
         glutPostRedisplay();
         lastTimeIdle = check;
     }
-    
 }
 
 void reshape(int width, int height) {
