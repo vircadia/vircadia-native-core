@@ -1024,7 +1024,7 @@ void display(void)
                                            -myAvatar.getHeadPitch(),
                                            myAvatar.getHeadRoll());
             } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getAbsoluteHeadPitch(), 0.0f);
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getRenderPitch(), 0.0f);
             }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
