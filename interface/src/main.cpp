@@ -322,7 +322,7 @@ void init(void) {
     
     handControl.setScreenDimensions(WIDTH, HEIGHT);
 
-    headMouseX = WIDTH/2;
+    headMouseX = WIDTH /2;
     headMouseY = HEIGHT/2; 
 
     stars.readInput(starFile, starCacheFile, 0);
@@ -332,7 +332,6 @@ void init(void) {
     }
     
     myAvatar.setPosition(start_location);
-    myCamera.setPosition(start_location);
     myCamera.setMode(defaultCameraMode);
     
     OculusManager::connect();
