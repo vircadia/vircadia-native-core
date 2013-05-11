@@ -1523,9 +1523,6 @@ void specialkey(int k, int x, int y) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(RIGHT, 1);
             else myAvatar.setDriveKeys(ROT_RIGHT, 1);   
         }
-#ifndef _WIN32
-        audio.setWalkingState(true);
-#endif
     }    
 }
 
