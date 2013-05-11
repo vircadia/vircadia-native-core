@@ -46,6 +46,7 @@ VoxelSystem::VoxelSystem() {
     _renderFullVBO = true;
     _tree = new VoxelTree();
     pthread_mutex_init(&_bufferWriteLock, NULL);
+    pthread_mutex_init(&_treeLock, NULL);
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -56,6 +57,7 @@ VoxelSystem::~VoxelSystem() {
     delete[] _voxelDirtyArray;
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
+    pthread_mutex_destroy(&_treeLock);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -91,6 +93,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     unsigned char *voxelData = sourceBuffer + 1;
+
+    pthread_mutex_lock(&_treeLock);
 
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
@@ -131,6 +135,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
 
     setupNewVoxelsForDrawing();
+    
+    pthread_mutex_unlock(&_treeLock);
+    
     return numBytes;
 }
 
@@ -299,7 +306,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
         bool  inBoundary      = (distanceToNode <= boundary);
         bool  inChildBoundary = (distanceToNode <= childBoundary);
-        shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+        //shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+        shouldRender = node->isLeaf();
     }
     node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
@@ -834,8 +842,10 @@ void VoxelSystem::removeOutOfView() {
 
 bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                       VoxelDetail& detail, float& distance, BoxFace& face) {
+    pthread_mutex_lock(&_treeLock);                                  
     VoxelNode* node;
     if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
+        pthread_mutex_unlock(&_treeLock);
         return false;
     }
     detail.x = node->getCorner().x;
@@ -845,6 +855,7 @@ bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     detail.red = node->getColor()[0];
     detail.green = node->getColor()[1];
     detail.blue = node->getColor()[2];
+    pthread_mutex_unlock(&_treeLock);
     return true;
 }
 
@@ -988,21 +999,29 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 }
 
 
-void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) { 
+void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
+    pthread_mutex_lock(&_treeLock);
+    
     _tree->deleteVoxelAt(x, y, z, s, true);
     
     // redraw!
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
+    
+    pthread_mutex_unlock(&_treeLock);
 };
 
 VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const { 
     return _tree->getVoxelAt(x, y, z, s); 
 };
 
-void VoxelSystem::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) { 
+void VoxelSystem::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
+    pthread_mutex_lock(&_treeLock);
+    
     //printLog("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
     _tree->createVoxel(x, y, z, s, red, green, blue); 
     setupNewVoxelsForDrawing(); 
+    
+    pthread_mutex_unlock(&_treeLock);
 };
 
 void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color) { 
