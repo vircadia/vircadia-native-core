@@ -97,18 +97,20 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-float mouseViewShiftYaw   = 0.0f;
-float mouseViewShiftPitch = 0.0f;
 
-int WIDTH = 1200; //  Window size
-int HEIGHT = 800;
+int screenWidth = 1200; //  Window size
+int screenHeight = 800;
+
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
+//  PER:  Jeffrey - please move these our of main.cpp - also these not constants!
+float mouseViewShiftYaw   = 0.0f;
+float mouseViewShiftPitch = 0.0f;
 bool  USING_MOUSE_VIEW_SHIFT = false;
 float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
-float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(WIDTH  * 0.2f);
-float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(HEIGHT * 0.2f);
+float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(::screenWidth  * 0.2f);
+float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(::screenHeight * 0.2f);
 float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
 float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
 
@@ -155,11 +157,12 @@ bool renderStatsOn = false;         //  Whether to show onscreen text overlay wi
 bool renderVoxels = true;           //  Whether to render voxels
 bool renderStarsOn = true;          //  Whether to display the stars
 bool renderAtmosphereOn = true;     //  Whether to display the atmosphere
-bool renderAvatarsOn = true;        //  Whether to render avatars 
+bool renderAvatarsOn = true;        //  Whether to render avatars
+bool renderFirstPersonOn = false;   //  Whether to render in first person 
 bool paintOn = false;               //  Whether to paint voxels as you fly around
 VoxelDetail paintingVoxel;          //    The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //    The dominant color of the voxel we're painting
-bool perfStatsOn = false;            //  Do we want to display perfStats?
+bool perfStatsOn = false;           //  Do we want to display perfStats?
 
 bool logOn = true;                  //  Whether to show on-screen log
 
@@ -320,10 +323,10 @@ void init(void) {
     
     environment.init();
     
-    handControl.setScreenDimensions(WIDTH, HEIGHT);
+    handControl.setScreenDimensions(::screenWidth, ::screenHeight);
 
-    headMouseX = WIDTH/2;
-    headMouseY = HEIGHT/2; 
+    headMouseX = ::screenWidth / 2;
+    headMouseY = ::screenHeight / 2;
 
     stars.readInput(starFile, starCacheFile, 0);
   
@@ -362,8 +365,8 @@ void terminate () {
 void reset_sensors() {
     
     myAvatar.setPosition(start_location);
-    headMouseX = WIDTH/2;
-    headMouseY = HEIGHT/2;
+    headMouseX = ::screenWidth / 2;
+    headMouseY = ::screenHeight / 2;
     
     myAvatar.reset();
 }
@@ -399,19 +402,19 @@ void updateAvatar(float deltaTime) {
         headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
     }
     headMouseX = max(headMouseX, 0);
-    headMouseX = min(headMouseX, WIDTH);
+    headMouseX = min(headMouseX, ::screenWidth);
     headMouseY = max(headMouseY, 0);
-    headMouseY = min(headMouseY, HEIGHT);
+    headMouseY = min(headMouseY, ::screenHeight);
     
     //  Update head and body pitch and yaw based on measured gyro rates
     if (::gyroLook) {
         // Render Yaw
-        float renderYawSpring = fabs(headMouseX - WIDTH / 2.f) / (WIDTH / 2.f);
+        float renderYawSpring = fabs(headMouseX - ::screenWidth / 2.f) / (::screenWidth / 2.f);
         const float RENDER_YAW_MULTIPLY = 4.f;
         myAvatar.setRenderYaw((1.f - renderYawSpring * deltaTime) * myAvatar.getRenderYaw() +
                               renderYawSpring * deltaTime * -myAvatar.getHeadYaw() * RENDER_YAW_MULTIPLY);
         // Render Pitch
-        float renderPitchSpring = fabs(headMouseY - HEIGHT / 2.f) / (HEIGHT / 2.f);
+        float renderPitchSpring = fabs(headMouseY - ::screenHeight / 2.f) / (::screenHeight / 2.f);
         const float RENDER_PITCH_MULTIPLY = 4.f;
         myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
@@ -421,11 +424,11 @@ void updateAvatar(float deltaTime) {
     if (USING_MOUSE_VIEW_SHIFT)
     {
         //make it so that when your mouse hits the edge of the screen, the camera shifts
-        float rightBoundary  = (float)WIDTH  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
-        float bottomBoundary = (float)HEIGHT - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
+        float rightBoundary  = (float)::screenWidth  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
+        float bottomBoundary = (float)::screenHeight - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
         
         if (mouseX > rightBoundary) {
-            float f = (mouseX - rightBoundary) / ( (float)WIDTH - rightBoundary);
+            float f = (mouseX - rightBoundary) / ( (float)::screenWidth - rightBoundary);
             mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
             if (mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
         } else if (mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
@@ -439,7 +442,7 @@ void updateAvatar(float deltaTime) {
             if ( mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
         }
         else if (mouseY > bottomBoundary) {
-            float f = (mouseY - bottomBoundary) / ((float)HEIGHT - bottomBoundary);
+            float f = (mouseY - bottomBoundary) / ((float)::screenHeight - bottomBoundary);
              mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
             if (mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
         }
@@ -849,7 +852,7 @@ void displayOculus(Camera& whichCamera) {
     glTranslatef(0.032, 0, 0); // dip/2, see p. 27
     
     glMatrixMode(GL_MODELVIEW);
-    glViewport(0, 0, WIDTH/2, HEIGHT);
+    glViewport(0, 0, ::screenWidth / 2, ::screenHeight);
     displaySide(whichCamera);
 
     // and the right eye to the right side
@@ -861,18 +864,18 @@ void displayOculus(Camera& whichCamera) {
     glTranslatef(-0.032, 0, 0);
     
     glMatrixMode(GL_MODELVIEW);
-    glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
+    glViewport(::screenWidth / 2, 0, ::screenWidth / 2, ::screenHeight);
     displaySide(whichCamera);
 
     glPopMatrix();
     
     // restore our normal viewport
-    glViewport(0, 0, WIDTH, HEIGHT);
+    glViewport(0, 0, ::screenWidth, ::screenHeight);
 
     if (::oculusTextureID == 0) {
         glGenTextures(1, &::oculusTextureID);
         glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ::screenWidth, ::screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
         
         ::oculusProgram = new ProgramObject();
@@ -889,18 +892,18 @@ void displayOculus(Camera& whichCamera) {
     } else {
         glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
     }
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, ::screenWidth, ::screenHeight);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, WIDTH, 0, HEIGHT);           
+    gluOrtho2D(0, ::screenWidth, 0, ::screenHeight);           
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     
     // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
     
     float scaleFactor = 1.0 / ::oculusDistortionScale;
-    float aspectRatio = (WIDTH * 0.5) / HEIGHT;
+    float aspectRatio = (::screenWidth * 0.5) / ::screenHeight;
     
     glDisable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
@@ -917,11 +920,11 @@ void displayOculus(Camera& whichCamera) {
     glTexCoord2f(0, 0);
     glVertex2f(0, 0);
     glTexCoord2f(0.5, 0);
-    glVertex2f(WIDTH/2, 0);
+    glVertex2f(::screenWidth/2, 0);
     glTexCoord2f(0.5, 1);
-    glVertex2f(WIDTH/2, HEIGHT);
+    glVertex2f(::screenWidth / 2, ::screenHeight);
     glTexCoord2f(0, 1);
-    glVertex2f(0, HEIGHT);
+    glVertex2f(0, ::screenHeight);
     glEnd();
     
     ::oculusProgram->setUniform(lensCenterLocation, 0.787994, 0.5);
@@ -929,13 +932,13 @@ void displayOculus(Camera& whichCamera) {
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.5, 0);
-    glVertex2f(WIDTH/2, 0);
+    glVertex2f(::screenWidth / 2, 0);
     glTexCoord2f(1, 0);
-    glVertex2f(WIDTH, 0);
+    glVertex2f(::screenWidth, 0);
     glTexCoord2f(1, 1);
-    glVertex2f(WIDTH, HEIGHT);
+    glVertex2f(::screenWidth, ::screenHeight);
     glTexCoord2f(0.5, 1);
-    glVertex2f(WIDTH/2, HEIGHT);
+    glVertex2f(::screenWidth / 2, ::screenHeight);
     glEnd();
     
     glEnable(GL_BLEND);           
@@ -951,16 +954,16 @@ void displayOverlay() {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
         glLoadIdentity(); 
-        gluOrtho2D(0, WIDTH, HEIGHT, 0);
+        gluOrtho2D(0, ::screenWidth, ::screenHeight, 0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
         #ifndef _WIN32
-        audio.render(WIDTH, HEIGHT);
-        audioScope.render(20, HEIGHT - 200);
+        audio.render(::screenWidth, ::screenHeight);
+        audioScope.render(20, ::screenHeight - 200);
         #endif
 
-       //noiseTest(WIDTH, HEIGHT);
+       //noiseTest(::screenWidth, ::screenHeight);
     
     if (displayHeadMouse && !::lookingInMirror && USING_INVENSENSE_MPU9150) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
@@ -978,25 +981,25 @@ void displayOverlay() {
         }
         
     //  Show detected levels from the serial I/O ADC channel sensors
-    if (displayLevels) serialPort.renderLevels(WIDTH,HEIGHT);
+    if (displayLevels) serialPort.renderLevels(::screenWidth,::screenHeight);
     
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
     glPointSize(1.0f);
     
     if (::renderStatsOn) { displayStats(); }
-    if (::logOn) { logger.render(WIDTH, HEIGHT); }
+    if (::logOn) { logger.render(::screenWidth, ::screenHeight); }
         
     //  Show menu
     if (::menuOn) {
         glLineWidth(1.0f);
         glPointSize(1.0f);
-        menu.render(WIDTH,HEIGHT);
+        menu.render(::screenWidth,::screenHeight);
     }
 
     //  Show chat entry field
     if (::chatEntryOn) {
-        chatEntry.render(WIDTH, HEIGHT);
+        chatEntry.render(::screenWidth, ::screenHeight);
     }
 
     //  Stats at upper right of screen about who domain server is telling us about
@@ -1011,7 +1014,7 @@ void displayOverlay() {
     }
     
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(WIDTH-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    drawtext(::screenWidth - 150, 20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
@@ -1019,7 +1022,7 @@ void displayOverlay() {
         sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
             ::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
             (unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
-        drawtext(WIDTH-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+        drawtext(::screenWidth - 350, 50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
     glPopMatrix();
@@ -1057,7 +1060,7 @@ void display(void)
                                            -myAvatar.getHeadPitch(),
                                            myAvatar.getHeadRoll());
             } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getAbsoluteHeadPitch() + mouseViewShiftPitch, 0.0f);
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getAbsoluteHeadPitch() + myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
             }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
@@ -1212,7 +1215,7 @@ int setFullscreen(int state) {
             glutFullScreen();    
             
         } else {
-            glutReshapeWindow(WIDTH, HEIGHT);
+            glutReshapeWindow(::screenWidth, ::screenHeight);
         }
     }
     return value;
@@ -1234,11 +1237,23 @@ int setRenderAvatars(int state) {
     return setValue(state, &::renderAvatarsOn);
 }
 
+int setRenderFirstPerson(int state) {
+    bool value = setValue(state, &::renderFirstPersonOn);
+    if (state == MENU_ROW_PICKED) {
+        if (::renderFirstPersonOn) {
+            myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+        } else {
+            myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+        }
+    }
+    return value;
+}
+
 int setOculus(int state) {
     bool wasOn = ::oculusOn;
     int value = setValue(state, &::oculusOn);
     if (::oculusOn != wasOn) {
-        reshape(WIDTH, HEIGHT);
+        reshape(::screenWidth, ::screenHeight);
     }
     return value;
 }
@@ -1268,7 +1283,7 @@ int setFrustumOffset(int state) {
 
     // reshape so that OpenGL will get the right lens details for the camera of choice    
     if (state == MENU_ROW_PICKED) {
-        reshape(::WIDTH,::HEIGHT);
+        reshape(::screenWidth, ::screenHeight);
     }
     
     return value;
@@ -1395,6 +1410,7 @@ void initMenu() {
     menuColumnRender->addRow("Stars (*)", setStars);
     menuColumnRender->addRow("Atmosphere (A)", setAtmosphere);
     menuColumnRender->addRow("Avatars", setRenderAvatars);
+    menuColumnRender->addRow("First Person (p)", setRenderFirstPerson);
     menuColumnRender->addRow("Oculus (o)", setOculus);
     
     //  Tools
@@ -1608,7 +1624,7 @@ void key(unsigned char k, int x, int y) {
     if (k == 'O' || k == 'G') setFrustumOffset(MENU_ROW_PICKED); // toggle view frustum offset debugging
     if (k == 'f') setFullscreen(!::fullscreen);
     if (k == 'o') setOculus(!::oculusOn);
-    
+    if (k == 'p') setRenderFirstPerson(MENU_ROW_PICKED);
     if (k == '[') ::viewFrustumOffsetYaw       -= 0.5;
     if (k == ']') ::viewFrustumOffsetYaw       += 0.5;
     if (k == '{') ::viewFrustumOffsetPitch     -= 0.5;
@@ -1773,7 +1789,7 @@ void idle(void) {
         
         // check what's under the mouse and update the mouse voxel
         glm::vec3 origin, direction;
-        viewFrustum.computePickRay(mouseX / (float)WIDTH, mouseY / (float)HEIGHT, origin, direction);
+        viewFrustum.computePickRay(mouseX / (float)::screenWidth, mouseY / (float)::screenHeight, origin, direction);
 
         float distance;
         BoxFace face;
@@ -1858,8 +1874,8 @@ void idle(void) {
 }
 
 void reshape(int width, int height) {
-    WIDTH = width;
-    HEIGHT = height; 
+    ::screenWidth = width;
+    ::screenHeight = height; 
     aspectRatio = ((float)width/(float)height); // based on screen resize
 
     // get the lens details from the current camera
@@ -1876,7 +1892,7 @@ void reshape(int width, int height) {
         // resize the render texture
         if (::oculusTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, ::oculusTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ::screenWidth, ::screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     } else {
@@ -2056,11 +2072,11 @@ int main(int argc, const char * argv[]) {
     AgentList::getInstance()->startPingUnknownAgentsThread();
 
     glutInit(&argc, (char**)argv);
-    WIDTH = glutGet(GLUT_SCREEN_WIDTH);
-    HEIGHT = glutGet(GLUT_SCREEN_HEIGHT);
+    ::screenWidth = glutGet(GLUT_SCREEN_WIDTH);
+    ::screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
     
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(WIDTH, HEIGHT);
+    glutInitWindowSize(::screenWidth, ::screenHeight);
     glutCreateWindow("Interface");
     printLog( "Created Display Window.\n" );
     
