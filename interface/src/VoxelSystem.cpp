@@ -205,17 +205,86 @@ void VoxelSystem::cleanupRemovedVoxels() {
     }
 }
 
+void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
+    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
+    pthread_mutex_lock(&_bufferWriteLock);
+    int bytesOfVertices = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
+    int bytesOfColors   = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLubyte);
+    memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
+    memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
+    _voxelsInReadArrays = _voxelsInWriteArrays;
+    pthread_mutex_unlock(&_bufferWriteLock);
+}
+
+void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
+    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
+    pthread_mutex_lock(&_bufferWriteLock);
+
+    glBufferIndex segmentStart = 0;
+    glBufferIndex segmentEnd = 0;
+    bool inSegment = false;
+    for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
+        bool thisVoxelDirty = _voxelDirtyArray[i];
+        if (!inSegment) {
+            if (thisVoxelDirty) {
+                segmentStart = i;
+                inSegment = true;
+            }
+        } else {
+            if (!thisVoxelDirty) {
+                // If we got here because because this voxel is NOT dirty, so the last dirty voxel was the one before
+                // this one and so that's where the "segment" ends
+                segmentEnd = i - 1; 
+                inSegment = false;
+                int segmentLength = (segmentEnd - segmentStart) + 1;
+
+                GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+                GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+                GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+                GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+                memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
+
+                segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+                segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+                GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+                GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+                memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
+            }
+        }
+    }
+    
+    // if we got to the end of the array, and we're in an active dirty segment...
+    if (inSegment) {
+        segmentEnd = _voxelsInWriteArrays - 1; 
+        int segmentLength = (segmentEnd - segmentStart) + 1;
+
+        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
+
+        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
+    }
+
+    // update our length
+    _voxelsInReadArrays = _voxelsInWriteArrays;
+
+    pthread_mutex_unlock(&_bufferWriteLock);
+}
+
 void VoxelSystem::copyWrittenDataToReadArrays() {
-    PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()"); // would like to include _voxelsInArrays, _voxelsUpdated
+    PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()");
     if (_voxelsDirty && _voxelsUpdated) {
-        // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-        pthread_mutex_lock(&_bufferWriteLock);
-        int bytesOfVertices = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
-        int bytesOfColors   = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLubyte);
-        memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
-        memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
-        _voxelsInReadArrays = _voxelsInWriteArrays;
-        pthread_mutex_unlock(&_bufferWriteLock);
+        if (_renderFullVBO) {
+            copyWrittenDataToReadArraysFullVBOs();
+        } else {
+            copyWrittenDataToReadArraysPartialVBOs();
+        }
     }
 }
 
@@ -234,9 +303,11 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     }
     node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (node->getChildAtIndex(i)) {
-            voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+    if (!node->isLeaf()) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            if (node->getChildAtIndex(i)) {
+                voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+            }
         }
     }
     if (_renderFullVBO) {
@@ -493,11 +564,10 @@ void VoxelSystem::updateVBOs() {
     };
     PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
-        // updatePartialVBOs() is not yet working. For now, ALWAYS call updateFullVBOs()
         if (_renderFullVBO) {
             updateFullVBOs();
         } else {
-            updatePartialVBOs(); // too many small segments?
+            updatePartialVBOs();
         }
         _voxelsDirty = false;
     }
@@ -818,7 +888,8 @@ public:
         coloredNodes(0),
         nodesInVBO(0),
         nodesInVBOOverExpectedMax(0),
-        duplicateVBOIndex(0)
+        duplicateVBOIndex(0),
+        leafNodes(0)
         {
             memset(hasIndexFound, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
         };
@@ -830,15 +901,20 @@ public:
     unsigned long nodesInVBO;
     unsigned long nodesInVBOOverExpectedMax;
     unsigned long duplicateVBOIndex;
+    unsigned long leafNodes;
+
     unsigned long expectedMax;
     
-    bool colorThis;
     bool hasIndexFound[MAX_VOXELS_PER_SYSTEM];
 };
 
 bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData) {
     collectStatsForTreesAndVBOsArgs* args = (collectStatsForTreesAndVBOsArgs*)extraData;
     args->totalNodes++;
+
+    if (node->isLeaf()) {
+        args->leafNodes++;
+    }
 
     if (node->isColored()) {
         args->coloredNodes++;
@@ -871,6 +947,7 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
 }
 
 void VoxelSystem::collectStatsForTreesAndVBOs() {
+    PerformanceWarning warn(true, "collectStatsForTreesAndVBOs()", true);
 
     glBufferIndex minDirty = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxDirty = 0;
@@ -889,8 +966,10 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", (_voxelsDirty ? "yes" : "no"), 
         _voxelsInWriteArrays, minDirty, maxDirty);
 
-    printLog("stats: total %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
-        args.totalNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes, 
+    printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
+        args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
+
+    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;

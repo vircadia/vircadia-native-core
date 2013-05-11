@@ -7,6 +7,7 @@
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
+#include <OculusManager.h>
 // #include "Log.h"
 
 #include "Camera.h"
@@ -71,10 +72,16 @@ void Camera::updateFollowMode(float deltaTime) {
         t = 1.0;
     }
 
-    // update _yaw (before position!) 
-    _yaw   += (_idealYaw   - _yaw  ) * t;
-    _pitch += (_idealPitch - _pitch) * t;
-    _roll  += (_idealRoll  - _roll ) * t;
+    // update _yaw (before position!)
+    if (OculusManager::isConnected()) {
+        _yaw = _idealYaw;
+        _pitch = _idealPitch;
+        _roll = _idealRoll;
+    } else {
+        _yaw   += (_idealYaw   - _yaw  ) * t;
+        _pitch += (_idealPitch - _pitch) * t;
+        _roll  += (_idealRoll  - _roll ) * t;
+    }
 
     _orientation.yaw  (_yaw  );
     _orientation.pitch(_pitch);

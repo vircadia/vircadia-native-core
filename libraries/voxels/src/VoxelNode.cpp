@@ -40,6 +40,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         _children[i] = NULL;
     }
+    _childCount = 0;
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
     _isDirty = true;
@@ -87,6 +88,8 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
     if (_children[childIndex]) {
         delete _children[childIndex];
         _children[childIndex] = NULL;
+        _isDirty = true;
+        _childCount--;
     }
 }
 
@@ -96,6 +99,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     if (_children[childIndex]) {
         _children[childIndex] = NULL;
         _isDirty = true;
+        _childCount--;
     }
     return returnedChild;
 }
@@ -111,6 +115,7 @@ void VoxelNode::addChildAtIndex(int childIndex) {
         _children[childIndex]->setFalseColored(false);
     
         _isDirty = true;
+        _childCount++;
     }
 }
 
@@ -215,6 +220,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
 			delete _children[i]; // delete all the child nodes
 			_children[i]=NULL; // set it to NULL
 		}
+        _childCount = 0;
 		nodeColor collapsedColor;
 		collapsedColor[0]=red;		
 		collapsedColor[1]=green;		
@@ -233,15 +239,6 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
     
     newColor[3] = 1;
     setColor(newColor);
-}
-
-bool VoxelNode::isLeaf() const {
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (_children[i]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 void VoxelNode::printDebugDetails(const char* label) const {

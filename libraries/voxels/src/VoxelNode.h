@@ -31,6 +31,7 @@ private:
     AABox _box;
     unsigned char* _octalCode;
     VoxelNode* _children[8];
+    int _childCount;
 
     void calculateAABox();
 
@@ -60,7 +61,7 @@ public:
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
-    bool isLeaf() const;
+    bool isLeaf() const { return _childCount == 0; }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
