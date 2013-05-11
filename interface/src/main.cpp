@@ -314,8 +314,8 @@ void init(void) {
     
     handControl.setScreenDimensions(::screenWidth, ::screenHeight);
 
-    headMouseX = ::screenWidth/2;
-    headMouseY = ::screenHeight/2; 
+    headMouseX = ::screenWidth / 2;
+    headMouseY = ::screenHeight / 2;
 
     stars.readInput(starFile, starCacheFile, 0);
   
@@ -354,8 +354,8 @@ void terminate () {
 void reset_sensors() {
     
     myAvatar.setPosition(start_location);
-    headMouseX = ::screenWidth/2;
-    headMouseY = ::screenHeight/2;
+    headMouseX = ::screenWidth / 2;
+    headMouseY = ::screenHeight / 2;
     
     myAvatar.reset();
 }
@@ -816,7 +816,7 @@ void displayOculus(Camera& whichCamera) {
     glTranslatef(0.032, 0, 0); // dip/2, see p. 27
     
     glMatrixMode(GL_MODELVIEW);
-    glViewport(0, 0, ::screenWidth/2, ::screenHeight);
+    glViewport(0, 0, ::screenWidth / 2, ::screenHeight);
     displaySide(whichCamera);
 
     // and the right eye to the right side
@@ -828,7 +828,7 @@ void displayOculus(Camera& whichCamera) {
     glTranslatef(-0.032, 0, 0);
     
     glMatrixMode(GL_MODELVIEW);
-    glViewport(::screenWidth/2, 0, ::screenWidth/2, ::screenHeight);
+    glViewport(::screenWidth / 2, 0, ::screenWidth / 2, ::screenHeight);
     displaySide(whichCamera);
 
     glPopMatrix();
@@ -886,7 +886,7 @@ void displayOculus(Camera& whichCamera) {
     glTexCoord2f(0.5, 0);
     glVertex2f(::screenWidth/2, 0);
     glTexCoord2f(0.5, 1);
-    glVertex2f(::screenWidth/2, ::screenHeight);
+    glVertex2f(::screenWidth / 2, ::screenHeight);
     glTexCoord2f(0, 1);
     glVertex2f(0, ::screenHeight);
     glEnd();
@@ -896,13 +896,13 @@ void displayOculus(Camera& whichCamera) {
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.5, 0);
-    glVertex2f(::screenWidth/2, 0);
+    glVertex2f(::screenWidth / 2, 0);
     glTexCoord2f(1, 0);
     glVertex2f(::screenWidth, 0);
     glTexCoord2f(1, 1);
     glVertex2f(::screenWidth, ::screenHeight);
     glTexCoord2f(0.5, 1);
-    glVertex2f(::screenWidth/2, ::screenHeight);
+    glVertex2f(::screenWidth / 2, ::screenHeight);
     glEnd();
     
     glEnable(GL_BLEND);           
@@ -978,7 +978,7 @@ void displayOverlay() {
     }
     
     sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(::screenWidth-150,20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    drawtext(::screenWidth - 150, 20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
     
     if (::paintOn) {
     
@@ -986,7 +986,7 @@ void displayOverlay() {
         sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
             ::paintingVoxel.x,::paintingVoxel.y,::paintingVoxel.z,::paintingVoxel.s,
             (unsigned int)::paintingVoxel.red,(unsigned int)::paintingVoxel.green,(unsigned int)::paintingVoxel.blue);
-        drawtext(::screenWidth-350,50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
+        drawtext(::screenWidth - 350, 50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
     glPopMatrix();
@@ -1247,7 +1247,7 @@ int setFrustumOffset(int state) {
 
     // reshape so that OpenGL will get the right lens details for the camera of choice    
     if (state == MENU_ROW_PICKED) {
-        reshape(::screenWidth,::screenHeight);
+        reshape(::screenWidth, ::screenHeight);
     }
     
     return value;
