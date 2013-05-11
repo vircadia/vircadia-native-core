@@ -90,7 +90,7 @@ void *injectAudio(void *args) {
     return NULL;
 }
 
-void createAvatarDataForAgent(Agent *agent) {
+void createAvatarDataForAgent(Agent* gagent) {
     if (!agent->getLinkedData()) {
         agent->setLinkedData(new AvatarData());
     }
