@@ -102,6 +102,13 @@ int screenHeight = 800;
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
+bool  USING_MOUSE_VIEW_SHIFT = false;
+float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
+float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(WIDTH  * 0.2f);
+float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(HEIGHT * 0.2f);
+float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
+float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
+
 //CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
 CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
 
@@ -205,7 +212,6 @@ timeval lastTimeIdle;
 double elapsedTime;
 timeval applicationStartupTime;
 bool justStarted = true;
-
 
 //  Every second, check the frame rates and other stuff
 void Timer(int extra) {
@@ -370,9 +376,7 @@ void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-//
 //  Using gyro data, update both view frustum and avatar head position
-//
 void updateAvatar(float deltaTime) {
     
     // Update my avatar's head position from gyros
@@ -409,7 +413,34 @@ void updateAvatar(float deltaTime) {
         const float RENDER_PITCH_MULTIPLY = 4.f;
         myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
-
+    }
+    
+    
+    if (USING_MOUSE_VIEW_SHIFT)
+    {
+        //make it so that when your mouse hits the edge of the screen, the camera shifts
+        float rightBoundary  = (float)WIDTH  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
+        float bottomBoundary = (float)HEIGHT - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
+        
+        if (mouseX > rightBoundary) {
+            float f = (mouseX - rightBoundary) / ( (float)WIDTH - rightBoundary);
+            mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
+        } else if (mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
+            float f = 1.0 - (mouseX / MOUSE_VIEW_SHIFT_YAW_MARGIN);
+            mouseViewShiftYaw -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftYaw < -MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = -MOUSE_VIEW_SHIFT_YAW_LIMIT; }
+        }
+        if (mouseY < MOUSE_VIEW_SHIFT_PITCH_MARGIN) {
+            float f = 1.0 - (mouseY / MOUSE_VIEW_SHIFT_PITCH_MARGIN);
+            mouseViewShiftPitch += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if ( mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
+        }
+        else if (mouseY > bottomBoundary) {
+            float f = (mouseY - bottomBoundary) / ((float)HEIGHT - bottomBoundary);
+             mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
+            if (mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
+        }
     }
     
     if (OculusManager::isConnected()) {
@@ -1032,7 +1063,7 @@ void display(void)
             myCamera.setDistance      (1.5f);
             myCamera.setTightness     (8.0f);
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getBodyYaw(), 0.0f, 0.0f);
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
         }
                 
         // important...
@@ -1540,9 +1571,6 @@ void specialkey(int k, int x, int y) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) myAvatar.setDriveKeys(RIGHT, 1);
             else myAvatar.setDriveKeys(ROT_RIGHT, 1);   
         }
-#ifndef _WIN32
-        audio.setWalkingState(true);
-#endif
     }    
 }
 
@@ -1800,6 +1828,8 @@ void idle(void) {
         // walking triggers the handControl to stop
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
+            mouseViewShiftYaw   *= 0.9;
+            mouseViewShiftPitch *= 0.9;
         }
         
         //  Read serial port interface devices
@@ -1836,7 +1866,6 @@ void idle(void) {
         glutPostRedisplay();
         lastTimeIdle = check;
     }
-    
 }
 
 void reshape(int width, int height) {

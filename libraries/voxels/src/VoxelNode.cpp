@@ -262,8 +262,21 @@ ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const
 
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 center = _box.getCenter() * (float)TREE_SCALE;
-    float distanceToVoxelCenter = sqrtf(powf(viewFrustum.getPosition().x - center.x, 2) +
-                                        powf(viewFrustum.getPosition().y - center.y, 2) +
-                                        powf(viewFrustum.getPosition().z - center.z, 2));
+    glm::vec3 temp = viewFrustum.getPosition() - center;
+    float distanceSquared = glm::dot(temp, temp);
+    float distanceToVoxelCenter = sqrtf(distanceSquared);
     return distanceToVoxelCenter;
+}
+
+float VoxelNode::distanceSquareToPoint(const glm::vec3& point) const {
+    glm::vec3 temp = point - _box.getCenter();
+    float distanceSquare = glm::dot(temp, temp);
+    return distanceSquare;
+}
+
+float VoxelNode::distanceToPoint(const glm::vec3& point) const {
+    glm::vec3 temp = point - _box.getCenter();
+    float distanceSquare = glm::dot(temp, temp);
+    float distance = sqrtf(distanceSquare);
+    return distance;
 }
