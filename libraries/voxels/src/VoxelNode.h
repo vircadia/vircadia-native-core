@@ -61,6 +61,11 @@ public:
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
+    
+    // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
+    float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
+    float distanceToPoint(const glm::vec3& point) const;
+
     bool isLeaf() const { return _childCount == 0; }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
