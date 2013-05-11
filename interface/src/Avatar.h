@@ -18,8 +18,9 @@
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
+#include "Head.h"
 
-enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
+//enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
 enum DriveKeys
 {
@@ -127,7 +128,7 @@ public:
     float getAverageLoudness() {return _head.averageLoudness;};
     void  setAverageLoudness(float al) {_head.averageLoudness = al;};
      
-    void SetNewHeadTarget(float, float);
+//void SetNewHeadTarget(float, float);
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
@@ -165,48 +166,7 @@ private:
         bool		  isCollidable;         // when false, the joint position will not register a collision
     };
 
-    struct AvatarHead
-    {
-        float pitchRate;
-        float yawRate;
-        float rollRate;
-        float noise;
-        float eyeballPitch[2];
-        float eyeballYaw  [2];
-        float eyebrowPitch[2];
-        float eyebrowRoll [2];
-        float eyeballScaleX;
-        float eyeballScaleY;
-        float eyeballScaleZ;
-        float interPupilDistance;
-        float interBrowDistance;
-        float nominalPupilSize;
-        float pupilSize;
-        float mouthPitch;
-        float mouthYaw;
-        float mouthWidth;
-        float mouthHeight;
-        float leanForward;
-        float leanSideways;
-        float pitchTarget; 
-        float yawTarget; 
-        float noiseEnvelope;
-        float pupilConverge;
-        float scale;
-        int   eyeContact;
-        float browAudioLift;
-        eyeContactTargets eyeContactTarget;
-        
-        //  Sound loudness information
-        float lastLoudness;
-        float averageLoudness;
-        float audioAttack;
-        
-        //  Strength of return springs
-        float returnSpringScale;
-    };
-
-    AvatarHead  _head;
+    Head        _head;
     bool        _isMine;
     glm::vec3   _TEST_bigSpherePosition;
     float       _TEST_bigSphereRadius;
@@ -239,7 +199,7 @@ private:
     Balls*      _balls;
     AvatarTouch _avatarTouch;
     bool        _displayingHead; // should be false if in first-person view
-    bool        _returnHeadToCenter;
+    //bool        _returnHeadToCenter;
     float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
 
@@ -257,10 +217,6 @@ private:
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void setHeadSpringScale(float s) { _head.returnSpringScale = s; }
-    
-    //  Do you want head to try to return to center (depends on interface detected)
-    void setHeadReturnToCenter(bool r) { _returnHeadToCenter = r; };
-    const bool getHeadReturnToCenter() const { return _returnHeadToCenter; };
 };
 
 #endif
