@@ -173,7 +173,7 @@ int main(int argc, const char* argv[]) {
         if (!::injectAudioThreadRunning) {
             // enumerate the other agents to decide if one is close enough that eve should talk
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                AvatarData* gavatarData = (AvatarData*) agent->getLinkedData();
+                AvatarData* avatarData = (AvatarData*) agent->getLinkedData();
                 
                 if (avatarData) {
                     glm::vec3 tempVector = eve.getPosition() - avatarData->getPosition();
