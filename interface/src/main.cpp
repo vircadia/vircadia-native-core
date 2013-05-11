@@ -97,15 +97,20 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
+
 int screenWidth = 1200; //  Window size
 int screenHeight = 800;
+
 int fullscreen = 0;
 float aspectRatio = 1.0f;
 
+//  PER:  Jeffrey - please move these our of main.cpp - also these not constants!
+float mouseViewShiftYaw   = 0.0f;
+float mouseViewShiftPitch = 0.0f;
 bool  USING_MOUSE_VIEW_SHIFT = false;
 float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
-float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(WIDTH  * 0.2f);
-float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(HEIGHT * 0.2f);
+float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(::screenWidth  * 0.2f);
+float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(::screenHeight * 0.2f);
 float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
 float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
 
@@ -419,11 +424,11 @@ void updateAvatar(float deltaTime) {
     if (USING_MOUSE_VIEW_SHIFT)
     {
         //make it so that when your mouse hits the edge of the screen, the camera shifts
-        float rightBoundary  = (float)WIDTH  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
-        float bottomBoundary = (float)HEIGHT - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
+        float rightBoundary  = (float)::screenWidth  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
+        float bottomBoundary = (float)::screenHeight - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
         
         if (mouseX > rightBoundary) {
-            float f = (mouseX - rightBoundary) / ( (float)WIDTH - rightBoundary);
+            float f = (mouseX - rightBoundary) / ( (float)::screenWidth - rightBoundary);
             mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
             if (mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
         } else if (mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
@@ -437,7 +442,7 @@ void updateAvatar(float deltaTime) {
             if ( mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
         }
         else if (mouseY > bottomBoundary) {
-            float f = (mouseY - bottomBoundary) / ((float)HEIGHT - bottomBoundary);
+            float f = (mouseY - bottomBoundary) / ((float)::screenHeight - bottomBoundary);
              mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
             if (mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
         }
@@ -1055,7 +1060,7 @@ void display(void)
                                            -myAvatar.getHeadPitch(),
                                            myAvatar.getHeadRoll());
             } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw(), myAvatar.getRenderPitch(), 0.0f);
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getAbsoluteHeadPitch() + myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
             }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
