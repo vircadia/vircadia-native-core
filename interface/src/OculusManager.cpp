@@ -10,12 +10,16 @@
 #include <glm/glm.hpp>
 
 bool OculusManager::_isConnected = false;
+
+#ifdef __APPLE__
 Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
 SensorFusion OculusManager::_sensorFusion;
+#endif
 
 void OculusManager::connect() {
+#ifdef __APPLE__
     System::Init();
     _deviceManager = *DeviceManager::Create();
     _hmdDevice = *_deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
@@ -29,14 +33,17 @@ void OculusManager::connect() {
         // default the yaw to the current orientation
         _sensorFusion.SetMagReference();
     }
+#endif
 }
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
+#ifdef __APPLE__
     _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CW, Handed_R>(&yaw, &pitch, &roll);
     
     // convert each angle to degrees
     yaw = glm::degrees(yaw);
     pitch = glm::degrees(pitch);
     roll = glm::degrees(roll);
+#endif
 }
 
