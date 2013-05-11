@@ -11,6 +11,7 @@
 #include <lodepng.h>
 #include <SharedUtil.h>
 #include "Avatar.h"
+#include "Head.h"
 #include "Log.h"
 #include "ui/TextRenderer.h"
 #include <AgentList.h>
@@ -23,12 +24,11 @@ const bool  BALLS_ON                      = false;
 const bool  USING_AVATAR_GRAVITY          = true;
 const float GRAVITY_SCALE                 = 10.0f;
 const float BOUNCE                        = 0.3f;
-const float DECAY                         = 0.1;
 const float THRUST_MAG                    = 1200.0;
 const float YAW_MAG                       = 500.0;
 const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
-const float BODY_PITCH_WHILE_WALKING      = 30.0;
+const float BODY_PITCH_WHILE_WALKING      = 40.0;
 const float BODY_ROLL_WHILE_TURNING       = 0.1;
 const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
@@ -52,6 +52,8 @@ const float AVATAR_BRAKING_STRENGTH       = 30.0f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
+
+/*
 float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float mouthColor[] = {1, 0, 0};
 
@@ -64,16 +66,19 @@ float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float browWidth = 0.8;
 float browThickness = 0.16;
 
-bool usingBigSphereCollisionTest = true;
 
-char iris_texture_file[] = "resources/images/green_eye.png";
+//char iris_texture_file[] = "resources/images/green_eye.png";
+*/
+bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
+/*
 vector<unsigned char> iris_texture;
 unsigned int iris_texture_width = 512;
 unsigned int iris_texture_height = 256;
+*/
 
 Avatar::Avatar(bool isMine) {
     
@@ -104,43 +109,8 @@ Avatar::Avatar(bool isMine) {
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
-    _head.pupilSize             = 0.10;
-    _head.interPupilDistance    = 0.6;
-    _head.interBrowDistance     = 0.75;
-    _head.nominalPupilSize      = 0.10;
-    _head.pitchRate             = 0.0;
-    _head.yawRate               = 0.0;
-    _head.rollRate              = 0.0;
-    _head.eyebrowPitch[0]       = -30;
-    _head.eyebrowPitch[1]       = -30;
-    _head.eyebrowRoll [0]       = 20;
-    _head.eyebrowRoll [1]       = -20;
-    _head.mouthPitch            = 0;
-    _head.mouthYaw              = 0;
-    _head.mouthWidth            = 1.0;
-    _head.mouthHeight           = 0.2;
-    _head.eyeballPitch[0]       = 0;
-    _head.eyeballPitch[1]       = 0;
-    _head.eyeballScaleX         = 1.2;
-    _head.eyeballScaleY         = 1.5;
-    _head.eyeballScaleZ         = 1.0;
-    _head.eyeballYaw[0]         = 0;
-    _head.eyeballYaw[1]         = 0;
-    _head.pitchTarget           = 0;
-    _head.yawTarget             = 0;
-    _head.noiseEnvelope         = 1.0;
-    _head.pupilConverge         = 10.0;
-    _head.leanForward           = 0.0;
-    _head.leanSideways          = 0.0;
-    _head.eyeContact            = 1;
-    _head.eyeContactTarget      = LEFT_EYE;
-    _head.scale                 = 1.0;
-    _head.audioAttack           = 0.0;
-    _head.averageLoudness       = 0.0;
-    _head.lastLoudness          = 0.0;
-    _head.browAudioLift         = 0.0;
-    _head.noise                 = 0;
-    _head.returnSpringScale     = 1.0;
+    _head.initialize();
+        
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
     _renderYaw                  = 0.0;
     _renderPitch                = 0.0;
@@ -153,6 +123,7 @@ Avatar::Avatar(bool isMine) {
     
     _avatarTouch.setReachableRadius(0.6);
     
+  /*  
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -160,6 +131,7 @@ Avatar::Avatar(bool isMine) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
+*/
     
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
@@ -239,7 +211,8 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
-    
+
+/*
     if (iris_texture.size() == 0) {
         switchToResourcesParentIfRequired();
         unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
@@ -247,6 +220,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
             printLog("error %u: %s\n", error, lodepng_error_text(error));
         }
     }
+*/
 }
 
 Avatar::~Avatar()  {
@@ -452,8 +426,52 @@ void Avatar::simulate(float deltaTime) {
         }
     }
     
+    
+    
+    
+
+    // Get head position data from network for other people
+    if (!_isMine) {
+        _head.leanSideways = getHeadLeanSideways();
+        _head.leanForward = getHeadLeanForward(); 
+    }
+    
+    //apply the head lean values to the springy position...
+    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
+        glm::vec3 headLean = 
+            _orientation.getRight() * _head.leanSideways +
+            _orientation.getFront() * _head.leanForward;
+
+        // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
+        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
+        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
+        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
+        
+        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
+        
+        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
+        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
+        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
+        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
+    }
+
+    
     // update head state
-    updateHead(deltaTime);
+    _head.setPositionRotationAndScale(
+        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
+        glm::vec3(_headYaw, _headPitch, _headRoll), 
+        _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
+    );
+    
+    _head.setAudioLoudness(_audioLoudness);
+    _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+    _head.simulate(deltaTime, _isMine);
     
     // use speed and angular velocity to determine walking vs. standing                                
 	if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -462,7 +480,6 @@ void Avatar::simulate(float deltaTime) {
 		_mode = AVATAR_MODE_INTERACTING;
 	}
 }
-
 
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
@@ -540,7 +557,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 _avatarTouch.setHoldingHands(false);                
             }
 
-
             //if holding hands, apply the appropriate forces
             if (_avatarTouch.getHoldingHands()) {
                 _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += 
@@ -549,8 +565,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     - _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
                 ) * 0.5f; 
                 
-                if (distanceBetweenOurHands > 0.2) {
-                    float force = 700.0f * deltaTime;
+                if (distanceBetweenOurHands > 0.3) {
+                    float force = 10.0f * deltaTime;
                     if (force > 1.0f) {force = 1.0f;}
                     _velocity += vectorFromMyHandToYourHand * force;
                 }
@@ -579,37 +595,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
-    // Get head position data from network for other people
-    if (!_isMine) {
-        _head.leanSideways = getHeadLeanSideways();
-        _head.leanForward = getHeadLeanForward(); 
-    }
-    
-    //apply the head lean values to the springy position...
-    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
-        glm::vec3 headLean = 
-        _orientation.getRight() * _head.leanSideways +
-        _orientation.getFront() * _head.leanForward;
-
-        // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
-        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
-        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
-        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
-        
-        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
-        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
-        
-        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
-        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
-    }
-
+/*
     //  Decay head back to center if turned on
     if (_isMine && _returnHeadToCenter) {
         //  Decay back toward center
@@ -712,6 +698,7 @@ void Avatar::updateHead(float deltaTime) {
     const float AUDIO_AVERAGING_SECS = 0.05;
     _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+*/
 }
 
 
@@ -894,7 +881,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     // render head
     if (_displayingHead) {
-        renderHead(lookingInMirror);
+        _head.render(lookingInMirror, _bodyYaw);
     }
     
     // if this is my avatar, then render my interactions with the other avatar
@@ -952,7 +939,10 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     }
 }
 
+
+
 void Avatar::renderHead(bool lookingInMirror) {
+/*
     int side = 0;
     
     glEnable(GL_DEPTH_TEST);
@@ -1075,7 +1065,7 @@ void Avatar::renderHead(bool lookingInMirror) {
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         gluQuadricOrientation(_sphere, GLU_OUTSIDE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
     }
     
     glPushMatrix();
@@ -1121,7 +1111,9 @@ void Avatar::renderHead(bool lookingInMirror) {
     
     
     glPopMatrix();
+    */
  }
+
 
 void Avatar::setHandMovementValues(glm::vec3 handOffset) {
 	_movedHandOffset = handOffset;
@@ -1479,11 +1471,6 @@ void Avatar::renderBody() {
     }
 }
 
-void Avatar::SetNewHeadTarget(float pitch, float yaw) {
-    _head.pitchTarget = pitch;
-    _head.yawTarget   = yaw;
-}
-
 //
 // Process UDP interface data from Android transmitter or Google Glass
 //
@@ -1522,12 +1509,12 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         // If first packet received, note time, turn head spring return OFF, get start rotation
         gettimeofday(&_transmitterTimer, NULL);
         if (deviceType == DEVICE_GLASS) {
-            setHeadReturnToCenter(true);
-            setHeadSpringScale(10.f);
+            _head.setReturnToCenter(true);
+            _head.setSpringScale(10.f);
             printLog("Using Google Glass to drive head, springs ON.\n");
 
         } else {
-            setHeadReturnToCenter(false);
+            _head.setReturnToCenter(false);
             printLog("Using Transmitter %s to drive head, springs OFF.\n", device);
 
         }
@@ -1536,6 +1523,7 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         
         _transmitterInitialReading = glm::vec3(rot3, rot2, rot1);
     }
+    
     const int TRANSMITTER_COUNT = 100;
     if (_transmitterPackets % TRANSMITTER_COUNT == 0) {
         // Every 100 packets, record the observed Hz of the transmitter data
