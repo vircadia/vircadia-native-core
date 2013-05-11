@@ -92,29 +92,15 @@ void Head::initialize() {
     noise                 = 0;
     returnSpringScale     = 1.0;
     sphere                = NULL;
-    
-    /*
-    if (iris_texture.size() == 0) {
-        switchToResourcesParentIfRequired();
-        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
-        if (error != 0) {
-            printLog("error %u: %s\n", error, lodepng_error_text(error));
-        }
-    } 
-    */   
 }
 
 void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
 
     position = p;
-    //rotation = r;
     scale    = s;
-
-    yaw   = r.x;
-    pitch = r.y;
-    roll  = r.z;
-    
-    
+    yaw      = r.x;
+    pitch    = r.y;
+    roll     = r.z;
 }
 
 void Head::setSkinColor(glm::vec3 c) {
