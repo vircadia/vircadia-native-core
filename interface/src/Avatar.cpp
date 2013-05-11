@@ -439,8 +439,8 @@ void Avatar::simulate(float deltaTime) {
     //apply the head lean values to the springy position...
     if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
         glm::vec3 headLean = 
-        _orientation.getRight() * _head.leanSideways +
-        _orientation.getFront() * _head.leanForward;
+            _orientation.getRight() * _head.leanSideways +
+            _orientation.getFront() * _head.leanForward;
 
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
@@ -462,9 +462,7 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // update head state
-    //updateHead(deltaTime);
-    _head.setPositionRotationAndScale
-    (
+    _head.setPositionRotationAndScale(
         _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
         glm::vec3(_headYaw, _headPitch, _headRoll), 
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
