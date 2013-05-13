@@ -1059,7 +1059,7 @@ void display(void)
                                            -myAvatar.getHeadPitch(),
                                            myAvatar.getHeadRoll());
             } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getAbsoluteHeadPitch() + myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
             }
         } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             myAvatar.setDisplayingHead(true);            
@@ -1787,13 +1787,16 @@ void idle(void) {
         myAvatar.setMousePressed(mousePressed);
         
         // check what's under the mouse and update the mouse voxel
-        glm::vec3 origin, direction;
-        viewFrustum.computePickRay(mouseX / (float)::screenWidth, mouseY / (float)::screenHeight, origin, direction);
+        glm::vec3 mouseRayOrigin, mouseRayDirection;
+        viewFrustum.computePickRay(mouseX / (float)::screenWidth, mouseY / (float)::screenHeight, mouseRayOrigin, mouseRayDirection);
+
+        // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
+        myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection); 
 
         float distance;
         BoxFace face;
         ::mouseVoxel.s = 0.0f;
-        if (voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
+        if (voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, ::mouseVoxel, distance, face)) {
             // find the nearest voxel with the desired scale
             if (::mouseVoxelScale > ::mouseVoxel.s) {
                 ::mouseVoxel.x = ::mouseVoxelScale * floorf(::mouseVoxel.x / ::mouseVoxelScale); 
@@ -1802,7 +1805,7 @@ void idle(void) {
                 ::mouseVoxel.s = ::mouseVoxelScale;
             
             } else if (::mouseVoxelScale < ::mouseVoxel.s) {
-                glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
+                glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
                     getFaceVector(face) * (::mouseVoxelScale * 0.5f);
                 ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
                 ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
@@ -1856,6 +1859,7 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
+                avatar->setMouseRay(mouseRayOrigin, mouseRayDirection); 
             }
         }
         agentList->unlock();
