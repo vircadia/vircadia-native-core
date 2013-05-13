@@ -24,7 +24,30 @@ enum KeyState
 
 class AvatarData : public AgentData {
 public:
-    AvatarData();
+    AvatarData() :
+    _handPosition(0,0,0),
+    _bodyYaw(-90.0),
+    _bodyPitch(0.0),
+    _bodyRoll(0.0),
+    _headYaw(0),
+    _headPitch(0),
+    _headRoll(0),
+    _headLeanSideways(0),
+    _headLeanForward(0),
+    _handState(0),
+    _cameraPosition(0,0,0),
+    _cameraDirection(0,0,0),
+    _cameraUp(0,0,0),
+    _cameraRight(0,0,0),
+    _cameraFov(0.0f),
+    _cameraAspectRatio(0.0f),
+    _cameraNearClip(0.0f),
+    _cameraFarClip(0.0f),
+    _keyState(NO_KEY_DOWN),
+    _wantResIn(false),
+    _wantColor(true) { };
+    
+    
     ~AvatarData();
     
     AvatarData* clone() const;
@@ -96,6 +119,12 @@ public:
     // chat message
     void setChatMessage(const std::string& msg) { _chatMessage = msg; }
     const std::string& chatMessage () const { return _chatMessage; }
+
+    // related to Voxel Sending strategies
+    bool getWantResIn() const { return _wantResIn; }
+    bool getWantColor() const { return _wantColor; }
+    void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
+    void setWantColor(bool wantColor) { _wantColor = wantColor; }
     
 protected:
     glm::vec3 _position;
@@ -137,6 +166,9 @@ protected:
     
     // chat message
     std::string _chatMessage;
+    
+    bool _wantResIn;
+    bool _wantColor;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

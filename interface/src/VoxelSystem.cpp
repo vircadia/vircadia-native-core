@@ -104,6 +104,13 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             _tree->readBitstreamToTree(voxelData, numBytes - 1);
         }
         break;
+        case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
+        {
+            PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
+            // ask the VoxelTree to read the MONOCHROME bitstream into the tree
+            _tree->readBitstreamToTree(voxelData, numBytes - 1, false);
+        }
+        break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
             _tree->processRemoveVoxelBitstream(sourceBuffer, numBytes);
