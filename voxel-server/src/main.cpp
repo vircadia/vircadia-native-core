@@ -223,7 +223,7 @@ void resInVoxelDistributor(AgentList* agentList,
     }
 }
 
-// Version of voxel distributor that sends each LOD level at a time
+// Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
