@@ -1004,7 +1004,6 @@ void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
     _tree->deleteVoxelAt(x, y, z, s, true);
     
     // redraw!
-    _renderFullVBO = true; 
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
     
     pthread_mutex_unlock(&_treeLock);
