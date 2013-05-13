@@ -27,6 +27,8 @@ class Camera
 public:
     Camera();
 
+    void initialize(); // instantly put the camera at the ideal position and rotation. 
+
 	void update( float deltaTime );
 	
     void setYaw           ( float       y ) { _yaw            = y; }
@@ -40,6 +42,7 @@ public:
     void setPosition      ( glm::vec3   p ) { _position       = p; }
     void setTightness     ( float       t ) { _tightness      = t; }
     void setTargetRotation( float yaw, float pitch, float roll );
+    
     
     void setMode          ( CameraMode  m );
     void setFieldOfView   ( float       f );
@@ -63,6 +66,7 @@ public:
 
 private:
 
+    bool        _needsToInitialize;
 	CameraMode  _mode;
     float       _modeShift; // 0.0 to 1.0
     bool        _frustumNeedsReshape;
