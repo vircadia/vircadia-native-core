@@ -764,7 +764,7 @@ void displaySide(Camera& whichCamera) {
         glPushMatrix();
         if (::mouseMode == ADD_VOXEL_MODE) {
             // use a contrasting color so that we can see what we're doing
-            glColor3ub(~::mouseVoxel.red, ~::mouseVoxel.green, ~::mouseVoxel.blue);
+            glColor3ub(::mouseVoxel.red + 128, ::mouseVoxel.green + 128, ::mouseVoxel.blue + 128);
         } else {
             glColor3ub(::mouseVoxel.red, ::mouseVoxel.green, ::mouseVoxel.blue);
         }
