@@ -109,8 +109,6 @@ void resInVoxelDistributor(AgentList* agentList,
                            AgentList::iterator& agent, 
                            VoxelAgentData* agentData, 
                            ViewFrustum& viewFrustum) {
-     
-    printf("resInVoxelDistributor()\n");                      
     bool searchReset = false;
     int  searchLoops = 0;
     int  searchLevelWas = agentData->getMaxSearchLevel();
@@ -228,9 +226,6 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
                                   ViewFrustum& viewFrustum) {
-        
-    printf("deepestLevelVoxelDistributor()\n");                      
-
     int maxLevelReached = 0;
     double start = usecTimestampNow();
     if (agentData->nodeBag.isEmpty()) {
@@ -340,23 +335,12 @@ void *distributeVoxelsToListeners(void *args) {
 
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
     		if (agentData) {
-                ViewFrustum viewFrustum;
-                // get position and orientation details from the camera
-                viewFrustum.setPosition(agentData->getCameraPosition());
-                viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
-    
-                // Also make sure it's got the correct lens details from the camera
-                viewFrustum.setFieldOfView(agentData->getCameraFov());
-                viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
-                viewFrustum.setNearClip(agentData->getCameraNearClip());
-                viewFrustum.setFarClip(agentData->getCameraFarClip());
-            
-                viewFrustum.calculate();
+    		    agentData->updateViewFrustum();
 
                 if (agentData->getWantResIn()) { 
-                    resInVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                    resInVoxelDistributor(agentList, agent, agentData, agentData->currentViewFrustum);
                 } else {
-                    deepestLevelVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                    deepestLevelVoxelDistributor(agentList, agent, agentData,  agentData->currentViewFrustum);
                 }
             }
         }

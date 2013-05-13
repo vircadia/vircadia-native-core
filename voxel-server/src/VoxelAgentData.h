@@ -40,6 +40,12 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     VoxelNodeBag nodeBag;
+
+    ViewFrustum currentViewFrustum;
+    ViewFrustum lastKnownViewFrustum;
+    
+    void updateViewFrustum();
+
 private:    
     unsigned char* _voxelPacket;
     unsigned char* _voxelPacketAt;

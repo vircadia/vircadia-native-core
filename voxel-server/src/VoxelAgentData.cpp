@@ -50,3 +50,24 @@ VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
 VoxelAgentData* VoxelAgentData::clone() const {
     return new VoxelAgentData(*this);
 }
+
+void VoxelAgentData::updateViewFrustum() {
+    // save our currentViewFrustum into our lastKnownViewFrustum
+    lastKnownViewFrustum = currentViewFrustum;
+
+    // get position and orientation details from the camera
+    currentViewFrustum.setPosition(getCameraPosition());
+    currentViewFrustum.setOrientation(getCameraDirection(), getCameraUp(), getCameraRight());
+
+    // Also make sure it's got the correct lens details from the camera
+    currentViewFrustum.setFieldOfView(getCameraFov());
+    currentViewFrustum.setAspectRatio(getCameraAspectRatio());
+    currentViewFrustum.setNearClip(getCameraNearClip());
+    currentViewFrustum.setFarClip(getCameraFarClip());
+    
+    // if there has been a change, then recalculate
+    if (!lastKnownViewFrustum.matches(currentViewFrustum)) {
+        currentViewFrustum.calculate();
+    }
+}
+
