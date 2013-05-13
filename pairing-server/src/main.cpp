@@ -52,34 +52,33 @@ int main(int argc, const char* argv[]) {
                 // create a new PairableDevice
                 PairableDevice newDevice = {};
                 
-                int addressBytes[4];
+                char deviceAddress[INET_ADDRSTRLEN] = {};
                 int socketPort = 0;
                 
-                int numMatches = sscanf(senderData, "Available %s %d.%d.%d.%d:%d %s",
+                int numMatches = sscanf(senderData, "Available %s%[^:]:%d %s",
                                         newDevice.identifier,
-                                        &addressBytes[3],
-                                        &addressBytes[2],
-                                        &addressBytes[1],
-                                        &addressBytes[0],
+                                        deviceAddress,
                                         &socketPort,
                                         newDevice.name);
                 
-                if (numMatches >= 6) {
+                if (numMatches >= 3) {
                     // if we have fewer than 6 matches the packet wasn't properly formatted
                     
                     // setup the localSocket for the pairing device
                     newDevice.localSocket.sin_family = AF_INET;
-                    newDevice.localSocket.sin_addr.s_addr = (addressBytes[3] |
-                                                             addressBytes[2] << 8 |
-                                                             addressBytes[1] << 16 |
-                                                             addressBytes[0] << 24);
+                    inet_pton(AF_INET, deviceAddress, &newDevice);
                     newDevice.localSocket.sin_port = socketPort;
                     
                     // store this device's sending socket so we can talk back to it
                     newDevice.sendingSocket = senderSocket;
                     
                     // push this new device into the vector
-                    printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
+                    printf("Adding device %s (%s) - %s:%d to list\n",
+                           newDevice.identifier,
+                           newDevice.name,
+                           deviceAddress,
+                           socketPort);
+                    
                     devices.push_back(newDevice);
                 }
             } else if (senderData[0] == 'F') {
@@ -90,6 +89,7 @@ int main(int argc, const char* argv[]) {
                 int requestorPort = 0;
                 
                 int requestorMatches = sscanf(senderData, "Find %[^:]:%d", requestorAddress, &requestorPort);
+                printf("Find request from interface client at %s:%d\n", requestorAddress, requestorPort);
                 
                 if (requestorMatches == 2) {
                     PairableDevice lastDevice = devices[devices.size() - 1];
@@ -102,5 +102,4 @@ int main(int argc, const char* argv[]) {
             }
         }
     }
-        
 }

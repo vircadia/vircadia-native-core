@@ -229,16 +229,16 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
 }
 
-void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
+void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
-    deleteVoxelCodeFromTree(octalCode);
+    deleteVoxelCodeFromTree(octalCode, stage);
     delete octalCode; // cleanup memory
 }
 
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
-void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
+void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage) {
     VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
 
@@ -249,11 +249,34 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer) {
         if (parentNode) {
             int childIndex = branchIndexWithDescendant(parentNode->getOctalCode(), codeBuffer);
 
-            parentNode->deleteChildAtIndex(childIndex);
-
+            if (stage) {
+                nodeToDelete->stageForDeletion();
+            } else {
+                parentNode->deleteChildAtIndex(childIndex);
+            }
+            
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
             _isDirty = true;
         }
+    } else if (nodeToDelete->isLeaf()) {
+        // we need to break up ancestors until we get to the right level
+        VoxelNode* ancestorNode = nodeToDelete;
+        while (true) {
+            int index = branchIndexWithDescendant(ancestorNode->getOctalCode(), codeBuffer);
+            for (int i = 0; i < 8; i++) {
+                if (i != index) {
+                    ancestorNode->addChildAtIndex(i);
+                    ancestorNode->getChildAtIndex(i)->setColor(nodeToDelete->getColor());
+                }
+            }
+            if (*ancestorNode->getOctalCode() == *codeBuffer - 1) {
+                break;
+            }
+            ancestorNode->addChildAtIndex(index);
+            ancestorNode = ancestorNode->getChildAtIndex(index);
+            ancestorNode->setColor(nodeToDelete->getColor());
+        }
+        _isDirty = true;
     }
 }
 
@@ -271,6 +294,11 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     if (*lastCreatedNode->getOctalCode() != *codeColorBuffer) {
         lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
         _isDirty = true;
+    } else {
+        // if it does exist, make sure it has no children
+        for (int i = 0; i < 8; i++) {
+            lastCreatedNode->deleteChildAtIndex(i);
+        }
     }
 
     // give this node its color

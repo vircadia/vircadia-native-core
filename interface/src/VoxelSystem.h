@@ -129,6 +129,7 @@ private:
     GLuint _vboColorsID;
     GLuint _vboIndicesID;
     pthread_mutex_t _bufferWriteLock;
+    pthread_mutex_t _treeLock;
 
     ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
