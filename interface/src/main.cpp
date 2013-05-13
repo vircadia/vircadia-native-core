@@ -188,8 +188,8 @@ int mouseY = 0;
 int mousePressed = 0; //  true if mouse has been pressed (clear when finished)
 
 // The current mode for mouse interaction
-enum MouseMode { ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
-MouseMode mouseMode = ADD_VOXEL_MODE;
+enum MouseMode { NO_EDIT_MODE, ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
+MouseMode mouseMode = NO_EDIT_MODE;
 VoxelDetail mouseVoxel; // details of the voxel under the mouse cursor
 float mouseVoxelScale = 1.0f / 1024.0f; // the scale for adding/removing voxels
 
@@ -733,7 +733,7 @@ void displaySide(Camera& whichCamera) {
         }
 
         // finally render the starfield
-        stars.render(whichCamera.getFieldOfView(), aspectRatio, whichCamera.getNearClip(), alpha);
+        stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
     }
 
     // draw the sky dome
@@ -1597,6 +1597,10 @@ void keyUp(unsigned char k, int x, int y) {
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 0);
 }
 
+void toggleMouseMode(MouseMode mode) {
+    ::mouseMode = (::mouseMode == mode) ? NO_EDIT_MODE : mode;
+}
+
 void key(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
         if (chatEntry.key(k)) {
@@ -1652,9 +1656,9 @@ void key(unsigned char k, int x, int y) {
     if (k == '^')  ::shiftPaintingColor();        // shifts randomize color between R,G,B dominant
     if (k == '-')  ::sendVoxelServerEraseAll();    // sends erase all command to voxel server
     if (k == '%')  ::sendVoxelServerAddScene();    // sends add scene command to voxel server
-    if (k == '1')  ::mouseMode = ADD_VOXEL_MODE;
-    if (k == '2')  ::mouseMode = DELETE_VOXEL_MODE;
-    if (k == '3')  ::mouseMode = COLOR_VOXEL_MODE;
+    if (k == '1')  ::mouseMode = (::mouseMode == ADD_VOXEL_MODE) ? NO_EDIT_MODE : ADD_VOXEL_MODE;
+    if (k == '2')  ::mouseMode = (::mouseMode == DELETE_VOXEL_MODE) ? NO_EDIT_MODE : DELETE_VOXEL_MODE;
+    if (k == '3')  ::mouseMode = (::mouseMode == COLOR_VOXEL_MODE) ? NO_EDIT_MODE : COLOR_VOXEL_MODE;
     if (k == '4')  addVoxelInFrontOfAvatar();
     if (k == '5')  ::mouseVoxelScale /= 2;
     if (k == '6')  ::mouseVoxelScale *= 2; 
@@ -1798,7 +1802,7 @@ void idle(void) {
         float distance;
         BoxFace face;
         ::mouseVoxel.s = 0.0f;
-        if (voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
+        if (::mouseMode != NO_EDIT_MODE && voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
             // find the nearest voxel with the desired scale
             if (::mouseVoxelScale > ::mouseVoxel.s) {
                 // choose the larger voxel that encompasses the one selected
@@ -1991,13 +1995,13 @@ void mouseFunc(int button, int state, int x, int y) {
                 if (::mouseMode == ADD_VOXEL_MODE || ::mouseMode == COLOR_VOXEL_MODE) {
                     addVoxelUnderCursor();
                 
-                } else { // ::mouseMode == DELETE_VOXEL_MODE
+                } else if (::mouseMode == DELETE_VOXEL_MODE) {
                     deleteVoxelUnderCursor();    
                 }
             } else if (state == GLUT_UP) {
                 mousePressed = 0;
             }
-        } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+        } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && ::mouseMode != NO_EDIT_MODE) {
             deleteVoxelUnderCursor();
         }
     }
