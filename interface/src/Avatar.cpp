@@ -467,8 +467,8 @@ void Avatar::checkForMouseRayTouching() {
         glm::vec3 directionToBodySphere = glm::normalize(_joint[b].springyPosition - _mouseRayOrigin);
         float dot = glm::dot(directionToBodySphere, _mouseRayDirection);
 
-        if (dot > (1.0f-JOINT_TOUCH_RANGE)) {
-            _joint[b].touchForce = (dot - (1.0f-JOINT_TOUCH_RANGE)) / JOINT_TOUCH_RANGE;
+        if (dot > (1.0f - JOINT_TOUCH_RANGE)) {
+            _joint[b].touchForce = (dot - (1.0f - JOINT_TOUCH_RANGE)) / JOINT_TOUCH_RANGE;
         } else {
             _joint[b].touchForce = 0.0;
         }
@@ -1308,22 +1308,7 @@ void Avatar::renderBody(bool lookingInMirror) {
             glPopMatrix();
         }
     }
-    
-    /*
-    // highlight the joint that has the mouse cursor hovering over it. 
-    if (_jointTouched != AVATAR_JOINT_NULL ) {
-    
-        float r = _joint[_jointTouched].radius * 1.2f + 0.005f;
-        glColor4f(0.5f, 0.2f, 0.2f, 0.3);
-        glPushMatrix();
-        glTranslatef(_joint[_jointTouched].springyPosition.x, _joint[_jointTouched].springyPosition.y, _joint[_jointTouched].springyPosition.z);
-        glScalef(r, r, r);
-        glutSolidSphere(1, 20, 20);
-        glPopMatrix();
-    }
-    */
-    
-    
+ 
     // Render lines connecting the joint positions
     glColor3f(0.4f, 0.5f, 0.6f);
     glLineWidth(3.0);
