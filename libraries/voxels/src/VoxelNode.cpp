@@ -195,8 +195,8 @@ bool VoxelNode::collapseIdenticalLeaves() {
 	bool allChildrenMatch = true; // assume the best (ottimista)
 	int red,green,blue;
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-		// if no child, or child doesn't have a color
-		if (!_children[i] || !_children[i]->isColored()) {
+		// if no child, child isn't a leaf, or child doesn't have a color
+		if (!_children[i] || !_children[i]->isLeaf() || !_children[i]->isColored()) {
 			allChildrenMatch=false;
 			//printLog("SADNESS child missing or not colored! i=%d\n",i);
 			break;
