@@ -42,11 +42,11 @@ public:
 	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
     void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, bool includeColor = true);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
-	void deleteVoxelCodeFromTree(unsigned char *codeBuffer);
+	void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
 
-    void deleteVoxelAt(float x, float y, float z, float s);
+    void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);

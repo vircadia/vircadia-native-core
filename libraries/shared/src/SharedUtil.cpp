@@ -197,8 +197,8 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         } else {
             // add it to our message
             memcpy(copyAt,voxelData,lengthOfVoxelData);
-            copyAt+=lengthOfVoxelData+SIZE_OF_COLOR_DATA;
-            actualMessageSize+=lengthOfVoxelData+SIZE_OF_COLOR_DATA;
+            copyAt+=lengthOfVoxelData;
+            actualMessageSize+=lengthOfVoxelData;
         }
         // cleanup
         delete voxelData;
