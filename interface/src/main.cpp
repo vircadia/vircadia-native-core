@@ -114,9 +114,6 @@ float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(::screenHeight * 0.2f);
 float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
 float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
 
-//CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
-CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
-
 bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
@@ -335,7 +332,12 @@ void init(void) {
     }
     
     myAvatar.setPosition(start_location);
-    myCamera.setMode(defaultCameraMode);
+    Camera::CameraFollowingAttributes a;            
+    a.upShift   = -0.2f;
+    a.distance  = 1.5f;
+    a.tightness = 8.0f;
+    myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    myAvatar.setDisplayingHead(true);  
     
     OculusManager::connect();
     
@@ -1044,37 +1046,28 @@ void display(void)
         glLoadIdentity();
     
         // camera settings
-        if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            myAvatar.setDisplayingHead(true);            
-            myCamera.setUpShift       (0.0);    
-            myCamera.setDistance      (0.2);
-            myCamera.setTightness     (100.0f);
-            myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
-            
-        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || OculusManager::isConnected()) {
-            myAvatar.setDisplayingHead(false);            
+        if (OculusManager::isConnected()) {
+            myAvatar.setDisplayingHead(false);
             myCamera.setUpShift       (0.0f);
             myCamera.setDistance      (0.0f);
             myCamera.setTightness     (100.0f); 
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(), -myAvatar.getHeadPitch(), myAvatar.getHeadRoll());
+        
+        } else if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
             
-            if (OculusManager::isConnected()) {
-                myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(),
-                                           -myAvatar.getHeadPitch(),
-                                           myAvatar.getHeadRoll());
-            } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
+        } else {        
+            if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+                myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);                
+            } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                myCamera.setTargetPosition(myAvatar.getHeadPosition());
+                myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
             }
-        } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            myAvatar.setDisplayingHead(true);            
-            myCamera.setUpShift       (-0.2f);
-            myCamera.setDistance      (1.5f);
-            myCamera.setTightness     (8.0f);
-            myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
         }
-                
+                 
         // important...
         myCamera.update( 1.f/FPS );
         
@@ -1245,9 +1238,19 @@ int setRenderFirstPerson(int state) {
     bool value = setValue(state, &::renderFirstPersonOn);
     if (state == MENU_ROW_PICKED) {
         if (::renderFirstPersonOn) {
-            myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = 0.0f;
+            a.distance  = 0.0f;
+            a.tightness = 100.0f;
+            myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+            myAvatar.setDisplayingHead(false);  
         } else {
-            myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            Camera::CameraFollowingAttributes a;            
+            a.upShift   = -0.2f;
+            a.distance  = 1.5f;
+            a.tightness = 8.0f;
+            myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+            myAvatar.setDisplayingHead(true);  
         }
     }
     return value;
@@ -1681,9 +1684,19 @@ void key(unsigned char k, int x, int y) {
         audio.setMixerLoopbackFlag(::lookingInMirror);
         
         if (::lookingInMirror) {
-            myCamera.setMode(CAMERA_MODE_MIRROR);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = 0.0f;
+            a.distance  = 0.2f;
+            a.tightness = 100.0f;
+            myCamera.setMode(CAMERA_MODE_MIRROR, a);
+            myAvatar.setDisplayingHead(true);  
         } else {
-            myCamera.setMode(defaultCameraMode);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = -0.2f;
+            a.distance  = 1.5f;
+            a.tightness = 8.0f;
+            myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+            myAvatar.setDisplayingHead(true);  
         }
         #endif
     }
