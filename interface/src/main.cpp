@@ -1526,8 +1526,6 @@ void addVoxelUnderCursor() {
 
 void deleteVoxelUnderCursor() {
     if (::mouseVoxel.s != 0) {
-        printLog("Deleting voxel at %g %g %g.\n", ::mouseVoxel.x, ::mouseVoxel.y, ::mouseVoxel.z);
-        
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, ::mouseVoxel);
         
         // delete the voxel locally so it disappears immediately            

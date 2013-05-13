@@ -306,8 +306,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         float childBoundary   = boundaryDistanceForRenderLevel(node->getLevel() + 1);
         bool  inBoundary      = (distanceToNode <= boundary);
         bool  inChildBoundary = (distanceToNode <= childBoundary);
-        //shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
-        shouldRender = node->isLeaf();
+        shouldRender = (node->isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
     }
     node->setShouldRender(shouldRender && !node->isStagedForDeletion());
     // let children figure out their renderness
