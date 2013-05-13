@@ -66,7 +66,7 @@ int main(int argc, const char* argv[]) {
                 char deviceAddress[INET_ADDRSTRLEN] = {};
                 int socketPort = 0;
                 
-                int numMatches = sscanf(senderData, "Available %s%[^:]:%d %s",
+                int numMatches = sscanf(senderData, "Available %s %[^:]:%d %s",
                                         tempDevice.identifier,
                                         deviceAddress,
                                         &socketPort,
@@ -74,23 +74,24 @@ int main(int argc, const char* argv[]) {
                 
                 if (numMatches >= 3) {
                     // if we have fewer than 3 matches the packet wasn't properly formatted
-                    // otherwise copy the tempDevice to the persisting lastDevice
-                    *::lastDevice = tempDevice;
                     
                     // setup the localSocket for the pairing device
-                    ::lastDevice->localSocket.sin_family = AF_INET;
+                    tempDevice.localSocket.sin_family = AF_INET;
                     inet_pton(AF_INET, deviceAddress, &::lastDevice);
-                    ::lastDevice->localSocket.sin_port = socketPort;
+                    tempDevice.localSocket.sin_port = socketPort;
                     
                     // store this device's sending socket so we can talk back to it
-                    ::lastDevice->sendingSocket = senderSocket;
+                    tempDevice.sendingSocket = senderSocket;
                     
                     // push this new device into the vector
-                    printf("Adding device %s (%s) - %s:%d to list\n",
-                           ::lastDevice->identifier,
-                           ::lastDevice->name,
+                    printf("New last device is %s (%s) at %s:%d\n",
+                           tempDevice.identifier,
+                           tempDevice.name,
                            deviceAddress,
                            socketPort);
+                
+                    // copy the tempDevice to the persisting lastDevice                    
+                    ::lastDevice = new PairableDevice(tempDevice);
                     
                     if (::lastClient) {
                         sendLastClientToLastDevice();
@@ -107,10 +108,10 @@ int main(int argc, const char* argv[]) {
                                               &tempClient.port);
                 
                 if (requestorMatches == 2) {
-                    // good data, copy the tempClient to the persisting lastInterfaceClient
-                    *::lastClient = tempClient;
+                    // good data, copy the tempClient to the persisting lastInterfaceClient                    
+                    ::lastClient = new RequestingClient(tempClient);
                     
-                    printf("Find request from interface client at %s:%d\n",
+                    printf("New last client is at %s:%d\n",
                            ::lastClient->address,
                            ::lastClient->port);
                     
