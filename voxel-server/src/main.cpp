@@ -104,7 +104,13 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 }
 
 
-void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAgentData* agentData, ViewFrustum& viewFrustum) {
+// Version of voxel distributor that sends each LOD level at a time
+void resInVoxelDistributor(AgentList* agentList, 
+                           AgentList::iterator& agent, 
+                           VoxelAgentData* agentData, 
+                           ViewFrustum& viewFrustum) {
+     
+    printf("resInVoxelDistributor()\n");                      
     bool searchReset = false;
     int  searchLoops = 0;
     int  searchLevelWas = agentData->getMaxSearchLevel();
@@ -158,7 +164,8 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &viewFrustum);
+                                                              agentData->nodeBag, &viewFrustum,
+                                                              agentData->getWantColor());
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -216,6 +223,99 @@ void voxelDistributor(AgentList* agentList, AgentList::iterator& agent, VoxelAge
     }
 }
 
+// Version of voxel distributor that sends the deepest LOD level at once
+void deepestLevelVoxelDistributor(AgentList* agentList, 
+                                  AgentList::iterator& agent,
+                                  VoxelAgentData* agentData,
+                                  ViewFrustum& viewFrustum) {
+        
+    printf("deepestLevelVoxelDistributor()\n");                      
+
+    int maxLevelReached = 0;
+    double start = usecTimestampNow();
+    if (agentData->nodeBag.isEmpty()) {
+        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, viewFrustum, agentData->nodeBag);
+    }
+    double end = usecTimestampNow();
+    double elapsedmsec = (end - start)/1000.0;
+    if (elapsedmsec > 100) {
+        if (elapsedmsec > 1000) {
+            double elapsedsec = (end - start)/1000000.0;
+            printf("WARNING! searchForColoredNodes() took %lf seconds to identify %d nodes at level %d\n",
+                elapsedsec, agentData->nodeBag.count(), maxLevelReached);
+        } else {
+            printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d\n",
+                elapsedmsec, agentData->nodeBag.count(), maxLevelReached);
+        }
+    } else if (::debugVoxelSending) {
+        printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d\n",
+                elapsedmsec, agentData->nodeBag.count(), maxLevelReached);
+    }
+
+    // If we have something in our nodeBag, then turn them into packets and send them out...
+    if (!agentData->nodeBag.isEmpty()) {
+        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+        int bytesWritten = 0;
+        int packetsSentThisInterval = 0;
+        int truePacketsSent = 0;
+        int trueBytesSent = 0;
+        double start = usecTimestampNow();
+
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - 1) {
+            if (!agentData->nodeBag.isEmpty()) {
+                VoxelNode* subTree = agentData->nodeBag.extract();
+                bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
+                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
+                                                              agentData->nodeBag, &viewFrustum,
+                                                              agentData->getWantColor());
+
+                if (agentData->getAvailable() >= bytesWritten) {
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                } else {
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                                     agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
+                    packetsSentThisInterval++;
+                    agentData->resetVoxelPacket();
+                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                }
+            } else {
+                if (agentData->isPacketWaiting()) {
+                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                                                     agentData->getPacket(), agentData->getPacketLength());
+                    trueBytesSent += agentData->getPacketLength();
+                    truePacketsSent++;
+                    agentData->resetVoxelPacket();
+                    
+                }
+                packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
+            }
+        }
+        // send the environment packet
+        int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
+        agentList->getAgentSocket().send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+        trueBytesSent += envPacketLength;
+        truePacketsSent++;
+        
+        double end = usecTimestampNow();
+        double elapsedmsec = (end - start)/1000.0;
+        if (elapsedmsec > 100) {
+            if (elapsedmsec > 1000) {
+                double elapsedsec = (end - start)/1000000.0;
+                printf("WARNING! packetLoop() took %lf seconds to generate %d bytes in %d packets %d nodes still to send\n",
+                        elapsedsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
+            } else {
+                printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
+                        elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
+            }
+        } else if (::debugVoxelSending) {
+            printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
+                    elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
+        }
+    }
+}
+
 void persistVoxelsWhenDirty() {
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::randomTree.isDirty()) {
@@ -253,7 +353,11 @@ void *distributeVoxelsToListeners(void *args) {
             
                 viewFrustum.calculate();
 
-                voxelDistributor(agentList, agent, agentData, viewFrustum);
+                if (agentData->getWantResIn()) { 
+                    resInVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                } else {
+                    deepestLevelVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                }
             }
         }
         
