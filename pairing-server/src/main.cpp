@@ -30,8 +30,8 @@ struct RequestingClient {
 };
 
 UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
-PairableDevice *lastDevice = NULL;
-RequestingClient *lastClient = NULL;
+PairableDevice* lastDevice = NULL;
+RequestingClient* lastClient = NULL;
 
 int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
     int currentIndex = 0;
@@ -57,7 +57,7 @@ int main(int argc, const char* argv[]) {
     ssize_t receivedBytes = 0;
     
     while (true) {
-        if (::serverSocket.receive((sockaddr *)&senderSocket, &senderData, &receivedBytes)) {
+        if (::serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
             if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
                 
