@@ -160,6 +160,8 @@ bool paintOn = false;               //  Whether to paint voxels as you fly aroun
 VoxelDetail paintingVoxel;          //    The voxel we're painting if we're painting
 unsigned char dominantColor = 0;    //    The dominant color of the voxel we're painting
 bool perfStatsOn = false;           //  Do we want to display perfStats?
+bool wantMonochrome = false;        // ask server to send us in monochrome
+bool wantResIn = false;             // ask server to res in
 
 bool logOn = true;                  //  Whether to show on-screen log
 
@@ -1281,6 +1283,22 @@ int setRenderWarnings(int state) {
     return value;
 }
 
+int setWantResIn(int state) {
+    int value = setValue(state, &::wantResIn);
+    if (state == MENU_ROW_PICKED) {
+        ::myAvatar.setWantResIn(::wantResIn);
+    }
+    return value;
+}
+
+int setWantMonochrome(int state) {
+    int value = setValue(state, &::wantMonochrome);
+    if (state == MENU_ROW_PICKED) {
+        ::myAvatar.setWantColor(!::wantMonochrome);
+    }
+    return value;
+}
+
 int setDisplayFrustum(int state) {
     return setValue(state, &::frustumOn);
 }
@@ -1373,6 +1391,8 @@ int doFalseColorizeInView(int state) {
     return state;
 }
 
+
+
 const char* modeAll     = " - All "; 
 const char* modeVectors = " - Vectors "; 
 const char* modePlanes  = " - Planes "; 
@@ -1444,6 +1464,8 @@ void initMenu() {
     menuColumnDebug->addRow("FALSE Color Voxel Out of View", doFalseColorizeInView);
     menuColumnDebug->addRow("Show TRUE Colors", doTrueVoxelColors);
     menuColumnDebug->addRow("Calculate Tree Stats", doTreeStats);
+    menuColumnDebug->addRow("Wants Res-In", setWantResIn);
+    menuColumnDebug->addRow("Wants Monochrome", setWantMonochrome);
 }
 
 void testPointToVoxel() {
@@ -1741,6 +1763,7 @@ void* networkReceive(void* args) {
                     myAvatar.processTransmitterData(incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
+                case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
                 case PACKET_HEADER_Z_COMMAND:
                 case PACKET_HEADER_ERASE_VOXEL:
                     voxels.parseData(incomingPacket, bytesReceived);
