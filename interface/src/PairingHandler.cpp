@@ -7,6 +7,7 @@
 //
 
 #include <arpa/inet.h>
+#include <string.h>
 
 #include <AgentList.h>
 
