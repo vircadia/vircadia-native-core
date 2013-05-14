@@ -11,15 +11,18 @@
 
 #include <string>
 
+class QKeyEvent;
+
 class ChatEntry {
 public:
+
+    ChatEntry();
 
     const std::string& getContents() const { return _contents; }
     
     void clear();
     
-    bool key(unsigned char k);
-    void specialKey(unsigned char k);
+    bool keyPressEvent(QKeyEvent* event);
     
     void render(int screenWidth, int screenHeight);
     
