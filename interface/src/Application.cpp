@@ -1093,7 +1093,9 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
     _voxelPaintColor = toolsMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
-    _voxelPaintColor->setIcon(createSwatchIcon(QColor()));
+    QColor paintColor(128, 128, 128);
+    _voxelPaintColor->setData(paintColor);
+    _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
