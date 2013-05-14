@@ -10,7 +10,7 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
-set(PORTAUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
+set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -131,28 +131,10 @@ if (WIN32)
 else (WIN32)
   target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARY})
 
-  # include PortAudio as external project
-  include(ExternalProject)
-  set(PORTAUDIO_PROJ_DIR external/portaudio)
-  ExternalProject_Add(
-      portaudio
-      PREFIX ${PORTAUDIO_PROJ_DIR}
-      BINARY_DIR ${PORTAUDIO_PROJ_DIR}/src/portaudio
-      URL ${PORTAUDIO_DIR}/pa_snapshot_020813.tgz
-      CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix "${PROJECT_BINARY_DIR}/${PORTAUDIO_PROJ_DIR}"
-      BUILD_COMMAND make
-  )
-
-  # make PortAudio a dependency of the interface executable
-  add_dependencies(${TARGET_NAME} portaudio)
-
-  # include the PortAudio headers
-  ExternalProject_Get_Property(portaudio source_dir)
-  include_directories(${source_dir}/include)
-
   # link the PortAudio library
-  ExternalProject_Get_Property(portaudio binary_dir)
-  target_link_libraries(${TARGET_NAME} ${binary_dir}/lib/.libs/libportaudio.a)
+  find_package(PortAudio REQUIRED)
+  include_directories(${PORTAUDIO_INCLUDE_DIRS})
+  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARY})
   
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
