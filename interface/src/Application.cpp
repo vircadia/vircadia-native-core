@@ -1056,6 +1056,7 @@ void Application::chooseVoxelPaintColor() {
         _voxelPaintColor->setData(selected);
         _voxelPaintColor->setIcon(createSwatchIcon(selected));
     }
+    _glWidget->setFocus();
 }
     
 void Application::initMenu() {
