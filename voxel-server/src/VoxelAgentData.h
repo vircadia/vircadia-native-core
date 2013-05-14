@@ -49,7 +49,11 @@ public:
     bool updateCurrentViewFrustum();
     void updateLastKnownViewFrustum();
 
+    bool getViewSent() const        { return _viewSent; };
+    void setViewSent(bool viewSent) { _viewSent = viewSent; }
+
 private:    
+    bool _viewSent;
     unsigned char* _voxelPacket;
     unsigned char* _voxelPacketAt;
     int _voxelPacketAvailableBytes;

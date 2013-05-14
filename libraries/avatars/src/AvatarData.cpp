@@ -121,6 +121,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 // called on the other agents - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
+//printf("AvatarData::parseData()\n");
+
     // increment to push past the packet header
     sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
     

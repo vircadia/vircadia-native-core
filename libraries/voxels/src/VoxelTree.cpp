@@ -853,10 +853,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         bool childIsInView  = (childNode && (!viewFrustum || childNode->isInView(*viewFrustum)));
-        bool childWasInView = (childNode && deltaViewFrustum && 
-                              (lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*lastViewFrustum)));
         
-        if (childIsInView && !childWasInView) {
+        if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = viewFrustum ? childNode->distanceToCamera(*viewFrustum) : 0;
             float boundaryDistance = viewFrustum ? boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1) : 1;
@@ -871,9 +869,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                     childrenExistBits += (1 << (7 - i));
                     inViewNotLeafCount++;
                 }
+
+                bool childWasInView = (childNode && deltaViewFrustum && 
+                                      (lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*lastViewFrustum)));
             
-                // track children with actual color
-                if (childNode && childNode->isColored()) {
+                // track children with actual color, only if the child wasn't previously in view!
+                if (childNode && childNode->isColored() && !childWasInView) {
                     childrenColoredBits += (1 << (7 - i));
                     inViewWithColorCount++;
                 }

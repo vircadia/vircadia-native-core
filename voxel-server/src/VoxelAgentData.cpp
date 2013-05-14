@@ -22,6 +22,7 @@ void VoxelAgentData::init() {
     _maxSearchLevel = 1;
     _maxLevelReachedInLastSearch = 1;
     resetVoxelPacket();
+    _viewSent = false;
 }
 
 void VoxelAgentData::resetVoxelPacket() {
