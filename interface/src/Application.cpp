@@ -24,6 +24,7 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QShortcut>
 #include <QTimer>
 #include <QtDebug>
@@ -82,6 +83,8 @@ protected:
     virtual void mouseMoveEvent(QMouseEvent* event);
     virtual void mousePressEvent(QMouseEvent* event);
     virtual void mouseReleaseEvent(QMouseEvent* event);
+    
+    virtual void wheelEvent(QWheelEvent* event);
 };
 
 void GLCanvas::initializeGL() {
@@ -114,6 +117,10 @@ void GLCanvas::mousePressEvent(QMouseEvent* event) {
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
     static_cast<Application*>(QCoreApplication::instance())->mouseReleaseEvent(event);
+}
+
+void GLCanvas::wheelEvent(QWheelEvent* event) {
+    static_cast<Application*>(QCoreApplication::instance())->wheelEvent(event);
 }
 
 Application::Application(int& argc, char** argv) :
@@ -718,6 +725,18 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         _mouseX = event->x();
         _mouseY = event->y();
         _mousePressed = false;
+    }
+}
+
+void Application::wheelEvent(QWheelEvent* event) {
+    if (_mouseMode == NO_EDIT_MODE) {
+        event->ignore();
+        return;
+    }
+    if (event->delta() > 0) {
+        _mouseVoxelScale *= 2;
+    } else {
+        _mouseVoxelScale /= 2;
     }
 }
     

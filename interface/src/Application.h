@@ -34,6 +34,7 @@ class QGLWidget;
 class QKeyEvent;
 class QMainWindow;
 class QMouseEvent;
+class QWheelEvent;
 
 class Agent;
 class ProgramObject;
@@ -54,6 +55,8 @@ public:
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
+
+    void wheelEvent(QWheelEvent* event);
 
 private slots:
     
