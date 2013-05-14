@@ -165,6 +165,7 @@ unsigned char dominantColor = 0;    //    The dominant color of the voxel we're 
 bool perfStatsOn = false;           //  Do we want to display perfStats?
 bool wantMonochrome = false;        // ask server to send us in monochrome
 bool wantResIn = false;             // ask server to res in
+bool wantDelta = false;             // ask server to send delta only
 
 bool logOn = true;                  //  Whether to show on-screen log
 
@@ -1296,6 +1297,15 @@ int setWantMonochrome(int state) {
     return value;
 }
 
+int setWantDelta(int state) {
+    int value = setValue(state, &::wantDelta);
+    if (state == MENU_ROW_PICKED) {
+        ::myAvatar.setWantDelta(::wantDelta);
+    }
+    return value;
+}
+
+
 int setDisplayFrustum(int state) {
     return setValue(state, &::frustumOn);
 }
@@ -1463,6 +1473,7 @@ void initMenu() {
     menuColumnDebug->addRow("Calculate Tree Stats", doTreeStats);
     menuColumnDebug->addRow("Wants Res-In", setWantResIn);
     menuColumnDebug->addRow("Wants Monochrome", setWantMonochrome);
+    menuColumnDebug->addRow("Wants View-Delta Only", setWantDelta);
 }
 
 void testPointToVoxel() {
