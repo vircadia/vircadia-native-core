@@ -1961,9 +1961,18 @@ void* Application::networkReceive(void* args) {
             app->_bytesCount += bytesReceived;
             
             switch (app->_incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA:
+                case PACKET_HEADER_TRANSMITTER_DATA_V1:
                     //  Process UDP packets that are sent to the client from local sensor devices 
                     app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
+                    break;
+                case PACKET_HEADER_TRANSMITTER_DATA_V2:
+                    float rotationRates[3];
+                    float accelerations[3];
+                    
+                    memcpy(rotationRates, app->_incomingPacket + 2, sizeof(rotationRates));
+                    memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
+                    
+                    printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
