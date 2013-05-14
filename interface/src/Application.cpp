@@ -374,7 +374,8 @@ void Application::paintGL() {
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        glm::vec3 relativeSunLoc = glm::normalize(_environment.getSunLocation() - whichCamera.getPosition());
+        GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
         GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
