@@ -85,5 +85,4 @@ void ChatEntry::render(int screenWidth, int screenHeight) {
     glVertex2f(20 + width, screenHeight - 165);
     glVertex2f(20 + width, screenHeight - 150);
     glEnd();
-    glEnable(GL_LINE_SMOOTH);
 }

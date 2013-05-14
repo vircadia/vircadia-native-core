@@ -110,6 +110,8 @@ private:
     
     void resetSensors();
     
+    void setMenuShortcutsEnabled(bool enabled);
+    
     static void attachNewHeadToAgent(Agent *newAgent);
     #ifndef _WIN32
     static void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort);

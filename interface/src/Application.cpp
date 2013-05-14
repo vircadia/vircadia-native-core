@@ -24,6 +24,7 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QShortcut>
 #include <QTimer>
 #include <QtDebug>
 #include <PairingHandler.h>
@@ -483,6 +484,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.setChatMessage(_chatEntry.getContents());
             _chatEntry.clear();
             _chatEntryOn = false;
+            setMenuShortcutsEnabled(true);
         }
         return;
     }
@@ -607,6 +609,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _chatEntryOn = true;
             _myAvatar.setKeyState(NO_KEY_DOWN);
             _myAvatar.setChatMessage(string());
+            setMenuShortcutsEnabled(false);
             break;
             
         case Qt::Key_Up:
@@ -1850,6 +1853,25 @@ void Application::resetSensors() {
     _headMouseY = _glWidget->height() / 2;
     
     _myAvatar.reset();
+}
+
+static void setShortcutsEnabled(QWidget* widget, bool enabled) {
+    foreach (QAction* action, widget->actions()) {
+        QKeySequence shortcut = action->shortcut();
+        if (!shortcut.isEmpty() && (shortcut[0] & (Qt::CTRL | Qt::ALT | Qt::META)) == 0) {
+            // it's a shortcut that may coincide with a "regular" key, so switch its context
+            action->setShortcutContext(enabled ? Qt::WindowShortcut : Qt::WidgetShortcut);
+        }
+    }
+    foreach (QObject* child, widget->children()) {
+        if (child->isWidgetType()) {
+            setShortcutsEnabled(static_cast<QWidget*>(child), enabled);
+        }
+    }
+}
+
+void Application::setMenuShortcutsEnabled(bool enabled) {
+    setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
 void Application::attachNewHeadToAgent(Agent *newAgent) {
