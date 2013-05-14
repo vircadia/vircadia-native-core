@@ -109,7 +109,7 @@ if (APPLE)
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
-        ${LIBOVR_LIBRARY}
+        ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
@@ -134,7 +134,7 @@ else (WIN32)
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})
-  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARIES})
   
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
