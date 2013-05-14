@@ -41,8 +41,8 @@ public:
 
     VoxelNodeBag nodeBag;
 
-    ViewFrustum currentViewFrustum;
-    ViewFrustum lastKnownViewFrustum;
+    ViewFrustum& getCurrentViewFrustum()     { return _currentViewFrustum; };
+    ViewFrustum& getLastKnownViewFrustum()   { return _lastKnownViewFrustum; };
     
     void updateViewFrustum();
 
@@ -53,6 +53,9 @@ private:
     bool _voxelPacketWaiting;
     int _maxSearchLevel;
     int _maxLevelReachedInLastSearch;
+    ViewFrustum _currentViewFrustum;
+    ViewFrustum _lastKnownViewFrustum;
+
 };
 
 #endif /* defined(__hifi__VoxelAgentData__) */
