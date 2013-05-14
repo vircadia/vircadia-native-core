@@ -16,6 +16,8 @@ class QKeyEvent;
 class ChatEntry {
 public:
 
+    ChatEntry();
+
     const std::string& getContents() const { return _contents; }
     
     void clear();

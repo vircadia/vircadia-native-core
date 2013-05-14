@@ -216,7 +216,10 @@ Application::Application(int& argc, char** argv) :
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
     _window->setVisible(true);
-    _glWidget->setFocus(Qt::ActiveWindowFocusReason);
+    _glWidget->setFocus();
+    
+    // enable mouse tracking; otherwise, we only get drag events
+    _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
 }
@@ -410,7 +413,7 @@ void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
     // get the lens details from the current camera
-    Camera& camera = _viewFrustumFromOffset ? _viewFrustumOffsetCamera : _myCamera;
+    Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
     float nearClip = camera.getNearClip();
     float farClip = camera.getFarClip();
     float fov;
@@ -599,6 +602,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.setDriveKeys(ROT_RIGHT, 1);
             break;
         
+        case Qt::Key_Return:
         case Qt::Key_Enter:
             _chatEntryOn = true;
             _myAvatar.setKeyState(NO_KEY_DOWN);
@@ -929,10 +933,6 @@ void Application::setOculus(bool oculus) {
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 
-void Application::setMenu(bool menu) {
-    _window->menuBar()->setVisible(menu);
-}
-
 void Application::setFrustumOffset(bool frustumOffset) {
     // reshape so that OpenGL will get the right lens details for the camera of choice  
     resizeGL(_glWidget->width(), _glWidget->height());
@@ -982,6 +982,14 @@ void Application::doTreeStats() {
     _voxels.collectStatsForTreesAndVBOs();
 }
 
+void Application::setWantsMonochrome(bool wantsMonochrome) {
+    _myAvatar.setWantColor(!wantsMonochrome);
+}
+
+void Application::setWantsResIn(bool wantsResIn) {
+    _myAvatar.setWantResIn(wantsResIn);
+}
+    
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
     _window->setMenuBar(menuBar);
@@ -1017,9 +1025,6 @@ void Application::initMenu() {
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
-    QAction* menuAction = toolsMenu->addAction("Menu", this, SLOT(setMenu(bool)), Qt::Key_M);
-    menuAction->setCheckable(true);
-    menuAction->setChecked(true);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1043,6 +1048,8 @@ void Application::initMenu() {
     debugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     debugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
+    debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
+    debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -1236,6 +1243,12 @@ void Application::updateAvatar(float deltaTime) {
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+// loadViewFrustum()
+//
+// Description: this will load the view frustum bounds for EITHER the head
+//                 or the "myCamera". 
+//
 void Application::loadViewFrustum(ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
     glm::vec3 position;
@@ -1652,6 +1665,24 @@ void Application::displayStats() {
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+// renderViewFrustum()
+//
+// Description: this will render the view frustum bounds for EITHER the head
+//                 or the "myCamera". 
+//
+// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
+// We can draw it with each of these parts:
+//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
+//    * Near plane - this plane is drawn very close to the origin point.
+//    * Right/Left planes - these two planes are drawn between the near and far planes.
+//    * Far plane - the plane is drawn in the distance.
+// Modes - the following modes, will draw the following parts.
+//    * All - draws all the parts listed above
+//    * Planes - draws the planes but not the origin vectors
+//    * Origin Vectors - draws the origin vectors ONLY
+//    * Near Plane - draws only the near plane
+//    * Far Plane - draws only the far plane
 void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     // Load it with the latest details!
     loadViewFrustum(viewFrustum);
@@ -1856,6 +1887,7 @@ void* Application::networkReceive(void* args) {
                     app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
+                case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
                 case PACKET_HEADER_Z_COMMAND:
                 case PACKET_HEADER_ERASE_VOXEL:
                     app->_voxels.parseData(app->_incomingPacket, bytesReceived);

@@ -15,14 +15,23 @@ using namespace std;
 
 const int MAX_CONTENT_LENGTH = 140;
 
+ChatEntry::ChatEntry() : _cursorPos(0) {
+}
+
 void ChatEntry::clear() {
     _contents.clear();
     _cursorPos = 0;
 }
 
 bool ChatEntry::keyPressEvent(QKeyEvent* event) {
+    event->accept();
     switch (event->key()) {
+        case Qt::Key_Return:
         case Qt::Key_Enter:
+            return false;
+        
+        case Qt::Key_Escape:
+            clear();
             return false;
         
         case Qt::Key_Backspace:

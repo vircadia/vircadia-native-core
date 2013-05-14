@@ -70,8 +70,6 @@ private slots:
     void setRenderFirstPerson(bool firstPerson);
     void setOculus(bool oculus);
     
-    void setMenu(bool menu);
-    
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
@@ -84,6 +82,8 @@ private slots:
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
+    void setWantsMonochrome(bool wantsMonochrome);
+    void setWantsResIn(bool wantsResIn);
     
 private:
     
@@ -181,7 +181,7 @@ private:
     
     int _mouseX;
     int _mouseY;
-    bool _mousePressed;
+    bool _mousePressed; //  true if mouse has been pressed (clear when finished)
     
     // The current mode for mouse interaction
     enum MouseMode { NO_EDIT_MODE, ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
