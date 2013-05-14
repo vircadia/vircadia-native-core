@@ -87,6 +87,7 @@ private slots:
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
+    void setWantsDelta(bool wantsDelta);
     
 private:
     

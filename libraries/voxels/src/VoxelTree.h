@@ -55,9 +55,11 @@ public:
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor = true) const;
+                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor = true,
+                            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL) const;
 
-    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
+            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL);
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -79,10 +81,12 @@ public:
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor) const;
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor,
+                                     bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
+                                       bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 

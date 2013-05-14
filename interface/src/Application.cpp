@@ -1035,6 +1035,10 @@ void Application::setWantsMonochrome(bool wantsMonochrome) {
 void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
+
+void Application::setWantsDelta(bool wantsDelta) {
+    _myAvatar.setWantDelta(wantsDelta);
+}
     
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
@@ -1096,10 +1100,12 @@ void Application::initMenu() {
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
+    debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
 }
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
+        default:
         case FRUSTUM_DRAW_MODE_ALL: 
             _frustumRenderModeAction->setText("Render Mode - All");
             break;

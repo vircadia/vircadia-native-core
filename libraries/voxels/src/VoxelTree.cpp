@@ -617,12 +617,14 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
     this->reaverageVoxelColors(this->rootNode);
 }
 
-int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
+                                     bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) {
 
     // call the recursive version, this will add all found colored node roots to the bag
     int currentSearchLevel = 0;
     
-    int levelReached = searchForColoredNodesRecursion(maxSearchLevel, currentSearchLevel, rootNode, viewFrustum, bag);
+    int levelReached = searchForColoredNodesRecursion(maxSearchLevel, currentSearchLevel, rootNode, 
+                                                      viewFrustum, bag, deltaViewFrustum, lastViewFrustum);
     return levelReached;
 }
 
@@ -667,7 +669,8 @@ bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& di
 }
 
 int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                              VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag) {
+                                              VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
+                                              bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) {
 
     // Keep track of how deep we've searched.    
     currentSearchLevel++;
@@ -702,7 +705,7 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
         bool childIsColored = (childNode && childNode->isColored());
         bool childIsInView  = (childNode && childNode->isInView(viewFrustum));
         bool childIsLeaf    = (childNode && childNode->isLeaf());
-        
+
         if (childIsInView) {
             
             // track children in view as existing and not a leaf
@@ -739,7 +742,8 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
         for (int i = 0; i < inViewCount; i++) {
             VoxelNode* childNode = inViewChildren[i];
             thisLevel = currentSearchLevel; // reset this, since the children will munge it up
-            int childLevelReached = searchForColoredNodesRecursion(maxSearchLevel, thisLevel, childNode, viewFrustum, bag);
+            int childLevelReached = searchForColoredNodesRecursion(maxSearchLevel, thisLevel, childNode, viewFrustum, bag,
+                                                                   deltaViewFrustum, lastViewFrustum);
             maxChildLevel = std::max(maxChildLevel, childLevelReached);
         }
     }
@@ -747,7 +751,8 @@ int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSe
 }
 
 int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes, 
-                                   VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor) const {
+                                   VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor,
+                                   bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
@@ -767,7 +772,8 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned
 
     int currentEncodeLevel = 0;
     int childBytesWritten = encodeTreeBitstreamRecursion(maxEncodeLevel, currentEncodeLevel, 
-                                                         node, outputBuffer, availableBytes, bag, viewFrustum, includeColor);
+                                                         node, outputBuffer, availableBytes, bag, viewFrustum, includeColor,
+                                                         deltaViewFrustum, lastViewFrustum);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -790,7 +796,8 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned
 
 int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                             VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor) const {
+                                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor,
+                                            bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -846,6 +853,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         bool childIsInView  = (childNode && (!viewFrustum || childNode->isInView(*viewFrustum)));
+        
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = viewFrustum ? childNode->distanceToCamera(*viewFrustum) : 0;
@@ -861,9 +869,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                     childrenExistBits += (1 << (7 - i));
                     inViewNotLeafCount++;
                 }
+
+                bool childWasInView = (childNode && deltaViewFrustum && 
+                                      (lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*lastViewFrustum)));
             
-                // track children with actual color
-                if (childNode && childNode->isColored()) {
+                // track children with actual color, only if the child wasn't previously in view!
+                if (childNode && childNode->isColored() && !childWasInView) {
                     childrenColoredBits += (1 << (7 - i));
                     inViewWithColorCount++;
                 }
@@ -925,7 +936,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                 int thisLevel = currentEncodeLevel;
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(maxEncodeLevel, thisLevel, childNode, 
                                                                      outputBuffer, availableBytes, bag, 
-                                                                     viewFrustum, includeColor);
+                                                                     viewFrustum, includeColor,
+                                                                     deltaViewFrustum, lastViewFrustum);
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
