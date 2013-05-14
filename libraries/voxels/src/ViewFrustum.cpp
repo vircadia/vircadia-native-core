@@ -276,3 +276,17 @@ void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3&
     origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
     direction = glm::normalize(origin - _position);
 }
+
+
+void ViewFrustum::printDebugDetails() const {
+    printLog("ViewFrustum::printDebugDetails()... \n");
+    printLog("_position=%f,%f,%f\n",  _position.x, _position.y, _position.z );
+    printLog("_direction=%f,%f,%f\n", _direction.x, _direction.y, _direction.z );
+    printLog("_up=%f,%f,%f\n", _up.x, _up.y, _up.z );
+    printLog("_right=%f,%f,%f\n", _right.x, _right.y, _right.z );
+    printLog("_fieldOfView=%f\n", _fieldOfView);
+    printLog("_aspectRatio=%f\n", _aspectRatio);
+    printLog("_nearClip=%f\n", _nearClip);
+    printLog("_farClip=%f\n", _farClip);
+}
+
