@@ -233,12 +233,14 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     // FOR NOW... agent tells us if it wants to receive only view frustum deltas
     bool wantDelta = agentData->getWantDelta();
     const ViewFrustum* lastViewFrustum =  wantDelta ? &agentData->getLastKnownViewFrustum() : NULL;
-    
-printf("deepestLevelVoxelDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
-        viewFrustumChanged ? "yes" : "no", 
-        agentData->nodeBag.isEmpty() ? "yes" : "no", 
-        agentData->getViewSent() ? "yes" : "no"
-    );
+
+    if (::debugVoxelSending) {
+        printf("deepestLevelVoxelDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
+                viewFrustumChanged ? "yes" : "no", 
+                agentData->nodeBag.isEmpty() ? "yes" : "no", 
+                agentData->getViewSent() ? "yes" : "no"
+            );
+    }
     
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
@@ -364,7 +366,9 @@ void *distributeVoxelsToListeners(void *args) {
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
     		if (agentData) {
     		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
-    		    printf("agentData->updateCurrentViewFrustum() viewFrustumChanged=%s\n", (viewFrustumChanged ? "yes" : "no"));
+                if (::debugVoxelSending) {
+    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", (viewFrustumChanged ? "yes" : "no"));
+    		    }
 
                 if (agentData->getWantResIn()) { 
                     resInVoxelDistributor(agentList, agent, agentData);
