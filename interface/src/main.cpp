@@ -365,12 +365,14 @@ void terminate () {
     exit(EXIT_SUCCESS);
 }
 
-void reset_sensors() {
+void resetSensors() {
     
     myAvatar.setPosition(start_location);
     headMouseX = ::screenWidth / 2;
     headMouseY = ::screenHeight / 2;
-    
+    if (serialPort.active) {
+        serialPort.resetAverages();
+    }
     myAvatar.reset();
 }
 
@@ -1732,7 +1734,7 @@ void key(unsigned char k, int x, int y) {
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
     if (k == 's') myAvatar.setDriveKeys(BACK, 1);
-    if (k == ' ') reset_sensors();
+    if (k == ' ') resetSensors();
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1);
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
     
@@ -1825,7 +1827,7 @@ void idle(void) {
         
         float deltaTime = 1.f/FPS;
 
-        // update behaviors for avatar hand movement: handControl takes mouse values as input, 
+        // update behaviors for avatar hand movement: handControl takes mouse values as input,
         // and gives back 3D values modulated for smooth transitioning between interaction modes.
         handControl.update(mouseX, mouseY);
         myAvatar.setHandMovementValues(handControl.getValues());        
@@ -1902,7 +1904,7 @@ void idle(void) {
         
         //  Read serial port interface devices
         if (serialPort.active) {
-            serialPort.readData();
+            serialPort.readData(); 
         }
         
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
