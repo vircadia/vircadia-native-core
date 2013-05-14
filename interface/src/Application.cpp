@@ -18,6 +18,7 @@
 #include <ifaddrs.h>
 #endif
 
+#include <QColorDialog>
 #include <QDesktopWidget>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -848,9 +849,10 @@ void Application::idle() {
             }
                 
             if (_mouseMode == COLOR_VOXEL_MODE) {
-                _mouseVoxel.red = 0;
-                _mouseVoxel.green = 255;
-                _mouseVoxel.blue = 0;
+                QColor paintColor = _voxelPaintColor->data().value<QColor>();
+                _mouseVoxel.red = paintColor.red();
+                _mouseVoxel.green = paintColor.green();
+                _mouseVoxel.blue = paintColor.blue();
                 
             } else if (_mouseMode == DELETE_VOXEL_MODE) {
                 // red indicates deletion
@@ -1035,7 +1037,21 @@ void Application::setWantsMonochrome(bool wantsMonochrome) {
 void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
-    
+
+static QIcon createSwatchIcon(const QColor& color) {
+    QPixmap map(16, 16);
+    map.fill(color);
+    return QIcon(map);
+}
+
+void Application::chooseVoxelPaintColor() {
+    QColor selected = QColorDialog::getColor(_voxelPaintColor->data().value<QColor>(), _glWidget, "Voxel Paint Color");
+    if (selected.isValid()) {
+        _voxelPaintColor->setData(selected);
+        _voxelPaintColor->setIcon(createSwatchIcon(selected));
+    }
+}
+
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
     _window->setMenuBar(menuBar);
@@ -1071,6 +1087,8 @@ void Application::initMenu() {
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
+    _voxelPaintColor = toolsMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    _voxelPaintColor->setIcon(createSwatchIcon(QColor()));
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1866,9 +1884,10 @@ void Application::addVoxelInFrontOfAvatar() {
     detail.x = detail.s * floor(position.x / detail.s);
     detail.y = detail.s * floor(position.y / detail.s);
     detail.z = detail.s * floor(position.z / detail.s);
-    detail.red = 128;
-    detail.green = 128;
-    detail.blue = 128;
+    QColor paintColor = _voxelPaintColor->data().value<QColor>();
+    detail.red = paintColor.red();
+    detail.green = paintColor.green();
+    detail.blue = paintColor.blue();
     
     sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, detail);
     
