@@ -5,9 +5,10 @@
 //  Created by Andrzej Kapolka on 4/24/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include "InterfaceConfig.h"
+#include <QKeyEvent>
 
 #include "ChatEntry.h"
+#include "InterfaceConfig.h"
 #include "Util.h"
 
 using namespace std;
@@ -19,46 +20,47 @@ void ChatEntry::clear() {
     _cursorPos = 0;
 }
 
-bool ChatEntry::key(unsigned char k) {
-    switch (k) {
-        case '\r':
+bool ChatEntry::keyPressEvent(QKeyEvent* event) {
+    switch (event->key()) {
+        case Qt::Key_Enter:
             return false;
         
-        case '\b':
+        case Qt::Key_Backspace:
             if (_cursorPos != 0) {
                 _contents.erase(_cursorPos - 1, 1);
                 _cursorPos--;
             }
             return true;
         
-        case 127: // delete
+        case Qt::Key_Delete:
             if (_cursorPos < _contents.size()) {
                 _contents.erase(_cursorPos, 1);
             }
             return true;
-            
-        default:
-            if (_contents.size() != MAX_CONTENT_LENGTH) {
-                _contents.insert(_cursorPos, 1, k);
-                _cursorPos++;
-            }
-            return true;
-    }
-}
-
-void ChatEntry::specialKey(unsigned char k) {
-    switch (k) {
-        case GLUT_KEY_LEFT:
+        
+        case Qt::Key_Left:
             if (_cursorPos != 0) {
                 _cursorPos--;
             }
-            break;
+            return true;
             
-        case GLUT_KEY_RIGHT:
+        case Qt::Key_Right:
             if (_cursorPos != _contents.size()) {
                 _cursorPos++;
             }
-            break;
+            return true;
+            
+        default:
+            QString text = event->text();
+            if (text.isEmpty()) {
+                event->ignore();
+                return true;
+            }
+            if (_contents.size() != MAX_CONTENT_LENGTH) {
+                _contents.insert(_cursorPos, 1, text.at(0).toAscii());
+                _cursorPos++;
+            }
+            return true;
     }
 }
 

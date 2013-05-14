@@ -11,6 +11,8 @@
 
 #include <string>
 
+class QKeyEvent;
+
 class ChatEntry {
 public:
 
@@ -18,8 +20,7 @@ public:
     
     void clear();
     
-    bool key(unsigned char k);
-    void specialKey(unsigned char k);
+    bool keyPressEvent(QKeyEvent* event);
     
     void render(int screenWidth, int screenHeight);
     

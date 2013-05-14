@@ -55,7 +55,7 @@ if (APPLE)
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_RSRCS})
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui)
+find_package(Qt4 REQUIRED QtCore QtGui QtOpenGL)
 include(${QT_USE_FILE})
 
 # run qt moc on qt-enabled headers

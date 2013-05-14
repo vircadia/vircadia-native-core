@@ -1559,7 +1559,7 @@ void specialkeyUp(int k, int x, int y) {
 
 void specialkey(int k, int x, int y) {
     if (::chatEntryOn) {
-        chatEntry.specialKey(k);
+        
         return;
     }
     
@@ -1603,16 +1603,7 @@ void toggleMouseMode(MouseMode mode) {
 
 void key(unsigned char k, int x, int y) {
     if (::chatEntryOn) {
-        if (chatEntry.key(k)) {
-            myAvatar.setKeyState(k == '\b' || k == 127 ? // backspace or delete
-                DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
-            myAvatar.setChatMessage(string(chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
-            
-        } else {
-            myAvatar.setChatMessage(chatEntry.getContents());
-            chatEntry.clear();
-            ::chatEntryOn = false;
-        }
+        
         return;
     }
     
@@ -1777,9 +1768,13 @@ glm::vec3 getFaceVector(BoxFace face) {
     }
 }
 
+Application* app;
+
 void idle(void) {
     timeval check;
     gettimeofday(&check, NULL);
+    
+    app->processEvents();
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
     
@@ -2034,6 +2029,14 @@ void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
 
 int main(int argc, const char * argv[]) {
     
+    Application app(argc, const_cast<char**>(argv));
+    printLog( "Created QT Application.\n" );
+    int exitCode = app.exec();
+    printLog("Normal exit.\n");
+    return exitCode;
+    
+    
+    
     gettimeofday(&applicationStartupTime, NULL);
     printLog("Interface Startup:\n");
     
@@ -2098,10 +2101,6 @@ int main(int argc, const char * argv[]) {
 
     #endif
         
-    // we need to create a QApplication instance in order to use Qt's font rendering
-    Application app(argc, const_cast<char**>(argv));
-    printLog( "Created QT Application.\n" );
-    
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
