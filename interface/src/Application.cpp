@@ -489,8 +489,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         return;
     }
     
-    qDebug() << QKeySequence(event->key());
-    
     bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
     switch (event->key()) {
         case Qt::Key_BracketLeft:
