@@ -38,6 +38,7 @@ public:
     _headRoll(0),
     _headLeanSideways(0),
     _headLeanForward(0),
+    _audioLoudness(0),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraDirection(0,0,0),
