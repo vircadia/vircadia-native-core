@@ -108,8 +108,12 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += _chatMessage.size() * sizeof(char);
     
     // voxel sending features...
-    *destinationBuffer++ = _wantResIn;
-    *destinationBuffer++ = _wantColor;
+    // voxel sending features...
+    unsigned char wantItems = 0;
+    if (_wantResIn) { setAtBit(wantItems,WANT_RESIN_AT_BIT); }
+    if (_wantColor) { setAtBit(wantItems,WANT_COLOR_AT_BIT); }
+    if (_wantDelta) { setAtBit(wantItems,WANT_DELTA_AT_BIT); }
+    *destinationBuffer++ = wantItems;
     
     return destinationBuffer - bufferStart;
 }
@@ -184,8 +188,12 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += chatMessageSize * sizeof(char);
 
     // voxel sending features...
-    _wantResIn = (bool)*sourceBuffer++;
-    _wantColor = (bool)*sourceBuffer++;
+    unsigned char wantItems = 0;
+    wantItems = (unsigned char)*sourceBuffer++;
+
+    _wantResIn = oneAtBit(wantItems,WANT_RESIN_AT_BIT);
+    _wantColor = oneAtBit(wantItems,WANT_COLOR_AT_BIT);
+    _wantDelta = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
     
     return sourceBuffer - startPosition;
 }
