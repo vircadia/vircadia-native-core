@@ -363,12 +363,14 @@ void terminate () {
     exit(EXIT_SUCCESS);
 }
 
-void reset_sensors() {
+void resetSensors() {
     
     myAvatar.setPosition(start_location);
     headMouseX = ::screenWidth / 2;
     headMouseY = ::screenHeight / 2;
-    
+    if (serialPort.active) {
+        serialPort.resetAverages();
+    }
     myAvatar.reset();
 }
 
@@ -1717,7 +1719,7 @@ void key(unsigned char k, int x, int y) {
     if (k == 'c') myAvatar.setDriveKeys(DOWN, 1);
     if (k == 'w') myAvatar.setDriveKeys(FWD, 1);
     if (k == 's') myAvatar.setDriveKeys(BACK, 1);
-    if (k == ' ') reset_sensors();
+    if (k == ' ') resetSensors();
     if (k == 'a') myAvatar.setDriveKeys(ROT_LEFT, 1);
     if (k == 'd') myAvatar.setDriveKeys(ROT_RIGHT, 1);
     

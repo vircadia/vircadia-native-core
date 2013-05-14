@@ -2,16 +2,7 @@
 //  SerialInterface.cpp
 //  2012 by Philip Rosedale for High Fidelity Inc.
 //
-//  Read interface data from the gyros/accelerometer board using SerialUSB
-//
-//  Channels are received in the following order (integer 0-4096 based on voltage 0-3.3v)
-//
-//  0 - AIN 15:  Pitch Gyro (nodding your head 'yes')
-//  1 - AIN 16:  Yaw Gyro (shaking your head 'no')
-//  2 - AIN 17:  Roll Gyro (looking quizzical, tilting your head)
-//  3 - AIN 18:  Lateral acceleration (moving from side-to-side in front of your monitor)
-//  4 - AIN 19:  Up/Down acceleration (sitting up/ducking in front of your monitor)
-//  5 - AIN 20:  Forward/Back acceleration (Toward or away from your monitor)
+//  Read interface data from the gyros/accelerometer Invensense board using the SerialUSB
 //
 
 #include "SerialInterface.h"
@@ -22,14 +13,8 @@
 #include <string>
 #endif
 
-const int MAX_BUFFER = 255;
-char serialBuffer[MAX_BUFFER];
-int serialBufferPos = 0;
-
-const int ZERO_OFFSET = 2048;
 const short NO_READ_MAXIMUM_MSECS = 3000;
-const short SAMPLES_TO_DISCARD = 100;               //  Throw out the first few samples
-const int GRAVITY_SAMPLES = 60;                     //  Use the first samples to compute gravity vector
+const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
@@ -72,7 +57,8 @@ void SerialInterface::initializePort(char* portname, int baud) {
     if (_serialDescriptor == -1) {
         printLog("Failed.\n");
         return;
-    }    
+    }
+    
     struct termios options;
     tcgetattr(_serialDescriptor, &options);
     
@@ -100,6 +86,7 @@ void SerialInterface::initializePort(char* portname, int baud) {
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
     tcsetattr(_serialDescriptor, TCSANOW, &options);
+    
     
     if (USING_INVENSENSE_MPU9150) {
         // block on invensense reads until there is data to read
@@ -140,11 +127,11 @@ void SerialInterface::renderLevels(int width, int height) {
         const int LEVEL_CORNER_Y = 200;
         
         // Draw the numeric degree/sec values from the gyros
-        sprintf(val, "Yaw   %4.1f", _lastYawRate);
+        sprintf(val, "Yaw   %4.1f", getLastYawRate());
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Pitch %4.1f", _lastPitchRate);
+        sprintf(val, "Pitch %4.1f", getLastPitchRate());
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Roll  %4.1f", _lastRollRate);
+        sprintf(val, "Roll  %4.1f", getLastRollRate());
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
         sprintf(val, "X     %4.3f", _lastAccelX);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
@@ -161,11 +148,11 @@ void SerialInterface::renderLevels(int width, int height) {
         glBegin(GL_LINES);
         // Gyro rates
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastYawRate, LEVEL_CORNER_Y - 3);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastYawRate(), LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastPitchRate, LEVEL_CORNER_Y + 12);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastPitchRate(), LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _lastRollRate, LEVEL_CORNER_Y + 27);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastRollRate(), LEVEL_CORNER_Y + 27);
         // Acceleration
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelX - _gravity.x)* ACCEL_VIEW_SCALING),
@@ -232,26 +219,33 @@ void SerialInterface::readData() {
         convertHexToInt(sensorBuffer + 30, pitchRate);
         
         //  Convert the integer rates to floats
-        const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
-        const float PITCH_BIAS = 2.0;                            //  Strangely, there is a small DC bias in the
-                                                                 //  invensense pitch reading.  Gravity?
-        
+        const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.        
         _lastRollRate = ((float) rollRate) * LSB_TO_DEGREES_PER_SECOND;
         _lastYawRate = ((float) yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND + PITCH_BIAS;
+        _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
         
-        //  Accumulate an initial reading for gravity
-        //  Use a set of initial samples to compute gravity
-        if (totalSamples < GRAVITY_SAMPLES) {
-            _gravity.x += _lastAccelX;
-            _gravity.y += _lastAccelY;
-            _gravity.z += _lastAccelZ;
-        }
-        if (totalSamples == GRAVITY_SAMPLES) {
-            _gravity /= (float) totalSamples;
-            printLog("Gravity: %f\n", glm::length(_gravity));
-        }
+        //  Accumulate a set of initial baseline readings for setting gravity
+        if (totalSamples == 0) {
+            _averageGyroRates[0] = _lastRollRate;
+            _averageGyroRates[1] = _lastYawRate;
+            _averageGyroRates[2] = _lastPitchRate;
+            _gravity.x = _lastAccelX;
+            _gravity.y = _lastAccelY;
+            _gravity.z = _lastAccelZ;
 
+        }
+        else if (totalSamples < GRAVITY_SAMPLES) {
+            _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
+            1.f/(float)GRAVITY_SAMPLES * glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ);
+            
+            _averageGyroRates[0] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[0] +
+                                            1.f/(float)GRAVITY_SAMPLES * _lastRollRate;
+            _averageGyroRates[1] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[1] +
+                                            1.f/(float)GRAVITY_SAMPLES * _lastYawRate;
+            _averageGyroRates[2] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[2] +
+                                            1.f/(float)GRAVITY_SAMPLES * _lastPitchRate;
+        }
+        
         totalSamples++;
     } 
     
@@ -269,14 +263,17 @@ void SerialInterface::readData() {
 #endif
 }
 
-void SerialInterface::resetSerial() {
-#ifdef __APPLE__
-    active = false;
+void SerialInterface::resetAverages() {
     totalSamples = 0;
     _gravity = glm::vec3(0, 0, 0);
-    
+    _averageGyroRates = glm::vec3(0, 0, 0);
+}
+
+void SerialInterface::resetSerial() {
+#ifdef __APPLE__
+    resetAverages();
+    active = false;
     gettimeofday(&lastGoodRead, NULL);
-    
 #endif
 }
 

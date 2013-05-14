@@ -37,6 +37,8 @@ extern const bool USING_INVENSENSE_MPU9150;
 class SerialInterface {
 public:
     SerialInterface() : active(false),
+                        _gravity(0,0,0),
+                        _averageGyroRates(0,0,0),
                         _lastAccelX(0),
                         _lastAccelY(0),
                         _lastAccelZ(0),
@@ -47,13 +49,14 @@ public:
     void pair();
     void readData();
     
-    float getLastYawRate() const { return _lastYawRate; }
-    float getLastPitchRate() const { return _lastPitchRate; }
-    float getLastRollRate() const { return _lastRollRate; }
+    float getLastYawRate() const { return _lastYawRate - _averageGyroRates[1]; }
+    float getLastPitchRate() const { return _lastPitchRate - _averageGyroRates[2]; }
+    float getLastRollRate() const { return _lastRollRate - _averageGyroRates[0]; }
     glm::vec3 getLastAcceleration() { return glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ); };
     glm::vec3 getGravity() {return _gravity;};
     
     void renderLevels(int width, int height);
+    void resetAverages();
     bool active;
     
 private:
@@ -64,6 +67,7 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 _gravity;
+    glm::vec3 _averageGyroRates;
     float _lastAccelX;
     float _lastAccelY;
     float _lastAccelZ;
