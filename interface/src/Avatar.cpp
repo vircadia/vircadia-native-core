@@ -47,9 +47,8 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
-const float AVATAR_BRAKING_RANGE          = 1.6f;
-const float AVATAR_BRAKING_STRENGTH       = 30.0f;
-//const float MAX_JOINT_TOUCH_DOT           = 0.995f;
+const float AVATAR_BRAKING_RANGE          = 1.3f;
+const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
@@ -105,7 +104,7 @@ Avatar::Avatar(bool isMine) {
 
     initializeSkeleton();
     
-    _avatarTouch.setReachableRadius(0.6);
+    _avatarTouch.setReachableRadius(1.0);
         
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
@@ -880,13 +879,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     //render body
     renderBody(lookingInMirror);
-    
-    /*
-    // render head
-    if (_displayingHead) {
-        _head.render(lookingInMirror, _bodyYaw);
-    }
-    */
+        
     
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
@@ -1407,7 +1400,6 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         angularVelocity = glm::vec3(glm::degrees(gyrY), glm::degrees(-gyrX), glm::degrees(-gyrZ));
         setHeadFromGyros(&eulerAngles, &angularVelocity,
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
-
     }
 }
 

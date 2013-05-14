@@ -37,57 +37,54 @@ public:
     
     float getAverageLoudness() {return averageLoudness;};
     void  setAverageLoudness(float al) { averageLoudness = al;};
+
+    bool returnHeadToCenter;
+    float audioLoudness;
+    glm::vec3 skinColor;
+    glm::vec3 position;
+    glm::vec3 rotation;
+    float yaw;
+    float pitch;
+    float roll;
+    float pitchRate;
+    float yawRate;
+    float rollRate;
+    float noise;
+    float eyeballPitch[2];
+    float eyeballYaw  [2];
+    float eyebrowPitch[2];
+    float eyebrowRoll [2];
+    float eyeballScaleX;
+    float eyeballScaleY;
+    float eyeballScaleZ;
+    float interPupilDistance;
+    float interBrowDistance;
+    float nominalPupilSize;
+    float pupilSize;
+    float mouthPitch;
+    float mouthYaw;
+    float mouthWidth;
+    float mouthHeight;
+    float leanForward;
+    float leanSideways;
+    float pitchTarget; 
+    float yawTarget; 
+    float noiseEnvelope;
+    float pupilConverge;
+    float scale;
+    int   eyeContact;
+    float browAudioLift;
+    eyeContactTargets eyeContactTarget;
     
-//private:
-// I am making these public for now - just to get the code moved over quickly!
+    //  Sound loudness information
+    float lastLoudness;
+    float averageLoudness;
+    float audioAttack;
+    
+    GLUquadric* sphere;
 
-        bool returnHeadToCenter;
-        float audioLoudness;
-        glm::vec3 skinColor;
-        glm::vec3 position;
-        glm::vec3 rotation;
-        float yaw;
-        float pitch;
-        float roll;
-        float pitchRate;
-        float yawRate;
-        float rollRate;
-        float noise;
-        float eyeballPitch[2];
-        float eyeballYaw  [2];
-        float eyebrowPitch[2];
-        float eyebrowRoll [2];
-        float eyeballScaleX;
-        float eyeballScaleY;
-        float eyeballScaleZ;
-        float interPupilDistance;
-        float interBrowDistance;
-        float nominalPupilSize;
-        float pupilSize;
-        float mouthPitch;
-        float mouthYaw;
-        float mouthWidth;
-        float mouthHeight;
-        float leanForward;
-        float leanSideways;
-        float pitchTarget; 
-        float yawTarget; 
-        float noiseEnvelope;
-        float pupilConverge;
-        float scale;
-        int   eyeContact;
-        float browAudioLift;
-        eyeContactTargets eyeContactTarget;
-        
-        //  Sound loudness information
-        float lastLoudness;
-        float averageLoudness;
-        float audioAttack;
-        
-        GLUquadric* sphere;
-
-        //  Strength of return springs
-        float returnSpringScale;
+    //  Strength of return springs
+    float returnSpringScale;
 };
 
 #endif

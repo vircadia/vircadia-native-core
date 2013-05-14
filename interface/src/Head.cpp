@@ -222,8 +222,6 @@ void Head::simulate(float deltaTime, bool isMine) {
 }
 
 
-
-
 void Head::render(bool lookingInMirror, float bodyYaw) {
 
     int side = 0;
@@ -268,7 +266,6 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     audioAttack = 0.9 * audioAttack + 0.1 * fabs(audioLoudness - lastLoudness);
     lastLoudness = audioLoudness;
     
-    
     const float BROW_LIFT_THRESHOLD = 100;
     if (audioAttack > BROW_LIFT_THRESHOLD)
         browAudioLift += sqrt(audioAttack) / 1000.0;
@@ -295,20 +292,23 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     glPushMatrix();
     glTranslatef(0,-0.35,0.75);
     glColor3f(0,0,0);
+
     glRotatef(mouthPitch, 1, 0, 0);
     glRotatef(mouthYaw, 0, 0, 1);
+
     if (averageLoudness > 1.f) {
-        glScalef(mouthWidth * (.7f + sqrt(averageLoudness) /60.f),
+        glScalef(mouthWidth  * (.7f + sqrt(averageLoudness) /60.f),
                  mouthHeight * (1.f + sqrt(averageLoudness) /30.f), 1);
     } else {
         glScalef(mouthWidth, mouthHeight, 1);
-    }
+    } 
 
     glutSolidCube(0.5);
     glPopMatrix();
     
     glTranslatef(0, 1.0, 0);
     
+
     glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
     // Right Eye
     glRotatef(-10, 1, 0, 0);
@@ -373,6 +373,5 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     glPopMatrix();
     
     glPopMatrix();
-    
 }
 

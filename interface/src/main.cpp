@@ -97,7 +97,6 @@ int packetsPerSecond = 0;
 int bytesPerSecond = 0;
 int bytesCount = 0;
 
-
 int screenWidth = 1200; //  Window size
 int screenHeight = 800;
 
@@ -339,6 +338,7 @@ void init(void) {
     a.distance  = 1.5f;
     a.tightness = 8.0f;
     myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    myCamera.initialize();
     myAvatar.setDisplayingHead(true);  
     
     OculusManager::connect();
@@ -1046,7 +1046,7 @@ void display(void)
     
     glPushMatrix();  {
         glLoadIdentity();
-    
+
         // camera settings
         if (OculusManager::isConnected()) {
             myAvatar.setDisplayingHead(false);
@@ -1063,13 +1063,14 @@ void display(void)
         } else {        
             if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);                
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, -20.0f + myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);                
             } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            
                 myCamera.setTargetPosition(myAvatar.getHeadPosition());
                 myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
             }
         }
-                 
+
         // important...
         myCamera.update( 1.f/FPS );
         
@@ -1081,7 +1082,7 @@ void display(void)
         glTranslatef(1, 1, HUD_Z_OFFSET);
         drawVector(&test);
         glPopMatrix();
-         */
+        */
         
         
         // Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -1240,6 +1241,7 @@ int setRenderFirstPerson(int state) {
     bool value = setValue(state, &::renderFirstPersonOn);
     if (state == MENU_ROW_PICKED) {
         if (::renderFirstPersonOn) {
+                
             Camera::CameraFollowingAttributes a;
             a.upShift   = 0.0f;
             a.distance  = 0.0f;
@@ -1870,12 +1872,32 @@ void idle(void) {
                 ::mouseVoxel.green = ::mouseVoxel.blue = 0;
             }
         }
-        
-        // walking triggers the handControl to stop
+                
+        // when walking handControl stops
         if (myAvatar.getMode() == AVATAR_MODE_WALKING) {
             handControl.stop();
             mouseViewShiftYaw   *= 0.9;
             mouseViewShiftPitch *= 0.9;
+        }
+        
+        if (myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            if (myAvatar.getIsNearInteractingOther()) {
+                myAvatar.setDisplayingHead(false);
+                Camera::CameraFollowingAttributes a;
+                a.upShift   = 0.0f;
+                a.distance  = 0.0f;
+                a.tightness = 100.0f;
+                myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+            } else {
+                if (myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                    myAvatar.setDisplayingHead(true);
+                    Camera::CameraFollowingAttributes a;            
+                    a.upShift   = -0.2f;
+                    a.distance  = 1.5f;
+                    a.tightness = 8.0f;
+                    myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);    
+                }
+            }
         }
         
         //  Read serial port interface devices
