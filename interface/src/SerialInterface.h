@@ -60,7 +60,7 @@ public:
     bool active;
     
 private:
-    void initializePort(char* portname, int baud);
+    void initializePort(char* portname);
     void resetSerial();
 
     int _serialDescriptor;

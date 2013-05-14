@@ -1812,7 +1812,7 @@ void idle(void) {
         
         float deltaTime = 1.f/FPS;
 
-        // update behaviors for avatar hand movement: handControl takes mouse values as input, 
+        // update behaviors for avatar hand movement: handControl takes mouse values as input,
         // and gives back 3D values modulated for smooth transitioning between interaction modes.
         handControl.update(mouseX, mouseY);
         myAvatar.setHandMovementValues(handControl.getValues());        
@@ -1876,7 +1876,7 @@ void idle(void) {
         
         //  Read serial port interface devices
         if (serialPort.active) {
-            serialPort.readData();
+            serialPort.readData(); 
         }
         
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents

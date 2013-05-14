@@ -36,7 +36,7 @@ void SerialInterface::pair() {
                 char *serialPortname = new char[100];
                 sprintf(serialPortname, "/dev/%s", entry->d_name);
                 
-                initializePort(serialPortname, 115200);
+                initializePort(serialPortname);
                 
                 delete [] serialPortname;
             }
@@ -48,7 +48,7 @@ void SerialInterface::pair() {
 }
 
 //  connect to the serial port
-void SerialInterface::initializePort(char* portname, int baud) {
+void SerialInterface::initializePort(char* portname) {
 #ifdef __APPLE__
     _serialDescriptor = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
@@ -61,32 +61,15 @@ void SerialInterface::initializePort(char* portname, int baud) {
     
     struct termios options;
     tcgetattr(_serialDescriptor, &options);
-    
-    switch(baud) {
-		case 9600: cfsetispeed(&options,B9600);
-			cfsetospeed(&options,B9600);
-			break;
-		case 19200: cfsetispeed(&options,B19200);
-			cfsetospeed(&options,B19200);
-			break;
-		case 38400: cfsetispeed(&options,B38400);
-			cfsetospeed(&options,B38400);
-			break;
-		case 115200: cfsetispeed(&options,B115200);
-			cfsetospeed(&options,B115200);
-			break;
-		default:cfsetispeed(&options,B9600);
-			cfsetospeed(&options,B9600);
-			break;
-    }
-    
-    options.c_cflag |= (CLOCAL | CREAD);
+        
+    options.c_cflag |= (CLOCAL | CREAD | CS8);
     options.c_cflag &= ~PARENB;
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
-    options.c_cflag |= CS8;
     tcsetattr(_serialDescriptor, TCSANOW, &options);
     
+    cfsetispeed(&options,B115200);
+    cfsetospeed(&options,B115200);
     
     if (USING_INVENSENSE_MPU9150) {
         // block on invensense reads until there is data to read
