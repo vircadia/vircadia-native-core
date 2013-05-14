@@ -1056,7 +1056,9 @@ void Application::chooseVoxelPaintColor() {
         _voxelPaintColor->setData(selected);
         _voxelPaintColor->setIcon(createSwatchIcon(selected));
     }
-    _glWidget->setFocus();
+    
+    // restore the main window's active state
+    _window->activateWindow();
 }
     
 void Application::initMenu() {
