@@ -41,8 +41,6 @@ void PairingHandler::sendPairRequest() {
     memcpy(&pairingServerSocket.sin_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
     pairingServerSocket.sin_port = htons(PAIRING_SERVER_PORT);
     
-    printf("Sending a pair request to %s on port %d\n", inet_ntoa(pairingServerSocket.sin_addr), ntohs(pairingServerSocket.sin_port));
-    
     // send the pair request to the pairing server
     agentSocket->send((sockaddr*) &pairingServerSocket, pairPacket, strlen(pairPacket));
 }
