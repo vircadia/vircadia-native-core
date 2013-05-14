@@ -121,18 +121,18 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
-    QAction* _lookingInMirror;
-    QAction* _gyroLook;
-    QAction* _renderVoxels;
-    QAction* _renderStarsOn;
-    QAction* _renderAtmosphereOn;
-    QAction* _renderAvatarsOn;
-    QAction* _oculusOn;
-    QAction* _renderStatsOn;
-    QAction* _logOn;
-    QAction* _frustumOn;
-    QAction* _viewFrustumFromOffset;
-    QAction* _cameraFrustum;
+    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
+    QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
+    QAction* _renderVoxels;          // Whether to render voxels
+    QAction* _renderStarsOn;         // Whether to display the stars 
+    QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
+    QAction* _renderAvatarsOn;       // Whether to render avatars 
+    QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
+    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats 
+    QAction* _logOn;                 // Whether to show on-screen log 
+    QAction* _frustumOn;             // Whether or not to display the debug view frustum 
+    QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
+    QAction* _cameraFrustum;         // which frustum to look at 
     QAction* _frustumRenderModeAction;
     
     SerialInterface _serialPort;
@@ -189,20 +189,20 @@ private:
     enum MouseMode { NO_EDIT_MODE, ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
     MouseMode _mouseMode;
     VoxelDetail _mouseVoxel; // details of the voxel under the mouse cursor
-    float _mouseVoxelScale; // the scale for adding/removing voxels
+    float _mouseVoxelScale;  // the scale for adding/removing voxels
     
-    bool _paintOn;
-    unsigned char _dominantColor;
-    VoxelDetail _paintingVoxel;
+    bool _paintOn;                // Whether to paint voxels as you fly around
+    unsigned char _dominantColor; // The dominant color of the voxel we're painting
+    VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
     
-    bool _perfStatsOn;
+    bool _perfStatsOn; //  Do we want to display perfStats? 
     
-    ChatEntry _chatEntry;
-    bool _chatEntryOn;
+    ChatEntry _chatEntry; // chat entry field 
+    bool _chatEntryOn;    // Whether to show the chat entry 
     
-    GLuint _oculusTextureID;
-    ProgramObject* _oculusProgram;
-    float _oculusDistortionScale;
+    GLuint _oculusTextureID;        // The texture to which we render for Oculus distortion
+    ProgramObject* _oculusProgram;  // The GLSL program containing the distortion shader 
+    float _oculusDistortionScale;   // Controls the Oculus field of view
     int _textureLocation;
     int _lensCenterLocation;
     int _screenCenterLocation;

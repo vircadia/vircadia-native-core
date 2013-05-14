@@ -54,7 +54,7 @@ static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 const glm::vec3 START_LOCATION(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
-                                                  // (will be overwritten if avatar data file is found)
+                                                 // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;          //  How often should call simulate and other stuff 
                                              //  in the idle loop?  (60 FPS is default)
@@ -488,6 +488,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
         }
         return;
     }
+    
+    qDebug() << QKeySequence(event->key());
     
     bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
     switch (event->key()) {
