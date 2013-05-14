@@ -171,9 +171,6 @@ private:
     float _viewFrustumOffsetDistance;
     float _viewFrustumOffsetUp;
 
-    float _mouseViewShiftYaw;
-    float _mouseViewShiftPitch;
-
     Oscilloscope _audioScope;
     
     Avatar _myAvatar;                  // The rendered avatar of oneself

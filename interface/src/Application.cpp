@@ -54,16 +54,9 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 const glm::vec3 START_LOCATION(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
-const int IDLE_SIMULATE_MSECS = 16;          //  How often should call simulate and other stuff 
-                                             //  in the idle loop?  (60 FPS is default)
+const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
+                                                 //  in the idle loop?  (60 FPS is default)
                                            
-const bool  USING_MOUSE_VIEW_SHIFT = false;
-const float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
-const float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(1200  * 0.2f);
-const float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(800 * 0.2f);
-const float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
-const float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
-
 const bool DISPLAY_HEAD_MOUSE = true;
 
 // customized canvas that simply forwards requests/events to the singleton application
@@ -135,8 +128,6 @@ Application::Application(int& argc, char** argv) :
         _viewFrustumOffsetRoll(0.0),
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
-        _mouseViewShiftYaw(0.0f),
-        _mouseViewShiftPitch(0.0f),
         _audioScope(256, 200, true),
         _myAvatar(true),
         _mouseX(0),
@@ -312,13 +303,13 @@ void Application::paintGL() {
         } else {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw() - _mouseViewShiftYaw,
-                                            _myAvatar.getRenderPitch() + _mouseViewShiftPitch, 0.0f);                
+                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                            _myAvatar.getRenderPitch(), 0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - _mouseViewShiftYaw, _mouseViewShiftPitch, 0.0f);
-            }  
+                _myCamera.setTargetRotation(_myAvatar.getBodyYaw(), 0.0f, 0.0f);
+            }
         }
                 
         // important...
@@ -863,8 +854,6 @@ void Application::idle() {
         // walking triggers the handControl to stop
         if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
             _handControl.stop();
-            _mouseViewShiftYaw   *= 0.9;
-            _mouseViewShiftPitch *= 0.9;
         }
         
         //  Read serial port interface devices
@@ -1214,33 +1203,6 @@ void Application::updateAvatar(float deltaTime) {
                                 renderPitchSpring * deltaTime * -_myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
     }
     
-    
-    if (USING_MOUSE_VIEW_SHIFT)
-    {
-        //make it so that when your mouse hits the edge of the screen, the camera shifts
-        float rightBoundary  = (float)_glWidget->width()  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
-        float bottomBoundary = (float)_glWidget->height() - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
-        
-        if (_mouseX > rightBoundary) {
-            float f = (_mouseX - rightBoundary) / ( (float)_glWidget->width() - rightBoundary);
-            _mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { _mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
-        } else if (_mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
-            float f = 1.0 - (_mouseX / MOUSE_VIEW_SHIFT_YAW_MARGIN);
-            _mouseViewShiftYaw -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftYaw < -MOUSE_VIEW_SHIFT_YAW_LIMIT) { _mouseViewShiftYaw = -MOUSE_VIEW_SHIFT_YAW_LIMIT; }
-        }
-        if (_mouseY < MOUSE_VIEW_SHIFT_PITCH_MARGIN) {
-            float f = 1.0 - (_mouseY / MOUSE_VIEW_SHIFT_PITCH_MARGIN);
-            _mouseViewShiftPitch += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { _mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-        }
-        else if (_mouseY > bottomBoundary) {
-            float f = (_mouseY - bottomBoundary) / ((float)_glWidget->height() - bottomBoundary);
-            _mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { _mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-        }
-    }
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
