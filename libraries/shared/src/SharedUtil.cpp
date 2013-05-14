@@ -94,6 +94,11 @@ bool oneAtBit(unsigned char byte, int bitIndex) {
     return (byte >> (7 - bitIndex) & 1);
 }
 
+void setAtBit(unsigned char& byte, int bitIndex) {
+    byte += (1 << (7 - bitIndex));
+}
+
+
 void switchToResourcesParentIfRequired() {
 #ifdef __APPLE__
     CFBundleRef mainBundle = CFBundleGetMainBundle();
