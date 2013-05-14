@@ -49,36 +49,17 @@ const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
 const float AVATAR_BRAKING_RANGE          = 1.6f;
 const float AVATAR_BRAKING_STRENGTH       = 30.0f;
+//const float MAX_JOINT_TOUCH_DOT           = 0.995f;
+const float JOINT_TOUCH_RANGE             = 0.0005f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
 float lightBlue [] = {0.7, 0.8, 1.0};
 
-/*
-float browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
-float mouthColor[] = {1, 0, 0};
-
-float BrowRollAngle [5] = {0, 15, 30, -30, -15};
-float BrowPitchAngle[3] = {-70, -60, -50};
-float eyeColor      [3] = {1,1,1};
-
-float MouthWidthChoices[3] = {0.5, 0.77, 0.3};
-
-float browWidth = 0.8;
-float browThickness = 0.16;
-
-
-//char iris_texture_file[] = "resources/images/green_eye.png";
-*/
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
-/*
-vector<unsigned char> iris_texture;
-unsigned int iris_texture_width = 512;
-unsigned int iris_texture_height = 256;
-*/
 
 Avatar::Avatar(bool isMine) {
     
@@ -106,7 +87,10 @@ Avatar::Avatar(bool isMine) {
     _displayingHead             = true;
     _TEST_bigSphereRadius       = 0.4f;
     _TEST_bigSpherePosition     = glm::vec3(5.0f, _TEST_bigSphereRadius, 5.0f);
-    
+    _mouseRayOrigin             = glm::vec3(0.0f, 0.0f, 0.0f);
+    _mouseRayDirection          = glm::vec3(0.0f, 0.0f, 0.0f);
+    _cameraPosition             = glm::vec3(0.0f, 0.0f, 0.0f);
+
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
     _head.initialize();
@@ -122,17 +106,7 @@ Avatar::Avatar(bool isMine) {
     initializeSkeleton();
     
     _avatarTouch.setReachableRadius(0.6);
-    
-  /*  
-    if (iris_texture.size() == 0) {
-        switchToResourcesParentIfRequired();
-        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
-        if (error != 0) {
-            printLog("error %u: %s\n", error, lodepng_error_text(error));
-        }
-    }
-*/
-    
+        
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
 }
@@ -318,6 +292,9 @@ bool Avatar::getIsNearInteractingOther() {
 }
 
 void Avatar::simulate(float deltaTime) {
+
+    //figure out if the mouse cursor is over any body spheres... 
+    checkForMouseRayTouching();
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
@@ -481,6 +458,30 @@ void Avatar::simulate(float deltaTime) {
 	}
 }
 
+
+
+void Avatar::checkForMouseRayTouching() {
+
+    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
+    
+        glm::vec3 directionToBodySphere = glm::normalize(_joint[b].springyPosition - _mouseRayOrigin);
+        float dot = glm::dot(directionToBodySphere, _mouseRayDirection);
+
+        if (dot > (1.0f - JOINT_TOUCH_RANGE)) {
+            _joint[b].touchForce = (dot - (1.0f - JOINT_TOUCH_RANGE)) / JOINT_TOUCH_RANGE;
+        } else {
+            _joint[b].touchForce = 0.0;
+        }
+    }
+}
+
+
+void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction ) {
+    _mouseRayOrigin = origin; _mouseRayDirection = direction;    
+}
+
+
+
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
     // reset hand and arm positions according to hand movement
@@ -491,8 +492,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
             
-    if (_isMine)
-    {
+    if (_isMine) {
         _avatarTouch.setMyBodyPosition(_position);
         
         Avatar * _interactingOther = NULL;
@@ -853,6 +853,8 @@ void Avatar::setGravity(glm::vec3 gravity) {
 
 void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
+    _cameraPosition = cameraPosition; // store this for use in various parts of the code
+
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
 
@@ -877,16 +879,18 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     }
     
     //render body
-    renderBody();
+    renderBody(lookingInMirror);
     
+    /*
     // render head
     if (_displayingHead) {
         _head.render(lookingInMirror, _bodyYaw);
     }
+    */
     
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
-        _avatarTouch.render(cameraPosition);
+        _avatarTouch.render(_cameraPosition);
     }
     
     //  Render the balls
@@ -941,180 +945,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
 
 
-void Avatar::renderHead(bool lookingInMirror) {
-/*
-    int side = 0;
-    
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_RESCALE_NORMAL);
-    
-	// show head orientation
-	//renderOrientationDirections(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, _joint[ AVATAR_JOINT_HEAD_BASE ].orientation, 0.2f);
-    
-    glPushMatrix();
-    
-        glTranslatef(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.x,
-                     _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.y,
-                     _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition.z);
-	
-    glScalef
-    (
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius,
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius
-    );
-    
-    
-    if (lookingInMirror) {
-        glRotatef(_bodyYaw   - _headYaw,   0, 1, 0);
-        //glRotatef(_bodyPitch + _headPitch, 1, 0, 0);
-        //glRotatef(_bodyRoll  - _headRoll,  0, 0, 1);
-        // don't let body pitch and roll affect the head..
-        glRotatef(_headPitch, 1, 0, 0);   
-        glRotatef(-_headRoll,  0, 0, 1);
-    } else {
-        glRotatef(_bodyYaw   + _headYaw,   0, 1, 0);
-        //glRotatef(_bodyPitch + _headPitch, 1, 0, 0);
-        //glRotatef(_bodyRoll  + _headRoll,  0, 0, 1);
-        // don't let body pitch and roll affect the head..
-        glRotatef(_headPitch, 1, 0, 0);
-        glRotatef(_headRoll,  0, 0, 1);
-    }
-    
-    //glScalef(2.0, 2.0, 2.0);
-    glColor3fv(skinColor);
-    
-    glutSolidSphere(1, 30, 30);
-    
-    //  Ears
-    glPushMatrix();
-    glTranslatef(1.0, 0, 0);
-    for(side = 0; side < 2; side++) {
-        glPushMatrix();
-        glScalef(0.3, 0.65, .65);
-        glutSolidSphere(0.5, 30, 30);
-        glPopMatrix();
-        glTranslatef(-2.0, 0, 0);
-    }
-    glPopMatrix();
-    
-    
-    //  Update audio attack data for facial animation (eyebrows and mouth)
-    _head.audioAttack = 0.9 * _head.audioAttack + 0.1 * fabs(_audioLoudness - _head.lastLoudness);
-    _head.lastLoudness = _audioLoudness;
-    
-    
-    const float BROW_LIFT_THRESHOLD = 100;
-    if (_head.audioAttack > BROW_LIFT_THRESHOLD)
-        _head.browAudioLift += sqrt(_head.audioAttack) / 1000.0;
-    
-    _head.browAudioLift *= .90;
-    
-    
-    //  Render Eyebrows
-    glPushMatrix();
-    glTranslatef(-_head.interBrowDistance / 2.0,0.4,0.45);
-    for(side = 0; side < 2; side++) {
-        glColor3fv(browColor);
-        glPushMatrix();
-        glTranslatef(0, 0.35 + _head.browAudioLift, 0);
-        glRotatef(_head.eyebrowPitch[side]/2.0, 1, 0, 0);
-        glRotatef(_head.eyebrowRoll[side]/2.0, 0, 0, 1);
-        glScalef(browWidth, browThickness, 1);
-        glutSolidCube(0.5);
-        glPopMatrix();
-        glTranslatef(_head.interBrowDistance, 0, 0);
-    }
-    glPopMatrix();
-    
-    // Mouth
-    glPushMatrix();
-    glTranslatef(0,-0.35,0.75);
-    glColor3f(0,0,0);
-    glRotatef(_head.mouthPitch, 1, 0, 0);
-    glRotatef(_head.mouthYaw, 0, 0, 1);
-    if (_head.averageLoudness > 1.f) {
-        glScalef(_head.mouthWidth * (.7f + sqrt(_head.averageLoudness) /60.f),
-                 _head.mouthHeight * (1.f + sqrt(_head.averageLoudness) /30.f), 1);
-    } else {
-        glScalef(_head.mouthWidth, _head.mouthHeight, 1);
-    }
-
-    glutSolidCube(0.5);
-    glPopMatrix();
-    
-    glTranslatef(0, 1.0, 0);
-    
-    glTranslatef(-_head.interPupilDistance/2.0,-0.68,0.7);
-    // Right Eye
-    glRotatef(-10, 1, 0, 0);
-    glColor3fv(eyeColor);
-    glPushMatrix();
-    {
-        glTranslatef(_head.interPupilDistance/10.0, 0, 0.05);
-        glRotatef(20, 0, 0, 1);
-        glScalef(_head.eyeballScaleX, _head.eyeballScaleY, _head.eyeballScaleZ);
-        glutSolidSphere(0.25, 30, 30);
-    }
-    glPopMatrix();
-    
-    // Right Pupil
-    if (_sphere == NULL) {
-        _sphere = gluNewQuadric();
-        gluQuadricTexture(_sphere, GL_TRUE);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        gluQuadricOrientation(_sphere, GLU_OUTSIDE);
-//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
-    }
-    
-    glPushMatrix();
-    {
-        glRotatef(_head.eyeballPitch[1], 1, 0, 0);
-        glRotatef(_head.eyeballYaw[1] + _headYaw + _head.pupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.35);
-        glRotatef(-75,1,0,0);
-        glScalef(1.0, 0.4, 1.0);
-        
-        glEnable(GL_TEXTURE_2D);
-        gluSphere(_sphere, _head.pupilSize, 15, 15);
-        glDisable(GL_TEXTURE_2D);
-    }
-    
-    glPopMatrix();
-    // Left Eye
-    glColor3fv(eyeColor);
-    glTranslatef(_head.interPupilDistance, 0, 0);
-    glPushMatrix();
-    {
-        glTranslatef(-_head.interPupilDistance/10.0, 0, .05);
-        glRotatef(-20, 0, 0, 1);
-        glScalef(_head.eyeballScaleX, _head.eyeballScaleY, _head.eyeballScaleZ);
-        glutSolidSphere(0.25, 30, 30);
-    }
-    glPopMatrix();
-    // Left Pupil
-    glPushMatrix();
-    {
-        glRotatef(_head.eyeballPitch[0], 1, 0, 0);
-        glRotatef(_head.eyeballYaw[0] + _headYaw - _head.pupilConverge, 0, 1, 0);
-        glTranslatef(0, 0, .35);
-        glRotatef(-75, 1, 0, 0);
-        glScalef(1.0, 0.4, 1.0);
-        
-        glEnable(GL_TEXTURE_2D);
-        gluSphere(_sphere, _head.pupilSize, 15, 15);
-        glDisable(GL_TEXTURE_2D);
-    }
-    
-    glPopMatrix();
-    
-    
-    glPopMatrix();
-    */
- }
-
-
 void Avatar::setHandMovementValues(glm::vec3 handOffset) {
 	_movedHandOffset = handOffset;
 }
@@ -1138,6 +968,7 @@ void Avatar::initializeSkeleton() {
         _joint[b].roll                = 0.0;
         _joint[b].length              = 0.0;
         _joint[b].radius              = 0.0;
+        _joint[b].touchForce          = 0.0;
         _joint[b].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
         _joint[b].orientation.setToIdentity();
     }
@@ -1373,10 +1204,11 @@ void Avatar::updateBodySprings(float deltaTime) {
             }
         }
         
+        // apply tightness force - (causing springy position to be close to rigid body position)
 		_joint[b].springyVelocity += (_joint[b].position - _joint[b].springyPosition) * _joint[b].springBodyTightness * deltaTime;
         
+        // apply decay
         float decay = 1.0 - BODY_SPRING_DECAY * deltaTime;
-		
         if (decay > 0.0) {
             _joint[b].springyVelocity *= decay;
         }
@@ -1384,18 +1216,23 @@ void Avatar::updateBodySprings(float deltaTime) {
             _joint[b].springyVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         
+        //apply forces from touch...
+        if (_joint[b].touchForce > 0.0) {
+            _joint[b].springyVelocity += _mouseRayDirection * _joint[b].touchForce * 0.7f;
+        }
+        
+        //update position by velocity...
         _joint[b].springyPosition += _joint[b].springyVelocity * deltaTime;
     }
 }
 
-const glm::vec3& Avatar::getHeadPosition() const {
-    
-    
-    //if (_usingBodySprings) {
-    //    return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;
-    //}
-    
+
+const glm::vec3& Avatar::getSpringyHeadPosition() const {
     return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;
+}
+
+const glm::vec3& Avatar::getHeadPosition() const {
+    return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
 }
 
 
@@ -1438,12 +1275,16 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 }
 
 
-void Avatar::renderBody() {
+void Avatar::renderBody(bool lookingInMirror) {
     
     //  Render joint positions as spheres
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         
-        if (b != AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case in "renderHead"
+        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
+            if (_displayingHead) {
+                _head.render(lookingInMirror, _bodyYaw);
+            }
+        } else {
     
             //show direction vectors of the bone orientation
             //renderOrientationDirections(_joint[b].springyPosition, _joint[b].orientation, _joint[b].radius * 2.0);
@@ -1454,8 +1295,20 @@ void Avatar::renderBody() {
             glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
             glPopMatrix();
         }
+        
+        if (_joint[b].touchForce > 0.0f) {
+        
+            float alpha = _joint[b].touchForce * 0.2;
+            float r = _joint[b].radius * 1.1f + 0.005f;
+            glColor4f(0.5f, 0.2f, 0.2f, alpha);
+            glPushMatrix();
+            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
+            glScalef(r, r, r);
+            glutSolidSphere(1, 20, 20);
+            glPopMatrix();
+        }
     }
-    
+ 
     // Render lines connecting the joint positions
     glColor3f(0.4f, 0.5f, 0.6f);
     glLineWidth(3.0);

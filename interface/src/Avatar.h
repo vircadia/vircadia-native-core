@@ -91,7 +91,8 @@ public:
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
     void  setGravity(glm::vec3 gravity);
-    
+
+    void  setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction );
     bool  getIsNearInteractingOther();
         
     float getAbsoluteHeadYaw() const;
@@ -99,11 +100,9 @@ public:
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
-    const glm::vec3& getHeadPosition() const ;
-
-    //const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].position; };
-    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; };
-
+    const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
+    const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
+    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
     float getSpeed() const { return _speed; };
     const glm::vec3& getVelocity() const { return _velocity; };
@@ -113,9 +112,8 @@ public:
     AvatarMode getMode();
     
     void setMousePressed(bool pressed); 
-    void render(bool lookingInMirrorm, glm::vec3 cameraPosition);
-    void renderBody();
-    void renderHead(bool lookingInMirror);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void renderBody(bool lookingInMirror);
     void simulate(float);
     void setHandMovementValues( glm::vec3 movement );
     void updateArmIKAndConstraints( float deltaTime );
@@ -155,6 +153,7 @@ private:
         float		  length;				// the length of vector connecting the joint and its parent
         float		  radius;               // used for detecting collisions for certain physical effects
         bool		  isCollidable;         // when false, the joint position will not register a collision
+        float         touchForce;           // if being touched, what's the degree of influence? (0 to 1)
     };
 
     Head        _head;
@@ -192,6 +191,12 @@ private:
     bool        _displayingHead; // should be false if in first-person view
     float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
+    glm::vec3   _mouseRayOrigin;
+    glm::vec3   _mouseRayDirection;
+    glm::vec3   _cameraPosition;
+    
+    //AvatarJointID _jointTouched;
+    
 
     // private methods...
     void initializeSkeleton();
@@ -206,6 +211,7 @@ private:
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
+    void checkForMouseRayTouching();
 };
 
 #endif

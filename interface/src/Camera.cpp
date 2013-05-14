@@ -12,6 +12,8 @@
 
 #include "Camera.h"
 
+const float MODE_SHIFT_RATE = 5.0f;
+
 Camera::Camera() {
 
     _needsToInitialize   = true;
@@ -22,12 +24,10 @@ Camera::Camera() {
     _fieldOfView    = 60.0; // default
     _nearClip       = 0.08; // default
     _farClip        = 50.0 * TREE_SCALE; // default
-    _modeShift      = 0.0;
     _yaw            = 0.0;
     _pitch          = 0.0;
     _roll           = 0.0;
     _upShift        = 0.0;
-    _rightShift     = 0.0;
     _distance       = 0.0;
     _idealYaw       = 0.0;
     _idealPitch     = 0.0;
@@ -36,27 +36,26 @@ Camera::Camera() {
     _position       = glm::vec3(0.0, 0.0, 0.0);
     _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
     _orientation.setToIdentity();
+    
+    for (int m = 0; m < NUM_CAMERA_MODES; m ++) {
+        _attributes[m].upShift   = 0.0f; 
+        _attributes[m].distance  = 0.0f; 
+        _attributes[m].tightness = 0.0f; 
+    }
 }
+
 
 void Camera::update(float deltaTime)  {
 
-    if (_mode == CAMERA_MODE_NULL) {
-        _modeShift = 0.0;
-    } else {
-        // use iterative forces to push the camera towards the desired position and angle
+    if (_mode != CAMERA_MODE_NULL) {
+        // use iterative forces to push the camera towards the target position and angle
         updateFollowMode(deltaTime);
-        
-        if (_modeShift < 1.0f) {
-            _modeShift += MODE_SHIFT_RATE * deltaTime;
-            if (_modeShift > 1.0f) {
-                _modeShift = 1.0f;
-            }
-        }
-    }
+     }
     
     // do this AFTER making any changes to yaw pitch and roll....
     generateOrientation();    
 }
+
 
 // generate the ortho-normals for the orientation based on the three Euler angles
 void Camera::generateOrientation() {
@@ -74,7 +73,7 @@ void Camera::updateFollowMode(float deltaTime) {
     if (t > 1.0) {
         t = 1.0;
     }
-
+    
     // update Euler angles (before position!)
     if (_needsToInitialize || OculusManager::isConnected()) {
         _yaw   = _idealYaw;
@@ -104,15 +103,27 @@ void Camera::updateFollowMode(float deltaTime) {
         _position = _idealPosition; 
         _needsToInitialize = false;
     } else {
-        // pull position towards ideal position
+        // force position towards ideal position
         _position += (_idealPosition - _position) * t; 
     }
+    
+    //transition to the attributes of the current mode
+    _upShift   += (_attributes[_mode].upShift   - _upShift  ) * deltaTime * MODE_SHIFT_RATE;
+    _distance  += (_attributes[_mode].distance  - _distance ) * deltaTime * MODE_SHIFT_RATE;
+    _tightness += (_attributes[_mode].tightness - _tightness) * deltaTime * MODE_SHIFT_RATE;
 }
 
+void Camera::setMode(CameraMode  m, CameraFollowingAttributes a) { 
+ 
+    _attributes[m].upShift   = a.upShift;
+    _attributes[m].distance  = a.distance;
+    _attributes[m].tightness = a.tightness;
+    
+    setMode(m);
+}
 
 void Camera::setMode(CameraMode  m) { 
     _mode = m;
-    _modeShift = 0.0f; 
     _needsToInitialize = true;
 }
 

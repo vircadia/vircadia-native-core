@@ -47,9 +47,6 @@
 
 using namespace std;
 
-//const CameraMode DEFAULT_CAMERA_MODE = CAMERA_MODE_FIRST_PERSON;
-const CameraMode DEFAULT_CAMERA_MODE = CAMERA_MODE_THIRD_PERSON;
-
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
@@ -298,37 +295,29 @@ void Application::paintGL() {
         glLoadIdentity();
     
         // camera settings
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            _myAvatar.setDisplayingHead(true);            
-            _myCamera.setUpShift       (0.0);    
-            _myCamera.setDistance      (0.2);
-            _myCamera.setTightness     (100.0f);
-            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
-            
-        } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || OculusManager::isConnected()) {
+        if (OculusManager::isConnected()) {
             _myAvatar.setDisplayingHead(false);            
             _myCamera.setUpShift       (0.0f);
             _myCamera.setDistance      (0.0f);
             _myCamera.setTightness     (100.0f); 
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() + _myAvatar.getHeadYaw(),
+                                        -_myAvatar.getHeadPitch(), _myAvatar.getHeadRoll());
+         
+        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f); 
+        
+        } else {
+            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+                _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw() - _mouseViewShiftYaw,
+                                            _myAvatar.getRenderPitch() + _mouseViewShiftPitch, 0.0f);                
             
-            if (OculusManager::isConnected()) {
-                _myCamera.setTargetRotation(_myAvatar.getBodyYaw() + _myAvatar.getHeadYaw(),
-                                           -_myAvatar.getHeadPitch(),
-                                           _myAvatar.getHeadRoll());
-            } else {
-                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw()- _mouseViewShiftYaw,
-                                            _myAvatar.getAbsoluteHeadPitch() +
-                                                _myAvatar.getRenderPitch() + _mouseViewShiftPitch, 0.0f);
-            }
-        } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            _myAvatar.setDisplayingHead(true);            
-            _myCamera.setUpShift       (-0.2f);
-            _myCamera.setDistance      (1.5f);
-            _myCamera.setTightness     (8.0f);
-            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - _mouseViewShiftYaw, _mouseViewShiftPitch, 0.0f);
+            } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+                _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - _mouseViewShiftYaw, _mouseViewShiftPitch, 0.0f);
+            }  
         }
                 
         // important...
@@ -819,14 +808,18 @@ void Application::idle() {
         _myAvatar.setMousePressed(_mousePressed);
         
         // check what's under the mouse and update the mouse voxel
-        glm::vec3 origin, direction;
+        glm::vec3 mouseRayOrigin, mouseRayDirection;
         _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
-            _mouseY / (float)_glWidget->height(), origin, direction);
+            _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+
+        // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
+        _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
         float distance;
         BoxFace face;
         _mouseVoxel.s = 0.0f;
-        if (_mouseMode != NO_EDIT_MODE && _voxels.findRayIntersection(origin, direction, _mouseVoxel, distance, face)) {
+        if (_mouseMode != NO_EDIT_MODE && _voxels.findRayIntersection(
+                mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             // find the nearest voxel with the desired scale
             if (_mouseVoxelScale > _mouseVoxel.s) {
                 // choose the larger voxel that encompasses the one selected
@@ -839,7 +832,7 @@ void Application::idle() {
                 glm::vec3 faceVector = getFaceVector(face);
                 if (_mouseVoxelScale < _mouseVoxel.s) {
                     // find the closest contained voxel
-                    glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
+                    glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
                         faceVector * (_mouseVoxelScale * 0.5f);
                     _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
                     _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
@@ -893,6 +886,7 @@ void Application::idle() {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
+                avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
         agentList->unlock();
@@ -934,8 +928,23 @@ void Application::pair() {
 void Application::setHead(bool head) {
     #ifndef _WIN32
     _audio.setMixerLoopbackFlag(head);
-    _myCamera.setMode(head ? CAMERA_MODE_MIRROR : DEFAULT_CAMERA_MODE);
     #endif
+    
+    if (head) {
+        Camera::CameraFollowingAttributes a;
+        a.upShift   = 0.0f;
+        a.distance  = 0.2f;
+        a.tightness = 100.0f;
+        _myCamera.setMode(CAMERA_MODE_MIRROR, a);
+        _myAvatar.setDisplayingHead(true);  
+    } else {
+        Camera::CameraFollowingAttributes a;
+        a.upShift   = -0.2f;
+        a.distance  = 1.5f;
+        a.tightness = 8.0f;
+        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+        _myAvatar.setDisplayingHead(true);  
+    } 
 }
 
 void Application::setNoise(bool noise) {
@@ -948,7 +957,22 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    _myCamera.setMode(firstPerson ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
+    if (firstPerson) {
+        Camera::CameraFollowingAttributes a;
+        a.upShift   = 0.0f;
+        a.distance  = 0.0f;
+        a.tightness = 100.0f;
+        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+        _myAvatar.setDisplayingHead(false);  
+    
+    } else {
+        Camera::CameraFollowingAttributes a;            
+        a.upShift   = -0.2f;
+        a.distance  = 1.5f;
+        a.tightness = 8.0f;
+        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+        _myAvatar.setDisplayingHead(true);  
+    } 
 }
 
 void Application::setOculus(bool oculus) {
@@ -1118,7 +1142,12 @@ void Application::init() {
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
     _myAvatar.setPosition(START_LOCATION);
-    _myCamera.setMode(DEFAULT_CAMERA_MODE);
+    Camera::CameraFollowingAttributes a;            
+    a.upShift   = -0.2f;
+    a.distance  = 1.5f;
+    a.tightness = 8.0f;
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    _myAvatar.setDisplayingHead(true);   
     
     OculusManager::connect();
     
