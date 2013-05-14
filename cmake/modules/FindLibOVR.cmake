@@ -20,7 +20,7 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
 
   if (APPLE)
     find_library(LIBOVR_LIBRARIES libovr.a ${LIBOVR_ROOT_DIR}/Lib/MacOS/)
-  else (WIN32)
+  elseif (WIN32)
     find_library(LIBOVR_LIBRARIES libovr.lib ${LIBOVR_ROOT_DIR}/Lib/Win32/)
   endif ()
 
