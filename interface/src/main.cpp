@@ -114,9 +114,6 @@ float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(::screenHeight * 0.2f);
 float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
 float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
 
-//CameraMode defaultCameraMode = CAMERA_MODE_FIRST_PERSON;
-CameraMode defaultCameraMode = CAMERA_MODE_THIRD_PERSON;
-
 bool wantColorRandomizer = true;    // for addSphere and load file
 
 Oscilloscope audioScope(256,200,true);
@@ -338,7 +335,12 @@ void init(void) {
     }
     
     myAvatar.setPosition(start_location);
-    myCamera.setMode(defaultCameraMode);
+    Camera::CameraFollowingAttributes a;            
+    a.upShift   = -0.2f;
+    a.distance  = 1.5f;
+    a.tightness = 8.0f;
+    myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    myAvatar.setDisplayingHead(true);  
     
     OculusManager::connect();
     
@@ -1047,37 +1049,28 @@ void display(void)
         glLoadIdentity();
     
         // camera settings
-        if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            myAvatar.setDisplayingHead(true);            
-            myCamera.setUpShift       (0.0);    
-            myCamera.setDistance      (0.2);
-            myCamera.setTightness     (100.0f);
-            myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
-            
-        } else if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || OculusManager::isConnected()) {
-            myAvatar.setDisplayingHead(false);            
+        if (OculusManager::isConnected()) {
+            myAvatar.setDisplayingHead(false);
             myCamera.setUpShift       (0.0f);
             myCamera.setDistance      (0.0f);
             myCamera.setTightness     (100.0f); 
             myCamera.setTargetPosition(myAvatar.getHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(), -myAvatar.getHeadPitch(), myAvatar.getHeadRoll());
+        
+        } else if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
+            myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
             
-            if (OculusManager::isConnected()) {
-                myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(),
-                                           -myAvatar.getHeadPitch(),
-                                           myAvatar.getHeadRoll());
-            } else {
-                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getAbsoluteHeadPitch() + myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);
+        } else {        
+            if (myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+                myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
+                myCamera.setTargetRotation(myAvatar.getAbsoluteHeadYaw()- mouseViewShiftYaw, myAvatar.getRenderPitch() + mouseViewShiftPitch, 0.0f);                
+            } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                myCamera.setTargetPosition(myAvatar.getHeadPosition());
+                myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
             }
-        } else if (myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            myAvatar.setDisplayingHead(true);            
-            myCamera.setUpShift       (-0.2f);
-            myCamera.setDistance      (1.5f);
-            myCamera.setTightness     (8.0f);
-            myCamera.setTargetPosition(myAvatar.getHeadPosition());
-            myCamera.setTargetRotation(myAvatar.getBodyYaw() - mouseViewShiftYaw, mouseViewShiftPitch, 0.0f);
         }
-                
+                 
         // important...
         myCamera.update( 1.f/FPS );
         
@@ -1248,9 +1241,19 @@ int setRenderFirstPerson(int state) {
     bool value = setValue(state, &::renderFirstPersonOn);
     if (state == MENU_ROW_PICKED) {
         if (::renderFirstPersonOn) {
-            myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = 0.0f;
+            a.distance  = 0.0f;
+            a.tightness = 100.0f;
+            myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+            myAvatar.setDisplayingHead(false);  
         } else {
-            myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            Camera::CameraFollowingAttributes a;            
+            a.upShift   = -0.2f;
+            a.distance  = 1.5f;
+            a.tightness = 8.0f;
+            myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+            myAvatar.setDisplayingHead(true);  
         }
     }
     return value;
@@ -1714,9 +1717,19 @@ void key(unsigned char k, int x, int y) {
         audio.setMixerLoopbackFlag(::lookingInMirror);
         
         if (::lookingInMirror) {
-            myCamera.setMode(CAMERA_MODE_MIRROR);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = 0.0f;
+            a.distance  = 0.2f;
+            a.tightness = 100.0f;
+            myCamera.setMode(CAMERA_MODE_MIRROR, a);
+            myAvatar.setDisplayingHead(true);  
         } else {
-            myCamera.setMode(defaultCameraMode);
+            Camera::CameraFollowingAttributes a;
+            a.upShift   = -0.2f;
+            a.distance  = 1.5f;
+            a.tightness = 8.0f;
+            myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+            myAvatar.setDisplayingHead(true);  
         }
         #endif
     }
@@ -1830,13 +1843,16 @@ void idle(void) {
         myAvatar.setMousePressed(mousePressed);
         
         // check what's under the mouse and update the mouse voxel
-        glm::vec3 origin, direction;
-        viewFrustum.computePickRay(mouseX / (float)::screenWidth, mouseY / (float)::screenHeight, origin, direction);
+        glm::vec3 mouseRayOrigin, mouseRayDirection;
+        viewFrustum.computePickRay(mouseX / (float)::screenWidth, mouseY / (float)::screenHeight, mouseRayOrigin, mouseRayDirection);
+
+        // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
+        myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection); 
 
         float distance;
         BoxFace face;
         ::mouseVoxel.s = 0.0f;
-        if (::mouseMode != NO_EDIT_MODE && voxels.findRayIntersection(origin, direction, ::mouseVoxel, distance, face)) {
+        if (voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, ::mouseVoxel, distance, face)) {
             // find the nearest voxel with the desired scale
             if (::mouseVoxelScale > ::mouseVoxel.s) {
                 // choose the larger voxel that encompasses the one selected
@@ -1845,23 +1861,13 @@ void idle(void) {
                 ::mouseVoxel.z = ::mouseVoxelScale * floorf(::mouseVoxel.z / ::mouseVoxelScale);
                 ::mouseVoxel.s = ::mouseVoxelScale;
             
-            } else {
-                glm::vec3 faceVector = getFaceVector(face);
-                if (::mouseVoxelScale < ::mouseVoxel.s) {
-                    // find the closest contained voxel
-                    glm::vec3 pt = (origin + direction * distance) / (float)TREE_SCALE -
-                        faceVector * (::mouseVoxelScale * 0.5f);
-                    ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
-                    ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
-                    ::mouseVoxel.z = ::mouseVoxelScale * floorf(pt.z / ::mouseVoxelScale);
-                    ::mouseVoxel.s = ::mouseVoxelScale;
-                }
-                if (::mouseMode == ADD_VOXEL_MODE) {
-                    // use the face to determine the side on which to create a neighbor
-                    ::mouseVoxel.x += faceVector.x * ::mouseVoxel.s;
-                    ::mouseVoxel.y += faceVector.y * ::mouseVoxel.s;
-                    ::mouseVoxel.z += faceVector.z * ::mouseVoxel.s;
-                }
+            } else if (::mouseVoxelScale < ::mouseVoxel.s) {
+                glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                    getFaceVector(face) * (::mouseVoxelScale * 0.5f);
+                ::mouseVoxel.x = ::mouseVoxelScale * floorf(pt.x / ::mouseVoxelScale); 
+                ::mouseVoxel.y = ::mouseVoxelScale * floorf(pt.y / ::mouseVoxelScale); 
+                ::mouseVoxel.z = ::mouseVoxelScale * floorf(pt.z / ::mouseVoxelScale);
+                ::mouseVoxel.s = ::mouseVoxelScale;
             }
                 
             if (::mouseMode == COLOR_VOXEL_MODE) {
@@ -1903,6 +1909,7 @@ void idle(void) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
                 avatar->simulate(deltaTime);
+                avatar->setMouseRay(mouseRayOrigin, mouseRayDirection); 
             }
         }
         agentList->unlock();
