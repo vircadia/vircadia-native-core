@@ -107,8 +107,8 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 // Version of voxel distributor that sends each LOD level at a time
 void resInVoxelDistributor(AgentList* agentList, 
                            AgentList::iterator& agent, 
-                           VoxelAgentData* agentData, 
-                           ViewFrustum& viewFrustum) {
+                           VoxelAgentData* agentData) {
+    ViewFrustum viewFrustum = agentData->getCurrentViewFrustum();
     bool searchReset = false;
     int  searchLoops = 0;
     int  searchLevelWas = agentData->getMaxSearchLevel();
@@ -224,12 +224,13 @@ void resInVoxelDistributor(AgentList* agentList,
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
-                                  VoxelAgentData* agentData,
-                                  ViewFrustum& viewFrustum) {
+                                  VoxelAgentData* agentData) {
+
     int maxLevelReached = 0;
     double start = usecTimestampNow();
     if (agentData->nodeBag.isEmpty()) {
-        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, viewFrustum, agentData->nodeBag);
+        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
+                                                           agentData->nodeBag, true, &agentData->getLastKnownViewFrustum());
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
@@ -261,8 +262,9 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor());
+                                                              agentData->nodeBag, &agentData->getCurrentViewFrustum(),
+                                                              agentData->getWantColor(), true, 
+                                                              &agentData->getLastKnownViewFrustum());
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -338,9 +340,9 @@ void *distributeVoxelsToListeners(void *args) {
     		    agentData->updateViewFrustum();
 
                 if (agentData->getWantResIn()) { 
-                    resInVoxelDistributor(agentList, agent, agentData, agentData->currentViewFrustum);
+                    resInVoxelDistributor(agentList, agent, agentData);
                 } else {
-                    deepestLevelVoxelDistributor(agentList, agent, agentData,  agentData->currentViewFrustum);
+                    deepestLevelVoxelDistributor(agentList, agent, agentData);
                 }
             }
         }
