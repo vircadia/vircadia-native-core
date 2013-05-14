@@ -1900,6 +1900,9 @@ void Application::resetSensors() {
     _headMouseX = _glWidget->width() / 2;
     _headMouseY = _glWidget->height() / 2;
     
+    if (_serialPort.active) {
+        _serialPort.resetAverages();
+    } 
     _myAvatar.reset();
 }
 
