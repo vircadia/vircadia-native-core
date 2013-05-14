@@ -24,6 +24,15 @@ struct PairableDevice {
     sockaddr_in localSocket;
 };
 
+struct RequestingClient {
+    char address[INET_ADDRSTRLEN];
+    int port;
+};
+
+UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
+PairableDevice* lastDevice = NULL;
+RequestingClient* lastClient = NULL;
+
 int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
     int currentIndex = 0;
     
@@ -34,73 +43,83 @@ int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
     return currentIndex;
 }
 
+void sendLastClientToLastDevice() {
+    char pairData[INET_ADDRSTRLEN + 6] = {};
+    int bytesWritten = sprintf(pairData, "%s:%d", ::lastClient->address, ::lastClient->port);
+    
+    ::serverSocket.send((sockaddr*) &::lastDevice->sendingSocket, pairData, bytesWritten);
+}
+
 int main(int argc, const char* argv[]) {
-    UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
     
     sockaddr_in senderSocket;
     char senderData[MAX_PACKET_SIZE_BYTES] = {};
     ssize_t receivedBytes = 0;
     
-    std::vector<PairableDevice> devices;
-    
     while (true) {
-        if (serverSocket.receive((sockaddr *)&senderSocket, &senderData, &receivedBytes)) {
-            
+        if (::serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
             if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
                 
-                // create a new PairableDevice
-                PairableDevice newDevice = {};
+                PairableDevice tempDevice = {};
                 
-                int addressBytes[4];
+                char deviceAddress[INET_ADDRSTRLEN] = {};
                 int socketPort = 0;
                 
-                int numMatches = sscanf(senderData, "Available %s %d.%d.%d.%d:%d %s",
-                                        newDevice.identifier,
-                                        &addressBytes[3],
-                                        &addressBytes[2],
-                                        &addressBytes[1],
-                                        &addressBytes[0],
+                int numMatches = sscanf(senderData, "Available %s %[^:]:%d %s",
+                                        tempDevice.identifier,
+                                        deviceAddress,
                                         &socketPort,
-                                        newDevice.name);
+                                        tempDevice.name);
                 
-                if (numMatches >= 6) {
-                    // if we have fewer than 6 matches the packet wasn't properly formatted
+                if (numMatches >= 3) {
+                    // if we have fewer than 3 matches the packet wasn't properly formatted
                     
                     // setup the localSocket for the pairing device
-                    newDevice.localSocket.sin_family = AF_INET;
-                    newDevice.localSocket.sin_addr.s_addr = (addressBytes[3] |
-                                                             addressBytes[2] << 8 |
-                                                             addressBytes[1] << 16 |
-                                                             addressBytes[0] << 24);
-                    newDevice.localSocket.sin_port = socketPort;
+                    tempDevice.localSocket.sin_family = AF_INET;
+                    inet_pton(AF_INET, deviceAddress, &::lastDevice);
+                    tempDevice.localSocket.sin_port = socketPort;
                     
                     // store this device's sending socket so we can talk back to it
-                    newDevice.sendingSocket = senderSocket;
+                    tempDevice.sendingSocket = senderSocket;
                     
                     // push this new device into the vector
-                    printf("Adding device %s (%s) to list\n", newDevice.identifier, newDevice.name);
-                    devices.push_back(newDevice);
+                    printf("New last device is %s (%s) at %s:%d\n",
+                           tempDevice.identifier,
+                           tempDevice.name,
+                           deviceAddress,
+                           socketPort);
+                
+                    // copy the tempDevice to the persisting lastDevice                    
+                    ::lastDevice = new PairableDevice(tempDevice);
+                    
+                    if (::lastClient) {
+                        sendLastClientToLastDevice();
+                    }
                 }
             } else if (senderData[0] == 'F') {
                 // this is a client looking to pair with a device
                 // send the most recent device this address so it can attempt to pair
                 
-                char requestorAddress[INET_ADDRSTRLEN] = {};
-                int requestorPort = 0;
+                RequestingClient tempClient = {};
                 
-                int requestorMatches = sscanf(senderData, "Find %[^:]:%d", requestorAddress, &requestorPort);
+                int requestorMatches = sscanf(senderData, "Find %[^:]:%d",
+                                              tempClient.address,
+                                              &tempClient.port);
                 
                 if (requestorMatches == 2) {
-                    PairableDevice lastDevice = devices[devices.size() - 1];
+                    // good data, copy the tempClient to the persisting lastInterfaceClient                    
+                    ::lastClient = new RequestingClient(tempClient);
                     
-                    char pairData[INET_ADDRSTRLEN + 6] = {};
-                    sprintf(pairData, "%s:%d", requestorAddress, requestorPort);
+                    printf("New last client is at %s:%d\n",
+                           ::lastClient->address,
+                           ::lastClient->port);
                     
-                    serverSocket.send((sockaddr*) &lastDevice.sendingSocket, pairData, strlen(pairData));
+                    if (::lastDevice) {
+                        sendLastClientToLastDevice();
+                    }
                 }
             }
         }
     }
-        
 }
