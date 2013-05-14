@@ -224,13 +224,22 @@ void resInVoxelDistributor(AgentList* agentList,
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
-                                  VoxelAgentData* agentData) {
+                                  VoxelAgentData* agentData,
+                                  bool viewFrustumChanged) {
 
     int maxLevelReached = 0;
     double start = usecTimestampNow();
-    if (agentData->nodeBag.isEmpty()) {
+
+    // FOR NOW... agent tells us if it wants to receive only view frustum deltas
+    bool wantDelta = agentData->getWantDelta();
+    const ViewFrustum* lastViewFrustum =  wantDelta ? &agentData->getLastKnownViewFrustum() : NULL;
+    
+    // If the current view frustum has changed OR we have nothing to send, then search against 
+    // the current view frustum for things to send.
+    if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
+        // If the bag was empty, then send everything in view, not just the delta
         maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
-                                                           agentData->nodeBag, true, &agentData->getLastKnownViewFrustum());
+                                                           agentData->nodeBag, wantDelta, lastViewFrustum);
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
@@ -263,8 +272,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), true, 
-                                                              &agentData->getLastKnownViewFrustum());
+                                                              agentData->getWantColor(), wantDelta, lastViewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -310,7 +318,15 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
             printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
         }
-    }
+        
+        // if after sending packets we've emptied our bag, then we want to remember that we've sent all 
+        // the voxels from the current view frustum
+        if (agentData->nodeBag.isEmpty()) {
+            agentData->updateLastKnownViewFrustum();
+        }
+        
+        
+    } // end if bag wasn't empty, and so we sent stuff...
 }
 
 void persistVoxelsWhenDirty() {
@@ -337,12 +353,12 @@ void *distributeVoxelsToListeners(void *args) {
 
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
     		if (agentData) {
-    		    agentData->updateViewFrustum();
+    		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
 
                 if (agentData->getWantResIn()) { 
                     resInVoxelDistributor(agentList, agent, agentData);
                 } else {
-                    deepestLevelVoxelDistributor(agentList, agent, agentData);
+                    deepestLevelVoxelDistributor(agentList, agent, agentData, viewFrustumChanged);
                 }
             }
         }
