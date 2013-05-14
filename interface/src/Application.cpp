@@ -851,16 +851,16 @@ void Application::idle() {
                 }
             }
                 
-            if (_mouseMode == COLOR_VOXEL_MODE) {
+            if (_mouseMode == DELETE_VOXEL_MODE) {
+                // red indicates deletion
+                _mouseVoxel.red = 255;
+                _mouseVoxel.green = _mouseVoxel.blue = 0;
+            
+            } else { // _mouseMode == ADD_VOXEL_MODE || _mouseMode == COLOR_VOXEL_MODE
                 QColor paintColor = _voxelPaintColor->data().value<QColor>();
                 _mouseVoxel.red = paintColor.red();
                 _mouseVoxel.green = paintColor.green();
                 _mouseVoxel.blue = paintColor.blue();
-                
-            } else if (_mouseMode == DELETE_VOXEL_MODE) {
-                // red indicates deletion
-                _mouseVoxel.red = 255;
-                _mouseVoxel.green = _mouseVoxel.blue = 0;
             }
         }
         
