@@ -222,6 +222,7 @@ Application::Application(int& argc, char** argv) :
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
     _window->setVisible(true);
+    _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
     
     // enable mouse tracking; otherwise, we only get drag events
