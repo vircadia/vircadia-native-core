@@ -51,23 +51,30 @@ VoxelAgentData* VoxelAgentData::clone() const {
     return new VoxelAgentData(*this);
 }
 
-void VoxelAgentData::updateViewFrustum() {
-    // save our currentViewFrustum into our lastKnownViewFrustum
-    _lastKnownViewFrustum = _currentViewFrustum;
-
+bool VoxelAgentData::updateCurrentViewFrustum() {
+    bool currentViewFrustumChanged = false;
+    ViewFrustum newestViewFrustum;
     // get position and orientation details from the camera
-    _currentViewFrustum.setPosition(getCameraPosition());
-    _currentViewFrustum.setOrientation(getCameraDirection(), getCameraUp(), getCameraRight());
+    newestViewFrustum.setPosition(getCameraPosition());
+    newestViewFrustum.setOrientation(getCameraDirection(), getCameraUp(), getCameraRight());
 
     // Also make sure it's got the correct lens details from the camera
-    _currentViewFrustum.setFieldOfView(getCameraFov());
-    _currentViewFrustum.setAspectRatio(getCameraAspectRatio());
-    _currentViewFrustum.setNearClip(getCameraNearClip());
-    _currentViewFrustum.setFarClip(getCameraFarClip());
+    newestViewFrustum.setFieldOfView(getCameraFov());
+    newestViewFrustum.setAspectRatio(getCameraAspectRatio());
+    newestViewFrustum.setNearClip(getCameraNearClip());
+    newestViewFrustum.setFarClip(getCameraFarClip());
     
     // if there has been a change, then recalculate
-    if (!_lastKnownViewFrustum.matches(_currentViewFrustum)) {
+    if (!newestViewFrustum.matches(_currentViewFrustum)) {
+        _currentViewFrustum = newestViewFrustum;
         _currentViewFrustum.calculate();
+        currentViewFrustumChanged = true;
     }
+    return currentViewFrustumChanged;
+}
+
+void VoxelAgentData::updateLastKnownViewFrustum() {
+    // save our currentViewFrustum into our lastKnownViewFrustum
+    _lastKnownViewFrustum = _currentViewFrustum;
 }
 

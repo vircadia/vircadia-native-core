@@ -44,7 +44,10 @@ public:
     ViewFrustum& getCurrentViewFrustum()     { return _currentViewFrustum; };
     ViewFrustum& getLastKnownViewFrustum()   { return _lastKnownViewFrustum; };
     
-    void updateViewFrustum();
+    // These are not classic setters because they are calculating and maintaining state
+    // which is set asynchronously through the network receive
+    bool updateCurrentViewFrustum();
+    void updateLastKnownViewFrustum();
 
 private:    
     unsigned char* _voxelPacket;
