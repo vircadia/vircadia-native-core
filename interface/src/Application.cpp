@@ -26,6 +26,7 @@
 #include <QMouseEvent>
 #include <QTimer>
 #include <QtDebug>
+#include <PairingHandler.h>
 
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
@@ -900,6 +901,10 @@ void Application::terminate() {
     }
 }
 
+void Application::pair() {
+    PairingHandler::sendPairRequest();
+}
+
 void Application::setHead(bool head) {
     #ifndef _WIN32
     _audio.setMixerLoopbackFlag(head);
@@ -981,13 +986,16 @@ void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
     _window->setMenuBar(menuBar);
     
+    QMenu* fileMenu = menuBar->addMenu("File");
+    fileMenu->addAction("Pair", this, SLOT(pair()));
+    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::Key_Q);
+    
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
     optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
-    optionsMenu->addAction("Quit", this, SLOT(quit()), Qt::Key_Q);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);

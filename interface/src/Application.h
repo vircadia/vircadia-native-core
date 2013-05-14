@@ -42,12 +42,7 @@ class Application : public QApplication {
     Q_OBJECT
 
 public:
-    
     Application(int& argc, char** argv);
-
-    #ifndef _WIN32
-    Audio& getAudio() { return _audio; }
-    #endif
 
     void initializeGL();
     void paintGL();
@@ -65,6 +60,8 @@ private slots:
     void timer();
     void idle();
     void terminate();
+    
+    void pair();
     
     void setHead(bool head);
     void setNoise(bool noise);

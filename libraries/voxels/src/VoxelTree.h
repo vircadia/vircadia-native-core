@@ -40,7 +40,7 @@ public:
 	void eraseAllVoxels();
 
 	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes);
+    void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, bool includeColor = true);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
 	void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
     void printTreeForDebugging(VoxelNode *startNode);
@@ -55,7 +55,7 @@ public:
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
+                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor = true) const;
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
 
@@ -79,7 +79,7 @@ public:
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum) const;
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
@@ -89,7 +89,7 @@ private:
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes);
+    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, bool includeColor = true);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
