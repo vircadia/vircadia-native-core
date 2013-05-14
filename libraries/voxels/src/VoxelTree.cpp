@@ -293,7 +293,7 @@ void VoxelTree::eraseAllVoxels() {
     _isDirty = true;
 }
 
-void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
+void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive) {
     VoxelNode* lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
 
     // create the node if it does not exist
@@ -303,19 +303,27 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer) {
     } else {
         // if it does exist, make sure it has no children
         for (int i = 0; i < 8; i++) {
-            lastCreatedNode->deleteChildAtIndex(i);
+            if (lastCreatedNode->getChildAtIndex(i)) {
+                if (destructive) {
+                    lastCreatedNode->deleteChildAtIndex(i);
+                } else {
+                    printLog("WARNING! operation would require deleting child at index %d, add Voxel ignored!\n ", i);
+                }
+            }
         }
     }
 
-    // give this node its color
-    int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
+    if (lastCreatedNode->isLeaf()) {
+        // give this node its color
+        int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
 
-    nodeColor newColor;
-    memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
-    newColor[3] = 1;
-    lastCreatedNode->setColor(newColor);
-    if (lastCreatedNode->isDirty()) {
-        _isDirty = true;
+        nodeColor newColor;
+        memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
+        newColor[3] = 1;
+        lastCreatedNode->setColor(newColor);
+        if (lastCreatedNode->isDirty()) {
+            _isDirty = true;
+        }
     }
 }
 
@@ -469,14 +477,15 @@ VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
     return node;
 }
 
-void VoxelTree::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
+void VoxelTree::createVoxel(float x, float y, float z, float s, 
+                            unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-    this->readCodeColorBufferToTree(voxelData);
+    this->readCodeColorBufferToTree(voxelData, destructive);
     delete voxelData;
 }
 
 
-void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color) {
+void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive) {
     glm::vec3 distance = point2 - point1;
     glm::vec3 items = distance / unitSize;
     int maxItems = std::max(items.x, std::max(items.y, items.z));
@@ -484,14 +493,12 @@ void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, r
     glm::vec3 pointAt = point1;
     for (int i = 0; i <= maxItems; i++ ) {
         pointAt += increment;
-        unsigned char* voxelData = pointToVoxel(pointAt.x,pointAt.y,pointAt.z,unitSize,color[0],color[1],color[2]);
-        readCodeColorBufferToTree(voxelData);
-        delete voxelData;
+        createVoxel(pointAt.x, pointAt.y, pointAt.z, unitSize, color[0], color[1], color[2], destructive);
     }
 }
 
 void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float voxelSize, 
-        bool solid, creationMode mode, bool debug) {
+        bool solid, creationMode mode, bool destructive, bool debug) {
         
     bool wantColorRandomizer = (mode == RANDOM);
     bool wantNaturalSurface  = (mode == NATURAL);
@@ -607,13 +614,13 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                             x = xc + (thisRadius + i * subVoxelScale) * cos(theta) * sin(phi);
                             y = yc + (thisRadius + i * subVoxelScale) * sin(theta) * sin(phi);
                             z = zc + (thisRadius + i * subVoxelScale) * cos(phi);
-                            this->createVoxel(x, y, z, subVoxelScale, red, green, blue);
+                            this->createVoxel(x, y, z, subVoxelScale, red, green, blue, destructive);
                         }
                         naturalSurfaceRendered = true;
                     }
                 }
                 if (!naturalSurfaceRendered) {
-                    this->createVoxel(x, y, z, thisVoxelSize, red, green, blue);
+                    this->createVoxel(x, y, z, thisVoxelSize, red, green, blue, destructive);
                 }
             }
         }

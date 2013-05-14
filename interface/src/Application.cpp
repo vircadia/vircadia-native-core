@@ -148,6 +148,7 @@ Application::Application(int& argc, char** argv) :
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
+        _destructiveAddVoxel(false),
         _chatEntryOn(false),
         _oculusTextureID(0),
         _oculusProgram(0),
@@ -992,6 +993,10 @@ void Application::cycleFrustumRenderMode() {
     updateFrustumRenderModeAction();
 }
 
+void Application::setDestructivePaint(bool destructive) {
+    _destructiveAddVoxel = destructive;
+}
+
 void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
 }
@@ -1100,6 +1105,7 @@ void Application::initMenu() {
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
+    toolsMenu->addAction("Create Voxel is Destructive", this, SLOT(setDestructivePaint(bool)))->setCheckable(true);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1320,7 +1326,8 @@ void Application::updateAvatar(float deltaTime) {
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
 
-            sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, _paintingVoxel);
+            PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
 }
@@ -1902,19 +1909,21 @@ void Application::addVoxelInFrontOfAvatar() {
     detail.green = paintColor.green();
     detail.blue = paintColor.blue();
     
-    sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, detail);
+    PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+    sendVoxelEditMessage(message, detail);
     
     // create the voxel locally so it appears immediately            
-    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue);
+    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue, _destructiveAddVoxel);
 }
 
 void Application::addVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {    
-        sendVoxelEditMessage(PACKET_HEADER_SET_VOXEL, _mouseVoxel);
+        PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+        sendVoxelEditMessage(message, _mouseVoxel);
         
         // create the voxel locally so it appears immediately            
         _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
+                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel);
     }
 }
 
