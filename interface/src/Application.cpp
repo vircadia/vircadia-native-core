@@ -7,6 +7,7 @@
 
 #include <QMenuBar>
 #include <QtDebug>
+#include <PairingHandler.h>
 
 #include "Application.h"
 
@@ -14,9 +15,10 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv) {
     // simple menu bar (will only appear on OS X, for now)
     QMenuBar* menuBar = new QMenuBar();
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Test", this, SLOT(testSlot()));
+
+    fileMenu->addAction("Pair", this, SLOT(pair()));
 }
 
-void Application::testSlot() {
-    qDebug() << "Hello world.";
+void Application::pair() {
+    PairingHandler::sendPairRequest();
 }

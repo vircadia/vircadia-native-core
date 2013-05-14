@@ -15,12 +15,10 @@ class Application : public QApplication {
     Q_OBJECT
 
 public:
-    
     Application(int& argc, char** argv);
 
 public slots:
-    
-    void testSlot();
+    void pair();
 };
 
 #endif /* defined(__interface__Application__) */
