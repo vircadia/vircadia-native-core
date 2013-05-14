@@ -89,6 +89,7 @@ private slots:
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
+    void chooseVoxelPaintColor();
     
 private:
     
@@ -135,6 +136,7 @@ private:
     QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats 
     QAction* _logOn;                 // Whether to show on-screen log 
+    QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _cameraFrustum;         // which frustum to look at 

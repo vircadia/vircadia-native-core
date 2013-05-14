@@ -18,6 +18,7 @@
 #include <ifaddrs.h>
 #endif
 
+#include <QColorDialog>
 #include <QDesktopWidget>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -222,6 +223,7 @@ Application::Application(int& argc, char** argv) :
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
     _window->setVisible(true);
+    _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
     
     // enable mouse tracking; otherwise, we only get drag events
@@ -849,9 +851,10 @@ void Application::idle() {
             }
                 
             if (_mouseMode == COLOR_VOXEL_MODE) {
-                _mouseVoxel.red = 0;
-                _mouseVoxel.green = 255;
-                _mouseVoxel.blue = 0;
+                QColor paintColor = _voxelPaintColor->data().value<QColor>();
+                _mouseVoxel.red = paintColor.red();
+                _mouseVoxel.green = paintColor.green();
+                _mouseVoxel.blue = paintColor.blue();
                 
             } else if (_mouseMode == DELETE_VOXEL_MODE) {
                 // red indicates deletion
@@ -1041,8 +1044,26 @@ void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
 
+
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
+}
+
+static QIcon createSwatchIcon(const QColor& color) {
+    QPixmap map(16, 16);
+    map.fill(color);
+    return QIcon(map);
+}
+
+void Application::chooseVoxelPaintColor() {
+    QColor selected = QColorDialog::getColor(_voxelPaintColor->data().value<QColor>(), _glWidget, "Voxel Paint Color");
+    if (selected.isValid()) {
+        _voxelPaintColor->setData(selected);
+        _voxelPaintColor->setIcon(createSwatchIcon(selected));
+    }
+    
+    // restore the main window's active state
+    _window->activateWindow();
 }
     
 void Application::initMenu() {
@@ -1080,6 +1101,10 @@ void Application::initMenu() {
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
+    _voxelPaintColor = toolsMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    QColor paintColor(128, 128, 128);
+    _voxelPaintColor->setData(paintColor);
+    _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     toolsMenu->addAction("Create Voxel is Destructive", this, SLOT(setDestructivePaint(bool)))->setCheckable(true);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
@@ -1879,9 +1904,10 @@ void Application::addVoxelInFrontOfAvatar() {
     detail.x = detail.s * floor(position.x / detail.s);
     detail.y = detail.s * floor(position.y / detail.s);
     detail.z = detail.s * floor(position.z / detail.s);
-    detail.red = 128;
-    detail.green = 128;
-    detail.blue = 128;
+    QColor paintColor = _voxelPaintColor->data().value<QColor>();
+    detail.red = paintColor.red();
+    detail.green = paintColor.green();
+    detail.blue = paintColor.blue();
     
     PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
     sendVoxelEditMessage(message, detail);
