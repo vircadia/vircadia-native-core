@@ -103,7 +103,13 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
     
     // we could be coming down a branch that was already created, so don't stomp on it.
-    if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
+    if (lastParentNode->isLeaf() && lastParentNode->isColored()) {
+        // for colored leaves, we must add *all* the children
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            lastParentNode->addChildAtIndex(i);
+            lastParentNode->getChildAtIndex(i)->setColor(lastParentNode->getColor());
+        }
+    } else if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
         lastParentNode->addChildAtIndex(indexOfNewChild);
     }
 
