@@ -76,6 +76,7 @@ private slots:
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
+    void setDestructivePaint(bool destructive);
     void setRenderWarnings(bool renderWarnings);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
@@ -200,6 +201,7 @@ private:
     VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
     
     bool _perfStatsOn; //  Do we want to display perfStats? 
+    bool _destructiveAddVoxel; // when doing voxel editing do we want them to be destructive
     
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 

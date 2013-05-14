@@ -503,9 +503,11 @@ int main(int argc, const char * argv[])
     
         if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
-            if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
+            if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
+                bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",
+            	printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
+            	    destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
             		receivedBytes,itemNumber);
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
@@ -534,7 +536,7 @@ int main(int argc, const char * argv[])
             		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
             		delete []vertices;
             		
-		            randomTree.readCodeColorBufferToTree(pVoxelData);
+		            randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
