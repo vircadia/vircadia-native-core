@@ -129,7 +129,7 @@ if (WIN32)
         wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARIES})
 
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
