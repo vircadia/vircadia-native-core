@@ -390,7 +390,6 @@ void Audio::render(int screenWidth, int screenHeight) {
         }
         glEnd();
         
-        
         //  Show a bar with the amount of audio remaining in ring buffer beyond current playback
         float remainingBuffer = 0;
         timeval currentTime;
@@ -399,8 +398,6 @@ void Audio::render(int screenWidth, int screenHeight) {
         if (_lastCallbackTime.tv_usec > 0) {
             timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&_lastCallbackTime, &currentTime);
         }
-    
-        //  /(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth
         
         if (_ringBuffer.getEndOfLastWrite() != NULL)
             remainingBuffer = _ringBuffer.diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
@@ -421,8 +418,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         if (_averagedLatency == 0.0) {
             _averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
-        }
-        else {
+        } else {
             _averagedLatency = 0.99f * _averagedLatency + 0.01f * (remainingBuffer + timeLeftInCurrentBuffer);
         }
         
@@ -437,7 +433,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         char out[40];
         sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY-10, 0.10, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 10, 0.10, 0, 1, 0, out, 1,1,0);
         //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
