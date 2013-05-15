@@ -18,6 +18,7 @@
 #include <ifaddrs.h>
 #endif
 
+#include <QActionGroup>
 #include <QColorDialog>
 #include <QDesktopWidget>
 #include <QGLWidget>
@@ -134,18 +135,16 @@ Application::Application(int& argc, char** argv) :
         _mouseX(0),
         _mouseY(0),
         _mousePressed(false),
-        _mouseMode(NO_EDIT_MODE),
         _mouseVoxelScale(1.0f / 1024.0f),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
-        _destructiveAddVoxel(false),
         _chatEntryOn(false),
         _oculusTextureID(0),
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
-        _audio(&_audioScope, &_myAvatar),
+        _audio(&_audioScope),
 #endif
         _stopNetworkReceiveThread(false),  
         _packetCount(0),
@@ -192,10 +191,6 @@ Application::Application(int& argc, char** argv) :
     
     // the callback for our instance of AgentList is attachNewHeadToAgent
     AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
-    
-    #ifndef _WIN32
-    AgentList::getInstance()->audioMixerSocketUpdate = &audioMixerUpdate;
-    #endif
     
     #ifdef _WIN32
     WSADATA WsaData;
@@ -365,7 +360,8 @@ void Application::paintGL() {
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        GLfloat light_position0[] = { 1.0, 1.0, 0.0, 0.0 };
+        glm::vec3 relativeSunLoc = glm::normalize(_environment.getSunLocation() - whichCamera.getPosition());
+        GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
         GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
         glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
@@ -537,30 +533,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         case Qt::Key_Percent:
             sendVoxelServerAddScene();
             break;
-    
-        case Qt::Key_1:
-            _mouseMode = (_mouseMode == ADD_VOXEL_MODE) ? NO_EDIT_MODE : ADD_VOXEL_MODE;
-            break;
-    
-        case Qt::Key_2:
-            _mouseMode = (_mouseMode == DELETE_VOXEL_MODE) ? NO_EDIT_MODE : DELETE_VOXEL_MODE;
-            break;
-        
-        case Qt::Key_3:
-            _mouseMode = (_mouseMode == COLOR_VOXEL_MODE) ? NO_EDIT_MODE : COLOR_VOXEL_MODE;
-            break;
-        
-        case Qt::Key_4:
-            addVoxelInFrontOfAvatar();
-            break;
-        
-        case Qt::Key_5:
-            _mouseVoxelScale /= 2;
-            break;
-        
-        case Qt::Key_6:
-            _mouseVoxelScale *= 2; 
-            break;
         
         case Qt::Key_L:
             _displayLevels = !_displayLevels;
@@ -684,6 +656,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 void Application::mouseMoveEvent(QMouseEvent* event) {
     _mouseX = event->x();
     _mouseY = event->y();
+    
+    // detect drag
+    glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+    if (_colorVoxelMode->isChecked() && event->buttons().testFlag(Qt::LeftButton) && mouseVoxelPos != _lastMouseVoxelPos) {
+        addVoxelUnderCursor();
+    }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -692,13 +670,13 @@ void Application::mousePressEvent(QMouseEvent* event) {
         _mouseY = event->y();
         _mousePressed = true;
        
-        if (_mouseMode == ADD_VOXEL_MODE || _mouseMode == COLOR_VOXEL_MODE) {
+        if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
             addVoxelUnderCursor();
         
-        } else if (_mouseMode == DELETE_VOXEL_MODE) {
+        } else if (_deleteVoxelMode->isChecked()) {
             deleteVoxelUnderCursor();    
         }
-    } else if (event->button() == Qt::RightButton && _mouseMode != NO_EDIT_MODE) {
+    } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
         deleteVoxelUnderCursor();
     }
 }
@@ -712,14 +690,14 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (_mouseMode == NO_EDIT_MODE) {
+    if (checkedVoxelModeAction() == 0) {
         event->ignore();
         return;
     }
     if (event->delta() > 0) {
-        _mouseVoxelScale *= 2;
+        increaseVoxelSize();
     } else {
-        _mouseVoxelScale /= 2;
+        decreaseVoxelSize();
     }
 }
     
@@ -809,48 +787,57 @@ void Application::idle() {
         // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
         _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
-        float distance;
-        BoxFace face;
         _mouseVoxel.s = 0.0f;
-        if (_mouseMode != NO_EDIT_MODE && _voxels.findRayIntersection(
-                mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
-            // find the nearest voxel with the desired scale
-            if (_mouseVoxelScale > _mouseVoxel.s) {
-                // choose the larger voxel that encompasses the one selected
-                _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
-                _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
-                _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                _mouseVoxel.s = _mouseVoxelScale;
-            
-            } else {
-                glm::vec3 faceVector = getFaceVector(face);
-                if (_mouseVoxelScale < _mouseVoxel.s) {
-                    // find the closest contained voxel
-                    glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
-                        faceVector * (_mouseVoxelScale * 0.5f);
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+        if (checkedVoxelModeAction() != 0) {
+            float distance;
+            BoxFace face;
+            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
+                // find the nearest voxel with the desired scale
+                if (_mouseVoxelScale > _mouseVoxel.s) {
+                    // choose the larger voxel that encompasses the one selected
+                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
+                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
+                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
                     _mouseVoxel.s = _mouseVoxelScale;
-                }
-                if (_mouseMode == ADD_VOXEL_MODE) {
-                    // use the face to determine the side on which to create a neighbor
-                    _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                    _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                    _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                }
-            }
                 
-            if (_mouseMode == COLOR_VOXEL_MODE) {
+                } else {
+                    glm::vec3 faceVector = getFaceVector(face);
+                    if (_mouseVoxelScale < _mouseVoxel.s) {
+                        // find the closest contained voxel
+                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                            faceVector * (_mouseVoxelScale * 0.5f);
+                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
+                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
+                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                        _mouseVoxel.s = _mouseVoxelScale;
+                    }
+                    if (_addVoxelMode->isChecked()) {
+                        // use the face to determine the side on which to create a neighbor
+                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
+                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
+                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
+                    }
+                }
+            } else if (_addVoxelMode->isChecked()) {
+                // place the voxel a fixed distance away
+                float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
+                glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
+                _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
+                _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
+                _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
+                _mouseVoxel.s = _mouseVoxelScale;
+            }
+            
+            if (_deleteVoxelMode->isChecked()) {
+                // red indicates deletion
+                _mouseVoxel.red = 255;
+                _mouseVoxel.green = _mouseVoxel.blue = 0;
+            
+            } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
                 QColor paintColor = _voxelPaintColor->data().value<QColor>();
                 _mouseVoxel.red = paintColor.red();
                 _mouseVoxel.green = paintColor.green();
                 _mouseVoxel.blue = paintColor.blue();
-                
-            } else if (_mouseMode == DELETE_VOXEL_MODE) {
-                // red indicates deletion
-                _mouseVoxel.red = 255;
-                _mouseVoxel.green = _mouseVoxel.blue = 0;
             }
         }
         
@@ -905,11 +892,7 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    _myAvatar.writeAvatarDataToFile();    
-
-    #ifndef _WIN32
-    _audio.terminate();
-    #endif
+    _myAvatar.writeAvatarDataToFile();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -985,10 +968,6 @@ void Application::cycleFrustumRenderMode() {
     updateFrustumRenderModeAction();
 }
 
-void Application::setDestructivePaint(bool destructive) {
-    _destructiveAddVoxel = destructive;
-}
-
 void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
 }
@@ -1041,6 +1020,56 @@ void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
 
+void Application::updateVoxelModeActions() {
+    // only the sender can be checked
+    foreach (QAction* action, _voxelModeActions->actions()) {
+        if (action->isChecked() && action != sender()) {
+            action->setChecked(false);
+        }
+    } 
+}
+
+static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+    unsigned char* bufferOut;
+    int sizeOut;
+
+    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        delete bufferOut;
+    }
+}
+
+void Application::addVoxelInFrontOfAvatar() {
+    VoxelDetail detail;
+    
+    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
+    detail.s = _mouseVoxelScale;
+    
+    detail.x = detail.s * floor(position.x / detail.s);
+    detail.y = detail.s * floor(position.y / detail.s);
+    detail.z = detail.s * floor(position.z / detail.s);
+    QColor paintColor = _voxelPaintColor->data().value<QColor>();
+    detail.red = paintColor.red();
+    detail.green = paintColor.green();
+    detail.blue = paintColor.blue();
+    
+    PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+        PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+    sendVoxelEditMessage(message, detail);
+    
+    // create the voxel locally so it appears immediately            
+    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s,
+        detail.red, detail.green, detail.blue, _destructiveAddVoxel->isChecked());
+}
+
+void Application::decreaseVoxelSize() {
+    _mouseVoxelScale /= 2;
+}
+
+void Application::increaseVoxelSize() {
+    _mouseVoxelScale *= 2;
+}
+    
 static QIcon createSwatchIcon(const QColor& color) {
     QPixmap map(16, 16);
     map.fill(color);
@@ -1096,11 +1125,29 @@ void Application::initMenu() {
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
-    _voxelPaintColor = toolsMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    
+    QMenu* voxelMenu = menuBar->addMenu("Voxels");
+    _voxelModeActions = new QActionGroup(this);
+    _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
+    (_addVoxelMode = voxelMenu->addAction(
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_1))->setCheckable(true);
+    _voxelModeActions->addAction(_addVoxelMode);
+    (_deleteVoxelMode = voxelMenu->addAction(
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_2))->setCheckable(true);
+    _voxelModeActions->addAction(_deleteVoxelMode);
+    (_colorVoxelMode = voxelMenu->addAction(
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_3))->setCheckable(true);
+    _voxelModeActions->addAction(_colorVoxelMode);
+    
+    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::Key_6);
+    
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
-    toolsMenu->addAction("Create Voxel is Destructive", this, SLOT(setDestructivePaint(bool)))->setCheckable(true);
+    (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1189,16 +1236,6 @@ void Application::init() {
     gettimeofday(&_lastTimeIdle, NULL);
 }
 
-static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-
-    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-        delete bufferOut;
-    }
-}
-
 void Application::updateAvatar(float deltaTime) {
     // Update my avatar's head position from gyros
     _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort, &_gravity);
@@ -1249,7 +1286,7 @@ void Application::updateAvatar(float deltaTime) {
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
-        _myAvatar.setLoudness(_audio.getInputLoudness());
+        _myAvatar.setLoudness(_audio.getLastInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -1297,7 +1334,8 @@ void Application::updateAvatar(float deltaTime) {
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
 
-            PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+                PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
@@ -1547,8 +1585,9 @@ void Application::displaySide(Camera& whichCamera) {
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
+        glDisable(GL_LIGHTING);
         glPushMatrix();
-        if (_mouseMode == ADD_VOXEL_MODE) {
+        if (_addVoxelMode->isChecked()) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
         } else {
@@ -1562,6 +1601,7 @@ void Application::displaySide(Camera& whichCamera) {
         glutWireCube(_mouseVoxel.s);
         glLineWidth(1.0f);
         glPopMatrix();
+        glEnable(GL_LIGHTING);
     }
     
     if (_renderAvatarsOn->isChecked()) {
@@ -1877,35 +1917,18 @@ void Application::shiftPaintingColor() {
     _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
 }
 
-void Application::addVoxelInFrontOfAvatar() {
-    VoxelDetail detail;
-    
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
-    detail.s = _mouseVoxelScale;
-    
-    detail.x = detail.s * floor(position.x / detail.s);
-    detail.y = detail.s * floor(position.y / detail.s);
-    detail.z = detail.s * floor(position.z / detail.s);
-    QColor paintColor = _voxelPaintColor->data().value<QColor>();
-    detail.red = paintColor.red();
-    detail.green = paintColor.green();
-    detail.blue = paintColor.blue();
-    
-    PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
-    sendVoxelEditMessage(message, detail);
-    
-    // create the voxel locally so it appears immediately            
-    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue, _destructiveAddVoxel);
-}
-
 void Application::addVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {    
-        PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+        PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+            PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
         sendVoxelEditMessage(message, _mouseVoxel);
         
         // create the voxel locally so it appears immediately            
         _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel);
+                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
+    
+        // remember the position for drag detection
+        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
     }
 }
 
@@ -1915,6 +1938,9 @@ void Application::deleteVoxelUnderCursor() {
         
         // delete the voxel locally so it disappears immediately            
         _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        
+        // remember the position for drag detection
+        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
     }
 }
 
@@ -1949,17 +1975,22 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
+// when QActionGroup is set to non-exclusive, it doesn't return anything as checked;
+// hence, we must check ourselves
+QAction* Application::checkedVoxelModeAction() const {
+    foreach (QAction* action, _voxelModeActions->actions()) {
+        if (action->isChecked()) {
+            return action;
+        }
+    }
+    return 0;
+}
+
 void Application::attachNewHeadToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
         newAgent->setLinkedData(new Avatar(false));
     }
 }
-
-#ifndef _WIN32
-void Application::audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
-    static_cast<Application*>(QCoreApplication::instance())->_audio.updateMixerParams(newMixerAddress, newMixerPort);
-}
-#endif
 
 //  Receive packets from other agents/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
@@ -1991,6 +2022,9 @@ void* Application::networkReceive(void* args) {
                     memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
                     
                     printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
+                    break;
+                case PACKET_HEADER_MIXED_AUDIO:
+                    app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_VOXEL_DATA_MONOCHROME:

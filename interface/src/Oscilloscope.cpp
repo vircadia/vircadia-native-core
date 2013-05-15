@@ -123,7 +123,7 @@ void Oscilloscope::render(int x, int y) {
     glDrawArrays(GL_LINES, MAX_SAMPLES * 0, usedWidth);
     glColor3f(0.0f, 1.0f ,1.0f);
     glDrawArrays(GL_LINES, MAX_SAMPLES * 1, usedWidth);
-    glColor3f(1.0f, 1.0f ,0.0f);
+    glColor3f(0.0f, 1.0f ,1.0f);
     glDrawArrays(GL_LINES, MAX_SAMPLES * 2, usedWidth);
     glDisableClientState(GL_VERTEX_ARRAY);
     glPopMatrix();

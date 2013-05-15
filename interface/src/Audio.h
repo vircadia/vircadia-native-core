@@ -10,44 +10,48 @@
 #define __interface__Audio__
 
 #include <portaudio.h>
-#include "AudioData.h"
+
+#include <AudioRingBuffer.h>
+
 #include "Oscilloscope.h"
 #include "Avatar.h"
 
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope *s, Avatar *linkedAvatar);
-    
-    void render();
+    Audio(Oscilloscope* scope);
+    ~Audio();
+
     void render(int screenWidth, int screenHeight);
     
-    bool getMixerLoopbackFlag();
-    void setMixerLoopbackFlag(bool newMixerLoopbackFlag);
+    void setMixerLoopbackFlag(bool mixerLoopbackFlag) { _mixerLoopbackFlag = mixerLoopbackFlag; }
     
-    float getInputLoudness() const;
-    void updateMixerParams(in_addr_t mixerAddress, in_port_t mixerPort);
+    float getLastInputLoudness() const { return _lastInputLoudness; };
     
-    void setLastAcceleration(glm::vec3 a) { audioData->setLastAcceleration(a); };
-    void setLastVelocity(glm::vec3 v) { audioData->setLastVelocity(v); };
+    void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
+    void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
     
-    // terminates audio I/O
-    bool terminate();
+    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples);
+
+    
+    void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
 private:    
-    bool initialized;
-    AudioData *audioData;
-    
-    // protects constructor so that public init method is used
-    Audio();
-    
-    // hold potential error returned from PortAudio functions
-    PaError paError;
-    
-    // audio stream handle
-    PaStream *stream;
-    
-    // audio receive thread
-    pthread_t audioReceiveThread;
+    PaStream* _stream;
+    AudioRingBuffer _ringBuffer;
+    Oscilloscope* _scope;
+    timeval _lastCallbackTime;
+    timeval _lastReceiveTime;
+    float _averagedLatency;
+    float _measuredJitter;
+    int _wasStarved;
+    float _lastInputLoudness;
+    bool _mixerLoopbackFlag;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _lastAcceleration;
+    int _totalPacketsReceived;
+    timeval _firstPlaybackTime;
+    int _packetsReceivedThisPlayback;
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
