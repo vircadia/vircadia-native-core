@@ -16,8 +16,7 @@ using namespace std;
 
 const float HEAD_MOTION_DECAY = 0.1;
 
-const bool TESTING_LOOKAT = false;
-
+//const bool TESTING_LOOKAT = true;
 
 float _browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float _mouthColor[] = {1, 0, 0};
@@ -226,6 +225,10 @@ void Head::simulate(float deltaTime, bool isMine) {
                                                         
 }
 
+void Head::setLooking(bool l) {
+    _looking = l;
+}
+
 
 void Head::setLookatPosition(glm::vec3 l) {
     lookatPosition = l;
@@ -324,7 +327,7 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     
     glPopMatrix();
 
-    if (TESTING_LOOKAT) {
+    if (_looking) {
         //the irises are special - they have the ability to look at specific targets in the world (code still not finished yet)
         renderIrises(bodyYaw + yaw);    
     }
@@ -349,7 +352,7 @@ void Head::renderEyeBalls() {
     }
     glPopMatrix();
     
-    if (!TESTING_LOOKAT) {
+    if (!_looking) {
         // Right Pupil
         if (sphere == NULL) {
             sphere = gluNewQuadric();
@@ -388,7 +391,7 @@ void Head::renderEyeBalls() {
     }
     glPopMatrix();
     
-    if (!TESTING_LOOKAT) {    
+    if (!_looking) {    
         // Left Pupil
         glPushMatrix();
         {
@@ -449,8 +452,11 @@ void Head::renderIrises(float yaw) {
             glm::vec3 pitchRotationAxis = glm::cross(targetLookatAxis, orientation.getRight());
             glm::vec3 yawRotationAxis   = glm::cross(targetLookatAxis, orientation.getUp());
             
-            glRotatef(90.0f, yawRotationAxis.x, yawRotationAxis.y, yawRotationAxis.z);
-            glRotatef(90.0f, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
+            float yaw   = angleBetween(targetLookatAxis, orientation.getUp());
+            float pitch = angleBetween(targetLookatAxis, orientation.getRight());
+            
+            glRotatef(yaw,   yawRotationAxis.x,   yawRotationAxis.y,   yawRotationAxis.z);
+            glRotatef(pitch, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
             glEnable(GL_TEXTURE_2D);
             gluSphere(sphere, 0.01, 15, 15);
             glDisable(GL_TEXTURE_2D);
@@ -468,8 +474,11 @@ void Head::renderIrises(float yaw) {
             glm::vec3 pitchRotationAxis = glm::cross(targetLookatAxis, orientation.getRight());
             glm::vec3 yawRotationAxis   = glm::cross(targetLookatAxis, orientation.getUp());
 
-            glRotatef(90.0f, yawRotationAxis.x, yawRotationAxis.y, yawRotationAxis.z);
-            glRotatef(90.0f, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
+            float yaw   = angleBetween(targetLookatAxis, orientation.getUp());
+            float pitch = angleBetween(targetLookatAxis, orientation.getRight());
+
+            glRotatef(yaw,   yawRotationAxis.x,   yawRotationAxis.y,   yawRotationAxis.z);
+            glRotatef(pitch, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
             glEnable(GL_TEXTURE_2D);
             gluSphere(sphere, 0.01, 15, 15);
             glDisable(GL_TEXTURE_2D);

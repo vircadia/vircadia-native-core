@@ -32,6 +32,7 @@ public:
     void setNewTarget(float, float);
     void setSpringScale(float s) { returnSpringScale = s; }
     void setLookatPosition(glm::vec3 lookatPosition);
+    void setLooking(bool looking);
     
     //  Do you want head to try to return to center (depends on interface detected)
     void setReturnToCenter(bool r) { returnHeadToCenter = r; }
@@ -83,6 +84,8 @@ public:
     float lastLoudness;
     float averageLoudness;
     float audioAttack;
+    
+    bool _looking;
     
     GLUquadric* sphere;
 

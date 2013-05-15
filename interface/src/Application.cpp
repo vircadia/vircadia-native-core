@@ -308,6 +308,7 @@ void Application::paintGL() {
                                         -_myAvatar.getHeadPitch(), _myAvatar.getHeadRoll());
          
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myCamera.setTightness     (100.0f); 
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f); 
         

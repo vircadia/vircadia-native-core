@@ -89,6 +89,7 @@ Avatar::Avatar(bool isMine) {
     _mouseRayOrigin             = glm::vec3(0.0f, 0.0f, 0.0f);
     _mouseRayDirection          = glm::vec3(0.0f, 0.0f, 0.0f);
     _cameraPosition             = glm::vec3(0.0f, 0.0f, 0.0f);
+    _interactingOther           = NULL;
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
@@ -404,9 +405,6 @@ void Avatar::simulate(float deltaTime) {
         }
     }
     
-    
-    
-    
 
     // Get head position data from network for other people
     if (!_isMine) {
@@ -439,7 +437,6 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
 
-    
     // update head state
     _head.setPositionRotationAndScale(
         _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
@@ -447,6 +444,13 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
     );
     
+    if (_interactingOther) {
+        _head.setLooking(true);
+        _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
+    } else {
+        _head.setLooking(false);
+    }
+        
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
@@ -495,10 +499,11 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             
     if (_isMine) {
         _avatarTouch.setMyBodyPosition(_position);
-        
-        Avatar * _interactingOther = NULL;
+                
         float closestDistance = std::numeric_limits<float>::max();
-    
+        
+        _interactingOther = NULL;
+
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -519,10 +524,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 }
             }
         }
-
-        if (_interactingOther) {
         
-            _head.setLookatPosition( _interactingOther->getSpringyHeadPosition());
+        if (_interactingOther) {
 
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   

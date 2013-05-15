@@ -194,6 +194,7 @@ private:
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     glm::vec3   _cameraPosition;
+    Avatar *    _interactingOther;
     
     // private methods...
     void initializeSkeleton();
