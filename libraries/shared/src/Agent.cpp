@@ -32,32 +32,27 @@ int packAgentId(unsigned char *packStore, uint16_t agentId) {
     return sizeof(uint16_t);
 }
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentID) :
+Agent::Agent(sockaddr *publicSocket, sockaddr *localSocket, char type, uint16_t agentID) :
+    _type(type),
+    _agentID(agentID),
+    _wakeMicrostamp(usecTimestampNow()),
+    _lastHeardMicrostamp(usecTimestampNow()),
+    _activeSocket(NULL),
+    _bytesReceivedMovingAverage(NULL),
+    _linkedData(NULL),
     _isAlive(true)
 {
-    if (agentPublicSocket) {
-        _publicSocket = new sockaddr;
-        memcpy(_publicSocket, agentPublicSocket, sizeof(sockaddr));
+    if (publicSocket) {
+        _publicSocket = new sockaddr(*publicSocket);
     } else {
         _publicSocket = NULL;
     }
     
-    if (agentLocalSocket) {
-        _localSocket = new sockaddr;
-        memcpy(_localSocket, agentLocalSocket, sizeof(sockaddr));
+    if (localSocket) {
+        _localSocket = new sockaddr(*localSocket);
     } else {
         _localSocket = NULL;
     }
-    
-    _type = agentType;
-    _agentID = thisAgentID;
-    
-    _wakeMicrostamp = usecTimestampNow();
-    _lastHeardMicrostamp = usecTimestampNow();
-    
-    _activeSocket = NULL;
-    _linkedData = NULL;
-    _bytesReceivedMovingAverage = NULL;
 }
 
 Agent::Agent(const Agent &otherAgent) {

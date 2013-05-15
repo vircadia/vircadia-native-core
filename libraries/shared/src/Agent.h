@@ -23,7 +23,7 @@
 
 class Agent {    
 public:
-    Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentID);
+    Agent(sockaddr *publicSocket, sockaddr *localSocket, char type, uint16_t agentID);
     Agent(const Agent &otherAgent);
     ~Agent();
     Agent& operator=(Agent otherAgent);
@@ -68,11 +68,13 @@ public:
 private:
     void swap(Agent &first, Agent &second);
     
-    sockaddr* _publicSocket, *_localSocket, *_activeSocket;
     char _type;
     uint16_t _agentID;
     double _wakeMicrostamp;
     double _lastHeardMicrostamp;
+    sockaddr* _publicSocket;
+    sockaddr* _localSocket;
+    sockaddr* _activeSocket;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     AgentData* _linkedData;
     bool _isAlive;
