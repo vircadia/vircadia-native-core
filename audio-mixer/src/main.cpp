@@ -256,7 +256,7 @@ int main(int argc, const char* argv[]) {
             }
             
             memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
-            agentList->getAgentSocket().send(agent->getPublicSocket(), clientSamples, BUFFER_LENGTH_BYTES + 1);
+            agentList->getAgentSocket().send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
         }
         
         // push forward the next output pointers for any audio buffers we used
