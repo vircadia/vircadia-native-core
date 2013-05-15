@@ -45,9 +45,9 @@ public:
     void setLastHeardMicrostamp(double lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(sockaddr *publicSocket) { _publicSocket = publicSocket; }
+    void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
     sockaddr* getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(sockaddr *localSocket) { _localSocket = localSocket; }
+    void setLocalSocket(sockaddr* localSocket) { _localSocket = localSocket; }
     
     sockaddr* getActiveSocket() const { return _activeSocket; }
     
