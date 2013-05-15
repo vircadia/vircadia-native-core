@@ -23,20 +23,20 @@
 
 class Agent {    
 public:
-    Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId);
+    Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID);
     Agent(const Agent &otherAgent);
     ~Agent();
     Agent& operator=(Agent otherAgent);
     bool operator==(const Agent& otherAgent);
     
-    bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
+    bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherAgentType);
     
-    char getType() const;
+    char getType() const { return _type; }
+    void setType(char type) { _type = type; }
     const char* getTypeName() const;
-    void setType(char newType);
     
-    uint16_t getAgentId();
-    void setAgentId(uint16_t thisAgentId);
+    uint16_t getAgentID() const { return _agentID; }
+    void setAgentID(uint16_t agentID) { _agentID = agentID;}
     
     double getWakeMicrostamp() const { return _wakeMicrostamp; }
     void setWakeMicrostamp(double wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
@@ -44,17 +44,18 @@ public:
     double getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(double lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
-    sockaddr* getPublicSocket();
-    void setPublicSocket(sockaddr *newSocket);
-    sockaddr* getLocalSocket();
-    void setLocalSocket(sockaddr *newSocket);
-    sockaddr* getActiveSocket();
+    sockaddr* getPublicSocket() const { return _publicSocket; }
+    void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
+    sockaddr* getLocalSocket() const { return _localSocket; }
+    void setLocalSocket(sockaddr* localSocket) { _localSocket = localSocket; }
+    
+    sockaddr* getActiveSocket() const { return _activeSocket; }
     
     void activatePublicSocket();
     void activateLocalSocket();
     
-    AgentData* getLinkedData();
-    void setLinkedData(AgentData *newData);
+    AgentData* getLinkedData() const { return _linkedData; }
+    void setLinkedData(AgentData* linkedData) { _linkedData = linkedData; }
     
     bool isAlive() const { return _isAlive; };
     void setAlive(bool isAlive) { _isAlive = isAlive; };
@@ -67,13 +68,15 @@ public:
 private:
     void swap(Agent &first, Agent &second);
     
-    sockaddr *publicSocket, *localSocket, *activeSocket;
-    char type;
-    uint16_t agentId;
+    char _type;
+    uint16_t _agentID;
     double _wakeMicrostamp;
     double _lastHeardMicrostamp;
+    sockaddr* _publicSocket;
+    sockaddr* _localSocket;
+    sockaddr* _activeSocket;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
-    AgentData* linkedData;
+    AgentData* _linkedData;
     bool _isAlive;
 };
 

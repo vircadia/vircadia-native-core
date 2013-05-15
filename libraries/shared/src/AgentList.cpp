@@ -184,7 +184,7 @@ Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
 
 Agent* AgentList::agentWithID(uint16_t agentID) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-        if (agent->getAgentId() == agentID) {
+        if (agent->getAgentID() == agentID) {
             return &(*agent);
         }
     }
