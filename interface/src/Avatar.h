@@ -84,10 +84,6 @@ public:
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void  updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void  setNoise (float mag) {_head.noise = mag;}
-    void  setRenderYaw(float y) {_renderYaw = y;}
-    void  setRenderPitch(float p) {_renderPitch = p;}
-    float getRenderYaw() {return _renderYaw;}
-    float getRenderPitch() {return _renderPitch;}
     float getLastMeasuredHeadYaw() const {return _head.yawRate;}
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};

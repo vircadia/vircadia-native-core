@@ -96,8 +96,6 @@ Avatar::Avatar(bool isMine) {
     _head.initialize();
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _renderYaw                  = 0.0;
-    _renderPitch                = 0.0;
     _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
@@ -126,7 +124,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _mode                        = otherAvatar._mode;
     _isMine                      = otherAvatar._isMine;
     _renderYaw                   = otherAvatar._renderYaw;
-    _renderPitch                 = otherAvatar._renderPitch;
     _maxArmLength                = otherAvatar._maxArmLength;
     _transmitterTimer            = otherAvatar._transmitterTimer;
     _transmitterIsFirstData      = otherAvatar._transmitterIsFirstData;
@@ -303,7 +300,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
                              ((mouseLocationX > 0.f) ?
                               mouseMag :
                               -mouseMag) );
-        printLog("yaw = %f\n", getBodyYaw());
+        //printLog("yaw = %f\n", getBodyYaw());
     }
     
     return;

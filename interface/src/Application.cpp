@@ -306,7 +306,7 @@ void Application::paintGL() {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                            _myAvatar.getRenderPitch(), 0.0f);
+                                            _myAvatar.getAbsoluteHeadPitch(), 0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
@@ -1225,6 +1225,7 @@ void Application::updateAvatar(float deltaTime) {
     //  Update head and body pitch and yaw based on measured gyro rates
     if (_gyroLook->isChecked()) {
         // Render Yaw
+        /*   NOTE:  PER - Leave here until I get back and can modify to couple gyros to head pitch, yaw
         float renderYawSpring = fabs(_headMouseX - _glWidget->width() / 2.f) / (_glWidget->width() / 2.f);
         const float RENDER_YAW_MULTIPLY = 4.f;
         _myAvatar.setRenderYaw((1.f - renderYawSpring * deltaTime) * _myAvatar.getRenderYaw() +
@@ -1234,6 +1235,7 @@ void Application::updateAvatar(float deltaTime) {
         const float RENDER_PITCH_MULTIPLY = 4.f;
         _myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * _myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -_myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
+         */
     }
     
     if (OculusManager::isConnected()) {
