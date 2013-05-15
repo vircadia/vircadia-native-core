@@ -286,8 +286,8 @@ Audio::Audio(Oscilloscope* scope) :
     _lastAcceleration(0),
     _totalPacketsReceived(0),
     _firstPlaybackTime(),
-    _packetsReceivedThisPlayback(0) {
-    
+    _packetsReceivedThisPlayback(0)
+{        
     outputPortAudioError(Pa_Initialize());
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
                                               2,
@@ -315,18 +315,21 @@ Audio::~Audio() {
 void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
+    
     float speed = glm::length(_lastVelocity);
     float volume = 400 * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t) ((cosf((float)i / 8.f * speed) * randFloat()) * volume * speed) ;
+            inputBuffer[i] += (int16_t)((cosf((float) i / 8.f * speed) * randFloat()) * volume * speed);
         }
     }
 }
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
+    const int NUM_INITIAL_PACKETS_DISCARD = 3;
+    
     timeval currentReceiveTime;
     gettimeofday(&currentReceiveTime, NULL);
     _totalPacketsReceived++;
@@ -334,7 +337,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
     
     //  Discard first few received packets for computing jitter (often they pile up on start)
-    if (_totalPacketsReceived > 3) {
+    if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
         ::stdev.addValue(timeDiff);
     }
     
