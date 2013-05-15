@@ -37,7 +37,7 @@
 const int AVATAR_LISTEN_PORT = 55444;
 
 unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
-    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
+    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentID());
 
     AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
     currentPosition += agentData->getBroadcastData(currentPosition);

@@ -50,7 +50,7 @@ int lastActiveCount = 0;
 unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
     
-    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentId());
+    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentID());
     currentPosition += packSocket(currentPosition, agentToAdd->getPublicSocket());
     currentPosition += packSocket(currentPosition, agentToAdd->getLocalSocket());
     
@@ -149,7 +149,7 @@ int main(int argc, const char * argv[])
                     agent->setLastHeardMicrostamp(timeNow);
                     
                     // grab the ID for this agent so we can send it back with the packet
-                    packetAgentID = agent->getAgentId();
+                    packetAgentID = agent->getAgentID();
                     
                     if (packetData[0] == PACKET_HEADER_DOMAIN_RFD
                         && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {

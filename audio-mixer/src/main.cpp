@@ -114,10 +114,10 @@ int main(int argc, const char* argv[]) {
             if (agentBuffer->getEndOfLastWrite()) {
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentId());
+                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentID());
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentId());
+                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentID());
                     agentBuffer->setStarted(false);
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else {
