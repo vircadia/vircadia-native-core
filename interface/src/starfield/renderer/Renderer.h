@@ -13,8 +13,6 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
-#include "renderer/ProgramObject.h"
-
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
 #include "starfield/data/BrightnessLevel.h"
