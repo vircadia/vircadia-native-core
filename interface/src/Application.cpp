@@ -684,7 +684,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
         } else if (_deleteVoxelMode->isChecked()) {
             deleteVoxelUnderCursor();    
         }
-    } else if (event->button() == Qt::RightButton && _voxelModeActions->checkedAction() != 0) {
+    } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
         deleteVoxelUnderCursor();
     }
 }
@@ -698,7 +698,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (_voxelModeActions->checkedAction() == 0) {
+    if (checkedVoxelModeAction() == 0) {
         event->ignore();
         return;
     }
@@ -795,38 +795,49 @@ void Application::idle() {
         // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
         _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
-        float distance;
-        BoxFace face;
         _mouseVoxel.s = 0.0f;
-        if (_voxelModeActions->checkedAction() != 0 && _voxels.findRayIntersection(
-                mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
-            // find the nearest voxel with the desired scale
-            if (_mouseVoxelScale > _mouseVoxel.s) {
-                // choose the larger voxel that encompasses the one selected
-                _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
-                _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
-                _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                _mouseVoxel.s = _mouseVoxelScale;
+        if (checkedVoxelModeAction() != 0) {
+            glm::vec3 oldMouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
             
-            } else {
-                glm::vec3 faceVector = getFaceVector(face);
-                if (_mouseVoxelScale < _mouseVoxel.s) {
-                    // find the closest contained voxel
-                    glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
-                        faceVector * (_mouseVoxelScale * 0.5f);
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+            float distance;
+            BoxFace face;
+            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
+                // find the nearest voxel with the desired scale
+                if (_mouseVoxelScale > _mouseVoxel.s) {
+                    // choose the larger voxel that encompasses the one selected
+                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
+                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
+                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
                     _mouseVoxel.s = _mouseVoxelScale;
-                }
-                if (_addVoxelMode->isChecked()) {
-                    // use the face to determine the side on which to create a neighbor
-                    _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                    _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                    _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                }
-            }
                 
+                } else {
+                    glm::vec3 faceVector = getFaceVector(face);
+                    if (_mouseVoxelScale < _mouseVoxel.s) {
+                        // find the closest contained voxel
+                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                            faceVector * (_mouseVoxelScale * 0.5f);
+                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
+                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
+                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                        _mouseVoxel.s = _mouseVoxelScale;
+                    }
+                    if (_addVoxelMode->isChecked()) {
+                        // use the face to determine the side on which to create a neighbor
+                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
+                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
+                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
+                    }
+                }
+            } else if (_addVoxelMode->isChecked()) {
+                // place the voxel a fixed distance away
+                float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
+                glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
+                _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
+                _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
+                _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
+                _mouseVoxel.s = _mouseVoxelScale;
+            }
+            
             if (_deleteVoxelMode->isChecked()) {
                 // red indicates deletion
                 _mouseVoxel.red = 255;
@@ -1608,6 +1619,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
+        glDisable(GL_LIGHTING);
         glPushMatrix();
         if (_addVoxelMode->isChecked()) {
             // use a contrasting color so that we can see what we're doing
@@ -1623,6 +1635,7 @@ void Application::displaySide(Camera& whichCamera) {
         glutWireCube(_mouseVoxel.s);
         glLineWidth(1.0f);
         glPopMatrix();
+        glEnable(GL_LIGHTING);
     }
     
     if (_renderAvatarsOn->isChecked()) {
@@ -1975,6 +1988,17 @@ static void setShortcutsEnabled(QWidget* widget, bool enabled) {
 
 void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
+}
+
+// when QActionGroup is set to non-exclusive, it doesn't return anything as checked;
+// hence, we must check ourselves
+QAction* Application::checkedVoxelModeAction() const {
+    foreach (QAction* action, _voxelModeActions->actions()) {
+        if (action->isChecked()) {
+            return action;
+        }
+    }
+    return 0;
 }
 
 void Application::attachNewHeadToAgent(Agent *newAgent) {
