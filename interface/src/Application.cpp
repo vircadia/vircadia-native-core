@@ -224,14 +224,17 @@ Application::Application(int& argc, char** argv) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
     
-    // initialize glut, which we use for rendering spheres and such
-    glutInit(&argc, argv);
-    
     // initialization continues in initializeGL when OpenGL context is ready
 }
 
 void Application::initializeGL() {
     printLog( "Created Display Window.\n" );
+    
+    // initialize glut for shape drawing; Qt apparently initializes it on OS X
+    #ifndef __APPLE__
+    int argc = 0;
+    glutInit(&argc, 0);
+    #endif
     
     #ifdef _WIN32
     glewInit();
