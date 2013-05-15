@@ -339,7 +339,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     }
 }
 
-void Audio::addReceivedAudioToBuffer(unsigned char*  receivedData, int receivedBytes) {
+void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     timeval currentReceiveTime;
     gettimeofday(&currentReceiveTime, NULL);
     _totalPacketsReceived++;
