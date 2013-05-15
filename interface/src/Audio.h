@@ -35,7 +35,6 @@ public:
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
 private:    
-    bool _initialized;
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;

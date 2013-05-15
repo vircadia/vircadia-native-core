@@ -285,12 +285,19 @@ void outputPortAudioError(PaError error) {
 }
 
 Audio::Audio(Oscilloscope* scope) :
+    _stream(NULL),
     _ringBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
     _wasStarved(0),
-    _totalPacketsReceived(0) {
+    _lastInputLoudness(0),
+    _mixerLoopbackFlag(false),
+    _lastVelocity(0),
+    _lastAcceleration(0),
+    _totalPacketsReceived(0),
+    _firstPlaybackTime(),
+    _packetsReceivedThisPlayback(0) {
     
     outputPortAudioError(Pa_Initialize());
     
@@ -303,8 +310,6 @@ Audio::Audio(Oscilloscope* scope) :
                                               audioCallback,
                                               (void*) this));
     
-    _initialized = true;
-    
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
         
@@ -312,7 +317,7 @@ Audio::Audio(Oscilloscope* scope) :
 }
 
 Audio::~Audio() {    
-    if (_initialized) {
+    if (_stream) {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());
     }
@@ -365,7 +370,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char*  receivedData, int receivedB
 }
 
 void Audio::render(int screenWidth, int screenHeight) {
-    if (_initialized) {
+    if (_stream) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
