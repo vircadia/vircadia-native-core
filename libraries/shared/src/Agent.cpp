@@ -22,17 +22,17 @@
 
 using shared_lib::printLog;
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+int unpackAgentId(unsigned char* packedData, uint16_t* agentId) {
     memcpy(agentId, packedData, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
-int packAgentId(unsigned char *packStore, uint16_t agentId) {
+int packAgentId(unsigned char* packStore, uint16_t agentId) {
     memcpy(packStore, &agentId, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
-Agent::Agent(sockaddr *publicSocket, sockaddr *localSocket, char type, uint16_t agentID) :
+Agent::Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID) :
     _type(type),
     _agentID(agentID),
     _wakeMicrostamp(usecTimestampNow()),
@@ -61,7 +61,7 @@ Agent::Agent(const Agent &otherAgent) :
     _wakeMicrostamp(otherAgent._wakeMicrostamp),
     _lastHeardMicrostamp(otherAgent._lastHeardMicrostamp),
     _isAlive(otherAgent._isAlive)
-{    
+{
     if (otherAgent._publicSocket) {
         _publicSocket = new sockaddr(*otherAgent._localSocket);
     } else {

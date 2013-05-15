@@ -23,13 +23,13 @@
 
 class Agent {    
 public:
-    Agent(sockaddr *publicSocket, sockaddr *localSocket, char type, uint16_t agentID);
+    Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID);
     Agent(const Agent &otherAgent);
     ~Agent();
     Agent& operator=(Agent otherAgent);
     bool operator==(const Agent& otherAgent);
     
-    bool matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType);
+    bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherAgentType);
     
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
