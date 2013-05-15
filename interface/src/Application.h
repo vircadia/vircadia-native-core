@@ -58,6 +58,8 @@ public:
     void mouseReleaseEvent(QMouseEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+    
+    const Avatar& getAvatar() const { return _myAvatar; }
 
 private slots:
     
@@ -124,9 +126,6 @@ private:
     QAction* checkedVoxelModeAction() const;
     
     static void attachNewHeadToAgent(Agent *newAgent);
-    #ifndef _WIN32
-    static void audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort);
-    #endif
     static void* networkReceive(void* args);
     
     QMainWindow* _window;

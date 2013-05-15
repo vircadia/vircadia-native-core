@@ -7,6 +7,9 @@
 //
 
 #include <cstring>
+
+#include "PacketHeaders.h"
+
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
@@ -46,18 +49,22 @@ AudioRingBuffer* AudioRingBuffer::clone() const {
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
 int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    if (numBytes > (_bufferLengthSamples * sizeof(int16_t))) {
+    
+    unsigned char* dataBuffer = sourceBuffer + 1;
+    
+    if (sourceBuffer[0] == PACKET_HEADER_INJECT_AUDIO ||
+        sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
+        // if this came from an injector or interface client
+        // there's data required for spatialization to pull out
         
-        unsigned char *dataPtr = sourceBuffer + 1;
+        memcpy(&_position, dataBuffer, sizeof(_position));
+        dataBuffer += (sizeof(_position));
         
-        memcpy(&_position, dataPtr, sizeof(_position));
-        dataPtr += (sizeof(_position));
-        
-        unsigned int attenuationByte = *(dataPtr++);
+        unsigned int attenuationByte = *(dataBuffer++);
         _attenuationRatio = attenuationByte / 255.0f;
         
-        memcpy(&_bearing, dataPtr, sizeof(float));
-        dataPtr += sizeof(_bearing);
+        memcpy(&_bearing, dataBuffer, sizeof(float));
+        dataBuffer += sizeof(_bearing);
         
         if (_bearing > 180 || _bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
@@ -70,8 +77,6 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         } else {
             _shouldLoopbackForAgent = false;
         }        
-        
-        sourceBuffer = dataPtr;
     }
 
     if (!_endOfLastWrite) {
@@ -82,7 +87,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         _started = false;
     }
     
-    memcpy(_endOfLastWrite, sourceBuffer, _bufferLengthSamples * sizeof(int16_t));
+    memcpy(_endOfLastWrite, dataBuffer, _bufferLengthSamples * sizeof(int16_t));
     
     _endOfLastWrite += _bufferLengthSamples;
     

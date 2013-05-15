@@ -153,7 +153,7 @@ Application::Application(int& argc, char** argv) :
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
-        _audio(&_audioScope, &_myAvatar),
+        _audio(&_audioScope),
 #endif
         _stopNetworkReceiveThread(false),  
         _packetCount(0),
@@ -200,10 +200,6 @@ Application::Application(int& argc, char** argv) :
     
     // the callback for our instance of AgentList is attachNewHeadToAgent
     AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
-    
-    #ifndef _WIN32
-    AgentList::getInstance()->audioMixerSocketUpdate = &audioMixerUpdate;
-    #endif
     
     #ifdef _WIN32
     WSADATA WsaData;
@@ -904,11 +900,7 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    _myAvatar.writeAvatarDataToFile();    
-
-    #ifndef _WIN32
-    _audio.terminate();
-    #endif
+    _myAvatar.writeAvatarDataToFile();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -1323,7 +1315,7 @@ void Application::updateAvatar(float deltaTime) {
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
-        _myAvatar.setLoudness(_audio.getInputLoudness());
+        _myAvatar.setLoudness(_audio.getLastInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -2017,12 +2009,6 @@ void Application::attachNewHeadToAgent(Agent *newAgent) {
     }
 }
 
-#ifndef _WIN32
-void Application::audioMixerUpdate(in_addr_t newMixerAddress, in_port_t newMixerPort) {
-    static_cast<Application*>(QCoreApplication::instance())->_audio.updateMixerParams(newMixerAddress, newMixerPort);
-}
-#endif
-
 //  Receive packets from other agents/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
@@ -2053,6 +2039,9 @@ void* Application::networkReceive(void* args) {
                     memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
                     
                     printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
+                    break;
+                case PACKET_HEADER_MIXED_AUDIO:
+                    app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
