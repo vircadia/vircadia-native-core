@@ -268,9 +268,12 @@ int main(int argc, const char* argv[]) {
         
         // pull any new audio data from agents off of the network stack
         while (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
+            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO || packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
+                char agentType = (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO)
+                    ? AGENT_TYPE_AVATAR
+                    : AGENT_TYPE_AUDIO_INJECTOR;
                 
-                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentID())) {
+                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, agentType, agentList->getLastAgentID())) {
                     agentList->increaseAgentID();
                 }
                 

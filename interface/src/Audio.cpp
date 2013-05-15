@@ -128,7 +128,7 @@ int audioCallback (const void* inputBuffer,
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
             
-            dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
+            dataPacket[0] = PACKET_HEADER_MICROPHONE_AUDIO;
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
