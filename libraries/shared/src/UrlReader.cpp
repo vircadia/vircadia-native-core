@@ -121,7 +121,7 @@ void UrlReader::getInfo(char const*& url,
     curl_easy_getinfo(_ptrCurl, CURLINFO_FILETIME, & time);
     stardate = time;
 
-    printLog("UrlReader: Ready to transfer from URL '%s'\n", url);
+//    printLog("UrlReader: Ready to transfer from URL '%s'\n", url);
 
     // check caching file time whether we actually want to download anything
     if (_strCacheFile != 0l) {
@@ -130,7 +130,7 @@ void UrlReader::getInfo(char const*& url,
         if (time > s.st_mtime) {
             // file on server is newer -> update cache file
             _ptrCacheFile = fopen(_strCacheFile, "wb");
-            printLog("UrlReader: Also writing content to cache file '%s'\n", _strCacheFile);
+//            printLog("UrlReader: Also writing content to cache file '%s'\n", _strCacheFile);
             if (_ptrCacheFile != 0l) {
                 _valCacheMode = cache_write;
             }
@@ -144,7 +144,7 @@ void UrlReader::getInfo(char const*& url,
                 }
             }
             _ptrCacheFile = fopen(_strCacheFile, "rb");
-            printLog("UrlReader: Delivering cached content from file '%s'\n", _strCacheFile);
+//            printLog("UrlReader: Delivering cached content from file '%s'\n", _strCacheFile);
             if (_ptrCacheFile != 0l) {
                 _valCacheMode = cache_read;
             }
