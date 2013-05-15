@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <sys/time.h>
+#include <cstring>
 
 #include <SharedUtil.h>
 #include <AgentTypes.h>
