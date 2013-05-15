@@ -68,25 +68,12 @@ float flangeWeight = 0;
 
 float usecsAtStartup = 0;
 
-/**
- * Audio callback used by portaudio.
- * Communicates with Audio via a shared pointer to Audio::data.
- * Writes input audio channels (if they exist) into Audio::data->buffer,
- multiplied by Audio::data->inputGain.
- * Then writes Audio::data->buffer into output audio channels, and clears
- the portion of Audio::data->buffer that has been read from for reuse.
- *
- * @param[in]  inputBuffer  A pointer to an internal portaudio data buffer containing data read by portaudio.
- * @param[out] outputBuffer A pointer to an internal portaudio data buffer to be read by the configured output device.
- * @param[in]  frames       Number of frames that portaudio requests to be read/written.
- (Valid size of input/output buffers = frames * number of channels (2) * sizeof data type (float)).
- * @param[in]  timeInfo     Portaudio time info. Currently unused.
- * @param[in]  statusFlags  Portaudio status flags. Currently unused.
- * @param[in]  userData     Pointer to supplied user data (in this case, a pointer to Audio::data).
- Used to communicate with external code (since portaudio calls this function from another thread).
- * @return Should be of type PaStreamCallbackResult. Return paComplete to end the stream, or paContinue to continue (default).
- Can be used to end the stream from within the callback.
- */
+// inputBuffer  A pointer to an internal portaudio data buffer containing data read by portaudio.
+// outputBuffer A pointer to an internal portaudio data buffer to be read by the configured output device.
+// frames       Number of frames that portaudio requests to be read/written.
+// timeInfo     Portaudio time info. Currently unused.
+// statusFlags  Portaudio status flags. Currently unused.
+// userData     Pointer to supplied user data (in this case, a pointer to the parent Audio object
 int audioCallback (const void* inputBuffer,
                    void* outputBuffer,
                    unsigned long frames,
