@@ -73,9 +73,11 @@ public:
 
     void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
-    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
-    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
-    void createSphere(float r,float xc, float yc, float zc, float s, bool solid, creationMode mode, bool debug = false);
+    void createVoxel(float x, float y, float z, float s, 
+                     unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
+    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
+    void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
+                      creationMode mode, bool destructive = false, bool debug = false);
     
 private:
     int  _callsToTreesToArrays;

@@ -1020,22 +1020,24 @@ VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const {
     return _tree->getVoxelAt(x, y, z, s); 
 };
 
-void VoxelSystem::createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue) {
+void VoxelSystem::createVoxel(float x, float y, float z, float s, 
+                              unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
     pthread_mutex_lock(&_treeLock);
     
     //printLog("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
-    _tree->createVoxel(x, y, z, s, red, green, blue); 
+    _tree->createVoxel(x, y, z, s, red, green, blue, destructive); 
     setupNewVoxelsForDrawing(); 
     
     pthread_mutex_unlock(&_treeLock);
 };
 
-void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color) { 
-    _tree->createLine(point1, point2, unitSize, color); 
+void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive) { 
+    _tree->createLine(point1, point2, unitSize, color, destructive); 
     setupNewVoxelsForDrawing(); 
 };
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, creationMode mode, bool debug) { 
-    _tree->createSphere(r, xc, yc, zc, s, solid, mode, debug); 
+void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
+                               creationMode mode, bool destructive, bool debug) { 
+    _tree->createSphere(r, xc, yc, zc, s, solid, mode, destructive, debug); 
     setupNewVoxelsForDrawing(); 
 };

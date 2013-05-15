@@ -10,7 +10,7 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
-set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/portaudio)
+set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -55,7 +55,7 @@ if (APPLE)
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_RSRCS})
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui)
+find_package(Qt4 REQUIRED QtCore QtGui QtOpenGL)
 include(${QT_USE_FILE})
 
 # run qt moc on qt-enabled headers
@@ -109,7 +109,7 @@ if (APPLE)
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
-        ${LIBOVR_LIBRARY}
+        ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
@@ -129,12 +129,12 @@ if (WIN32)
         wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARIES})
 
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})
-  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARIES})
   
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 

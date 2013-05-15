@@ -49,6 +49,7 @@ void outputBits(unsigned char byte, bool withNewLine = true);
 void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
+void setAtBit(unsigned char& byte, int bitIndex);
 
 void switchToResourcesParentIfRequired();
 

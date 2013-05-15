@@ -22,42 +22,46 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 class VoxelTree {
 public:
     // when a voxel is created in the tree (object new'd)
-	long voxelsCreated;
+    long voxelsCreated;
     // when a voxel is colored/set in the tree (object may have already existed)
-	long voxelsColored;
-	long voxelsBytesRead;
-    
+    long voxelsColored;
+    long voxelsBytesRead;
+
     SimpleMovingAverage voxelsCreatedStats;
-	SimpleMovingAverage voxelsColoredStats;
-	SimpleMovingAverage voxelsBytesReadStats;
+    SimpleMovingAverage voxelsColoredStats;
+    SimpleMovingAverage voxelsBytesReadStats;
 
     VoxelTree();
     ~VoxelTree();
-    
+
     VoxelNode *rootNode;
     int leavesWrittenToBitstream;
 
-	void eraseAllVoxels();
+    void eraseAllVoxels();
 
-	void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
+    void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
     void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, bool includeColor = true);
-    void readCodeColorBufferToTree(unsigned char *codeColorBuffer);
-	void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
+    void readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive = false);
+    void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
 
     void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
-    void createVoxel(float x, float y, float z, float s, unsigned char red, unsigned char green, unsigned char blue);
-    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color);
-	void createSphere(float r,float xc, float yc, float zc, float s, bool solid, creationMode mode, bool debug = false);
-	
+    void createVoxel(float x, float y, float z, float s, 
+                     unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
+    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
+    void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
+                      creationMode mode, bool destructive = false, bool debug = false);
+
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor = true) const;
+                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor = true,
+                            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL) const;
 
-    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
+            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL);
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -68,7 +72,7 @@ public:
                              VoxelNode*& node, float& distance, BoxFace& face);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
-	void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
+    void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToFileV2(const char* filename) const;
@@ -79,10 +83,12 @@ public:
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor) const;
+                                     VoxelNodeBag& bag, const ViewFrustum* viewFrustum, bool includeColor,
+                                     bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag);
+                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
+                                       bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 

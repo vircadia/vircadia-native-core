@@ -15,6 +15,10 @@
 
 #include <AgentData.h>
 
+const int WANT_RESIN_AT_BIT = 0;
+const int WANT_COLOR_AT_BIT = 1;
+const int WANT_DELTA_AT_BIT = 2;
+
 enum KeyState
 {
     NO_KEY_DOWN, 
@@ -124,8 +128,10 @@ public:
     // related to Voxel Sending strategies
     bool getWantResIn() const { return _wantResIn; }
     bool getWantColor() const { return _wantColor; }
+    bool getWantDelta() const { return _wantDelta; }
     void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
+    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     
 protected:
     glm::vec3 _position;
@@ -168,8 +174,10 @@ protected:
     // chat message
     std::string _chatMessage;
     
+    // voxel server sending items
     bool _wantResIn;
     bool _wantColor;
+    bool _wantDelta;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

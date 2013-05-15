@@ -107,10 +107,8 @@ void eraseVoxelTreeAndCleanupAgentVisitData() {
 // Version of voxel distributor that sends each LOD level at a time
 void resInVoxelDistributor(AgentList* agentList, 
                            AgentList::iterator& agent, 
-                           VoxelAgentData* agentData, 
-                           ViewFrustum& viewFrustum) {
-     
-    printf("resInVoxelDistributor()\n");                      
+                           VoxelAgentData* agentData) {
+    ViewFrustum viewFrustum = agentData->getCurrentViewFrustum();
     bool searchReset = false;
     int  searchLoops = 0;
     int  searchLevelWas = agentData->getMaxSearchLevel();
@@ -227,14 +225,32 @@ void resInVoxelDistributor(AgentList* agentList,
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
-                                  ViewFrustum& viewFrustum) {
-        
-    printf("deepestLevelVoxelDistributor()\n");                      
+                                  bool viewFrustumChanged) {
 
     int maxLevelReached = 0;
     double start = usecTimestampNow();
-    if (agentData->nodeBag.isEmpty()) {
-        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, viewFrustum, agentData->nodeBag);
+
+    // FOR NOW... agent tells us if it wants to receive only view frustum deltas
+    bool wantDelta = agentData->getWantDelta();
+    const ViewFrustum* lastViewFrustum =  wantDelta ? &agentData->getLastKnownViewFrustum() : NULL;
+
+    if (::debugVoxelSending) {
+        printf("deepestLevelVoxelDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
+                viewFrustumChanged ? "yes" : "no", 
+                agentData->nodeBag.isEmpty() ? "yes" : "no", 
+                agentData->getViewSent() ? "yes" : "no"
+            );
+    }
+    
+    // If the current view frustum has changed OR we have nothing to send, then search against 
+    // the current view frustum for things to send.
+    if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
+        // If the bag was empty, then send everything in view, not just the delta
+        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
+                                                           agentData->nodeBag, wantDelta, lastViewFrustum);
+
+        agentData->setViewSent(false);
+
     }
     double end = usecTimestampNow();
     double elapsedmsec = (end - start)/1000.0;
@@ -266,8 +282,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor());
+                                                              agentData->nodeBag, &agentData->getCurrentViewFrustum(),
+                                                              agentData->getWantColor(), wantDelta, lastViewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -313,7 +329,16 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
             printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
         }
-    }
+        
+        // if after sending packets we've emptied our bag, then we want to remember that we've sent all 
+        // the voxels from the current view frustum
+        if (agentData->nodeBag.isEmpty()) {
+            agentData->updateLastKnownViewFrustum();
+            agentData->setViewSent(true);
+        }
+        
+        
+    } // end if bag wasn't empty, and so we sent stuff...
 }
 
 void persistVoxelsWhenDirty() {
@@ -340,23 +365,15 @@ void *distributeVoxelsToListeners(void *args) {
 
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
     		if (agentData) {
-                ViewFrustum viewFrustum;
-                // get position and orientation details from the camera
-                viewFrustum.setPosition(agentData->getCameraPosition());
-                viewFrustum.setOrientation(agentData->getCameraDirection(), agentData->getCameraUp(), agentData->getCameraRight());
-    
-                // Also make sure it's got the correct lens details from the camera
-                viewFrustum.setFieldOfView(agentData->getCameraFov());
-                viewFrustum.setAspectRatio(agentData->getCameraAspectRatio());
-                viewFrustum.setNearClip(agentData->getCameraNearClip());
-                viewFrustum.setFarClip(agentData->getCameraFarClip());
-            
-                viewFrustum.calculate();
+    		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
+                if (::debugVoxelSending) {
+    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", (viewFrustumChanged ? "yes" : "no"));
+    		    }
 
                 if (agentData->getWantResIn()) { 
-                    resInVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                    resInVoxelDistributor(agentList, agent, agentData);
                 } else {
-                    deepestLevelVoxelDistributor(agentList, agent, agentData, viewFrustum);
+                    deepestLevelVoxelDistributor(agentList, agent, agentData, viewFrustumChanged);
                 }
             }
         }
@@ -486,9 +503,11 @@ int main(int argc, const char * argv[])
     
         if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
-            if (packetData[0] == PACKET_HEADER_SET_VOXEL) {
+            if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
+                bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got I - insert voxels - command from client receivedBytes=%ld itemNumber=%d\n",
+            	printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
+            	    destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
             		receivedBytes,itemNumber);
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
@@ -517,7 +536,7 @@ int main(int argc, const char * argv[])
             		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
             		delete []vertices;
             		
-		            randomTree.readCodeColorBufferToTree(pVoxelData);
+		            randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;

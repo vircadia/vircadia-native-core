@@ -40,13 +40,29 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     VoxelNodeBag nodeBag;
+
+    ViewFrustum& getCurrentViewFrustum()     { return _currentViewFrustum; };
+    ViewFrustum& getLastKnownViewFrustum()   { return _lastKnownViewFrustum; };
+    
+    // These are not classic setters because they are calculating and maintaining state
+    // which is set asynchronously through the network receive
+    bool updateCurrentViewFrustum();
+    void updateLastKnownViewFrustum();
+
+    bool getViewSent() const        { return _viewSent; };
+    void setViewSent(bool viewSent) { _viewSent = viewSent; }
+
 private:    
+    bool _viewSent;
     unsigned char* _voxelPacket;
     unsigned char* _voxelPacketAt;
     int _voxelPacketAvailableBytes;
     bool _voxelPacketWaiting;
     int _maxSearchLevel;
     int _maxLevelReachedInLastSearch;
+    ViewFrustum _currentViewFrustum;
+    ViewFrustum _lastKnownViewFrustum;
+
 };
 
 #endif /* defined(__hifi__VoxelAgentData__) */
