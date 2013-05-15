@@ -42,7 +42,7 @@ AudioInjector::AudioInjector(const char* filename) :
         _numTotalSamples = totalBytes / 2;
         _audioSampleArray = new int16_t[_numTotalSamples];
         
-        sourceFile.read((char *)_audioSampleArray, _numTotalSamples);
+        sourceFile.read((char *)_audioSampleArray, totalBytes);
     }
 }
 
@@ -84,7 +84,7 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
 }
 
 void AudioInjector::injectAudio() {
-    if (_audioSampleArray != NULL) {
+    if (_audioSampleArray) {
         _isInjectingAudio = true;
         
         timeval startTime;
