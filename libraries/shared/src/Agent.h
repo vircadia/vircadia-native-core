@@ -55,7 +55,7 @@ public:
     void activateLocalSocket();
     
     AgentData* getLinkedData() const { return _linkedData; }
-    void setLinkedData(AgentData *linkedData) { _linkedData = linkedData; }
+    void setLinkedData(AgentData* linkedData) { _linkedData = linkedData; }
     
     bool isAlive() const { return _isAlive; };
     void setAlive(bool isAlive) { _isAlive = isAlive; };
