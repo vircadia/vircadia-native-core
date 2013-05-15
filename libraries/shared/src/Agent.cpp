@@ -55,9 +55,13 @@ Agent::Agent(sockaddr *publicSocket, sockaddr *localSocket, char type, uint16_t 
     }
 }
 
-Agent::Agent(const Agent &otherAgent) {
-    _isAlive = otherAgent._isAlive;
-    
+Agent::Agent(const Agent &otherAgent) :
+    _type(otherAgent._type),
+    _agentID(otherAgent._agentID),
+    _wakeMicrostamp(otherAgent._wakeMicrostamp),
+    _lastHeardMicrostamp(otherAgent._lastHeardMicrostamp),
+    _isAlive(otherAgent._isAlive)
+{    
     if (otherAgent._publicSocket) {
         _publicSocket = new sockaddr(*otherAgent._localSocket);
     } else {
@@ -70,7 +74,6 @@ Agent::Agent(const Agent &otherAgent) {
         _localSocket = NULL;
     }
     
-    _agentID = otherAgent._agentID;
     
     if (otherAgent._activeSocket == otherAgent._publicSocket) {
         _activeSocket = _publicSocket;
@@ -79,10 +82,6 @@ Agent::Agent(const Agent &otherAgent) {
     } else {
         _activeSocket = NULL;
     }
-    
-    _wakeMicrostamp = otherAgent._wakeMicrostamp;
-    _lastHeardMicrostamp = otherAgent._lastHeardMicrostamp;
-    _type = otherAgent._type;
     
     if (otherAgent._linkedData) {
         _linkedData = otherAgent._linkedData->clone();
