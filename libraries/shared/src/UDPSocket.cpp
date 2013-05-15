@@ -204,13 +204,12 @@ void UDPSocket::setBlocking(bool blocking) {
 }
 
 //  Receive data on this socket with retrieving address of sender
-bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
-    
+bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) const {
     return receive((sockaddr *)&senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes) {
+bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes) const {
     
 #ifdef _WIN32
     int addressSize = sizeof(*recvAddress);
@@ -223,7 +222,7 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
     return (*receivedBytes > 0);
 }
 
-int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) {
+int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) const {
     // send data via UDP
     int sent_bytes = sendto(handle, (const char*)data, byteLength,
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
@@ -236,7 +235,7 @@ int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) 
     return sent_bytes;
 }
 
-int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t byteLength) {
+int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t byteLength) const {
     
     // change address and port on reusable global to passed variables
     destSockaddr.sin_addr.s_addr = inet_addr(destAddress);

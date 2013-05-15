@@ -24,7 +24,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _position(),
     _bearing(0),
     _attenuationModifier(255),
-    _indexOfNextSlot(0)
+    _indexOfNextSlot(0),
+    _isInjectingAudio(false)
 {
     std::fstream sourceFile;
     
@@ -50,7 +51,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _position(),
     _bearing(0),
     _attenuationModifier(255),
-    _indexOfNextSlot(0)
+    _indexOfNextSlot(0),
+    _isInjectingAudio(false)
 {
     _audioSampleArray = new int16_t[maxNumSamples];
     memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
@@ -81,8 +83,10 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
     }
 }
 
-void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) const {
+void AudioInjector::injectAudio() {
     if (_audioSampleArray != NULL) {
+        _isInjectingAudio = true;
+        
         timeval startTime;
         
         // one byte for header, 3 positional floats, 1 bearing float, 1 attenuation modifier byte
@@ -115,12 +119,26 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             
             memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
             
-            injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
+            _injectorSocket->send(&_destinationSocket, dataPacket, sizeof(dataPacket));
             
             double usecToSleep = BUFFER_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&startTime));
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }
         }
+        
+        _isInjectingAudio = false;
     }
+}
+
+void* injectAudioViaThread(void* args) {
+    AudioInjector* parentInjector = (AudioInjector*) args;
+    parentInjector->injectAudio();
+    
+    pthread_exit(0);
+}
+
+void AudioInjector::threadInjectionOfAudio() {
+    pthread_t audioInjectThread;
+    pthread_create(&audioInjectThread, NULL, injectAudioViaThread, (void*) this);
 }
