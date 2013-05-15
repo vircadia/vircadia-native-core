@@ -134,8 +134,9 @@ private:
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
     QAction* _renderAvatarsOn;       // Whether to render avatars 
     QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
-    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats 
-    QAction* _logOn;                 // Whether to show on-screen log 
+    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
+    QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
+    QAction* _logOn;                 // Whether to show on-screen log
     QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum

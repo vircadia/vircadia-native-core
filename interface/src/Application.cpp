@@ -1085,6 +1085,9 @@ void Application::initMenu() {
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
+    (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
+    _renderFrameTimerOn->setChecked(false);
+
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
     (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
@@ -1629,6 +1632,17 @@ void Application::displayOverlay() {
     if (_chatEntryOn) {
         _chatEntry.render(_glWidget->width(), _glWidget->height());
     }
+    
+    //  Show on-screen msec timer
+    if (_renderFrameTimerOn->isChecked()) {
+        char frameTimer[10];
+        double mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        mSecsNow = mSecsNow - floor(mSecsNow / 1000.0) * 1000.0;
+        sprintf(frameTimer, "%3.0f\n", mSecsNow);
+        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
+        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
+    }
+
 
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
