@@ -36,9 +36,6 @@ const float AUDIO_INJECT_PROXIMITY = 0.4f;
 
 bool stopReceiveAgentDataThread;
 
-int TEMP_AUDIO_LISTEN_PORT = 55439;
-UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
-
 void *receiveAgentData(void *args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
