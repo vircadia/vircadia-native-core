@@ -142,28 +142,26 @@ const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
 const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
 const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
+const char* AGENT_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
-	const char* name = AGENT_TYPE_NAME_UNKNOWN;
 	switch (this->type) {
 		case AGENT_TYPE_DOMAIN:
-			name = AGENT_TYPE_NAME_DOMAIN;
-			break;
+			return AGENT_TYPE_NAME_DOMAIN;
 		case AGENT_TYPE_VOXEL:
-			name = AGENT_TYPE_NAME_VOXEL;
-			break;
+			return AGENT_TYPE_NAME_VOXEL;
 		case AGENT_TYPE_AVATAR:
-			name = AGENT_TYPE_NAME_INTERFACE;
-			break;
+			return AGENT_TYPE_NAME_INTERFACE;
 		case AGENT_TYPE_AUDIO_MIXER:
-			name = AGENT_TYPE_NAME_AUDIO_MIXER;
-			break;
+			return AGENT_TYPE_NAME_AUDIO_MIXER;
         case AGENT_TYPE_AVATAR_MIXER:
-            name = AGENT_TYPE_NAME_AVATAR_MIXER;
-            break;
+            return AGENT_TYPE_NAME_AVATAR_MIXER;
+        case AGENT_TYPE_AUDIO_INJECTOR:
+            return AGENT_TYPE_NAME_AUDIO_INJECTOR;
+        default:
+            return AGENT_TYPE_NAME_UNKNOWN;
 	}
-	return name;
 }
 
 void Agent::setType(char newType) {
