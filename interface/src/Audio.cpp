@@ -10,18 +10,20 @@
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
-
 #include <sys/stat.h>
 #include <cstring>
+
 #include <StdDev.h>
 #include <UDPSocket.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <AgentList.h>
+#include <AgentTypes.h>
+
+#include "Application.h"
 #include "Audio.h"
 #include "Util.h"
 #include "Log.h"
-
-Oscilloscope * scope;
 
 const int NUM_AUDIO_CHANNELS = 2;
 
@@ -55,15 +57,8 @@ const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
-const char LOCALHOST_MIXER[] = "0.0.0.0";
-const char WORKCLUB_MIXER[] = "192.168.1.19";
-const char EC2_WEST_MIXER[] = "54.241.92.53";
-
-const int AUDIO_UDP_LISTEN_PORT = 55444;
-
 int starve_counter = 0;
 StDev stdev;
-bool stopAudioReceiveThread = false;
 
 int samplesLeftForFlange = 0;
 int lastYawMeasuredMaximum = 0;
@@ -71,8 +66,6 @@ float flangeIntensity = 0;
 float flangeRate = 0;
 float flangeWeight = 0;
 
-timeval firstPlaybackTimer;
-int packetsReceivedThisPlayback = 0;
 float usecsAtStartup = 0;
 
 /**
@@ -94,20 +87,23 @@ float usecsAtStartup = 0;
  * @return Should be of type PaStreamCallbackResult. Return paComplete to end the stream, or paContinue to continue (default).
  Can be used to end the stream from within the callback.
  */
-
-int audioCallback (const void *inputBuffer,
-                   void *outputBuffer,
+int audioCallback (const void* inputBuffer,
+                   void* outputBuffer,
                    unsigned long frames,
                    const PaStreamCallbackTimeInfo *timeInfo,
                    PaStreamCallbackFlags statusFlags,
-                   void *userData)
-{
-    AudioData *data = (AudioData *) userData;
+                   void* userData) {
+    
+    Audio* parentAudio = (Audio*) userData;
+    AgentList* agentList = AgentList::getInstance();
+    
+    Application* interface = (Application*) QCoreApplication::instance();
+    Avatar interfaceAvatar = interface->getAvatar();
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     
     // Add Procedural effects to input samples
-    data->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
+    parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
     
     if (inputLeft != NULL) {
         
@@ -118,17 +114,14 @@ int audioCallback (const void *inputBuffer,
         }
         
         loudness /= BUFFER_LENGTH_SAMPLES;
-        data->lastInputLoudness = loudness;
+        parentAudio->_lastInputLoudness = loudness;
         
         // add data to the scope
-        scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
+        parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
         
-        if (data->mixerAddress != 0) {
-            sockaddr_in audioMixerSocket;
-            audioMixerSocket.sin_family = AF_INET;
-            audioMixerSocket.sin_addr.s_addr = data->mixerAddress;
-            audioMixerSocket.sin_port = data->mixerPort;
-            
+        Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        
+        if (audioMixer) {
             int leadingBytes = 2 + (sizeof(float) * 4);
             
             // we need the amount of bytes in the buffer + 1 for type
@@ -139,14 +132,14 @@ int audioCallback (const void *inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &data->linkedAvatar->getHeadPosition(), sizeof(float) * 3);
+            memcpy(currentPacketPtr, &interfaceAvatar.getHeadPosition(), sizeof(float) * 3);
             currentPacketPtr += (sizeof(float) * 3);
             
             // tell the mixer not to add additional attenuation to our source
             *(currentPacketPtr++) = 255;
             
             // memcpy the corrected render yaw
-            float correctedYaw = fmodf(-1 * data->linkedAvatar->getAbsoluteHeadYaw(), 360);
+            float correctedYaw = fmodf(-1 * interfaceAvatar.getAbsoluteHeadYaw(), 360);
             
             if (correctedYaw > 180) {
                 correctedYaw -= 360;
@@ -154,29 +147,30 @@ int audioCallback (const void *inputBuffer,
                 correctedYaw += 360;
             }
             
-            if (data->mixerLoopbackFlag) {
+            if (parentAudio->_mixerLoopbackFlag) {
                 correctedYaw = correctedYaw > 0
-                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+                ? correctedYaw + AGENT_LOOPBACK_MODIFIER
+                : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
-            currentPacketPtr += sizeof(float);            
+            currentPacketPtr += sizeof(float);
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
             
-            data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            agentList->getAgentSocket().send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
+        
     }
     
-    int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
-    int16_t *outputRight = ((int16_t **) outputBuffer)[1];
+    int16_t* outputLeft = ((int16_t**) outputBuffer)[0];
+    int16_t* outputRight = ((int16_t**) outputBuffer)[1];
     
     memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-
-    AudioRingBuffer *ringBuffer = data->ringBuffer;
+    
+    AudioRingBuffer* ringBuffer = &parentAudio->_ringBuffer;
     
     // if we've been reset, and there isn't any new packets yet
     // just play some silence
@@ -184,15 +178,16 @@ int audioCallback (const void *inputBuffer,
     if (ringBuffer->getEndOfLastWrite() != NULL) {
         
         if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            //printLog("Held back, buffer has %d of %d samples required.\n", ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
+            //printLog("Held back, buffer has %d of %d samples required.\n",
+            //         ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
             starve_counter++;
-            packetsReceivedThisPlayback = 0;
-
+            parentAudio->_packetsReceivedThisPlayback = 0;
+            
             // printLog("Starved #%d\n", starve_counter);
-            data->wasStarved = 10;      //   Frames to render the indication that the system was starved.
+            parentAudio->_wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
@@ -206,7 +201,7 @@ int audioCallback (const void *inputBuffer,
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
-            int lastYawMeasured = fabsf(data->linkedAvatar->getLastMeasuredHeadYaw());
+            int lastYawMeasured = fabsf(interfaceAvatar.getLastMeasuredHeadYaw());
             
             if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second
@@ -216,8 +211,8 @@ int audioCallback (const void *inputBuffer,
                     samplesLeftForFlange = SAMPLE_RATE;
                     
                     flangeIntensity = MIN_FLANGE_INTENSITY +
-                        ((lastYawMeasuredMaximum - MIN_FLANGE_EFFECT_THRESHOLD) / (float)(MAX_FLANGE_EFFECT_THRESHOLD - MIN_FLANGE_EFFECT_THRESHOLD)) *
-                        (1 - MIN_FLANGE_INTENSITY);
+                    ((lastYawMeasuredMaximum - MIN_FLANGE_EFFECT_THRESHOLD) / (float)(MAX_FLANGE_EFFECT_THRESHOLD - MIN_FLANGE_EFFECT_THRESHOLD)) *
+                    (1 - MIN_FLANGE_INTENSITY);
                     
                     flangeRate = FLANGE_BASE_RATE * flangeIntensity;
                     flangeWeight = MAX_FLANGE_SAMPLE_WEIGHT * flangeIntensity;
@@ -235,7 +230,7 @@ int audioCallback (const void *inputBuffer,
                     
                     if (samplesLeftForFlange != SAMPLE_RATE || s >= (SAMPLE_RATE / 2000)) {
                         // we have a delayed sample to add to this sample
-                    
+                        
                         int16_t *flangeFrame = ringBuffer->getNextOutput();
                         int flangeIndex = s - sampleFlangeDelay;
                         
@@ -267,8 +262,8 @@ int audioCallback (const void *inputBuffer,
             }
             
             // add data to the scope
-            scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
-            scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+            parentAudio->_scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+            parentAudio->_scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
             
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
@@ -278,140 +273,99 @@ int audioCallback (const void *inputBuffer,
         }
     }
     
-    gettimeofday(&data->lastCallback, NULL);
+    gettimeofday(&parentAudio->_lastCallbackTime, NULL);
     return paContinue;
 }
 
-void Audio::updateMixerParams(in_addr_t newMixerAddress, in_port_t newMixerPort) {
-    audioData->mixerAddress = newMixerAddress;
-    audioData->mixerPort = newMixerPort;
-}
-
-struct AudioRecThreadStruct {
-    AudioData *sharedAudioData;
-};
-
-void *receiveAudioViaUDP(void *args) {
-    AudioRecThreadStruct *threadArgs = (AudioRecThreadStruct *) args;
-    AudioData *sharedAudioData = threadArgs->sharedAudioData;
-    
-    int16_t *receivedData = new int16_t[PACKET_LENGTH_SAMPLES];
-    ssize_t receivedBytes;
-    
-    //  Init Jitter timer values 
-    timeval previousReceiveTime, currentReceiveTime = {};
-    gettimeofday(&previousReceiveTime, NULL);
-    gettimeofday(&currentReceiveTime, NULL);
-    
-    int totalPacketsReceived = 0;
-    
-    stdev.reset();
-    
-    while (!stopAudioReceiveThread) {
-
-        if (sharedAudioData->audioSocket->receive((void *)receivedData, &receivedBytes)) {
-            
-            gettimeofday(&currentReceiveTime, NULL);
-            totalPacketsReceived++;
-            
-            double tDiff = diffclock(&previousReceiveTime, &currentReceiveTime);
-            //printLog("tDiff %4.1f\n", tDiff);
-            //  Discard first few received packets for computing jitter (often they pile up on start)    
-            if (totalPacketsReceived > 3) stdev.addValue(tDiff);
-            if (stdev.getSamples() > 500) {
-                sharedAudioData->measuredJitter = stdev.getStDev();
-                //printLog("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
-                stdev.reset();
-            }
-            
-            AudioRingBuffer *ringBuffer = sharedAudioData->ringBuffer;
-            
-            
-            if (!ringBuffer->isStarted()) {
-                packetsReceivedThisPlayback++;
-             }
-            else {
-                //printLog("Audio packet received at %6.0f\n", usecTimestampNow()/1000);
-            }
-            if (packetsReceivedThisPlayback == 1) gettimeofday(&firstPlaybackTimer, NULL);
-
-            ringBuffer->parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
-
-            previousReceiveTime = currentReceiveTime;
-        }
+void outputPortAudioError(PaError error) {
+    if (error != paNoError) {
+        printLog("-- portaudio termination error --\n");
+        printLog("PortAudio error (%d): %s\n", error, Pa_GetErrorText(error));
     }
-    
-    pthread_exit(0);
 }
 
-void Audio::setMixerLoopbackFlag(bool newMixerLoopbackFlag) {
-    audioData->mixerLoopbackFlag = newMixerLoopbackFlag;
-}
-
-bool Audio::getMixerLoopbackFlag() {
-    return audioData->mixerLoopbackFlag;
-}
-
-/**
- * Initialize portaudio and start an audio stream.
- * Should be called at the beginning of program exection.
- * @seealso Audio::terminate
- * @return  Returns true if successful or false if an error occurred.
-Use Audio::getError() to retrieve the error code.
- */
-Audio::Audio(Oscilloscope* s, Avatar* linkedAvatar) {    
-    paError = Pa_Initialize();
-    if (paError != paNoError) goto error;
+Audio::Audio(Oscilloscope* scope) :
+    _ringBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES),
+    _scope(scope),
+    _averagedLatency(0.0),
+    _measuredJitter(0),
+    _wasStarved(0),
+    _totalPacketsReceived(0) {
     
-    scope = s;
+    outputPortAudioError(Pa_Initialize());
     
-    audioData = new AudioData();
+    outputPortAudioError(Pa_OpenDefaultStream(&_stream,
+                                              2,
+                                              2,
+                                              (paInt16 | paNonInterleaved),
+                                              SAMPLE_RATE,
+                                              BUFFER_LENGTH_SAMPLES,
+                                              audioCallback,
+                                              (void*) this));
     
-    audioData->linkedAvatar = linkedAvatar;
-    
-    // setup a UDPSocket
-    audioData->audioSocket = new UDPSocket(AUDIO_UDP_LISTEN_PORT);
-    audioData->ringBuffer = new AudioRingBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES);
-    
-    AudioRecThreadStruct threadArgs;
-    threadArgs.sharedAudioData = audioData;
-    
-    pthread_create(&audioReceiveThread, NULL, receiveAudioViaUDP, (void *) &threadArgs);
-    
-    paError = Pa_OpenDefaultStream(&stream,
-                               2,       // input channels
-                               2,       // output channels
-                               (paInt16 | paNonInterleaved), // sample format
-                               SAMPLE_RATE,   // sample rate (hz)
-                               BUFFER_LENGTH_SAMPLES,     // frames per buffer
-                               audioCallback, // callback function
-                               (void *) audioData);  // user data to be passed to callback
-    if (paError != paNoError) goto error;
-    
-    initialized = true;
+    _initialized = true;
     
     // start the stream now that sources are good to go
-    Pa_StartStream(stream);
-    if (paError != paNoError) goto error;
-    
-     
-    return;
-    
-error:
-    printLog("-- Failed to initialize portaudio --\n");
-    printLog("PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
-    initialized = false;
-    delete[] audioData;
+    outputPortAudioError(Pa_StartStream(_stream));
+        
+    gettimeofday(&_lastReceiveTime, NULL);
 }
 
-
-float Audio::getInputLoudness() const {
-    return audioData->lastInputLoudness;
+Audio::~Audio() {    
+    if (_initialized) {
+        outputPortAudioError(Pa_CloseStream(_stream));
+        outputPortAudioError(Pa_Terminate());
+    }
 }
 
-void Audio::render(int screenWidth, int screenHeight)
-{
-    if (initialized) {
+//  Take a pointer to the acquired microphone input samples and add procedural sounds
+void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
+    const float MAX_AUDIBLE_VELOCITY = 6.0;
+    const float MIN_AUDIBLE_VELOCITY = 0.1;
+    float speed = glm::length(_lastVelocity);
+    float volume = 400 * (1.f - speed/MAX_AUDIBLE_VELOCITY);
+    
+    //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
+    if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
+        for (int i = 0; i < numSamples; i++) {
+            inputBuffer[i] += (int16_t) ((cosf((float)i / 8.f * speed) * randFloat()) * volume * speed) ;
+        }
+    }
+}
+
+void Audio::addReceivedAudioToBuffer(unsigned char*  receivedData, int receivedBytes) {
+    timeval currentReceiveTime;
+    gettimeofday(&currentReceiveTime, NULL);
+    _totalPacketsReceived++;
+    
+    double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
+    
+    //  Discard first few received packets for computing jitter (often they pile up on start)
+    if (_totalPacketsReceived > 3) {
+        stdev.addValue(timeDiff);
+    }
+    
+    if (stdev.getSamples() > 500) {
+        _measuredJitter = stdev.getStDev();
+        //printLog("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
+        stdev.reset();
+    }
+    
+    if (!_ringBuffer.isStarted()) {
+        _packetsReceivedThisPlayback++;
+    }
+    
+    if (_packetsReceivedThisPlayback == 1) {
+        gettimeofday(&_firstPlaybackTime, NULL);
+    }
+    
+    _ringBuffer.parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
+    
+    _lastReceiveTime = currentReceiveTime;
+}
+
+void Audio::render(int screenWidth, int screenHeight) {
+    if (_initialized) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
@@ -444,19 +398,20 @@ void Audio::render(int screenWidth, int screenHeight)
         timeval currentTime;
         gettimeofday(&currentTime, NULL);
         float timeLeftInCurrentBuffer = 0;
-        if (audioData->lastCallback.tv_usec > 0) {
-            timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&audioData->lastCallback, &currentTime);
+        if (_lastCallbackTime.tv_usec > 0) {
+            timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&_lastCallbackTime, &currentTime);
         }
     
         //  /(1000.0*(float)BUFFER_LENGTH_SAMPLES/(float)SAMPLE_RATE) * frameWidth
         
-        if (audioData->ringBuffer->getEndOfLastWrite() != NULL)
-            remainingBuffer = audioData->ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
+        if (_ringBuffer.getEndOfLastWrite() != NULL)
+            remainingBuffer = _ringBuffer.diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
         
-        if (audioData->wasStarved == 0) glColor3f(0, 1, 0);
-        else {
-            glColor3f(0.5 + (float)audioData->wasStarved/20.0, 0, 0);
-            audioData->wasStarved--;
+        if (_wasStarved == 0) {
+            glColor3f(0, 1, 0);
+        } else {
+            glColor3f(0.5 + (_wasStarved / 20.0f), 0, 0);
+            _wasStarved--;
         }
         
         glBegin(GL_QUADS);
@@ -466,26 +421,30 @@ void Audio::render(int screenWidth, int screenHeight)
         glVertex2f(startX, bottomY - 2);
         glEnd();
         
-        if (audioData->averagedLatency == 0.0) audioData->averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
-        else audioData->averagedLatency = 0.99*audioData->averagedLatency + 0.01*((float)remainingBuffer + (float)timeLeftInCurrentBuffer);
+        if (_averagedLatency == 0.0) {
+            _averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
+        }
+        else {
+            _averagedLatency = 0.99f * _averagedLatency + 0.01f * (remainingBuffer + timeLeftInCurrentBuffer);
+        }
         
         //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
         glColor3f(1,1,0);
         glBegin(GL_QUADS);
-        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 2, topY - 2);
-        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth + 2, topY - 2);
-        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth + 2, bottomY + 2);
-        glVertex2f(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 2, bottomY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 2, topY - 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 2, topY - 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 2, bottomY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 2, bottomY + 2);
         glEnd();
         
         char out[40];
-        sprintf(out, "%3.0f\n", audioData->averagedLatency);
-        drawtext(startX + audioData->averagedLatency/AUDIO_CALLBACK_MSECS*frameWidth - 10, topY-10, 0.10, 0, 1, 0, out, 1,1,0);
+        sprintf(out, "%3.0f\n", _averagedLatency);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY-10, 0.10, 0, 1, 0, out, 1,1,0);
         //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
         
         //  Show a Cyan bar with the most recently measured jitter stdev
         
-        int jitterPels = (float) audioData->measuredJitter/ ((1000.0*(float)PACKET_LENGTH_SAMPLES/(float)SAMPLE_RATE)) * (float)frameWidth;
+        int jitterPels = _measuredJitter / ((1000.0f * PACKET_LENGTH_SAMPLES / SAMPLE_RATE)) * frameWidth;
         
         glColor3f(0,1,1);
         glBegin(GL_QUADS);
@@ -495,42 +454,12 @@ void Audio::render(int screenWidth, int screenHeight)
         glVertex2f(startX + jitterPels - 2, bottomY + 2);
         glEnd();
         
-        sprintf(out,"%3.1f\n", audioData->measuredJitter);
+        sprintf(out,"%3.1f\n", _measuredJitter);
         drawtext(startX + jitterPels - 5, topY-10, 0.10, 0, 1, 0, out, 0,1,1);
         
         sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
         drawtext(startX - 10, bottomY + 15, 0.1, 0, 1, 0, out, 1, 0, 0);
     }
-}
-
-/**
- * Close the running audio stream, and deinitialize portaudio.
- * Should be called at the end of program execution.
- * @return Returns true if the initialization was successful, or false if an error occured.
- The error code may be retrieved by Audio::getError().
- */
-bool Audio::terminate() {
-    stopAudioReceiveThread = true;
-    pthread_join(audioReceiveThread, NULL);
-    
-    if (initialized) {
-        initialized = false;
-        
-        paError = Pa_CloseStream(stream);
-        if (paError != paNoError) goto error;
-        
-        paError = Pa_Terminate();
-        if (paError != paNoError) goto error;
-    }
-    
-    delete audioData;
-    
-    return true;
-    
-error:
-    printLog("-- portaudio termination error --\n");
-    printLog("PortAudio error (%d): %s\n", paError, Pa_GetErrorText(paError));
-    return false;
 }
 
 #endif
