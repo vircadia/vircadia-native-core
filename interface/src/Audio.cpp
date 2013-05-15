@@ -316,6 +316,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
+    const float SOUND_PITCH = 8.f;
     
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
@@ -323,7 +324,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((cosf((float) i / 8.f * speed) * randFloat()) * volume * speed);
+            inputBuffer[i] += (int16_t)((cosf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
         }
     }
 }
