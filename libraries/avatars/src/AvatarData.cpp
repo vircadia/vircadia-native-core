@@ -217,7 +217,11 @@ float AvatarData::getBodyYaw() {
 }
 
 void AvatarData::setBodyYaw(float bodyYaw) {
+    if ((bodyYaw > 360.f) || (bodyYaw < 0.f)) {
+        bodyYaw -= floorf(bodyYaw / 360.f) * 360.f;   
+    }
     _bodyYaw = bodyYaw;
+
 }
 
 float AvatarData::getBodyPitch() {

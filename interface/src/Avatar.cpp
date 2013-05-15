@@ -303,6 +303,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
                              ((mouseLocationX > 0.f) ?
                               mouseMag :
                               -mouseMag) );
+        printLog("yaw = %f\n", getBodyYaw());
     }
     
     return;
