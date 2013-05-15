@@ -57,7 +57,7 @@ const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
-int starve_counter = 0;
+int numStarves = 0;
 StDev stdev;
 
 int samplesLeftForFlange = 0;
@@ -183,7 +183,7 @@ int audioCallback (const void* inputBuffer,
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
-            starve_counter++;
+            ::numStarves++;
             parentAudio->_packetsReceivedThisPlayback = 0;
             
             // printLog("Starved #%d\n", starve_counter);
@@ -203,19 +203,20 @@ int audioCallback (const void* inputBuffer,
             
             int lastYawMeasured = fabsf(interfaceAvatar.getLastMeasuredHeadYaw());
             
-            if (!samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
+            if (!::samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second
-                if ((lastYawMeasuredMaximum = std::max(lastYawMeasuredMaximum, lastYawMeasured)) != lastYawMeasured) {
-                    lastYawMeasuredMaximum = std::min(lastYawMeasuredMaximum, MIN_FLANGE_EFFECT_THRESHOLD);
+                if ((::lastYawMeasuredMaximum = std::max(::lastYawMeasuredMaximum, lastYawMeasured)) != lastYawMeasured) {
+                    ::lastYawMeasuredMaximum = std::min(::lastYawMeasuredMaximum, MIN_FLANGE_EFFECT_THRESHOLD);
                     
-                    samplesLeftForFlange = SAMPLE_RATE;
+                    ::samplesLeftForFlange = SAMPLE_RATE;
                     
-                    flangeIntensity = MIN_FLANGE_INTENSITY +
-                    ((lastYawMeasuredMaximum - MIN_FLANGE_EFFECT_THRESHOLD) / (float)(MAX_FLANGE_EFFECT_THRESHOLD - MIN_FLANGE_EFFECT_THRESHOLD)) *
-                    (1 - MIN_FLANGE_INTENSITY);
+                    ::flangeIntensity = MIN_FLANGE_INTENSITY +
+                        ((::lastYawMeasuredMaximum - MIN_FLANGE_EFFECT_THRESHOLD) /
+                         (float)(MAX_FLANGE_EFFECT_THRESHOLD - MIN_FLANGE_EFFECT_THRESHOLD)) *
+                        (1 - MIN_FLANGE_INTENSITY);
                     
-                    flangeRate = FLANGE_BASE_RATE * flangeIntensity;
-                    flangeWeight = MAX_FLANGE_SAMPLE_WEIGHT * flangeIntensity;
+                    ::flangeRate = FLANGE_BASE_RATE * ::flangeIntensity;
+                    ::flangeWeight = MAX_FLANGE_SAMPLE_WEIGHT * ::flangeIntensity;
                 }
             }
             
@@ -224,11 +225,12 @@ int audioCallback (const void* inputBuffer,
                 int leftSample = ringBuffer->getNextOutput()[s];
                 int rightSample = ringBuffer->getNextOutput()[s + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
                 
-                if (samplesLeftForFlange > 0) {
-                    float exponent = (SAMPLE_RATE - samplesLeftForFlange - (SAMPLE_RATE / flangeRate)) / (SAMPLE_RATE / flangeRate);
-                    int sampleFlangeDelay = (SAMPLE_RATE / (1000 * flangeIntensity)) * powf(2, exponent);
+                if (::samplesLeftForFlange > 0) {
+                    float exponent = (SAMPLE_RATE - ::samplesLeftForFlange - (SAMPLE_RATE / ::flangeRate)) /
+                        (SAMPLE_RATE / ::flangeRate);
+                    int sampleFlangeDelay = (SAMPLE_RATE / (1000 * ::flangeIntensity)) * powf(2, exponent);
                     
-                    if (samplesLeftForFlange != SAMPLE_RATE || s >= (SAMPLE_RATE / 2000)) {
+                    if (::samplesLeftForFlange != SAMPLE_RATE || s >= (SAMPLE_RATE / 2000)) {
                         // we have a delayed sample to add to this sample
                         
                         int16_t *flangeFrame = ringBuffer->getNextOutput();
@@ -246,13 +248,13 @@ int audioCallback (const void* inputBuffer,
                         int16_t leftFlangeSample = flangeFrame[flangeIndex];
                         int16_t rightFlangeSample = flangeFrame[flangeIndex + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
                         
-                        leftSample = (1 - flangeWeight) * leftSample + (flangeWeight * leftFlangeSample);
-                        rightSample = (1 - flangeWeight) * rightSample + (flangeWeight * rightFlangeSample);
+                        leftSample = (1 - ::flangeWeight) * leftSample + (::flangeWeight * leftFlangeSample);
+                        rightSample = (1 - ::flangeWeight) * rightSample + (::flangeWeight * rightFlangeSample);
                         
-                        samplesLeftForFlange--;
+                        ::samplesLeftForFlange--;
                         
-                        if (samplesLeftForFlange == 0) {
-                            lastYawMeasuredMaximum = 0;
+                        if (::samplesLeftForFlange == 0) {
+                            ::lastYawMeasuredMaximum = 0;
                         }
                     }
                 }
@@ -347,13 +349,13 @@ void Audio::addReceivedAudioToBuffer(unsigned char*  receivedData, int receivedB
     
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > 3) {
-        stdev.addValue(timeDiff);
+        ::stdev.addValue(timeDiff);
     }
     
-    if (stdev.getSamples() > 500) {
-        _measuredJitter = stdev.getStDev();
+    if (::stdev.getSamples() > 500) {
+        _measuredJitter = ::stdev.getStDev();
         //printLog("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
-        stdev.reset();
+        ::stdev.reset();
     }
     
     if (!_ringBuffer.isStarted()) {
