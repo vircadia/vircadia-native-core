@@ -30,6 +30,7 @@
 #include "ui/ChatEntry.h"
 
 class QAction;
+class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
 class QMainWindow;
@@ -78,7 +79,6 @@ private slots:
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
-    void setDestructivePaint(bool destructive);
     void setRenderWarnings(bool renderWarnings);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
@@ -91,6 +91,10 @@ private slots:
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
+    void updateVoxelModeActions();
+    void addVoxelInFrontOfAvatar();
+    void decreaseVoxelSize();
+    void increaseVoxelSize();
     void chooseVoxelPaintColor();
     
 private:
@@ -112,13 +116,14 @@ private:
     
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void addVoxelInFrontOfAvatar();
     void addVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
+    
+    QAction* checkedVoxelModeAction() const;
     
     static void attachNewHeadToAgent(Agent *newAgent);
     static void* networkReceive(void* args);
@@ -134,8 +139,13 @@ private:
     QAction* _renderAvatarsOn;       // Whether to render avatars 
     QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats 
-    QAction* _logOn;                 // Whether to show on-screen log 
+    QAction* _logOn;                 // Whether to show on-screen log
+    QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
+    QAction* _addVoxelMode;          // Whether add voxel mode is enabled
+    QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
+    QAction* _colorVoxelMode;        // Whether color voxel mode is enabled
     QAction* _voxelPaintColor;       // The color with which to paint voxels
+    QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _cameraFrustum;         // which frustum to look at 
@@ -191,18 +201,15 @@ private:
     int _mouseY;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
     
-    // The current mode for mouse interaction
-    enum MouseMode { NO_EDIT_MODE, ADD_VOXEL_MODE, DELETE_VOXEL_MODE, COLOR_VOXEL_MODE };
-    MouseMode _mouseMode;
-    VoxelDetail _mouseVoxel; // details of the voxel under the mouse cursor
-    float _mouseVoxelScale;  // the scale for adding/removing voxels
+    VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
+    float _mouseVoxelScale;       // the scale for adding/removing voxels
+    glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting
     VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
     
     bool _perfStatsOn; //  Do we want to display perfStats? 
-    bool _destructiveAddVoxel; // when doing voxel editing do we want them to be destructive
     
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
