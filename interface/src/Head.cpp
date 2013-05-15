@@ -297,9 +297,10 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     glColor3f(0,0,0);
     glRotatef(mouthPitch, 1, 0, 0);
     glRotatef(mouthYaw, 0, 0, 1);
-    if (averageLoudness > 1.f) {
-        glScalef(mouthWidth * (.7f + sqrt(averageLoudness) /60.f),
-                 mouthHeight * (1.f + sqrt(averageLoudness) /30.f), 1);
+    
+    if ((averageLoudness > 1.f) && (averageLoudness < 10000.f)) {
+        glScalef(mouthWidth * (.7f + sqrt(averageLoudness) / 60.f),
+                 mouthHeight * (1.f + sqrt(averageLoudness) / 30.f), 1);
     } else {
         glScalef(mouthWidth, mouthHeight, 1);
     }
