@@ -15,6 +15,7 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
+#include "Orientation.h"
 
 enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
 
@@ -30,6 +31,7 @@ public:
     void render(bool lookingInMirror, float bodyYaw);
     void setNewTarget(float, float);
     void setSpringScale(float s) { returnSpringScale = s; }
+    void setLookatPosition(glm::vec3 lookatPosition);
     
     //  Do you want head to try to return to center (depends on interface detected)
     void setReturnToCenter(bool r) { returnHeadToCenter = r; }
@@ -43,6 +45,7 @@ public:
     glm::vec3 skinColor;
     glm::vec3 position;
     glm::vec3 rotation;
+    glm::vec3 lookatPosition;
     float yaw;
     float pitch;
     float roll;
@@ -85,6 +88,12 @@ public:
 
     //  Strength of return springs
     float returnSpringScale;
+    
+private: 
+    void renderEyeBalls();
+    void renderIrises(float yaw);
+    void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    
 };
 
 #endif

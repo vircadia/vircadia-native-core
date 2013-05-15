@@ -195,9 +195,6 @@ private:
     glm::vec3   _mouseRayDirection;
     glm::vec3   _cameraPosition;
     
-    //AvatarJointID _jointTouched;
-    
-
     // private methods...
     void initializeSkeleton();
     void updateSkeleton();
@@ -205,7 +202,6 @@ private:
     void updateBodySprings( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
-    void updateHead( float deltaTime );
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );

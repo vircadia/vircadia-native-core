@@ -293,7 +293,9 @@ bool Avatar::getIsNearInteractingOther() {
 void Avatar::simulate(float deltaTime) {
 
     //figure out if the mouse cursor is over any body spheres... 
-    checkForMouseRayTouching();
+    if (_isMine) {
+        checkForMouseRayTouching();
+    }
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
@@ -519,6 +521,9 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         }
 
         if (_interactingOther) {
+        
+            _head.setLookatPosition( _interactingOther->getSpringyHeadPosition());
+
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
@@ -591,115 +596,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
     }
 }
-
-void Avatar::updateHead(float deltaTime) {
-
-/*
-    //  Decay head back to center if turned on
-    if (_isMine && _returnHeadToCenter) {
-        //  Decay back toward center
-        _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-        _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-        _headRoll  *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-    }
-    
-    //  For invensense gyro, decay only slightly when roughly centered
-    if (_isMine) {
-        const float RETURN_RANGE = 15.0;
-        const float RETURN_STRENGTH = 2.0;
-        if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
-    }
-
-    if (_head.noise) {
-        //  Move toward new target
-        _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
-        _headYaw   += (_head.yawTarget   - _headYaw  ) * 10 * deltaTime; // (1.f - DECAY*deltaTime);
-        _headRoll *= 1.f - (DECAY * deltaTime);
-    }
-    
-    _head.leanForward  *= (1.f - DECAY * 30 * deltaTime);
-    _head.leanSideways *= (1.f - DECAY * 30 * deltaTime);
-        
-    //  Update where the avatar's eyes are
-    //
-    //  First, decide if we are making eye contact or not
-    if (randFloat() < 0.005) {
-        _head.eyeContact = !_head.eyeContact;
-        _head.eyeContact = 1;
-        if (!_head.eyeContact) {
-            //  If we just stopped making eye contact,move the eyes markedly away
-            _head.eyeballPitch[0] = _head.eyeballPitch[1] = _head.eyeballPitch[0] + 5.0 + (randFloat() - 0.5) * 10;
-            _head.eyeballYaw  [0] = _head.eyeballYaw  [1] = _head.eyeballYaw  [0] + 5.0 + (randFloat() - 0.5) * 5;
-        } else {
-            //  If now making eye contact, turn head to look right at viewer
-            SetNewHeadTarget(0,0);
-        }
-    }
-    
-    const float DEGREES_BETWEEN_VIEWER_EYES = 3;
-    const float DEGREES_TO_VIEWER_MOUTH = 7;
-    
-    if (_head.eyeContact) {
-        //  Should we pick a new eye contact target?
-        if (randFloat() < 0.01) {
-            //  Choose where to look next
-            if (randFloat() < 0.1) {
-                _head.eyeContactTarget = MOUTH;
-            } else {
-                if (randFloat() < 0.5) _head.eyeContactTarget = LEFT_EYE; else _head.eyeContactTarget = RIGHT_EYE;
-            }
-        }
-        //  Set eyeball pitch and yaw to make contact
-        float eye_target_yaw_adjust = 0;
-        float eye_target_pitch_adjust = 0;
-        if (_head.eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
-        if (_head.eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
-        if (_head.eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
-        
-        _head.eyeballPitch[0] = _head.eyeballPitch[1] = -_headPitch + eye_target_pitch_adjust;
-        _head.eyeballYaw[0] = _head.eyeballYaw[1] = -_headYaw + eye_target_yaw_adjust;
-    }
-    
-    if (_head.noise)
-    {
-        _headPitch += (randFloat() - 0.5) * 0.2 * _head.noiseEnvelope;
-        _headYaw += (randFloat() - 0.5) * 0.3 *_head.noiseEnvelope;
-        //PupilSize += (randFloat() - 0.5) * 0.001*NoiseEnvelope;
-        
-        if (randFloat() < 0.005) _head.mouthWidth = MouthWidthChoices[rand()%3];
-        
-        if (!_head.eyeContact) {
-            if (randFloat() < 0.01)  _head.eyeballPitch[0] = _head.eyeballPitch[1] = (randFloat() - 0.5) * 20;
-            if (randFloat() < 0.01)  _head.eyeballYaw[0] = _head.eyeballYaw[1] = (randFloat()- 0.5) * 10;
-        }
-        
-        if ((randFloat() < 0.005) && (fabs(_head.pitchTarget - _headPitch) < 1.0) && (fabs(_head.yawTarget - _headYaw) < 1.0)) {
-            SetNewHeadTarget((randFloat()-0.5) * 20.0, (randFloat()-0.5) * 45.0);
-        }
-        
-        if (0) {
-            
-            //  Pick new target
-            _head.pitchTarget = (randFloat() - 0.5) * 45;
-            _head.yawTarget = (randFloat() - 0.5) * 22;
-        }
-        if (randFloat() < 0.01)
-        {
-            _head.eyebrowPitch[0] = _head.eyebrowPitch[1] = BrowPitchAngle[rand()%3];
-            _head.eyebrowRoll [0] = _head.eyebrowRoll[1] = BrowRollAngle[rand()%5];
-            _head.eyebrowRoll [1] *=-1;
-        }
-    }
-    
-    //  Update audio trailing average for rendering facial animations
-    const float AUDIO_AVERAGING_SECS = 0.05;
-    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
-                            (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-*/
-}
-
 
 float Avatar::getHeight() {
     return _height;

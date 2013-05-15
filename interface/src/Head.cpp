@@ -7,6 +7,7 @@
 //
 
 #include "Head.h"
+#include "Util.h"
 #include <vector>
 #include <SharedUtil.h>
 #include <lodepng.h>
@@ -14,6 +15,8 @@
 using namespace std;
 
 const float HEAD_MOTION_DECAY = 0.1;
+
+const bool TESTING_LOOKAT = false;
 
 
 float _browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
@@ -49,6 +52,7 @@ void Head::initialize() {
     audioLoudness         = 0.0;
     skinColor             = glm::vec3(0.0f, 0.0f, 0.0f);
     position              = glm::vec3(0.0f, 0.0f, 0.0f);
+    lookatPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     yaw                   = 0.0f;
     pitch                 = 0.0f;
     roll                  = 0.0f;
@@ -219,10 +223,20 @@ void Head::simulate(float deltaTime, bool isMine) {
     const float AUDIO_AVERAGING_SECS = 0.05;
     averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * averageLoudness +
                             (deltaTime / AUDIO_AVERAGING_SECS) * audioLoudness;
+                                                        
 }
 
 
+void Head::setLookatPosition(glm::vec3 l) {
+    lookatPosition = l;
+}
+
+
+
 void Head::render(bool lookingInMirror, float bodyYaw) {
+
+
+//float a = angleBetween( &position, &position);
 
     int side = 0;
     
@@ -236,11 +250,11 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
         glScalef(scale, scale, scale);
     
     if (lookingInMirror) {
-        glRotatef(bodyYaw   - yaw,   0, 1, 0);
+        glRotatef(bodyYaw  - yaw,   0, 1, 0);
         glRotatef(pitch, 1, 0, 0);   
         glRotatef(-roll,  0, 0, 1);
     } else {
-        glRotatef(bodyYaw   + yaw,   0, 1, 0);
+        glRotatef(bodyYaw  + yaw,   0, 1, 0);
         glRotatef(pitch, 1, 0, 0);
         glRotatef(roll,  0, 0, 1);
     }
@@ -290,24 +304,37 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     
     // Mouth
     glPushMatrix();
-    glTranslatef(0,-0.35,0.75);
-    glColor3f(0,0,0);
+        glTranslatef(0,-0.35,0.75);
+        glColor3f(0,0,0);
 
-    glRotatef(mouthPitch, 1, 0, 0);
-    glRotatef(mouthYaw, 0, 0, 1);
+        glRotatef(mouthPitch, 1, 0, 0);
+        glRotatef(mouthYaw, 0, 0, 1);
 
-    if (averageLoudness > 1.f) {
-        glScalef(mouthWidth  * (.7f + sqrt(averageLoudness) /60.f),
-                 mouthHeight * (1.f + sqrt(averageLoudness) /30.f), 1);
-    } else {
-        glScalef(mouthWidth, mouthHeight, 1);
-    } 
+        if (averageLoudness > 1.f) {
+            glScalef(mouthWidth  * (.7f + sqrt(averageLoudness) /60.f),
+                     mouthHeight * (1.f + sqrt(averageLoudness) /30.f), 1);
+        } else {
+            glScalef(mouthWidth, mouthHeight, 1);
+        } 
 
-    glutSolidCube(0.5);
+        glutSolidCube(0.5);
     glPopMatrix();
     
-    glTranslatef(0, 1.0, 0);
+    renderEyeBalls();
     
+    glPopMatrix();
+
+    if (TESTING_LOOKAT) {
+        //the irises are special - they have the ability to look at specific targets in the world (code still not finished yet)
+        renderIrises(bodyYaw + yaw);    
+    }
+}
+
+
+
+void Head::renderEyeBalls() {
+
+    glTranslatef(0, 1.0, 0);
 
     glTranslatef(-interPupilDistance/2.0,-0.68,0.7);
     // Right Eye
@@ -322,30 +349,33 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
     }
     glPopMatrix();
     
-    // Right Pupil
-    if (sphere == NULL) {
-        sphere = gluNewQuadric();
-        gluQuadricTexture(sphere, GL_TRUE);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        gluQuadricOrientation(sphere, GLU_OUTSIDE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+    if (!TESTING_LOOKAT) {
+        // Right Pupil
+        if (sphere == NULL) {
+            sphere = gluNewQuadric();
+            gluQuadricTexture(sphere, GL_TRUE);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            gluQuadricOrientation(sphere, GLU_OUTSIDE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+        }
+
+        glPushMatrix();
+        {   
+            glRotatef(eyeballPitch[1], 1, 0, 0);
+            glRotatef(eyeballYaw[1] + yaw + pupilConverge, 0, 1, 0);
+            glTranslatef(0,0,.35);
+            glRotatef(-75,1,0,0);
+            glScalef(1.0, 0.4, 1.0);
+            
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, pupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }    
+        glPopMatrix();
     }
-    
-    glPushMatrix();
-    {   
-        glRotatef(eyeballPitch[1], 1, 0, 0);
-        glRotatef(eyeballYaw[1] + yaw + pupilConverge, 0, 1, 0);
-        glTranslatef(0,0,.35);
-        glRotatef(-75,1,0,0);
-        glScalef(1.0, 0.4, 1.0);
-        
-        glEnable(GL_TEXTURE_2D);
-        gluSphere(sphere, pupilSize, 15, 15);
-        glDisable(GL_TEXTURE_2D);
-    }
-    
-    glPopMatrix();
+
+
     // Left Eye
     glColor3fv(_eyeColor);
     glTranslatef(interPupilDistance, 0, 0);
@@ -357,21 +387,111 @@ void Head::render(bool lookingInMirror, float bodyYaw) {
         glutSolidSphere(0.25, 30, 30);
     }
     glPopMatrix();
-    // Left Pupil
+    
+    if (!TESTING_LOOKAT) {    
+        // Left Pupil
+        glPushMatrix();
+        {
+            glRotatef(eyeballPitch[0], 1, 0, 0);
+            glRotatef(eyeballYaw[0] + yaw - pupilConverge, 0, 1, 0);
+            glTranslatef(0, 0, .35);
+            glRotatef(-75, 1, 0, 0);
+            glScalef(1.0, 0.4, 1.0);
+            
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, pupilSize, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        }
+        glPopMatrix();
+    }
+}
+
+
+//---------------------------------------------------------
+// the code below is still in the prototyping stages....
+//---------------------------------------------------------
+void Head::renderIrises(float yaw) {
+    Orientation orientation;
+    orientation.setToPitchYawRoll( pitch, yaw, roll);
+    
+    // Render lines originating from the eyes and converging on the lookatPosition    
+    float rightShift = scale * 0.22f;
+    float upShift    = scale * 0.38f;
+    float frontShift = scale * 0.9f;
+    
+    glm::vec3 leftEyePosition  = position + orientation.getRight() * rightShift 
+                                          + orientation.getUp   () * upShift 
+                                          + orientation.getFront() * frontShift;
+    glm::vec3 rightEyePosition = position - orientation.getRight() * rightShift 
+                                          + orientation.getUp   () * upShift 
+                                          + orientation.getFront() * frontShift;
+    
+    debugRenderLookatVectors(leftEyePosition, rightEyePosition, lookatPosition);
+    
+    glColor3fv(_eyeColor);
+    
+    if (sphere == NULL) {
+        sphere = gluNewQuadric();
+        gluQuadricTexture(sphere, GL_TRUE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gluQuadricOrientation(sphere, GLU_OUTSIDE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iris_texture_width, iris_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &iris_texture[0]);
+    }
+    
+    //render left iris
     glPushMatrix();
     {
-        glRotatef(eyeballPitch[0], 1, 0, 0);
-        glRotatef(eyeballYaw[0] + yaw - pupilConverge, 0, 1, 0);
-        glTranslatef(0, 0, .35);
-        glRotatef(-75, 1, 0, 0);
-        glScalef(1.0, 0.4, 1.0);
+        glTranslatef(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
+        glm::vec3 targetLookatAxis = glm::normalize(lookatPosition - leftEyePosition);
         
-        glEnable(GL_TEXTURE_2D);
-        gluSphere(sphere, pupilSize, 15, 15);
-        glDisable(GL_TEXTURE_2D);
+        glPushMatrix();
+            glm::vec3 pitchRotationAxis = glm::cross(targetLookatAxis, orientation.getRight());
+            glm::vec3 yawRotationAxis   = glm::cross(targetLookatAxis, orientation.getUp());
+            
+            glRotatef(90.0f, yawRotationAxis.x, yawRotationAxis.y, yawRotationAxis.z);
+            glRotatef(90.0f, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, 0.01, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        glPopMatrix();
     }
     glPopMatrix();
-    
+
+    //render right iris
+    glPushMatrix();
+    {
+        glTranslatef(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);        
+        glm::vec3 targetLookatAxis = glm::normalize(lookatPosition - rightEyePosition);
+        
+        glPushMatrix();
+            glm::vec3 pitchRotationAxis = glm::cross(targetLookatAxis, orientation.getRight());
+            glm::vec3 yawRotationAxis   = glm::cross(targetLookatAxis, orientation.getUp());
+
+            glRotatef(90.0f, yawRotationAxis.x, yawRotationAxis.y, yawRotationAxis.z);
+            glRotatef(90.0f, pitchRotationAxis.x, pitchRotationAxis.y, pitchRotationAxis.z);
+            glEnable(GL_TEXTURE_2D);
+            gluSphere(sphere, 0.01, 15, 15);
+            glDisable(GL_TEXTURE_2D);
+        glPopMatrix();
+    }
     glPopMatrix();
 }
+
+
+void Head::debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glLineWidth(3.0);
+    glBegin(GL_LINE_STRIP);
+    glVertex3f(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
+    glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
+    glEnd();
+    glBegin(GL_LINE_STRIP);
+    glVertex3f(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);
+    glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
+    glEnd();
+}
+
+
 

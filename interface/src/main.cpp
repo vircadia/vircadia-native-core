@@ -1059,6 +1059,7 @@ void display(void)
             myCamera.setTargetRotation(myAvatar.getBodyYaw() + myAvatar.getHeadYaw(), -myAvatar.getHeadPitch(), myAvatar.getHeadRoll());
         
         } else if (myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            myCamera.setTightness     (100.0f); 
             myCamera.setTargetPosition(myAvatar.getSpringyHeadPosition());
             myCamera.setTargetRotation(myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f);
             
@@ -1085,7 +1086,6 @@ void display(void)
         drawVector(&test);
         glPopMatrix();
         */
-        
         
         // Note: whichCamera is used to pick between the normal camera myCamera for our 
         // main camera, vs, an alternate camera. The alternate camera we support right now

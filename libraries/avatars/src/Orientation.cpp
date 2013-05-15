@@ -25,6 +25,15 @@ void Orientation::setToIdentity() {
 	front = glm::vec3(IDENTITY_FRONT);
 }
 
+void Orientation::setToPitchYawRoll(float p, float y, float r) {
+
+    setToIdentity();
+    pitch(p);
+    yaw  (y);
+    roll (r);
+}
+
+
 void Orientation::set(Orientation o) { 
 
     quat  = o.quat;
