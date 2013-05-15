@@ -99,6 +99,11 @@ int main(int argc, const char* argv[]) {
     int nextFrame = 0;
     timeval startTime;
     
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES + 1];
+    clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
+    
+    int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
+    
     gettimeofday(&startTime, NULL);
     
     while (true) {
@@ -129,8 +134,9 @@ int main(int argc, const char* argv[]) {
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
-
-            int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
+            
+            // zero out the client mix for this agent
+            memset(clientSamples, 0, sizeof(clientSamples));
             
             for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
                 if (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
@@ -219,11 +225,11 @@ int main(int argc, const char* argv[]) {
                         }
                         
                         int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                            : clientMix;
+                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                            : clientSamples;
                         int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientMix
-                            : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            ? clientSamples
+                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         
                         int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
@@ -249,7 +255,8 @@ int main(int argc, const char* argv[]) {
                 }
             }
             
-            agentList->getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
+            memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
+            agentList->getAgentSocket().send(agent->getPublicSocket(), clientSamples, BUFFER_LENGTH_BYTES + 1);
         }
         
         // push forward the next output pointers for any audio buffers we used

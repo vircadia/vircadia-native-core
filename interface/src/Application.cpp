@@ -1995,6 +1995,9 @@ void* Application::networkReceive(void* args) {
                     
                     printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
                     break;
+                case PACKET_HEADER_MIXED_AUDIO:
+                    app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                    break;
                 case PACKET_HEADER_VOXEL_DATA:
                 case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
                 case PACKET_HEADER_Z_COMMAND:
