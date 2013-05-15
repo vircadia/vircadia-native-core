@@ -146,7 +146,7 @@ int audioCallback (const void* inputBuffer,
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
             
-            agentList->getAgentSocket().send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
         
     }

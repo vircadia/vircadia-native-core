@@ -78,10 +78,6 @@ AgentList::~AgentList() {
     pthread_mutex_destroy(&mutex);
 }
 
-UDPSocket& AgentList::getAgentSocket() {
-    return agentSocket;
-}
-
 unsigned int AgentList::getSocketListenPort() {
     return socketListenPort;
 }
@@ -184,7 +180,7 @@ Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
 
 Agent* AgentList::agentWithID(uint16_t agentID) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-        if (agent->getAgentId() == agentID) {
+        if (agent->getAgentID() == agentID) {
             return &(*agent);
         }
     }
@@ -337,8 +333,8 @@ void *pingUnknownAgents(void *args) {
                 && (agent->getPublicSocket() != NULL && agent->getLocalSocket() != NULL)) {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
-                agentList->getAgentSocket().send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
-                agentList->getAgentSocket().send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket()->send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);
+                agentList->getAgentSocket()->send(agent->getLocalSocket(), &PACKET_HEADER_PING, 1);
             }
         }
         
@@ -433,7 +429,7 @@ void *checkInWithDomainServer(void *args) {
         
         packSocket(packet + 2, localAddress, htons(parentAgentList->getSocketListenPort()));
         
-        parentAgentList->getAgentSocket().send(DOMAIN_IP, DOMAINSERVER_PORT, packet, sizeof(packet));
+        parentAgentList->getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, packet, sizeof(packet));
         
         packet[0] = PACKET_HEADER_DOMAIN_LIST_REQUEST;
         

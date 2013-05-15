@@ -22,79 +22,70 @@
 
 using shared_lib::printLog;
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId) {
+int unpackAgentId(unsigned char* packedData, uint16_t* agentId) {
     memcpy(agentId, packedData, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
-int packAgentId(unsigned char *packStore, uint16_t agentId) {
+int packAgentId(unsigned char* packStore, uint16_t agentId) {
     memcpy(packStore, &agentId, sizeof(uint16_t));
     return sizeof(uint16_t);
 }
 
-Agent::Agent(sockaddr *agentPublicSocket, sockaddr *agentLocalSocket, char agentType, uint16_t thisAgentId) :
+Agent::Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID) :
+    _type(type),
+    _agentID(agentID),
+    _wakeMicrostamp(usecTimestampNow()),
+    _lastHeardMicrostamp(usecTimestampNow()),
+    _activeSocket(NULL),
+    _bytesReceivedMovingAverage(NULL),
+    _linkedData(NULL),
     _isAlive(true)
 {
-    if (agentPublicSocket != NULL) {
-        publicSocket = new sockaddr;
-        memcpy(publicSocket, agentPublicSocket, sizeof(sockaddr));
+    if (publicSocket) {
+        _publicSocket = new sockaddr(*publicSocket);
     } else {
-        publicSocket = NULL;
+        _publicSocket = NULL;
     }
     
-    if (agentLocalSocket != NULL) {
-        localSocket = new sockaddr;
-        memcpy(localSocket, agentLocalSocket, sizeof(sockaddr));
+    if (localSocket) {
+        _localSocket = new sockaddr(*localSocket);
     } else {
-        localSocket = NULL;
+        _localSocket = NULL;
     }
-    
-    type = agentType;
-    agentId = thisAgentId;
-    
-    _wakeMicrostamp = usecTimestampNow();
-    _lastHeardMicrostamp = usecTimestampNow();
-    
-    activeSocket = NULL;
-    linkedData = NULL;
-    _bytesReceivedMovingAverage = NULL;
 }
 
-Agent::Agent(const Agent &otherAgent) {
-    _isAlive = otherAgent._isAlive;
-    
-    if (otherAgent.publicSocket != NULL) {
-        publicSocket = new sockaddr;
-        memcpy(publicSocket, otherAgent.publicSocket, sizeof(sockaddr));
+Agent::Agent(const Agent &otherAgent) :
+    _type(otherAgent._type),
+    _agentID(otherAgent._agentID),
+    _wakeMicrostamp(otherAgent._wakeMicrostamp),
+    _lastHeardMicrostamp(otherAgent._lastHeardMicrostamp),
+    _isAlive(otherAgent._isAlive)
+{
+    if (otherAgent._publicSocket) {
+        _publicSocket = new sockaddr(*otherAgent._localSocket);
     } else {
-        publicSocket = NULL;
+        _publicSocket = NULL;
     }
     
-    if (otherAgent.localSocket != NULL) {
-        localSocket = new sockaddr;
-        memcpy(localSocket, otherAgent.localSocket, sizeof(sockaddr));
+    if (otherAgent._localSocket) {
+        _localSocket = new sockaddr(*otherAgent._localSocket);
     } else {
-        localSocket = NULL;
+        _localSocket = NULL;
     }
     
-    agentId = otherAgent.agentId;
-    
-    if (otherAgent.activeSocket == otherAgent.publicSocket) {
-        activeSocket = publicSocket;
-    } else if (otherAgent.activeSocket == otherAgent.localSocket) {
-        activeSocket = localSocket;
+    if (otherAgent._activeSocket == otherAgent._publicSocket) {
+        _activeSocket = _publicSocket;
+    } else if (otherAgent._activeSocket == otherAgent._localSocket) {
+        _activeSocket = _localSocket;
     } else {
-        activeSocket = NULL;
+        _activeSocket = NULL;
     }
     
-    _wakeMicrostamp = otherAgent._wakeMicrostamp;
-    _lastHeardMicrostamp = otherAgent._lastHeardMicrostamp;
-    type = otherAgent.type;
-    
-    if (otherAgent.linkedData != NULL) {
-        linkedData = otherAgent.linkedData->clone();
+    if (otherAgent._linkedData) {
+        _linkedData = otherAgent._linkedData->clone();
     } else {
-        linkedData = NULL;
+        _linkedData = NULL;
     }
     
     if (otherAgent._bytesReceivedMovingAverage != NULL) {
@@ -114,26 +105,22 @@ void Agent::swap(Agent &first, Agent &second) {
     using std::swap;
     
     swap(first._isAlive, second._isAlive);
-    swap(first.publicSocket, second.publicSocket);
-    swap(first.localSocket, second.localSocket);
-    swap(first.activeSocket, second.activeSocket);
-    swap(first.type, second.type);
-    swap(first.linkedData, second.linkedData);
-    swap(first.agentId, second.agentId);
+    swap(first._publicSocket, second._publicSocket);
+    swap(first._localSocket, second._localSocket);
+    swap(first._activeSocket, second._activeSocket);
+    swap(first._type, second._type);
+    swap(first._linkedData, second._linkedData);
+    swap(first._agentID, second._agentID);
     swap(first._wakeMicrostamp, second._wakeMicrostamp);
     swap(first._lastHeardMicrostamp, second._lastHeardMicrostamp);
     swap(first._bytesReceivedMovingAverage, second._bytesReceivedMovingAverage);
 }
 
 Agent::~Agent() {
-    delete publicSocket;
-    delete localSocket;
-    delete linkedData;
+    delete _publicSocket;
+    delete _localSocket;
+    delete _linkedData;
     delete _bytesReceivedMovingAverage;
-}
-
-char Agent::getType() const {
-    return type;
 }
 
 // Names of Agent Types
@@ -142,87 +129,45 @@ const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
 const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
 const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
+const char* AGENT_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
-	const char* name = AGENT_TYPE_NAME_UNKNOWN;
-	switch (this->type) {
+	switch (this->_type) {
 		case AGENT_TYPE_DOMAIN:
-			name = AGENT_TYPE_NAME_DOMAIN;
-			break;
+			return AGENT_TYPE_NAME_DOMAIN;
 		case AGENT_TYPE_VOXEL:
-			name = AGENT_TYPE_NAME_VOXEL;
-			break;
+			return AGENT_TYPE_NAME_VOXEL;
 		case AGENT_TYPE_AVATAR:
-			name = AGENT_TYPE_NAME_INTERFACE;
-			break;
+			return AGENT_TYPE_NAME_INTERFACE;
 		case AGENT_TYPE_AUDIO_MIXER:
-			name = AGENT_TYPE_NAME_AUDIO_MIXER;
-			break;
+			return AGENT_TYPE_NAME_AUDIO_MIXER;
         case AGENT_TYPE_AVATAR_MIXER:
-            name = AGENT_TYPE_NAME_AVATAR_MIXER;
-            break;
+            return AGENT_TYPE_NAME_AVATAR_MIXER;
+        case AGENT_TYPE_AUDIO_INJECTOR:
+            return AGENT_TYPE_NAME_AUDIO_INJECTOR;
+        default:
+            return AGENT_TYPE_NAME_UNKNOWN;
 	}
-	return name;
-}
-
-void Agent::setType(char newType) {
-    type = newType;
-}
-
-uint16_t Agent::getAgentId() {
-    return agentId;
-}
-
-void Agent::setAgentId(uint16_t thisAgentId) {
-    agentId = thisAgentId;
-}
-
-sockaddr* Agent::getPublicSocket() {
-    return publicSocket;
-}
-
-void Agent::setPublicSocket(sockaddr *newSocket) {
-    publicSocket = newSocket;
-}
-
-sockaddr* Agent::getLocalSocket() {
-    return localSocket;
-}
-
-void Agent::setLocalSocket(sockaddr *newSocket) {
-    publicSocket = newSocket;
-}
-
-sockaddr* Agent::getActiveSocket() {
-    return activeSocket;
 }
 
 void Agent::activateLocalSocket() {
-    activeSocket = localSocket;
+    _activeSocket = _localSocket;
 }
 
 void Agent::activatePublicSocket() {
-    activeSocket = publicSocket;
-}
-
-AgentData* Agent::getLinkedData() {
-    return linkedData;
-}
-
-void Agent::setLinkedData(AgentData *newData) {
-    linkedData = newData;
+    _activeSocket = _publicSocket;
 }
 
 bool Agent::operator==(const Agent& otherAgent) {
-    return matches(otherAgent.publicSocket, otherAgent.localSocket, otherAgent.type);
+    return matches(otherAgent._publicSocket, otherAgent._localSocket, otherAgent._type);
 }
 
 bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
     // checks if two agent objects are the same agent (same type + local + public address)
-    return type == otherAgentType
-        && socketMatch(publicSocket, otherPublicSocket)
-        && socketMatch(localSocket, otherLocalSocket);
+    return _type == otherAgentType
+        && socketMatch(_publicSocket, otherPublicSocket)
+        && socketMatch(_localSocket, otherLocalSocket);
 }
 
 void Agent::recordBytesReceived(int bytesReceived) {
@@ -252,15 +197,15 @@ float Agent::getAverageKilobitsPerSecond() {
 void Agent::printLog(Agent const& agent) {
     
     char publicAddressBuffer[16] = {'\0'};
-    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, agent.publicSocket);
+    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, agent._publicSocket);
     
     //char localAddressBuffer[16] = {'\0'};
     //unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, agent.localSocket);
     
     ::printLog("# %d %s (%c) @ %s:%d\n",
-               agent.agentId,
+               agent._agentID,
                agent.getTypeName(),
-               agent.type,
+               agent._type,
                publicAddressBuffer,
                publicAddressPort);
 }

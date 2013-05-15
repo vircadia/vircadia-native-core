@@ -179,7 +179,7 @@ Application::Application(int& argc, char** argv) :
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
-        AgentList::getInstance()->getAgentSocket().setBlocking(false);
+        AgentList::getInstance()->getAgentSocket()->setBlocking(false);
     }
     
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
@@ -2025,7 +2025,7 @@ void* Application::networkReceive(void* args) {
             app->_wantToKillLocalVoxels = false;
         }
     
-        if (AgentList::getInstance()->getAgentSocket().receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
+        if (AgentList::getInstance()->getAgentSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
