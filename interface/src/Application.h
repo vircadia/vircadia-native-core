@@ -202,8 +202,9 @@ private:
     int _mouseY;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
     
-    VoxelDetail _mouseVoxel; // details of the voxel under the mouse cursor
-    float _mouseVoxelScale;  // the scale for adding/removing voxels
+    VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
+    float _mouseVoxelScale;       // the scale for adding/removing voxels
+    glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting

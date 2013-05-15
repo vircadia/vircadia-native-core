@@ -670,6 +670,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 void Application::mouseMoveEvent(QMouseEvent* event) {
     _mouseX = event->x();
     _mouseY = event->y();
+    
+    // detect drag
+    glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+    if (_colorVoxelMode->isChecked() && event->buttons().testFlag(Qt::LeftButton) && mouseVoxelPos != _lastMouseVoxelPos) {
+        addVoxelUnderCursor();
+    }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -797,8 +803,6 @@ void Application::idle() {
 
         _mouseVoxel.s = 0.0f;
         if (checkedVoxelModeAction() != 0) {
-            glm::vec3 oldMouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-            
             float distance;
             BoxFace face;
             if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
@@ -1948,6 +1952,9 @@ void Application::addVoxelUnderCursor() {
         // create the voxel locally so it appears immediately            
         _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
                            _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel);
+    
+        // remember the position for drag detection
+        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
     }
 }
 
@@ -1957,6 +1964,9 @@ void Application::deleteVoxelUnderCursor() {
         
         // delete the voxel locally so it disappears immediately            
         _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        
+        // remember the position for drag detection
+        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
     }
 }
 
