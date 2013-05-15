@@ -148,7 +148,6 @@ Application::Application(int& argc, char** argv) :
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
-        _destructiveAddVoxel(false),
         _chatEntryOn(false),
         _oculusTextureID(0),
         _oculusProgram(0),
@@ -985,10 +984,6 @@ void Application::cycleFrustumRenderMode() {
     updateFrustumRenderModeAction();
 }
 
-void Application::setDestructivePaint(bool destructive) {
-    _destructiveAddVoxel = destructive;
-}
-
 void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
 }
@@ -1074,11 +1069,13 @@ void Application::addVoxelInFrontOfAvatar() {
     detail.green = paintColor.green();
     detail.blue = paintColor.blue();
     
-    PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+    PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+        PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
     sendVoxelEditMessage(message, detail);
     
     // create the voxel locally so it appears immediately            
-    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s, detail.red, detail.green, detail.blue, _destructiveAddVoxel);
+    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s,
+        detail.red, detail.green, detail.blue, _destructiveAddVoxel->isChecked());
 }
 
 void Application::decreaseVoxelSize() {
@@ -1142,27 +1139,28 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
     
+    QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
-    (_addVoxelMode = toolsMenu->addAction(
+    (_addVoxelMode = voxelMenu->addAction(
         "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_1))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
-    (_deleteVoxelMode = toolsMenu->addAction(
+    (_deleteVoxelMode = voxelMenu->addAction(
         "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_2))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
-    (_colorVoxelMode = toolsMenu->addAction(
+    (_colorVoxelMode = voxelMenu->addAction(
         "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_3))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     
-    toolsMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
-    toolsMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
-    toolsMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::Key_6);
+    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::Key_6);
     
-    _voxelPaintColor = toolsMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
-    toolsMenu->addAction("Create Voxel is Destructive", this, SLOT(setDestructivePaint(bool)))->setCheckable(true);
+    (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1373,7 +1371,8 @@ void Application::updateAvatar(float deltaTime) {
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
 
-            PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+                PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
@@ -1946,12 +1945,13 @@ void Application::shiftPaintingColor() {
 
 void Application::addVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {    
-        PACKET_HEADER message = (_destructiveAddVoxel ? PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+        PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+            PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
         sendVoxelEditMessage(message, _mouseVoxel);
         
         // create the voxel locally so it appears immediately            
         _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel);
+                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
     
         // remember the position for drag detection
         _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);

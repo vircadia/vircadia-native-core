@@ -77,7 +77,6 @@ private slots:
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
-    void setDestructivePaint(bool destructive);
     void setRenderWarnings(bool renderWarnings);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
@@ -147,6 +146,7 @@ private:
     QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
     QAction* _colorVoxelMode;        // Whether color voxel mode is enabled
     QAction* _voxelPaintColor;       // The color with which to paint voxels
+    QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _cameraFrustum;         // which frustum to look at 
@@ -211,7 +211,6 @@ private:
     VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
     
     bool _perfStatsOn; //  Do we want to display perfStats? 
-    bool _destructiveAddVoxel; // when doing voxel editing do we want them to be destructive
     
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
