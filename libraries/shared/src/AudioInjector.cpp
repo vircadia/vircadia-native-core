@@ -22,12 +22,9 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES / SAMPLE_RATE) *
 
 AudioInjector::AudioInjector(const char* filename) :
     _numTotalBytesAudio(0),
+    _position(),
     _bearing(0),
-    _attenuationModifier(255)
-{
-    _position[0] = 0.0f;
-    _position[1] = 0.0f;
-    _position[2] = 0.0f;
+    _attenuationModifier(255) {
     
     std::fstream sourceFile;
     
