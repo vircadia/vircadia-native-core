@@ -859,6 +859,9 @@ void Application::idle() {
             _handControl.stop();
         }
         
+        //  Update from Mouse
+        _myAvatar.updateFromMouse(_mouseX, _mouseY, _glWidget->width(), _glWidget->height());
+       
         //  Read serial port interface devices
         if (_serialPort.active) {
             _serialPort.readData();
@@ -1162,8 +1165,8 @@ void Application::init() {
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
-    _headMouseX = _glWidget->width()/2;
-    _headMouseY = _glWidget->height()/2; 
+    _headMouseX = _mouseX = _glWidget->width() / 2;
+    _headMouseY = _mouseY = _glWidget->height() / 2;
 
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
@@ -1173,7 +1176,9 @@ void Application::init() {
     a.distance  = 1.5f;
     a.tightness = 8.0f;
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-    _myAvatar.setDisplayingHead(true);   
+    _myAvatar.setDisplayingHead(true);
+    
+    QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
     
@@ -1227,7 +1232,6 @@ void Application::updateAvatar(float deltaTime) {
         _myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * _myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -_myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
     }
-    
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -1900,12 +1904,13 @@ void Application::deleteVoxelUnderCursor() {
 
 void Application::resetSensors() {
     _myAvatar.setPosition(START_LOCATION);
-    _headMouseX = _glWidget->width() / 2;
-    _headMouseY = _glWidget->height() / 2;
+    _headMouseX = _mouseX = _glWidget->width() / 2;
+    _headMouseY = _mouseY = _glWidget->height() / 2;
     
     if (_serialPort.active) {
         _serialPort.resetAverages();
-    } 
+    }
+    QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
 }
 

@@ -291,6 +291,23 @@ bool Avatar::getIsNearInteractingOther() {
     return _avatarTouch.getAbleToReachOtherAvatar(); 
 }
 
+void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
+    //  Update pitch and yaw based on mouse behavior
+    const float MOUSE_MOVE_RADIUS = 0.25f;
+    const float MOUSE_ROTATE_SPEED = 7.5f;
+    float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
+    
+    if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
+        float mouseMag = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
+        setBodyYaw(getBodyYaw() -
+                             ((mouseLocationX > 0.f) ?
+                              mouseMag :
+                              -mouseMag) );
+    }
+    
+    return;
+}
+
 void Avatar::simulate(float deltaTime) {
 
     //figure out if the mouse cursor is over any body spheres... 
