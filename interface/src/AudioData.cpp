@@ -44,5 +44,36 @@ void AudioData::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     return;
 }
 
+void AudioData::analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples) {
+    //  Compare output and input streams, looking for evidence of correlation needing echo cancellation
+    //  
+    //  OFFSET_RANGE tells us how many samples to vary the analysis window when looking for correlation,
+    //  and should be equal to the largest physical distance between speaker and microphone, where
+    //  OFFSET_RANGE =  1 / (speedOfSound (meters / sec) / SamplingRate (samples / sec)) * distance
+    //
+    const int OFFSET_RANGE = 10;
+    const int SIGNAL_FLOOR = 1000;
+    float correlation[2 * OFFSET_RANGE + 1];
+    int numChecked = 0;
+    bool foundSignal = false;
+    for (int offset = -OFFSET_RANGE; offset <= OFFSET_RANGE; offset++) {
+        for (int i = 0; i < numSamples; i++) {
+            if ((i + offset >= 0) && (i + offset < numSamples)) {
+                correlation[offset + OFFSET_RANGE] +=
+                            (float) abs(inputBuffer[i] - outputBuffer[i + offset]);
+                numChecked++;
+                foundSignal |= (inputBuffer[i] > SIGNAL_FLOOR);
+            }
+        }
+        correlation[offset + OFFSET_RANGE] /= numChecked;
+        numChecked = 0;
+        if (foundSignal) {
+            printLog("%4.2f, ", correlation[offset + OFFSET_RANGE]);
+        }
+    }
+    if (foundSignal) printLog("\n");
+}
+
+
 
 #endif

@@ -105,10 +105,19 @@ int audioCallback (const void *inputBuffer,
     AudioData *data = (AudioData *) userData;
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
+    int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
+    int16_t *outputRight = ((int16_t **) outputBuffer)[1];
+
+    // Compare the input and output streams to look for correlation
+    data->analyzeEcho(inputLeft, outputLeft, BUFFER_LENGTH_SAMPLES);
     
     // Add Procedural effects to input samples
     data->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
     
+    // add data to the scope
+    scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+    scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+
     if (inputLeft != NULL) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
@@ -169,10 +178,7 @@ int audioCallback (const void *inputBuffer,
             data->audioSocket->send((sockaddr *)&audioMixerSocket, dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
     }
-    
-    int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
-    int16_t *outputRight = ((int16_t **) outputBuffer)[1];
-    
+        
     memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
 
@@ -265,11 +271,7 @@ int audioCallback (const void *inputBuffer,
                 outputLeft[s] = leftSample;
                 outputRight[s] = rightSample;
             }
-            
-            // add data to the scope
-            scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
-            scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
-            
+                        
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
             if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
@@ -278,6 +280,13 @@ int audioCallback (const void *inputBuffer,
         }
     }
     
+    if (randFloat() < 0.01) {
+        printLog("Ping!\n");
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+            outputLeft[i] = (int16_t) (cosf((float)i / 8.f * 2000.f));
+        }
+    }
+
     gettimeofday(&data->lastCallback, NULL);
     return paContinue;
 }

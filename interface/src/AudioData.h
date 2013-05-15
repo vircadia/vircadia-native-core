@@ -43,8 +43,9 @@ class AudioData {
         void setLastVelocity(glm::vec3 v) { _lastVelocity = v; };
         void setLastAcceleration(glm::vec3 a) { _lastAcceleration = a; };
         void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+        void analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples);
     
-    private: 
+    private:
         glm::vec3 _lastVelocity;
         glm::vec3 _lastAcceleration;
 
