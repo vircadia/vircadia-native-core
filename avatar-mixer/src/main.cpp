@@ -72,7 +72,7 @@ int main(int argc, const char* argv[]) {
     uint16_t agentID = 0;
         
     while (true) {
-        if (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
+        if (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // grab the agent ID from the packet
@@ -93,7 +93,7 @@ int main(int argc, const char* argv[]) {
                         }
                     }
                     
-                    agentList->getAgentSocket().send(agentAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                    agentList->getAgentSocket()->send(agentAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                     
                     break;
                 case PACKET_HEADER_DOMAIN:

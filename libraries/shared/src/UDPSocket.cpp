@@ -27,7 +27,7 @@ using shared_lib::printLog;
 
 sockaddr_in destSockaddr, senderAddress;
 
-bool socketMatch(sockaddr *first, sockaddr *second) {
+bool socketMatch(sockaddr* first, sockaddr* second) {
     if (first != NULL && second != NULL) {
         // utility function that indicates if two sockets are equivalent
         
@@ -51,7 +51,7 @@ bool socketMatch(sockaddr *first, sockaddr *second) {
     }
 }
 
-int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkOrderPort) {
+int packSocket(unsigned char* packStore, in_addr_t inAddress, in_port_t networkOrderPort) {
     packStore[0] = inAddress >> 24;
     packStore[1] = inAddress >> 16;
     packStore[2] = inAddress >> 8;
@@ -63,12 +63,12 @@ int packSocket(unsigned char *packStore, in_addr_t inAddress, in_port_t networkO
     return 6; // could be dynamically more if we need IPv6
 }
 
-int packSocket(unsigned char *packStore, sockaddr *socketToPack) {
-    return packSocket(packStore, ((sockaddr_in *) socketToPack)->sin_addr.s_addr, ((sockaddr_in *) socketToPack)->sin_port);
+int packSocket(unsigned char* packStore, sockaddr* socketToPack) {
+    return packSocket(packStore, ((sockaddr_in*) socketToPack)->sin_addr.s_addr, ((sockaddr_in*) socketToPack)->sin_port);
 }
 
-int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket) {
-    sockaddr_in *destinationSocket = (sockaddr_in *) unpackDestSocket;
+int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket) {
+    sockaddr_in* destinationSocket = (sockaddr_in*) unpackDestSocket;
     destinationSocket->sin_addr.s_addr = (packedData[0] << 24) + (packedData[1] << 16) + (packedData[2] << 8) + packedData[3];
     destinationSocket->sin_port = (packedData[4] << 8) + packedData[5];
     return 6; // this could be more if we ever need IPv6
@@ -76,8 +76,8 @@ int unpackSocket(unsigned char *packedData, sockaddr *unpackDestSocket) {
 
 int getLocalAddress() {
     // get this agent's local address so we can pass that to DS
-    struct ifaddrs * ifAddrStruct = NULL;
-    struct ifaddrs * ifa = NULL;
+    struct ifaddrs* ifAddrStruct = NULL;
+    struct ifaddrs* ifa = NULL;
     
     int family;
     int localAddress = 0;
@@ -107,9 +107,9 @@ int getLocalAddress() {
     return localAddress;
 }
 
-unsigned short loadBufferWithSocketInfo(char *addressBuffer, sockaddr *socket) {
+unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     if (socket != NULL) {
-        char *copyBuffer = inet_ntoa(((sockaddr_in*) socket)->sin_addr);
+        char* copyBuffer = inet_ntoa(((sockaddr_in*) socket)->sin_addr);
         memcpy(addressBuffer, copyBuffer, strlen(copyBuffer));
         return htons(((sockaddr_in*) socket)->sin_port);
     } else {
@@ -204,13 +204,12 @@ void UDPSocket::setBlocking(bool blocking) {
 }
 
 //  Receive data on this socket with retrieving address of sender
-bool UDPSocket::receive(void *receivedData, ssize_t *receivedBytes) {
-    
-    return receive((sockaddr *)&senderAddress, receivedData, receivedBytes);
+bool UDPSocket::receive(void* receivedData, ssize_t* receivedBytes) const {
+    return receive((sockaddr*) &senderAddress, receivedData, receivedBytes);
 }
 
 //  Receive data on this socket with the address of the sender 
-bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *receivedBytes) {
+bool UDPSocket::receive(sockaddr* recvAddress, void* receivedData, ssize_t* receivedBytes) const {
     
 #ifdef _WIN32
     int addressSize = sizeof(*recvAddress);
@@ -223,7 +222,7 @@ bool UDPSocket::receive(sockaddr *recvAddress, void *receivedData, ssize_t *rece
     return (*receivedBytes > 0);
 }
 
-int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) {
+int UDPSocket::send(sockaddr* destAddress, const void* data, size_t byteLength) const {
     // send data via UDP
     int sent_bytes = sendto(handle, (const char*)data, byteLength,
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
@@ -236,7 +235,7 @@ int UDPSocket::send(sockaddr *destAddress, const void *data, size_t byteLength) 
     return sent_bytes;
 }
 
-int UDPSocket::send(char * destAddress, int destPort, const void *data, size_t byteLength) {
+int UDPSocket::send(char* destAddress, int destPort, const void* data, size_t byteLength) const {
     
     // change address and port on reusable global to passed variables
     destSockaddr.sin_addr.s_addr = inet_addr(destAddress);

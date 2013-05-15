@@ -74,7 +74,6 @@ Agent::Agent(const Agent &otherAgent) :
         _localSocket = NULL;
     }
     
-    
     if (otherAgent._activeSocket == otherAgent._publicSocket) {
         _activeSocket = _publicSocket;
     } else if (otherAgent._activeSocket == otherAgent._localSocket) {

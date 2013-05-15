@@ -97,7 +97,7 @@ int main(int argc, const char * argv[])
     uint16_t packetAgentID = 0;
     
     while (true) {
-        if (agentList->getAgentSocket().receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
+        if (agentList->getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_HEADER_DOMAIN_RFD || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
             std::map<char, Agent *> newestSoloAgents;
             
@@ -169,7 +169,7 @@ int main(int argc, const char * argv[])
             currentBufferPos += packAgentId(currentBufferPos, packetAgentID);
             
             // send the constructed list back to this agent
-            agentList->getAgentSocket().send((sockaddr*) &agentPublicAddress,
+            agentList->getAgentSocket()->send((sockaddr*) &agentPublicAddress,
                                              broadcastPacket,
                                              (currentBufferPos - startPointer) + 1);
         }
