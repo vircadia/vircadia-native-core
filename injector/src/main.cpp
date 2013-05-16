@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 Leonardo Murillo. All rights reserved.
 //
 
-
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +13,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sstream>
-
 
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
