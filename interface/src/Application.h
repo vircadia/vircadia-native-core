@@ -59,7 +59,7 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
-    const Avatar& getAvatar() const { return _myAvatar; }
+    Avatar* getAvatar() { return &_myAvatar; }
 
 private slots:
     
