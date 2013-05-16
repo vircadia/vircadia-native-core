@@ -19,7 +19,7 @@ const int PAIRING_SERVER_PORT = 7247;
 
 void PairingHandler::sendPairRequest() {    
     // grab the agent socket from the AgentList singleton
-    UDPSocket *agentSocket = &AgentList::getInstance()->getAgentSocket();
+    UDPSocket *agentSocket = AgentList::getInstance()->getAgentSocket();
     
     // prepare the pairing request packet
     

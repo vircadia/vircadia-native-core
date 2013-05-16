@@ -94,10 +94,15 @@ int main(int argc, const char* argv[]) {
     sockaddr* agentAddress = new sockaddr;
 
     // make sure our agent socket is non-blocking
-    agentList->getAgentSocket().setBlocking(false);
+    agentList->getAgentSocket()->setBlocking(false);
     
     int nextFrame = 0;
     timeval startTime;
+    
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES + 1];
+    clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
+    
+    int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
     gettimeofday(&startTime, NULL);
     
@@ -109,10 +114,10 @@ int main(int argc, const char* argv[]) {
             if (agentBuffer->getEndOfLastWrite()) {
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentId());
+                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentID());
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentId());
+                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentID());
                     agentBuffer->setStarted(false);
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else {
@@ -129,8 +134,9 @@ int main(int argc, const char* argv[]) {
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
-
-            int16_t clientMix[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
+            
+            // zero out the client mix for this agent
+            memset(clientSamples, 0, sizeof(clientSamples));
             
             for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
                 if (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
@@ -143,9 +149,7 @@ int main(int argc, const char* argv[]) {
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.f;
                         
-                        if (otherAgent != agent) {
-                            printf("DEBUG: The bearing for this agent is %f\n", agentRingBuffer->getBearing());
-                            
+                        if (otherAgent != agent) {                            
                             Position agentPosition = agentRingBuffer->getPosition();
                             Position otherAgentPosition = otherAgentBuffer->getPosition();
                             
@@ -219,11 +223,11 @@ int main(int argc, const char* argv[]) {
                         }
                         
                         int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                            : clientMix;
+                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                            : clientSamples;
                         int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientMix
-                            : clientMix + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            ? clientSamples
+                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         
                         int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
@@ -249,7 +253,8 @@ int main(int argc, const char* argv[]) {
                 }
             }
             
-            agentList->getAgentSocket().send(agent->getPublicSocket(), clientMix, BUFFER_LENGTH_BYTES);
+            memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
+            agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
         }
         
         // push forward the next output pointers for any audio buffers we used
@@ -267,10 +272,13 @@ int main(int argc, const char* argv[]) {
         }
         
         // pull any new audio data from agents off of the network stack
-        while (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
+        while (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
+            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO || packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
+                char agentType = (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO)
+                    ? AGENT_TYPE_AVATAR
+                    : AGENT_TYPE_AUDIO_INJECTOR;
                 
-                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, packetData[0], agentList->getLastAgentID())) {
+                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, agentType, agentList->getLastAgentID())) {
                     agentList->increaseAgentID();
                 }
                 
