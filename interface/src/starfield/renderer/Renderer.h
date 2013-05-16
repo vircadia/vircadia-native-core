@@ -478,15 +478,15 @@ namespace starfield {
                     "   gl_PointSize = s;\n"
                     "}\n";
 
-            _objProgram.attachFromSourceCode(GL_VERTEX_SHADER, VERTEX_SHADER);
+            _objProgram.addShaderFromSourceCode(QGLShader::Vertex, VERTEX_SHADER);
             GLchar const* const FRAGMENT_SHADER =
                     "#version 120\n"
                     "void main(void) {\n"
                     "   gl_FragColor = gl_Color;\n"
                     "}\n";
-            _objProgram.attachFromSourceCode(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+            _objProgram.addShaderFromSourceCode(QGLShader::Fragment, FRAGMENT_SHADER);
             _objProgram.link();
-            _alphaLocation = _objProgram.getUniformLocation("alpha");
+            _alphaLocation = _objProgram.uniformLocation("alpha");
 
             glGenBuffersARB(1, & _hndVertexArray);
         }
@@ -534,7 +534,7 @@ namespace starfield {
 
             // select shader and vertex array
             _objProgram.bind();
-            _objProgram.setUniform(_alphaLocation, alpha);
+            _objProgram.setUniformValue(_alphaLocation, alpha);
             glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
             glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
             
