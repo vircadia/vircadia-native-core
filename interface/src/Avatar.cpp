@@ -101,7 +101,9 @@ Avatar::Avatar(bool isMine) {
     _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
-    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
+    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
+    _cumulativeMouseYaw         = 0.f;
+    _isMouseTurningRight        = false;
 
     initializeSkeleton();
     
@@ -212,7 +214,6 @@ void Avatar::reset() {
     _head.leanForward = _head.leanSideways = 0;
 }
 
-
 //  Update avatar head rotation with sensor data
 void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
@@ -224,8 +225,6 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
-    const float MAX_PITCH = 45;
-    const float MIN_PITCH = -45;
     const float MAX_YAW = 85;
     const float MIN_YAW = -85;
     const float MAX_ROLL = 50;
@@ -235,7 +234,6 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     addHeadYaw(measuredYawRate * deltaTime);
     addHeadRoll(measuredRollRate * deltaTime);
     
-    setHeadPitch(glm::clamp(getHeadPitch(), MIN_PITCH, MAX_PITCH));
     setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
     setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
     
@@ -292,14 +290,41 @@ bool Avatar::getIsNearInteractingOther() {
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-    //  Update pitch and yaw based on mouse behavior
+    //  Update yaw based on mouse behavior
     const float MOUSE_MOVE_RADIUS = 0.25f;
-    const float MOUSE_ROTATE_SPEED = 7.5f;
+    const float MOUSE_ROTATE_SPEED = 5.0f;
+    const float MOUSE_PITCH_SPEED = 3.0f;
+    const float MAX_YAW_TO_ADD = 180.f;
+    const int TITLE_BAR_HEIGHT = 46;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
-    
-    if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
-        float mouseMag = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
-        setBodyYaw(getBodyYaw() - ((mouseLocationX > 0.f) ? mouseMag : -mouseMag));
+    float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
+
+    if ((mouseX > 1) && (mouseX < screenWidth) && (mouseY > TITLE_BAR_HEIGHT) && (mouseY < screenHeight)) {
+        //
+        //  Mouse must be inside screen (not at edge) and not on title bar for movement to happen
+        //
+        if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
+            //  Add Yaw
+            float mouseYawAdd = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
+            bool rightTurning = (mouseLocationX > 0.f);
+            if (_isMouseTurningRight == rightTurning) {
+                _cumulativeMouseYaw += mouseYawAdd;
+            } else {
+                _cumulativeMouseYaw = 0;
+                _isMouseTurningRight = rightTurning;
+            }
+            if (_cumulativeMouseYaw < MAX_YAW_TO_ADD) {
+                setBodyYaw(getBodyYaw() - (rightTurning ? mouseYawAdd : -mouseYawAdd));
+            }
+        } else {
+            _cumulativeMouseYaw = 0;
+        }
+        if (fabs(mouseLocationY) > MOUSE_MOVE_RADIUS) {
+            float mousePitchAdd = (fabs(mouseLocationY) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED;
+            bool downPitching = (mouseLocationY > 0.f);
+            setHeadPitch(getHeadPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
+        }
+        
     }
     
     return;
@@ -329,7 +354,7 @@ void Avatar::simulate(float deltaTime) {
     _avatarTouch.simulate(deltaTime);        
     
     // apply gravity and collision with the ground/floor
-    if (USING_AVATAR_GRAVITY) {
+    if (_isMine && USING_AVATAR_GRAVITY) {
         if (_position.y > _pelvisStandingHeight + 0.01f) {
             _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
         } else if (_position.y < _pelvisStandingHeight) {

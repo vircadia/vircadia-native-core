@@ -73,13 +73,13 @@ public:
     void  setBodyRoll(float bodyRoll);
 
     // Head Rotation
-    void setHeadPitch(float p) {_headPitch = p; }
+    void setHeadPitch(float p);
     void setHeadYaw(float y) {_headYaw = y; }
     void setHeadRoll(float r) {_headRoll = r; };
     float getHeadPitch() const { return _headPitch; };
     float getHeadYaw() const { return _headYaw; };
     float getHeadRoll() const { return _headRoll; };
-    void  addHeadPitch(float p) {_headPitch -= p; }
+    void  addHeadPitch(float p) { setHeadPitch(_headPitch - p); }
     void  addHeadYaw(float y){_headYaw -= y; }
     void  addHeadRoll(float r){_headRoll += r; }
 

@@ -200,6 +200,8 @@ private:
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     glm::vec3   _cameraPosition;
+    float       _cumulativeMouseYaw;
+    bool        _isMouseTurningRight;
     
     //AvatarJointID _jointTouched;
     
