@@ -94,7 +94,7 @@ int main(int argc, const char* argv[]) {
     sockaddr* agentAddress = new sockaddr;
 
     // make sure our agent socket is non-blocking
-    agentList->getAgentSocket().setBlocking(false);
+    agentList->getAgentSocket()->setBlocking(false);
     
     int nextFrame = 0;
     timeval startTime;
@@ -114,10 +114,10 @@ int main(int argc, const char* argv[]) {
             if (agentBuffer->getEndOfLastWrite()) {
                 if (!agentBuffer->isStarted()
                     && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentId());
+                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentID());
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentId());
+                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentID());
                     agentBuffer->setStarted(false);
                     agentBuffer->setShouldBeAddedToMix(false);
                 } else {
@@ -149,9 +149,7 @@ int main(int argc, const char* argv[]) {
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.f;
                         
-                        if (otherAgent != agent) {
-                            printf("DEBUG: The bearing for this agent is %f\n", agentRingBuffer->getBearing());
-                            
+                        if (otherAgent != agent) {                            
                             Position agentPosition = agentRingBuffer->getPosition();
                             Position otherAgentPosition = otherAgentBuffer->getPosition();
                             
@@ -256,7 +254,7 @@ int main(int argc, const char* argv[]) {
             }
             
             memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
-            agentList->getAgentSocket().send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
+            agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
         }
         
         // push forward the next output pointers for any audio buffers we used
@@ -274,7 +272,7 @@ int main(int argc, const char* argv[]) {
         }
         
         // pull any new audio data from agents off of the network stack
-        while (agentList->getAgentSocket().receive(agentAddress, packetData, &receivedBytes)) {
+        while (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_HEADER_INJECT_AUDIO || packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
                 char agentType = (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO)
                     ? AGENT_TYPE_AVATAR

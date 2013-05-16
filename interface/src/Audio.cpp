@@ -85,7 +85,7 @@ int audioCallback (const void* inputBuffer,
     AgentList* agentList = AgentList::getInstance();
     
     Application* interface = (Application*) QCoreApplication::instance();
-    Avatar interfaceAvatar = interface->getAvatar();
+    Avatar* interfaceAvatar = interface->getAvatar();
     
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
@@ -134,14 +134,14 @@ int audioCallback (const void* inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &interfaceAvatar.getHeadPosition(), sizeof(float) * 3);
+            memcpy(currentPacketPtr, &interfaceAvatar->getHeadPosition(), sizeof(float) * 3);
             currentPacketPtr += (sizeof(float) * 3);
             
             // tell the mixer not to add additional attenuation to our source
             *(currentPacketPtr++) = 255;
             
             // memcpy the corrected render yaw
-            float correctedYaw = fmodf(-1 * interfaceAvatar.getAbsoluteHeadYaw(), 360);
+            float correctedYaw = fmodf(-1 * interfaceAvatar->getAbsoluteHeadYaw(), 360);
             
             if (correctedYaw > 180) {
                 correctedYaw -= 360;
@@ -161,7 +161,7 @@ int audioCallback (const void* inputBuffer,
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
             
-            agentList->getAgentSocket().send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
         }
         
     }
@@ -199,7 +199,7 @@ int audioCallback (const void* inputBuffer,
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
-            int lastYawMeasured = fabsf(interfaceAvatar.getLastMeasuredHeadYaw());
+            int lastYawMeasured = fabsf(interfaceAvatar->getLastMeasuredHeadYaw());
             
             if (!::samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second

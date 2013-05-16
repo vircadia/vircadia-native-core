@@ -168,7 +168,7 @@ void resInVoxelDistributor(AgentList* agentList,
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                    agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
@@ -178,8 +178,8 @@ void resInVoxelDistributor(AgentList* agentList,
                 }
             } else {
                 if (agentData->isPacketWaiting()) {
-                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
-                                                     agentData->getPacket(), agentData->getPacketLength());
+                    agentList->getAgentSocket()->send(agent->getActiveSocket(),
+                                                      agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -190,7 +190,7 @@ void resInVoxelDistributor(AgentList* agentList,
         }
         // send the environment packet
         int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
-        agentList->getAgentSocket().send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+        agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
         trueBytesSent += envPacketLength;
         truePacketsSent++;
         
@@ -288,7 +288,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                    agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
@@ -298,7 +298,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 }
             } else {
                 if (agentData->isPacketWaiting()) {
-                    agentList->getAgentSocket().send(agent->getActiveSocket(), 
+                    agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
@@ -310,7 +310,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         }
         // send the environment packet
         int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
-        agentList->getAgentSocket().send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+        agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
         trueBytesSent += envPacketLength;
         truePacketsSent++;
         
@@ -501,7 +501,7 @@ int main(int argc, const char * argv[])
         // check to see if we need to persist our voxel state
         persistVoxelsWhenDirty();    
     
-        if (agentList->getAgentSocket().receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);

@@ -7,6 +7,7 @@
 //
 
 #include <sys/time.h>
+#include <cstring>
 
 #include <SharedUtil.h>
 #include <AgentTypes.h>
@@ -34,10 +35,6 @@ const float EVE_PELVIS_HEIGHT = 0.565925f;
 const float AUDIO_INJECT_PROXIMITY = 0.4f;
 
 bool stopReceiveAgentDataThread;
-bool injectAudioThreadRunning = false;
-
-int TEMP_AUDIO_LISTEN_PORT = 55439;
-UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
 
 void *receiveAgentData(void *args) {
     sockaddr senderAddress;
@@ -47,7 +44,7 @@ void *receiveAgentData(void *args) {
     AgentList* agentList = AgentList::getInstance();
     
     while (!::stopReceiveAgentDataThread) {
-        if (agentList->getAgentSocket().receive(&senderAddress, incomingPacket, &bytesReceived)) { 
+        if (agentList->getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     // this is the positional data for other agents
@@ -63,29 +60,6 @@ void *receiveAgentData(void *args) {
         }
     }
     
-    pthread_exit(0);
-    return NULL;
-}
-
-void *injectAudio(void *args) {
-    ::injectAudioThreadRunning = true;
-    
-    AudioInjector* eveAudioInjector = (AudioInjector *)args;
-    
-    // look for an audio mixer in our agent list
-    Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-    
-    if (audioMixer) {
-        // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
-        if (!audioMixer->getActiveSocket()) {
-            audioMixer->activatePublicSocket();
-        }
-        
-        // we have an active audio mixer we can send data to
-        eveAudioInjector->injectAudio(&::audioSocket, audioMixer->getActiveSocket());
-    }
-    
-    ::injectAudioThreadRunning = false;
     pthread_exit(0);
     return NULL;
 }
@@ -138,6 +112,14 @@ int main(int argc, const char* argv[]) {
     // lower Eve's volume by setting the attentuation modifier (this is a value out of 255)
     eveAudioInjector.setAttenuationModifier(190);
     
+    // pass the agentList UDPSocket pointer to the audio injector
+    eveAudioInjector.setInjectorSocket(agentList->getAgentSocket());
+    
+    // set the position of the audio injector
+    float injectorPosition[3];
+    memcpy(injectorPosition, &eve.getPosition(), sizeof(injectorPosition));
+    eveAudioInjector.setPosition(injectorPosition);
+    
     // register the callback for agent data creation
     agentList->linkedDataCreateCallback = createAvatarDataForAgent;
     
@@ -146,8 +128,6 @@ int main(int argc, const char* argv[]) {
     
     timeval thisSend;
     double numMicrosecondsSleep = 0;
-  
-    pthread_t injectAudioThread;
     
     int handStateTimer = 0;
 
@@ -167,10 +147,10 @@ int main(int argc, const char* argv[]) {
             packetPosition += eve.getBroadcastData(packetPosition);
             
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
-            agentList->getAgentSocket().send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
-        }        
+            agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
+        }
         
-        if (!::injectAudioThreadRunning) {
+        if (!eveAudioInjector.isInjectingAudio()) {
             // enumerate the other agents to decide if one is close enough that eve should talk
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                 AvatarData* avatarData = (AvatarData*) agent->getLinkedData();
@@ -180,7 +160,20 @@ int main(int argc, const char* argv[]) {
                     float squareDistance = glm::dot(tempVector, tempVector);
                     
                     if (squareDistance <= AUDIO_INJECT_PROXIMITY) {
-                        pthread_create(&injectAudioThread, NULL, injectAudio, (void*) &eveAudioInjector);
+                        // look for an audio mixer in our agent list
+                        Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+                        
+                        if (audioMixer) {
+                            // until the audio mixer is setup for ping-reply, activate the public socket if it's not active
+                            if (!audioMixer->getActiveSocket()) {
+                                audioMixer->activatePublicSocket();
+                            }
+                            
+                            eveAudioInjector.setDestinationSocket(audioMixer->getActiveSocket());
+                            
+                            // we have an active audio mixer we can send data to
+                            eveAudioInjector.threadInjectionOfAudio();
+                        }
                     }
                 }            
             }

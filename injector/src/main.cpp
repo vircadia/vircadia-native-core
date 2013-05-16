@@ -104,6 +104,7 @@ int main(int argc, char* argv[]) {
     mixerSocket.sin_family = AF_INET;
     mixerSocket.sin_addr.s_addr = inet_addr(EC2_WEST_AUDIO_SERVER);
     mixerSocket.sin_port = htons((uint16_t)AUDIO_UDP_LISTEN_PORT);
+
     
     if (processParameters(argc, argv)) {        
         if (::sourceAudioFile == NULL) {
@@ -111,6 +112,8 @@ int main(int argc, char* argv[]) {
             exit(-1);
         } else {
             AudioInjector injector(sourceAudioFile);
+            injector.setInjectorSocket(&streamSocket);
+            injector.setDestinationSocket((sockaddr*) &mixerSocket);
             
             injector.setPosition(::floatArguments);
             injector.setBearing(*(::floatArguments + 3));
@@ -120,7 +123,7 @@ int main(int argc, char* argv[]) {
             int usecDelay = 0;
             
             while (true) {
-                injector.injectAudio(&streamSocket, (sockaddr*) &mixerSocket);
+                injector.injectAudio();
                 
                 if (!::loopAudio) {
                     delay = randFloatInRange(::sleepIntervalMin, ::sleepIntervalMax);
