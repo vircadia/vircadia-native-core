@@ -15,7 +15,7 @@
 
 #include "AudioInjector.h"
 
-const int MAX_INJECTOR_VOLUME = 255;
+const int MAX_INJECTOR_VOLUME = 0xFF;
 
 AudioInjector::AudioInjector(const char* filename) :
     _position(),
