@@ -230,8 +230,11 @@ Application::Application(int& argc, char** argv) :
 void Application::initializeGL() {
     printLog( "Created Display Window.\n" );
     
+    // initialize glut for shape drawing; Qt apparently initializes it on OS X
+    #ifndef __APPLE__
     int argc = 0;
     glutInit(&argc, 0);
+    #endif
     
     #ifdef _WIN32
     glewInit();
@@ -1496,15 +1499,15 @@ void Application::displayOculus(Camera& whichCamera) {
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
         
         _oculusProgram = new ProgramObject();
-        _oculusProgram->attachFromSourceCode(GL_FRAGMENT_SHADER_ARB, DISTORTION_FRAGMENT_SHADER);
+        _oculusProgram->addShaderFromSourceCode(QGLShader::Fragment, DISTORTION_FRAGMENT_SHADER);
         _oculusProgram->link();
         
-        _textureLocation = _oculusProgram->getUniformLocation("texture");
-        _lensCenterLocation = _oculusProgram->getUniformLocation("lensCenter");
-        _screenCenterLocation = _oculusProgram->getUniformLocation("screenCenter");
-        _scaleLocation = _oculusProgram->getUniformLocation("scale");
-        _scaleInLocation = _oculusProgram->getUniformLocation("scaleIn");
-        _hmdWarpParamLocation = _oculusProgram->getUniformLocation("hmdWarpParam");
+        _textureLocation = _oculusProgram->uniformLocation("texture");
+        _lensCenterLocation = _oculusProgram->uniformLocation("lensCenter");
+        _screenCenterLocation = _oculusProgram->uniformLocation("screenCenter");
+        _scaleLocation = _oculusProgram->uniformLocation("scale");
+        _scaleInLocation = _oculusProgram->uniformLocation("scaleIn");
+        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");
         
     } else {
         glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
@@ -1525,12 +1528,12 @@ void Application::displayOculus(Camera& whichCamera) {
     glDisable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
     _oculusProgram->bind();
-    _oculusProgram->setUniform(_textureLocation, 0);
-    _oculusProgram->setUniform(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
-    _oculusProgram->setUniform(_screenCenterLocation, 0.25, 0.5);
-    _oculusProgram->setUniform(_scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
-    _oculusProgram->setUniform(_scaleInLocation, 4, 2 / aspectRatio);
-    _oculusProgram->setUniform(_hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
+    _oculusProgram->setUniformValue(_textureLocation, 0);
+    _oculusProgram->setUniformValue(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
+    _oculusProgram->setUniformValue(_screenCenterLocation, 0.25, 0.5);
+    _oculusProgram->setUniformValue(_scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
+    _oculusProgram->setUniformValue(_scaleInLocation, 4, 2 / aspectRatio);
+    _oculusProgram->setUniformValue(_hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
 
     glColor3f(1, 0, 1);
     glBegin(GL_QUADS);
@@ -1544,8 +1547,8 @@ void Application::displayOculus(Camera& whichCamera) {
     glVertex2f(0, _glWidget->height());
     glEnd();
     
-    _oculusProgram->setUniform(_lensCenterLocation, 0.787994, 0.5);
-    _oculusProgram->setUniform(_screenCenterLocation, 0.75, 0.5);
+    _oculusProgram->setUniformValue(_lensCenterLocation, 0.787994, 0.5);
+    _oculusProgram->setUniformValue(_screenCenterLocation, 0.75, 0.5);
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.5, 0);

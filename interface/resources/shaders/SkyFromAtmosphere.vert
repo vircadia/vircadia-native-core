@@ -1,3 +1,5 @@
+#version 120
+
 //
 // For licensing information, see http://http.developer.nvidia.com/GPUGems/gpugems_app01.html:
 //
@@ -29,8 +31,6 @@
 //
 // Copyright (c) 2004 Sean O'Neil
 //
-
-#version 120
 
 uniform vec3 v3CameraPos;		// The camera's current position
 uniform vec3 v3LightPos;		// The direction vector to the light source

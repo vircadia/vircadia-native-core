@@ -12,7 +12,6 @@
 #include "Camera.h"
 #include "Environment.h"
 #include "renderer/ProgramObject.h"
-#include "renderer/ShaderObject.h"
 #include "world.h"
 
 void Environment::init() {
@@ -57,24 +56,24 @@ void Environment::renderAtmosphere(Camera& camera) {
     program->setUniform(locations[CAMERA_POS_LOCATION], relativeCameraPos);
     glm::vec3 lightDirection = glm::normalize(getSunLocation());
     program->setUniform(locations[LIGHT_POS_LOCATION], lightDirection);
-    program->setUniform(locations[INV_WAVELENGTH_LOCATION],
+    program->setUniformValue(locations[INV_WAVELENGTH_LOCATION],
         1 / powf(getScatteringWavelengths().r, 4.0f),
         1 / powf(getScatteringWavelengths().g, 4.0f),
         1 / powf(getScatteringWavelengths().b, 4.0f));
-    program->setUniform(locations[CAMERA_HEIGHT2_LOCATION], height * height);
-    program->setUniform(locations[OUTER_RADIUS_LOCATION], getAtmosphereOuterRadius());
-    program->setUniform(locations[OUTER_RADIUS2_LOCATION], getAtmosphereOuterRadius() * getAtmosphereOuterRadius());
-    program->setUniform(locations[INNER_RADIUS_LOCATION], getAtmosphereInnerRadius());
-    program->setUniform(locations[KR_ESUN_LOCATION], getRayleighScattering() * getSunBrightness());
-    program->setUniform(locations[KM_ESUN_LOCATION], getMieScattering() * getSunBrightness());
-    program->setUniform(locations[KR_4PI_LOCATION], getRayleighScattering() * 4.0f * PIf);
-    program->setUniform(locations[KM_4PI_LOCATION], getMieScattering() * 4.0f * PIf);
-    program->setUniform(locations[SCALE_LOCATION], 1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius()));
-    program->setUniform(locations[SCALE_DEPTH_LOCATION], 0.25f);
-    program->setUniform(locations[SCALE_OVER_SCALE_DEPTH_LOCATION],
+    program->setUniformValue(locations[CAMERA_HEIGHT2_LOCATION], height * height);
+    program->setUniformValue(locations[OUTER_RADIUS_LOCATION], getAtmosphereOuterRadius());
+    program->setUniformValue(locations[OUTER_RADIUS2_LOCATION], getAtmosphereOuterRadius() * getAtmosphereOuterRadius());
+    program->setUniformValue(locations[INNER_RADIUS_LOCATION], getAtmosphereInnerRadius());
+    program->setUniformValue(locations[KR_ESUN_LOCATION], getRayleighScattering() * getSunBrightness());
+    program->setUniformValue(locations[KM_ESUN_LOCATION], getMieScattering() * getSunBrightness());
+    program->setUniformValue(locations[KR_4PI_LOCATION], getRayleighScattering() * 4.0f * PIf);
+    program->setUniformValue(locations[KM_4PI_LOCATION], getMieScattering() * 4.0f * PIf);
+    program->setUniformValue(locations[SCALE_LOCATION], 1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius()));
+    program->setUniformValue(locations[SCALE_DEPTH_LOCATION], 0.25f);
+    program->setUniformValue(locations[SCALE_OVER_SCALE_DEPTH_LOCATION],
         (1.0f / (getAtmosphereOuterRadius() - getAtmosphereInnerRadius())) / 0.25f);
-    program->setUniform(locations[G_LOCATION], -0.990f);
-    program->setUniform(locations[G2_LOCATION], -0.990f * -0.990f);
+    program->setUniformValue(locations[G_LOCATION], -0.990f);
+    program->setUniformValue(locations[G2_LOCATION], -0.990f * -0.990f);
     
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
@@ -92,26 +91,26 @@ void Environment::renderAtmosphere(Camera& camera) {
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
     QByteArray prefix = QByteArray("resources/shaders/SkyFrom") + from;
-    program->attachFromSourceFile(GL_VERTEX_SHADER_ARB, prefix + ".vert");
-    program->attachFromSourceFile(GL_FRAGMENT_SHADER_ARB, prefix + ".frag");
+    program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
+    program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();
     
-    locations[CAMERA_POS_LOCATION] = program->getUniformLocation("v3CameraPos");
-    locations[LIGHT_POS_LOCATION] = program->getUniformLocation("v3LightPos");
-    locations[INV_WAVELENGTH_LOCATION] = program->getUniformLocation("v3InvWavelength");
-    locations[CAMERA_HEIGHT2_LOCATION] = program->getUniformLocation("fCameraHeight2");
-    locations[OUTER_RADIUS_LOCATION] = program->getUniformLocation("fOuterRadius");
-    locations[OUTER_RADIUS2_LOCATION] = program->getUniformLocation("fOuterRadius2");
-    locations[INNER_RADIUS_LOCATION] = program->getUniformLocation("fInnerRadius");
-    locations[KR_ESUN_LOCATION] = program->getUniformLocation("fKrESun");
-    locations[KM_ESUN_LOCATION] = program->getUniformLocation("fKmESun");
-    locations[KR_4PI_LOCATION] = program->getUniformLocation("fKr4PI");
-    locations[KM_4PI_LOCATION] = program->getUniformLocation("fKm4PI");
-    locations[SCALE_LOCATION] = program->getUniformLocation("fScale");
-    locations[SCALE_DEPTH_LOCATION] = program->getUniformLocation("fScaleDepth");
-    locations[SCALE_OVER_SCALE_DEPTH_LOCATION] = program->getUniformLocation("fScaleOverScaleDepth");
-    locations[G_LOCATION] = program->getUniformLocation("g");
-    locations[G2_LOCATION] = program->getUniformLocation("g2");
+    locations[CAMERA_POS_LOCATION] = program->uniformLocation("v3CameraPos");
+    locations[LIGHT_POS_LOCATION] = program->uniformLocation("v3LightPos");
+    locations[INV_WAVELENGTH_LOCATION] = program->uniformLocation("v3InvWavelength");
+    locations[CAMERA_HEIGHT2_LOCATION] = program->uniformLocation("fCameraHeight2");
+    locations[OUTER_RADIUS_LOCATION] = program->uniformLocation("fOuterRadius");
+    locations[OUTER_RADIUS2_LOCATION] = program->uniformLocation("fOuterRadius2");
+    locations[INNER_RADIUS_LOCATION] = program->uniformLocation("fInnerRadius");
+    locations[KR_ESUN_LOCATION] = program->uniformLocation("fKrESun");
+    locations[KM_ESUN_LOCATION] = program->uniformLocation("fKmESun");
+    locations[KR_4PI_LOCATION] = program->uniformLocation("fKr4PI");
+    locations[KM_4PI_LOCATION] = program->uniformLocation("fKm4PI");
+    locations[SCALE_LOCATION] = program->uniformLocation("fScale");
+    locations[SCALE_DEPTH_LOCATION] = program->uniformLocation("fScaleDepth");
+    locations[SCALE_OVER_SCALE_DEPTH_LOCATION] = program->uniformLocation("fScaleOverScaleDepth");
+    locations[G_LOCATION] = program->uniformLocation("g");
+    locations[G2_LOCATION] = program->uniformLocation("g2");
     
     return program;
 }
