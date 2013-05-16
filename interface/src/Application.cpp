@@ -774,11 +774,20 @@ void Application::idle() {
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
         
         float deltaTime = 1.f/_fps;
-
-        // update behaviors for avatar hand movement: handControl takes mouse values as input, 
-        // and gives back 3D values modulated for smooth transitioning between interaction modes.
-        _handControl.update(_mouseX, _mouseY);
-        _myAvatar.setHandMovementValues(_handControl.getValues());        
+        
+        //  Use Transmitter Hand to move hand if connected, else use mouse 
+        if (_myAvatar.transmitterV2IsConnected()) {
+            const float HAND_FORCE_SCALING = 0.05f;
+            const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
+            _myAvatar.setHandMovementValues(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
+                                                       handAcceleration[1] * HAND_FORCE_SCALING,
+                                                       handAcceleration[2] * HAND_FORCE_SCALING));
+        } else {
+            // update behaviors for avatar hand movement: handControl takes mouse values as input,
+            // and gives back 3D values modulated for smooth transitioning between interaction modes.
+            _handControl.update(_mouseX, _mouseY);
+            _myAvatar.setHandMovementValues(_handControl.getValues());
+        }
         
         // tell my avatar if the mouse is being pressed...
         _myAvatar.setMousePressed(_mousePressed);
@@ -1668,6 +1677,10 @@ void Application::displayOverlay() {
     //  Show detected levels from the serial I/O ADC channel sensors
     if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
     
+    //  Show hand transmitter data if detected
+    if (_myAvatar.transmitterV2IsConnected()) {
+        _myAvatar.transmitterV2RenderLevels(_glWidget->width(), _glWidget->height());
+    }
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
     glPointSize(1.0f);
@@ -2020,13 +2033,17 @@ void* Application::networkReceive(void* args) {
                     app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_TRANSMITTER_DATA_V2:
+                    /*
                     float rotationRates[3];
                     float accelerations[3];
                     
                     memcpy(rotationRates, app->_incomingPacket + 2, sizeof(rotationRates));
                     memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
                     
-                    printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
+                    printf("Acceleration: %f, %f, %f\n", accelerations[0], accelerations[1], accelerations[2]);
+                     */
+                    app->_myAvatar.processTransmitterDataV2(app->_incomingPacket, bytesReceived);
+                    
                     break;
                 case PACKET_HEADER_MIXED_AUDIO:
                     app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);

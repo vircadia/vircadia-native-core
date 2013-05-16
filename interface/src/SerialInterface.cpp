@@ -187,7 +187,7 @@ void SerialInterface::readData() {
         convertHexToInt(sensorBuffer + 10, accelYRate);
         convertHexToInt(sensorBuffer + 14, accelXRate);
         
-        const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * 9.80665f;
+        const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         

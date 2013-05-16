@@ -127,6 +127,12 @@ public:
 
     //  Related to getting transmitter UDP data used to animate the avatar hand
     void processTransmitterData(unsigned char * packetData, int numBytes);
+    void processTransmitterDataV2(unsigned char * packetData, int numBytes);
+    const bool transmitterV2IsConnected() const { return _transmitterV2IsConnected; };
+    const float* getTransmitterHandLastAcceleration() const { return _transmitterHandLastAcceleration; };
+    const float* getTransmitterHandLastRotationRates() const { return _transmitterHandLastRotationRates; };
+    void transmitterV2RenderLevels(int width, int height);
+
     float getTransmitterHz() { return _transmitterHz; };
     
     void writeAvatarDataToFile();
@@ -181,6 +187,9 @@ private:
     float       _transmitterHz;
     int         _transmitterPackets;
     glm::vec3   _transmitterInitialReading;
+    float       _transmitterHandLastRotationRates[3];
+    float       _transmitterHandLastAcceleration[3];
+    bool        _transmitterV2IsConnected;
     float       _pelvisStandingHeight;
     float       _height;
     Balls*      _balls;
