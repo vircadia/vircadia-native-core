@@ -534,10 +534,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             shiftPaintingColor();
             break;
     
-        case Qt::Key_Minus:
-            sendVoxelServerEraseAll();
-            break;
-        
         case Qt::Key_Percent:
             sendVoxelServerAddScene();
             break;
