@@ -13,6 +13,7 @@
 #include <cmath>
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
+#include <glm/gtc/random.hpp>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -20,6 +21,8 @@
 #include <pthread.h>
 #include "Log.h"
 #include "VoxelConstants.h"
+#include "InterfaceConfig.h"
+#include "renderer/ProgramObject.h"
 
 #include "VoxelSystem.h"
 
@@ -497,6 +500,37 @@ void VoxelSystem::init() {
     // delete the indices and normals arrays that are no longer needed
     delete[] indicesArray;
     delete[] normalsArray;
+    
+    // create our simple fragment shader
+    switchToResourcesParentIfRequired();
+    _grainProgram = new ProgramObject();
+    _grainProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/grainy_voxels.vert");
+    _grainProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/grainy_voxels.frag");
+    _grainProgram->link();
+    
+    _grainProgram->setUniformValue("permutationNormalTexture", 0);
+    
+    // create the permutation/normal texture
+    glGenTextures(1, &_permutationNormalTextureID);
+    glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+    
+    // the first line consists of random permutation offsets
+    unsigned char data[256 * 2 * 3];
+    for (int i = 0; i < 256 * 3; i++) {
+        data[i] = rand() % 256;
+    }
+    // the next, random unit normals
+    for (int i = 256 * 3; i < 256 * 3 * 2; i += 3) {
+        glm::vec3 randvec = glm::sphericalRand(1.0f);
+        data[i] = ((randvec.x + 1.0f) / 2.0f) * 255.0f;
+        data[i + 1] = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
+        data[i + 2] = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void VoxelSystem::updateFullVBOs() {
@@ -606,10 +640,16 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
+    _grainProgram->bind();
+    glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     glDrawElements(GL_TRIANGLES, 36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+    _grainProgram->release();
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
