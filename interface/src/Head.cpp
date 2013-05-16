@@ -221,9 +221,6 @@ void Head::simulate(float deltaTime, bool isMine) {
                             (deltaTime / AUDIO_AVERAGING_SECS) * audioLoudness;
 }
 
-
-
-
 void Head::render(bool lookingInMirror, float bodyYaw) {
 
     int side = 0;

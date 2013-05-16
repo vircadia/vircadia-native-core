@@ -306,13 +306,13 @@ void Application::paintGL() {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                            _myAvatar.getAbsoluteHeadPitch(),
+                                            -_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                            0.0f,
+                                            -_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
             }
         }
@@ -864,7 +864,11 @@ void Application::idle() {
         }
         
         //  Update from Mouse
-        _myAvatar.updateFromMouse(_mouseX, _mouseY, _glWidget->width(), _glWidget->height());
+        QPoint mouse = QCursor::pos();
+        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
+                                  _glWidget->mapFromGlobal(mouse).y(),
+                                  _glWidget->width(),
+                                  _glWidget->height());
        
         //  Read serial port interface devices
         if (_serialPort.active) {

@@ -236,4 +236,13 @@ void AvatarData::setBodyRoll(float bodyRoll) {
     _bodyRoll = bodyRoll;
 }
 
+void AvatarData::setHeadPitch(float p) {
+    // Set head pitch and apply limits
+    const float MAX_PITCH = 60;
+    const float MIN_PITCH = -60;
+    _headPitch = glm::clamp(p, MIN_PITCH, MAX_PITCH);
+}
+
+
+
 
