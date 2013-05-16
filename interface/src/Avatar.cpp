@@ -101,7 +101,9 @@ Avatar::Avatar(bool isMine) {
     _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
-    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
+    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
+    _cumulativeMouseYaw         = 0.f;
+    _isMouseTurningRight        = false;
 
     initializeSkeleton();
     
@@ -292,16 +294,33 @@ bool Avatar::getIsNearInteractingOther() {
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-    //  Update pitch and yaw based on mouse behavior
+    //  Update yaw based on mouse behavior
     const float MOUSE_MOVE_RADIUS = 0.25f;
     const float MOUSE_ROTATE_SPEED = 7.5f;
+    const float MAX_YAW_TO_ADD = 180.f;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
-    
-    if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
-        float mouseMag = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
-        setBodyYaw(getBodyYaw() - ((mouseLocationX > 0.f) ? mouseMag : -mouseMag));
+
+    printLog("mouse %d, %d\n", mouseX, mouseY);
+
+    if ((fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) &&
+        (mouseX > 1) &&
+        (mouseX < screenWidth) &&
+        (mouseY > 1) &&
+        (mouseY < screenHeight)) {
+        float mouseYawAdd = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
+        bool rightTurning = (mouseLocationX > 0.f);
+        if (_isMouseTurningRight == rightTurning) {
+            _cumulativeMouseYaw += mouseYawAdd;
+        } else {
+            _cumulativeMouseYaw = 0;
+            _isMouseTurningRight = rightTurning; 
+        }
+        if (_cumulativeMouseYaw < MAX_YAW_TO_ADD) {
+            setBodyYaw(getBodyYaw() - (rightTurning ? mouseYawAdd : -mouseYawAdd));
+        }
+    } else {
+        _cumulativeMouseYaw = 0;
     }
-    
     return;
 }
 
