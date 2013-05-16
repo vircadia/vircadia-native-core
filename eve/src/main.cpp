@@ -148,7 +148,7 @@ int main(int argc, const char* argv[]) {
             
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
             agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
-        }        
+        }
         
         if (!eveAudioInjector.isInjectingAudio()) {
             // enumerate the other agents to decide if one is close enough that eve should talk
