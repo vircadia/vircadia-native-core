@@ -56,16 +56,9 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 const glm::vec3 START_LOCATION(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
-const int IDLE_SIMULATE_MSECS = 16;          //  How often should call simulate and other stuff 
-                                             //  in the idle loop?  (60 FPS is default)
+const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
+                                                 //  in the idle loop?  (60 FPS is default)
                                            
-const bool  USING_MOUSE_VIEW_SHIFT = false;
-const float MOUSE_VIEW_SHIFT_RATE         = 40.0f;
-const float MOUSE_VIEW_SHIFT_YAW_MARGIN   = (float)(1200  * 0.2f);
-const float MOUSE_VIEW_SHIFT_PITCH_MARGIN = (float)(800 * 0.2f);
-const float MOUSE_VIEW_SHIFT_YAW_LIMIT    = 45.0;
-const float MOUSE_VIEW_SHIFT_PITCH_LIMIT  = 30.0;
-
 const bool DISPLAY_HEAD_MOUSE = true;
 
 // customized canvas that simply forwards requests/events to the singleton application
@@ -137,8 +130,6 @@ Application::Application(int& argc, char** argv) :
         _viewFrustumOffsetRoll(0.0),
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
-        _mouseViewShiftYaw(0.0f),
-        _mouseViewShiftPitch(0.0f),
         _audioScope(256, 200, true),
         _myAvatar(true),
         _mouseX(0),
@@ -307,18 +298,23 @@ void Application::paintGL() {
          
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f); 
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
+                                        0.0f,
+                                        0.0f);
         
         } else {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw() - _mouseViewShiftYaw,
-                                            _myAvatar.getRenderPitch() + _mouseViewShiftPitch, 0.0f);                
+                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                            _myAvatar.getAbsoluteHeadPitch(),
+                                            0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - _mouseViewShiftYaw, _mouseViewShiftPitch, 0.0f);
-            }  
+                _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
+                                            0.0f,
+                                            0.0f);
+            }
         }
                 
         // important...
@@ -538,14 +534,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
             shiftPaintingColor();
             break;
     
-        case Qt::Key_Minus:
-            sendVoxelServerEraseAll();
-            break;
-        
         case Qt::Key_Percent:
             sendVoxelServerAddScene();
             break;
         
+        case Qt::Key_Semicolon:
+            _audio.startEchoTest();
+            break;
+            
         case Qt::Key_L:
             _displayLevels = !_displayLevels;
             break;
@@ -782,11 +778,20 @@ void Application::idle() {
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
         
         float deltaTime = 1.f/_fps;
-
-        // update behaviors for avatar hand movement: handControl takes mouse values as input, 
-        // and gives back 3D values modulated for smooth transitioning between interaction modes.
-        _handControl.update(_mouseX, _mouseY);
-        _myAvatar.setHandMovementValues(_handControl.getValues());        
+        
+        //  Use Transmitter Hand to move hand if connected, else use mouse 
+        if (_myAvatar.isTransmitterV2Connected()) {
+            const float HAND_FORCE_SCALING = 0.05f;
+            const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
+            _myAvatar.setHandMovementValues(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
+                                                       handAcceleration[1] * HAND_FORCE_SCALING,
+                                                       handAcceleration[2] * HAND_FORCE_SCALING));
+        } else {
+            // update behaviors for avatar hand movement: handControl takes mouse values as input,
+            // and gives back 3D values modulated for smooth transitioning between interaction modes.
+            _handControl.update(_mouseX, _mouseY);
+            _myAvatar.setHandMovementValues(_handControl.getValues());
+        }
         
         // tell my avatar if the mouse is being pressed...
         _myAvatar.setMousePressed(_mousePressed);
@@ -856,10 +861,11 @@ void Application::idle() {
         // walking triggers the handControl to stop
         if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
             _handControl.stop();
-            _mouseViewShiftYaw   *= 0.9;
-            _mouseViewShiftPitch *= 0.9;
         }
         
+        //  Update from Mouse
+        _myAvatar.updateFromMouse(_mouseX, _mouseY, _glWidget->width(), _glWidget->height());
+       
         //  Read serial port interface devices
         if (_serialPort.active) {
             _serialPort.readData();
@@ -1125,6 +1131,9 @@ void Application::initMenu() {
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
+    (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
+    _renderFrameTimerOn->setChecked(false);
+
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
     (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
@@ -1223,8 +1232,8 @@ void Application::init() {
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
-    _headMouseX = _glWidget->width()/2;
-    _headMouseY = _glWidget->height()/2; 
+    _headMouseX = _mouseX = _glWidget->width() / 2;
+    _headMouseY = _mouseY = _glWidget->height() / 2;
 
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
@@ -1234,7 +1243,9 @@ void Application::init() {
     a.distance  = 1.5f;
     a.tightness = 8.0f;
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-    _myAvatar.setDisplayingHead(true);   
+    _myAvatar.setDisplayingHead(true);
+    
+    QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
     
@@ -1268,6 +1279,7 @@ void Application::updateAvatar(float deltaTime) {
     //  Update head and body pitch and yaw based on measured gyro rates
     if (_gyroLook->isChecked()) {
         // Render Yaw
+        /*   NOTE:  PER - Leave here until I get back and can modify to couple gyros to head pitch, yaw
         float renderYawSpring = fabs(_headMouseX - _glWidget->width() / 2.f) / (_glWidget->width() / 2.f);
         const float RENDER_YAW_MULTIPLY = 4.f;
         _myAvatar.setRenderYaw((1.f - renderYawSpring * deltaTime) * _myAvatar.getRenderYaw() +
@@ -1277,34 +1289,7 @@ void Application::updateAvatar(float deltaTime) {
         const float RENDER_PITCH_MULTIPLY = 4.f;
         _myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * _myAvatar.getRenderPitch() +
                                 renderPitchSpring * deltaTime * -_myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
-    }
-    
-    
-    if (USING_MOUSE_VIEW_SHIFT)
-    {
-        //make it so that when your mouse hits the edge of the screen, the camera shifts
-        float rightBoundary  = (float)_glWidget->width()  - MOUSE_VIEW_SHIFT_YAW_MARGIN;
-        float bottomBoundary = (float)_glWidget->height() - MOUSE_VIEW_SHIFT_PITCH_MARGIN;
-        
-        if (_mouseX > rightBoundary) {
-            float f = (_mouseX - rightBoundary) / ( (float)_glWidget->width() - rightBoundary);
-            _mouseViewShiftYaw += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftYaw > MOUSE_VIEW_SHIFT_YAW_LIMIT) { _mouseViewShiftYaw = MOUSE_VIEW_SHIFT_YAW_LIMIT; }
-        } else if (_mouseX < MOUSE_VIEW_SHIFT_YAW_MARGIN) {
-            float f = 1.0 - (_mouseX / MOUSE_VIEW_SHIFT_YAW_MARGIN);
-            _mouseViewShiftYaw -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftYaw < -MOUSE_VIEW_SHIFT_YAW_LIMIT) { _mouseViewShiftYaw = -MOUSE_VIEW_SHIFT_YAW_LIMIT; }
-        }
-        if (_mouseY < MOUSE_VIEW_SHIFT_PITCH_MARGIN) {
-            float f = 1.0 - (_mouseY / MOUSE_VIEW_SHIFT_PITCH_MARGIN);
-            _mouseViewShiftPitch += MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftPitch > MOUSE_VIEW_SHIFT_PITCH_LIMIT ) { _mouseViewShiftPitch = MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-        }
-        else if (_mouseY > bottomBoundary) {
-            float f = (_mouseY - bottomBoundary) / ((float)_glWidget->height() - bottomBoundary);
-            _mouseViewShiftPitch -= MOUSE_VIEW_SHIFT_RATE * f * deltaTime;
-            if (_mouseViewShiftPitch < -MOUSE_VIEW_SHIFT_PITCH_LIMIT) { _mouseViewShiftPitch = -MOUSE_VIEW_SHIFT_PITCH_LIMIT; }
-        }
+         */
     }
     
     if (OculusManager::isConnected()) {
@@ -1673,6 +1658,7 @@ void Application::displayOverlay() {
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         _audioScope.render(20, _glWidget->height() - 200);
+        //_audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
         #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
@@ -1695,6 +1681,10 @@ void Application::displayOverlay() {
     //  Show detected levels from the serial I/O ADC channel sensors
     if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
     
+    //  Show hand transmitter data if detected
+    if (_myAvatar.isTransmitterV2Connected()) {
+        _myAvatar.transmitterV2RenderLevels(_glWidget->width(), _glWidget->height());
+    }
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
     glPointSize(1.0f);
@@ -1706,6 +1696,17 @@ void Application::displayOverlay() {
     if (_chatEntryOn) {
         _chatEntry.render(_glWidget->width(), _glWidget->height());
     }
+    
+    //  Show on-screen msec timer
+    if (_renderFrameTimerOn->isChecked()) {
+        char frameTimer[10];
+        double mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        mSecsNow = mSecsNow - floor(mSecsNow / 1000.0) * 1000.0;
+        sprintf(frameTimer, "%3.0f\n", mSecsNow);
+        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
+        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
+    }
+
 
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
@@ -1967,12 +1968,13 @@ void Application::deleteVoxelUnderCursor() {
 
 void Application::resetSensors() {
     _myAvatar.setPosition(START_LOCATION);
-    _headMouseX = _glWidget->width() / 2;
-    _headMouseY = _glWidget->height() / 2;
+    _headMouseX = _mouseX = _glWidget->width() / 2;
+    _headMouseY = _mouseY = _glWidget->height() / 2;
     
     if (_serialPort.active) {
         _serialPort.resetAverages();
-    } 
+    }
+    QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
 }
 
@@ -2031,17 +2033,13 @@ void* Application::networkReceive(void* args) {
             
             switch (app->_incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA_V1:
-                    //  Process UDP packets that are sent to the client from local sensor devices 
+                    //  V1 = android app, or the Google Glass 
                     app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_TRANSMITTER_DATA_V2:
-                    float rotationRates[3];
-                    float accelerations[3];
+                    //  V2 = IOS transmitter app 
+                    app->_myAvatar.processTransmitterDataV2(app->_incomingPacket, bytesReceived);
                     
-                    memcpy(rotationRates, app->_incomingPacket + 2, sizeof(rotationRates));
-                    memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
-                    
-                    printf("The rotation: %f, %f, %f\n", rotationRates[0], rotationRates[1], rotationRates[2]);
                     break;
                 case PACKET_HEADER_MIXED_AUDIO:
                     app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);

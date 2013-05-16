@@ -13,6 +13,8 @@
 #error "This is an implementation file - not intended for direct inclusion."
 #endif
 
+#include <locale.h>
+
 #include "Config.h"
 
 #include "starfield/data/InputVertex.h"
@@ -99,6 +101,7 @@ namespace starfield {
                 // parse
                 float azi, alt;
                 unsigned c;
+                setlocale(LC_NUMERIC, "C");
                 if (sscanf(line, " %f %f #%x", & azi, & alt, & c) == 3) {
 
                     if (spaceFor( getBrightness(c) )) {

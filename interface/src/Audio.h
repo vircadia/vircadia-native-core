@@ -32,8 +32,15 @@ public:
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
     
     void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples);
+
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
+    
+    void startEchoTest();
+    void addedPingFrame();
+    void renderEchoCompare();
+    
 private:    
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
@@ -50,6 +57,12 @@ private:
     int _totalPacketsReceived;
     timeval _firstPlaybackTime;
     int _packetsReceivedThisPlayback;
+    bool _shouldStartEcho;
+    bool _isSendingEchoPing;
+    int _echoPingFrameCount;
+    int16_t* _echoInputSamples;
+    int16_t* _echoOutputSamples;
+    bool _isGatheringEchoFrames;
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
