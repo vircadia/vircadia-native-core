@@ -778,7 +778,7 @@ void Avatar::setDisplayingHead(bool displayingHead) {
 }
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24);
+    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
     return renderer;
 }
 
@@ -858,6 +858,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         glScalef(chatMessageScale, chatMessageScale, 1.0f);
 
         glDisable(GL_LIGHTING);
+        glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
             textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
             
@@ -873,6 +874,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
             textRenderer()->draw(width/2 - lastWidth, 0, _chatMessage.c_str() + lastIndex);                        
         }
         glEnable(GL_LIGHTING);
+        glDepthMask(true);
         
         glPopMatrix();
     }
