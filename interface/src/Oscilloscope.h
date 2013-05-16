@@ -15,24 +15,12 @@ class Oscilloscope {
 public:
     static unsigned const MAX_CHANNELS = 3;
     static unsigned const MAX_SAMPLES = 4096; // per channel
-private:
-    unsigned        _valWidth;
-    unsigned        _valHeight;
-    short*          _arrSamples;
-    short*          _arrVertices;
-    unsigned        _arrWritePos[MAX_CHANNELS];
-
-    float           _valLowpass;
-    unsigned        _valDownsample;
-    
-public:
 
     Oscilloscope(int width, int height, bool isEnabled);
     ~Oscilloscope();
 
     volatile bool enabled;
     volatile bool inputPaused;
-
 
     void addSamples(unsigned ch, short const* data, unsigned n);
     
@@ -48,6 +36,15 @@ private:
 
     // implementation
     inline short* bufferBase(int i, int channel);
+
+    unsigned        _valWidth;
+    unsigned        _valHeight;
+    short*          _arrSamples;
+    short*          _arrVertices;
+    unsigned        _arrWritePos[MAX_CHANNELS];
+
+    float           _valLowpass;
+    unsigned        _valDownsample;
 };
 
 #endif /* defined(__interface__oscilloscope__) */
