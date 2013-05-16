@@ -10,6 +10,7 @@
 #include <vector>
 #include <lodepng.h>
 #include <SharedUtil.h>
+#include "world.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Log.h"
@@ -82,6 +83,7 @@ Avatar::Avatar(bool isMine) {
     _transmitterPackets         = 0;
     _transmitterIsFirstData     = true;
     _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
+    _isTransmitterV2Connected   = false;
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
@@ -96,8 +98,6 @@ Avatar::Avatar(bool isMine) {
     _head.initialize();
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _renderYaw                  = 0.0;
-    _renderPitch                = 0.0;
     _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
@@ -126,7 +126,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _mode                        = otherAvatar._mode;
     _isMine                      = otherAvatar._isMine;
     _renderYaw                   = otherAvatar._renderYaw;
-    _renderPitch                 = otherAvatar._renderPitch;
     _maxArmLength                = otherAvatar._maxArmLength;
     _transmitterTimer            = otherAvatar._transmitterTimer;
     _transmitterIsFirstData      = otherAvatar._transmitterIsFirstData;
@@ -134,6 +133,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _transmitterHz               = otherAvatar._transmitterHz;
     _transmitterInitialReading   = otherAvatar._transmitterInitialReading;
     _transmitterPackets          = otherAvatar._transmitterPackets;
+    _isTransmitterV2Connected    = otherAvatar._isTransmitterV2Connected;
     _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
     _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
     _movedHandOffset             = otherAvatar._movedHandOffset;
@@ -289,6 +289,20 @@ void Avatar::setMousePressed(bool mousePressed) {
 
 bool Avatar::getIsNearInteractingOther() { 
     return _avatarTouch.getAbleToReachOtherAvatar(); 
+}
+
+void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
+    //  Update pitch and yaw based on mouse behavior
+    const float MOUSE_MOVE_RADIUS = 0.25f;
+    const float MOUSE_ROTATE_SPEED = 7.5f;
+    float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
+    
+    if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
+        float mouseMag = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
+        setBodyYaw(getBodyYaw() - ((mouseLocationX > 0.f) ? mouseMag : -mouseMag));
+    }
+    
+    return;
 }
 
 void Avatar::simulate(float deltaTime) {
@@ -595,110 +609,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
 void Avatar::updateHead(float deltaTime) {
 
-/*
-    //  Decay head back to center if turned on
-    if (_isMine && _returnHeadToCenter) {
-        //  Decay back toward center
-        _headPitch *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-        _headYaw   *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-        _headRoll  *= (1.0f - DECAY * _head.returnSpringScale * 2 * deltaTime);
-    }
-    
-    //  For invensense gyro, decay only slightly when roughly centered
-    if (_isMine) {
-        const float RETURN_RANGE = 15.0;
-        const float RETURN_STRENGTH = 2.0;
-        if (fabs(_headPitch) < RETURN_RANGE) { _headPitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headYaw) < RETURN_RANGE) { _headYaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headRoll) < RETURN_RANGE) { _headRoll *= (1.0f - RETURN_STRENGTH * deltaTime); }
-    }
-
-    if (_head.noise) {
-        //  Move toward new target
-        _headPitch += (_head.pitchTarget - _headPitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
-        _headYaw   += (_head.yawTarget   - _headYaw  ) * 10 * deltaTime; // (1.f - DECAY*deltaTime);
-        _headRoll *= 1.f - (DECAY * deltaTime);
-    }
-    
-    _head.leanForward  *= (1.f - DECAY * 30 * deltaTime);
-    _head.leanSideways *= (1.f - DECAY * 30 * deltaTime);
-        
-    //  Update where the avatar's eyes are
-    //
-    //  First, decide if we are making eye contact or not
-    if (randFloat() < 0.005) {
-        _head.eyeContact = !_head.eyeContact;
-        _head.eyeContact = 1;
-        if (!_head.eyeContact) {
-            //  If we just stopped making eye contact,move the eyes markedly away
-            _head.eyeballPitch[0] = _head.eyeballPitch[1] = _head.eyeballPitch[0] + 5.0 + (randFloat() - 0.5) * 10;
-            _head.eyeballYaw  [0] = _head.eyeballYaw  [1] = _head.eyeballYaw  [0] + 5.0 + (randFloat() - 0.5) * 5;
-        } else {
-            //  If now making eye contact, turn head to look right at viewer
-            SetNewHeadTarget(0,0);
-        }
-    }
-    
-    const float DEGREES_BETWEEN_VIEWER_EYES = 3;
-    const float DEGREES_TO_VIEWER_MOUTH = 7;
-    
-    if (_head.eyeContact) {
-        //  Should we pick a new eye contact target?
-        if (randFloat() < 0.01) {
-            //  Choose where to look next
-            if (randFloat() < 0.1) {
-                _head.eyeContactTarget = MOUTH;
-            } else {
-                if (randFloat() < 0.5) _head.eyeContactTarget = LEFT_EYE; else _head.eyeContactTarget = RIGHT_EYE;
-            }
-        }
-        //  Set eyeball pitch and yaw to make contact
-        float eye_target_yaw_adjust = 0;
-        float eye_target_pitch_adjust = 0;
-        if (_head.eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
-        if (_head.eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
-        if (_head.eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
-        
-        _head.eyeballPitch[0] = _head.eyeballPitch[1] = -_headPitch + eye_target_pitch_adjust;
-        _head.eyeballYaw[0] = _head.eyeballYaw[1] = -_headYaw + eye_target_yaw_adjust;
-    }
-    
-    if (_head.noise)
-    {
-        _headPitch += (randFloat() - 0.5) * 0.2 * _head.noiseEnvelope;
-        _headYaw += (randFloat() - 0.5) * 0.3 *_head.noiseEnvelope;
-        //PupilSize += (randFloat() - 0.5) * 0.001*NoiseEnvelope;
-        
-        if (randFloat() < 0.005) _head.mouthWidth = MouthWidthChoices[rand()%3];
-        
-        if (!_head.eyeContact) {
-            if (randFloat() < 0.01)  _head.eyeballPitch[0] = _head.eyeballPitch[1] = (randFloat() - 0.5) * 20;
-            if (randFloat() < 0.01)  _head.eyeballYaw[0] = _head.eyeballYaw[1] = (randFloat()- 0.5) * 10;
-        }
-        
-        if ((randFloat() < 0.005) && (fabs(_head.pitchTarget - _headPitch) < 1.0) && (fabs(_head.yawTarget - _headYaw) < 1.0)) {
-            SetNewHeadTarget((randFloat()-0.5) * 20.0, (randFloat()-0.5) * 45.0);
-        }
-        
-        if (0) {
-            
-            //  Pick new target
-            _head.pitchTarget = (randFloat() - 0.5) * 45;
-            _head.yawTarget = (randFloat() - 0.5) * 22;
-        }
-        if (randFloat() < 0.01)
-        {
-            _head.eyebrowPitch[0] = _head.eyebrowPitch[1] = BrowPitchAngle[rand()%3];
-            _head.eyebrowRoll [0] = _head.eyebrowRoll[1] = BrowRollAngle[rand()%5];
-            _head.eyebrowRoll [1] *=-1;
-        }
-    }
-    
-    //  Update audio trailing average for rendering facial animations
-    const float AUDIO_AVERAGING_SECS = 0.05;
-    _head.averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _head.averageLoudness +
-                            (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-*/
 }
 
 
@@ -1410,6 +1320,84 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
 
     }
 }
+//
+// Process UDP data from version 2 Transmitter acting as Hand 
+//
+void Avatar::processTransmitterDataV2(unsigned char* packetData, int numBytes) {
+    if (numBytes == 3 + sizeof(_transmitterHandLastRotationRates) +
+                        sizeof(_transmitterHandLastAcceleration)) {
+        memcpy(_transmitterHandLastRotationRates, packetData + 2,
+               sizeof(_transmitterHandLastRotationRates));
+        memcpy(_transmitterHandLastAcceleration, packetData + 3 +
+               sizeof(_transmitterHandLastRotationRates),
+               sizeof(_transmitterHandLastAcceleration));
+        //  Convert from transmitter units to internal units
+        for (int i = 0; i < 3; i++) {
+            _transmitterHandLastRotationRates[i] *= 180.f / PI;
+            _transmitterHandLastAcceleration[i] *= GRAVITY_EARTH;
+        }
+        if (!_isTransmitterV2Connected) {
+            printf("Transmitter V2 Connected.\n");
+            _isTransmitterV2Connected = true;
+        }
+    } else {
+        printf("Transmitter V2 packet read error.\n");
+    }
+}
+
+void Avatar::transmitterV2RenderLevels(int width, int height) {
+    
+    char val[50];
+    const int LEVEL_CORNER_X = 10;
+    const int LEVEL_CORNER_Y = 400;
+    
+    // Draw the numeric degree/sec values from the gyros
+    sprintf(val, "Yaw   %4.1f", _transmitterHandLastRotationRates[1]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Pitch %4.1f", _transmitterHandLastRotationRates[0]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Roll  %4.1f", _transmitterHandLastRotationRates[2]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "X     %4.3f", _transmitterHandLastAcceleration[0]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Y     %4.3f", _transmitterHandLastAcceleration[1]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Z     %4.3f", _transmitterHandLastAcceleration[2]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    
+    //  Draw the levels as horizontal lines
+    const int LEVEL_CENTER = 150;
+    const float ACCEL_VIEW_SCALING = 50.f;
+    glLineWidth(2.0);
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_LINES);
+    // Gyro rates
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[1], LEVEL_CORNER_Y - 3);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[0], LEVEL_CORNER_Y + 12);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[2], LEVEL_CORNER_Y + 27);
+    // Acceleration
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[0] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 42);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[1] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 57);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[2] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 72);
+    
+    glEnd();
+    //  Draw green vertical centerline
+    glColor4f(0, 1, 0, 0.5);
+    glBegin(GL_LINES);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
+    glEnd();
+}
+
 
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //

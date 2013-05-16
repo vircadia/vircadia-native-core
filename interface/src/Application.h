@@ -138,7 +138,8 @@ private:
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
     QAction* _renderAvatarsOn;       // Whether to render avatars 
     QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
-    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats 
+    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
+    QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -181,9 +182,6 @@ private:
     float _viewFrustumOffsetRoll;
     float _viewFrustumOffsetDistance;
     float _viewFrustumOffsetUp;
-
-    float _mouseViewShiftYaw;
-    float _mouseViewShiftPitch;
 
     Oscilloscope _audioScope;
     
