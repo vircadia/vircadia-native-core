@@ -87,22 +87,26 @@ int audioCallback (const void* inputBuffer,
     Application* interface = (Application*) QCoreApplication::instance();
     Avatar interfaceAvatar = interface->getAvatar();
     
-    bool addPing = (randFloat() < 0.005f);
-    
     int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
     int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
     int16_t *outputRight = ((int16_t **) outputBuffer)[1];
 
-    // Compare the input and output streams to look for correlation
-    parentAudio->analyzeEcho(inputLeft, outputLeft, BUFFER_LENGTH_SAMPLES);
-    
     // Add Procedural effects to input samples
     parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
     
-    // add data to the scope
+    // add output (@speakers) data to the scope
     parentAudio->_scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
     parentAudio->_scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
-
+    
+    // if needed, add input/output data to echo analysis buffers
+    if (parentAudio->_gatheringEchoFrames) {
+        memcpy(parentAudio->_echoInputSamples, inputLeft,
+               PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+        memcpy(parentAudio->_echoOutputSamples, outputLeft,
+               PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+        parentAudio->addedPingFrame();
+    }
+    
     if (inputLeft != NULL) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
@@ -114,7 +118,7 @@ int audioCallback (const void* inputBuffer,
         loudness /= BUFFER_LENGTH_SAMPLES;
         parentAudio->_lastInputLoudness = loudness;
         
-        // add data to the scope
+        // add input (@microphone) data to the scope
         parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
         
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
@@ -192,7 +196,6 @@ int audioCallback (const void* inputBuffer,
             }
             // play whatever we have in the audio buffer
             
-            
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
@@ -254,12 +257,8 @@ int audioCallback (const void* inputBuffer,
                     }
                 }
                 
-                if (!addPing) {
-                    outputLeft[s] = leftSample;
-                    outputRight[s] = rightSample;
-                } else {
-                    outputLeft[s] = outputRight[s] = (int16_t)(sinf((float) s / 15.f) * 8000.f);
-                }
+                outputLeft[s] = leftSample;
+                outputRight[s] = rightSample;
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
@@ -268,10 +267,18 @@ int audioCallback (const void* inputBuffer,
             }
         }
     }
-    
+    if (parentAudio->_sendingEchoPing) {
+        const float PING_PITCH = 4.f;
+        const float PING_VOLUME = 32000.f;
+        for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+            outputLeft[s] = outputRight[s] = (int16_t)(sinf((float) s / PING_PITCH) * PING_VOLUME);
+        }
+        parentAudio->_gatheringEchoFrames = true;
+    }
     gettimeofday(&parentAudio->_lastCallbackTime, NULL);
     return paContinue;
 }
+
 
 void outputPortAudioError(PaError error) {
     if (error != paNoError) {
@@ -293,8 +300,12 @@ Audio::Audio(Oscilloscope* scope) :
     _lastAcceleration(0),
     _totalPacketsReceived(0),
     _firstPlaybackTime(),
-    _packetsReceivedThisPlayback(0)
-{        
+    _packetsReceivedThisPlayback(0),
+    _startEcho(false),
+    _sendingEchoPing(false),
+    _echoPingFrameCount(0),
+    _gatheringEchoFrames(false)
+{
     outputPortAudioError(Pa_Initialize());
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
                                               2,
@@ -307,7 +318,12 @@ Audio::Audio(Oscilloscope* scope) :
     
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
-        
+    
+    _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES];
+    _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES];
+    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
+    memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
+    
     gettimeofday(&_lastReceiveTime, NULL);
 }
 
@@ -316,6 +332,28 @@ Audio::~Audio() {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());
     }
+}
+
+void Audio::renderEchoCompare() {
+    const int XPOS = 0;
+    const int YPOS = 500;
+    const int YSCALE = 500;
+    const int XSCALE = 2;
+    glPointSize(1.0);
+    glLineWidth(1.0);
+    glDisable(GL_LINE_SMOOTH);
+    glColor3f(1,1,1);
+    glBegin(GL_LINE_STRIP);
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+        glVertex2f(XPOS + i * XSCALE, YPOS + _echoInputSamples[i]/YSCALE);
+    }
+    glEnd();
+    glColor3f(0,1,1);
+    glBegin(GL_LINE_STRIP);
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+        glVertex2f(XPOS + i * XSCALE, YPOS + _echoOutputSamples[i]/YSCALE);
+    }
+    glEnd();
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
@@ -331,8 +369,25 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((cosf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
+            inputBuffer[i] += (int16_t)((sinf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
         }
+    }
+}
+
+void Audio::startEchoTest() {
+    _startEcho = true;
+    _echoPingFrameCount = 0;
+    _sendingEchoPing = true;
+    _gatheringEchoFrames = false;
+}
+
+void Audio::addedPingFrame() {
+    const int ECHO_PING_FRAMES = 1;
+    _echoPingFrameCount++;
+    if (_echoPingFrameCount == ECHO_PING_FRAMES) {
+        _gatheringEchoFrames = false;
+        _sendingEchoPing = false;
+        //startEchoTest();
     }
 }
 void Audio::analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples) {
@@ -385,7 +440,6 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     
     if (::stdev.getSamples() > 500) {
         _measuredJitter = ::stdev.getStDev();
-        //printLog("Avg: %4.2f, Stdev: %4.2f\n", stdev.getAverage(), sharedAudioData->measuredJitter);
         ::stdev.reset();
     }
     

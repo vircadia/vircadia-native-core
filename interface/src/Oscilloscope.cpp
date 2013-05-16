@@ -113,18 +113,19 @@ void Oscilloscope::render(int x, int y) {
         }
     } 
     
-    glLineWidth(2.0);
+    glLineWidth(1.0);
+    glDisable(GL_LINE_SMOOTH);
     glPushMatrix();
     glTranslatef((float)x + 0.0f, (float)y + _valHeight / 2.0f, 0.0f);
     glScaled(1.0f, _valHeight / 32767.0f, 1.0f);
     glVertexPointer(2, GL_SHORT, 0, _arrVertices);
     glEnableClientState(GL_VERTEX_ARRAY);
     glColor3f(1.0f, 1.0f, 1.0f);
-    glDrawArrays(GL_LINES, MAX_SAMPLES * 0, usedWidth);
+    glDrawArrays(GL_LINE_STRIP, MAX_SAMPLES * 0, usedWidth);
     glColor3f(0.0f, 1.0f ,1.0f);
-    glDrawArrays(GL_LINES, MAX_SAMPLES * 1, usedWidth);
+    glDrawArrays(GL_LINE_STRIP, MAX_SAMPLES * 1, usedWidth);
     glColor3f(0.0f, 1.0f ,1.0f);
-    glDrawArrays(GL_LINES, MAX_SAMPLES * 2, usedWidth);
+    glDrawArrays(GL_LINE_STRIP, MAX_SAMPLES * 2, usedWidth);
     glDisableClientState(GL_VERTEX_ARRAY);
     glPopMatrix();
 }

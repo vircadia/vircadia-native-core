@@ -36,6 +36,11 @@ public:
 
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
+    
+    void startEchoTest();
+    void addedPingFrame();
+    void renderEchoCompare();
+    
 private:    
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
@@ -52,6 +57,12 @@ private:
     int _totalPacketsReceived;
     timeval _firstPlaybackTime;
     int _packetsReceivedThisPlayback;
+    bool _startEcho;
+    bool _sendingEchoPing;
+    int _echoPingFrameCount;
+    int16_t* _echoInputSamples;
+    int16_t* _echoOutputSamples;
+    bool _gatheringEchoFrames;
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
