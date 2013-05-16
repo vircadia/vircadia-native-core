@@ -149,9 +149,7 @@ int main(int argc, const char* argv[]) {
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.f;
                         
-                        if (otherAgent != agent) {
-                            printf("DEBUG: The bearing for this agent is %f\n", agentRingBuffer->getBearing());
-                            
+                        if (otherAgent != agent) {                            
                             Position agentPosition = agentRingBuffer->getPosition();
                             Position otherAgentPosition = otherAgentBuffer->getPosition();
                             

@@ -37,9 +37,6 @@ const float AUDIO_INJECT_PROXIMITY = 0.4f;
 
 bool stopReceiveAgentDataThread;
 
-int TEMP_AUDIO_LISTEN_PORT = 55439;
-UDPSocket audioSocket(TEMP_AUDIO_LISTEN_PORT);
-
 void *receiveAgentData(void *args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
@@ -152,7 +149,7 @@ int main(int argc, const char* argv[]) {
             
             // use the UDPSocket instance attached to our agent list to send avatar data to mixer
             agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
-        }        
+        }
         
         if (!eveAudioInjector.isInjectingAudio()) {
             // enumerate the other agents to decide if one is close enough that eve should talk
