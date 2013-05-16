@@ -3,45 +3,50 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/23/13.
-//
+//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__AudioInjector__
 #define __hifi__AudioInjector__
 
 #include <iostream>
-#include <netinet/in.h>
 
-#include "UDPSocket.h"
+#include <glm/glm.hpp>
+
+const int BUFFER_LENGTH_BYTES = 512;
+const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
+const float SAMPLE_RATE = 22050.0f;
+const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES / SAMPLE_RATE) * 1000000;
 
 class AudioInjector {
+    friend class AudioInjectionManager;
+    
 public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
     ~AudioInjector();
     
     bool isInjectingAudio() const { return _isInjectingAudio; }
+    void setIsInjectingAudio(bool isInjectingAudio) { _isInjectingAudio = isInjectingAudio; }
     
-    void setPosition(float* position);
+    unsigned char getVolume() const  { return _volume; }
+    void setVolume(unsigned char volume) { _volume = volume; }
+    
+    const glm::vec3& getPosition() const { return _position; }
+    void setPosition(const glm::vec3& position) { _position = position; }
+    
+    float getBearing() const { return _bearing; }
     void setBearing(float bearing) { _bearing = bearing; }
-    void setAttenuationModifier(unsigned char attenuationModifier) { _attenuationModifier = attenuationModifier; }
-    void setInjectorSocket(UDPSocket* injectorSocket) { _injectorSocket = injectorSocket; }
-    void setDestinationSocket(sockaddr* destinationSocket) { _destinationSocket = *destinationSocket; }
     
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
-    
-    void injectAudio();
-    void threadInjectionOfAudio();
 private:
     int16_t* _audioSampleArray;
     int _numTotalSamples;
-    float _position[3];
+    glm::vec3 _position;
     float _bearing;
-    unsigned char _attenuationModifier;
+    unsigned char _volume;
     int _indexOfNextSlot;
-    UDPSocket* _injectorSocket;
-    sockaddr _destinationSocket;
     bool _isInjectingAudio;
 };
 
