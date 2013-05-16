@@ -441,8 +441,7 @@ void Head::renderIrises(float yaw) {
     }
     
     //render left iris
-    glPushMatrix();
-    {
+    glPushMatrix(); {
         glTranslatef(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
         glm::vec3 targetLookatAxis = glm::normalize(lookatPosition - leftEyePosition);
         
@@ -463,8 +462,7 @@ void Head::renderIrises(float yaw) {
     glPopMatrix();
 
     //render right iris
-    glPushMatrix();
-    {
+    glPushMatrix(); {
         glTranslatef(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);        
         glm::vec3 targetLookatAxis = glm::normalize(lookatPosition - rightEyePosition);
         
