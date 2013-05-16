@@ -14,8 +14,6 @@ using namespace std;
 
 const float HEAD_MOTION_DECAY = 0.1;
 
-//const bool TESTING_LOOKAT = true;
-
 float _browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float _mouthColor[] = {1, 0, 0};
 
@@ -412,10 +410,10 @@ void Head::renderEyeBalls() {
 // the code below is still in the prototyping stages....
 //---------------------------------------------------------
 void Head::renderIrises(float yaw) {
+
     Orientation orientation;
     orientation.setToPitchYawRoll( pitch, yaw, roll);
     
-    // Render lines originating from the eyes and converging on the lookatPosition    
     float rightShift = scale * 0.22f;
     float upShift    = scale * 0.38f;
     float frontShift = scale * 0.9f;
@@ -427,10 +425,12 @@ void Head::renderIrises(float yaw) {
                                           + orientation.getUp   () * upShift 
                                           + orientation.getFront() * frontShift;
     
+    // Render lines originating from the eyes and converging on the lookatPosition    
     debugRenderLookatVectors(leftEyePosition, rightEyePosition, lookatPosition);
     
     glColor3fv(_eyeColor);
     
+    //make the texture for the iris sphere...
     if (sphere == NULL) {
         sphere = gluNewQuadric();
         gluQuadricTexture(sphere, GL_TRUE);

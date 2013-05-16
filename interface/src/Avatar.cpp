@@ -443,12 +443,16 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
     );
     
+    //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
+    _head.setLooking(false);        
+    /*
     if (_interactingOther) {
         _head.setLooking(true);
         _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
     } else {
         _head.setLooking(false);
-    }
+    }    
+    */
         
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
