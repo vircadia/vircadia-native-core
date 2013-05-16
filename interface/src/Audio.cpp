@@ -87,9 +87,9 @@ int audioCallback (const void* inputBuffer,
     Application* interface = (Application*) QCoreApplication::instance();
     Avatar* interfaceAvatar = interface->getAvatar();
     
-    int16_t *inputLeft = ((int16_t **) inputBuffer)[0];
-    int16_t *outputLeft = ((int16_t **) outputBuffer)[0];
-    int16_t *outputRight = ((int16_t **) outputBuffer)[1];
+    int16_t* inputLeft = ((int16_t**) inputBuffer)[0];
+    int16_t* outputLeft = ((int16_t**) outputBuffer)[0];
+    int16_t* outputRight = ((int16_t**) outputBuffer)[1];
 
     // Add Procedural effects to input samples
     parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
@@ -99,7 +99,7 @@ int audioCallback (const void* inputBuffer,
     parentAudio->_scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
     
     // if needed, add input/output data to echo analysis buffers
-    if (parentAudio->_gatheringEchoFrames) {
+    if (parentAudio->_isGatheringEchoFrames) {
         memcpy(parentAudio->_echoInputSamples, inputLeft,
                PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
         memcpy(parentAudio->_echoOutputSamples, outputLeft,
@@ -267,13 +267,13 @@ int audioCallback (const void* inputBuffer,
             }
         }
     }
-    if (parentAudio->_sendingEchoPing) {
+    if (parentAudio->_isSendingEchoPing) {
         const float PING_PITCH = 4.f;
         const float PING_VOLUME = 32000.f;
         for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
             outputLeft[s] = outputRight[s] = (int16_t)(sinf((float) s / PING_PITCH) * PING_VOLUME);
         }
-        parentAudio->_gatheringEchoFrames = true;
+        parentAudio->_isGatheringEchoFrames = true;
     }
     gettimeofday(&parentAudio->_lastCallbackTime, NULL);
     return paContinue;
@@ -301,10 +301,10 @@ Audio::Audio(Oscilloscope* scope) :
     _totalPacketsReceived(0),
     _firstPlaybackTime(),
     _packetsReceivedThisPlayback(0),
-    _startEcho(false),
-    _sendingEchoPing(false),
+    _shouldStartEcho(false),
+    _isSendingEchoPing(false),
     _echoPingFrameCount(0),
-    _gatheringEchoFrames(false)
+    _isGatheringEchoFrames(false)
 {
     outputPortAudioError(Pa_Initialize());
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
@@ -375,18 +375,18 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
 }
 
 void Audio::startEchoTest() {
-    _startEcho = true;
+    _shouldStartEcho = true;
     _echoPingFrameCount = 0;
-    _sendingEchoPing = true;
-    _gatheringEchoFrames = false;
+    _isSendingEchoPing = true;
+    _isGatheringEchoFrames = false;
 }
 
 void Audio::addedPingFrame() {
     const int ECHO_PING_FRAMES = 1;
     _echoPingFrameCount++;
     if (_echoPingFrameCount == ECHO_PING_FRAMES) {
-        _gatheringEchoFrames = false;
-        _sendingEchoPing = false;
+        _isGatheringEchoFrames = false;
+        _isSendingEchoPing = false;
         //startEchoTest();
     }
 }

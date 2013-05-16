@@ -57,12 +57,12 @@ private:
     int _totalPacketsReceived;
     timeval _firstPlaybackTime;
     int _packetsReceivedThisPlayback;
-    bool _startEcho;
-    bool _sendingEchoPing;
+    bool _shouldStartEcho;
+    bool _isSendingEchoPing;
     int _echoPingFrameCount;
     int16_t* _echoInputSamples;
     int16_t* _echoOutputSamples;
-    bool _gatheringEchoFrames;
+    bool _isGatheringEchoFrames;
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);

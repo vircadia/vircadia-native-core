@@ -83,7 +83,7 @@ Avatar::Avatar(bool isMine) {
     _transmitterPackets         = 0;
     _transmitterIsFirstData     = true;
     _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
-    _transmitterV2IsConnected   = false;
+    _isTransmitterV2Connected   = false;
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
@@ -133,7 +133,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _transmitterHz               = otherAvatar._transmitterHz;
     _transmitterInitialReading   = otherAvatar._transmitterInitialReading;
     _transmitterPackets          = otherAvatar._transmitterPackets;
-    _transmitterV2IsConnected    = otherAvatar._transmitterV2IsConnected;
+    _isTransmitterV2Connected    = otherAvatar._isTransmitterV2Connected;
     _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
     _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
     _movedHandOffset             = otherAvatar._movedHandOffset;
@@ -299,11 +299,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
     
     if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
         float mouseMag = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
-        setBodyYaw(getBodyYaw() -
-                             ((mouseLocationX > 0.f) ?
-                              mouseMag :
-                              -mouseMag) );
-        //printLog("yaw = %f\n", getBodyYaw());
+        setBodyYaw(getBodyYaw() - ((mouseLocationX > 0.f) ? mouseMag : -mouseMag));
     }
     
     return;
@@ -1340,9 +1336,9 @@ void Avatar::processTransmitterDataV2(unsigned char* packetData, int numBytes) {
             _transmitterHandLastRotationRates[i] *= 180.f / PI;
             _transmitterHandLastAcceleration[i] *= GRAVITY_EARTH;
         }
-        if (!_transmitterV2IsConnected) {
+        if (!_isTransmitterV2Connected) {
             printf("Transmitter V2 Connected.\n");
-            _transmitterV2IsConnected = true;
+            _isTransmitterV2Connected = true;
         }
     } else {
         printf("Transmitter V2 packet read error.\n");

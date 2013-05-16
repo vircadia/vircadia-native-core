@@ -295,17 +295,22 @@ void Application::paintGL() {
          
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f, 0.0f, 0.0f); 
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
+                                        0.0f,
+                                        0.0f);
         
         } else {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                            _myAvatar.getAbsoluteHeadPitch(), 0.0f);
+                                            _myAvatar.getAbsoluteHeadPitch(),
+                                            0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getBodyYaw(), 0.0f, 0.0f);
+                _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
+                                            0.0f,
+                                            0.0f);
             }
         }
                 
@@ -776,7 +781,7 @@ void Application::idle() {
         float deltaTime = 1.f/_fps;
         
         //  Use Transmitter Hand to move hand if connected, else use mouse 
-        if (_myAvatar.transmitterV2IsConnected()) {
+        if (_myAvatar.isTransmitterV2Connected()) {
             const float HAND_FORCE_SCALING = 0.05f;
             const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
             _myAvatar.setHandMovementValues(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
@@ -1678,7 +1683,7 @@ void Application::displayOverlay() {
     if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
     
     //  Show hand transmitter data if detected
-    if (_myAvatar.transmitterV2IsConnected()) {
+    if (_myAvatar.isTransmitterV2Connected()) {
         _myAvatar.transmitterV2RenderLevels(_glWidget->width(), _glWidget->height());
     }
     //  Display stats and log text onscreen
@@ -2029,19 +2034,11 @@ void* Application::networkReceive(void* args) {
             
             switch (app->_incomingPacket[0]) {
                 case PACKET_HEADER_TRANSMITTER_DATA_V1:
-                    //  Process UDP packets that are sent to the client from local sensor devices 
+                    //  V1 = android app, or the Google Glass 
                     app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_TRANSMITTER_DATA_V2:
-                    /*
-                    float rotationRates[3];
-                    float accelerations[3];
-                    
-                    memcpy(rotationRates, app->_incomingPacket + 2, sizeof(rotationRates));
-                    memcpy(accelerations, app->_incomingPacket + 3 + sizeof(rotationRates), sizeof(accelerations));
-                    
-                    printf("Acceleration: %f, %f, %f\n", accelerations[0], accelerations[1], accelerations[2]);
-                     */
+                    //  V2 = IOS transmitter app 
                     app->_myAvatar.processTransmitterDataV2(app->_incomingPacket, bytesReceived);
                     
                     break;
