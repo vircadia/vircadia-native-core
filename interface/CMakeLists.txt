@@ -71,6 +71,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(GLM REQUIRED)
