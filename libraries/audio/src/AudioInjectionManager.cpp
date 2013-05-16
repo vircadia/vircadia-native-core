@@ -42,49 +42,7 @@ AudioInjector* AudioInjectionManager::injectorWithCapacity(int capacity) {
 void* AudioInjectionManager::injectAudioViaThread(void* args) {
     AudioInjector* injector = (AudioInjector*) args;
     
-    if (injector->_audioSampleArray) {
-        injector->setIsInjectingAudio(true);
-        
-        timeval startTime;
-        
-        // one byte for header, 3 positional floats, 1 bearing float, 1 attenuation modifier byte
-        int leadingBytes = 1 + (sizeof(float) * 4) + 1;
-        unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
-        
-        dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-        unsigned char *currentPacketPtr = dataPacket + 1;
-        
-        memcpy(currentPacketPtr, &injector->getPosition(), sizeof(injector->getPosition()));
-        currentPacketPtr += sizeof(injector->getPosition());
-        
-        *currentPacketPtr = injector->getVolume();
-        currentPacketPtr++;
-        
-        memcpy(currentPacketPtr, &injector->_bearing, sizeof(injector->_bearing));
-        currentPacketPtr += sizeof(injector->_bearing);
-        
-        for (int i = 0; i < injector->_numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
-            gettimeofday(&startTime, NULL);
-            
-            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES;
-            
-            if (injector->_numTotalSamples - i < BUFFER_LENGTH_SAMPLES) {
-                numSamplesToCopy = injector->_numTotalSamples - i;
-                memset(currentPacketPtr + numSamplesToCopy, 0, BUFFER_LENGTH_BYTES - (numSamplesToCopy * sizeof(int16_t)));
-            }
-            
-            memcpy(currentPacketPtr, injector->_audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
-            
-            _injectorSocket->send(&_destinationSocket, dataPacket, sizeof(dataPacket));
-            
-            double usecToSleep = BUFFER_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&startTime));
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
-            }
-        }
-        
-        injector->_isInjectingAudio = false;
-    }
+    injector->injectAudio(_injectorSocket, &_destinationSocket);
     
     // if this an injector inside the injection manager's array we're responsible for deletion
     for (int i = 0; i < MAX_CONCURRENT_INJECTORS; i++) {

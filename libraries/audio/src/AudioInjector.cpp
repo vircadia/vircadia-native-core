@@ -9,7 +9,9 @@
 #include <fstream>
 #include <cstring>
 
-#include "SharedUtil.h"
+#include <SharedUtil.h>
+#include <PacketHeaders.h>
+#include <UDPSocket.h>
 
 #include "AudioInjector.h"
 
@@ -53,6 +55,52 @@ AudioInjector::AudioInjector(int maxNumSamples) :
 
 AudioInjector::~AudioInjector() {
     delete[] _audioSampleArray;
+}
+
+void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) {
+    if (_audioSampleArray) {
+        _isInjectingAudio = true;
+        
+        timeval startTime;
+        
+        // one byte for header, 3 positional floats, 1 bearing float, 1 attenuation modifier byte
+        int leadingBytes = 1 + (sizeof(float) * 4) + 1;
+        unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+        
+        dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
+        unsigned char *currentPacketPtr = dataPacket + 1;
+        
+        memcpy(currentPacketPtr, &_position, sizeof(_position));
+        currentPacketPtr += sizeof(_position);
+        
+        *currentPacketPtr = _volume;
+        currentPacketPtr++;
+        
+        memcpy(currentPacketPtr, &_bearing, sizeof(_bearing));
+        currentPacketPtr += sizeof(_bearing);
+        
+        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
+            gettimeofday(&startTime, NULL);
+            
+            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES;
+            
+            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES) {
+                numSamplesToCopy = _numTotalSamples - i;
+                memset(currentPacketPtr + numSamplesToCopy, 0, BUFFER_LENGTH_BYTES - (numSamplesToCopy * sizeof(int16_t)));
+            }
+            
+            memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
+            
+            injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
+            
+            double usecToSleep = BUFFER_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&startTime));
+            if (usecToSleep > 0) {
+                usleep(usecToSleep);
+            }
+        }
+        
+        _isInjectingAudio = false;
+    }
 }
 
 void AudioInjector::addSample(const int16_t sample) {

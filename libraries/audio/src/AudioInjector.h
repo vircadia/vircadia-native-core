@@ -25,6 +25,8 @@ public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
     ~AudioInjector();
+
+    void injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket);
     
     bool isInjectingAudio() const { return _isInjectingAudio; }
     void setIsInjectingAudio(bool isInjectingAudio) { _isInjectingAudio = isInjectingAudio; }
