@@ -23,6 +23,8 @@
 char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55443;
 
+const int DEFAULT_INJECTOR_VOLUME = 0xFF;
+
 // Command line parameter defaults
 bool loopAudio = true;
 float sleepIntervalMin = 1.00;
@@ -30,7 +32,7 @@ float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
 const char *allowedParameters = ":rb::t::c::a::f:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-unsigned char volume = 255;
+unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 
 void usage(void)
 {

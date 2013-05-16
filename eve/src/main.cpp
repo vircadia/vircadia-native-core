@@ -35,6 +35,7 @@ const int HAND_TIMER_SLEEP_ITERATIONS = 50;
 const float EVE_PELVIS_HEIGHT = 0.565925f;
 
 const float AUDIO_INJECT_PROXIMITY = 0.4f;
+const int EVE_VOLUME_BYTE = 190;
 
 bool stopReceiveAgentDataThread;
 
@@ -116,7 +117,7 @@ int main(int argc, const char* argv[]) {
     AudioInjector eveAudioInjector("/etc/highfidelity/eve/resources/eve.raw");
     
     // lower Eve's volume by setting the attentuation modifier (this is a value out of 255)
-    eveAudioInjector.setVolume(190);
+    eveAudioInjector.setVolume(EVE_VOLUME_BYTE);
     
     // set the position of the audio injector
     eveAudioInjector.setPosition(eve.getPosition());

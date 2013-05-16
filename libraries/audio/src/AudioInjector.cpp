@@ -15,10 +15,12 @@
 
 #include "AudioInjector.h"
 
+const int MAX_INJECTOR_VOLUME = 255;
+
 AudioInjector::AudioInjector(const char* filename) :
     _position(),
     _bearing(0),
-    _volume(0xFF),
+    _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
@@ -45,7 +47,7 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _numTotalSamples(maxNumSamples),
     _position(),
     _bearing(0),
-    _volume(0xFF),
+    _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
