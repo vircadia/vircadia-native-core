@@ -1,9 +1,8 @@
-//---------------------------------------------------------------------
 //
-// Created by Jeffrey Ventrella for High Fidelity.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Camera.cpp
+//  interface
 //
-//---------------------------------------------------------------------
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>

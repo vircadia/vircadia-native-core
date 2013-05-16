@@ -1,9 +1,8 @@
 //
 //  Head.h
-//  hifi
+//  interface
 //
-//  Created by Jeffrey on May, 10, 2013
-//  Copyright (c) 2013 Physical, Inc.. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef hifi_Head_h

@@ -1,9 +1,9 @@
-//-----------------------------------------------------------
 //
-// Created by Jeffrey Ventrella and added as a utility 
-// class for High Fidelity Code base, April 2013
+//  Camera.h
+//  interface
 //
-//-----------------------------------------------------------
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 #ifndef __interface__camera__
 #define __interface__camera__
