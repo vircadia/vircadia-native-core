@@ -503,12 +503,12 @@ void VoxelSystem::init() {
     
     // create our simple fragment shader
     switchToResourcesParentIfRequired();
-    _grainProgram = new ProgramObject();
-    _grainProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/grainy_voxels.vert");
-    _grainProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/grainy_voxels.frag");
-    _grainProgram->link();
+    _perlinModulateProgram = new ProgramObject();
+    _perlinModulateProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
+    _perlinModulateProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
+    _perlinModulateProgram->link();
     
-    _grainProgram->setUniformValue("permutationNormalTexture", 0);
+    _perlinModulateProgram->setUniformValue("permutationNormalTexture", 0);
     
     // create the permutation/normal texture
     glGenTextures(1, &_permutationNormalTextureID);
@@ -640,7 +640,7 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    _grainProgram->bind();
+    _perlinModulateProgram->bind();
     glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
 
     // draw the number of voxels we have
@@ -648,7 +648,7 @@ void VoxelSystem::render() {
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     glDrawElements(GL_TRIANGLES, 36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-    _grainProgram->release();
+    _perlinModulateProgram->release();
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // deactivate vertex and color arrays after drawing

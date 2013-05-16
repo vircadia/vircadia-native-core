@@ -135,7 +135,7 @@ private:
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
-    ProgramObject* _grainProgram;
+    ProgramObject* _perlinModulateProgram;
     GLuint _permutationNormalTextureID;
 
     ViewFrustum* _viewFrustum;

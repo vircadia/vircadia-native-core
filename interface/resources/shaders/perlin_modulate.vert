@@ -1,12 +1,12 @@
+#version 120
+
 //
-//  grainy_voxels.vert
+//  perlin_modulate.vert
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 5/15/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-
-#version 120
 
 // the position in model space
 varying vec3 position;

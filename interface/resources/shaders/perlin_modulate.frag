@@ -1,15 +1,21 @@
+#version 120
+
 //
-//  grainy_voxels.frag
+//  perlin_modulate.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 5/15/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-
-#version 120
 
 // the texture containing our permutations and normals
 uniform sampler2D permutationNormalTexture;
+
+// the noise frequency
+const float frequency = 1024.0;
+
+// the noise amplitude
+const float amplitude = 0.1;
 
 // the position in model space
 varying vec3 position;
@@ -53,5 +59,5 @@ float perlin(vec3 location) {
 }
 
 void main(void) {
-    gl_FragColor = vec4(gl_Color.rgb * (0.85 + perlin(position * 1024.0) * 0.15), 1.0);
+    gl_FragColor = vec4(gl_Color.rgb * (1.0 + amplitude*(perlin(position * frequency) - 1.0)), 1.0);
 }
