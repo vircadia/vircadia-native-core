@@ -1,9 +1,8 @@
-//---------------------------------------------------------------------
 //
-// Created by Jeffrey Ventrella for High Fidelity.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Camera.cpp
+//  interface
 //
-//---------------------------------------------------------------------
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
@@ -12,13 +11,14 @@
 
 #include "Camera.h"
 
-const float MODE_SHIFT_RATE = 5.0f;
+const float MODE_SHIFT_RATE = 6.0f;
 
 Camera::Camera() {
 
     _needsToInitialize   = true;
     _frustumNeedsReshape = true;
     
+    _modeShift      = 0.0;
     _mode           = CAMERA_MODE_THIRD_PERSON;
     _tightness      = 10.0; // default
     _fieldOfView    = 60.0; // default
@@ -41,6 +41,10 @@ Camera::Camera() {
         _attributes[m].upShift   = 0.0f; 
         _attributes[m].distance  = 0.0f; 
         _attributes[m].tightness = 0.0f; 
+        
+        _previousAttributes[m].upShift   = 0.0f;
+        _previousAttributes[m].distance  = 0.0f;
+        _previousAttributes[m].tightness = 0.0f;
     }
 }
 
@@ -67,6 +71,13 @@ void Camera::generateOrientation() {
 
 // use iterative forces to keep the camera at the desired position and angle
 void Camera::updateFollowMode(float deltaTime) {  
+
+    if (_modeShift < 1.0f) {
+        _modeShift += 5.0f * deltaTime;
+        if (_modeShift > 1.0f ) {
+            _modeShift = 1.0f;
+        }
+    }
 
     // derive t from tightness
     float t = _tightness * deltaTime;	
@@ -106,14 +117,19 @@ void Camera::updateFollowMode(float deltaTime) {
         // force position towards ideal position
         _position += (_idealPosition - _position) * t; 
     }
-    
-    //transition to the attributes of the current mode
-    _upShift   += (_attributes[_mode].upShift   - _upShift  ) * deltaTime * MODE_SHIFT_RATE;
-    _distance  += (_attributes[_mode].distance  - _distance ) * deltaTime * MODE_SHIFT_RATE;
-    _tightness += (_attributes[_mode].tightness - _tightness) * deltaTime * MODE_SHIFT_RATE;
+
+    float inverseModeShift = 1.0f - _modeShift;
+    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
+    _distance  = _attributes[_mode].distance * _modeShift + _previousAttributes[_mode].distance * inverseModeShift;
+    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
 }
 
+
 void Camera::setMode(CameraMode  m, CameraFollowingAttributes a) { 
+ 
+    _previousAttributes[m].upShift   = _attributes[m].upShift;
+    _previousAttributes[m].distance  = _attributes[m].distance;
+    _previousAttributes[m].tightness = _attributes[m].tightness;
  
     _attributes[m].upShift   = a.upShift;
     _attributes[m].distance  = a.distance;
@@ -124,7 +140,7 @@ void Camera::setMode(CameraMode  m, CameraFollowingAttributes a) {
 
 void Camera::setMode(CameraMode  m) { 
     _mode = m;
-    _needsToInitialize = true;
+    _modeShift = 0.0;
 }
 
 void Camera::setTargetRotation( float yaw, float pitch, float roll ) {
@@ -165,6 +181,7 @@ void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
 
 void Camera::initialize() {
     _needsToInitialize = true;
+    _modeShift = 0.0;
 }
 
 // call to find out if the view frustum needs to be reshaped

@@ -297,6 +297,7 @@ void Application::paintGL() {
                                         -_myAvatar.getHeadPitch(), _myAvatar.getHeadRoll());
          
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myCamera.setTightness     (100.0f); 
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
                                         0.0f,
@@ -306,13 +307,15 @@ void Application::paintGL() {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                            -_myAvatar.getAbsoluteHeadPitch(),
+                                            0.0f,
+                                            //-_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
                 _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                            -_myAvatar.getAbsoluteHeadPitch(),
+                                            0.0f,
+                                            //-_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
             }
         }
