@@ -37,7 +37,7 @@ const float EVE_PELVIS_HEIGHT = 0.565925f;
 const float AUDIO_INJECT_PROXIMITY = 0.4f;
 const int EVE_VOLUME_BYTE = 190;
 
-const char EVE_AUDIO_FILENAME[] = "/etc/highfidelity/eve/resources/eve.raw"";
+const char EVE_AUDIO_FILENAME[] = "/etc/highfidelity/eve/resources/eve.raw";
 
 bool stopReceiveAgentDataThread;
 
