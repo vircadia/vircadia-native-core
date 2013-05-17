@@ -60,7 +60,6 @@ float chatMessageHeight = 0.45;
 
 
 Avatar::Avatar(bool isMine) {
-    
     _orientation.setToIdentity();
     
     _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -94,7 +93,6 @@ Avatar::Avatar(bool isMine) {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
     _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -109,7 +107,7 @@ Avatar::Avatar(bool isMine) {
     else            { _balls = NULL; }
 }
 
-Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include the copy constructor for head
+Avatar::Avatar(const Avatar &otherAvatar) : _head(otherAvatar._head) { //include the copy constructor for head
 
     _velocity                    = otherAvatar._velocity;
     _thrust                      = otherAvatar._thrust;
@@ -138,8 +136,6 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     
     _orientation.set(otherAvatar._orientation);
     
-    _sphere = NULL;
-    
     initializeSkeleton();
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
@@ -148,12 +144,6 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     
     initializeSkeleton();
 
-}
-
-Avatar::~Avatar()  {
-    if (_sphere != NULL) {
-        gluDeleteQuadric(_sphere);
-    }
 }
 
 Avatar* Avatar::clone() const {

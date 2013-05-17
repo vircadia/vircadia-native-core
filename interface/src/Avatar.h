@@ -179,7 +179,6 @@ private:
     float		_maxArmLength;
     Orientation	_orientation;
     int         _driveKeys[MAX_DRIVE_KEYS];
-    GLUquadric* _sphere;
     float       _renderYaw;
     float       _renderPitch; //   Pitch from view frustum when this is own head
     bool        _transmitterIsFirstData; 
