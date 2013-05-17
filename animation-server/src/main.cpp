@@ -54,10 +54,11 @@ float intensity = 0.5f;
 float intensityIncrement = 0.1f;
 const float MAX_INTENSITY = 1.0f;
 const float MIN_INTENSITY = 0.5f;
+const float BEACON_SIZE = 0.25f / TREE_SCALE; // approximately 1/4th meter
 
 static void sendVoxelBlinkMessage() {
     VoxelDetail detail;
-    detail.s = 0.25f / TREE_SCALE;
+    detail.s = BEACON_SIZE;
     
     glm::vec3 position = glm::vec3(0, 0, detail.s);
     
@@ -87,14 +88,17 @@ static void sendVoxelBlinkMessage() {
 bool stringOfLightsInitialized = false;
 int currentLight = 0;
 int lightMovementDirection = 1;
-const int LIGHT_COUNT = 64;
+const int SEGMENT_COUNT = 4;
+const int LIGHTS_PER_SEGMENT = 80;
+const int LIGHT_COUNT = LIGHTS_PER_SEGMENT * SEGMENT_COUNT;
 glm::vec3 stringOfLights[LIGHT_COUNT];
 unsigned char offColor[3] = { 240, 240, 240 };
-unsigned char onColor[3]  = {   0, 255,   0 };
+unsigned char onColor[3]  = {   0, 255, 255 };
+const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th meter
 
 static void sendBlinkingStringOfLights() {
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
-    float lightScale = 0.125f / TREE_SCALE;
+    float lightScale = STRING_OF_LIGHTS_SIZE;
     VoxelDetail detail;
 
     detail.s = lightScale;
@@ -102,21 +106,37 @@ static void sendBlinkingStringOfLights() {
     // first initialized the string of lights if needed...
     if (!stringOfLightsInitialized) {
         for (int i = 0; i < LIGHT_COUNT; i++) {
-            stringOfLights[i] = glm::vec3(i * lightScale,0,0);
-
-            detail.x = detail.s * floor(stringOfLights[i].x / detail.s);
-            detail.y = detail.s * floor(stringOfLights[i].y / detail.s);
-            detail.z = detail.s * floor(stringOfLights[i].z / detail.s);
-
-            if (i == currentLight) {
-                detail.red   = onColor[0];
-                detail.green = onColor[1];
-                detail.blue  = onColor[2];
-            } else {
-                detail.red   = offColor[0];
-                detail.green = offColor[1];
-                detail.blue  = offColor[2];
+        
+            // four different segments on sides of initial platform
+            int segment = floor(i / LIGHTS_PER_SEGMENT);
+            int indexInSegment = i - (segment * LIGHTS_PER_SEGMENT);
+            switch (segment) {
+                case 0:
+                    // along x axis
+                    stringOfLights[i] = glm::vec3(indexInSegment * lightScale, 0, 0);
+                    break;
+                case 1:
+                    // parallel to Z axis at outer X edge
+                    stringOfLights[i] = glm::vec3(LIGHTS_PER_SEGMENT * lightScale, 0, indexInSegment * lightScale);
+                    break;
+                case 2:
+                    // parallel to X axis at outer Z edge
+                    stringOfLights[i] = glm::vec3((LIGHTS_PER_SEGMENT-indexInSegment) * lightScale, 0, 
+                                                  LIGHTS_PER_SEGMENT * lightScale);
+                    break;
+                case 3:
+                    // on Z axis
+                    stringOfLights[i] = glm::vec3(0, 0, (LIGHTS_PER_SEGMENT-indexInSegment) * lightScale);
+                    break;
             }
+
+            detail.x = stringOfLights[i].x;
+            detail.y = stringOfLights[i].y;
+            detail.z = stringOfLights[i].z;
+
+            detail.red   = offColor[0];
+            detail.green = offColor[1];
+            detail.blue  = offColor[2];
             sendVoxelEditMessage(message, detail);
         }
         stringOfLightsInitialized = true;
@@ -163,6 +183,7 @@ float billboardGradient = 0.5f;
 float billboardGradientIncrement = 0.01f;
 const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
+const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
 
 // top to bottom... 
 bool billBoardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
@@ -179,7 +200,7 @@ bool billBoardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
 
 static void sendBillboard() {
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
-    float lightScale = 0.125f / TREE_SCALE;
+    float lightScale = BILLBOARD_LIGHT_SIZE;
     VoxelDetail detail;
 
     detail.s = lightScale;
@@ -195,14 +216,7 @@ static void sendBillboard() {
         billboardInitialized = true;
     }
 
-    // what will our animation be?
-    // fade in/out the message?
-    
-    //for now, just send it again..., but now, with intensity
-
     ::billboardGradient += ::billboardGradientIncrement;
-    
-    printf("billboardGradient=%f billboardGradientIncrement=%f\n",billboardGradient,billboardGradientIncrement);
     
     if (::billboardGradient >= BILLBOARD_MAX_GRADIENT) {
         ::billboardGradient = BILLBOARD_MAX_GRADIENT;
@@ -245,20 +259,10 @@ void* animateVoxels(void* args) {
     while (true) {
         gettimeofday(&lastSendTime, NULL);
 
-        //printf("animateVoxels thread\n");
-        
-        //printf("animateVoxels thread: Sending a Blink message to the voxel server\n");
-        sendVoxelBlinkMessage();
+        // some animations
+        //sendVoxelBlinkMessage();
         sendBlinkingStringOfLights();
         sendBillboard();
-
-        /**
-        int agentNumber = 0;
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            agentNumber++;
-            printf("current agents[%d] id: %d type: %s \n", agentNumber, agent->getAgentID(), agent->getTypeName());
-        }
-        **/
 
         // dynamically sleep until we need to fire off the next set of voxels
         double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
@@ -304,40 +308,12 @@ int main(int argc, const char * argv[])
 
     // loop to send to agents requesting data
     while (true) {
-
         // Agents sending messages to us...    
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-
             switch (packetData[0]) {
-
-                case PACKET_HEADER_Z_COMMAND: {
-
-                    // the Z command is a special command that allows the sender to send the voxel server high level semantic
-                    // requests, like erase all, or add sphere scene
-                    char* command = (char*) &packetData[1]; // start of the command
-                    int commandLength = strlen(command); // commands are null terminated strings
-                    int totalLength = 1+commandLength+1;
-
-                    printf("got Z message len(%ld)= %s\n",receivedBytes,command);
-
-                    while (totalLength <= receivedBytes) {
-                        if (0==strcmp(command,(char*)"erase all")) {
-                            printf("got Z message == erase all, we don't support that\n");
-                        }
-                        if (0==strcmp(command,(char*)"add scene")) {
-                            printf("got Z message == add scene, we don't support that\n");
-                        }
-                        totalLength += commandLength+1;
-                    }
-                    // If we wanted to rebroadcast this message we could do it here.
-                    //printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-                    //agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
-                } break;
-                
                 default: {
                     AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
                 } break;
-
             }
         }
     }
