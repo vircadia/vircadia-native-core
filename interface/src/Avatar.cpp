@@ -17,6 +17,7 @@
 #include <AgentList.h>
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
+#include <OculusManager.h>
 
 using namespace std;
 
@@ -28,8 +29,6 @@ const float THRUST_MAG                    = 1200.0;
 const float YAW_MAG                       = 500.0;
 const float BODY_SPIN_FRICTION            = 5.0;
 const float BODY_UPRIGHT_FORCE            = 10.0;
-const float BODY_PITCH_WHILE_WALKING      = 40.0;
-const float BODY_ROLL_WHILE_TURNING       = 0.1;
 const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
@@ -150,6 +149,7 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
+
 }
 
 Avatar::~Avatar()  {
@@ -289,7 +289,9 @@ void Avatar::simulate(float deltaTime) {
     if (_isMine) {
         checkForMouseRayTouching();
     }
-    
+    // copy velocity so we can use it later for acceleration
+    glm::vec3 oldVelocity = getVelocity();
+        
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
     
@@ -358,10 +360,12 @@ void Avatar::simulate(float deltaTime) {
 	// add thrust to velocity
 	_velocity += _thrust * deltaTime;
     
-    // calculate speed                             
+    // calculate speed 
     _speed = glm::length(_velocity);
     
     //pitch and roll the body as a function of forward speed and turning delta
+    const float BODY_PITCH_WHILE_WALKING      = 20.0;
+    const float BODY_ROLL_WHILE_TURNING       = 0.2;
     float forwardComponentOfVelocity = glm::dot(_orientation.getFront(), _velocity);
     _bodyPitch += BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity;
     _bodyRoll  += BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta;
@@ -397,6 +401,15 @@ void Avatar::simulate(float deltaTime) {
         }
     }
     
+    //  Compute instantaneous acceleration 
+    float acceleration = glm::distance(getVelocity(), oldVelocity) / deltaTime;
+    const float ACCELERATION_PITCH_DECAY = 0.4f;
+    
+    // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
+    // you start moving, but don't do this with an HMD like the Oculus. 
+    if (!OculusManager::isConnected()) {
+        setHeadPitch(getHeadPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+    }
 
     // Get head position data from network for other people
     if (!_isMine) {
