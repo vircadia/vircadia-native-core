@@ -119,7 +119,7 @@ void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes) {
     srand(time(NULL));
     
     for (int i = 0; i < numBytes; i++) {
-        identifierBuffer[i] = rand() % 255;
+        identifierBuffer[i] = rand() % 256;
     }
 }
 
