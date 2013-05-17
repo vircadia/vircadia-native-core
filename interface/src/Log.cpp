@@ -198,7 +198,7 @@ void Log::setCharacterSize(unsigned width, unsigned height) {
 }
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(FONT_FAMILY);
+    static TextRenderer* renderer = new TextRenderer(FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT);
     return renderer;
 }
 

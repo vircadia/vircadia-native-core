@@ -82,11 +82,8 @@ public:
 
     void  reset();
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+    void  updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void  setNoise (float mag) {_head.noise = mag;}
-    void  setRenderYaw(float y) {_renderYaw = y;}
-    void  setRenderPitch(float p) {_renderPitch = p;}
-    float getRenderYaw() {return _renderYaw;}
-    float getRenderPitch() {return _renderPitch;}
     float getLastMeasuredHeadYaw() const {return _head.yawRate;}
     float getBodyYaw() {return _bodyYaw;};
     void  addBodyYaw(float y) {_bodyYaw += y;};
@@ -131,6 +128,12 @@ public:
 
     //  Related to getting transmitter UDP data used to animate the avatar hand
     void processTransmitterData(unsigned char * packetData, int numBytes);
+    void processTransmitterDataV2(unsigned char * packetData, int numBytes);
+    const bool isTransmitterV2Connected() const { return _isTransmitterV2Connected; };
+    const float* getTransmitterHandLastAcceleration() const { return _transmitterHandLastAcceleration; };
+    const float* getTransmitterHandLastRotationRates() const { return _transmitterHandLastRotationRates; };
+    void transmitterV2RenderLevels(int width, int height);
+
     float getTransmitterHz() { return _transmitterHz; };
     
     void writeAvatarDataToFile();
@@ -185,6 +188,9 @@ private:
     float       _transmitterHz;
     int         _transmitterPackets;
     glm::vec3   _transmitterInitialReading;
+    float       _transmitterHandLastRotationRates[3];
+    float       _transmitterHandLastAcceleration[3];
+    bool        _isTransmitterV2Connected;
     float       _pelvisStandingHeight;
     float       _height;
     Balls*      _balls;
@@ -196,6 +202,8 @@ private:
     glm::vec3   _mouseRayDirection;
     glm::vec3   _cameraPosition;
     Avatar *    _interactingOther;
+    float       _cumulativeMouseYaw;
+    bool        _isMouseTurningRight;
     
     // private methods...
     void initializeSkeleton();

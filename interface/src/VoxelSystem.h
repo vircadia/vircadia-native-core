@@ -21,6 +21,8 @@
 #include "Util.h"
 #include "world.h"
 
+class ProgramObject;
+
 const int NUM_CHILDREN = 8;
 
 class VoxelSystem : public AgentData {
@@ -132,6 +134,9 @@ private:
     GLuint _vboIndicesID;
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
+
+    ProgramObject* _perlinModulateProgram;
+    GLuint _permutationNormalTextureID;
 
     ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;

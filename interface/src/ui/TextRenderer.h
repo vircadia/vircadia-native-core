@@ -23,7 +23,10 @@ class Glyph;
 class TextRenderer {
 public:
 
-    TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false);
+    enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
+
+    TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
+                 EffectType effect = NO_EFFECT, int effectThickness = 2);
     ~TextRenderer();
 
     const QFontMetrics& metrics() const { return _metrics; }
@@ -42,6 +45,12 @@ private:
     
     // the font metrics
     QFontMetrics _metrics;
+
+    // the type of effect to apply
+    EffectType _effectType;
+
+    // the thickness of the effect
+    int _effectThickness;
     
     // maps characters to cached glyph info
     QHash<char, Glyph> _glyphs;

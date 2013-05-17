@@ -9,6 +9,7 @@
 #include <vector>
 #include <lodepng.h>
 #include <SharedUtil.h>
+#include "world.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Log.h"
@@ -80,6 +81,7 @@ Avatar::Avatar(bool isMine) {
     _transmitterPackets         = 0;
     _transmitterIsFirstData     = true;
     _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
+    _isTransmitterV2Connected   = false;
     _speed                      = 0.0;
     _pelvisStandingHeight       = 0.0f;
     _displayingHead             = true;
@@ -95,12 +97,12 @@ Avatar::Avatar(bool isMine) {
     _head.initialize();
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _renderYaw                  = 0.0;
-    _renderPitch                = 0.0;
     _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
-    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f); // default
+    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
+    _cumulativeMouseYaw         = 0.f;
+    _isMouseTurningRight        = false;
 
     initializeSkeleton();
     
@@ -125,7 +127,6 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     _mode                        = otherAvatar._mode;
     _isMine                      = otherAvatar._isMine;
     _renderYaw                   = otherAvatar._renderYaw;
-    _renderPitch                 = otherAvatar._renderPitch;
     _maxArmLength                = otherAvatar._maxArmLength;
     _transmitterTimer            = otherAvatar._transmitterTimer;
     _transmitterIsFirstData      = otherAvatar._transmitterIsFirstData;
@@ -133,6 +134,7 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     _transmitterHz               = otherAvatar._transmitterHz;
     _transmitterInitialReading   = otherAvatar._transmitterInitialReading;
     _transmitterPackets          = otherAvatar._transmitterPackets;
+    _isTransmitterV2Connected    = otherAvatar._isTransmitterV2Connected;
     _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
     _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
     _movedHandOffset             = otherAvatar._movedHandOffset;
@@ -204,7 +206,6 @@ void Avatar::reset() {
     _head.leanForward = _head.leanSideways = 0;
 }
 
-
 //  Update avatar head rotation with sensor data
 void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
     float measuredPitchRate = 0.0f;
@@ -216,8 +217,6 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
-    const float MAX_PITCH = 45;
-    const float MIN_PITCH = -45;
     const float MAX_YAW = 85;
     const float MIN_YAW = -85;
     const float MAX_ROLL = 50;
@@ -227,7 +226,6 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     addHeadYaw(measuredYawRate * deltaTime);
     addHeadRoll(measuredRollRate * deltaTime);
     
-    setHeadPitch(glm::clamp(getHeadPitch(), MIN_PITCH, MAX_PITCH));
     setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
     setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
     
@@ -283,6 +281,47 @@ bool Avatar::getIsNearInteractingOther() {
     return _avatarTouch.getAbleToReachOtherAvatar(); 
 }
 
+void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
+    //  Update yaw based on mouse behavior
+    const float MOUSE_MOVE_RADIUS = 0.25f;
+    const float MOUSE_ROTATE_SPEED = 5.0f;
+    const float MOUSE_PITCH_SPEED = 3.0f;
+    const float MAX_YAW_TO_ADD = 180.f;
+    const int TITLE_BAR_HEIGHT = 46;
+    float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
+    float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
+
+    if ((mouseX > 1) && (mouseX < screenWidth) && (mouseY > TITLE_BAR_HEIGHT) && (mouseY < screenHeight)) {
+        //
+        //  Mouse must be inside screen (not at edge) and not on title bar for movement to happen
+        //
+        if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
+            //  Add Yaw
+            float mouseYawAdd = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
+            bool rightTurning = (mouseLocationX > 0.f);
+            if (_isMouseTurningRight == rightTurning) {
+                _cumulativeMouseYaw += mouseYawAdd;
+            } else {
+                _cumulativeMouseYaw = 0;
+                _isMouseTurningRight = rightTurning;
+            }
+            if (_cumulativeMouseYaw < MAX_YAW_TO_ADD) {
+                setBodyYaw(getBodyYaw() - (rightTurning ? mouseYawAdd : -mouseYawAdd));
+            }
+        } else {
+            _cumulativeMouseYaw = 0;
+        }
+        if (fabs(mouseLocationY) > MOUSE_MOVE_RADIUS) {
+            float mousePitchAdd = (fabs(mouseLocationY) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED;
+            bool downPitching = (mouseLocationY > 0.f);
+            setHeadPitch(getHeadPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
+        }
+        
+    }
+    
+    return;
+}
+
 void Avatar::simulate(float deltaTime) {
 
     //figure out if the mouse cursor is over any body spheres... 
@@ -309,7 +348,7 @@ void Avatar::simulate(float deltaTime) {
     _avatarTouch.simulate(deltaTime);        
     
     // apply gravity and collision with the ground/floor
-    if (USING_AVATAR_GRAVITY) {
+    if (_isMine && USING_AVATAR_GRAVITY) {
         if (_position.y > _pelvisStandingHeight + 0.01f) {
             _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
         } else if (_position.y < _pelvisStandingHeight) {
@@ -599,6 +638,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
+
 float Avatar::getHeight() {
     return _height;
 }
@@ -740,7 +780,7 @@ void Avatar::setDisplayingHead(bool displayingHead) {
 }
 
 static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24);
+    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
     return renderer;
 }
 
@@ -815,6 +855,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         glScalef(chatMessageScale, chatMessageScale, 1.0f);
 
         glDisable(GL_LIGHTING);
+        glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
             textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
             
@@ -830,6 +871,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
             textRenderer()->draw(width/2 - lastWidth, 0, _chatMessage.c_str() + lastIndex);                        
         }
         glEnable(GL_LIGHTING);
+        glDepthMask(true);
         
         glPopMatrix();
     }
@@ -1307,6 +1349,84 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
     }
 }
+//
+// Process UDP data from version 2 Transmitter acting as Hand 
+//
+void Avatar::processTransmitterDataV2(unsigned char* packetData, int numBytes) {
+    if (numBytes == 3 + sizeof(_transmitterHandLastRotationRates) +
+                        sizeof(_transmitterHandLastAcceleration)) {
+        memcpy(_transmitterHandLastRotationRates, packetData + 2,
+               sizeof(_transmitterHandLastRotationRates));
+        memcpy(_transmitterHandLastAcceleration, packetData + 3 +
+               sizeof(_transmitterHandLastRotationRates),
+               sizeof(_transmitterHandLastAcceleration));
+        //  Convert from transmitter units to internal units
+        for (int i = 0; i < 3; i++) {
+            _transmitterHandLastRotationRates[i] *= 180.f / PI;
+            _transmitterHandLastAcceleration[i] *= GRAVITY_EARTH;
+        }
+        if (!_isTransmitterV2Connected) {
+            printf("Transmitter V2 Connected.\n");
+            _isTransmitterV2Connected = true;
+        }
+    } else {
+        printf("Transmitter V2 packet read error.\n");
+    }
+}
+
+void Avatar::transmitterV2RenderLevels(int width, int height) {
+    
+    char val[50];
+    const int LEVEL_CORNER_X = 10;
+    const int LEVEL_CORNER_Y = 400;
+    
+    // Draw the numeric degree/sec values from the gyros
+    sprintf(val, "Yaw   %4.1f", _transmitterHandLastRotationRates[1]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Pitch %4.1f", _transmitterHandLastRotationRates[0]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Roll  %4.1f", _transmitterHandLastRotationRates[2]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "X     %4.3f", _transmitterHandLastAcceleration[0]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Y     %4.3f", _transmitterHandLastAcceleration[1]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    sprintf(val, "Z     %4.3f", _transmitterHandLastAcceleration[2]);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    
+    //  Draw the levels as horizontal lines
+    const int LEVEL_CENTER = 150;
+    const float ACCEL_VIEW_SCALING = 50.f;
+    glLineWidth(2.0);
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_LINES);
+    // Gyro rates
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[1], LEVEL_CORNER_Y - 3);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[0], LEVEL_CORNER_Y + 12);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[2], LEVEL_CORNER_Y + 27);
+    // Acceleration
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[0] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 42);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[1] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 57);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[2] * ACCEL_VIEW_SCALING),
+               LEVEL_CORNER_Y + 72);
+    
+    glEnd();
+    //  Draw green vertical centerline
+    glColor4f(0, 1, 0, 0.5);
+    glBegin(GL_LINES);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
+    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
+    glEnd();
+}
+
 
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
