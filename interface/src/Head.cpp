@@ -27,7 +27,7 @@ float _MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 float _browWidth = 0.8;
 float _browThickness = 0.16;
 
-const char IRIS_TEXTURE_FILENAME[] = "resources/images/green_eye.png";
+const char IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
 unsigned int IRIS_TEXTURE_WIDTH = 512;
 unsigned int IRIS_TEXTURE_HEIGHT = 256;
 vector<unsigned char> irisTexture;
