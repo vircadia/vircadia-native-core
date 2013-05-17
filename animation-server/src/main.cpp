@@ -29,7 +29,9 @@
 #endif
 
 const int ANIMATION_LISTEN_PORT = 40107;
-const int ANIMATE_VOXELS_INTERVAL_USECS = SIXTY_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
+const int ACTUAL_FPS = 20;
+const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from our desired FPS
+const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
@@ -46,7 +48,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-        delete bufferOut;
+        delete[] bufferOut;
     }
 }
 

@@ -215,6 +215,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         sizeOut=actualMessageSize;
         memcpy(bufferOut,messageBuffer,actualMessageSize);
     }
+    delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }
 
