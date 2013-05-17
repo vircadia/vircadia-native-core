@@ -24,6 +24,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
+    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
+    
     std::fstream sourceFile;
     
     sourceFile.open(filename, std::ios::in | std::ios::binary);
@@ -51,6 +53,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
+    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
+    
     _audioSampleArray = new int16_t[maxNumSamples];
     memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
 }
@@ -71,6 +75,10 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
         unsigned char *currentPacketPtr = dataPacket + 1;
+        
+        // copy the identifier for this injector
+        memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
+        currentPacketPtr += sizeof(_streamIdentifier);
         
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);

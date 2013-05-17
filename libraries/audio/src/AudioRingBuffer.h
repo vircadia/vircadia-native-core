@@ -10,13 +10,12 @@
 #define __interface__AudioRingBuffer__
 
 #include <stdint.h>
+
+#include <glm/glm.hpp>
+
 #include "AgentData.h"
 
-struct Position {
-    float x;
-    float y;
-    float z;
-};
+const int STREAM_IDENTIFIER_NUM_BYTES = 8;
 
 class AudioRingBuffer : public AgentData {
 public:
@@ -39,10 +38,11 @@ public:
     bool shouldBeAddedToMix() const  { return _shouldBeAddedToMix; }
     void setShouldBeAddedToMix(bool shouldBeAddedToMix) { _shouldBeAddedToMix = shouldBeAddedToMix; }
     
-    const Position& getPosition() const { return _position; }
+    const glm::vec3& getPosition() const { return _position; }
     float getAttenuationRatio() const { return _attenuationRatio; }
     float getBearing() const { return _bearing; }
     bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
+    const unsigned char* getStreamIdentifier() const { return _streamIdentifier; }
 
     short diffLastWriteNextOutput();
 private:
@@ -52,7 +52,7 @@ private:
     
     int _ringBufferLengthSamples;
     int _bufferLengthSamples;
-    Position _position;
+    glm::vec3 _position;
     float _attenuationRatio;
     float _bearing;
     int16_t* _nextOutput;
@@ -61,6 +61,7 @@ private:
     bool _started;
     bool _shouldBeAddedToMix;
     bool _shouldLoopbackForAgent;
+    unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */
