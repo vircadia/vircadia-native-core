@@ -3,8 +3,7 @@
 //  interface
 //
 //  Created by Philip Rosedale on 9/11/12.
-//	adapted by Jeffrey Ventrella
-//  Copyright (c) 2013 Physical, Inc.. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/glm.hpp>
 #include <vector>
@@ -47,8 +46,8 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
-const float AVATAR_BRAKING_RANGE          = 1.6f;
-const float AVATAR_BRAKING_STRENGTH       = 30.0f;
+const float PERIPERSONAL_RADIUS           = 1.0f;
+const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
 float skinColor [] = {1.0, 0.84, 0.66};
@@ -90,6 +89,7 @@ Avatar::Avatar(bool isMine) {
     _mouseRayOrigin             = glm::vec3(0.0f, 0.0f, 0.0f);
     _mouseRayDirection          = glm::vec3(0.0f, 0.0f, 0.0f);
     _cameraPosition             = glm::vec3(0.0f, 0.0f, 0.0f);
+    _interactingOther           = NULL;
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
     
@@ -105,14 +105,14 @@ Avatar::Avatar(bool isMine) {
 
     initializeSkeleton();
     
-    _avatarTouch.setReachableRadius(0.6);
+    _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
         
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
 }
 
-Avatar::Avatar(const Avatar &otherAvatar) {
-    
+Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include the copy constructor for head
+
     _velocity                    = otherAvatar._velocity;
     _thrust                      = otherAvatar._thrust;
     _rotation                    = otherAvatar._rotation;
@@ -146,42 +146,6 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
     
-    _head.pupilSize          = otherAvatar._head.pupilSize;
-    _head.interPupilDistance = otherAvatar._head.interPupilDistance;
-    _head.interBrowDistance  = otherAvatar._head.interBrowDistance;
-    _head.nominalPupilSize   = otherAvatar._head.nominalPupilSize;
-    _head.yawRate            = otherAvatar._head.yawRate;
-    _head.pitchRate          = otherAvatar._head.pitchRate;
-    _head.rollRate           = otherAvatar._head.rollRate;
-    _head.eyebrowPitch[0]    = otherAvatar._head.eyebrowPitch[0];
-    _head.eyebrowPitch[1]    = otherAvatar._head.eyebrowPitch[1];
-    _head.eyebrowRoll [0]    = otherAvatar._head.eyebrowRoll [0];
-    _head.eyebrowRoll [1]    = otherAvatar._head.eyebrowRoll [1];
-    _head.mouthPitch         = otherAvatar._head.mouthPitch;
-    _head.mouthYaw           = otherAvatar._head.mouthYaw;
-    _head.mouthWidth         = otherAvatar._head.mouthWidth;
-    _head.mouthHeight        = otherAvatar._head.mouthHeight;
-    _head.eyeballPitch[0]    = otherAvatar._head.eyeballPitch[0];
-    _head.eyeballPitch[1]    = otherAvatar._head.eyeballPitch[1];
-    _head.eyeballScaleX      = otherAvatar._head.eyeballScaleX;
-    _head.eyeballScaleY      = otherAvatar._head.eyeballScaleY;
-    _head.eyeballScaleZ      = otherAvatar._head.eyeballScaleZ;
-    _head.eyeballYaw[0]      = otherAvatar._head.eyeballYaw[0];
-    _head.eyeballYaw[1]      = otherAvatar._head.eyeballYaw[1];
-    _head.pitchTarget        = otherAvatar._head.pitchTarget;
-    _head.yawTarget          = otherAvatar._head.yawTarget;
-    _head.noiseEnvelope      = otherAvatar._head.noiseEnvelope;
-    _head.pupilConverge      = otherAvatar._head.pupilConverge;
-    _head.leanForward        = otherAvatar._head.leanForward;
-    _head.leanSideways       = otherAvatar._head.leanSideways;
-    _head.eyeContact         = otherAvatar._head.eyeContact;
-    _head.eyeContactTarget   = otherAvatar._head.eyeContactTarget;
-    _head.scale              = otherAvatar._head.scale;
-    _head.audioAttack        = otherAvatar._head.audioAttack;
-    _head.averageLoudness    = otherAvatar._head.averageLoudness;
-    _head.lastLoudness       = otherAvatar._head.lastLoudness;
-    _head.browAudioLift      = otherAvatar._head.browAudioLift;
-    _head.noise              = otherAvatar._head.noise;
     _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
@@ -321,12 +285,13 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
 
 void Avatar::simulate(float deltaTime) {
 
+    //figure out if the mouse cursor is over any body spheres... 
+    if (_isMine) {
+        checkForMouseRayTouching();
+    }
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
-    
-    // figure out if the mouse cursor is over any body spheres...
-    checkForMouseRayTouching();
-    
+        
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
     
@@ -426,8 +391,8 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // If another avatar is near, dampen velocity as a function of closeness
-    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {    
-        float closeness = 1.0f - (_distanceToNearestAvatar / AVATAR_BRAKING_RANGE);
+    if (_isMine && (_distanceToNearestAvatar < PERIPERSONAL_RADIUS)) {    
+        float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
         float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
         if ( drag > 0.0f ) {
             _velocity *= drag;
@@ -445,6 +410,7 @@ void Avatar::simulate(float deltaTime) {
     if (!OculusManager::isConnected()) {
         setHeadPitch(getHeadPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
+
     // Get head position data from network for other people
     if (!_isMine) {
         _head.leanSideways = getHeadLeanSideways();
@@ -476,7 +442,6 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
 
-    
     // update head state
     _head.setPositionRotationAndScale(
         _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
@@ -484,6 +449,17 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
     );
     
+    _head.setBodyYaw(_bodyYaw);
+    
+    //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
+    if (_interactingOther) {
+        _head.setLooking(true);
+        _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
+//_head.setLookatPosition(_interactingOther->getApproximateEyePosition());
+    } else {
+        _head.setLooking(false);
+    }    
+        
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
@@ -532,10 +508,11 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             
     if (_isMine) {
         _avatarTouch.setMyBodyPosition(_position);
-        
-        Avatar * _interactingOther = NULL;
+                
         float closestDistance = std::numeric_limits<float>::max();
-    
+        
+        _interactingOther = NULL;
+
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -552,12 +529,16 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 float distance = glm::length(v);
                 if (distance < closestDistance) {
                     closestDistance = distance;
-                    _interactingOther = otherAvatar;
+                    
+                    if (distance < PERIPERSONAL_RADIUS) {
+                        _interactingOther = otherAvatar;
+                    }
                 }
             }
         }
-
+        
         if (_interactingOther) {
+
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
@@ -629,10 +610,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         _avatarTouch.setMyHandState(_handState);
         _avatarTouch.setMyHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);
     }
-}
-
-void Avatar::updateHead(float deltaTime) {
-
 }
 
 
@@ -783,6 +760,7 @@ static TextRenderer* textRenderer() {
 
 void Avatar::setGravity(glm::vec3 gravity) {
     _gravity = gravity;
+    _head.setGravity(_gravity);
 }
 
 void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
@@ -814,13 +792,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     //render body
     renderBody(lookingInMirror);
-    
-    /*
-    // render head
-    if (_displayingHead) {
-        _head.render(lookingInMirror, _bodyYaw);
-    }
-    */
+        
     
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
@@ -1172,6 +1144,12 @@ const glm::vec3& Avatar::getHeadPosition() const {
 }
 
 
+glm::vec3 Avatar::getApproximateEyePosition() {
+    return _head.getApproximateEyePosition();
+}
+
+
+
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
@@ -1218,7 +1196,7 @@ void Avatar::renderBody(bool lookingInMirror) {
         
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
             if (_displayingHead) {
-                _head.render(lookingInMirror, _bodyYaw);
+                _head.render(lookingInMirror);
             }
         } else {
     
@@ -1343,7 +1321,6 @@ void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
         angularVelocity = glm::vec3(glm::degrees(gyrY), glm::degrees(-gyrX), glm::degrees(-gyrZ));
         setHeadFromGyros(&eulerAngles, &angularVelocity,
                          (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
-
     }
 }
 //

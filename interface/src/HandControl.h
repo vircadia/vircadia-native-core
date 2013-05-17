@@ -2,7 +2,6 @@
 //  HandControl.h
 //  interface
 //
-//  Created by Jeffrey Ventrella
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 

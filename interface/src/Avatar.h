@@ -97,6 +97,7 @@ public:
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
+    glm::vec3 getApproximateEyePosition(); 
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
@@ -200,12 +201,10 @@ private:
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     glm::vec3   _cameraPosition;
+    Avatar*     _interactingOther;
     float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
     
-    //AvatarJointID _jointTouched;
-    
-
     // private methods...
     void initializeSkeleton();
     void updateSkeleton();
@@ -213,7 +212,6 @@ private:
     void updateBodySprings( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
-    void updateHead( float deltaTime );
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
