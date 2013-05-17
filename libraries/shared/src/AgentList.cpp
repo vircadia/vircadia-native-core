@@ -126,11 +126,7 @@ void AgentList::processBulkAgentData(sockaddr *senderAddress, unsigned char *pac
         
         if (!matchingAgent) {
             // we're missing this agent, we need to add it to the list
-            addOrUpdateAgent(NULL, NULL, AGENT_TYPE_AVATAR, agentID);
-            
-            // TODO: this is a really stupid way to do this
-            // Add a reverse iterator and go from the end of the list
-            matchingAgent = agentWithID(agentID);
+            matchingAgent = addOrUpdateAgent(NULL, NULL, AGENT_TYPE_AVATAR, agentID);
         }
         
         currentPosition += updateAgentWithData(matchingAgent,
@@ -218,7 +214,7 @@ int AgentList::processDomainServerList(unsigned char *packetData, size_t dataByt
     return readAgents;
 }
 
-bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId) {
+Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket, char agentType, uint16_t agentId) {
     AgentList::iterator agent = end();
     
     if (publicSocket != NULL) {
@@ -250,7 +246,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         
         addAgentToList(newAgent);
         
-        return true;
+        return newAgent;
     } else {
         
         if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
@@ -260,7 +256,7 @@ bool AgentList::addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, 
         }
         
         // we had this agent already, do nothing for now
-        return false;
+        return &*agent;
     }    
 }
 

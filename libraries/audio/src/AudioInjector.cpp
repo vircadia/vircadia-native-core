@@ -24,6 +24,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
+    loadRandomIdentifier(_identifier, INJECTOR_IDENTIFIER_NUM_BYTES);
+    
     std::fstream sourceFile;
     
     sourceFile.open(filename, std::ios::in | std::ios::binary);
@@ -51,6 +53,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
+    loadRandomIdentifier(_identifier, INJECTOR_IDENTIFIER_NUM_BYTES);
+    
     _audioSampleArray = new int16_t[maxNumSamples];
     memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
 }
@@ -80,6 +84,10 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         memcpy(currentPacketPtr, &_bearing, sizeof(_bearing));
         currentPacketPtr += sizeof(_bearing);
+        
+        // copy the identifier for this injector
+        memcpy(currentPacketPtr, &_identifier, sizeof(_identifier));
+        currentPacketPtr += sizeof(_identifier);
         
         for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
             gettimeofday(&startTime, NULL);

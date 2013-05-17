@@ -18,6 +18,7 @@
 #include <signal.h>
 
 #include <AgentList.h>
+#include <Agent.h>
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
@@ -272,16 +273,20 @@ int main(int argc, const char* argv[]) {
         
         // pull any new audio data from agents off of the network stack
         while (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_INJECT_AUDIO || packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
-                char agentType = (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO)
-                    ? AGENT_TYPE_AVATAR
-                    : AGENT_TYPE_AUDIO_INJECTOR;
+            if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
+                Agent* avatarAgent = agentList->addOrUpdateAgent(agentAddress,
+                                                                 agentAddress,
+                                                                 AGENT_TYPE_AVATAR,
+                                                                 agentList->getLastAgentID());
                 
-                if (agentList->addOrUpdateAgent(agentAddress, agentAddress, agentType, agentList->getLastAgentID())) {
+                if (avatarAgent->getAgentID() == agentList->getLastAgentID()) {
                     agentList->increaseAgentID();
                 }
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
+                
+                // this is an injector stream - check our map to see if we have it already
             }
         }
         

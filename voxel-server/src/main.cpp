@@ -587,9 +587,12 @@ int main(int argc, const char * argv[])
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 uint16_t agentID = 0;
                 unpackAgentId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &agentID);
-                agentList->addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, AGENT_TYPE_AVATAR, agentID);
+                Agent* agent = agentList->addOrUpdateAgent(&agentPublicAddress,
+                                                           &agentPublicAddress,
+                                                           AGENT_TYPE_AVATAR,
+                                                           agentID);
                 
-                agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
+                agentList->updateAgentWithData(agent, packetData, receivedBytes);
             }
         }
     }
