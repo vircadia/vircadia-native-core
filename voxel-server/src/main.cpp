@@ -56,6 +56,9 @@ bool wantLocalDomain = false;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
+bool shouldShowAnimationDebug = false;
+
+
 
 EnvironmentData environmentData;
 
@@ -352,7 +355,8 @@ void persistVoxelsWhenDirty() {
     if (::wantVoxelPersist && ::randomTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
 
         {
-            PerformanceWarning warn(true, "persistVoxelsWhenDirty() - reaverageVoxelColors()", true);
+            PerformanceWarning warn(::shouldShowAnimationDebug, 
+                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
 
             // after done inserting all these voxels, then reaverage colors
             randomTree.reaverageVoxelColors(randomTree.rootNode);
@@ -360,7 +364,8 @@ void persistVoxelsWhenDirty() {
 
 
         {
-            PerformanceWarning warn(true, "persistVoxelsWhenDirty() - writeToFileV2()", true);
+            PerformanceWarning warn(::shouldShowAnimationDebug, 
+                                    "persistVoxelsWhenDirty() - writeToFileV2()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
             randomTree.writeToFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
@@ -440,6 +445,10 @@ int main(int argc, const char * argv[])
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
     printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+
+    const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
+    ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
+    printf("shouldShowAnimationDebug=%s\n", (::shouldShowAnimationDebug ? "yes" : "no"));
 
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
@@ -527,14 +536,17 @@ int main(int argc, const char * argv[])
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
 
-                PerformanceWarning warn(true,
+                PerformanceWarning warn(::shouldShowAnimationDebug,
                                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
-                                        true);
+                                        ::shouldShowAnimationDebug);
             
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
-            	    destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
-            		receivedBytes,itemNumber);
+            	
+            	if (::shouldShowAnimationDebug) {
+                    printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
+                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                        receivedBytes,itemNumber);
+                }
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
             	while (atByte < receivedBytes) {
@@ -547,20 +559,29 @@ int main(int argc, const char * argv[])
 					int red   = pVoxelData[voxelCodeSize+0];
 					int green = pVoxelData[voxelCodeSize+1];
 					int blue  = pVoxelData[voxelCodeSize+2];
-            		printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
-            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+
+                    if (::shouldShowAnimationDebug) {
+                        printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
+                            (::wantColorRandomizer?"yes":"no"),red,green,blue);
+                    }
+                    
 					red   = std::max(0,std::min(255,red   + colorRandomizer));
 					green = std::max(0,std::min(255,green + colorRandomizer));
 					blue  = std::max(0,std::min(255,blue  + colorRandomizer));
-            		printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
-            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+
+                    if (::shouldShowAnimationDebug) {
+                        printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
+                            (::wantColorRandomizer?"yes":"no"),red,green,blue);
+                    }
 					pVoxelData[voxelCodeSize+0]=red;
 					pVoxelData[voxelCodeSize+1]=green;
 					pVoxelData[voxelCodeSize+2]=blue;
 
-            		float* vertices = firstVertexForCode(pVoxelData);
-            		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
-            		delete []vertices;
+                    if (::shouldShowAnimationDebug) {
+                        float* vertices = firstVertexForCode(pVoxelData);
+                        printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+                        delete []vertices;
+                    }
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
             		// skip to next

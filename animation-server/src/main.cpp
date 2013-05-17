@@ -28,8 +28,10 @@
 #include <ifaddrs.h>
 #endif
 
+bool shouldShowPacketsPerSecond = false; // do we want to debug packets per second
+
 const int ANIMATION_LISTEN_PORT = 40107;
-const int ACTUAL_FPS = 20;
+const int ACTUAL_FPS = 60;
 const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from our desired FPS
 const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
@@ -42,11 +44,22 @@ static void sendVoxelServerZMessage() {
     AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
 }
 
+unsigned long packetsSent = 0;
+unsigned long bytesSent = 0;
+
 static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
     
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+
+        ::packetsSent++;
+        ::bytesSent += sizeOut;
+
+        if (::shouldShowPacketsPerSecond) {
+            printf("sending packet of size=%d\n",sizeOut);
+        }
+
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
         delete[] bufferOut;
     }
@@ -101,56 +114,71 @@ const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th 
 static void sendBlinkingStringOfLights() {
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
-    VoxelDetail detail;
-
-    detail.s = lightScale;
+    static VoxelDetail details[LIGHTS_PER_SEGMENT];
+    unsigned char* bufferOut;
+    int sizeOut;
 
     // first initialized the string of lights if needed...
     if (!stringOfLightsInitialized) {
-        for (int i = 0; i < LIGHT_COUNT; i++) {
-        
-            // four different segments on sides of initial platform
-            int segment = floor(i / LIGHTS_PER_SEGMENT);
-            int indexInSegment = i - (segment * LIGHTS_PER_SEGMENT);
-            switch (segment) {
-                case 0:
-                    // along x axis
-                    stringOfLights[i] = glm::vec3(indexInSegment * lightScale, 0, 0);
-                    break;
-                case 1:
-                    // parallel to Z axis at outer X edge
-                    stringOfLights[i] = glm::vec3(LIGHTS_PER_SEGMENT * lightScale, 0, indexInSegment * lightScale);
-                    break;
-                case 2:
-                    // parallel to X axis at outer Z edge
-                    stringOfLights[i] = glm::vec3((LIGHTS_PER_SEGMENT-indexInSegment) * lightScale, 0, 
-                                                  LIGHTS_PER_SEGMENT * lightScale);
-                    break;
-                case 3:
-                    // on Z axis
-                    stringOfLights[i] = glm::vec3(0, 0, (LIGHTS_PER_SEGMENT-indexInSegment) * lightScale);
-                    break;
+        for (int segment = 0; segment < SEGMENT_COUNT; segment++) {
+            for (int indexInSegment = 0; indexInSegment < LIGHTS_PER_SEGMENT; indexInSegment++) {
+
+                int i = (segment * LIGHTS_PER_SEGMENT) + indexInSegment;
+
+                // four different segments on sides of initial platform
+                switch (segment) {
+                    case 0:
+                        // along x axis
+                        stringOfLights[i] = glm::vec3(indexInSegment * lightScale, 0, 0);
+                        break;
+                    case 1:
+                        // parallel to Z axis at outer X edge
+                        stringOfLights[i] = glm::vec3(LIGHTS_PER_SEGMENT * lightScale, 0, indexInSegment * lightScale);
+                        break;
+                    case 2:
+                        // parallel to X axis at outer Z edge
+                        stringOfLights[i] = glm::vec3((LIGHTS_PER_SEGMENT-indexInSegment) * lightScale, 0, 
+                                                      LIGHTS_PER_SEGMENT * lightScale);
+                        break;
+                    case 3:
+                        // on Z axis
+                        stringOfLights[i] = glm::vec3(0, 0, (LIGHTS_PER_SEGMENT-indexInSegment) * lightScale);
+                        break;
+                }
+
+                details[indexInSegment].s = STRING_OF_LIGHTS_SIZE;
+                details[indexInSegment].x = stringOfLights[i].x;
+                details[indexInSegment].y = stringOfLights[i].y;
+                details[indexInSegment].z = stringOfLights[i].z;
+
+                details[indexInSegment].red   = offColor[0];
+                details[indexInSegment].green = offColor[1];
+                details[indexInSegment].blue  = offColor[2];
             }
 
-            detail.x = stringOfLights[i].x;
-            detail.y = stringOfLights[i].y;
-            detail.z = stringOfLights[i].z;
+            // send entire segment at once
+            if (createVoxelEditMessage(message, 0, LIGHTS_PER_SEGMENT, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
-            detail.red   = offColor[0];
-            detail.green = offColor[1];
-            detail.blue  = offColor[2];
-            sendVoxelEditMessage(message, detail);
+                ::packetsSent++;
+                ::bytesSent += sizeOut;
+
+                if (::shouldShowPacketsPerSecond) {
+                    printf("sending packet of size=%d\n",sizeOut);
+                }
+                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                delete[] bufferOut;
+            }
+
         }
         stringOfLightsInitialized = true;
     } else {
         // turn off current light
-        detail.x = detail.s * floor(stringOfLights[currentLight].x / detail.s);
-        detail.y = detail.s * floor(stringOfLights[currentLight].y / detail.s);
-        detail.z = detail.s * floor(stringOfLights[currentLight].z / detail.s);
-        detail.red   = offColor[0];
-        detail.green = offColor[1];
-        detail.blue  = offColor[2];
-        sendVoxelEditMessage(message, detail);
+        details[0].x = stringOfLights[currentLight].x;
+        details[0].y = stringOfLights[currentLight].y;
+        details[0].z = stringOfLights[currentLight].z;
+        details[0].red   = offColor[0];
+        details[0].green = offColor[1];
+        details[0].blue  = offColor[2];
 
         // move current light...
         // if we're at the end of our string, then change direction
@@ -163,19 +191,31 @@ static void sendBlinkingStringOfLights() {
         currentLight += lightMovementDirection;
         
         // turn on new current light
-        detail.x = detail.s * floor(stringOfLights[currentLight].x / detail.s);
-        detail.y = detail.s * floor(stringOfLights[currentLight].y / detail.s);
-        detail.z = detail.s * floor(stringOfLights[currentLight].z / detail.s);
-        detail.red   = onColor[0];
-        detail.green = onColor[1];
-        detail.blue  = onColor[2];
-        sendVoxelEditMessage(message, detail);
+        details[1].x = stringOfLights[currentLight].x;
+        details[1].y = stringOfLights[currentLight].y;
+        details[1].z = stringOfLights[currentLight].z;
+        details[1].red   = onColor[0];
+        details[1].green = onColor[1];
+        details[1].blue  = onColor[2];
+
+        // send both changes in same message
+        if (createVoxelEditMessage(message, 0, 2, (VoxelDetail*)&details, bufferOut, sizeOut)){
+
+            ::packetsSent++;
+            ::bytesSent += sizeOut;
+
+            if (::shouldShowPacketsPerSecond) {
+                printf("sending packet of size=%d\n",sizeOut);
+            }
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            delete[] bufferOut;
+        }
     }
 }
 
 bool billboardInitialized = false;
 const int BILLBOARD_HEIGHT = 9;
-const int BILLBOARD_WIDTH  = 44;
+const int BILLBOARD_WIDTH  = 45;
 glm::vec3 billboardPosition((0.125f / TREE_SCALE),(0.125f / TREE_SCALE),0);
 glm::vec3 billboardLights[BILLBOARD_HEIGHT][BILLBOARD_WIDTH];
 unsigned char billboardOffColor[3] = { 240, 240, 240 };
@@ -186,26 +226,29 @@ float billboardGradientIncrement = 0.01f;
 const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
+const int VOXELS_PER_PACKET = 135;
+const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
+
 
 // top to bottom... 
-bool billBoardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
- { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
- { 0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,0,0 },
- { 0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1,0,0,0,1,1,1,0,0,0,0,0 },
- { 0,1,1,1,1,0,1,0,1,1,1,0,1,1,1,0,0,1,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,0 },
- { 0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1,0,0,0,0,1,0,1,0,1,0,1,0,0,0,1,0,1,0,0,1,0,0,1,0,1,0 },
- { 0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,1,0,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,1,1,0 },
- { 0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0 },
- { 0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0 },
- { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
+ { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+ { 0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,0,0 },
+ { 0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1,0,0,0,1,1,1,0,0,0,0,0 },
+ { 0,0,1,1,1,1,0,1,0,1,1,1,0,1,1,1,0,0,1,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,0 },
+ { 0,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1,0,0,0,0,1,0,1,0,1,0,1,0,0,0,1,0,1,0,0,1,0,0,1,0,1,0 },
+ { 0,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,1,0,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,1,1,0 },
+ { 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0 },
+ { 0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0 },
+ { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 };
 
 static void sendBillboard() {
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
-    VoxelDetail detail;
-
-    detail.s = lightScale;
+    static VoxelDetail details[VOXELS_PER_PACKET];
+    unsigned char* bufferOut;
+    int sizeOut;
 
     // first initialized the billboard of lights if needed...
     if (!billboardInitialized) {
@@ -231,26 +274,43 @@ static void sendBillboard() {
 
     for (int i = 0; i < BILLBOARD_HEIGHT; i++) {
         for (int j = 0; j < BILLBOARD_WIDTH; j++) {
+
+            int nthVoxel = ((i * BILLBOARD_WIDTH) + j);
+            int item = nthVoxel % VOXELS_PER_PACKET;
             
             billboardLights[i][j] = billboardPosition + glm::vec3(j * lightScale, (float)((BILLBOARD_HEIGHT - i) * lightScale), 0);
 
-            detail.x = billboardLights[i][j].x;
-            detail.y = billboardLights[i][j].y;
-            detail.z = billboardLights[i][j].z;
+            details[item].s = lightScale;
+            details[item].x = billboardLights[i][j].x;
+            details[item].y = billboardLights[i][j].y;
+            details[item].z = billboardLights[i][j].z;
 
-            if (billBoardMessage[i][j]) {
-                detail.red   = (billboardOnColorA[0] + ((billboardOnColorB[0] - billboardOnColorA[0]) * ::billboardGradient));
-                detail.green = (billboardOnColorA[1] + ((billboardOnColorB[1] - billboardOnColorA[1]) * ::billboardGradient));
-                detail.blue  = (billboardOnColorA[2] + ((billboardOnColorB[2] - billboardOnColorA[2]) * ::billboardGradient));
+            if (billboardMessage[i][j]) {
+                details[item].red   = (billboardOnColorA[0] + ((billboardOnColorB[0] - billboardOnColorA[0]) * ::billboardGradient));
+                details[item].green = (billboardOnColorA[1] + ((billboardOnColorB[1] - billboardOnColorA[1]) * ::billboardGradient));
+                details[item].blue  = (billboardOnColorA[2] + ((billboardOnColorB[2] - billboardOnColorA[2]) * ::billboardGradient));
             } else {
-                detail.red   = billboardOffColor[0];
-                detail.green = billboardOffColor[1];
-                detail.blue  = billboardOffColor[2];
+                details[item].red   = billboardOffColor[0];
+                details[item].green = billboardOffColor[1];
+                details[item].blue  = billboardOffColor[2];
             }
-            sendVoxelEditMessage(message, detail);
+            
+            if (item == VOXELS_PER_PACKET - 1) {
+                if (createVoxelEditMessage(message, 0, VOXELS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
+                    ::packetsSent++;
+                    ::bytesSent += sizeOut;
+                    if (::shouldShowPacketsPerSecond) {
+                        printf("sending packet of size=%d\n", sizeOut);
+                    }
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    delete[] bufferOut;
+                }
+            }
         }
     }
 }
+
+double start = 0;
 
 
 void* animateVoxels(void* args) {
@@ -265,7 +325,13 @@ void* animateVoxels(void* args) {
         //sendVoxelBlinkMessage();
         sendBlinkingStringOfLights();
         sendBillboard();
-
+        
+        double end = usecTimestampNow();
+        double elapsedSeconds = (end - ::start) / 1000000.0;
+        if (::shouldShowPacketsPerSecond) {
+            printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
+                (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
+        }
         // dynamically sleep until we need to fire off the next set of voxels
         double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
@@ -282,8 +348,14 @@ void* animateVoxels(void* args) {
 
 int main(int argc, const char * argv[])
 {
+    ::start = usecTimestampNow();
+
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
+
+    // Handle Local Domain testing with the --local command line
+    const char* showPPS = "--showPPS";
+    ::shouldShowPacketsPerSecond = cmdOptionExists(argc, argv, showPPS);
 
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
