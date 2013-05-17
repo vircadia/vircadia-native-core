@@ -447,7 +447,12 @@ void Application::resizeGL(int width, int height) {
     }
     
     // On window reshape, we need to tell OpenGL about our new setting
-    gluPerspective(fov,aspectRatio,nearClip,farClip);
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec3 eyeOffset = camera.getEyeOffsetPosition();
+    computeOffsetFrustum(fov, aspectRatio, nearClip, farClip, eyeOffset.x, eyeOffset.y, eyeOffset.z,
+        left, right, bottom, top, nearVal, farVal);
+    glFrustum(left, right, bottom, top, nearVal, farVal);
+    glTranslatef(-eyeOffset.x, -eyeOffset.y, -eyeOffset.z);
     
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -542,9 +547,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _audio.startEchoTest();
             break;
             
-        case Qt::Key_L:
-            _displayLevels = !_displayLevels;
-            break;
+        //case Qt::Key_L:
+        //    _displayLevels = !_displayLevels;
+        //    break;
         
         case Qt::Key_E:
             _myAvatar.setDriveKeys(UP, 1);
@@ -598,6 +603,36 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
             break;
         
+        case Qt::Key_I:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_K:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_J:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_L:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
+        case Qt::Key_U:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
+        case Qt::Key_Y:
+            _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
         default:
             event->ignore();
             break;
@@ -1412,6 +1447,8 @@ void Application::loadViewFrustum(ViewFrustum& viewFrustum) {
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
+    viewFrustum.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition());
+    viewFrustum.setEyeOffsetOrientation(_myCamera.getEyeOffsetOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();

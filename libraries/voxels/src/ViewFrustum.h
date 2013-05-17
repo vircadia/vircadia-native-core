@@ -12,6 +12,7 @@
 #define __hifi__ViewFrustum__
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "Plane.h"
 #include "AABox.h"
 
@@ -29,6 +30,8 @@ private:
     float       _aspectRatio;
     float       _nearClip; 
     float       _farClip;
+    glm::vec3   _eyeOffsetPosition;
+    glm::quat   _eyeOffsetOrientation;
 
     // Calculated values
     float       _nearHeight;
@@ -63,16 +66,21 @@ public:
     const glm::vec3& getRight()     const { return _right;     };
 
     // setters for lens attributes
-    void setFieldOfView     ( float f ) { _fieldOfView      = f; }
-    void setAspectRatio     ( float a ) { _aspectRatio      = a; }
-    void setNearClip        ( float n ) { _nearClip         = n; }
-    void setFarClip         ( float f ) { _farClip          = f; }
+    void setFieldOfView          ( float f )          { _fieldOfView      = f;     }
+    void setAspectRatio          ( float a )          { _aspectRatio      = a;     }
+    void setNearClip             ( float n )          { _nearClip         = n;     }
+    void setFarClip              ( float f )          { _farClip          = f;     }
+    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition = p;    }
+    void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; }
+
 
     // getters for lens attributes
-    float getFieldOfView()                  const { return _fieldOfView;    };
-    float getAspectRatio()                  const { return _aspectRatio;    };
-    float getNearClip()                     const { return _nearClip;       };
-    float getFarClip()                      const { return _farClip;        };
+    float getFieldOfView()                     const { return _fieldOfView;         };
+    float getAspectRatio()                     const { return _aspectRatio;         };
+    float getNearClip()                        const { return _nearClip;            };
+    float getFarClip()                         const { return _farClip;             };
+    const glm::vec3& getEyeOffsetPosition()    const { return _eyeOffsetPosition;   };
+    const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation;};
 
     const glm::vec3& getFarCenter()         const { return _farCenter;      };
     const glm::vec3& getFarTopLeft()        const { return _farTopLeft;     };  

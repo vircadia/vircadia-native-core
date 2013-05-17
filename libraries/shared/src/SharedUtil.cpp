@@ -409,3 +409,18 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
     return -1; // error case
 }
 
+// Takes a set of perspective parameters (as one would pass to gluPerspective) and an eye offset (in view space) and writes
+// out the parameters to pass to glFrustum to effect the possibly skewed view frustum
+void computeOffsetFrustum(float fovy, float aspect, float zNear, float zFar, float xOffset, float yOffset, float zOffset,
+       float& left, float& right, float& bottom, float& top, float& nearVal, float& farVal) {
+    // adjust near and far distances by z offset
+    nearVal = zNear + zOffset;
+    farVal = zFar + zOffset;
+    
+    float hheight = zNear * tanf(fovy * 0.5f * PI_OVER_180);
+    top = hheight - yOffset;
+    bottom = -hheight - yOffset;
+    float hwidth = aspect * hheight;
+    left = -hwidth - xOffset;
+    right = hwidth - xOffset;
+}

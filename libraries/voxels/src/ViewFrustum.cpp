@@ -9,6 +9,7 @@
 //
 
 #include "ViewFrustum.h"
+#include "SharedUtil.h"
 #include "voxels_Log.h"
 
 using voxels_lib::printLog;
@@ -51,6 +52,16 @@ void ViewFrustum::calculate() {
     static const double PI_OVER_180			= 3.14159265359 / 180.0; // would be better if this was in a shared location
 	
 	glm::vec3 front    = _direction;
+	
+	float left, right, bottom, top, nearVal, farVal;
+	computeOffsetFrustum(_fieldOfView, _aspectRatio, _nearClip, _farClip,
+	    _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z,
+	    left, right, bottom, top, nearVal, farVal);
+	
+	_nearHeight = top - bottom; 
+	_nearWidth = right - left;
+	_farHeight = _nearHeight * (farVal / nearVal);
+	_farWidth = _nearWidth * (farVal / nearVal);
 	
 	// Calculating field of view.
 	float fovInRadians = _fieldOfView * PI_OVER_180;

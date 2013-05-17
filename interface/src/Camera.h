@@ -10,6 +10,7 @@
 
 #include "Orientation.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 enum CameraMode
 {
@@ -53,6 +54,8 @@ public:
     void setAspectRatio   ( float       a );
     void setNearClip      ( float       n );
     void setFarClip       ( float       f );
+    void setEyeOffsetPosition     ( const glm::vec3& p);
+    void setEyeOffsetOrientation  ( const glm::quat& o);
 
     float       getYaw        () { return _yaw;         }
     float       getPitch      () { return _pitch;       }
@@ -64,6 +67,8 @@ public:
     float       getAspectRatio() { return _aspectRatio; }
     float       getNearClip   () { return _nearClip;    }
     float       getFarClip    () { return _farClip;     }
+    glm::vec3   getEyeOffsetPosition  () { return _eyeOffsetPosition;   }
+    glm::quat   getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
     bool        getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
     void        setFrustumWasReshaped();  // call this after reshaping the view frustum.
 
@@ -79,6 +84,8 @@ private:
     float		_aspectRatio;
     float		_nearClip;
     float		_farClip;
+    glm::vec3   _eyeOffsetPosition;
+    glm::quat   _eyeOffsetOrientation;
 	float		_yaw;
 	float		_pitch;
 	float		_roll;
