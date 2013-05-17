@@ -22,13 +22,8 @@ class Head {
 public:
     Head();
     
-    Head(const Head &otherHead);
-    
-    void initialize();
     void simulate(float deltaTime, bool isMine);
     void setPositionRotationAndScale(glm::vec3 position, glm::vec3 rotation, float scale);
-    void setSkinColor(glm::vec3 color);
-    void setAudioLoudness(float loudness);
     void render(bool lookingInMirror);
     void setNewTarget(float, float);
     void setSpringScale(float s) { _returnSpringScale = s; }
@@ -44,7 +39,10 @@ public:
     const bool getReturnToCenter() const { return _returnHeadToCenter; }
     
     float getAverageLoudness() {return _averageLoudness;};
-    void  setAverageLoudness(float al) { _averageLoudness = al;};
+    void  setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
+    
+    void setSkinColor(glm::vec3 skinColor) { _skinColor = skinColor; }
+    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
 
     float yawRate;
     float noise;
@@ -66,19 +64,11 @@ private:
     float _yaw;
     float _pitch;
     float _roll;
-    float _pitchRate;
-    float _rollRate;
     float _eyeballPitch[2];
     float _eyeballYaw  [2];
     float _eyebrowPitch[2];
     float _eyebrowRoll [2];
-    float _eyeballScaleX;
-    float _eyeballScaleY;
-    float _eyeballScaleZ;
-    float _interPupilDistance;
     float _interBrowDistance;
-    float _nominalPupilSize;
-    float _pupilSize;
     float _mouthPitch;
     float _mouthYaw;
     float _mouthWidth;
@@ -86,7 +76,6 @@ private:
     float _pitchTarget; 
     float _yawTarget; 
     float _noiseEnvelope;
-    float _pupilConverge;
     float _scale;
     int   _eyeContact;
     float _browAudioLift;
@@ -102,14 +91,10 @@ private:
     bool _looking;
     glm::vec3 _gravity;
 
-    
-    GLUquadric* _sphere;
-
     //  Strength of return springs
     float _returnSpringScale;
     
     // private methods
-    void previouseRenderEyeBalls();
     void renderEyeBalls();
     void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void updateEyePositions();
