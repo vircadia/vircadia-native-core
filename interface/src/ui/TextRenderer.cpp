@@ -19,9 +19,10 @@ Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int wid
     _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
 }
 
-TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool italic)
-        : _font(family, pointSize, weight, italic),
-          _metrics(_font), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0) {
+TextRenderer::TextRenderer(const char* family, int pointSize, int weight,
+                           bool italic, EffectType effectType, int effectThickness)
+        : _font(family, pointSize, weight, italic), _metrics(_font), _effectType(effectType),
+          _effectThickness(effectThickness), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0) {
     _font.setKerning(false);
 }
 
@@ -97,6 +98,14 @@ const Glyph& TextRenderer::getGlyph(char c) {
         glyph = Glyph(0, QPoint(), QRect(), _metrics.width(ch));
         return glyph;
     }
+    // grow the bounds to account for effect, if any
+    if (_effectType == SHADOW_EFFECT) {
+        bounds.adjust(-_effectThickness, 0, 0, _effectThickness);
+    
+    } else if (_effectType == OUTLINE_EFFECT) {
+        bounds.adjust(-_effectThickness, -_effectThickness, _effectThickness, _effectThickness);
+    }
+    
     // grow the bounds to account for antialiasing
     bounds.adjust(-1, -1, 1, 1);
     
@@ -128,6 +137,23 @@ const Glyph& TextRenderer::getGlyph(char c) {
         image.fill(0);
         QPainter painter(&image);
         painter.setFont(_font);
+        if (_effectType == SHADOW_EFFECT) {
+            for (int i = 0; i < _effectThickness; i++) {
+                painter.drawText(-bounds.x() - i, -bounds.y() + i, ch);
+            }
+        } else if (_effectType == OUTLINE_EFFECT) {
+            QPainterPath path;
+            QFont font = _font;
+            font.setStyleStrategy(QFont::ForceOutline);
+            path.addText(-bounds.x() - 0.5, -bounds.y() + 0.5, font, ch);
+            QPen pen;
+            pen.setWidth(_effectThickness);
+            pen.setJoinStyle(Qt::RoundJoin);
+            pen.setCapStyle(Qt::RoundCap);
+            painter.setPen(pen);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.drawPath(path);
+        }
         painter.setPen(QColor(255, 255, 255));
         painter.drawText(-bounds.x(), -bounds.y(), ch);
     }    

@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const int MAX_CONTENT_LENGTH = 140;
+const int MAX_CONTENT_LENGTH = 80;
 
 ChatEntry::ChatEntry() : _cursorPos(0) {
 }
@@ -65,7 +65,7 @@ bool ChatEntry::keyPressEvent(QKeyEvent* event) {
                 event->ignore();
                 return true;
             }
-            if (_contents.size() != MAX_CONTENT_LENGTH) {
+            if (_contents.size() < MAX_CONTENT_LENGTH) {
                 _contents.insert(_cursorPos, 1, text.at(0).toAscii());
                 _cursorPos++;
             }
@@ -74,7 +74,19 @@ bool ChatEntry::keyPressEvent(QKeyEvent* event) {
 }
 
 void ChatEntry::render(int screenWidth, int screenHeight) {
-    drawtext(20, screenHeight - 150, 0.10, 0, 1.0, 0, _contents.c_str(), 1, 1, 1);
+    // draw a gray background so that we can actually see what we're typing
+    int bottom = screenHeight - 150, top = screenHeight - 165;
+    int left = 20, right = left + 600;
+    
+    glColor3f(0.2f, 0.2f, 0.2f);
+    glBegin(GL_QUADS);
+    glVertex2f(left - 5, bottom + 7);
+    glVertex2f(right + 5, bottom + 7);
+    glVertex2f(right + 5, top - 3);
+    glVertex2f(left - 5, top - 3);
+    glEnd();
+
+    drawtext(left, bottom, 0.10, 0, 1.0, 0, _contents.c_str(), 1, 1, 1);
     
     float width = 0;
     for (string::iterator it = _contents.begin(), end = it + _cursorPos; it != end; it++) {
@@ -82,7 +94,7 @@ void ChatEntry::render(int screenWidth, int screenHeight) {
     }
     glDisable(GL_LINE_SMOOTH);
     glBegin(GL_LINE_STRIP);
-    glVertex2f(20 + width, screenHeight - 165);
-    glVertex2f(20 + width, screenHeight - 150);
+    glVertex2f(left + width, top + 2);
+    glVertex2f(left + width, bottom + 2);
     glEnd();
 }

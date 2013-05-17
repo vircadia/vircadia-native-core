@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 Leonardo Murillo. All rights reserved.
 //
 
-
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +14,16 @@
 #include <string.h>
 #include <sstream>
 
-
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <UDPSocket.h>
 #include <AudioInjector.h>
+#include <AudioInjectionManager.h>
 
 char EC2_WEST_AUDIO_SERVER[] = "54.241.92.53";
 const int AUDIO_UDP_LISTEN_PORT = 55443;
+
+const int DEFAULT_INJECTOR_VOLUME = 0xFF;
 
 // Command line parameter defaults
 bool loopAudio = true;
@@ -31,7 +32,7 @@ float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
 const char *allowedParameters = ":rb::t::c::a::f:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-unsigned char attenuationModifier = 255;
+unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 
 void usage(void)
 {
@@ -82,7 +83,7 @@ bool processParameters(int parameterCount, char* parameterData[])
                 break;
             }
             case 'a':
-                ::attenuationModifier = atoi(optarg);
+                ::volume = atoi(optarg);
                 std::cout << "[DEBUG] Attenuation modifier: " << optarg << std::endl;
                 break;
             default:
@@ -112,19 +113,17 @@ int main(int argc, char* argv[]) {
             exit(-1);
         } else {
             AudioInjector injector(sourceAudioFile);
-            injector.setInjectorSocket(&streamSocket);
-            injector.setDestinationSocket((sockaddr*) &mixerSocket);
             
-            injector.setPosition(::floatArguments);
+            injector.setPosition(glm::vec3(::floatArguments[0], ::floatArguments[1], ::floatArguments[2]));
             injector.setBearing(*(::floatArguments + 3));
-            injector.setAttenuationModifier(::attenuationModifier);
+            injector.setVolume(::volume);
         
             float delay = 0;
             int usecDelay = 0;
             
             while (true) {
-                injector.injectAudio();
-                
+                injector.injectAudio(&streamSocket, (sockaddr*) &mixerSocket);
+            
                 if (!::loopAudio) {
                     delay = randFloatInRange(::sleepIntervalMin, ::sleepIntervalMax);
                     usecDelay = delay * 1000 * 1000;
