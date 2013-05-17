@@ -22,12 +22,12 @@ public:
 	Orientation();
 	
 	void set(Orientation);
-	void setToPitchYawRoll(float p, float y, float r);
+	void setToPitchYawRoll(float pitch_change, float yaw_change, float roll_change);
 	void setToIdentity();
 
-	void pitch(float p);
-	void yaw  (float y);
-	void roll (float r);
+	void pitch(float pitch_change);
+	void yaw  (float yaw_change);
+	void roll (float roll_change);
     
     void rotate(float pitch, float yaw, float roll);
     void rotate(glm::vec3 EulerAngles);

@@ -40,7 +40,7 @@ public:
     glm::vec3 getApproximateEyePosition(); 
     
     //  Do you want head to try to return to center (depends on interface detected)
-    void setReturnToCenter(bool r) { _returnHeadToCenter = r; }
+    void setReturnToCenter(bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     const bool getReturnToCenter() const { return _returnHeadToCenter; }
     
     float getAverageLoudness() {return _averageLoudness;};

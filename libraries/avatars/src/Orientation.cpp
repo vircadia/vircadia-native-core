@@ -25,12 +25,12 @@ void Orientation::setToIdentity() {
 	front = glm::vec3(IDENTITY_FRONT);
 }
 
-void Orientation::setToPitchYawRoll(float p, float y, float r) {
+void Orientation::setToPitchYawRoll(float pitch_change, float yaw_change, float roll_change) {
 
     setToIdentity();
-    pitch(p);
-    yaw  (y);
-    roll (r);
+    pitch(pitch_change);
+    yaw  (yaw_change);
+    roll (roll_change);
 }
 
 
@@ -102,10 +102,10 @@ void Orientation::roll(float angle) {
     }
 }
 
-void Orientation::rotate(float p, float y, float r) {
-    pitch(p);
-    yaw  (y);
-    roll (r);
+void Orientation::rotate(float pitch_change, float yaw_change, float roll_change) {
+    pitch(pitch_change);
+    yaw  (yaw_change);
+    roll (roll_change);
 }
 
 void Orientation::rotate(glm::vec3 eulerAngles) {
