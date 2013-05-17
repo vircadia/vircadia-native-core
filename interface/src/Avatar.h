@@ -76,9 +76,7 @@ enum AvatarJointID
 class Avatar : public AvatarData {
 public:
     Avatar(bool isMine);
-    Avatar(const Avatar &otherAvatar);
-    Avatar* clone() const;
-
+    
     void  reset();
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void  updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
@@ -139,6 +137,9 @@ public:
     void readAvatarDataFromFile();
 
 private:
+    // privatize copy constructor and assignment operator to avoid copying
+    Avatar(const Avatar&);
+    Avatar& operator= (const Avatar&);
 
     struct AvatarJoint
     {
