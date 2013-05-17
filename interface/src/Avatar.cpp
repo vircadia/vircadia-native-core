@@ -551,10 +551,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-float Avatar::getHeight() {
-    return _height;
-}
-
 void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
@@ -778,16 +774,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         
         glPopMatrix();
     }
-}
-
-
-
-void Avatar::setHandMovementValues(glm::vec3 handOffset) {
-	_movedHandOffset = handOffset;
-}
-
-AvatarMode Avatar::getMode() {
-	return _mode;
 }
 
 void Avatar::initializeSkeleton() {
@@ -1072,7 +1058,6 @@ const glm::vec3& Avatar::getHeadPosition() const {
     return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
 }
 
-
 glm::vec3 Avatar::getApproximateEyePosition() {
     return _head.getApproximateEyePosition();
 }
@@ -1327,7 +1312,6 @@ void Avatar::transmitterV2RenderLevels(int width, int height) {
     glEnd();
 }
 
-
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
     //  Given absolute position and angular velocity information, update the avatar's head angles
@@ -1366,8 +1350,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-
-
 const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
 
 void Avatar::writeAvatarDataToFile() {
@@ -1396,4 +1378,3 @@ void Avatar::readAvatarDataFromFile() {
         fclose(avatarFile);
     }
 }
-

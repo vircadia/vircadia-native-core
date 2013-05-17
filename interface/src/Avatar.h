@@ -99,18 +99,18 @@ public:
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
     const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
-    float getSpeed() const { return _speed; };
+    float getSpeed() const { return _speed; }
     const glm::vec3& getVelocity() const { return _velocity; };
     float getGirth();
-    float getHeight();
+    float getHeight() const { return _height; }
     
-    AvatarMode getMode();
+    AvatarMode getMode() const { return _mode; }
     
     void setMousePressed(bool pressed); 
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
     void renderBody(bool lookingInMirror);
     void simulate(float);
-    void setHandMovementValues( glm::vec3 movement );
+    void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );
     
