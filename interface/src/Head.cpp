@@ -317,9 +317,6 @@ void Head::render(bool lookingInMirror) {
 
         glutSolidCube(0.5);
     glPopMatrix();
-
-    // the original code from Philip's implementation
-    //previouseRenderEyeBalls();
     
     glPopMatrix();
 
