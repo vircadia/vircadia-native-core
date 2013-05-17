@@ -76,7 +76,6 @@ enum AvatarJointID
 class Avatar : public AvatarData {
 public:
     Avatar(bool isMine);
-    ~Avatar();
     Avatar(const Avatar &otherAvatar);
     Avatar* clone() const;
 

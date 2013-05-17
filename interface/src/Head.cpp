@@ -297,10 +297,10 @@ void Head::render(bool lookingInMirror) {
     glPopMatrix();
     
     // Mouth
-    const float MIN_LOUDNESS_SCALE_WIDTH = 0.7f;
-    const float WIDTH_SENSITIVITY = 60.f;
-    const float HEIGHT_SENSITIVITY = 30.f;
-    const float MIN_LOUDNESS_SCALE_HEIGHT = 1.0f;
+//    const float MIN_LOUDNESS_SCALE_WIDTH = 0.7f;
+//    const float WIDTH_SENSITIVITY = 60.f;
+//    const float HEIGHT_SENSITIVITY = 30.f;
+//    const float MIN_LOUDNESS_SCALE_HEIGHT = 1.0f;
     glPushMatrix();
         glTranslatef(0,-0.35,0.75);
         glColor3f(0,0,0);
