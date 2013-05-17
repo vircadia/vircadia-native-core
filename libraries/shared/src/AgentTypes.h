@@ -24,5 +24,6 @@ const char AGENT_TYPE_AVATAR = 'I';
 const char AGENT_TYPE_AUDIO_MIXER = 'M';
 const char AGENT_TYPE_AVATAR_MIXER = 'W';
 const char AGENT_TYPE_AUDIO_INJECTOR = 'A';
+const char AGENT_TYPE_ANIMATION_SERVER = 'a';
 
 #endif
