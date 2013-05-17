@@ -291,10 +291,11 @@ int main(int argc, const char* argv[]) {
                 
                 for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                     if (agent->getLinkedData()) {
+                       
                         AudioRingBuffer* ringBuffer = (AudioRingBuffer*) agent->getLinkedData();
                         if (memcmp(ringBuffer->getStreamIdentifier(),
                                    packetData + 1,
-                                   sizeof(STREAM_IDENTIFIER_NUM_BYTES) == 0)) {
+                                   STREAM_IDENTIFIER_NUM_BYTES) == 0) {
                             // this is the matching stream, assign to matchingInjector and stop looking
                             matchingInjector = &*agent;
                             break;
