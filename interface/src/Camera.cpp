@@ -118,10 +118,10 @@ void Camera::updateFollowMode(float deltaTime) {
         _position += (_idealPosition - _position) * t; 
     }
 
-    float mm = 1.0f - _modeShift;
-    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * mm;
-    _distance  = _attributes[_mode].distance * _modeShift + _previousAttributes[_mode].distance * mm;
-    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * mm;
+    float inverseModeShift = 1.0f - _modeShift;
+    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
+    _distance  = _attributes[_mode].distance * _modeShift + _previousAttributes[_mode].distance * inverseModeShift;
+    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
 
     
     /*

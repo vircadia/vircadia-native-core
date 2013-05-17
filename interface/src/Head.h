@@ -32,11 +32,10 @@ public:
     void render(bool lookingInMirror);
     void setNewTarget(float, float);
     void setSpringScale(float s) { _returnSpringScale = s; }
-    void setLookatPosition(glm::vec3 lookatPosition);
+    void setLookatPosition(glm::vec3 l ) { _lookatPosition = l; }
     void setLooking(bool looking);
-    void setGravity(glm::vec3 gravity);
+    void setGravity(glm::vec3 gravity) { _gravity = gravity; }
     void setBodyYaw(float y) { _bodyYaw = y; }
-    void copyFromHead(const Head &head);
         
     glm::vec3 getApproximateEyePosition(); 
     

@@ -154,65 +154,6 @@ void Head::initialize() {
      _sphere               = NULL;
 }
 
-/*
-void Head::copyFromHead(const Head &head) {
-
-    returnHeadToCenter  = head.returnHeadToCenter;
-    audioLoudness       = head.audioLoudness;
-    skinColor           = head.skinColor;
-    position            = head.position;
-    rotation            = head.rotation;
-    lookatPosition      = head.lookatPosition;
-    _leftEyePosition    = head._leftEyePosition;
-    _rightEyePosition   = head._rightEyePosition;
-    yaw                 = head.yaw;
-    pitch               = head.pitch;
-    roll                = head.roll;
-    pitchRate           = head.pitchRate;
-    yawRate             = head.yawRate;
-    rollRate            = head.rollRate;
-    noise               = head.noise;
-    eyeballPitch[0]     = head.eyeballPitch[0];
-    eyeballYaw  [0]     = head.eyeballYaw  [0];
-    eyebrowPitch[0]     = head.eyebrowPitch[0];
-    eyebrowRoll [0]     = head.eyebrowRoll [0];
-    eyeballPitch[1]     = head.eyeballPitch[1];
-    eyeballYaw  [1]     = head.eyeballYaw  [1];
-    eyebrowPitch[1]     = head.eyebrowPitch[1];
-    eyebrowRoll [1]     = head.eyebrowRoll [1];
-    eyeballScaleX       = head.eyeballScaleX;
-    eyeballScaleY       = head.eyeballScaleY;
-    eyeballScaleZ       = head.eyeballScaleZ;
-    interPupilDistance  = head.interPupilDistance;
-    interBrowDistance   = head.interBrowDistance;
-    nominalPupilSize    = head.nominalPupilSize;
-    pupilSize           = head.pupilSize;
-    mouthPitch          = head.mouthPitch;
-    mouthYaw            = head.mouthYaw;
-    mouthWidth          = head.mouthWidth;
-    mouthHeight         = head.mouthHeight;
-    leanForward         = head.leanForward;
-    leanSideways        = head.leanSideways;
-    pitchTarget         = head.pitchTarget;
-    yawTarget           = head.yawTarget;
-    noiseEnvelope       = head.noiseEnvelope;
-    pupilConverge       = head.pupilConverge;
-    scale               = head.scale;
-    eyeContact          = head.eyeContact;
-    browAudioLift       = head.browAudioLift;
-    eyeContactTarget    = head.eyeContactTarget;
-    _orientation        = head._orientation;
-    _bodyYaw            = head._bodyYaw;
-    lastLoudness        = head.lastLoudness;
-    averageLoudness     = head.averageLoudness;
-    audioAttack         = head.audioAttack;
-    _looking            = head._looking;
-    _gravity            = head._gravity;
-    sphere              = head.sphere;
-    returnSpringScale   = head.returnSpringScale;
-}
-*/
-
 void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
 
     _position = p;
@@ -355,20 +296,23 @@ void Head::updateEyePositions() {
     float upShift    = _scale * 0.38f;
     float frontShift = _scale * 0.8f;
     
-    _leftEyePosition  = _position + _orientation.getRight() * rightShift 
-                                 + _orientation.getUp   () * upShift 
-                                 + _orientation.getFront() * frontShift;
-    _rightEyePosition = _position - _orientation.getRight() * rightShift 
-                                 + _orientation.getUp   () * upShift 
-                                 + _orientation.getFront() * frontShift;
+    _leftEyePosition  = _position 
+                      + _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
+    _rightEyePosition = _position
+                      - _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
 }
+
 
 void Head::setLooking(bool looking) {
 
     _looking = looking;
 
-    glm::vec3 averagEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-    glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - averagEyePosition);
+    glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
+    glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - averageEyePosition);
     
     float dot = glm::dot(targetLookatAxis, _orientation.getFront());
     if (dot < MINIMUM_EYE_ROTATION) {
@@ -376,6 +320,7 @@ void Head::setLooking(bool looking) {
     }
 }
 
+/*
 void Head::setLookatPosition(glm::vec3 l) {
     _lookatPosition = l;
 }
@@ -383,6 +328,7 @@ void Head::setLookatPosition(glm::vec3 l) {
 void Head::setGravity(glm::vec3 gravity) {
     _gravity = gravity;
 }
+*/
 
 glm::vec3 Head::getApproximateEyePosition() {
     return _leftEyePosition + (_rightEyePosition - _leftEyePosition) * ONE_HALF;
@@ -402,11 +348,11 @@ void Head::render(bool lookingInMirror) {
         glScalef(_scale, _scale, _scale);
     
     if (lookingInMirror) {
-        glRotatef(_bodyYaw  - _yaw,   0, 1, 0);
-        glRotatef(_pitch, 1, 0, 0);   
+        glRotatef(_bodyYaw - _yaw, 0, 1, 0);
+        glRotatef(_pitch,  1, 0, 0);   
         glRotatef(-_roll,  0, 0, 1);
     } else {
-        glRotatef(_bodyYaw  + _yaw,   0, 1, 0);
+        glRotatef(_bodyYaw + _yaw, 0, 1, 0);
         glRotatef(_pitch, 1, 0, 0);
         glRotatef(_roll,  0, 0, 1);
     }
@@ -524,12 +470,7 @@ void Head::renderEyeBalls() {
         glPushMatrix();
             glm::vec3 rotationAxis = glm::cross(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));
             float angle = 180.0f - angleBetween(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));            
-
-            //glm::vec3 U_rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-            //float U_angle = angleBetween(_orientation.getFront(), glm::vec3(1.0f, 0.0f, 0.0f));            
-            //glRotatef(U_angle, U_rotationAxis.x, U_rotationAxis.y, U_rotationAxis.z);
             glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-
             glTranslatef( 0.0f, -0.018f, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
             glEnable(GL_TEXTURE_2D);

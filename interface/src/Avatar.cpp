@@ -147,45 +147,6 @@ Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include 
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
     
-    /*
-    _head.pupilSize          = otherAvatar._head.pupilSize;
-    _head.interPupilDistance = otherAvatar._head.interPupilDistance;
-    _head.interBrowDistance  = otherAvatar._head.interBrowDistance;
-    _head.nominalPupilSize   = otherAvatar._head.nominalPupilSize;
-    _head.yawRate            = otherAvatar._head.yawRate;
-    _head.pitchRate          = otherAvatar._head.pitchRate;
-    _head.rollRate           = otherAvatar._head.rollRate;
-    _head.eyebrowPitch[0]    = otherAvatar._head.eyebrowPitch[0];
-    _head.eyebrowPitch[1]    = otherAvatar._head.eyebrowPitch[1];
-    _head.eyebrowRoll [0]    = otherAvatar._head.eyebrowRoll [0];
-    _head.eyebrowRoll [1]    = otherAvatar._head.eyebrowRoll [1];
-    _head.mouthPitch         = otherAvatar._head.mouthPitch;
-    _head.mouthYaw           = otherAvatar._head.mouthYaw;
-    _head.mouthWidth         = otherAvatar._head.mouthWidth;
-    _head.mouthHeight        = otherAvatar._head.mouthHeight;
-    _head.eyeballPitch[0]    = otherAvatar._head.eyeballPitch[0];
-    _head.eyeballPitch[1]    = otherAvatar._head.eyeballPitch[1];
-    _head.eyeballScaleX      = otherAvatar._head.eyeballScaleX;
-    _head.eyeballScaleY      = otherAvatar._head.eyeballScaleY;
-    _head.eyeballScaleZ      = otherAvatar._head.eyeballScaleZ;
-    _head.eyeballYaw[0]      = otherAvatar._head.eyeballYaw[0];
-    _head.eyeballYaw[1]      = otherAvatar._head.eyeballYaw[1];
-    _head.pitchTarget        = otherAvatar._head.pitchTarget;
-    _head.yawTarget          = otherAvatar._head.yawTarget;
-    _head.noiseEnvelope      = otherAvatar._head.noiseEnvelope;
-    _head.pupilConverge      = otherAvatar._head.pupilConverge;
-    _head.leanForward        = otherAvatar._head.leanForward;
-    _head.leanSideways       = otherAvatar._head.leanSideways;
-    _head.eyeContact         = otherAvatar._head.eyeContact;
-    _head.eyeContactTarget   = otherAvatar._head.eyeContactTarget;
-    _head.scale              = otherAvatar._head.scale;
-    _head.audioAttack        = otherAvatar._head.audioAttack;
-    _head.averageLoudness    = otherAvatar._head.averageLoudness;
-    _head.lastLoudness       = otherAvatar._head.lastLoudness;
-    _head.browAudioLift      = otherAvatar._head.browAudioLift;
-    _head.noise              = otherAvatar._head.noise;
-    */
-
     _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
