@@ -275,7 +275,7 @@ static void sendBillboard() {
     for (int i = 0; i < BILLBOARD_HEIGHT; i++) {
         for (int j = 0; j < BILLBOARD_WIDTH; j++) {
 
-            int nthVoxel = ((i*BILLBOARD_WIDTH) + j);
+            int nthVoxel = ((i * BILLBOARD_WIDTH) + j);
             int item = nthVoxel % VOXELS_PER_PACKET;
             
             billboardLights[i][j] = billboardPosition + glm::vec3(j * lightScale, (float)((BILLBOARD_HEIGHT - i) * lightScale), 0);
@@ -295,7 +295,7 @@ static void sendBillboard() {
                 details[item].blue  = billboardOffColor[2];
             }
             
-            if (item == VOXELS_PER_PACKET-1) {
+            if (item == VOXELS_PER_PACKET - 1) {
                 if (createVoxelEditMessage(message, 0, VOXELS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
                     ::packetsSent++;
                     ::bytesSent += sizeOut;
