@@ -92,8 +92,6 @@ Avatar::Avatar(bool isMine) {
     _interactingOther           = NULL;
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
-    
-    _head.initialize();
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
     _sphere                     = NULL;
