@@ -227,11 +227,11 @@ const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
 const int VOXELS_PER_PACKET = 135;
-const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET/(BILLBOARD_HEIGHT*BILLBOARD_WIDTH);
+const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
 
 
 // top to bottom... 
-bool billBoardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
+bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
  { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
  { 0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,0,0 },
  { 0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1,0,0,0,1,1,1,0,0,0,0,0 },
@@ -285,7 +285,7 @@ static void sendBillboard() {
             details[item].y = billboardLights[i][j].y;
             details[item].z = billboardLights[i][j].z;
 
-            if (billBoardMessage[i][j]) {
+            if (billboardMessage[i][j]) {
                 details[item].red   = (billboardOnColorA[0] + ((billboardOnColorB[0] - billboardOnColorA[0]) * ::billboardGradient));
                 details[item].green = (billboardOnColorA[1] + ((billboardOnColorB[1] - billboardOnColorA[1]) * ::billboardGradient));
                 details[item].blue  = (billboardOnColorA[2] + ((billboardOnColorB[2] - billboardOnColorA[2]) * ::billboardGradient));
