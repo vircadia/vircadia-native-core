@@ -10,10 +10,9 @@
 #define hifi_AgentData_h
 
 class AgentData {
-    public:
-        virtual ~AgentData() = 0;
-        virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
-        virtual AgentData* clone() const = 0;
+public:
+    virtual ~AgentData() = 0;
+    virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
 };
 
 #endif

@@ -22,10 +22,8 @@ class AudioRingBuffer : public AgentData {
 public:
     AudioRingBuffer(int ringSamples, int bufferSamples);
     ~AudioRingBuffer();
-    AudioRingBuffer(const AudioRingBuffer &otherRingBuffer);
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    AudioRingBuffer* clone() const;
 
     int16_t* getNextOutput() const { return _nextOutput; }
     void setNextOutput(int16_t* nextOutput) { _nextOutput = nextOutput; }
@@ -48,6 +46,10 @@ public:
 
     short diffLastWriteNextOutput();
 private:
+    // disallow copying of AudioRingBuffer objects
+    AudioRingBuffer(const AudioRingBuffer&);
+    AudioRingBuffer& operator= (const AudioRingBuffer&);
+    
     int _ringBufferLengthSamples;
     int _bufferLengthSamples;
     Position _position;
