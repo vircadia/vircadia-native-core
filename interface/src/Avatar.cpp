@@ -46,7 +46,7 @@ const float HEAD_MAX_PITCH                = 45;
 const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
-const float AVATAR_BRAKING_RANGE          = 1.3f;
+const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
@@ -104,14 +104,14 @@ Avatar::Avatar(bool isMine) {
 
     initializeSkeleton();
     
-    _avatarTouch.setReachableRadius(1.0);
+    _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
         
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
 }
 
-Avatar::Avatar(const Avatar &otherAvatar) {
-    
+Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include the copy constructor for head
+
     _velocity                    = otherAvatar._velocity;
     _thrust                      = otherAvatar._thrust;
     _rotation                    = otherAvatar._rotation;
@@ -145,6 +145,7 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
     
+    /*
     _head.pupilSize          = otherAvatar._head.pupilSize;
     _head.interPupilDistance = otherAvatar._head.interPupilDistance;
     _head.interBrowDistance  = otherAvatar._head.interBrowDistance;
@@ -181,19 +182,11 @@ Avatar::Avatar(const Avatar &otherAvatar) {
     _head.lastLoudness       = otherAvatar._head.lastLoudness;
     _head.browAudioLift      = otherAvatar._head.browAudioLift;
     _head.noise              = otherAvatar._head.noise;
+    */
+
     _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
     
     initializeSkeleton();
-
-/*
-    if (iris_texture.size() == 0) {
-        switchToResourcesParentIfRequired();
-        unsigned error = lodepng::decode(iris_texture, iris_texture_width, iris_texture_height, iris_texture_file);
-        if (error != 0) {
-            printLog("error %u: %s\n", error, lodepng_error_text(error));
-        }
-    }
-*/
 }
 
 Avatar::~Avatar()  {
@@ -394,8 +387,8 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // If another avatar is near, dampen velocity as a function of closeness
-    if (_isMine && (_distanceToNearestAvatar < AVATAR_BRAKING_RANGE)) {    
-        float closeness = 1.0f - (_distanceToNearestAvatar / AVATAR_BRAKING_RANGE);
+    if (_isMine && (_distanceToNearestAvatar < PERIPERSONAL_RADIUS)) {    
+        float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
         float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
         if ( drag > 0.0f ) {
             _velocity *= drag;
@@ -443,16 +436,16 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
     );
     
+    _head.setBodyYaw(_bodyYaw);
+    
     //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
-    _head.setLooking(false);        
-    /*
     if (_interactingOther) {
         _head.setLooking(true);
         _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
+//_head.setLookatPosition(_interactingOther->getApproximateEyePosition());
     } else {
         _head.setLooking(false);
     }    
-    */
         
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
@@ -523,7 +516,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                 float distance = glm::length(v);
                 if (distance < closestDistance) {
                     closestDistance = distance;
-                    _interactingOther = otherAvatar;
+                    
+                    if (distance < PERIPERSONAL_RADIUS) {
+                        _interactingOther = otherAvatar;
+                    }
                 }
             }
         }
@@ -750,6 +746,7 @@ static TextRenderer* textRenderer() {
 
 void Avatar::setGravity(glm::vec3 gravity) {
     _gravity = gravity;
+    _head.setGravity(_gravity);
 }
 
 void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
@@ -1131,6 +1128,12 @@ const glm::vec3& Avatar::getHeadPosition() const {
 }
 
 
+glm::vec3 Avatar::getApproximateEyePosition() {
+    return _head.getApproximateEyePosition();
+}
+
+
+
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
@@ -1177,7 +1180,7 @@ void Avatar::renderBody(bool lookingInMirror) {
         
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
             if (_displayingHead) {
-                _head.render(lookingInMirror, _bodyYaw);
+                _head.render(lookingInMirror);
             }
         } else {
     

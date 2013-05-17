@@ -100,6 +100,7 @@ public:
     void  setLeanForward(float dist);
     void  setLeanSideways(float dist);
     void  addLean(float x, float z);
+    glm::vec3 getApproximateEyePosition(); 
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
