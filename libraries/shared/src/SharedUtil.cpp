@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cctype>
+#include <time.h>
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
