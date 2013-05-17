@@ -29,7 +29,7 @@
 #endif
 
 const int ANIMATION_LISTEN_PORT = 40107;
-const int ANIMATE_VOXELS_INTERVAL_USECS = SIXTY_FPS_IN_MILLISECONDS * 1000.0 * 1;
+const int ANIMATE_VOXELS_INTERVAL_USECS = SIXTY_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
