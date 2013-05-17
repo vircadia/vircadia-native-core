@@ -69,8 +69,9 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         timeval startTime;
         
-        // one byte for header, 3 positional floats, 1 bearing float, 1 attenuation modifier byte
-        int leadingBytes = 1 + (sizeof(float) * 4) + 1;
+        // calculate the number of bytes required for additional data
+        int leadingBytes = sizeof(PACKET_HEADER) + sizeof(_streamIdentifier)
+            + sizeof(_position) + sizeof(_bearing) + sizeof(_volume);
         unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
