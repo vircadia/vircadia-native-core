@@ -28,7 +28,7 @@
 #include <ifaddrs.h>
 #endif
 
-bool wantShowPPS = false; // do we want to debug packets per second
+bool shouldShowPacketsPerSecond = false; // do we want to debug packets per second
 
 const int ANIMATION_LISTEN_PORT = 40107;
 const int ACTUAL_FPS = 60;
@@ -54,9 +54,9 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
 
         ::packetsSent++;
-        ::bytesSent +=sizeOut;
+        ::bytesSent += sizeOut;
 
-        if (::wantShowPPS) {
+        if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n",sizeOut);
         }
 
@@ -160,9 +160,9 @@ static void sendBlinkingStringOfLights() {
             if (createVoxelEditMessage(message, 0, LIGHTS_PER_SEGMENT, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
                 ::packetsSent++;
-                ::bytesSent +=sizeOut;
+                ::bytesSent += sizeOut;
 
-                if (::wantShowPPS) {
+                if (::shouldShowPacketsPerSecond) {
                     printf("sending packet of size=%d\n",sizeOut);
                 }
                 AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
@@ -202,9 +202,9 @@ static void sendBlinkingStringOfLights() {
         if (createVoxelEditMessage(message, 0, 2, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
             ::packetsSent++;
-            ::bytesSent +=sizeOut;
+            ::bytesSent += sizeOut;
 
-            if (::wantShowPPS) {
+            if (::shouldShowPacketsPerSecond) {
                 printf("sending packet of size=%d\n",sizeOut);
             }
             AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
@@ -298,9 +298,9 @@ static void sendBillboard() {
             if (item == VOXELS_PER_PACKET-1) {
                 if (createVoxelEditMessage(message, 0, VOXELS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
                     ::packetsSent++;
-                    ::bytesSent +=sizeOut;
-                    if (::wantShowPPS) {
-                        printf("sending packet of size=%d\n",sizeOut);
+                    ::bytesSent += sizeOut;
+                    if (::shouldShowPacketsPerSecond) {
+                        printf("sending packet of size=%d\n", sizeOut);
                     }
                     AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
                     delete[] bufferOut;
@@ -327,10 +327,10 @@ void* animateVoxels(void* args) {
         sendBillboard();
         
         double end = usecTimestampNow();
-        double elapsedsec = (end - ::start)/1000000.0;
-        if (::wantShowPPS) {
+        double elapsedSeconds = (end - ::start) / 1000000.0;
+        if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
-                (float)(packetsSent/elapsedsec),(float)(bytesSent/elapsedsec));
+                (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
         }
         // dynamically sleep until we need to fire off the next set of voxels
         double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
@@ -355,7 +355,7 @@ int main(int argc, const char * argv[])
 
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";
-    ::wantShowPPS = cmdOptionExists(argc, argv, showPPS);
+    ::shouldShowPacketsPerSecond = cmdOptionExists(argc, argv, showPPS);
 
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
