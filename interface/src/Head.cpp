@@ -88,7 +88,7 @@ void Head::setNewTarget(float pitch, float yaw) {
 void Head::simulate(float deltaTime, bool isMine) {
 
     //generate orientation directions based on Euler angles...
-    _orientation.setToPitchYawRoll( _pitch, _bodyYaw + _yaw, _roll);
+    _orientation.setToPitchYawRoll( -_pitch, _bodyYaw + _yaw, _roll);
 
     //calculate the eye positions (algorithm still being designed)
     updateEyePositions();
@@ -146,15 +146,21 @@ void Head::simulate(float deltaTime, bool isMine) {
             if (randFloat() < 0.1) {
                 _eyeContactTarget = MOUTH;
             } else {
-                if (randFloat() < 0.5) _eyeContactTarget = LEFT_EYE; else _eyeContactTarget = RIGHT_EYE;
+                if (randFloat() < 0.5) {
+                    _eyeContactTarget = LEFT_EYE; 
+                } else {
+                    _eyeContactTarget = RIGHT_EYE;
+                }
             }
         }
+        
         //  Set eyeball pitch and yaw to make contact
-        float eye_target_yaw_adjust = 0;
-        float eye_target_pitch_adjust = 0;
-        if (_eyeContactTarget == LEFT_EYE) eye_target_yaw_adjust = DEGREES_BETWEEN_VIEWER_EYES;
-        if (_eyeContactTarget == RIGHT_EYE) eye_target_yaw_adjust = -DEGREES_BETWEEN_VIEWER_EYES;
-        if (_eyeContactTarget == MOUTH) eye_target_pitch_adjust = DEGREES_TO_VIEWER_MOUTH;
+        float eye_target_yaw_adjust   = 0.0f;
+        float eye_target_pitch_adjust = 0.0f;
+
+        if (_eyeContactTarget == LEFT_EYE ) { eye_target_yaw_adjust   =  DEGREES_BETWEEN_VIEWER_EYES; }
+        if (_eyeContactTarget == RIGHT_EYE) { eye_target_yaw_adjust   = -DEGREES_BETWEEN_VIEWER_EYES; }
+        if (_eyeContactTarget == MOUTH    ) { eye_target_pitch_adjust =  DEGREES_TO_VIEWER_MOUTH;     }
         
         _eyeballPitch[0] = _eyeballPitch[1] = -_pitch + eye_target_pitch_adjust;
         _eyeballYaw  [0] = _eyeballYaw  [1] =  _yaw   + eye_target_yaw_adjust;
