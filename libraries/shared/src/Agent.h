@@ -24,9 +24,8 @@
 class Agent {    
 public:
     Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID);
-    Agent(const Agent &otherAgent);
     ~Agent();
-    Agent& operator=(Agent otherAgent);
+    
     bool operator==(const Agent& otherAgent);
     
     bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherAgentType);
@@ -66,7 +65,9 @@ public:
 
     static void printLog(Agent const&);
 private:
-    void swap(Agent &first, Agent &second);
+    // privatize copy and assignment operator to disallow Agent copying
+    Agent(const Agent &otherAgent);
+    Agent& operator=(Agent otherAgent);
     
     char _type;
     uint16_t _agentID;
