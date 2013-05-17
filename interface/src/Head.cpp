@@ -28,8 +28,8 @@ float _browWidth = 0.8;
 float _browThickness = 0.16;
 
 const char IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
-unsigned int IRIS_TEXTURE_WIDTH = 512;
-unsigned int IRIS_TEXTURE_HEIGHT = 256;
+unsigned int IRIS_TEXTURE_WIDTH = 768;
+unsigned int IRIS_TEXTURE_HEIGHT = 498;
 vector<unsigned char> irisTexture;
 
 Head::Head() :
