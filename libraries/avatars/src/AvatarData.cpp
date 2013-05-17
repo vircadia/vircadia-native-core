@@ -34,14 +34,6 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
     return sizeof(uint16_t);
 }
 
-AvatarData::~AvatarData() {
-    
-}
-
-AvatarData* AvatarData::clone() const {
-    return new AvatarData(*this);
-}
-
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     

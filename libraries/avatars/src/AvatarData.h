@@ -52,11 +52,6 @@ public:
     _wantResIn(false),
     _wantColor(true) { };
     
-    
-    ~AvatarData();
-    
-    AvatarData* clone() const;
-    
     const glm::vec3& getPosition() const;
     void setPosition(glm::vec3 position);
     void setHandPosition(glm::vec3 handPosition);
@@ -134,6 +129,10 @@ public:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     
 protected:
+    // privatize the copy constructor and assignment operator so they cannot be called
+    AvatarData(const AvatarData&);
+    AvatarData& operator= (const AvatarData&);
+    
     glm::vec3 _position;
     glm::vec3 _handPosition;
     
