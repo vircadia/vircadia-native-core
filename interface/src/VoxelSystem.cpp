@@ -417,11 +417,6 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
     return 0; // not-updated
 }
 
-VoxelSystem* VoxelSystem::clone() const {
-    // this still needs to be implemented, will need to be used if VoxelSystem is attached to agent
-    return NULL;
-}
-
 void VoxelSystem::init() {
 
     _renderWarningsOn = false;

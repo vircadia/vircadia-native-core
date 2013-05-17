@@ -24,27 +24,9 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     _nextOutput = _buffer;
 };
 
-AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
-    _ringBufferLengthSamples = otherRingBuffer._ringBufferLengthSamples;
-    _bufferLengthSamples = otherRingBuffer._bufferLengthSamples;
-    _started = otherRingBuffer._started;
-    _shouldBeAddedToMix = otherRingBuffer._shouldBeAddedToMix;
-    _shouldLoopbackForAgent = otherRingBuffer._shouldLoopbackForAgent;
-    
-    _buffer = new int16_t[_ringBufferLengthSamples];
-    memcpy(_buffer, otherRingBuffer._buffer, sizeof(int16_t) * _ringBufferLengthSamples);
-    
-    _nextOutput = _buffer + (otherRingBuffer._nextOutput - otherRingBuffer._buffer);
-    _endOfLastWrite = _buffer + (otherRingBuffer._endOfLastWrite - otherRingBuffer._buffer);
-}
-
 AudioRingBuffer::~AudioRingBuffer() {
     delete[] _buffer;
 };
-
-AudioRingBuffer* AudioRingBuffer::clone() const {
-    return new AudioRingBuffer(*this);
-}
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
