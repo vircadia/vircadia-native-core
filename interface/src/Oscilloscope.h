@@ -26,8 +26,8 @@ public:
     volatile bool enabled;
     volatile bool inputPaused;
 
-    void setLowpass(float w) { assert(w > 0.0f && w <= 1.0f); _valLowpass = w; }
-    void setDownsampling(unsigned f) { assert(f > 0); _valDownsample = f; }
+    void setLowpass(float w) { assert(w > 0.0f && w <= 1.0f); _valLowpassFactor = w; }
+    void setDownsampling(unsigned f) { assert(f > 0); _valDownsampleFactor = f; }
     
 private:
     // don't copy/assign
@@ -42,8 +42,8 @@ private:
     short*          _arrVertices;
     unsigned        _arrWritePos[MAX_CHANNELS];
 
-    float           _valLowpass;
-    unsigned        _valDownsample;
+    float           _valLowpassFactor;
+    unsigned        _valDownsampleFactor;
 };
 
 #endif /* defined(__interface__oscilloscope__) */

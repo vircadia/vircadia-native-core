@@ -35,7 +35,7 @@ namespace { // everything in here only exists while compiling this .cpp file
 Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) : 
     _valWidth(w), _valHeight(h), 
     _arrSamples(0l), _arrVertices(0l), 
-    _valLowpass(0.4f), _valDownsample(3),
+    _valLowpassFactor(0.4f), _valDownsampleFactor(3),
     enabled(isEnabled), inputPaused(false) {
     
     // allocate enough space for the sample data and to turn it into
@@ -95,8 +95,8 @@ void Oscilloscope::render(int x, int y) {
     }
 
     // determine lowpass / downsample factors
-    int lowpass = -int(std::numeric_limits<short>::min()) * _valLowpass;
-    unsigned downsample = _valDownsample;
+    int lowpass = -int(std::numeric_limits<short>::min()) * _valLowpassFactor;
+    unsigned downsample = _valDownsampleFactor;
     // keep half of the buffer for writing and ensure an even vertex count
     unsigned usedWidth = min(_valWidth, MAX_SAMPLES_PER_CHANNEL / (downsample * 2)) & ~1u;
     unsigned usedSamples = usedWidth * downsample;
