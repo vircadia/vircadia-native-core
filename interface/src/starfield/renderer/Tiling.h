@@ -21,19 +21,19 @@ namespace starfield {
 
         unsigned    _valK;
         float       _valRcpSlice;
-        unsigned    _valBits;
+        unsigned    _valNBits;
 
     public:
 
         Tiling(unsigned k) : 
             _valK(k),
             _valRcpSlice(k / Radians::twicePi()) {
-            _valBits = ceil(log(getTileCount()) * 1.4426950408889634); // log2
+            _valNBits = ceil(log(getTileCount()) * 1.4426950408889634); // log2
         }
 
         unsigned getAzimuthalTiles() const { return _valK; }
         unsigned getAltitudinalTiles() const { return _valK / 2 + 1; }
-        unsigned getTileIndexBits() const { return _valBits; }
+        unsigned getTileIndexBits() const { return _valNBits; }
 
         unsigned getTileCount() const {
             return getAzimuthalTiles() * getAltitudinalTiles();

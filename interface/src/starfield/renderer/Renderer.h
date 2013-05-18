@@ -71,13 +71,13 @@ namespace starfield {
         GLsizei*        _arrBatchCount;
         GLuint          _hndVertexArray;
         ProgramObject   _objProgram;
-        int             _alphaLocation;
+        int             _alphaLocationHandle;
 
         Tiling          _objTiling;
 
         unsigned*       _itrOutIndex;
-        vec3            _vecWxform;
-        float           _valHalfPersp;
+        vec3            _vecWRow;
+        float           _valHalfPerspectiveAngle;
         BrightnessLevel _valMinBright;
 
     public:
@@ -173,8 +173,8 @@ namespace starfield {
             matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f) * glm::affineInverse(matrix); 
 
             this->_itrOutIndex = (unsigned*) _arrBatchOffs;
-            this->_vecWxform = vec3(row(matrix, 3));
-            this->_valHalfPersp = halfPersp;
+            this->_vecWRow = vec3(row(matrix, 3));
+            this->_valHalfPerspectiveAngle = halfPersp;
             this->_valMinBright = minBright;
 
             TileSelection::Cursor cursor;
@@ -397,11 +397,11 @@ namespace starfield {
             float gz = -cos(azimuth);
             float exz = cos(altitude);
             vec3 tileCenter = vec3(gx * exz, sin(altitude), gz * exz);
-            float w = dot(_vecWxform, tileCenter);
+            float w = dot(_vecWRow, tileCenter);
 
             float daz = halfSlice * cos(std::max(0.0f, abs(altitude) - halfSlice));
             float dal = halfSlice;
-            float adjustedNear = cos(_valHalfPersp + sqrt(daz * daz + dal * dal));
+            float adjustedNear = cos(_valHalfPerspectiveAngle + sqrt(daz * daz + dal * dal));
 
 // printLog("Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
@@ -484,7 +484,7 @@ namespace starfield {
                     "}\n";
             _objProgram.addShaderFromSourceCode(QGLShader::Fragment, FRAGMENT_SHADER);
             _objProgram.link();
-            _alphaLocation = _objProgram.uniformLocation("alpha");
+            _alphaLocationHandle = _objProgram.uniformLocation("alpha");
 
             glGenBuffersARB(1, & _hndVertexArray);
         }
@@ -532,7 +532,7 @@ namespace starfield {
 
             // select shader and vertex array
             _objProgram.bind();
-            _objProgram.setUniformValue(_alphaLocation, alpha);
+            _objProgram.setUniformValue(_alphaLocationHandle, alpha);
             glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
             glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
             

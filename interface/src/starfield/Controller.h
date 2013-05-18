@@ -70,7 +70,7 @@ namespace starfield {
         double                  _valLodHighWaterMark;
         double                  _valLodOveralloc;
         size_t                  _valLodNalloc;
-        size_t                  _valLodNrender;
+        size_t                  _valLodNRender;
         BrightnessLevels        _seqLodBrightness;
 
 #if STARFIELD_MULTITHREADING
@@ -103,7 +103,7 @@ namespace starfield {
             _valLodHighWaterMark(1.0),
             _valLodOveralloc(1.2),
             _valLodNalloc(0),
-            _valLodNrender(0),
+            _valLodNRender(0),
             _valLodBrightness(0),
             _valLodAllocBrightness(0),
             _ptrRenderer(0l) {
@@ -156,7 +156,7 @@ namespace starfield {
 
                         // cannot allocate or render more than we have
                         n = min(newLast, _valLodNalloc);
-                        nRender = min(newLast, _valLodNrender);
+                        nRender = min(newLast, _valLodNRender);
                     }
 
                     // determine new minimum brightness levels
@@ -192,7 +192,7 @@ namespace starfield {
                     _valLodHighWaterMark *= rcpChange;
                     _valLodOveralloc *= rcpChange;
                     _valLodNalloc = n;
-                    _valLodNrender = nRender;
+                    _valLodNRender = nRender;
                     _valLodAllocBrightness = bMin;
 #if STARFIELD_MULTITHREADING
                     _valLodBrightness.store(b, memory_order_relaxed);
@@ -334,7 +334,7 @@ namespace starfield {
                 {   lock _(_mtxLodState);
 
                     _valLodNalloc = n;
-                    _valLodNrender = nRender;
+                    _valLodNRender = nRender;
 
                     _valLodFraction = fraction;
                     _valLodLowWaterMark = fraction * (1.0 - realloc);
