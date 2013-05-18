@@ -70,6 +70,7 @@ int main(int argc, const char* argv[]) {
     unsigned char* currentBufferPosition = NULL;
     
     uint16_t agentID = 0;
+    Agent* avatarAgent = NULL;
         
     while (true) {
         if (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
@@ -79,10 +80,10 @@ int main(int argc, const char* argv[]) {
                     unpackAgentId(packetData + 1, &agentID);
                     
                     // add or update the agent in our list
-                    agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentID);
+                    avatarAgent = agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentID);
                     
                     // parse positional data from an agent
-                    agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+                    agentList->updateAgentWithData(avatarAgent, packetData, receivedBytes);
                 
                     currentBufferPosition = broadcastPacket + 1;
                     

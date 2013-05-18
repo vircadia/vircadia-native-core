@@ -18,8 +18,9 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     _endOfLastWrite(NULL),
     _started(false),
     _shouldBeAddedToMix(false),
-    _shouldLoopbackForAgent(false) {
-        
+    _shouldLoopbackForAgent(false),
+    _streamIdentifier()
+{        
     _buffer = new int16_t[_ringBufferLengthSamples];
     _nextOutput = _buffer;
 };
@@ -38,6 +39,12 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
         // if this came from an injector or interface client
         // there's data required for spatialization to pull out
+        
+        if (sourceBuffer[0] == PACKET_HEADER_INJECT_AUDIO) {
+            // we've got a stream identifier to pull from the packet
+            memcpy(&_streamIdentifier, dataBuffer, sizeof(_streamIdentifier));
+            dataBuffer += sizeof(_streamIdentifier);
+        }
         
         memcpy(&_position, dataBuffer, sizeof(_position));
         dataBuffer += (sizeof(_position));

@@ -115,10 +115,12 @@ int main(int argc, const char * argv[])
 	            }
             }
             
-            if (agentList->addOrUpdateAgent((sockaddr*) &agentPublicAddress,
-                                           (sockaddr*) &agentLocalAddress,
-                                           agentType,
-                                           agentList->getLastAgentID())) {
+            Agent* newAgent = agentList->addOrUpdateAgent((sockaddr*) &agentPublicAddress,
+                                                          (sockaddr*) &agentLocalAddress,
+                                                          agentType,
+                                                          agentList->getLastAgentID());
+            
+            if (newAgent->getAgentID() == agentList->getLastAgentID()) {
                 agentList->increaseAgentID();
             }
             
