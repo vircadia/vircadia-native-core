@@ -58,13 +58,13 @@ Head::Head() :
     _scale(1.0f),
     _eyeContact(1),
     _browAudioLift(0.0f),
-    _eyeContactTarget(LEFT_EYE),
-    _bodyYaw(0.0f),
+    _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _averageLoudness(0.0f),
     _audioAttack(0.0f),
-    _gravity(0.0f, -1.0f, 0.0f),
-    _returnSpringScale(1.0f)
+    _returnSpringScale(1.0f),
+    _bodyYaw(0.0f),
+    _eyeContactTarget(LEFT_EYE)
 {
     _eyebrowPitch[0]       = -30;
     _eyebrowPitch[1]       = -30;
