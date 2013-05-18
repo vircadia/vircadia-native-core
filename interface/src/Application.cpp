@@ -456,13 +456,6 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-static void sendVoxelServerEraseAll() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"erase all");
-    int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
-
 static void sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
