@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cctype>
+#include <time.h>
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
@@ -114,6 +115,15 @@ void switchToResourcesParentIfRequired() {
 #endif
 }
 
+void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes) {
+    // seed the the random number generator
+    srand(time(NULL));
+    
+    for (int i = 0; i < numBytes; i++) {
+        identifierBuffer[i] = rand() % 256;
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    getCmdOption()
 // Description: Handy little function to tell you if a command line flag and option was
@@ -215,6 +225,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         sizeOut=actualMessageSize;
         memcpy(bufferOut,messageBuffer,actualMessageSize);
     }
+    delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }
 
