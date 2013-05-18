@@ -394,12 +394,11 @@ void Avatar::simulate(float deltaTime) {
     );
     
     _head.setBodyYaw(_bodyYaw);
-    
+
     //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
     if (_interactingOther) {
         _head.setLooking(true);
         _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
-//_head.setLookatPosition(_interactingOther->getApproximateEyePosition());
     } else {
         _head.setLooking(false);
     }    

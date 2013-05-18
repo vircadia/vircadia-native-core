@@ -15,12 +15,16 @@ using namespace std;
 const float HEAD_MOTION_DECAY = 0.1;
 const float MINIMUM_EYE_ROTATION = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
 
+const float EYEBALL_RADIUS  = 0.02; 
+const float IRIS_RADIUS     = 0.007;
+const float IRIS_PROTRUSION = 0.018f;
+
 float _browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
 float _mouthColor[] = {1, 0, 0};
 
-float _BrowRollAngle [5] = {0, 15, 30, -30, -15};
-float _BrowPitchAngle[3] = {-70, -60, -50};
-float _eyeColor      [3] = {1,1,1};
+float _BrowRollAngle [5] = {  0.0f,  15.0f, 30.0f, -30.0f, -15.0f};
+float _BrowPitchAngle[3] = {-70.0f, -60.0f, -50.0f};
+float _eyeColor      [3] = {  0.9f,  0.9f,   0.8f};
 
 float _MouthWidthChoices[3] = {0.5, 0.77, 0.3};
 
@@ -58,19 +62,20 @@ Head::Head() :
     _scale(1.0f),
     _eyeContact(1),
     _browAudioLift(0.0f),
-    _eyeContactTarget(LEFT_EYE),
-    _bodyYaw(0.0f),
-    _lastLoudness(0.0f),
-    _averageLoudness(0.0f),
-    _audioAttack(0.0f),
     _gravity(0.0f, -1.0f, 0.0f),
     _returnSpringScale(1.0f)
 {
-    _eyebrowPitch[0]       = -30;
-    _eyebrowPitch[1]       = -30;
-    _eyebrowRoll [0]       = 20;
-    _eyebrowRoll [1]       = -20;
+    _eyebrowPitch[0]  = -30;
+    _eyebrowPitch[1]  = -30;
+    _eyebrowRoll [0]  = 20;
+    _eyebrowRoll [1]  = -20;
+    _bodyYaw          = 0.0f;
+    _audioAttack      = 0.0f;
+    _averageLoudness  = 0.0f;
+    _lastLoudness     = 0.0f;
+    _eyeContactTarget = LEFT_EYE;
 }
+
 
 void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
     _position = p;
@@ -221,14 +226,14 @@ void Head::updateEyePositions() {
 
 void Head::setLooking(bool looking) {
 
-    _looking = looking;
+    _lookingAtSomething = looking;
 
     glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
     glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - averageEyePosition);
     
     float dot = glm::dot(targetLookatAxis, _orientation.getFront());
     if (dot < MINIMUM_EYE_ROTATION) {
-        _looking = false;
+        _lookingAtSomething = false;
     }
 }
 
@@ -245,9 +250,8 @@ void Head::render(bool lookingInMirror) {
         
     glPushMatrix();
     
-        glTranslatef(_position.x, _position.y, _position.z);
-	
-        glScalef(_scale, _scale, _scale);
+        glTranslatef(_position.x, _position.y, _position.z); //translate to head position
+        glScalef(_scale, _scale, _scale); //scale to head size
     
     if (lookingInMirror) {
         glRotatef(_bodyYaw - _yaw, 0, 1, 0);
@@ -329,10 +333,12 @@ void Head::render(bool lookingInMirror) {
     //a new version of eyeballs that has the ability to look at specific targets in the world (algo still not finished yet)
     renderEyeBalls();    
     
-    if (_looking) {
+    /*
+    if (_lookingAtSomething) {
         // Render lines originating from the eyes and converging on the lookatPosition    
         debugRenderLookatVectors(_leftEyePosition, _rightEyePosition, _lookatPosition);
     }
+    */
 }
 
 void Head::renderEyeBalls() {                                 
@@ -345,7 +351,7 @@ void Head::renderEyeBalls() {
         }
     }
     
-    // setup the texutre to be used on each eye
+    // setup the texutre to be used on each iris
     GLUquadric* irisQuadric = gluNewQuadric();
     gluQuadricTexture(irisQuadric, GL_TRUE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -353,60 +359,90 @@ void Head::renderEyeBalls() {
     gluQuadricOrientation(irisQuadric, GLU_OUTSIDE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, IRIS_TEXTURE_WIDTH, IRIS_TEXTURE_HEIGHT,
                  0, GL_RGBA, GL_UNSIGNED_BYTE, &::irisTexture[0]);
-    
-    // left eyeball
+
+    // render white ball of left eyeball
     glPushMatrix();
         glColor3fv(_eyeColor);
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
-        gluSphere(irisQuadric, 0.02, 30, 30);
+        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
     
-    // left iris
+    // render left iris
     glPushMatrix(); {
-        glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
-        glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _leftEyePosition);
-        
-        if (!_looking) {
-            targetLookatAxis = _orientation.getFront();
-        }        
+        glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         
         glPushMatrix();
-            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));
-            float angle = 180.0f - angleBetween(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));            
-            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glTranslatef( 0.0f, -0.018f, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
+        
+            if (_lookingAtSomething) {
+
+                //rotate the eyeball to aim towards the lookat position
+                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _leftEyePosition); // the lookat direction
+                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+                glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            } else {
+
+                //rotate the eyeball to aim straight ahead
+                glm::vec3 rotationAxisToHeadFront = glm::cross(_orientation.getFront(), IDENTITY_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(_orientation.getFront(), IDENTITY_UP);            
+                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
+
+                //set the amount of roll (for correction after previous rotations)
+                float rollRotation = angleBetween(_orientation.getFront(), IDENTITY_FRONT);            
+                float dot = glm::dot(_orientation.getFront(), -IDENTITY_RIGHT);
+                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
+                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
+            }
+             
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
             glEnable(GL_TEXTURE_2D);
-            gluSphere(irisQuadric, 0.007, 15, 15);
+            gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
             glDisable(GL_TEXTURE_2D);
         glPopMatrix();
     }
     glPopMatrix();
 
-    //right eyeball
+    //render white ball of right eyeball
     glPushMatrix();
         glColor3fv(_eyeColor);
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
-        gluSphere(irisQuadric, 0.02, 30, 30);
+        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
-    //right iris
+    // render right iris
     glPushMatrix(); {
-        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
-        glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _rightEyePosition);
-
-        if (!_looking) {
-            targetLookatAxis = _orientation.getFront();
-        }        
+        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
 
         glPushMatrix();
-            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));
-            float angle = 180.0f - angleBetween(targetLookatAxis, glm::vec3(0.0f, 1.0f, 0.0f));
-            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glTranslatef( 0.0f, -0.018f, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
+        
+            if (_lookingAtSomething) {
+            
+                //rotate the eyeball to aim towards the lookat position
+                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _rightEyePosition);
+                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+                glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            } else {
+
+                //rotate the eyeball to aim straight ahead
+                glm::vec3 rotationAxisToHeadFront = glm::cross(_orientation.getFront(), IDENTITY_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(_orientation.getFront(), IDENTITY_UP);            
+                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
+
+                //set the amount of roll (for correction after previous rotations)
+                float rollRotation = angleBetween(_orientation.getFront(), IDENTITY_FRONT); 
+                float dot = glm::dot(_orientation.getFront(), -IDENTITY_RIGHT);
+                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
+                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
+            }
+            
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
             glEnable(GL_TEXTURE_2D);
-            gluSphere(irisQuadric, 0.007, 15, 15);
+            gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
             glDisable(GL_TEXTURE_2D);
         glPopMatrix();
     }
