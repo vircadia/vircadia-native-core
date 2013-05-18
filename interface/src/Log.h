@@ -21,11 +21,28 @@ class Log;
 //
 int printLog(char const* fmt, ...);
 
+// 
+// Macro to log OpenGl errors.
+// Example: oglLog( glPushMatrix() );
+//
+#define oGlLog(stmt) \
+    stmt; \
+    { \
+        GLenum e = glGetError(); \
+        if (e != GL_NO_ERROR) { \
+            printLog(__FILE__ ":"  oGlLog_stringize(__LINE__) \
+                     " [OpenGL] %s\n", gluErrorString(e)); \
+        } \
+    } \
+    (void) 0
+
+#define oGlLog_stringize(x) oGlLog_stringize_i(x)
+#define oGlLog_stringize_i(x) # x
+
 //
 // Global instance.
 //
 extern Log logger;
-
 
 //
 // Logging subsystem.

@@ -22,7 +22,7 @@ class UrlReader {
 
         enum CacheMode { no_cache, cache_write, cache_read };
 
-        void*       _ptrImpl;
+        void*       _hndCurl;
         char*       _arrXtra;
         char const* _strError;
         void*       _ptrStream;
@@ -145,13 +145,18 @@ class UrlReader {
         UrlReader(UrlReader const&); // = delete;
         UrlReader& operator=(UrlReader const&); // = delete;
 
+        inline bool isSuccess();
+
         // entrypoints to compiled code
 
         typedef size_t transfer_callback(char*, size_t, size_t, void*);
 
-        bool perform(char const* url, transfer_callback* transfer);
+        void transferBegin(void* stream, char const* cacheFile);
+        void transferEnd();
 
-        void getinfo(char const*& url,
+        void perform(char const* url, transfer_callback* transfer);
+
+        void getInfo(char const*& url,
                 char const*& type, int64_t& length, int64_t& stardate);
 
         // synthesized callback
@@ -163,33 +168,37 @@ class UrlReader {
                                                      char* input, size_t size);
 };
 
-template< class ContentStream >
-bool UrlReader::readUrl(char const* url, ContentStream& s, char const* cacheFile) {
-    if (! _ptrImpl) return false;
-    _strCacheFile = cacheFile;
-    _ptrCacheFile = 0l;
-    _valCacheMode = no_cache; // eventually set later
-    _strError = success;
-    _ptrStream = & s;
-    _valXtraSize = ~size_t(0);
-    this->perform(url, & callback_template<ContentStream>);
-    s.end(_strError == success);
-    if (_ptrCacheFile != 0l) {
-        fclose(_ptrCacheFile);
-    }
+inline char const* UrlReader::getError() const {
+
+    return _strError;
+}
+
+bool UrlReader::isSuccess() {
+
     return _strError == success || _strError == success_cached;
 }
 
-inline char const* UrlReader::getError() const { return this->_strError; }
+template< class ContentStream >
+bool UrlReader::readUrl(char const* url, ContentStream& s, char const* cacheFile) {
+    if (! _hndCurl) return false;
+
+    this->transferBegin(& s, cacheFile);
+    this->perform(url, & callback_template<ContentStream>);
+    this->transferEnd();
+    bool ok = isSuccess();
+    s.end(ok);
+    return ok;
+}
 
 inline void UrlReader::setError(char const* staticCstring) {
 
-    if (this->_strError == success || this->_strError == success_cached)
+    if (this->isSuccess())
         this->_strError = staticCstring;
 }
 
 template< class Stream >
 size_t UrlReader::feedBuffered(Stream* stream, char* input, size_t size) {
+
     size_t inputOffset = 0u;
 
     while (true) {
@@ -263,7 +272,7 @@ size_t UrlReader::callback_template(char *input, size_t size, size_t nmemb, void
         // extract meta information and call 'begin'
         char const* url, * type;
         int64_t length, stardate;
-        me->getinfo(url, type, length, stardate);
+        me->getInfo(url, type, length, stardate);
         if (me->_valCacheMode != cache_read) { 
             stream->begin(url, type, length, stardate);
         }
