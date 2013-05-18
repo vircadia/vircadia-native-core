@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(hifi)
 
+add_subdirectory(animation-server)
 add_subdirectory(avatar-mixer)
 add_subdirectory(audio-mixer)
 add_subdirectory(domain-server)
@@ -11,4 +12,4 @@ add_subdirectory(injector)
 add_subdirectory(pairing-server)
 add_subdirectory(space-server)
 add_subdirectory(voxel-edit)
-add_subdirectory(animation-server)add_subdirectory(voxel-server)
+add_subdirectory(voxel-server)
