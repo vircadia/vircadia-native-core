@@ -99,12 +99,21 @@ int audioCallback (const void* inputBuffer,
     parentAudio->_scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
     
     // if needed, add input/output data to echo analysis buffers
-    if (parentAudio->_isGatheringEchoFrames) {
-        memcpy(parentAudio->_echoInputSamples, inputLeft,
+    if (parentAudio->_echoInputFrameCountdown > 0) {
+        if (--parentAudio->_echoInputFrameCountdown == 0) {
+            memcpy(parentAudio->_echoInputSamples, inputLeft,
                PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+            parentAudio->_echoInputFrameCountdown = 0;
+            printLog("got input\n");
+        }
+    }
+
+    if (parentAudio->_isGatheringEchoOutputFrames) {
         memcpy(parentAudio->_echoOutputSamples, outputLeft,
                PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
-        parentAudio->addedPingFrame();
+        parentAudio->_isGatheringEchoOutputFrames = false;
+        parentAudio->_echoInputFrameCountdown = 2;
+        printLog("got output\n");
     }
     
     if (inputLeft != NULL) {
@@ -273,7 +282,10 @@ int audioCallback (const void* inputBuffer,
         for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL; s++) {
             outputLeft[s] = outputRight[s] = (int16_t)(sinf((float) s / PING_PITCH) * PING_VOLUME);
         }
-        parentAudio->_isGatheringEchoFrames = true;
+        printLog("Send echo ping\n");
+        parentAudio->_isSendingEchoPing = false;
+        parentAudio->_isGatheringEchoOutputFrames = true;
+    
     }
     gettimeofday(&parentAudio->_lastCallbackTime, NULL);
     return paContinue;
@@ -293,6 +305,9 @@ Audio::Audio(Oscilloscope* scope) :
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
+    _jitterBufferLengthMsecs(12.0),
+    _jitterBufferSamples(_jitterBufferLengthMsecs *
+                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
     _wasStarved(0),
     _lastInputLoudness(0),
     _mixerLoopbackFlag(false),
@@ -303,8 +318,8 @@ Audio::Audio(Oscilloscope* scope) :
     _packetsReceivedThisPlayback(0),
     _shouldStartEcho(false),
     _isSendingEchoPing(false),
-    _echoPingFrameCount(0),
-    _isGatheringEchoFrames(false)
+    _echoInputFrameCountdown(0),
+    _isGatheringEchoOutputFrames(false)
 {
     outputPortAudioError(Pa_Initialize());
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
@@ -376,20 +391,11 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
 
 void Audio::startEchoTest() {
     _shouldStartEcho = true;
-    _echoPingFrameCount = 0;
     _isSendingEchoPing = true;
-    _isGatheringEchoFrames = false;
+    _isGatheringEchoOutputFrames = false;
+    
 }
 
-void Audio::addedPingFrame() {
-    const int ECHO_PING_FRAMES = 1;
-    _echoPingFrameCount++;
-    if (_echoPingFrameCount == ECHO_PING_FRAMES) {
-        _isGatheringEchoFrames = false;
-        _isSendingEchoPing = false;
-        //startEchoTest();
-    }
-}
 void Audio::analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples) {
     //  Compare output and input streams, looking for evidence of correlation needing echo cancellation
     //
