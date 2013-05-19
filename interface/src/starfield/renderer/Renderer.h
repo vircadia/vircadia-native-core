@@ -65,20 +65,20 @@ namespace starfield {
 
     class Renderer {
 
-        GpuVertex*      _arrData;
-        Tile*           _arrTile;
-        GLint*          _arrBatchOffs;
-        GLsizei*        _arrBatchCount;
-        GLuint          _hndVertexArray;
-        ProgramObject   _objProgram;
+        GpuVertex*      _dataArray;
+        Tile*           _tileArray;
+        GLint*          _batchOffs;
+        GLsizei*        _batchCountArray;
+        GLuint          _vertexArrayHandle;
+        ProgramObject   _program;
         int             _alphaLocationHandle;
 
-        Tiling          _objTiling;
+        Tiling          _tiling;
 
-        unsigned*       _itrOutIndex;
-        vec3            _vecWRow;
-        float           _valHalfPerspectiveAngle;
-        BrightnessLevel _valMinBright;
+        unsigned*       _outIndexPos;
+        vec3            _wRowVec;
+        float           _halfPerspectiveAngle;
+        BrightnessLevel _minBright;
 
     public:
 
@@ -88,9 +88,9 @@ namespace starfield {
                  BrightnessLevel b,
                  BrightnessLevel bMin) :
 
-            _arrData(0l), 
-            _arrTile(0l), 
-            _objTiling(k) {
+            _dataArray(0l), 
+            _tileArray(0l), 
+            _tiling(k) {
 
             this->glAlloc();
 
@@ -101,10 +101,10 @@ namespace starfield {
             // REVISIT: batch arrays are probably oversized, but - hey - they
             // are not very large (unless for insane tiling) and we're better
             // off safe than sorry
-            _arrData = new GpuVertex[n];
-            _arrTile = new Tile[nTiles + 1];
-            _arrBatchOffs = new GLint[nTiles * 2]; 
-            _arrBatchCount = new GLsizei[nTiles * 2];
+            _dataArray = new GpuVertex[n];
+            _tileArray = new Tile[nTiles + 1];
+            _batchOffs = new GLint[nTiles * 2]; 
+            _batchCountArray = new GLsizei[nTiles * 2];
 
             prepareVertexData(src, n, tiling, b, bMin);
 
@@ -113,10 +113,10 @@ namespace starfield {
 
         ~Renderer() {
 
-            delete[] _arrData;
-            delete[] _arrTile;
-            delete[] _arrBatchCount;
-            delete[] _arrBatchOffs;
+            delete[] _dataArray;
+            delete[] _tileArray;
+            delete[] _batchCountArray;
+            delete[] _batchOffs;
 
             this->glFree();
         }
@@ -172,23 +172,23 @@ namespace starfield {
 
             matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f) * glm::affineInverse(matrix); 
 
-            this->_itrOutIndex = (unsigned*) _arrBatchOffs;
-            this->_vecWRow = vec3(row(matrix, 3));
-            this->_valHalfPerspectiveAngle = halfPersp;
-            this->_valMinBright = minBright;
+            this->_outIndexPos = (unsigned*) _batchOffs;
+            this->_wRowVec = vec3(row(matrix, 3));
+            this->_halfPerspectiveAngle = halfPersp;
+            this->_minBright = minBright;
 
             TileSelection::Cursor cursor;
-            cursor.current = _arrTile + _objTiling.getTileIndex(azimuth, altitude);
-            cursor.firstInRow = _arrTile + _objTiling.getTileIndex(0.0f, altitude);
+            cursor.current = _tileArray + _tiling.getTileIndex(azimuth, altitude);
+            cursor.firstInRow = _tileArray + _tiling.getTileIndex(0.0f, altitude);
 
-            floodFill(cursor, TileSelection(*this, _arrTile, _arrTile + _objTiling.getTileCount(),
-                                            (TileSelection::Cursor*) _arrBatchCount));
+            floodFill(cursor, TileSelection(*this, _tileArray, _tileArray + _tiling.getTileCount(),
+                                            (TileSelection::Cursor*) _batchCountArray));
 
 #if STARFIELD_DEBUG_CULLING
 #   define matrix matrix_debug
 #endif
             this->glBatch(glm::value_ptr(matrix), prepareBatch(
-                    (unsigned*) _arrBatchOffs, _itrOutIndex), alpha);
+                    (unsigned*) _batchOffs, _outIndexPos), alpha);
 
 #if STARFIELD_DEBUG_CULLING
 #   undef matrix
@@ -206,9 +206,9 @@ namespace starfield {
             size_t nTiles = tiling.getTileCount();
             size_t vertexIndex = 0u, currTileIndex = 0u, count_active = 0u;
 
-            _arrTile[0].offset = 0u;
-            _arrTile[0].lod = b;
-            _arrTile[0].flags = 0u;
+            _tileArray[0].offset = 0u;
+            _tileArray[0].lod = b;
+            _tileArray[0].flags = 0u;
 
             for (InputVertices::const_iterator i = 
                     src.begin(), e = src.end(); i != e; ++i) {
@@ -225,8 +225,8 @@ namespace starfield {
                     // moved on to another tile? -> flush
                     if (tileIndex != currTileIndex) {
 
-                        Tile* t = _arrTile + currTileIndex;
-                        Tile* tLast = _arrTile + tileIndex;
+                        Tile* t = _tileArray + currTileIndex;
+                        Tile* tLast = _tileArray + tileIndex;
 
                         // set count of active vertices (upcoming lod)
                         t->count = count_active;
@@ -251,14 +251,14 @@ namespace starfield {
 // printLog("Stars.cpp: Vertex %d on tile #%d\n", vertexIndex, tileIndex);
 
                     // write converted vertex
-                    _arrData[vertexIndex++] = *i;
+                    _dataArray[vertexIndex++] = *i;
                 }
             }
             assert(vertexIndex == n);
             // flush last tile (see above)
-            Tile* t = _arrTile + currTileIndex; 
+            Tile* t = _tileArray + currTileIndex; 
             t->count = count_active;
-            for (Tile* e = _arrTile + nTiles + 1; ++t != e;) {
+            for (Tile* e = _tileArray + nTiles + 1; ++t != e;) {
                 t->offset = vertexIndex, t->count = 0u,
                 t->lod = b, t->flags = 0;
             }
@@ -275,22 +275,22 @@ namespace starfield {
         public:
             struct Cursor { Tile* current, * firstInRow; };
         private:
-            Renderer&           _refRenderer;
-            Cursor*     const   _arrStack;
-            Cursor*             _itrStack;
-            Tile const* const   _arrTile;
-            Tile const* const   _ptrTilesEnd;
+            Renderer&           _rendererRef;
+            Cursor*     const   _stackArray;
+            Cursor*             _stackPos;
+            Tile const* const   _tileArray;
+            Tile const* const   _tilesEnd;
 
         public:
 
             TileSelection(Renderer& renderer, Tile const* tiles, 
                           Tile const* tiles_end, Cursor* stack) :
 
-                _refRenderer(renderer),
-                _arrStack(stack),
-                _itrStack(stack), 
-                _arrTile(tiles), 
-                _ptrTilesEnd(tiles_end) {
+                _rendererRef(renderer),
+                _stackArray(stack),
+                _stackPos(stack), 
+                _tileArray(tiles), 
+                _tilesEnd(tiles_end) {
             }
      
         protected:
@@ -300,7 +300,7 @@ namespace starfield {
             bool select(Cursor const& c) {
                 Tile* t = c.current;
 
-                if (t < _arrTile || t >= _ptrTilesEnd ||
+                if (t < _tileArray || t >= _tilesEnd ||
                         !! (t->flags & Tile::checked)) {
 
                     // out of bounds or been here already
@@ -309,7 +309,7 @@ namespace starfield {
 
                 // will check now and never again
                 t->flags |= Tile::checked;
-                if (_refRenderer.visitTile(t)) {
+                if (_rendererRef.visitTile(t)) {
 
                     // good one -> remember (for batching) and propagate
                     t->flags |= Tile::render;
@@ -332,39 +332,39 @@ namespace starfield {
             void right(Cursor& c) const {
 
                 c.current += 1;
-                if (c.current == c.firstInRow + _refRenderer._objTiling.getAzimuthalTiles()) {
+                if (c.current == c.firstInRow + _rendererRef._tiling.getAzimuthalTiles()) {
                     c.current = c.firstInRow;
                 }
             }
             void left(Cursor& c)  const {
  
                 if (c.current == c.firstInRow) {
-                    c.current = c.firstInRow + _refRenderer._objTiling.getAzimuthalTiles();
+                    c.current = c.firstInRow + _rendererRef._tiling.getAzimuthalTiles();
                 }
                 c.current -= 1;
             }
             void up(Cursor& c) const { 
 
-                unsigned d = _refRenderer._objTiling.getAzimuthalTiles();
+                unsigned d = _rendererRef._tiling.getAzimuthalTiles();
                 c.current += d;
                 c.firstInRow += d;
             }
             void down(Cursor& c)  const {
 
-                unsigned d = _refRenderer._objTiling.getAzimuthalTiles();
+                unsigned d = _rendererRef._tiling.getAzimuthalTiles();
                 c.current -= d;
                 c.firstInRow -= d;
             }
 
             void defer(Cursor const& t) {
 
-                *_itrStack++ = t;
+                *_stackPos++ = t;
             }
 
             bool deferred(Cursor& cursor) {
 
-                if (_itrStack != _arrStack) {
-                    cursor = *--_itrStack;
+                if (_stackPos != _stackArray) {
+                    cursor = *--_stackPos;
                     return true;
                 }
                 return false;
@@ -373,35 +373,35 @@ namespace starfield {
 
         bool visitTile(Tile* t) {
 
-            unsigned index =  t - _arrTile;
-            *_itrOutIndex++ = index;
+            unsigned index =  t - _tileArray;
+            *_outIndexPos++ = index;
 
             if (! tileVisible(t, index)) {
                 return false;
             }
 
-            if (t->lod != _valMinBright) {
-                updateVertexCount(t, _valMinBright);
+            if (t->lod != _minBright) {
+                updateVertexCount(t, _minBright);
             }
             return true;
         }
 
         bool tileVisible(Tile* t, unsigned i) {
 
-            float slice = _objTiling.getSliceAngle();
+            float slice = _tiling.getSliceAngle();
             float halfSlice = 0.5f * slice;
-            unsigned stride = _objTiling.getAzimuthalTiles();
+            unsigned stride = _tiling.getAzimuthalTiles();
             float azimuth = (i % stride) * slice;
             float altitude = (i / stride) * slice - Radians::halfPi();
             float gx =  sin(azimuth);
             float gz = -cos(azimuth);
             float exz = cos(altitude);
             vec3 tileCenter = vec3(gx * exz, sin(altitude), gz * exz);
-            float w = dot(_vecWRow, tileCenter);
+            float w = dot(_wRowVec, tileCenter);
 
             float daz = halfSlice * cos(std::max(0.0f, abs(altitude) - halfSlice));
             float dal = halfSlice;
-            float adjustedNear = cos(_valHalfPerspectiveAngle + sqrt(daz * daz + dal * dal));
+            float adjustedNear = cos(_halfPerspectiveAngle + sqrt(daz * daz + dal * dal));
 
 // printLog("Stars.cpp: checking tile #%d, w = %f, near = %f\n", i,  w, nearClip);
 
@@ -415,8 +415,8 @@ namespace starfield {
             // perform a binary search in the so found partition for the
             // new vertex count of this tile
 
-            GpuVertex const* start = _arrData + t[0].offset;
-            GpuVertex const* end = _arrData + t[1].offset;
+            GpuVertex const* start = _dataArray + t[0].offset;
+            GpuVertex const* end = _dataArray + t[1].offset;
 
             assert(end >= start);
 
@@ -431,9 +431,9 @@ namespace starfield {
             end = std::upper_bound(
                     start, end, minBright, GreaterBrightness());
 
-            assert(end >= _arrData + t[0].offset);
+            assert(end >= _dataArray + t[0].offset);
 
-            t->count = end - _arrData - t[0].offset; 
+            t->count = end - _dataArray - t[0].offset; 
             t->lod = minBright;
         }
 
@@ -441,13 +441,13 @@ namespace starfield {
                               unsigned const* indicesEnd) {
 
             unsigned nRanges = 0u;
-            GLint* offs = _arrBatchOffs;
-            GLsizei* count = _arrBatchCount;
+            GLint* offs = _batchOffs;
+            GLsizei* count = _batchCountArray;
 
-            for (unsigned* i = (unsigned*) _arrBatchOffs; 
+            for (unsigned* i = (unsigned*) _batchOffs; 
                     i != indicesEnd; ++i) {
 
-                Tile* t = _arrTile + *i;
+                Tile* t = _tileArray + *i;
                 if ((t->flags & Tile::render) > 0u && t->count > 0u) {
 
                     *offs++ = t->offset;
@@ -476,28 +476,28 @@ namespace starfield {
                     "   gl_PointSize = s;\n"
                     "}\n";
 
-            _objProgram.addShaderFromSourceCode(QGLShader::Vertex, VERTEX_SHADER);
+            _program.addShaderFromSourceCode(QGLShader::Vertex, VERTEX_SHADER);
             GLchar const* const FRAGMENT_SHADER =
                     "#version 120\n"
                     "void main(void) {\n"
                     "   gl_FragColor = gl_Color;\n"
                     "}\n";
-            _objProgram.addShaderFromSourceCode(QGLShader::Fragment, FRAGMENT_SHADER);
-            _objProgram.link();
-            _alphaLocationHandle = _objProgram.uniformLocation("alpha");
+            _program.addShaderFromSourceCode(QGLShader::Fragment, FRAGMENT_SHADER);
+            _program.link();
+            _alphaLocationHandle = _program.uniformLocation("alpha");
 
-            glGenBuffersARB(1, & _hndVertexArray);
+            glGenBuffersARB(1, & _vertexArrayHandle);
         }
 
         void glFree() {
 
-            glDeleteBuffersARB(1, & _hndVertexArray);
+            glDeleteBuffersARB(1, & _vertexArrayHandle);
         }
 
         void glUpload(GLsizei n) {
-            glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
+            glBindBufferARB(GL_ARRAY_BUFFER, _vertexArrayHandle);
             glBufferData(GL_ARRAY_BUFFER,
-                    n * sizeof(GpuVertex), _arrData, GL_STATIC_DRAW);
+                    n * sizeof(GpuVertex), _dataArray, GL_STATIC_DRAW);
             //glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
 
             glBindBufferARB(GL_ARRAY_BUFFER, 0); 
@@ -509,7 +509,7 @@ namespace starfield {
 
 // for (int i = 0; i < n_ranges; ++i)
 //     printLog("Stars.cpp: Batch #%d - %d stars @ %d\n", i, 
-//             _arrBatchOffs[i], _arrBatchCount[i]);
+//             _batchOffs[i], _batchCountArray[i]);
 
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_LIGHTING);
@@ -531,18 +531,18 @@ namespace starfield {
             glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
             // select shader and vertex array
-            _objProgram.bind();
-            _objProgram.setUniformValue(_alphaLocationHandle, alpha);
-            glBindBufferARB(GL_ARRAY_BUFFER, _hndVertexArray);
+            _program.bind();
+            _program.setUniformValue(_alphaLocationHandle, alpha);
+            glBindBufferARB(GL_ARRAY_BUFFER, _vertexArrayHandle);
             glInterleavedArrays(GL_C4UB_V3F, sizeof(GpuVertex), 0l);
             
             // render
             glMultiDrawArrays(GL_POINTS,
-                    _arrBatchOffs, _arrBatchCount, n_ranges);
+                    _batchOffs, _batchCountArray, n_ranges);
 
             // restore state
             glBindBufferARB(GL_ARRAY_BUFFER, 0); 
-            _objProgram.release();
+            _program.release();
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glDisable(GL_POINT_SMOOTH);
             glPopMatrix();

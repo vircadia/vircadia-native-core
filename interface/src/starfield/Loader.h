@@ -24,35 +24,35 @@ namespace starfield {
 
     class Loader : UrlReader {
 
-        InputVertices*  _ptrVertices;
-        unsigned        _valLimit;
+        InputVertices*  _vertices;
+        unsigned        _limit;
 
-        unsigned        _valLineNo;
-        char const*     _strUrl;
+        unsigned        _lineNo;
+        char const*     _urlStr;
 
-        unsigned        _valRecordsRead;
-        BrightnessLevel _valMinBrightness;
+        unsigned        _recordsRead;
+        BrightnessLevel _minBrightness;
     public:
 
         bool loadVertices(
                 InputVertices& destination, char const* url, char const* cacheFile, unsigned limit)
         {
-            _ptrVertices = & destination;
-            _valLimit = limit;
+            _vertices = & destination;
+            _limit = limit;
 #if STARFIELD_SAVE_MEMORY
-            if (_valLimit == 0 || _valLimit > 60000u)
-                _valLimit = 60000u;
+            if (_limit == 0 || _limit > 60000u)
+                _limit = 60000u;
 #endif
-            _strUrl = url; // in case we fail early
+            _urlStr = url; // in case we fail early
 
             if (! UrlReader::readUrl(url, *this, cacheFile))
             {
                 printLog("%s:%d: %s\n",
-                        _strUrl, _valLineNo, getError());
+                        _urlStr, _lineNo, getError());
 
                 return false;
             }
-            printLog("Loaded %u stars.\n", _valRecordsRead);
+            printLog("Loaded %u stars.\n", _recordsRead);
 
             return true;
         }
@@ -66,13 +66,13 @@ namespace starfield {
                    int64_t size,
                    int64_t stardate) {
 
-            _valLineNo = 0u;
-            _strUrl = url; // new value in http redirect
+            _lineNo = 0u;
+            _urlStr = url; // new value in http redirect
 
-            _valRecordsRead = 0u;
+            _recordsRead = 0u;
 
-            _ptrVertices->clear();
-            _ptrVertices->reserve(_valLimit);
+            _vertices->clear();
+            _vertices->reserve(_limit);
 // printLog("Stars.cpp: loader begin %s\n", url);
         }
         
@@ -88,7 +88,7 @@ namespace starfield {
                 for (; next != end && isspace(*next); ++next);
                 consumed = next - input;
                 line = next;
-                ++_valLineNo;
+                ++_lineNo;
                 for (; next != end && *next != '\n' && *next != '\r'; ++next);
                 if (next == end)
                     return consumed;
@@ -109,12 +109,12 @@ namespace starfield {
                         storeVertex(azi, alt, c);
                     }
 
-                    ++_valRecordsRead;
+                    ++_recordsRead;
 
                 } else {
 
                     printLog("Stars.cpp:%d: Bad input from %s\n", 
-                            _valLineNo, _strUrl);
+                            _lineNo, _urlStr);
                 }
 
             }
@@ -126,7 +126,7 @@ namespace starfield {
 
     private:
 
-        bool atLimit() { return _valLimit > 0u && _valRecordsRead >= _valLimit; }
+        bool atLimit() { return _limit > 0u && _recordsRead >= _limit; }
 
         bool spaceFor(BrightnessLevel b) {
 
@@ -136,42 +136,42 @@ namespace starfield {
 
             // just reached the limit? -> establish a minimum heap and 
             // remember the brightness at its top
-            if (_valRecordsRead == _valLimit) {
+            if (_recordsRead == _limit) {
 
 // printLog("Stars.cpp: vertex limit reached -> heap mode\n");
 
                 make_heap(
-                    _ptrVertices->begin(), _ptrVertices->end(),
+                    _vertices->begin(), _vertices->end(),
                     GreaterBrightness() );
 
-                _valMinBrightness = getBrightness(
-                        _ptrVertices->begin()->getColor() );
+                _minBrightness = getBrightness(
+                        _vertices->begin()->getColor() );
             }
 
             // not interested? say so
-            if (_valMinBrightness >= b)
+            if (_minBrightness >= b)
                 return false;
 
             // otherwise free up space for the new vertex
             pop_heap(
-                _ptrVertices->begin(), _ptrVertices->end(),
+                _vertices->begin(), _vertices->end(),
                 GreaterBrightness() );
-            _ptrVertices->pop_back();
+            _vertices->pop_back();
             return true;
         }
 
         void storeVertex(float azi, float alt, unsigned color) {
   
-            _ptrVertices->push_back(InputVertex(azi, alt, color));
+            _vertices->push_back(InputVertex(azi, alt, color));
 
             if (atLimit()) {
 
                 push_heap(
-                    _ptrVertices->begin(), _ptrVertices->end(),
+                    _vertices->begin(), _vertices->end(),
                     GreaterBrightness() );
 
-                _valMinBrightness = getBrightness(
-                        _ptrVertices->begin()->getColor() );
+                _minBrightness = getBrightness(
+                        _vertices->begin()->getColor() );
             }
         }
     };

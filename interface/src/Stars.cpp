@@ -14,24 +14,24 @@
 #undef __interface__Starfield_impl__
 
 Stars::Stars() : 
-    _ptrController(0l) { 
-    _ptrController = new starfield::Controller; 
+    _controller(0l) { 
+    _controller = new starfield::Controller; 
 }
 
 Stars::~Stars() { 
-    delete _ptrController; 
+    delete _controller; 
 }
 
 bool Stars::readInput(const char* url, const char* cacheFile, unsigned limit) {
-    return _ptrController->readInput(url, cacheFile, limit); 
+    return _controller->readInput(url, cacheFile, limit); 
 }
 
 bool Stars::setResolution(unsigned k) { 
-    return _ptrController->setResolution(k); 
+    return _controller->setResolution(k); 
 }
 
 float Stars::changeLOD(float fraction, float overalloc, float realloc) { 
-    return float(_ptrController->changeLOD(fraction, overalloc, realloc));
+    return float(_controller->changeLOD(fraction, overalloc, realloc));
 } 
 
 void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
@@ -46,7 +46,7 @@ void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
     // pull the modelview matrix off the GL stack
     glm::mat4 view; glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
 
-    _ptrController->render(fovDiagonal, aspect, glm::affineInverse(view), alpha); 
+    _controller->render(fovDiagonal, aspect, glm::affineInverse(view), alpha); 
 }
 
 

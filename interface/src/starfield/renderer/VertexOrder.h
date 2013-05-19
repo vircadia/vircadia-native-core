@@ -25,7 +25,7 @@ namespace starfield {
      */
     class VertexOrder : public Radix2IntegerScanner<unsigned>
     {
-        Tiling _objTiling;
+        Tiling _tiling;
 
         typedef Radix2IntegerScanner<unsigned> base;
     public:
@@ -33,14 +33,14 @@ namespace starfield {
         explicit VertexOrder(Tiling const& tiling) :
 
             base(tiling.getTileIndexBits() + BrightnessBits),
-            _objTiling(tiling) {
+            _tiling(tiling) {
         }
 
         bool bit(InputVertex const& v, state_type const& s) const {
 
             // inspect (tile_index, brightness) tuples
             unsigned key = getBrightness(v.getColor()) ^ BrightnessMask;
-            key |= _objTiling.getTileIndex(
+            key |= _tiling.getTileIndex(
                     v.getAzimuth(), v.getAltitude()) << BrightnessBits;
             return base::bit(key, s); 
         }

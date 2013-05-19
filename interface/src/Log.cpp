@@ -49,27 +49,27 @@ namespace {
 Log::Log(FILE* tPipeTo, unsigned bufferedLines,
          unsigned defaultLogWidth, unsigned defaultCharWidth, unsigned defaultCharHeight) :
 
-    _ptrStream(tPipeTo),
-    _arrChars(0l),
-    _arrLines(0l),
-    _valLogWidth(defaultLogWidth) {
+    _stream(tPipeTo),
+    _chars(0l),
+    _lines(0l),
+    _logWidth(defaultLogWidth) {
 
-    pthread_mutex_init(& _mtx, 0l);
+    pthread_mutex_init(& _mutex, 0l);
 
     // allocate twice as much (so we have spare space for a copy not to block 
     // logging from other threads during 'render')
-    _arrChars = new char[CHARACTER_BUFFER_SIZE * 2];
-    _ptrCharsEnd = _arrChars + CHARACTER_BUFFER_SIZE;
-    _arrLines = new char*[LINE_BUFFER_SIZE * 2];
-    _ptrLinesEnd = _arrLines + LINE_BUFFER_SIZE;
+    _chars = new char[CHARACTER_BUFFER_SIZE * 2];
+    _charsEnd = _chars + CHARACTER_BUFFER_SIZE;
+    _lines = new char*[LINE_BUFFER_SIZE * 2];
+    _linesEnd = _lines + LINE_BUFFER_SIZE;
 
     // initialize the log to all empty lines
-    _arrChars[0] = '\0';
-    _itrWritePos = _arrChars;
-    _itrWriteLineStart = _arrChars;
-    _itrLastLine = _arrLines;
-    _valWrittenInLine = 0;
-    memset(_arrLines, 0, LINE_BUFFER_SIZE * sizeof(char*));
+    _chars[0] = '\0';
+    _writePos = _chars;
+    _writeLineStartPos = _chars;
+    _lastLinePos = _lines;
+    _writtenInLine = 0;
+    memset(_lines, 0, LINE_BUFFER_SIZE * sizeof(char*));
 
     setCharacterSize(defaultCharWidth, defaultCharHeight);
 }
@@ -77,8 +77,8 @@ Log::Log(FILE* tPipeTo, unsigned bufferedLines,
 
 Log::~Log() {
 
-    delete[] _arrChars;
-    delete[] _arrLines;
+    delete[] _chars;
+    delete[] _lines;
 }
 
 inline void Log::addMessage(char const* ptr) {
@@ -86,8 +86,8 @@ inline void Log::addMessage(char const* ptr) {
     // precondition: mutex is locked so noone gets in our way
 
     // T-pipe, if requested
-    if (_ptrStream != 0l) {
-        fprintf(_ptrStream, "%s", ptr);
+    if (_stream != 0l) {
+        fprintf(_stream, "%s", ptr);
     }
 
     while (*ptr != '\0') {
@@ -104,51 +104,51 @@ inline void Log::addMessage(char const* ptr) {
             // found LF -> write NUL (c == '\0' tells us to wrap, below)
             c = '\0';
         }
-        *_itrWritePos++ = c;
+        *_writePos++ = c;
 
-        if (_itrWritePos == _ptrCharsEnd) {
+        if (_writePos == _charsEnd) {
             // reached the end of the circular character buffer? -> start over
-            _itrWritePos = _arrChars;
+            _writePos = _chars;
         }
 
-        if (++_valWrittenInLine >= _valLineLength || c == '\0') {
+        if (++_writtenInLine >= _lineLength || c == '\0') {
 
             // new line? store its start to the line buffer and mark next line as empty
-            ++_itrLastLine;
+            ++_lastLinePos;
             
-            if (_itrLastLine == _ptrLinesEnd) {
-                _itrLastLine = _arrLines;
-                _itrLastLine[1] = 0l;
-            } else if (_itrLastLine + 1 != _ptrLinesEnd) {
-                _itrLastLine[1] = 0l;
+            if (_lastLinePos == _linesEnd) {
+                _lastLinePos = _lines;
+                _lastLinePos[1] = 0l;
+            } else if (_lastLinePos + 1 != _linesEnd) {
+                _lastLinePos[1] = 0l;
             } else {
-                _arrLines[0] = 0l;
+                _lines[0] = 0l;
             } 
-            *_itrLastLine = _itrWriteLineStart;
+            *_lastLinePos = _writeLineStartPos;
 
             // debug mode: make sure all line pointers we write here are valid
-            assert(! (_itrLastLine < _arrLines || _itrLastLine >= _ptrLinesEnd));
-            assert(! (*_itrLastLine < _arrChars || *_itrLastLine >= _ptrCharsEnd));
+            assert(! (_lastLinePos < _lines || _lastLinePos >= _linesEnd));
+            assert(! (*_lastLinePos < _chars || *_lastLinePos >= _charsEnd));
 
             // terminate line, unless done already
             if (c != '\0') {
-                *_itrWritePos++ = '\0';
+                *_writePos++ = '\0';
 
-                if (_itrWritePos == _ptrCharsEnd) {
-                    _itrWritePos = _arrChars;
+                if (_writePos == _charsEnd) {
+                    _writePos = _chars;
                 }
             }
 
             // remember start position in character buffer for next line and reset character count
-            _itrWriteLineStart = _itrWritePos;
-            _valWrittenInLine = 0;
+            _writeLineStartPos = _writePos;
+            _writtenInLine = 0;
         }
     }
 
 }
 
 int Log::vprint(char const* fmt, va_list args) {
-    pthread_mutex_lock(& _mtx);
+    pthread_mutex_lock(& _mutex);
 
     // print to buffer
     char buf[MAX_MESSAGE_LENGTH];
@@ -161,11 +161,11 @@ int Log::vprint(char const* fmt, va_list args) {
     } else {
 
         // error? -> mutter on stream or stderr
-        fprintf(_ptrStream != 0l ? _ptrStream : stderr,
+        fprintf(_stream != 0l ? _stream : stderr,
                 "Log: Failed to log message with format string = \"%s\".\n", fmt);
     }
 
-    pthread_mutex_unlock(& _mtx);
+    pthread_mutex_unlock(& _mutex);
     return n;
 }
 
@@ -179,22 +179,22 @@ void Log::operator()(char const* fmt, ...) {
 
 void Log::setLogWidth(unsigned pixels) {
 
-    pthread_mutex_lock(& _mtx);
-    _valLogWidth = pixels;
-    _valLineLength = _valLogWidth / _valCharWidth;
-    pthread_mutex_unlock(& _mtx);
+    pthread_mutex_lock(& _mutex);
+    _logWidth = pixels;
+    _lineLength = _logWidth / _charWidth;
+    pthread_mutex_unlock(& _mutex);
 }
 
 void Log::setCharacterSize(unsigned width, unsigned height) {
 
-    pthread_mutex_lock(& _mtx);
-    _valCharWidth = width;
-    _valCharHeight = height;
-    _valCharYoffset = height * CHAR_FRACT_BASELINE;
-    _valCharScale = float(width) / CHAR_WIDTH;
-    _valCharAspect = (height * CHAR_WIDTH) / (width * CHAR_HEIGHT);
-    _valLineLength = _valLogWidth / _valCharWidth;
-    pthread_mutex_unlock(& _mtx);
+    pthread_mutex_lock(& _mutex);
+    _charWidth = width;
+    _charHeight = height;
+    _charYoffset = height * CHAR_FRACT_BASELINE;
+    _charScale = float(width) / CHAR_WIDTH;
+    _charAspect = (height * CHAR_WIDTH) / (width * CHAR_HEIGHT);
+    _lineLength = _logWidth / _charWidth;
+    pthread_mutex_unlock(& _mutex);
 }
 
 static TextRenderer* textRenderer() {
@@ -206,17 +206,17 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
 
     // rendering might take some time, so create a local copy of the portion we need
     // instead of having to hold the mutex all the time
-    pthread_mutex_lock(& _mtx);
+    pthread_mutex_lock(& _mutex);
 
     // determine number of visible lines
-    unsigned showLines = divRoundUp(screenHeight, _valCharHeight);
+    unsigned showLines = divRoundUp(screenHeight, _charHeight);
 
-    char** lastLine = _itrLastLine;
-    char** firstLine = _itrLastLine;
+    char** lastLine = _lastLinePos;
+    char** firstLine = _lastLinePos;
 
     if (! *lastLine) {
         // empty log
-        pthread_mutex_unlock(& _mtx);
+        pthread_mutex_unlock(& _mutex);
         return;
     }
 
@@ -225,8 +225,8 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
 
         char** prevFirstLine = firstLine;
         --firstLine;
-        if (firstLine < _arrLines) {
-            firstLine = _ptrLinesEnd - 1;
+        if (firstLine < _lines) {
+            firstLine = _linesEnd - 1;
         }
         if (! *firstLine) {
             firstLine = prevFirstLine;
@@ -235,37 +235,37 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
         }
 
         // debug mode: make sure all line pointers we find here are valid
-        assert(! (firstLine < _arrLines || firstLine >= _ptrLinesEnd));
-        assert(! (*firstLine < _arrChars || *firstLine >= _ptrCharsEnd));
+        assert(! (firstLine < _lines || firstLine >= _linesEnd));
+        assert(! (*firstLine < _chars || *firstLine >= _charsEnd));
     }
 
-    // copy the line buffer portion into a contiguous region at _ptrLinesEnd
+    // copy the line buffer portion into a contiguous region at _linesEnd
     if (firstLine <= lastLine) {
 
-        memcpy(_ptrLinesEnd, firstLine, showLines * sizeof(char*));
+        memcpy(_linesEnd, firstLine, showLines * sizeof(char*));
 
     } else {
 
-        unsigned atEnd = _ptrLinesEnd - firstLine;
-        memcpy(_ptrLinesEnd, firstLine, atEnd * sizeof(char*));
-        memcpy(_ptrLinesEnd + atEnd, _arrLines, (showLines - atEnd) * sizeof(char*));
+        unsigned atEnd = _linesEnd - firstLine;
+        memcpy(_linesEnd, firstLine, atEnd * sizeof(char*));
+        memcpy(_linesEnd + atEnd, _lines, (showLines - atEnd) * sizeof(char*));
     }
 
     // copy relevant char buffer portion and determine information to remap the pointers
     char* firstChar = *firstLine;
     char* lastChar = *lastLine + strlen(*lastLine) + 1;
-    ptrdiff_t charOffset = _ptrCharsEnd - firstChar, charOffsetBeforeFirst = 0;
+    ptrdiff_t charOffset = _charsEnd - firstChar, charOffsetBeforeFirst = 0;
     if (firstChar <= lastChar) {
 
-        memcpy(_ptrCharsEnd, firstChar, lastChar - firstChar + 1);
+        memcpy(_charsEnd, firstChar, lastChar - firstChar + 1);
 
     } else {
 
-        unsigned atEnd = _ptrCharsEnd - firstChar;
-        memcpy(_ptrCharsEnd, firstChar, atEnd);
-        memcpy(_ptrCharsEnd + atEnd, _arrChars, lastChar + 1 - _arrChars);
+        unsigned atEnd = _charsEnd - firstChar;
+        memcpy(_charsEnd, firstChar, atEnd);
+        memcpy(_charsEnd + atEnd, _chars, lastChar + 1 - _chars);
 
-        charOffsetBeforeFirst = _ptrCharsEnd + atEnd - _arrChars;
+        charOffsetBeforeFirst = _charsEnd + atEnd - _chars;
     }
 
     // get values for rendering
@@ -273,31 +273,31 @@ void Log::render(unsigned screenWidth, unsigned screenHeight) {
     int yStart = screenHeight - textRenderer()->metrics().descent();
 
     // render text
-    char** line = _ptrLinesEnd + showLines;
-    int x = screenWidth - _valLogWidth;
+    char** line = _linesEnd + showLines;
+    int x = screenWidth - _logWidth;
 
-    pthread_mutex_unlock(& _mtx);
+    pthread_mutex_unlock(& _mutex);
     // ok, we got all we need
 
     for (int y = yStart; y > 0; y -= yStep) {
 
         // debug mode: check line pointer is valid
-        assert(! (line < _ptrLinesEnd || line >= _ptrLinesEnd + (_ptrLinesEnd - _arrLines)));
+        assert(! (line < _linesEnd || line >= _linesEnd + (_linesEnd - _lines)));
 
         // get character pointer
-        if (--line < _ptrLinesEnd) {
+        if (--line < _linesEnd) {
             break;
         }
         char* chars = *line;
 
         // debug mode: check char pointer we find is valid
-        assert(! (chars < _arrChars || chars >= _ptrCharsEnd));
+        assert(! (chars < _chars || chars >= _charsEnd));
 
         // remap character pointer it to copied buffer
         chars += chars >= firstChar ? charOffset : charOffsetBeforeFirst;
 
         // debug mode: check char pointer is still valid (in new range)
-        assert(! (chars < _ptrCharsEnd || chars >= _ptrCharsEnd + (_ptrCharsEnd - _arrChars)));
+        assert(! (chars < _charsEnd || chars >= _charsEnd + (_charsEnd - _chars)));
 
         // render the string
         glColor3f(TEXT_RED, TEXT_GREEN, TEXT_BLUE);

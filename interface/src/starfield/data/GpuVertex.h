@@ -19,7 +19,7 @@ namespace starfield {
 
     class GpuVertex {
 
-        unsigned    _valColor;
+        unsigned    _color;
         float       _valX;
         float       _valY;
         float       _valZ;
@@ -29,7 +29,7 @@ namespace starfield {
 
         GpuVertex(InputVertex const& in) {
 
-            _valColor = in.getColor();
+            _color = in.getColor();
             float azi = in.getAzimuth();
             float alt = in.getAltitude();
 
@@ -44,7 +44,7 @@ namespace starfield {
             _valZ = gz * exz;
         }
 
-        unsigned getColor() const { return _valColor; } 
+        unsigned getColor() const { return _color; } 
     };
 
 } // anonymous namespace

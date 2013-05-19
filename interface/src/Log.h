@@ -48,26 +48,26 @@ extern Log logger;
 // Logging subsystem.
 //
 class Log {
-    FILE*       _ptrStream;
-    char*       _arrChars;
-    char*       _ptrCharsEnd;
-    char**      _arrLines;
-    char**      _ptrLinesEnd;
+    FILE*       _stream;
+    char*       _chars;
+    char*       _charsEnd;
+    char**      _lines;
+    char**      _linesEnd;
 
-    char*       _itrWritePos;       // character position to write to
-    char*       _itrWriteLineStart; // character position where line being written starts
-    char**      _itrLastLine;       // last line in the log
-    unsigned    _valWrittenInLine;  // character counter for line wrapping
-    unsigned    _valLineLength;     // number of characters before line wrap
+    char*       _writePos;       // character position to write to
+    char*       _writeLineStartPos; // character position where line being written starts
+    char**      _lastLinePos;       // last line in the log
+    unsigned    _writtenInLine;  // character counter for line wrapping
+    unsigned    _lineLength;     // number of characters before line wrap
 
-    unsigned    _valLogWidth;       // width of the log in pixels
-    unsigned    _valCharWidth;      // width of a character in pixels
-    unsigned    _valCharHeight;     // height of a character in pixels
-    unsigned    _valCharYoffset;    // baseline offset in pixels
-    float       _valCharScale;      // scale factor 
-    float       _valCharAspect;     // aspect (h/w)
+    unsigned    _logWidth;       // width of the log in pixels
+    unsigned    _charWidth;      // width of a character in pixels
+    unsigned    _charHeight;     // height of a character in pixels
+    unsigned    _charYoffset;    // baseline offset in pixels
+    float       _charScale;      // scale factor 
+    float       _charAspect;     // aspect (h/w)
 
-    pthread_mutex_t _mtx;
+    pthread_mutex_t _mutex;
 
 public:
 

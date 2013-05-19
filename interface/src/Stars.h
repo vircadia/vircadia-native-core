@@ -18,7 +18,7 @@ namespace starfield { class Controller; }
 // 
 class Stars  {
 
-        starfield::Controller* _ptrController;
+        starfield::Controller* _controller;
 
     public:
 

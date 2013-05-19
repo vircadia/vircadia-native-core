@@ -20,20 +20,20 @@ namespace starfield {
     class Tiling {
 
         unsigned    _valK;
-        float       _valRcpSlice;
-        unsigned    _valNBits;
+        float       _rcpSlice;
+        unsigned    _nBits;
 
     public:
 
         Tiling(unsigned k) : 
             _valK(k),
-            _valRcpSlice(k / Radians::twicePi()) {
-            _valNBits = ceil(log(getTileCount()) * 1.4426950408889634); // log2
+            _rcpSlice(k / Radians::twicePi()) {
+            _nBits = ceil(log(getTileCount()) * 1.4426950408889634); // log2
         }
 
         unsigned getAzimuthalTiles() const { return _valK; }
         unsigned getAltitudinalTiles() const { return _valK / 2 + 1; }
-        unsigned getTileIndexBits() const { return _valNBits; }
+        unsigned getTileIndexBits() const { return _nBits; }
 
         unsigned getTileCount() const {
             return getAzimuthalTiles() * getAltitudinalTiles();
@@ -45,14 +45,14 @@ namespace starfield {
         }
 
         float getSliceAngle() const {
-            return 1.0f / _valRcpSlice;
+            return 1.0f / _rcpSlice;
         }
 
     private:
 
         unsigned discreteAngle(float unsigned_angle) const {
 
-            return unsigned(floor(unsigned_angle * _valRcpSlice + 0.5f));
+            return unsigned(floor(unsigned_angle * _rcpSlice + 0.5f));
         }
 
         unsigned discreteAzimuth(float a) const {

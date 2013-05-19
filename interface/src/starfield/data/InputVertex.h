@@ -19,14 +19,14 @@ namespace starfield {
 
     class InputVertex {
 
-        unsigned    _valColor;
-        float       _valAzimuth;
-        float       _valAltitude;
+        unsigned    _color;
+        float       _azimuth;
+        float       _altitude;
     public:
 
         InputVertex(float azimuth, float altitude, unsigned color) {
 
-            _valColor = ((color >> 16) & 0xffu) | (color & 0xff00u) |
+            _color = ((color >> 16) & 0xffu) | (color & 0xff00u) |
                     ((color << 16) & 0xff0000u) | 0xff000000u;
 
             azimuth = angleConvert<Degrees,Radians>(azimuth);
@@ -34,13 +34,13 @@ namespace starfield {
 
             angleHorizontalPolar<Radians>(azimuth, altitude);
 
-            _valAzimuth = azimuth;
-            _valAltitude = altitude;
+            _azimuth = azimuth;
+            _altitude = altitude;
         }
 
-        float getAzimuth() const { return _valAzimuth; }
-        float getAltitude() const { return _valAltitude; }
-        unsigned getColor() const { return _valColor; } 
+        float getAzimuth() const { return _azimuth; }
+        float getAltitude() const { return _altitude; }
+        unsigned getColor() const { return _color; } 
     }; 
 
     typedef std::vector<InputVertex> InputVertices;
