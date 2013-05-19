@@ -55,56 +55,56 @@ char const* const UrlReader::error_aborted          = "UrlReader: Processing err
 char const* const UrlReader::error_buffer_overflow  = "UrlReader: Buffer overflow.";
 char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete processing.";
 
-#define _ptrCurl static_cast<CURL*>(_hndCurl)
+#define _curlPtr static_cast<CURL*>(_curlHandle)
 
 UrlReader::UrlReader()
-    : _hndCurl(0l), _arrXtra(0l), _strError(0l), _arrCacheRdBuf(0l) {
+    : _curlHandle(0l), _xtraArray(0l), _errorStr(0l), _cacheRdBufArray(0l) {
 
-    _arrXtra = new(std::nothrow) char[max_read_ahead];
-    if (! _arrXtra) { _strError = error_init_failed; return; }
-    _hndCurl =  curl_easy_init();
-    if (! _hndCurl) { _strError = error_init_failed; return; }
-    curl_easy_setopt(_ptrCurl, CURLOPT_NOSIGNAL, 1l);
-    curl_easy_setopt(_ptrCurl, CURLOPT_FAILONERROR, 1l);
-    curl_easy_setopt(_ptrCurl, CURLOPT_FILETIME, 1l);
-    curl_easy_setopt(_ptrCurl, CURLOPT_ENCODING, ""); 
+    _xtraArray = new(std::nothrow) char[max_read_ahead];
+    if (! _xtraArray) { _errorStr = error_init_failed; return; }
+    _curlHandle =  curl_easy_init();
+    if (! _curlHandle) { _errorStr = error_init_failed; return; }
+    curl_easy_setopt(_curlPtr, CURLOPT_NOSIGNAL, 1l);
+    curl_easy_setopt(_curlPtr, CURLOPT_FAILONERROR, 1l);
+    curl_easy_setopt(_curlPtr, CURLOPT_FILETIME, 1l);
+    curl_easy_setopt(_curlPtr, CURLOPT_ENCODING, ""); 
 }
 
 UrlReader::~UrlReader() {
 
-    delete[] _arrXtra;
-    delete[] _arrCacheRdBuf;
-    if (! _hndCurl) {
+    delete[] _xtraArray;
+    delete[] _cacheRdBufArray;
+    if (! _curlHandle) {
         return;
     }
-    curl_easy_cleanup(_ptrCurl);
+    curl_easy_cleanup(_curlPtr);
 }
 
 void UrlReader::perform(char const* url, transfer_callback* cb) {
 
-    curl_easy_setopt(_ptrCurl, CURLOPT_URL, url);
-    curl_easy_setopt(_ptrCurl, CURLOPT_WRITEFUNCTION, cb);
-    curl_easy_setopt(_ptrCurl, CURLOPT_WRITEDATA, this);
+    curl_easy_setopt(_curlPtr, CURLOPT_URL, url);
+    curl_easy_setopt(_curlPtr, CURLOPT_WRITEFUNCTION, cb);
+    curl_easy_setopt(_curlPtr, CURLOPT_WRITEDATA, this);
 
-    CURLcode rc = curl_easy_perform(_ptrCurl);
+    CURLcode rc = curl_easy_perform(_curlPtr);
 
     if (rc == CURLE_OK)
     {
-        while (_valXtraSize > 0 && _strError == success)
+        while (_xtraSize > 0 && _errorStr == success)
             cb(0l, 0, 0, this);
     }
-    else if (_strError == success)
-        _strError = curl_easy_strerror(rc);
+    else if (_errorStr == success)
+        _errorStr = curl_easy_strerror(rc);
 }
 
 void UrlReader::transferBegin(void* stream, char const* cacheFile) {
 
-    _strError = success;
-    _ptrStream = stream;
-    _strCacheFile = cacheFile;
-    _ptrCacheFile = 0l;
-    _valCacheMode = no_cache; 
-    _valXtraSize = ~size_t(0);
+    _errorStr = success;
+    _streamPtr = stream;
+    _cacheFileStr = cacheFile;
+    _cacheFilePtr = 0l;
+    _cacheMode = no_cache; 
+    _xtraSize = ~size_t(0);
 }
 
 void UrlReader::getInfo(char const*& url,
@@ -113,57 +113,57 @@ void UrlReader::getInfo(char const*& url,
     // fetch information from HTTP header
     double clen;
     long time;
-    curl_easy_getinfo(_ptrCurl, CURLINFO_FILETIME, & time);
-    curl_easy_getinfo(_ptrCurl, CURLINFO_EFFECTIVE_URL, & url);
-    curl_easy_getinfo(_ptrCurl, CURLINFO_CONTENT_TYPE, & type);
-    curl_easy_getinfo(_ptrCurl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, & clen);
+    curl_easy_getinfo(_curlPtr, CURLINFO_FILETIME, & time);
+    curl_easy_getinfo(_curlPtr, CURLINFO_EFFECTIVE_URL, & url);
+    curl_easy_getinfo(_curlPtr, CURLINFO_CONTENT_TYPE, & type);
+    curl_easy_getinfo(_curlPtr, CURLINFO_CONTENT_LENGTH_DOWNLOAD, & clen);
     length = static_cast<int64_t>(clen);
-    curl_easy_getinfo(_ptrCurl, CURLINFO_FILETIME, & time);
+    curl_easy_getinfo(_curlPtr, CURLINFO_FILETIME, & time);
     stardate = time;
 
 //    printLog("UrlReader: Ready to transfer from URL '%s'\n", url);
 
     // check caching file time whether we actually want to download anything
-    if (_strCacheFile != 0l) {
+    if (_cacheFileStr != 0l) {
         struct stat s;
-        stat(_strCacheFile, & s);
+        stat(_cacheFileStr, & s);
         if (time > s.st_mtime) {
             // file on server is newer -> update cache file
-            _ptrCacheFile = fopen(_strCacheFile, "wb");
-//            printLog("UrlReader: Also writing content to cache file '%s'\n", _strCacheFile);
-            if (_ptrCacheFile != 0l) {
-                _valCacheMode = cache_write;
+            _cacheFilePtr = fopen(_cacheFileStr, "wb");
+//            printLog("UrlReader: Also writing content to cache file '%s'\n", _cacheFileStr);
+            if (_cacheFilePtr != 0l) {
+                _cacheMode = cache_write;
             }
         } else {
             // file on server is older -> use cache file
-            if (! _arrCacheRdBuf) {
-                _arrCacheRdBuf = new (std::nothrow) char[max_read_ahead];
-                if (! _arrCacheRdBuf) {
+            if (! _cacheRdBufArray) {
+                _cacheRdBufArray = new (std::nothrow) char[max_read_ahead];
+                if (! _cacheRdBufArray) {
                     // out of memory, no caching, have CURL catch it
                     return; 
                 }
             }
-            _ptrCacheFile = fopen(_strCacheFile, "rb");
-//            printLog("UrlReader: Delivering cached content from file '%s'\n", _strCacheFile);
-            if (_ptrCacheFile != 0l) {
-                _valCacheMode = cache_read;
+            _cacheFilePtr = fopen(_cacheFileStr, "rb");
+//            printLog("UrlReader: Delivering cached content from file '%s'\n", _cacheFileStr);
+            if (_cacheFilePtr != 0l) {
+                _cacheMode = cache_read;
             }
             // override error code returned by CURL when we abort the download
-            _strError = success_cached;
+            _errorStr = success_cached;
         }
     }
 }
 
 void UrlReader::transferEnd() {
 
-    if (_ptrCacheFile != 0l) {
-        fclose(_ptrCacheFile);
+    if (_cacheFilePtr != 0l) {
+        fclose(_cacheFilePtr);
     }
 }
 
 #else // no-op version for incomplete Windows build:
 
-UrlReader::UrlReader() : _ptrImpl(0l) { }
+UrlReader::UrlReader() : _curlHandle(0l) { }
 UrlReader::~UrlReader() { }
 void UrlReader::perform(char const* url, transfer_callback* cb) { }
 void UrlReader::transferBegin(void* stream, char const* cacheFile) { }
