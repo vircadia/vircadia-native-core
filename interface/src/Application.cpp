@@ -1690,7 +1690,7 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
-    if (_logOn->isChecked()) { logger.render(_glWidget->width(), _glWidget->height()); }
+    if (_logOn->isChecked()) { logdisplay::Render(_glWidget->width(), _glWidget->height()); }
 
     //  Show chat entry field
     if (_chatEntryOn) {
