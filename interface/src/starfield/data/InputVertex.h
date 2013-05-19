@@ -18,10 +18,6 @@
 namespace starfield {
 
     class InputVertex {
-
-        unsigned    _color;
-        float       _azimuth;
-        float       _altitude;
     public:
 
         InputVertex(float azimuth, float altitude, unsigned color) {
@@ -41,6 +37,11 @@ namespace starfield {
         float getAzimuth() const { return _azimuth; }
         float getAltitude() const { return _altitude; }
         unsigned getColor() const { return _color; } 
+
+    private:
+        unsigned    _color;
+        float       _azimuth;
+        float       _altitude;
     }; 
 
     typedef std::vector<InputVertex> InputVertices;

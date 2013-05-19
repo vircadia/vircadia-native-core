@@ -18,13 +18,7 @@
 namespace starfield {
 
     class GpuVertex {
-
-        unsigned    _color;
-        float       _valX;
-        float       _valY;
-        float       _valZ;
     public:
-
         GpuVertex() { }
 
         GpuVertex(InputVertex const& in) {
@@ -44,7 +38,13 @@ namespace starfield {
             _valZ = gz * exz;
         }
 
-        unsigned getColor() const { return _color; } 
+        unsigned getColor() const { return _color; }
+ 
+    private:
+        unsigned    _color;
+        float       _valX;
+        float       _valY;
+        float       _valZ;
     };
 
 } // anonymous namespace

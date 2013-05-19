@@ -55,45 +55,6 @@
 namespace starfield {
 
     class Controller {
-
-        InputVertices           _inputSequence;
-#if STARFIELD_MULTITHREADING
-        mutex                   _inputMutex;
-        atomic<unsigned>        _tileResolution;
-
-        mutex                   _lodStateMutex;
-#else
-        unsigned                _tileResolution;
-#endif
-        double                  _lodFraction;
-        double                  _lodLowWaterMark;
-        double                  _lodHighWaterMark;
-        double                  _lodOveralloc;
-        size_t                  _lodNalloc;
-        size_t                  _lodNRender;
-        BrightnessLevels        _lodBrightnessSequence;
-
-#if STARFIELD_MULTITHREADING
-        atomic<BrightnessLevel> _lodBrightness;
-        BrightnessLevel         _lodAllocBrightness;
-
-        atomic<Renderer*>       _renderer;
-
-        typedef lock_guard<mutex> lock;
-#else
-        BrightnessLevel         _lodBrightness;
-        BrightnessLevel         _lodAllocBrightness;
-
-        Renderer*               _renderer;
-
-        #define lock
-        #define _(x)
-#endif
-
-        static inline size_t toBufSize(double f) {
-            return size_t(floor(f + 0.5f));
-        }
-
     public:
 
         Controller() :
@@ -108,6 +69,11 @@ namespace starfield {
             _lodAllocBrightness(0),
             _renderer(0l) {
         }
+
+#if !STARFIELD_MULTITHREADING
+        #define lock
+        #define _(x)
+#endif
 
         bool readInput(const char* url, const char* cacheFile, unsigned limit)
         {
@@ -242,25 +208,6 @@ namespace starfield {
             }
         } 
 
-    private:
-
-        void retile(size_t n, unsigned k, 
-                    BrightnessLevel b, BrightnessLevel bMin) {
-
-            Tiling tiling(k);
-            VertexOrder scanner(tiling);
-            radix2InplaceSort(_inputSequence.begin(), _inputSequence.end(), scanner);
-
-// printLog(
-//        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
-     
-            recreateRenderer(n, k, b, bMin);
-
-            _tileResolution = k;
-        }
-
-    public:
-
         double changeLOD(double factor, double overalloc, double realloc) {
 
             assert(overalloc >= realloc && realloc >= 0.0);
@@ -346,21 +293,6 @@ namespace starfield {
             return fraction;
         }
 
-    private:
-
-        void recreateRenderer(size_t n, unsigned k, 
-                              BrightnessLevel b, BrightnessLevel bMin) {
-
-#if STARFIELD_MULTITHREADING
-            delete _renderer.exchange(new Renderer(_inputSequence, n, k, b, bMin) ); 
-#else
-            delete _renderer;
-            _renderer = new Renderer(_inputSequence, n, k, b, bMin);
-#endif
-        }
-
-    public:
-
         void render(float perspective, float angle, mat4 const& orientation, float alpha) {
 
 #if STARFIELD_MULTITHREADING
@@ -396,6 +328,37 @@ namespace starfield {
 
     private:
 
+        void retile(size_t n, unsigned k, 
+                    BrightnessLevel b, BrightnessLevel bMin) {
+
+            Tiling tiling(k);
+            VertexOrder scanner(tiling);
+            radix2InplaceSort(_inputSequence.begin(), _inputSequence.end(), scanner);
+
+// printLog(
+//        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
+     
+            recreateRenderer(n, k, b, bMin);
+
+            _tileResolution = k;
+        }
+
+        void recreateRenderer(size_t n, unsigned k, 
+                              BrightnessLevel b, BrightnessLevel bMin) {
+
+#if STARFIELD_MULTITHREADING
+            delete _renderer.exchange(new Renderer(_inputSequence, n, k, b, bMin) ); 
+#else
+            delete _renderer;
+            _renderer = new Renderer(_inputSequence, n, k, b, bMin);
+#endif
+        }
+
+
+        static inline size_t toBufSize(double f) {
+            return size_t(floor(f + 0.5f));
+        }
+
         struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel> {
 
             typedef Radix2IntegerScanner<BrightnessLevel> base;
@@ -420,6 +383,39 @@ namespace starfield {
             radix2InplaceSort(dst.begin(), dst.end(), BrightnessSortScanner());
         }
 
+        InputVertices           _inputSequence;
+#if STARFIELD_MULTITHREADING
+        mutex                   _inputMutex;
+        atomic<unsigned>        _tileResolution;
+
+        mutex                   _lodStateMutex;
+#else
+        unsigned                _tileResolution;
+#endif
+        double                  _lodFraction;
+        double                  _lodLowWaterMark;
+        double                  _lodHighWaterMark;
+        double                  _lodOveralloc;
+        size_t                  _lodNalloc;
+        size_t                  _lodNRender;
+        BrightnessLevels        _lodBrightnessSequence;
+
+#if STARFIELD_MULTITHREADING
+        atomic<BrightnessLevel> _lodBrightness;
+        BrightnessLevel         _lodAllocBrightness;
+
+        atomic<Renderer*>       _renderer;
+
+        typedef lock_guard<mutex> lock;
+#else
+        BrightnessLevel         _lodBrightness;
+        BrightnessLevel         _lodAllocBrightness;
+
+        Renderer*               _renderer;
+
+        #undef lock
+        #undef _
+#endif
     };
 }
 

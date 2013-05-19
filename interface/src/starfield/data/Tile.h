@@ -25,6 +25,7 @@ namespace starfield {
         BrightnessLevel lod;
         nuint           flags;
 
+        // flags
         static uint16_t const checked = 1;
         static uint16_t const visited = 2;
         static uint16_t const render = 4;

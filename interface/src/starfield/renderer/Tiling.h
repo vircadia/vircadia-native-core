@@ -18,11 +18,6 @@
 namespace starfield {
 
     class Tiling {
-
-        unsigned    _valK;
-        float       _rcpSlice;
-        unsigned    _nBits;
-
     public:
 
         Tiling(unsigned k) : 
@@ -64,6 +59,11 @@ namespace starfield {
                     discreteAngle(a + Radians::halfPi()) );
         }
 
+        // variables
+
+        unsigned    _valK;
+        float       _rcpSlice;
+        unsigned    _nBits;
     };
 
 } // anonymous namespace

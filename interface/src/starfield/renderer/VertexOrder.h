@@ -25,11 +25,7 @@ namespace starfield {
      */
     class VertexOrder : public Radix2IntegerScanner<unsigned>
     {
-        Tiling _tiling;
-
-        typedef Radix2IntegerScanner<unsigned> base;
     public:
-
         explicit VertexOrder(Tiling const& tiling) :
 
             base(tiling.getTileIndexBits() + BrightnessBits),
@@ -44,6 +40,11 @@ namespace starfield {
                     v.getAzimuth(), v.getAltitude()) << BrightnessBits;
             return base::bit(key, s); 
         }
+
+    private:
+        Tiling _tiling;
+
+        typedef Radix2IntegerScanner<unsigned> base;
     };
 
 } // anonymous namespace

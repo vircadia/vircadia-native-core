@@ -23,15 +23,6 @@
 namespace starfield {
 
     class Loader : UrlReader {
-
-        InputVertices*  _vertices;
-        unsigned        _limit;
-
-        unsigned        _lineNo;
-        char const*     _urlStr;
-
-        unsigned        _recordsRead;
-        BrightnessLevel _minBrightness;
     public:
 
         bool loadVertices(
@@ -58,7 +49,6 @@ namespace starfield {
         }
 
     protected:
-
         friend class UrlReader;
 
         void begin(char const* url,
@@ -174,6 +164,17 @@ namespace starfield {
                         _vertices->begin()->getColor() );
             }
         }
+
+        // variables
+
+        InputVertices*  _vertices;
+        unsigned        _limit;
+
+        unsigned        _lineNo;
+        char const*     _urlStr;
+
+        unsigned        _recordsRead;
+        BrightnessLevel _minBrightness;
     };
 
 } // anonymous namespace

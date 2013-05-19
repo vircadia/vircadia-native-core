@@ -64,22 +64,6 @@
 namespace starfield {
 
     class Renderer {
-
-        GpuVertex*      _dataArray;
-        Tile*           _tileArray;
-        GLint*          _batchOffs;
-        GLsizei*        _batchCountArray;
-        GLuint          _vertexArrayHandle;
-        ProgramObject   _program;
-        int             _alphaLocationHandle;
-
-        Tiling          _tiling;
-
-        unsigned*       _outIndexPos;
-        vec3            _wRowVec;
-        float           _halfPerspectiveAngle;
-        BrightnessLevel _minBright;
-
     public:
 
         Renderer(InputVertices const& src,
@@ -195,7 +179,8 @@ namespace starfield {
 #endif
         }
 
-    private: // renderer construction
+    private:
+        // renderer construction
 
         void prepareVertexData(InputVertices const& src,
                                size_t n, // <-- at bMin and brighter
@@ -264,8 +249,7 @@ namespace starfield {
             }
         }
 
-
-    private: // FOV culling / LOD
+        // FOV culling / LOD
 
         class TileSelection;
         friend class Renderer::TileSelection;
@@ -459,7 +443,7 @@ namespace starfield {
             return nRanges;
         }
 
-    private: // gl API handling 
+        // GL API handling 
 
         void glAlloc() {
 
@@ -549,6 +533,24 @@ namespace starfield {
             glMatrixMode(GL_MODELVIEW);
             glPopMatrix();
         }
+
+        // variables
+
+        GpuVertex*      _dataArray;
+        Tile*           _tileArray;
+        GLint*          _batchOffs;
+        GLsizei*        _batchCountArray;
+        GLuint          _vertexArrayHandle;
+        ProgramObject   _program;
+        int             _alphaLocationHandle;
+
+        Tiling          _tiling;
+
+        unsigned*       _outIndexPos;
+        vec3            _wRowVec;
+        float           _halfPerspectiveAngle;
+        BrightnessLevel _minBright;
+
     };
 
 } // anonymous namespace
