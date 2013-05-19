@@ -58,10 +58,10 @@ char const* const UrlReader::error_leftover_input   = "UrlReader: Incomplete pro
 #define _curlPtr static_cast<CURL*>(_curlHandle)
 
 UrlReader::UrlReader()
-    : _curlHandle(0l), _xtraArray(0l), _errorStr(0l), _cacheRdBufArray(0l) {
+    : _curlHandle(0l), _xtraBuffer(0l), _errorStr(0l), _cacheReadBuffer(0l) {
 
-    _xtraArray = new(std::nothrow) char[max_read_ahead];
-    if (! _xtraArray) { _errorStr = error_init_failed; return; }
+    _xtraBuffer = new(std::nothrow) char[max_read_ahead];
+    if (! _xtraBuffer) { _errorStr = error_init_failed; return; }
     _curlHandle =  curl_easy_init();
     if (! _curlHandle) { _errorStr = error_init_failed; return; }
     curl_easy_setopt(_curlPtr, CURLOPT_NOSIGNAL, 1l);
@@ -72,8 +72,8 @@ UrlReader::UrlReader()
 
 UrlReader::~UrlReader() {
 
-    delete[] _xtraArray;
-    delete[] _cacheRdBufArray;
+    delete[] _xtraBuffer;
+    delete[] _cacheReadBuffer;
     if (! _curlHandle) {
         return;
     }
@@ -101,8 +101,8 @@ void UrlReader::transferBegin(void* stream, char const* cacheFile) {
 
     _errorStr = success;
     _streamPtr = stream;
-    _cacheFileStr = cacheFile;
-    _cacheFilePtr = 0l;
+    _cacheFileName = cacheFile;
+    _cacheFile = 0l;
     _cacheMode = no_cache; 
     _xtraSize = ~size_t(0);
 }
@@ -124,28 +124,28 @@ void UrlReader::getInfo(char const*& url,
 //    printLog("UrlReader: Ready to transfer from URL '%s'\n", url);
 
     // check caching file time whether we actually want to download anything
-    if (_cacheFileStr != 0l) {
+    if (_cacheFileName != 0l) {
         struct stat s;
-        stat(_cacheFileStr, & s);
+        stat(_cacheFileName, & s);
         if (time > s.st_mtime) {
             // file on server is newer -> update cache file
-            _cacheFilePtr = fopen(_cacheFileStr, "wb");
-//            printLog("UrlReader: Also writing content to cache file '%s'\n", _cacheFileStr);
-            if (_cacheFilePtr != 0l) {
+            _cacheFile = fopen(_cacheFileName, "wb");
+//            printLog("UrlReader: Also writing content to cache file '%s'\n", _cacheFileName);
+            if (_cacheFile != 0l) {
                 _cacheMode = cache_write;
             }
         } else {
             // file on server is older -> use cache file
-            if (! _cacheRdBufArray) {
-                _cacheRdBufArray = new (std::nothrow) char[max_read_ahead];
-                if (! _cacheRdBufArray) {
+            if (! _cacheReadBuffer) {
+                _cacheReadBuffer = new (std::nothrow) char[max_read_ahead];
+                if (! _cacheReadBuffer) {
                     // out of memory, no caching, have CURL catch it
                     return; 
                 }
             }
-            _cacheFilePtr = fopen(_cacheFileStr, "rb");
-//            printLog("UrlReader: Delivering cached content from file '%s'\n", _cacheFileStr);
-            if (_cacheFilePtr != 0l) {
+            _cacheFile = fopen(_cacheFileName, "rb");
+//            printLog("UrlReader: Delivering cached content from file '%s'\n", _cacheFileName);
+            if (_cacheFile != 0l) {
                 _cacheMode = cache_read;
             }
             // override error code returned by CURL when we abort the download
@@ -156,8 +156,8 @@ void UrlReader::getInfo(char const*& url,
 
 void UrlReader::transferEnd() {
 
-    if (_cacheFilePtr != 0l) {
-        fclose(_cacheFilePtr);
+    if (_cacheFile != 0l) {
+        fclose(_cacheFile);
     }
 }
 

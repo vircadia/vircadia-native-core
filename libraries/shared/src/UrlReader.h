@@ -160,12 +160,12 @@ private:
     // state
 
     void*       _curlHandle;
-    char*       _xtraArray;
+    char*       _xtraBuffer;
     char const* _errorStr;
     void*       _streamPtr;
-    char const* _cacheFileStr;
-    FILE*       _cacheFilePtr;
-    char*       _cacheRdBufArray;
+    char const* _cacheFileName;
+    FILE*       _cacheFile;
+    char*       _cacheReadBuffer;
     CacheMode   _cacheMode; 
     size_t      _xtraSize;
 };
@@ -216,9 +216,9 @@ size_t UrlReader::feedBuffered(Stream* stream, char* input, size_t size) {
             // fill extra buffer with beginning of input
             size_t fill = max_read_ahead - _xtraSize;
             if (bytes < fill) fill = bytes;
-            memcpy(_xtraArray + _xtraSize, buffer, fill);
+            memcpy(_xtraBuffer + _xtraSize, buffer, fill);
             // use extra buffer for next transfer
-            buffer = _xtraArray;
+            buffer = _xtraBuffer;
             bytes = _xtraSize + fill;
             inputOffset += fill;
         }
@@ -238,7 +238,7 @@ size_t UrlReader::feedBuffered(Stream* stream, char* input, size_t size) {
         size_t unprocessed = bytes - processed;
 
         // can switch to input buffer, now?
-        if (buffer == _xtraArray && unprocessed <= inputOffset) {
+        if (buffer == _xtraBuffer && unprocessed <= inputOffset) {
 
             _xtraSize = 0u;
             inputOffset -= unprocessed;
@@ -251,9 +251,9 @@ size_t UrlReader::feedBuffered(Stream* stream, char* input, size_t size) {
                 return 0;
             }
             _xtraSize = unprocessed;
-            memmove(_xtraArray, buffer + processed, unprocessed);
+            memmove(_xtraBuffer, buffer + processed, unprocessed);
 
-            if (inputOffset == size || buffer != _xtraArray) {
+            if (inputOffset == size || buffer != _xtraBuffer) {
 
                 return size;
             }
@@ -287,16 +287,16 @@ size_t UrlReader::callback_template(char *input, size_t size, size_t nmemb, void
         // read from cache file?
         if (me->_cacheMode == cache_read) {
             // change input buffer and start
-            input = me->_cacheRdBufArray;
-            size = fread(input, 1, max_read_ahead, me->_cacheFilePtr);
+            input = me->_cacheReadBuffer;
+            size = fread(input, 1, max_read_ahead, me->_cacheFile);
             nmemb = 1;
         } else if (me->_cacheMode == cache_write) {
-            fwrite(input, 1, size, me->_cacheFilePtr);
+            fwrite(input, 1, size, me->_cacheFile);
         }
 
         result = me->feedBuffered(stream, input, size);
 
-    } while (me->_cacheMode == cache_read && result != 0 && ! feof(me->_cacheFilePtr));
+    } while (me->_cacheMode == cache_read && result != 0 && ! feof(me->_cacheFile));
 
     return me->_cacheMode != cache_read ? result : 0;
 }
