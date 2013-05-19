@@ -26,14 +26,14 @@ namespace logdisplay {
 
     // settings 
 
-    static float const TEXT_COLOR_RED = 0.7f;
-    static float const TEXT_COLOR_GREEN = 0.6f;
-    static float const TEXT_COLOR_BLUE = 1.0f;
+    static float const TEXT_COLOR_RED           = 0.7f;     // text foreground color, red component
+    static float const TEXT_COLOR_GREEN         = 0.6f;     // text foreground color, green component
+    static float const TEXT_COLOR_BLUE          = 1.0f;     // text foregdound color, blue component
 
-    static FILE* DEFAULT_STREAM = stdout;
-    static unsigned const DEFAULT_CHAR_WIDTH = 7;
-    static unsigned const DEFAULT_CHAR_HEIGHT = 16;
-    static unsigned const DEFAULT_CONSOLE_WIDTH = 400;
+    static FILE*          DEFAULT_STREAM        = stdout;   // stream to also log to
+    static unsigned const DEFAULT_CHAR_WIDTH    = 7;        // width of a single character
+    static unsigned const DEFAULT_CHAR_HEIGHT   = 16;       // height of a single character
+    static unsigned const DEFAULT_CONSOLE_WIDTH = 400;      // width of the (right-aligned) log console
 
     void SetStream(FILE* stream);
     void SetLogWidth(unsigned pixels);
@@ -41,13 +41,13 @@ namespace logdisplay {
 
     // limits
 
-    unsigned const CHARACTER_BUFFER_SIZE = 16384;   // number of character that are buffered
-    unsigned const LINE_BUFFER_SIZE = 256;          // number of lines that are buffered
-    unsigned const MAX_MESSAGE_LENGTH = 512;        // maximum number of characters for a message
+    unsigned const CHARACTER_BUFFER_SIZE    = 16384;        // number of character that are buffered
+    unsigned const LINE_BUFFER_SIZE         = 256;          // number of lines that are buffered
+    unsigned const MAX_MESSAGE_LENGTH       = 512;          // maximum number of characters for a message
 }
 
 // 
-// Macro to log OpenGl errors.
+// Macro to log OpenGL errors.
 // Example: printGlError( glPushMatrix() );
 //
 #define printLogGlError(stmt) \
