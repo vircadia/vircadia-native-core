@@ -34,8 +34,9 @@ namespace { // everything in here only exists while compiling this .cpp file
 
 Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) : 
     _width(w), _height(h), 
-    _samples(0l), _vertices(0l), 
-    _lowpassFactor(0.4f), _downsampleFactor(3),
+    _samples(0l), _vertices(0l),
+    // three in -> one out, some filtering (see details in Log.h)
+    _lowPassCoeff(0.4f), _downsampleRatio(3),
     enabled(isEnabled), inputPaused(false) {
     
     // allocate enough space for the sample data and to turn it into
@@ -94,9 +95,9 @@ void Oscilloscope::render(int x, int y) {
         return;
     }
 
-    // determine lowpass / downsample factors
-    int lowpass = -int(std::numeric_limits<short>::min()) * _lowpassFactor;
-    unsigned downsample = _downsampleFactor;
+    // fetch low pass factor (and convert to fix point) / downsample factor
+    int lowPassFixPt = -int(std::numeric_limits<short>::min()) * _lowPassCoeff;
+    unsigned downsample = _downsampleRatio;
     // keep half of the buffer for writing and ensure an even vertex count
     unsigned usedWidth = min(_width, MAX_SAMPLES_PER_CHANNEL / (downsample * 2)) & ~1u;
     unsigned usedSamples = usedWidth * downsample;
@@ -115,7 +116,7 @@ void Oscilloscope::render(int x, int y) {
                 inPtr = endPtr;
             }
             // read and (eventually) filter sample
-            sample += ((*--inPtr - sample) * lowpass) >> 15;
+            sample += ((*--inPtr - sample) * lowPassFixPt) >> 15;
             // write every nth as y with a corresponding x-coordinate 
             if (i % downsample == 0) {
                 *outPtr++ = short(--x);

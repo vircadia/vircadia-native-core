@@ -17,17 +17,43 @@ public:
     ~Oscilloscope();
 
     void addSamples(unsigned ch, short const* data, unsigned n);
-    
+
     void render(int x, int y);
 
-    static unsigned const MAX_CHANNELS = 3;
-    static unsigned const MAX_SAMPLES_PER_CHANNEL = 4096; 
-
+    // Switches: On/Off, Stop Time
     volatile bool enabled;
     volatile bool inputPaused;
 
-    void setLowpass(float w) { assert(w > 0.0f && w <= 1.0f); _lowpassFactor = w; }
-    void setDownsampling(unsigned f) { assert(f > 0); _downsampleFactor = f; }
+    // Limits
+    static unsigned const MAX_CHANNELS = 3;
+    static unsigned const MAX_SAMPLES_PER_CHANNEL = 4096; 
+
+    // Controls a simple one pole IIR low pass filter that is provided to
+    // reduce high frequencies aliasing (to lower ones) when downsampling.
+    //
+    // The parameter sets the influence of the input in respect to the
+    // feed-back signal on the output.
+    //
+    //                           +---------+
+    //         in O--------------|+ ideal  |--o--------------O out
+    //                       .---|- op amp |  |    
+    //                       |   +---------+  |
+    //                       |                |
+    //                       o-------||-------o
+    //                       |                |
+    //                       |              __V__
+    //                        -------------|_____|-------+ 
+    //                                     :     :       |
+    //                                    0.0 - 1.0    (GND)
+    //
+    // The values in range 0.0 - 1.0 correspond to "all closed" (input has
+    // no influence on the output) to "all open" (feedback has no influence
+    // on the output) configurations.
+    void setLowpassOpenness(float w) { assert(w >= 0.0f && w <= 1.0f); _lowPassCoeff = w; }
+
+    // Sets the number of input samples per output sample. Without filtering
+    // just uses every nTh sample.
+    void setDownsampleRatio(unsigned n) { assert(n > 0); _downsampleRatio = n; }
     
 private:
     // don't copy/assign
@@ -42,8 +68,8 @@ private:
     short*          _vertices;
     unsigned        _writePos[MAX_CHANNELS];
 
-    float           _lowpassFactor;
-    unsigned        _downsampleFactor;
+    float           _lowpassCoeff;
+    unsigned        _downsampleRatio;
 };
 
 #endif /* defined(__interface__oscilloscope__) */
