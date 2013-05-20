@@ -1,9 +1,8 @@
 //
 //  Head.h
-//  hifi
+//  interface
 //
-//  Created by Jeffrey on May, 10, 2013
-//  Copyright (c) 2013 Physical, Inc.. All rights reserved.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef hifi_Head_h
@@ -15,79 +14,87 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
+#include "Orientation.h"
 
-enum eyeContactTargets {LEFT_EYE, RIGHT_EYE, MOUTH};
+enum eyeContactTargets 
+{
+    LEFT_EYE, 
+    RIGHT_EYE, 
+    MOUTH
+};
 
 class Head {
 public:
     Head();
     
-    void initialize();
     void simulate(float deltaTime, bool isMine);
+    void render(bool lookingInMirror);
+
+    void setLooking(bool looking);
     void setPositionRotationAndScale(glm::vec3 position, glm::vec3 rotation, float scale);
-    void setSkinColor(glm::vec3 color);
-    void setAudioLoudness(float loudness);
-    void render(bool lookingInMirror, float bodyYaw);
     void setNewTarget(float, float);
-    void setSpringScale(float s) { returnSpringScale = s; }
     
-    //  Do you want head to try to return to center (depends on interface detected)
-    void setReturnToCenter(bool r) { returnHeadToCenter = r; }
-    const bool getReturnToCenter() const { return returnHeadToCenter; }
-    
-    float getAverageLoudness() {return averageLoudness;};
-    void  setAverageLoudness(float al) { averageLoudness = al;};
-    
-//private:
-// I am making these public for now - just to get the code moved over quickly!
-
-        bool returnHeadToCenter;
-        float audioLoudness;
-        glm::vec3 skinColor;
-        glm::vec3 position;
-        glm::vec3 rotation;
-        float yaw;
-        float pitch;
-        float roll;
-        float pitchRate;
-        float yawRate;
-        float rollRate;
-        float noise;
-        float eyeballPitch[2];
-        float eyeballYaw  [2];
-        float eyebrowPitch[2];
-        float eyebrowRoll [2];
-        float eyeballScaleX;
-        float eyeballScaleY;
-        float eyeballScaleZ;
-        float interPupilDistance;
-        float interBrowDistance;
-        float nominalPupilSize;
-        float pupilSize;
-        float mouthPitch;
-        float mouthYaw;
-        float mouthWidth;
-        float mouthHeight;
-        float leanForward;
-        float leanSideways;
-        float pitchTarget; 
-        float yawTarget; 
-        float noiseEnvelope;
-        float pupilConverge;
-        float scale;
-        int   eyeContact;
-        float browAudioLift;
-        eyeContactTargets eyeContactTarget;
+    void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
+    void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
+    void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
+    void setBodyYaw        (float     bodyYaw           ) { _bodyYaw            = bodyYaw;            }
+    void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
+    void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
+    void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
+    void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
         
-        //  Sound loudness information
-        float lastLoudness;
-        float averageLoudness;
-        float audioAttack;
-        
-        GLUquadric* sphere;
+    glm::vec3  getApproximateEyePosition(); 
+    const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
+    float      getAverageLoudness() {return _averageLoudness;};
+    
+    //some public members (left-over from pulling Head out of Avatar - I may see about privatizing these later).
+    float yawRate;
+    float noise;
+    float leanForward;
+    float leanSideways;
 
-        //  Strength of return springs
-        float returnSpringScale;
+private: 
+
+    bool        _returnHeadToCenter;
+    float       _audioLoudness;
+    glm::vec3   _skinColor;
+    glm::vec3   _position;
+    glm::vec3   _rotation;
+    glm::vec3   _lookatPosition;
+    glm::vec3   _leftEyePosition;
+    glm::vec3   _rightEyePosition; 
+    float       _yaw;
+    float       _pitch;
+    float       _roll;
+    float       _eyeballPitch[2];
+    float       _eyeballYaw  [2];
+    float       _eyebrowPitch[2];
+    float       _eyebrowRoll [2];
+    float       _interBrowDistance;
+    float       _mouthPitch;
+    float       _mouthYaw;
+    float       _mouthWidth;
+    float       _mouthHeight;
+    float       _pitchTarget; 
+    float       _yawTarget; 
+    float       _noiseEnvelope;
+    float       _scale;
+    int         _eyeContact;
+    float       _browAudioLift;
+    bool        _looking;
+    glm::vec3   _gravity;
+    float       _lastLoudness;
+    float       _averageLoudness;
+    float       _audioAttack;
+    float       _returnSpringScale; //strength of return springs
+    Orientation _orientation;
+    float       _bodyYaw;
+    eyeContactTargets _eyeContactTarget;
+    
+    // private methods
+    void renderEyeBalls();
+    void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void updateEyePositions();
 };
 
 #endif

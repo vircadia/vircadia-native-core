@@ -53,6 +53,8 @@ void setAtBit(unsigned char& byte, int bitIndex);
 
 void switchToResourcesParentIfRequired();
 
+void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
+
 const char* getCmdOption(int argc, const char * argv[],const char* option);
 bool cmdOptionExists(int argc, const char * argv[],const char* option);
 

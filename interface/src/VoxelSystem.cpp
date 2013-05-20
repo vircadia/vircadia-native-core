@@ -417,11 +417,6 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
     return 0; // not-updated
 }
 
-VoxelSystem* VoxelSystem::clone() const {
-    // this still needs to be implemented, will need to be used if VoxelSystem is attached to agent
-    return NULL;
-}
-
 void VoxelSystem::init() {
 
     _renderWarningsOn = false;
@@ -643,10 +638,17 @@ void VoxelSystem::render() {
     _perlinModulateProgram->bind();
     glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
 
+    // for performance, disable blending and enable backface culling
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
+
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     glDrawElements(GL_TRIANGLES, 36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+    glEnable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
 
     _perlinModulateProgram->release();
     glBindTexture(GL_TEXTURE_2D, 0);

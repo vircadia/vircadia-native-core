@@ -18,33 +18,16 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     _endOfLastWrite(NULL),
     _started(false),
     _shouldBeAddedToMix(false),
-    _shouldLoopbackForAgent(false) {
-        
+    _shouldLoopbackForAgent(false),
+    _streamIdentifier()
+{        
     _buffer = new int16_t[_ringBufferLengthSamples];
     _nextOutput = _buffer;
 };
 
-AudioRingBuffer::AudioRingBuffer(const AudioRingBuffer &otherRingBuffer) {
-    _ringBufferLengthSamples = otherRingBuffer._ringBufferLengthSamples;
-    _bufferLengthSamples = otherRingBuffer._bufferLengthSamples;
-    _started = otherRingBuffer._started;
-    _shouldBeAddedToMix = otherRingBuffer._shouldBeAddedToMix;
-    _shouldLoopbackForAgent = otherRingBuffer._shouldLoopbackForAgent;
-    
-    _buffer = new int16_t[_ringBufferLengthSamples];
-    memcpy(_buffer, otherRingBuffer._buffer, sizeof(int16_t) * _ringBufferLengthSamples);
-    
-    _nextOutput = _buffer + (otherRingBuffer._nextOutput - otherRingBuffer._buffer);
-    _endOfLastWrite = _buffer + (otherRingBuffer._endOfLastWrite - otherRingBuffer._buffer);
-}
-
 AudioRingBuffer::~AudioRingBuffer() {
     delete[] _buffer;
 };
-
-AudioRingBuffer* AudioRingBuffer::clone() const {
-    return new AudioRingBuffer(*this);
-}
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
 
@@ -56,6 +39,12 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
         // if this came from an injector or interface client
         // there's data required for spatialization to pull out
+        
+        if (sourceBuffer[0] == PACKET_HEADER_INJECT_AUDIO) {
+            // we've got a stream identifier to pull from the packet
+            memcpy(&_streamIdentifier, dataBuffer, sizeof(_streamIdentifier));
+            dataBuffer += sizeof(_streamIdentifier);
+        }
         
         memcpy(&_position, dataBuffer, sizeof(_position));
         dataBuffer += (sizeof(_position));

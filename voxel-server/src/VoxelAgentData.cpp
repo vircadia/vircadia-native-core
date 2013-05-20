@@ -11,19 +11,18 @@
 #include <cstring>
 #include <cstdio>
 
-VoxelAgentData::VoxelAgentData() {
-    init();
+VoxelAgentData::VoxelAgentData() :
+    _viewSent(false),
+    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
+    _maxSearchLevel(1),
+    _maxLevelReachedInLastSearch(1)
+{
+    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _voxelPacketAt = _voxelPacket;
+    
+    resetVoxelPacket();
 }
 
-void VoxelAgentData::init() {
-    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
-    _voxelPacketAt = _voxelPacket;
-    _maxSearchLevel = 1;
-    _maxLevelReachedInLastSearch = 1;
-    resetVoxelPacket();
-    _viewSent = false;
-}
 
 void VoxelAgentData::resetVoxelPacket() {
     _voxelPacket[0] = getWantColor() ? PACKET_HEADER_VOXEL_DATA : PACKET_HEADER_VOXEL_DATA_MONOCHROME;
@@ -41,15 +40,6 @@ void VoxelAgentData::writeToPacket(unsigned char* buffer, int bytes) {
 
 VoxelAgentData::~VoxelAgentData() {
     delete[] _voxelPacket;
-}
-
-VoxelAgentData::VoxelAgentData(const VoxelAgentData &otherAgentData) {
-    memcpy(&_position, &otherAgentData._position, sizeof(_position));
-    init();
-}
-
-VoxelAgentData* VoxelAgentData::clone() const {
-    return new VoxelAgentData(*this);
 }
 
 bool VoxelAgentData::updateCurrentViewFrustum() {

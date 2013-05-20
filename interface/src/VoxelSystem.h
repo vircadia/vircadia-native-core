@@ -31,7 +31,6 @@ public:
     ~VoxelSystem();
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    VoxelSystem* clone() const;
     
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; };
 
@@ -82,6 +81,10 @@ public:
                       creationMode mode, bool destructive = false, bool debug = false);
     
 private:
+    // disallow copying of VoxelSystem objects
+    VoxelSystem(const VoxelSystem&);
+    VoxelSystem& operator= (const VoxelSystem&);
+    
     int  _callsToTreesToArrays;
     VoxelNodeBag _removedVoxels;
 

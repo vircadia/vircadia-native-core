@@ -59,7 +59,7 @@ public:
     Agent* agentWithAddress(sockaddr *senderAddress);
     Agent* agentWithID(uint16_t agentID);
     
-    bool addOrUpdateAgent(sockaddr *publicSocket, sockaddr *localSocket, char agentType, uint16_t agentId);
+    Agent* addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket, char agentType, uint16_t agentId);
     
     void processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void processBulkAgentData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
