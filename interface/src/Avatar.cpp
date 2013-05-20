@@ -189,9 +189,9 @@ bool Avatar::getIsNearInteractingOther() {
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
     //  Update yaw based on mouse behavior
-    const float MOUSE_MOVE_RADIUS = 0.25f;
-    const float MOUSE_ROTATE_SPEED = 5.0f;
-    const float MOUSE_PITCH_SPEED = 3.0f;
+    const float MOUSE_MOVE_RADIUS = 0.15f;
+    const float MOUSE_ROTATE_SPEED = 3.0f;
+    const float MOUSE_PITCH_SPEED = 1.5f;
     const float MAX_YAW_TO_ADD = 180.f;
     const int TITLE_BAR_HEIGHT = 46;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
