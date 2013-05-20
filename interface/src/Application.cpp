@@ -552,9 +552,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _audio.startEchoTest();
             break;
             
-        //case Qt::Key_L:
-        //    _displayLevels = !_displayLevels;
-        //    break;
+        case Qt::Key_L:
+            _displayLevels = !_displayLevels;
+            break;
         
         case Qt::Key_E:
             _myAvatar.setDriveKeys(UP, 1);
@@ -638,7 +638,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             resizeGL(_glWidget->width(), _glWidget->height());
             break;
         
-        case Qt::Key_L:
+        case Qt::Key_M:
             if (shifted) {
                 _myCamera.setEyeOffsetOrientation(glm::normalize(
                     glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
