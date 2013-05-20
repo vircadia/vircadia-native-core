@@ -35,8 +35,8 @@ public:
 
     void initialize(); // instantly put the camera at the ideal position and rotation. 
 
-	void update( float deltaTime );
-	
+    void update( float deltaTime );
+    
     void setYaw           ( float       y ) { _yaw            = y; }
     void setPitch         ( float       p ) { _pitch          = p; }
     void setRoll          ( float       r ) { _roll           = r; }
@@ -75,27 +75,27 @@ public:
 private:
 
     bool        _needsToInitialize;
-	CameraMode  _mode;
+    CameraMode  _mode;
     bool        _frustumNeedsReshape;
-	glm::vec3	_position;
-	glm::vec3	_idealPosition;
-	glm::vec3	_targetPosition;
-	float		_fieldOfView;
-    float		_aspectRatio;
-    float		_nearClip;
-    float		_farClip;
+    glm::vec3   _position;
+    glm::vec3   _idealPosition;
+    glm::vec3   _targetPosition;
+    float       _fieldOfView;
+    float       _aspectRatio;
+    float       _nearClip;
+    float       _farClip;
     glm::vec3   _eyeOffsetPosition;
     glm::quat   _eyeOffsetOrientation;
-	float		_yaw;
-	float		_pitch;
-	float		_roll;
-	float		_upShift;
-	float		_idealYaw;
-	float		_idealPitch;
-	float		_idealRoll;
-	float		_distance;
-	float		_tightness;
-	Orientation	_orientation;
+    float       _yaw;
+    float       _pitch;
+    float       _roll;
+    float       _upShift;
+    float       _idealYaw;
+    float       _idealPitch;
+    float       _idealRoll;
+    float       _distance;
+    float       _tightness;
+    Orientation _orientation;
     float       _modeShift;
 
     CameraFollowingAttributes _attributes[NUM_CAMERA_MODES];

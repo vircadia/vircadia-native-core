@@ -66,11 +66,11 @@ public:
     const glm::vec3& getRight()     const { return _right;     };
 
     // setters for lens attributes
-    void setFieldOfView          ( float f )          { _fieldOfView      = f;     }
-    void setAspectRatio          ( float a )          { _aspectRatio      = a;     }
-    void setNearClip             ( float n )          { _nearClip         = n;     }
-    void setFarClip              ( float f )          { _farClip          = f;     }
-    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition = p;    }
+    void setFieldOfView          ( float f )          { _fieldOfView          = f; }
+    void setAspectRatio          ( float a )          { _aspectRatio          = a; }
+    void setNearClip             ( float n )          { _nearClip             = n; }
+    void setFarClip              ( float f )          { _farClip              = f; }
+    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition    = p; }
     void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; }
 
 
