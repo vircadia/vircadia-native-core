@@ -25,18 +25,8 @@ void Environment::renderAtmosphere(Camera& camera) {
     glPushMatrix();
     glTranslatef(getAtmosphereCenter().x, getAtmosphereCenter().y, getAtmosphereCenter().z);
 
-    // use the camera distance to reset the near and far distances to keep the atmosphere in the frustum
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    
-    float projection[16];
-    glGetFloatv(GL_PROJECTION_MATRIX, projection);
     glm::vec3 relativeCameraPos = camera.getPosition() - getAtmosphereCenter();
     float height = glm::length(relativeCameraPos);
-    float near = camera.getNearClip(), far = height + getAtmosphereOuterRadius();
-    projection[10] = (far + near) / (near - far);
-    projection[14] = (2.0f * far * near) / (near - far);
-    glLoadMatrixf(projection);
     
     // use the appropriate shader depending on whether we're inside or outside
     ProgramObject* program;
