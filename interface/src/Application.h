@@ -105,7 +105,7 @@ private:
     void init();
     
     void updateAvatar(float deltaTime);
-    void loadViewFrustum(ViewFrustum& viewFrustum);
+    void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     void displayOculus(Camera& whichCamera);
     void displaySide(Camera& whichCamera);
@@ -133,6 +133,7 @@ private:
     
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
+    QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere

@@ -28,34 +28,11 @@ enum KeyState
 
 class AvatarData : public AgentData {
 public:
-    AvatarData() :
-    _handPosition(0,0,0),
-    _bodyYaw(-90.0),
-    _bodyPitch(0.0),
-    _bodyRoll(0.0),
-    _headYaw(0),
-    _headPitch(0),
-    _headRoll(0),
-    _headLeanSideways(0),
-    _headLeanForward(0),
-    _audioLoudness(0),
-    _handState(0),
-    _cameraPosition(0,0,0),
-    _cameraDirection(0,0,0),
-    _cameraUp(0,0,0),
-    _cameraRight(0,0,0),
-    _cameraFov(0.0f),
-    _cameraAspectRatio(0.0f),
-    _cameraNearClip(0.0f),
-    _cameraFarClip(0.0f),
-    _keyState(NO_KEY_DOWN),
-    _wantResIn(false),
-    _wantColor(true) { };
+    AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
-    
-    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
+    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }    
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -63,10 +40,8 @@ public:
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
-    
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
-    
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
@@ -135,7 +110,7 @@ protected:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
-    
+
     glm::vec3 _position;
     glm::vec3 _handPosition;
     

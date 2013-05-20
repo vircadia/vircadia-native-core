@@ -9,12 +9,16 @@
 #include <sys/time.h>
 
 #include "SharedUtil.h"
+#include "AgentList.h"
+#include "AgentTypes.h"
+#include "Agent.h"
 #include "PacketHeaders.h"
 
 #include "AudioInjectionManager.h"
 
 UDPSocket* AudioInjectionManager::_injectorSocket = NULL;
 sockaddr AudioInjectionManager::_destinationSocket;
+bool AudioInjectionManager::_isDestinationSocketExplicit = false;
 AudioInjector* AudioInjectionManager::_injectors[50] = {};
 
 AudioInjector* AudioInjectionManager::injectorWithSamplesFromFile(const char* filename) {
@@ -39,8 +43,23 @@ AudioInjector* AudioInjectionManager::injectorWithCapacity(int capacity) {
     return NULL;
 }
 
+void AudioInjectionManager::setDestinationSocket(sockaddr& destinationSocket) {
+    _destinationSocket = destinationSocket;
+    _isDestinationSocketExplicit = true;
+}
+
 void* AudioInjectionManager::injectAudioViaThread(void* args) {
     AudioInjector* injector = (AudioInjector*) args;
+    
+    // if we don't have an injectorSocket then grab the one from the agent list
+    if (!_injectorSocket) {
+        _injectorSocket = AgentList::getInstance()->getAgentSocket();
+    }
+    
+    // if we don't have an explicit destination socket then pull active socket for current audio mixer from agent list
+    if (!_isDestinationSocketExplicit) {
+        _destinationSocket = *AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER)->getActiveSocket();
+    }
     
     injector->injectAudio(_injectorSocket, &_destinationSocket);
     

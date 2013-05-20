@@ -18,6 +18,8 @@
 #include <ifaddrs.h>
 #endif
 
+#include <glm/gtx/quaternion.hpp>
+
 #include <QActionGroup>
 #include <QColorDialog>
 #include <QDesktopWidget>
@@ -150,8 +152,8 @@ Application::Application(int& argc, char** argv) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0)  {  
-    
+        _bytesCount(0)
+{
     gettimeofday(&_applicationStartupTime, NULL);
     printLog("Interface Startup:\n");
     
@@ -167,7 +169,9 @@ Application::Application(int& argc, char** argv) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
+    
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
         AgentList::getInstance()->getAgentSocket()->setBlocking(false);
@@ -356,6 +360,14 @@ void Application::paintGL() {
             whichCamera = _viewFrustumOffsetCamera;
         }        
 
+        // transform by eye offset
+
+        glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
+        glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
+        glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
+        glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
+        glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+
         // transform view according to whichCamera
         // could be myCamera (if in normal mode)
         // or could be viewFrustumOffsetCamera if in offset mode
@@ -450,7 +462,11 @@ void Application::resizeGL(int width, int height) {
     }
     
     // On window reshape, we need to tell OpenGL about our new setting
-    gluPerspective(fov,aspectRatio,nearClip,farClip);
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
+    loadViewFrustum(camera, _viewFrustum);
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -594,6 +610,66 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
             break;
         
+        case Qt::Key_I:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_K:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_J:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        
+        case Qt::Key_M:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
+        case Qt::Key_U:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
+        case Qt::Key_Y:
+            if (shifted) {
+                _myCamera.setEyeOffsetOrientation(glm::normalize(
+                    glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
+            } else {
+                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
+            }
+            resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+            
         default:
             event->ignore();
             break;
@@ -860,11 +936,13 @@ void Application::idle() {
         }
         
         //  Update from Mouse
-        QPoint mouse = QCursor::pos();
-        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                  _glWidget->mapFromGlobal(mouse).y(),
-                                  _glWidget->width(),
-                                  _glWidget->height());
+        if (_mouseLook->isChecked()) {
+            QPoint mouse = QCursor::pos();
+            _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
+                                      _glWidget->mapFromGlobal(mouse).y(),
+                                      _glWidget->width(),
+                                      _glWidget->height());
+        }
        
         //  Read serial port interface devices
         if (_serialPort.active) {
@@ -1006,12 +1084,12 @@ void Application::doFalseRandomizeEveryOtherVoxelColors() {
 }
 
 void Application::doFalseColorizeByDistance() {
-    loadViewFrustum(_viewFrustum);
+    loadViewFrustum(_myCamera, _viewFrustum);
     _voxels.falseColorizeDistanceFromView(&_viewFrustum);
 }
 
 void Application::doFalseColorizeInView() {
-    loadViewFrustum(_viewFrustum);
+    loadViewFrustum(_myCamera, _viewFrustum);
     // we probably want to make sure the viewFrustum is initialized first
     _voxels.falseColorizeInView(&_viewFrustum);
 }
@@ -1117,6 +1195,8 @@ void Application::initMenu() {
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
+    (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
+    _mouseLook->setChecked(false);
     optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
@@ -1312,7 +1392,7 @@ void Application::updateAvatar(float deltaTime) {
     // We could optimize this to not actually load the viewFrustum, since we don't
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
-    loadViewFrustum(_viewFrustum);
+    loadViewFrustum(_myCamera, _viewFrustum);
     _myAvatar.setCameraPosition(_viewFrustum.getPosition());
     _myAvatar.setCameraDirection(_viewFrustum.getDirection());
     _myAvatar.setCameraUp(_viewFrustum.getUp());
@@ -1364,7 +1444,7 @@ void Application::updateAvatar(float deltaTime) {
 // Description: this will load the view frustum bounds for EITHER the head
 //                 or the "myCamera". 
 //
-void Application::loadViewFrustum(ViewFrustum& viewFrustum) {
+void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
     glm::vec3 position;
     glm::vec3 direction;
@@ -1374,16 +1454,16 @@ void Application::loadViewFrustum(ViewFrustum& viewFrustum) {
     
     // Camera or Head?
     if (_cameraFrustum->isChecked()) {
-        position = _myCamera.getPosition();
+        position = camera.getPosition();
     } else {
         position = _myAvatar.getHeadPosition();
     }
     
-    fov         = _myCamera.getFieldOfView();
-    nearClip    = _myCamera.getNearClip();
-    farClip     = _myCamera.getFarClip();
+    fov         = camera.getFieldOfView();
+    nearClip    = camera.getNearClip();
+    farClip     = camera.getFarClip();
 
-    Orientation o = _myCamera.getOrientation();
+    Orientation o = camera.getOrientation();
 
     direction   = o.getFront();
     up          = o.getUp();
@@ -1408,6 +1488,8 @@ void Application::loadViewFrustum(ViewFrustum& viewFrustum) {
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
+    viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
+    viewFrustum.setEyeOffsetOrientation(camera.getEyeOffsetOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
@@ -1818,12 +1900,12 @@ void Application::displayStats() {
 //    * Far Plane - draws only the far plane
 void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     // Load it with the latest details!
-    loadViewFrustum(viewFrustum);
+    loadViewFrustum(_myCamera, viewFrustum);
     
-    glm::vec3 position  = viewFrustum.getPosition();
-    glm::vec3 direction = viewFrustum.getDirection();
-    glm::vec3 up        = viewFrustum.getUp();
-    glm::vec3 right     = viewFrustum.getRight();
+    glm::vec3 position  = viewFrustum.getOffsetPosition();
+    glm::vec3 direction = viewFrustum.getOffsetDirection();
+    glm::vec3 up        = viewFrustum.getOffsetUp();
+    glm::vec3 right     = viewFrustum.getOffsetRight();
     
     //  Get ready to draw some lines
     glDisable(GL_LIGHTING);
