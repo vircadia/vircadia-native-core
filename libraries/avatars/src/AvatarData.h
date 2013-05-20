@@ -67,10 +67,8 @@ public:
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
-    
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
-    
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
@@ -139,7 +137,7 @@ protected:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
-    
+
     glm::vec3 _position;
     glm::vec3 _handPosition;
     glm::vec3 _lookatPosition;
