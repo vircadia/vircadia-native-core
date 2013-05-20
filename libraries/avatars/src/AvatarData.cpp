@@ -80,10 +80,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    printf("Current values are %f,%f,%f\n", _headData->getYaw(), _headData->getPitch(), _headData->getRoll());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getRoll());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headLeanSideways, sizeof(float));
@@ -165,15 +164,15 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(float) * 3;
     
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &headYaw);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &headPitch);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &headRoll);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
     
     _headData->setYaw(headYaw);
     _headData->setPitch(headPitch);
