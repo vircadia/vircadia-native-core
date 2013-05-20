@@ -29,7 +29,6 @@ enum KeyState
 class AvatarData : public AgentData {
 public:
     AvatarData();
-    AvatarData* clone() const;
     
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
