@@ -396,6 +396,8 @@ void Avatar::simulate(float deltaTime) {
     
     _head.setBodyYaw(_bodyYaw);
 
+setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f));   
+
     if (_interactingOther) {
         _head.setLooking(true);
         
@@ -405,6 +407,7 @@ void Avatar::simulate(float deltaTime) {
     } else {
         _head.setLooking(false);
     }    
+    
     
     _head.setLookatPosition(_lookatPosition);
     _head.setAudioLoudness(_audioLoudness);
