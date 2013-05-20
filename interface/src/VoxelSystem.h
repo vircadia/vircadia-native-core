@@ -150,7 +150,7 @@ private:
     void cleanupRemovedVoxels();
 
     void setupNewVoxelsForDrawing();
-    void copyWrittenDataToReadArrays();
+    void copyWrittenDataToReadArrays(bool fullVBOs);
 
     bool _voxelsDirty;
 

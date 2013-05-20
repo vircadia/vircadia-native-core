@@ -182,6 +182,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
     }    
     
+    bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
         if (_renderWarningsOn) { 
@@ -210,7 +211,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
-    copyWrittenDataToReadArrays();
+    copyWrittenDataToReadArrays(didWriteFullVBO);
 
     pthread_mutex_unlock(&_bufferWriteLock);
 
@@ -236,6 +237,12 @@ void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
     memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
     memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
     _voxelsInReadArrays = _voxelsInWriteArrays;
+    
+    // clear our dirty flags
+    memset(_writeVoxelDirtyArray, false, _voxelsInWriteArrays * sizeof(bool));
+    
+    // let the reader know to get the full array
+    _readRenderFullVBO = true;
 }
 
 void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
@@ -245,6 +252,7 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
     for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
         bool thisVoxelDirty = _writeVoxelDirtyArray[i];
         _readVoxelDirtyArray[i] |= thisVoxelDirty;
+        _writeVoxelDirtyArray[i] = false;
         if (!inSegment) {
             if (thisVoxelDirty) {
                 segmentStart = i;
@@ -293,15 +301,12 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
 
     // update our length
     _voxelsInReadArrays = _voxelsInWriteArrays;
-    
-    // clear our dirty flags
-    memset(_writeVoxelDirtyArray, false, _voxelsInWriteArrays * sizeof(bool));
 }
 
-void VoxelSystem::copyWrittenDataToReadArrays() {
+void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
     PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()");
     if (_voxelsDirty && _voxelsUpdated) {
-        if (_readRenderFullVBO) {
+        if (fullVBOs) {
             copyWrittenDataToReadArraysFullVBOs();
         } else {
             copyWrittenDataToReadArraysPartialVBOs();
