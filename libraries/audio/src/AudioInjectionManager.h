@@ -24,12 +24,13 @@ public:
     static void threadInjector(AudioInjector* injector);
     
     static void setInjectorSocket(UDPSocket* injectorSocket) { _injectorSocket = injectorSocket;}
-    static void setDestinationSocket(sockaddr& destinationSocket) { _destinationSocket = destinationSocket; }
+    static void setDestinationSocket(sockaddr& destinationSocket);
 private:
     static void* injectAudioViaThread(void* args);
     
     static UDPSocket* _injectorSocket;
     static sockaddr _destinationSocket;
+    static bool _isDestinationSocketExplicit;
     static AudioInjector* _injectors[MAX_CONCURRENT_INJECTORS];
 };
 
