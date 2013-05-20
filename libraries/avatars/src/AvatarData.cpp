@@ -35,7 +35,6 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 
 AvatarData::AvatarData() :
     _handPosition(0,0,0),
-    _lookatPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
@@ -97,8 +96,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(float) * 3;
 
     // Lookat Position
-    memcpy(destinationBuffer, &_lookatPosition, sizeof(_lookatPosition));
-    destinationBuffer += sizeof(_lookatPosition);
+    memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
+    destinationBuffer += sizeof(_headData->_lookAtPosition);
     
     // Hand State (0 = not grabbing, 1 = grabbing)
     memcpy(destinationBuffer, &_handState, sizeof(char));
@@ -148,7 +147,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 // called on the other agents - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
-//printf("AvatarData::parseData()\n");
+    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    if (!_headData) {
+        _headData = new HeadData();
+    }
 
     // increment to push past the packet header
     sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
@@ -188,8 +190,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(float) * 3;
     
     // Lookat Position
-    memcpy(&_lookatPosition, sourceBuffer, sizeof(_lookatPosition));
-    sourceBuffer += sizeof(_lookatPosition);
+    memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
+    sourceBuffer += sizeof(_headData->_lookAtPosition);
     
     // Hand State
     memcpy(&_handState, sourceBuffer, sizeof(char));

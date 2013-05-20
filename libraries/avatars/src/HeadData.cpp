@@ -8,12 +8,11 @@
 
 #include "HeadData.h"
 
-#include <glm/glm.hpp>
-
 HeadData::HeadData() :
     _yaw(0.0f),
     _pitch(0.0f),
-    _roll(0.0f)
+    _roll(0.0f),
+    _lookAtPosition(0.0f, 0.0f, 0.0f)
 {
     
 }

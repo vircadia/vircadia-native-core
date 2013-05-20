@@ -34,7 +34,6 @@ public:
     void setPositionAndScale(glm::vec3 position, float scale);
     void setNewTarget(float, float);
     
-    void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
     void setBodyYaw        (float     bodyYaw           ) { _bodyYaw            = bodyYaw;            }
@@ -60,7 +59,6 @@ private:
     glm::vec3   _skinColor;
     glm::vec3   _position;
     glm::vec3   _rotation;
-    glm::vec3   _lookatPosition;
     glm::vec3   _leftEyePosition;
     glm::vec3   _rightEyePosition; 
     float       _eyeballPitch[2];

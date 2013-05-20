@@ -77,6 +77,7 @@ enum AvatarJointID
 class Avatar : public AvatarData {
 public:
     Avatar(bool isMine);
+    ~Avatar();
     
     void  reset();
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);

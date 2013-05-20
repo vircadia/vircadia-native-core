@@ -11,6 +11,8 @@
 
 #include <iostream>
 
+#include <glm/glm.hpp>
+
 class HeadData {
 public:
     HeadData();
@@ -27,10 +29,16 @@ public:
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
+    
+    const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
+    void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
+    
+    friend class AvatarData;
 protected:
     float _yaw;
     float _pitch;
     float _roll;
+    glm::vec3 _lookAtPosition;
 };
 
 #endif /* defined(__hifi__HeadData__) */

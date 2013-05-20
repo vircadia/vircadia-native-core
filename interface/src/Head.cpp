@@ -45,7 +45,6 @@ Head::Head() :
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
-    _lookatPosition(0.0f, 0.0f, 0.0f),
     _eyeballPitch(),
     _eyeballYaw(),
     _interBrowDistance(0.75f),
@@ -224,7 +223,7 @@ void Head::setLooking(bool looking) {
     _lookingAtSomething = looking;
 
     glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-    glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - averageEyePosition);
+    glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
     
     float dot = glm::dot(targetLookatAxis, _orientation.getFront());
     if (dot < MINIMUM_EYE_ROTATION) {
@@ -370,7 +369,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
 
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _leftEyePosition); // the lookat direction
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
@@ -414,7 +413,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
             
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _rightEyePosition);
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);

@@ -111,6 +111,11 @@ Avatar::Avatar(bool isMine) : _head() {
     else            { _balls = NULL; }
 }
 
+Avatar::~Avatar() {
+    // if _balls is something that's sticking around other than Philip playing around it needs to be delete here too
+    _headData = NULL;
+}
+
 void Avatar::reset() {
     _head.setYaw(0.0f);
     _head.setRoll(0.0f);
@@ -389,20 +394,19 @@ void Avatar::simulate(float deltaTime) {
     // update head state
     _head.setPositionAndScale(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition, _joint[AVATAR_JOINT_HEAD_BASE].radius);
     
-    setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
+    _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0
 
     if (_interactingOther) {
         _head.setLooking(true);
         
         if (_isMine) {
-            setLookatPosition(_interactingOther->getSpringyHeadPosition());
+            _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
         }        
     } else {
         _head.setLooking(false);
     }    
     
     _head.setBodyYaw(_bodyYaw);
-    _head.setLookatPosition(_lookatPosition);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
@@ -1328,12 +1332,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     //  absolute eulerAngles passed.
     //  
     //
-    float const MAX_YAW = 90.f;
-    float const MIN_YAW = -90.f;
-    float const MAX_PITCH = 85.f;
-    float const MIN_PITCH = -85.f;
-    float const MAX_ROLL = 90.f;
-    float const MIN_ROLL = -90.f;
     
     if (deltaTime == 0.f) {
         //  On first sample, set head to absolute position
