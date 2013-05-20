@@ -59,61 +59,62 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
-Avatar::Avatar(bool isMine) : _head() {
+Avatar::Avatar(bool isMine) :
+    _isMine(isMine),
+    _TEST_bigSphereRadius(0.4f),
+    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
+    _mousePressed(false),
+    _bodyPitchDelta(0.0f),
+    _bodyYawDelta(0.0f),
+    _bodyRollDelta(0.0f),
+    _movedHandOffset(0.0f, 0.0f, 0.0f),
+    _rotation(0.0f, 0.0f, 0.0f, 0.0f),
+    _mode(AVATAR_MODE_STANDING),
+    _handHoldingPosition(0.0f, 0.0f, 0.0f),
+    _velocity(0.0f, 0.0f, 0.0f),
+    _thrust(0.0f, 0.0f, 0.0f),
+    _speed(0.0f),
+    _maxArmLength(0.0f),
+    _orientation(),
+    _transmitterIsFirstData(true),
+    _transmitterHz(0.0f),
+    _transmitterPackets(0),
+    _transmitterInitialReading(0.0f, 0.0f, 0.0f),
+    _isTransmitterV2Connected(false),
+    _pelvisStandingHeight(0.0f),
+    _displayingHead(true),
+    _distanceToNearestAvatar(std::numeric_limits<float>::max()),
+    _gravity(0.0f, -1.0f, 0.0f),
+    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
+    _mouseRayDirection(0.0f, 0.0f, 0.0f),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
+    _interactingOther(NULL),
+    _cumulativeMouseYaw(0.0f),
+    _isMouseTurningRight(false)
+{
     
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
-    
-    _orientation.setToIdentity();
-    
-    _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
-    _thrust                     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _rotation                   = glm::quat(0.0f, 0.0f, 0.0f, 0.0f);
-    _bodyYaw                    = -90.0;
-    _bodyPitch                  = 0.0;
-    _bodyRoll                   = 0.0;
-    _bodyPitchDelta             = 0.0;
-    _bodyYawDelta               = 0.0;
-    _bodyRollDelta              = 0.0;
-    _mousePressed               = false;
-    _mode                       = AVATAR_MODE_STANDING;
-    _isMine                     = isMine;
-    _maxArmLength               = 0.0;
-    _transmitterHz              = 0.0;
-    _transmitterPackets         = 0;
-    _transmitterIsFirstData     = true;
-    _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
-    _isTransmitterV2Connected   = false;
-    _speed                      = 0.0;
-    _pelvisStandingHeight       = 0.0f;
-    _displayingHead             = true;
-    _TEST_bigSphereRadius       = 0.4f;
-    _TEST_bigSpherePosition     = glm::vec3(5.0f, _TEST_bigSphereRadius, 5.0f);
-    _mouseRayOrigin             = glm::vec3(0.0f, 0.0f, 0.0f);
-    _mouseRayDirection          = glm::vec3(0.0f, 0.0f, 0.0f);
-    _cameraPosition             = glm::vec3(0.0f, 0.0f, 0.0f);
-    _interactingOther           = NULL;
 
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
-        
-    _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
-    _distanceToNearestAvatar    = std::numeric_limits<float>::max();
-    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
-    _cumulativeMouseYaw         = 0.f;
-    _isMouseTurningRight        = false;
+
+    for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
+        _driveKeys[i] = false;
+    }
 
     initializeSkeleton();
     
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
         
-    if (BALLS_ON)   { _balls = new Balls(100); }
-    else            { _balls = NULL; }
+    if (BALLS_ON) {
+        _balls = new Balls(100);
+    } else {
+        _balls = NULL;
+    }
 }
 
 Avatar::~Avatar() {
-    // if _balls is something that's sticking around other than Philip playing around it needs to be delete here too
     _headData = NULL;
+    delete _balls;
 }
 
 void Avatar::reset() {

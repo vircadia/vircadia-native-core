@@ -1356,22 +1356,6 @@ void Application::updateAvatar(float deltaTime) {
     _headMouseY = max(_headMouseY, 0);
     _headMouseY = min(_headMouseY, _glWidget->height());
     
-    //  Update head and body pitch and yaw based on measured gyro rates
-    if (_gyroLook->isChecked()) {
-        // Render Yaw
-        /*   NOTE:  PER - Leave here until I get back and can modify to couple gyros to head pitch, yaw
-        float renderYawSpring = fabs(_headMouseX - _glWidget->width() / 2.f) / (_glWidget->width() / 2.f);
-        const float RENDER_YAW_MULTIPLY = 4.f;
-        _myAvatar.setRenderYaw((1.f - renderYawSpring * deltaTime) * _myAvatar.getRenderYaw() +
-                              renderYawSpring * deltaTime * -_myAvatar.getHeadYaw() * RENDER_YAW_MULTIPLY);
-        // Render Pitch
-        float renderPitchSpring = fabs(_headMouseY - _glWidget->height() / 2.f) / (_glWidget->height() / 2.f);
-        const float RENDER_PITCH_MULTIPLY = 4.f;
-        _myAvatar.setRenderPitch((1.f - renderPitchSpring * deltaTime) * _myAvatar.getRenderPitch() +
-                                renderPitchSpring * deltaTime * -_myAvatar.getHeadPitch() * RENDER_PITCH_MULTIPLY);
-         */
-    }
-    
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
