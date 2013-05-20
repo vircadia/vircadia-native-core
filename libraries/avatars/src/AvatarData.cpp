@@ -19,7 +19,6 @@
 using namespace std;
 using avatars_lib::printLog;
 
-
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
     
@@ -59,7 +58,8 @@ AvatarData::AvatarData() :
     _wantColor(true),
     _wantDelta(false)
 {
-};
+    
+}
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
