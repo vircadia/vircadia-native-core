@@ -14,9 +14,8 @@
 
 #include "ViewFrustum.h"
 #include "SharedUtil.h"
-#include "voxels_Log.h"
+#include "Log.h"
 
-using voxels_lib::printLog;
 using namespace std;
 
 ViewFrustum::ViewFrustum() :

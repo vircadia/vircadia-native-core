@@ -11,9 +11,7 @@
 #include <cstring>
 #include "SharedUtil.h"
 #include "OctalCode.h"
-#include "shared_Log.h"
-
-using shared_lib::printLog;
+#include "Log.h"
 
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
     if (*octalCode == 255) {

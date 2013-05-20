@@ -14,15 +14,13 @@
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
-#include "shared_Log.h"
+#include "Log.h"
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
-
-using shared_lib::printLog;
 
 double usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000.0 + time->tv_usec);

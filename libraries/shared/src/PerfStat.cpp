@@ -14,9 +14,7 @@
 #include <string>
 #include <map>
 
-#include "shared_Log.h"
-
-using shared_lib::printLog;
+#include "Log.h"
 
 // Static class members initialization here!
 std::map<std::string,PerfStatHistory,std::less<std::string> > PerfStat::groupHistoryMap;

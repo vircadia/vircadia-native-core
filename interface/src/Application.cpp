@@ -37,13 +37,10 @@
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
-#include <shared_Log.h>
-#include <voxels_Log.h>
-#include <avatars_Log.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
-#include "Log.h"
+#include "LogDisplay.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
@@ -158,10 +155,6 @@ Application::Application(int& argc, char** argv) :
     printLog("Interface Startup:\n");
     
     _voxels.setViewFrustum(&_viewFrustum);
-    
-    shared_lib::printLog = & ::printLog;
-    voxels_lib::printLog = & ::printLog;
-    avatars_lib::printLog = & ::printLog;
     
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char** constArgv = const_cast<const char**>(argv);
@@ -1772,7 +1765,7 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
-    if (_logOn->isChecked()) { logdisplay::Render(_glWidget->width(), _glWidget->height()); }
+    if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
 
     //  Show chat entry field
     if (_chatEntryOn) {

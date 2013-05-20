@@ -13,8 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "shared_Log.h"
-using shared_lib::printLog;
+#include "Log.h"
 
 #ifndef _WIN32
 // (Windows port is incomplete and the build files do not support CURL, yet)
