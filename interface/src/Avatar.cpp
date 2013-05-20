@@ -50,8 +50,9 @@ const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
-float skinColor [] = {1.0, 0.84, 0.66};
-float lightBlue [] = {0.7, 0.8, 1.0};
+float skinColor    [] = {1.0, 0.84, 0.66};
+float darkSkinColor[] = {0.8, 0.74, 0.6 };
+float lightBlue    [] = {0.7, 0.8,  1.0 };
 
 bool usingBigSphereCollisionTest = true;
 
@@ -1128,14 +1129,27 @@ void Avatar::renderBody(bool lookingInMirror) {
             glPopMatrix();
         }
     }
- 
-    // Render lines connecting the joint positions
-    glColor3f(0.4f, 0.5f, 0.6f);
-    glLineWidth(3.0);
     
     for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
     if (_joint[b].parent != AVATAR_JOINT_NULL) 
         if (b != AVATAR_JOINT_HEAD_TOP) {
+                
+            /*
+            // Render cone sections connecting the joint positions 
+            glColor3fv(darkSkinColor);
+            renderJointConnectingCone
+            (
+                _joint[_joint[b].parent ].springyPosition, 
+                _joint[b                ].springyPosition, 
+                _joint[_joint[b].parent ].radius, 
+                _joint[b                ].radius
+            );
+            */
+            
+        
+            // Render lines connecting the joint positions
+            glColor3f(0.4f, 0.5f, 0.6f);
+            glLineWidth(3.0);
             glBegin(GL_LINE_STRIP);
             glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
             glVertex3fv(&_joint[ b ].springyPosition.x);
@@ -1373,3 +1387,47 @@ void Avatar::readAvatarDataFromFile() {
         fclose(avatarFile);
     }
 }
+
+void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
+
+    glBegin(GL_TRIANGLES);   
+    
+    int num = 5;
+    
+    glm::vec3 axis = glm::normalize(position2 - position1);
+    float length = glm::length(axis);
+
+    if (length > 0.0f) {
+    
+        glm::vec3 perpSin = glm::vec3(axis.y, axis.z, axis.x);
+        glm::vec3 perpCos = glm::vec3(axis.z, axis.x, axis.y);
+
+        for (int i = 0; i < num; i ++) {
+        
+            float angle1 = ((float)i     / (float)num) * PI * 2.0;
+            float angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+        
+            glm::vec3 p1a = position1 + perpSin * sin(angle1) * radius1; 
+            glm::vec3 p1b = position1 + perpCos * cos(angle2) * radius1;   
+
+            glm::vec3 p2a = position2 + perpSin * sin(angle1) * radius2; 
+            glm::vec3 p2b = position2 + perpCos * cos(angle2) * radius2;   
+        
+            glVertex3f(p1a.x, p1a.y, p1a.z); 
+            glVertex3f(p1b.x, p1b.y, p1b.z); 
+            glVertex3f(p2a.x, p2a.y, p2a.z); 
+
+            /*
+            glVertex3f(p1b.x, p1b.y, p1b.z); 
+            glVertex3f(p2a.x, p2a.y, p2a.z); 
+            glVertex3f(p2b.x, p2b.y, p2b.z); 
+            */
+        }
+    }
+    
+    glEnd();
+}
+
+
+
+
