@@ -51,7 +51,9 @@ public:
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
     _wantResIn(false),
-    _wantColor(true) { };
+    _wantColor(true),
+    _wantDelta(false)
+    { };
     
     const glm::vec3& getPosition() const { return _position; }
     
