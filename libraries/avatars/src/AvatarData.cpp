@@ -63,6 +63,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // Hand Position
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
+
+    // Lookat Position
+    memcpy(destinationBuffer, &_lookatPosition, sizeof(float) * 3);
+    destinationBuffer += sizeof(float) * 3;
     
     // Hand State (0 = not grabbing, 1 = grabbing)
     memcpy(destinationBuffer, &_handState, sizeof(char));
@@ -144,6 +148,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
+    sourceBuffer += sizeof(float) * 3;
+    
+    // Lookat Position
+    memcpy(&_lookatPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
     
     // Hand State

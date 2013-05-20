@@ -396,14 +396,17 @@ void Avatar::simulate(float deltaTime) {
     
     _head.setBodyYaw(_bodyYaw);
 
-    //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
     if (_interactingOther) {
         _head.setLooking(true);
-        _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
+        
+        if (_isMine) {
+            setLookatPosition(_interactingOther->getSpringyHeadPosition());
+        }        
     } else {
         _head.setLooking(false);
     }    
-        
+    
+    _head.setLookatPosition(_lookatPosition);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
