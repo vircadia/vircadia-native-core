@@ -187,6 +187,7 @@ private:
     Oscilloscope _audioScope;
     
     Avatar _myAvatar;                  // The rendered avatar of oneself
+    
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     

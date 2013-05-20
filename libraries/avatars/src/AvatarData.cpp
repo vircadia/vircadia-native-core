@@ -35,6 +35,7 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 
 AvatarData::AvatarData() :
     _handPosition(0,0,0),
+    _lookatPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
@@ -91,6 +92,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // Hand Position
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
+
+    // Lookat Position
+    memcpy(destinationBuffer, &_lookatPosition, sizeof(_lookatPosition));
+    destinationBuffer += sizeof(_lookatPosition);
     
     // Hand State (0 = not grabbing, 1 = grabbing)
     memcpy(destinationBuffer, &_handState, sizeof(char));
@@ -173,6 +178,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
+    
+    // Lookat Position
+    memcpy(&_lookatPosition, sourceBuffer, sizeof(_lookatPosition));
+    sourceBuffer += sizeof(_lookatPosition);
     
     // Hand State
     memcpy(&_handState, sourceBuffer, sizeof(char));

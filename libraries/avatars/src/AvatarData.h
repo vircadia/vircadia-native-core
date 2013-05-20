@@ -31,8 +31,10 @@ public:
     AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
-    void setPosition(const glm::vec3 position) { _position = position; }
-    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }    
+    
+    void setPosition      (const glm::vec3 position      ) { _position       = position;       }
+    void setHandPosition  (const glm::vec3 handPosition  ) { _handPosition   = handPosition;   }
+    void setLookatPosition(const glm::vec3 lookatPosition) { _lookatPosition = lookatPosition; }
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -113,6 +115,7 @@ protected:
 
     glm::vec3 _position;
     glm::vec3 _handPosition;
+    glm::vec3 _lookatPosition;
     
     //  Body rotation
     float _bodyYaw;
