@@ -11,16 +11,17 @@
 #include "Avatar.h"
 #include <glm/glm.hpp>
 
-class AvatarRenderer {
+/*
+class AvatarRenderer : public Avatar {
 public:
 
     AvatarRenderer();
-    void render(Avatar *avatarToRender, bool lookingInMirror, glm::vec3 cameraPosition );
+    void render();
 
 private:
 
-    Avatar *avatar;
     void renderBody();
 };
+*/
 
 #endif

@@ -81,7 +81,7 @@ private:
     float       _scale;
     int         _eyeContact;
     float       _browAudioLift;
-    bool        _looking;
+    bool        _lookingAtSomething;
     glm::vec3   _gravity;
     float       _lastLoudness;
     float       _averageLoudness;

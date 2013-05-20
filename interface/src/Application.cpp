@@ -138,6 +138,7 @@ Application::Application(int& argc, char** argv) :
         _mouseY(0),
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
+        _justEditedVoxel(false),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -306,7 +307,6 @@ void Application::paintGL() {
             _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
                                         0.0f,
                                         0.0f);
-        
         } else {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
@@ -739,8 +739,13 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     
     // detect drag
     glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-    if (_colorVoxelMode->isChecked() && event->buttons().testFlag(Qt::LeftButton) && mouseVoxelPos != _lastMouseVoxelPos) {
-        addVoxelUnderCursor();
+    if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
+        if (event->buttons().testFlag(Qt::LeftButton)) {
+            maybeEditVoxelUnderCursor();
+                
+        } else if (event->buttons().testFlag(Qt::RightButton) && checkedVoxelModeAction() != 0) {
+            deleteVoxelUnderCursor();
+        }
     }
 }
 
@@ -749,13 +754,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
         _mouseX = event->x();
         _mouseY = event->y();
         _mousePressed = true;
-       
-        if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
-            addVoxelUnderCursor();
+        maybeEditVoxelUnderCursor();
         
-        } else if (_deleteVoxelMode->isChecked()) {
-            deleteVoxelUnderCursor();    
-        }
     } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
         deleteVoxelUnderCursor();
     }
@@ -927,6 +927,12 @@ void Application::idle() {
                 _mouseVoxel.red = paintColor.red();
                 _mouseVoxel.green = paintColor.green();
                 _mouseVoxel.blue = paintColor.blue();
+            }
+            
+            // if we just edited, use the currently selected voxel as the "last" for drag detection
+            if (_justEditedVoxel) {
+                _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+                _justEditedVoxel = false;
             }
         }
         
@@ -1207,6 +1213,8 @@ void Application::initMenu() {
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
     _renderVoxels->setShortcut(Qt::Key_V);
+    (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
+    _renderVoxelTextures->setChecked(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
     _renderStarsOn->setShortcut(Qt::Key_Asterisk);
@@ -1684,7 +1692,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
-        _voxels.render();
+        _voxels.render(_renderVoxelTextures->isChecked());
     }
     
     // indicate what we'll be adding/removing in mouse mode, if anything
@@ -2026,18 +2034,22 @@ void Application::shiftPaintingColor() {
     _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
 }
 
-void Application::addVoxelUnderCursor() {
-    if (_mouseVoxel.s != 0) {    
-        PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
-            PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
-        sendVoxelEditMessage(message, _mouseVoxel);
+void Application::maybeEditVoxelUnderCursor() {
+    if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
+        if (_mouseVoxel.s != 0) {    
+            PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
+                PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            sendVoxelEditMessage(message, _mouseVoxel);
+            
+            // create the voxel locally so it appears immediately            
+            _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
+                                _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
         
-        // create the voxel locally so it appears immediately            
-        _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                           _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
-    
-        // remember the position for drag detection
-        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+            // remember the position for drag detection
+            _justEditedVoxel = true;
+        }
+    } else if (_deleteVoxelMode->isChecked()) {
+        deleteVoxelUnderCursor();    
     }
 }
 
@@ -2049,7 +2061,7 @@ void Application::deleteVoxelUnderCursor() {
         //_voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         
         // remember the position for drag detection
-        _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+        _justEditedVoxel = true;
     }
 }
 
