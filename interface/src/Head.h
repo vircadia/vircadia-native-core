@@ -23,7 +23,7 @@ enum eyeContactTargets
     MOUTH
 };
 
-class Head {
+class Head : public HeadData {
 public:
     Head();
     
@@ -31,7 +31,7 @@ public:
     void render(bool lookingInMirror);
 
     void setLooking(bool looking);
-    void setPositionRotationAndScale(glm::vec3 position, glm::vec3 rotation, float scale);
+    void setPositionAndScale(glm::vec3 position, float scale);
     void setNewTarget(float, float);
     
     void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
@@ -63,9 +63,6 @@ private:
     glm::vec3   _lookatPosition;
     glm::vec3   _leftEyePosition;
     glm::vec3   _rightEyePosition; 
-    float       _yaw;
-    float       _pitch;
-    float       _roll;
     float       _eyeballPitch[2];
     float       _eyeballYaw  [2];
     float       _eyebrowPitch[2];

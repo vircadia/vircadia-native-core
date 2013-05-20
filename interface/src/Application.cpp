@@ -297,8 +297,9 @@ void Application::paintGL() {
             _myCamera.setDistance      (0.0f);
             _myCamera.setTightness     (100.0f); 
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() + _myAvatar.getHeadYaw(),
-                                        -_myAvatar.getHeadPitch(), _myAvatar.getHeadRoll());
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() + _myAvatar.getHead().getYaw(),
+                                        -_myAvatar.getHead().getPitch(),
+                                        _myAvatar.getHead().getRoll());
          
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myCamera.setTightness     (100.0f); 
@@ -1375,9 +1376,9 @@ void Application::updateAvatar(float deltaTime) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
         
-        _myAvatar.setHeadYaw(-yaw);
-        _myAvatar.setHeadPitch(pitch);
-        _myAvatar.setHeadRoll(roll);
+        _myAvatar.getHead().setYaw(-yaw);
+        _myAvatar.getHead().setPitch(pitch);
+        _myAvatar.getHead().setRoll(roll);
     }
     
     //  Get audio loudness data from audio input device

@@ -46,9 +46,6 @@ Head::Head() :
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
     _lookatPosition(0.0f, 0.0f, 0.0f),
-    _yaw(0.0f),
-    _pitch(0.0f),
-    _roll(0.0f),
     _eyeballPitch(),
     _eyeballYaw(),
     _interBrowDistance(0.75f),
@@ -77,12 +74,9 @@ Head::Head() :
 }
 
 
-void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
-    _position = p;
-    _scale    = s;
-    _yaw      = r.x;
-    _pitch    = r.y;
-    _roll     = r.z;
+void Head::setPositionAndScale(glm::vec3 position, float scale) {
+    _position = position;
+    _scale    = scale;
 }
 
 void Head::setNewTarget(float pitch, float yaw) {

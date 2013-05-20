@@ -59,8 +59,11 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
-
-Avatar::Avatar(bool isMine) {
+Avatar::Avatar(bool isMine) : _head() {
+    
+    // give the pointer to our head to inherited _headData variable from AvatarData
+    _headData = &_head;
+    
     _orientation.setToIdentity();
     
     _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -109,7 +112,9 @@ Avatar::Avatar(bool isMine) {
 }
 
 void Avatar::reset() {
-    _headPitch = _headYaw = _headRoll = 0;
+    _head.setYaw(0.0f);
+    _head.setRoll(0.0f);
+    _head.setPitch(0.0f);
     _head.leanForward = _head.leanSideways = 0;
 }
 
@@ -124,23 +129,16 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
-    const float MAX_YAW = 85;
-    const float MIN_YAW = -85;
-    const float MAX_ROLL = 50;
-    const float MIN_ROLL = -50;
     
-    addHeadPitch(measuredPitchRate * deltaTime);
-    addHeadYaw(measuredYawRate * deltaTime);
-    addHeadRoll(measuredRollRate * deltaTime);
-    
-    setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
-    setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
+    _head.addPitch(measuredPitchRate * deltaTime);
+    _head.addYaw(measuredYawRate * deltaTime);
+    _head.addRoll(measuredRollRate * deltaTime);
     
     //  Update head lean distance based on accelerometer data
     const float LEAN_SENSITIVITY = 0.15;
     const float LEAN_MAX = 0.45;
     const float LEAN_AVERAGING = 10.0;
-    glm::vec3 headRotationRates(getHeadPitch(), getHeadYaw(), getHeadRoll());
+    glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
     float headRateMax = 50.f;
     
     
@@ -159,11 +157,11 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
-    return _bodyYaw + _headYaw;
+    return _bodyYaw + _head.getYaw();
 }
 
 float Avatar::getAbsoluteHeadPitch() const {
-    return _bodyPitch + _headPitch;
+    return _bodyPitch + _head.getPitch();
 }
 
 void Avatar::addLean(float x, float z) {
@@ -221,7 +219,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
         if (fabs(mouseLocationY) > MOUSE_MOVE_RADIUS) {
             float mousePitchAdd = (fabs(mouseLocationY) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED;
             bool downPitching = (mouseLocationY > 0.f);
-            setHeadPitch(getHeadPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
+            _head.setPitch(_head.getPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
         }
         
     }
@@ -354,7 +352,7 @@ void Avatar::simulate(float deltaTime) {
     // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
     // you start moving, but don't do this with an HMD like the Oculus. 
     if (!OculusManager::isConnected()) {
-        setHeadPitch(getHeadPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+        _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
 
     // Get head position data from network for other people
@@ -389,11 +387,7 @@ void Avatar::simulate(float deltaTime) {
     }
 
     // update head state
-    _head.setPositionRotationAndScale(
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
-        glm::vec3(_headYaw, _headPitch, _headRoll), 
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
-    );
+    _head.setPositionAndScale(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition, _joint[AVATAR_JOINT_HEAD_BASE].radius);
     
     setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
 
@@ -1343,18 +1337,18 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     
     if (deltaTime == 0.f) {
         //  On first sample, set head to absolute position
-        setHeadYaw(eulerAngles->x);
-        setHeadPitch(eulerAngles->y);
-        setHeadRoll(eulerAngles->z);
+        _head.setYaw(eulerAngles->x);
+        _head.setPitch(eulerAngles->y);
+        _head.setRoll(eulerAngles->z);
     } else { 
-        glm::vec3 angles(getHeadYaw(), getHeadPitch(), getHeadRoll());
+        glm::vec3 angles(_head.getYaw(), _head.getPitch(), _head.getRoll());
         //  Increment by detected velocity 
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
         angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        setHeadYaw(fmin(fmax(angles.x, MIN_YAW), MAX_YAW));
-        setHeadPitch(fmin(fmax(angles.y, MIN_PITCH), MAX_PITCH));
-        setHeadRoll(fmin(fmax(angles.z, MIN_ROLL), MAX_ROLL));
+        _head.setYaw(angles.x);
+        _head.setPitch(angles.y);
+        _head.setRoll(angles.z);
         //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
 }
