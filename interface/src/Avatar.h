@@ -15,6 +15,7 @@
 #include <Orientation.h>
 #include "world.h"
 #include "AvatarTouch.h"
+#include "AvatarRenderer.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
@@ -217,6 +218,7 @@ private:
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void checkForMouseRayTouching();
+    void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 };
 
 #endif

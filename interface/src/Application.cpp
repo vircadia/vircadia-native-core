@@ -153,8 +153,8 @@ Application::Application(int& argc, char** argv) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0)  {  
-    
+        _bytesCount(0)
+{
     gettimeofday(&_applicationStartupTime, NULL);
     printLog("Interface Startup:\n");
     
@@ -170,7 +170,9 @@ Application::Application(int& argc, char** argv) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
+    
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
         AgentList::getInstance()->getAgentSocket()->setBlocking(false);
@@ -305,7 +307,6 @@ void Application::paintGL() {
             _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
                                         0.0f,
                                         0.0f);
-        
         } else {
             if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
