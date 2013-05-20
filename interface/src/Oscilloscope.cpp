@@ -32,11 +32,15 @@ namespace { // everything in here only exists while compiling this .cpp file
 }
 
 
-Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) : 
-    _valWidth(w), _valHeight(h), 
-    _arrSamples(0l), _arrVertices(0l), 
-    _valLowpass(0.4f), _valDownsample(3),
-    enabled(isEnabled), inputPaused(false) {
+Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) :
+    enabled(isEnabled),
+    inputPaused(false),
+    _valWidth(w),
+    _valHeight(h),
+    _arrSamples(0l),
+    _arrVertices(0l),
+    _valLowpass(0.4f),
+    _valDownsample(3) {
     
     // allocate enough space for the sample data and to turn it into
     // vertices and since they're all 'short', do so in one shot
