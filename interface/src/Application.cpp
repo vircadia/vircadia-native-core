@@ -1662,7 +1662,7 @@ void Application::displayOverlay() {
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         _audioScope.render(20, _glWidget->height() - 200);
-        _audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
+        //_audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
         #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
