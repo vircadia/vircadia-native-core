@@ -35,6 +35,7 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 
 AvatarData::AvatarData() :
     _handPosition(0,0,0),
+    _lookatPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
