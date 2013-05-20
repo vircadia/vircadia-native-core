@@ -32,7 +32,6 @@ namespace { // everything in here only exists while compiling this .cpp file
 }
 
 
-<<<<<<< HEAD
 Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) : 
     enabled(isEnabled),
     inputPaused(false),
@@ -44,7 +43,7 @@ Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) :
     _lowPassCoeff(0.4f),
     // three in -> one out
     _downsampleRatio(3) {
-{
+
     // allocate enough space for the sample data and to turn it into
     // vertices and since they're all 'short', do so in one shot
     _samples = new short[N_INT16_TO_ALLOC];

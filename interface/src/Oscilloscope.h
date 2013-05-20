@@ -68,7 +68,7 @@ private:
     short*          _vertices;
     unsigned        _writePos[MAX_CHANNELS];
 
-    float           _lowpassCoeff;
+    float           _lowPassCoeff;
     unsigned        _downsampleRatio;
 };
 
