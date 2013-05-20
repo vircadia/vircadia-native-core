@@ -15,6 +15,8 @@
 #include <QImage>
 #include <QVector>
 
+#include "InterfaceConfig.h"
+
 // a special "character" that renders as a solid block
 const char SOLID_BLOCK_CHAR = 127;
 
