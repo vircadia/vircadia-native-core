@@ -19,11 +19,7 @@ class VoxelAgentData : public AvatarData {
 public:
     VoxelAgentData();
     ~VoxelAgentData();
-    VoxelAgentData(const VoxelAgentData &otherAgentData);
-    
-    VoxelAgentData* clone() const;
 
-    void init(); // sets up data internals
     void resetVoxelPacket();  // resets voxel packet to after "V" header
 
     void writeToPacket(unsigned char* buffer, int bytes); // writes to end of packet
@@ -52,7 +48,10 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
-private:    
+private:
+    VoxelAgentData(const VoxelAgentData &);
+    VoxelAgentData& operator= (const VoxelAgentData&);
+    
     bool _viewSent;
     unsigned char* _voxelPacket;
     unsigned char* _voxelPacketAt;

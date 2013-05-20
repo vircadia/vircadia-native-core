@@ -55,67 +55,6 @@ Agent::Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t 
     }
 }
 
-Agent::Agent(const Agent &otherAgent) :
-    _type(otherAgent._type),
-    _agentID(otherAgent._agentID),
-    _wakeMicrostamp(otherAgent._wakeMicrostamp),
-    _lastHeardMicrostamp(otherAgent._lastHeardMicrostamp),
-    _isAlive(otherAgent._isAlive)
-{
-    if (otherAgent._publicSocket) {
-        _publicSocket = new sockaddr(*otherAgent._localSocket);
-    } else {
-        _publicSocket = NULL;
-    }
-    
-    if (otherAgent._localSocket) {
-        _localSocket = new sockaddr(*otherAgent._localSocket);
-    } else {
-        _localSocket = NULL;
-    }
-    
-    if (otherAgent._activeSocket == otherAgent._publicSocket) {
-        _activeSocket = _publicSocket;
-    } else if (otherAgent._activeSocket == otherAgent._localSocket) {
-        _activeSocket = _localSocket;
-    } else {
-        _activeSocket = NULL;
-    }
-    
-    if (otherAgent._linkedData) {
-        _linkedData = otherAgent._linkedData->clone();
-    } else {
-        _linkedData = NULL;
-    }
-    
-    if (otherAgent._bytesReceivedMovingAverage != NULL) {
-        _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
-        memcpy(_bytesReceivedMovingAverage, otherAgent._bytesReceivedMovingAverage, sizeof(SimpleMovingAverage));
-    } else {
-        _bytesReceivedMovingAverage = NULL;
-    }
-}
-
-Agent& Agent::operator=(Agent otherAgent) {
-    swap(*this, otherAgent);
-    return *this;
-}
-
-void Agent::swap(Agent &first, Agent &second) {
-    using std::swap;
-    
-    swap(first._isAlive, second._isAlive);
-    swap(first._publicSocket, second._publicSocket);
-    swap(first._localSocket, second._localSocket);
-    swap(first._activeSocket, second._activeSocket);
-    swap(first._type, second._type);
-    swap(first._linkedData, second._linkedData);
-    swap(first._agentID, second._agentID);
-    swap(first._wakeMicrostamp, second._wakeMicrostamp);
-    swap(first._lastHeardMicrostamp, second._lastHeardMicrostamp);
-    swap(first._bytesReceivedMovingAverage, second._bytesReceivedMovingAverage);
-}
-
 Agent::~Agent() {
     delete _publicSocket;
     delete _localSocket;
@@ -130,6 +69,7 @@ const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
 const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
 const char* AGENT_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
+const char* AGENT_TYPE_NAME_ANIMATION_SERVER = "Animation Server";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
@@ -146,6 +86,8 @@ const char* Agent::getTypeName() const {
             return AGENT_TYPE_NAME_AVATAR_MIXER;
         case AGENT_TYPE_AUDIO_INJECTOR:
             return AGENT_TYPE_NAME_AUDIO_INJECTOR;
+        case AGENT_TYPE_ANIMATION_SERVER:
+            return AGENT_TYPE_NAME_ANIMATION_SERVER;
         default:
             return AGENT_TYPE_NAME_UNKNOWN;
 	}

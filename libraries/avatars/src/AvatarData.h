@@ -52,25 +52,23 @@ public:
     _wantResIn(false),
     _wantColor(true) { };
     
+    const glm::vec3& getPosition() const { return _position; }
+    void setPosition(const glm::vec3 position) { _position = position; }
     
-    ~AvatarData();
-    
-    AvatarData* clone() const;
-    
-    const glm::vec3& getPosition() const;
-    void setPosition(glm::vec3 position);
-    void setHandPosition(glm::vec3 handPosition);
+    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
     //  Body Rotation
-    float getBodyYaw();
-    float getBodyPitch();
-    float getBodyRoll();
-    void  setBodyYaw(float bodyYaw);
-    void  setBodyPitch(float bodyPitch);
-    void  setBodyRoll(float bodyRoll);
+    float getBodyYaw() const { return _bodyYaw; }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
+    
+    float getBodyPitch() const { return _bodyPitch; }
+    void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
+    
+    float getBodyRoll() const {return _bodyRoll; }
+    void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     // Head Rotation
     void setHeadPitch(float p);
@@ -134,6 +132,10 @@ public:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     
 protected:
+    // privatize the copy constructor and assignment operator so they cannot be called
+    AvatarData(const AvatarData&);
+    AvatarData& operator= (const AvatarData&);
+    
     glm::vec3 _position;
     glm::vec3 _handPosition;
     

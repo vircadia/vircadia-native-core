@@ -470,13 +470,6 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-static void sendVoxelServerEraseAll() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"erase all");
-    int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
-
 static void sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
@@ -860,14 +853,14 @@ void Application::idle() {
         if (_myAvatar.isTransmitterV2Connected()) {
             const float HAND_FORCE_SCALING = 0.05f;
             const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
-            _myAvatar.setHandMovementValues(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
+            _myAvatar.setMovedHandOffset(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
                                                        handAcceleration[1] * HAND_FORCE_SCALING,
                                                        handAcceleration[2] * HAND_FORCE_SCALING));
         } else {
             // update behaviors for avatar hand movement: handControl takes mouse values as input,
             // and gives back 3D values modulated for smooth transitioning between interaction modes.
             _handControl.update(_mouseX, _mouseY);
-            _myAvatar.setHandMovementValues(_handControl.getValues());
+            _myAvatar.setMovedHandOffset(_handControl.getValues());
         }
         
         // tell my avatar if the mouse is being pressed...

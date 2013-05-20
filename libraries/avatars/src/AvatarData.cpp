@@ -19,7 +19,6 @@
 using namespace std;
 using avatars_lib::printLog;
 
-
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
     
@@ -32,14 +31,6 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
 int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
     *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
-}
-
-AvatarData::~AvatarData() {
-    
-}
-
-AvatarData* AvatarData::clone() const {
-    return new AvatarData(*this);
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -200,49 +191,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-const glm::vec3& AvatarData::getPosition() const {
-    return _position;
-}
-
-void AvatarData::setPosition(glm::vec3 position) {
-    _position = position;
-}
-
-void AvatarData::setHandPosition(glm::vec3 handPosition) {
-    _handPosition = handPosition;
-}
-
-float AvatarData::getBodyYaw() {
-    return _bodyYaw;
-}
-
-void AvatarData::setBodyYaw(float bodyYaw) {
-    _bodyYaw = bodyYaw;
-}
-
-float AvatarData::getBodyPitch() {
-    return _bodyPitch;
-}
-
-void AvatarData::setBodyPitch(float bodyPitch) {
-    _bodyPitch = bodyPitch;
-}
-
-float AvatarData::getBodyRoll() {
-    return _bodyRoll;
-}
-
-void AvatarData::setBodyRoll(float bodyRoll) {
-    _bodyRoll = bodyRoll;
-}
-
 void AvatarData::setHeadPitch(float p) {
     // Set head pitch and apply limits
     const float MAX_PITCH = 60;
     const float MIN_PITCH = -60;
     _headPitch = glm::clamp(p, MIN_PITCH, MAX_PITCH);
 }
-
-
-
-

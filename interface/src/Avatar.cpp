@@ -58,9 +58,7 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
-
 Avatar::Avatar(bool isMine) {
-    
     _orientation.setToIdentity();
     
     _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -92,11 +90,8 @@ Avatar::Avatar(bool isMine) {
     _interactingOther           = NULL;
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
-    
-    _head.initialize();
         
     _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _sphere                     = NULL;
     _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
     _distanceToNearestAvatar    = std::numeric_limits<float>::max();
     _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -109,57 +104,6 @@ Avatar::Avatar(bool isMine) {
         
     if (BALLS_ON)   { _balls = new Balls(100); }
     else            { _balls = NULL; }
-}
-
-Avatar::Avatar(const Avatar &otherAvatar) :_head(otherAvatar._head) { //include the copy constructor for head
-
-    _velocity                    = otherAvatar._velocity;
-    _thrust                      = otherAvatar._thrust;
-    _rotation                    = otherAvatar._rotation;
-    _bodyYaw                     = otherAvatar._bodyYaw;
-    _bodyPitch                   = otherAvatar._bodyPitch;
-    _bodyRoll                    = otherAvatar._bodyRoll;
-    _bodyPitchDelta              = otherAvatar._bodyPitchDelta;
-    _bodyYawDelta                = otherAvatar._bodyYawDelta;
-    _bodyRollDelta               = otherAvatar._bodyRollDelta;
-    _mousePressed                = otherAvatar._mousePressed;
-    _mode                        = otherAvatar._mode;
-    _isMine                      = otherAvatar._isMine;
-    _renderYaw                   = otherAvatar._renderYaw;
-    _maxArmLength                = otherAvatar._maxArmLength;
-    _transmitterTimer            = otherAvatar._transmitterTimer;
-    _transmitterIsFirstData      = otherAvatar._transmitterIsFirstData;
-    _transmitterTimeLastReceived = otherAvatar._transmitterTimeLastReceived;
-    _transmitterHz               = otherAvatar._transmitterHz;
-    _transmitterInitialReading   = otherAvatar._transmitterInitialReading;
-    _transmitterPackets          = otherAvatar._transmitterPackets;
-    _isTransmitterV2Connected    = otherAvatar._isTransmitterV2Connected;
-    _TEST_bigSphereRadius        = otherAvatar._TEST_bigSphereRadius;
-    _TEST_bigSpherePosition      = otherAvatar._TEST_bigSpherePosition;
-    _movedHandOffset             = otherAvatar._movedHandOffset;
-    
-    _orientation.set(otherAvatar._orientation);
-    
-    _sphere = NULL;
-    
-    initializeSkeleton();
-    
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = otherAvatar._driveKeys[i];
-    
-    _distanceToNearestAvatar = otherAvatar._distanceToNearestAvatar;
-    
-    initializeSkeleton();
-
-}
-
-Avatar::~Avatar()  {
-    if (_sphere != NULL) {
-        gluDeleteQuadric(_sphere);
-    }
-}
-
-Avatar* Avatar::clone() const {
-    return new Avatar(*this);
 }
 
 void Avatar::reset() {
@@ -472,8 +416,6 @@ void Avatar::simulate(float deltaTime) {
 	}
 }
 
-
-
 void Avatar::checkForMouseRayTouching() {
 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
@@ -489,12 +431,9 @@ void Avatar::checkForMouseRayTouching() {
     }
 }
 
-
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction ) {
     _mouseRayOrigin = origin; _mouseRayDirection = direction;    
 }
-
-
 
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
@@ -612,12 +551,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-
-float Avatar::getHeight() {
-    return _height;
-}
-
-
 void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
@@ -656,9 +589,6 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     }
 }
 
-
-
-
 void Avatar::updateAvatarCollisions(float deltaTime) {
         
     //  Reset detector for nearest avatar
@@ -688,9 +618,6 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
         }
     }
 }
-
-
-
 
 //detect collisions with other avatars and respond
 void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
@@ -746,8 +673,6 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                  _velocity *= bodyMomentum;
     otherAvatar->_velocity *= bodyMomentum;        
 }
-
-
 
 void Avatar::setDisplayingHead(bool displayingHead) {
     _displayingHead = displayingHead;
@@ -849,16 +774,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         
         glPopMatrix();
     }
-}
-
-
-
-void Avatar::setHandMovementValues(glm::vec3 handOffset) {
-	_movedHandOffset = handOffset;
-}
-
-AvatarMode Avatar::getMode() {
-	return _mode;
 }
 
 void Avatar::initializeSkeleton() {
@@ -1143,13 +1058,9 @@ const glm::vec3& Avatar::getHeadPosition() const {
     return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
 }
 
-
 glm::vec3 Avatar::getApproximateEyePosition() {
     return _head.getApproximateEyePosition();
 }
-
-
-
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
@@ -1401,7 +1312,6 @@ void Avatar::transmitterV2RenderLevels(int width, int height) {
     glEnd();
 }
 
-
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
     //  Given absolute position and angular velocity information, update the avatar's head angles
@@ -1440,8 +1350,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-
-
 const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
 
 void Avatar::writeAvatarDataToFile() {
@@ -1470,4 +1378,3 @@ void Avatar::readAvatarDataFromFile() {
         fclose(avatarFile);
     }
 }
-

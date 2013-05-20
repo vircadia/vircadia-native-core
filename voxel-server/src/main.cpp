@@ -19,6 +19,7 @@
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
 #include <SceneUtils.h>
+#include <PerfStat.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -31,6 +32,7 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.hio2";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.hio2";
+const double VOXEL_PERSIST_INTERVAL = 1000.0 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -54,6 +56,9 @@ bool wantLocalDomain = false;
 
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
+bool shouldShowAnimationDebug = false;
+
+
 
 EnvironmentData environmentData;
 
@@ -341,13 +346,33 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     } // end if bag wasn't empty, and so we sent stuff...
 }
 
+double lastPersistVoxels = 0;
 void persistVoxelsWhenDirty() {
+    double now = usecTimestampNow();
+    double sinceLastTime = (now - ::lastPersistVoxels) / 1000.0;
+
     // check the dirty bit and persist here...
-    if (::wantVoxelPersist && ::randomTree.isDirty()) {
-        printf("saving voxels to file...\n");
-        randomTree.writeToFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
-        randomTree.clearDirtyBit(); // tree is clean after saving
-        printf("DONE saving voxels to file...\n");
+    if (::wantVoxelPersist && ::randomTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
+
+        {
+            PerformanceWarning warn(::shouldShowAnimationDebug, 
+                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
+
+            // after done inserting all these voxels, then reaverage colors
+            randomTree.reaverageVoxelColors(randomTree.rootNode);
+        }
+
+
+        {
+            PerformanceWarning warn(::shouldShowAnimationDebug, 
+                                    "persistVoxelsWhenDirty() - writeToFileV2()", ::shouldShowAnimationDebug);
+
+            printf("saving voxels to file...\n");
+            randomTree.writeToFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            randomTree.clearDirtyBit(); // tree is clean after saving
+            printf("DONE saving voxels to file...\n");
+        }
+        ::lastPersistVoxels = usecTimestampNow();
     }
 }
 
@@ -420,6 +445,10 @@ int main(int argc, const char * argv[])
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
     printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+
+    const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
+    ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
+    printf("shouldShowAnimationDebug=%s\n", (::shouldShowAnimationDebug ? "yes" : "no"));
 
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
@@ -498,17 +527,26 @@ int main(int argc, const char * argv[])
 
     // loop to send to agents requesting data
     while (true) {
+    
         // check to see if we need to persist our voxel state
-        persistVoxelsWhenDirty();    
+        persistVoxelsWhenDirty();
     
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
+
+                PerformanceWarning warn(::shouldShowAnimationDebug,
+                                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                                        ::shouldShowAnimationDebug);
+            
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
-            	    destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
-            		receivedBytes,itemNumber);
+            	
+            	if (::shouldShowAnimationDebug) {
+                    printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
+                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                        receivedBytes,itemNumber);
+                }
             	int atByte = 3;
             	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
             	while (atByte < receivedBytes) {
@@ -521,28 +559,35 @@ int main(int argc, const char * argv[])
 					int red   = pVoxelData[voxelCodeSize+0];
 					int green = pVoxelData[voxelCodeSize+1];
 					int blue  = pVoxelData[voxelCodeSize+2];
-            		printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
-            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+
+                    if (::shouldShowAnimationDebug) {
+                        printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
+                            (::wantColorRandomizer?"yes":"no"),red,green,blue);
+                    }
+                    
 					red   = std::max(0,std::min(255,red   + colorRandomizer));
 					green = std::max(0,std::min(255,green + colorRandomizer));
 					blue  = std::max(0,std::min(255,blue  + colorRandomizer));
-            		printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
-            			(::wantColorRandomizer?"yes":"no"),red,green,blue);
+
+                    if (::shouldShowAnimationDebug) {
+                        printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
+                            (::wantColorRandomizer?"yes":"no"),red,green,blue);
+                    }
 					pVoxelData[voxelCodeSize+0]=red;
 					pVoxelData[voxelCodeSize+1]=green;
 					pVoxelData[voxelCodeSize+2]=blue;
 
-            		float* vertices = firstVertexForCode(pVoxelData);
-            		printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
-            		delete []vertices;
+                    if (::shouldShowAnimationDebug) {
+                        float* vertices = firstVertexForCode(pVoxelData);
+                        printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+                        delete []vertices;
+                    }
             		
 		            randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
             		// skip to next
             		pVoxelData+=voxelDataSize;
             		atByte+=voxelDataSize;
             	}
-            	// after done inserting all these voxels, then reaverage colors
-				randomTree.reaverageVoxelColors(randomTree.rootNode);
             }
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
@@ -575,6 +620,9 @@ int main(int argc, const char * argv[])
 						printf("got Z message == add scene\n");
 						addSphereScene(&randomTree);
 					}
+					if (0==strcmp(command,(char*)"a message")) {
+						printf("got Z message == a message, nothing to do, just report\n");
+					}
                     totalLength += commandLength+1;
 				}
 
@@ -587,9 +635,12 @@ int main(int argc, const char * argv[])
             if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
                 uint16_t agentID = 0;
                 unpackAgentId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &agentID);
-                agentList->addOrUpdateAgent(&agentPublicAddress, &agentPublicAddress, AGENT_TYPE_AVATAR, agentID);
+                Agent* agent = agentList->addOrUpdateAgent(&agentPublicAddress,
+                                                           &agentPublicAddress,
+                                                           AGENT_TYPE_AVATAR,
+                                                           agentID);
                 
-                agentList->updateAgentWithData(&agentPublicAddress, packetData, receivedBytes);
+                agentList->updateAgentWithData(agent, packetData, receivedBytes);
             }
         }
     }

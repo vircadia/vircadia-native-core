@@ -13,14 +13,14 @@
 
 #include <glm/glm.hpp>
 
+#include "AudioRingBuffer.h"
+
 const int BUFFER_LENGTH_BYTES = 512;
 const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
 const float SAMPLE_RATE = 22050.0f;
 const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES / SAMPLE_RATE) * 1000000;
 
 class AudioInjector {
-    friend class AudioInjectionManager;
-    
 public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
@@ -43,6 +43,7 @@ public:
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
 private:
+    unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
     int16_t* _audioSampleArray;
     int _numTotalSamples;
     glm::vec3 _position;
