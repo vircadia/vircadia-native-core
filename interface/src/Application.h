@@ -90,6 +90,7 @@ private slots:
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
+    void setWantsExistsBits(bool wantsExistsBits);
     void setWantsDelta(bool wantsDelta);
     void updateVoxelModeActions();
     void addVoxelInFrontOfAvatar();

@@ -1106,6 +1106,10 @@ void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
 
+void Application::setWantsExistsBits(bool wantsExistsBits) {
+    _myAvatar.setWantExistsBits(wantsExistsBits);
+    _voxels.setWantExistsBits(wantsExistsBits);
+}
 
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
@@ -1255,7 +1259,7 @@ void Application::initMenu() {
     QMenu* debugMenu = menuBar->addMenu("Debug");
     debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
     debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
-    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()));
+    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     debugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
     debugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
     debugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
@@ -1265,6 +1269,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+    debugMenu->addAction("Wants Exists Bits", this, SLOT(setWantsExistsBits(bool)), Qt::CTRL | Qt::Key_M)->setCheckable(true);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -2035,7 +2040,7 @@ void Application::deleteVoxelUnderCursor() {
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
         
         // delete the voxel locally so it disappears immediately            
-        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        //_voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         
         // remember the position for drag detection
         _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);

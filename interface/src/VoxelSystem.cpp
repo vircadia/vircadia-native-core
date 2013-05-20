@@ -102,21 +102,25 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     switch(command) {
         case PACKET_HEADER_VOXEL_DATA:
         {
+//printLog("PACKET_HEADER_VOXEL_DATA voxelData=");
+//outputBufferBits(sourceBuffer, numBytes);
+        
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - 1);
+            _tree->readBitstreamToTree(voxelData, numBytes - 1, true, _wantsExistBits);
         }
         break;
         case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
         {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - 1, false);
+            _tree->readBitstreamToTree(voxelData, numBytes - 1, false, _wantsExistBits);
         }
         break;
         case PACKET_HEADER_ERASE_VOXEL:
             // ask the tree to read the "remove" bitstream
-            _tree->processRemoveVoxelBitstream(sourceBuffer, numBytes);
+            //_tree->processRemoveVoxelBitstream(sourceBuffer, numBytes);
+            //printLog("ignoring PACKET_HEADER_ERASE_VOXEL\n");
         break;
         case PACKET_HEADER_Z_COMMAND:
 
@@ -419,6 +423,7 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
 
 void VoxelSystem::init() {
 
+    _wantsExistBits = false;
     _renderWarningsOn = false;
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;

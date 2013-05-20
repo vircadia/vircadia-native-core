@@ -242,8 +242,20 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
 }
 
 void VoxelNode::printDebugDetails(const char* label) const {
-    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f octcode=", label,
-        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x);
+    unsigned char childBits = 0;
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        if (_children[i]) {
+            setAtBit(childBits,i);            
+        }
+    }
+
+    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s isDirty=%s shouldRender=%s\n children=", label,
+        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x,
+        debugHelpers::booleanValue(isLeaf()), debugHelpers::booleanValue(isColored()), debugHelpers::booleanValue(isDirty()), 
+        debugHelpers::booleanValue(getShouldRender()) );
+        
+    outputBits(childBits,false);
+    printLog("\n octalCode=");
     printOctalCode(_octalCode);
 }
 

@@ -168,13 +168,15 @@ void resInVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor());
+                                                              agentData->getWantColor(),agentData->getWantExistsBits());
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    printf("sending packet...");
+                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -185,6 +187,8 @@ void resInVoxelDistributor(AgentList* agentList,
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                       agentData->getPacket(), agentData->getPacketLength());
+                    printf("sending packet...");
+                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -254,6 +258,10 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
                                                            agentData->nodeBag, wantDelta, lastViewFrustum);
 
+        // if nothing was found in view, send the root node.
+        if (agentData->nodeBag.isEmpty()){
+            agentData->nodeBag.insert(randomTree.rootNode);
+        }
         agentData->setViewSent(false);
 
     }
@@ -288,13 +296,17 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), wantDelta, lastViewFrustum);
+                                                              agentData->getWantColor(), agentData->getWantExistsBits(),
+                                                              wantDelta, lastViewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    
+                    printf("sending packet...");
+                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -305,6 +317,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
+                    printf("sending packet...");
+                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -532,6 +546,8 @@ int main(int argc, const char * argv[])
         persistVoxelsWhenDirty();
     
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
+        
+            //printf("got a packet with message %d %c\n",(int)packetData[0],packetData[0]);
         	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
