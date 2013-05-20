@@ -118,13 +118,15 @@ private:
     GLubyte* _readColorsArray;
     GLfloat* _writeVerticesArray;
     GLubyte* _writeColorsArray;
-    bool* _voxelDirtyArray;
+    bool* _writeVoxelDirtyArray;
+    bool* _readVoxelDirtyArray;
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInWriteArrays;
     unsigned long _voxelsInReadArrays;
     unsigned long _unusedArraySpace;
     
-    bool _renderFullVBO;
+    bool _writeRenderFullVBO;
+    bool _readRenderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
