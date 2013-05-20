@@ -36,7 +36,7 @@ public:
 
     void init();
     void simulate(float deltaTime) { };
-    void render();
+    void render(bool texture);
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};

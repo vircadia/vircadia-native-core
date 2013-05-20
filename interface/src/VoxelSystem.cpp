@@ -617,7 +617,7 @@ void VoxelSystem::updateVBOs() {
     _callsToTreesToArrays = 0; // clear it
 }
 
-void VoxelSystem::render() {
+void VoxelSystem::render(bool texture) {
     PerformanceWarning warn(_renderWarningsOn, "render()");
     glPushMatrix();
     updateVBOs();
@@ -635,9 +635,11 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    _perlinModulateProgram->bind();
-    glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-
+    if (texture) {
+        _perlinModulateProgram->bind();
+        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+    }
+    
     // for performance, disable blending and enable backface culling
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
@@ -650,9 +652,11 @@ void VoxelSystem::render() {
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
-    _perlinModulateProgram->release();
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    if (texture) {
+        _perlinModulateProgram->release();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);

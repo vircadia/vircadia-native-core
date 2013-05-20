@@ -1204,6 +1204,8 @@ void Application::initMenu() {
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
     _renderVoxels->setShortcut(Qt::Key_V);
+    (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
+    _renderVoxelTextures->setChecked(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
     _renderStarsOn->setShortcut(Qt::Key_Asterisk);
@@ -1680,7 +1682,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
-        _voxels.render();
+        _voxels.render(_renderVoxelTextures->isChecked());
     }
     
     // indicate what we'll be adding/removing in mouse mode, if anything

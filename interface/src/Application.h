@@ -134,6 +134,7 @@ private:
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _renderVoxels;          // Whether to render voxels
+    QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
     QAction* _renderAvatarsOn;       // Whether to render avatars 
