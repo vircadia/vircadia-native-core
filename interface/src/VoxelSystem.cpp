@@ -46,7 +46,8 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z- .
 
 VoxelSystem::VoxelSystem() {
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
-    _renderFullVBO = true;
+    _writeRenderFullVBO = true;
+    _readRenderFullVBO = true;
     _tree = new VoxelTree();
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
@@ -57,7 +58,8 @@ VoxelSystem::~VoxelSystem() {
     delete[] _writeVerticesArray;
     delete[] _readColorsArray;
     delete[] _writeColorsArray;
-    delete[] _voxelDirtyArray;
+    delete[] _writeVoxelDirtyArray;
+    delete[] _readVoxelDirtyArray;
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
@@ -180,14 +182,15 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
     }    
     
+    bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
         if (_renderWarningsOn) { 
-            sprintf(buffer, "newTreeToArrays() _renderFullVBO=%s", (_renderFullVBO ? "yes" : "no")); 
+            sprintf(buffer, "newTreeToArrays() _writeRenderFullVBO=%s", (_writeRenderFullVBO ? "yes" : "no")); 
         };
         PerformanceWarning warn(_renderWarningsOn, buffer);
         _callsToTreesToArrays++;
-        if (_renderFullVBO) {
+        if (_writeRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
@@ -195,16 +198,22 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         
         // since we called treeToArrays, we can assume that our VBO is in sync, and so partial updates to the VBOs are
         // ok again, until/unless we call removeOutOfView() 
-        _renderFullVBO = false; 
+        _writeRenderFullVBO = false; 
     } else {
         _voxelsUpdated = 0;
     }
+    
+    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
+    pthread_mutex_lock(&_bufferWriteLock);
+    
     if (_voxelsUpdated) {
         _voxelsDirty=true;
     }
 
     // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
-    copyWrittenDataToReadArrays();
+    copyWrittenDataToReadArrays(didWriteFullVBO);
+
+    pthread_mutex_unlock(&_bufferWriteLock);
 
     double end = usecTimestampNow();
     double elapsedmsec = (end - start) / 1000.0;
@@ -218,30 +227,32 @@ void VoxelSystem::cleanupRemovedVoxels() {
         while (!_removedVoxels.isEmpty()) {
             delete _removedVoxels.extract();
         }
-        _renderFullVBO = true; // if we remove voxels, we must update our full VBOs
+        _writeRenderFullVBO = true; // if we remove voxels, we must update our full VBOs
     }
 }
 
 void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
-    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    pthread_mutex_lock(&_bufferWriteLock);
     int bytesOfVertices = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
     int bytesOfColors   = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLubyte);
     memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
     memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
     _voxelsInReadArrays = _voxelsInWriteArrays;
-    pthread_mutex_unlock(&_bufferWriteLock);
+    
+    // clear our dirty flags
+    memset(_writeVoxelDirtyArray, false, _voxelsInWriteArrays * sizeof(bool));
+    
+    // let the reader know to get the full array
+    _readRenderFullVBO = true;
 }
 
 void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
-    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    pthread_mutex_lock(&_bufferWriteLock);
-
     glBufferIndex segmentStart = 0;
     glBufferIndex segmentEnd = 0;
     bool inSegment = false;
     for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
-        bool thisVoxelDirty = _voxelDirtyArray[i];
+        bool thisVoxelDirty = _writeVoxelDirtyArray[i];
+        _readVoxelDirtyArray[i] |= thisVoxelDirty;
+        _writeVoxelDirtyArray[i] = false;
         if (!inSegment) {
             if (thisVoxelDirty) {
                 segmentStart = i;
@@ -290,14 +301,12 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
 
     // update our length
     _voxelsInReadArrays = _voxelsInWriteArrays;
-
-    pthread_mutex_unlock(&_bufferWriteLock);
 }
 
-void VoxelSystem::copyWrittenDataToReadArrays() {
+void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
     PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()");
     if (_voxelsDirty && _voxelsUpdated) {
-        if (_renderFullVBO) {
+        if (fullVBOs) {
             copyWrittenDataToReadArraysFullVBOs();
         } else {
             copyWrittenDataToReadArraysPartialVBOs();
@@ -327,7 +336,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
             }
         }
     }
-    if (_renderFullVBO) {
+    if (_writeRenderFullVBO) {
         voxelsUpdated += updateNodeInArraysAsFullVBO(node);
     } else {
         voxelsUpdated += updateNodeInArraysAsPartialVBO(node);
@@ -365,7 +374,7 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
             *(writeColorsAt  +j) = node->getColor()[j % 3];
         }
         node->setBufferIndex(nodeIndex);
-        _voxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
+        _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
     }    
@@ -402,7 +411,7 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
             node->setBufferIndex(nodeIndex);
             _voxelsInWriteArrays++;
         }
-        _voxelDirtyArray[nodeIndex] = true;
+        _writeVoxelDirtyArray[nodeIndex] = true;
 
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
@@ -431,9 +440,11 @@ void VoxelSystem::init() {
     _voxelsInReadArrays = 0;
     _unusedArraySpace = 0;
 
-    // we will track individual dirty sections with this array of bools
-    _voxelDirtyArray = new bool[MAX_VOXELS_PER_SYSTEM];
-    memset(_voxelDirtyArray, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
+    // we will track individual dirty sections with these arrays of bools
+    _writeVoxelDirtyArray = new bool[MAX_VOXELS_PER_SYSTEM];
+    memset(_writeVoxelDirtyArray, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
+    _readVoxelDirtyArray = new bool[MAX_VOXELS_PER_SYSTEM];
+    memset(_readVoxelDirtyArray, false, MAX_VOXELS_PER_SYSTEM * sizeof(bool));
 
     // prep the data structures for incoming voxel data
     _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * MAX_VOXELS_PER_SYSTEM];
@@ -530,7 +541,7 @@ void VoxelSystem::init() {
 
 void VoxelSystem::updateFullVBOs() {
     glBufferIndex segmentStart = 0;
-    glBufferIndex segmentEnd = _voxelsInWriteArrays;
+    glBufferIndex segmentEnd = _voxelsInReadArrays;
 
     int segmentLength = (segmentEnd - segmentStart) + 1;
     GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
@@ -544,21 +555,21 @@ void VoxelSystem::updateFullVBOs() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
     
-    // consider the _voxelDirtyArray[] clean!
-    memset(_voxelDirtyArray, false, _voxelsInWriteArrays * sizeof(bool));
+    // consider the _readVoxelDirtyArray[] clean!
+    memset(_readVoxelDirtyArray, false, _voxelsInReadArrays * sizeof(bool));
 }
 
 void VoxelSystem::updatePartialVBOs() {
     glBufferIndex segmentStart = 0;
     glBufferIndex segmentEnd = 0;
     bool inSegment = false;
-    for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
-        bool thisVoxelDirty = _voxelDirtyArray[i];
+    for (glBufferIndex i = 0; i < _voxelsInReadArrays; i++) {
+        bool thisVoxelDirty = _readVoxelDirtyArray[i];
         if (!inSegment) {
             if (thisVoxelDirty) {
                 segmentStart = i;
                 inSegment = true;
-                _voxelDirtyArray[i] = false; // consider us clean!
+                _readVoxelDirtyArray[i] = false; // consider us clean!
             }
         } else {
             if (!thisVoxelDirty) {
@@ -578,13 +589,13 @@ void VoxelSystem::updatePartialVBOs() {
                 glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
                 glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
             }
-            _voxelDirtyArray[i] = false; // consider us clean!
+            _readVoxelDirtyArray[i] = false; // consider us clean!
         }
     }
     
     // if we got to the end of the array, and we're in an active dirty segment...
     if (inSegment) {
-        segmentEnd = _voxelsInWriteArrays - 1; 
+        segmentEnd = _voxelsInReadArrays - 1; 
         inSegment = false;
         int segmentLength = (segmentEnd - segmentStart) + 1;
         GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
@@ -603,22 +614,27 @@ void VoxelSystem::updatePartialVBOs() {
 void VoxelSystem::updateVBOs() {
     static char buffer[40] = { 0 };
     if (_renderWarningsOn) { 
-        sprintf(buffer, "updateVBOs() _renderFullVBO=%s", (_renderFullVBO ? "yes" : "no")); 
+        sprintf(buffer, "updateVBOs() _readRenderFullVBO=%s", (_readRenderFullVBO ? "yes" : "no"));
     };
     PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
-        if (_renderFullVBO) {
+        if (_readRenderFullVBO) {
             updateFullVBOs();
         } else {
             updatePartialVBOs();
         }
         _voxelsDirty = false;
+        _readRenderFullVBO = false;
     }
     _callsToTreesToArrays = 0; // clear it
 }
 
-void VoxelSystem::render() {
+void VoxelSystem::render(bool texture) {
     PerformanceWarning warn(_renderWarningsOn, "render()");
+    
+    // get the lock so that the update thread won't change anything
+    pthread_mutex_lock(&_bufferWriteLock);
+    
     glPushMatrix();
     updateVBOs();
     // tell OpenGL where to find vertex and color information
@@ -635,9 +651,11 @@ void VoxelSystem::render() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    _perlinModulateProgram->bind();
-    glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-
+    if (texture) {
+        _perlinModulateProgram->bind();
+        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+    }
+    
     // for performance, disable blending and enable backface culling
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
@@ -650,9 +668,11 @@ void VoxelSystem::render() {
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
-    _perlinModulateProgram->release();
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    if (texture) {
+        _perlinModulateProgram->release();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
@@ -664,6 +684,8 @@ void VoxelSystem::render() {
 
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
+    
+    pthread_mutex_unlock(&_bufferWriteLock);
 }
 
 int VoxelSystem::_nodeCount = 0;
@@ -1012,7 +1034,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     glBufferIndex maxDirty = 0;
 
     for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
-        if (_voxelDirtyArray[i]) {
+        if (_writeVoxelDirtyArray[i]) {
             minDirty = std::min(minDirty,i);
             maxDirty = std::max(maxDirty,i);
         }
