@@ -55,7 +55,9 @@ AvatarData::AvatarData() :
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
     _wantResIn(false),
-    _wantColor(true) 
+    _wantColor(true),
+    _wantDelta(true),
+    _wantExistsBits(true)
 {
 };
 
@@ -129,9 +131,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // voxel sending features...
     unsigned char wantItems = 0;
     if (_wantResIn)      { setAtBit(wantItems,WANT_RESIN_AT_BIT); }
-    if (_wantExistsBits) { setAtBit(wantItems,WANT_EXISTS_BITS_BIT); }
     if (_wantColor)      { setAtBit(wantItems,WANT_COLOR_AT_BIT); }
     if (_wantDelta)      { setAtBit(wantItems,WANT_DELTA_AT_BIT); }
+    if (_wantExistsBits) { setAtBit(wantItems,WANT_EXISTS_BITS_BIT); }
     *destinationBuffer++ = wantItems;
     
     return destinationBuffer - bufferStart;
@@ -212,9 +214,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char wantItems = 0;
     wantItems = (unsigned char)*sourceBuffer++;
     _wantResIn      = oneAtBit(wantItems,WANT_RESIN_AT_BIT);
-    _wantExistsBits = oneAtBit(wantItems,WANT_EXISTS_BITS_BIT);
     _wantColor      = oneAtBit(wantItems,WANT_COLOR_AT_BIT);
     _wantDelta      = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
+    _wantExistsBits = oneAtBit(wantItems,WANT_EXISTS_BITS_BIT);
 
     return sourceBuffer - startPosition;
 }

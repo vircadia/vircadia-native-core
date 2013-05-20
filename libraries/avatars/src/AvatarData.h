@@ -18,6 +18,7 @@
 const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
+const int WANT_EXISTS_BITS_BIT = 4;
 
 enum KeyState
 {
@@ -102,12 +103,14 @@ public:
     const std::string& chatMessage () const { return _chatMessage; }
 
     // related to Voxel Sending strategies
-    bool getWantResIn() const { return _wantResIn; }
-    bool getWantColor() const { return _wantColor; }
-    bool getWantDelta() const { return _wantDelta; }
-    void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
-    void setWantColor(bool wantColor) { _wantColor = wantColor; }
-    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
+    bool getWantResIn() const      { return _wantResIn; }
+    bool getWantColor() const      { return _wantColor; }
+    bool getWantDelta() const      { return _wantDelta; }
+    bool getWantExistsBits() const { return _wantExistsBits; }
+    void setWantResIn(bool wantResIn)           { _wantResIn = wantResIn; }
+    void setWantColor(bool wantColor)           { _wantColor = wantColor; }
+    void setWantDelta(bool wantDelta)           { _wantDelta = wantDelta; }
+    void setWantExistsBits(bool wantExistsBits) { _wantExistsBits = wantExistsBits; }
     
 protected:
     // privatize the copy constructor and assignment operator so they cannot be called
@@ -158,6 +161,7 @@ protected:
     bool _wantResIn;
     bool _wantColor;
     bool _wantDelta;
+    bool _wantExistsBits;
 };
 
 #endif /* defined(__hifi__AvatarData__) */
