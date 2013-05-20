@@ -78,7 +78,4 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount);
 
-void computeOffsetFrustum(float fovy, float aspect, float zNear, float zFar, float xOffset, float yOffset, float zOffset,
-    float& left, float& right, float& bottom, float& top, float& nearVal, float& farVal);
-
 #endif /* defined(__hifi__SharedUtil__) */

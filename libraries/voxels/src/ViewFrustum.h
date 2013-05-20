@@ -34,10 +34,10 @@ private:
     glm::quat   _eyeOffsetOrientation;
 
     // Calculated values
-    float       _nearHeight;
-    float       _nearWidth;
-    float       _farHeight;
-    float       _farWidth;
+    glm::vec3   _offsetPosition;
+    glm::vec3   _offsetDirection;
+    glm::vec3   _offsetUp;
+    glm::vec3   _offsetRight;
     glm::vec3   _farCenter;
     glm::vec3   _farTopLeft;      
     glm::vec3   _farTopRight;     
@@ -82,6 +82,11 @@ public:
     const glm::vec3& getEyeOffsetPosition()    const { return _eyeOffsetPosition;   };
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation;};
 
+    const glm::vec3& getOffsetPosition()    const { return _offsetPosition; };
+    const glm::vec3& getOffsetDirection()   const { return _offsetDirection;};
+    const glm::vec3& getOffsetUp()          const { return _offsetUp;       };
+    const glm::vec3& getOffsetRight()       const { return _offsetRight;    };
+
     const glm::vec3& getFarCenter()         const { return _farCenter;      };
     const glm::vec3& getFarTopLeft()        const { return _farTopLeft;     };  
     const glm::vec3& getFarTopRight()       const { return _farTopRight;    };
@@ -109,7 +114,11 @@ public:
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo) const;
     bool matches(const ViewFrustum* compareTo) const { return matches(*compareTo); };
+
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
+
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
+                               glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
     void printDebugDetails() const;
 };

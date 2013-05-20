@@ -8,11 +8,16 @@
 //
 //
 
+#include <algorithm>
+
+#include <glm/gtx/transform.hpp>
+
 #include "ViewFrustum.h"
 #include "SharedUtil.h"
 #include "voxels_Log.h"
 
 using voxels_lib::printLog;
+using namespace std;
 
 ViewFrustum::ViewFrustum() :
     _position(glm::vec3(0,0,0)),
@@ -23,10 +28,6 @@ ViewFrustum::ViewFrustum() :
     _aspectRatio(1.0),
     _nearClip(0.1),
     _farClip(500.0),
-    _nearHeight(0.0),
-    _nearWidth(0.0),
-    _farHeight(0.0),
-    _farWidth(0.0),
     _farCenter(glm::vec3(0,0,0)),
     _farTopLeft(glm::vec3(0,0,0)),
     _farTopRight(glm::vec3(0,0,0)),
@@ -42,77 +43,76 @@ ViewFrustum::ViewFrustum() :
 // ViewFrustum::calculateViewFrustum()
 //
 // Description: this will calculate the view frustum bounds for a given position
-// 				and direction
+//                 and direction
 //
 // Notes on how/why this works: 
 //     http://www.lighthouse3d.com/tutorials/view-frustum-culling/view-frustums-shape/
 //
 void ViewFrustum::calculate() {
+    // compute the off-axis frustum parameters as we would for glFrustum
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
+    computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    // start with the corners of the near frustum window
+    glm::vec3 topLeft(left, top, -nearVal);
+    glm::vec3 topRight(right, top, -nearVal);
+    glm::vec3 bottomLeft(left, bottom, -nearVal);
+    glm::vec3 bottomRight(right, bottom, -nearVal);
+    
+    // find the intersections of the rays through the corners with the clip planes in view space
+    _farTopLeft = topLeft * (-farClipPlane.w / glm::dot(topLeft, glm::vec3(farClipPlane)));
+    _farTopRight = topRight * (-farClipPlane.w / glm::dot(topRight, glm::vec3(farClipPlane)));
+    _farBottomLeft = bottomLeft * (-farClipPlane.w / glm::dot(bottomLeft, glm::vec3(farClipPlane)));
+    _farBottomRight = bottomRight * (-farClipPlane.w / glm::dot(bottomRight, glm::vec3(farClipPlane)));
+    _nearTopLeft = topLeft * (-nearClipPlane.w / glm::dot(topLeft, glm::vec3(nearClipPlane)));
+    _nearTopRight = topRight * (-nearClipPlane.w / glm::dot(topRight, glm::vec3(nearClipPlane)));
+    _nearBottomLeft = bottomLeft * (-nearClipPlane.w / glm::dot(bottomLeft, glm::vec3(nearClipPlane)));
+    _nearBottomRight = bottomRight * (-nearClipPlane.w / glm::dot(bottomRight, glm::vec3(nearClipPlane)));
+    
+    // compute the offset position and axes in world space
+    _offsetPosition = _position + _eyeOffsetPosition.x * _right + _eyeOffsetPosition.y * _up -
+        _eyeOffsetPosition.z * _direction;
+    _offsetDirection = _eyeOffsetOrientation * _direction;
+    _offsetUp = _eyeOffsetOrientation * _up;
+    _offsetRight = _eyeOffsetOrientation * _right;
+    
+    // now transform the intersections to world space
+    _farTopLeft = _offsetPosition + _farTopLeft.x * _offsetRight + _farTopLeft.y * _offsetUp -
+        _farTopLeft.z * _offsetDirection;
+    _farTopRight = _offsetPosition + _farTopRight.x * _offsetRight + _farTopRight.y * _offsetUp -
+        _farTopRight.z * _offsetDirection;
+    _farBottomLeft = _offsetPosition + _farBottomLeft.x * _offsetRight + _farBottomLeft.y * _offsetUp -
+        _farBottomLeft.z * _offsetDirection;
+    _farBottomRight = _offsetPosition + _farBottomRight.x * _offsetRight + _farBottomRight.y * _offsetUp -
+        _farBottomRight.z * _offsetDirection;
+    _nearTopLeft = _offsetPosition + _nearTopLeft.x * _offsetRight + _nearTopLeft.y * _offsetUp -
+        _nearTopLeft.z * _offsetDirection;
+    _nearTopRight = _offsetPosition + _nearTopRight.x * _offsetRight + _nearTopRight.y * _offsetUp -
+        _nearTopRight.z * _offsetDirection;
+    _nearBottomLeft = _offsetPosition + _nearBottomLeft.x * _offsetRight + _nearBottomLeft.y * _offsetUp -
+        _nearBottomLeft.z * _offsetDirection;
+    _nearBottomRight = _offsetPosition + _nearBottomRight.x * _offsetRight + _nearBottomRight.y * _offsetUp -
+        _nearBottomRight.z * _offsetDirection;
+    
+    // compute the six planes
+    // The planes are defined such that the normal points towards the inside of the view frustum. 
+    // Testing if an object is inside the view frustum is performed by computing on which side of 
+    // the plane the object resides. This can be done computing the signed distance from the point
+    // to the plane. If it is on the side that the normal is pointing, i.e. the signed distance 
+    // is positive, then it is on the right side of the respective plane. If an object is on the 
+    // right side of all six planes then the object is inside the frustum.
 
-    static const double PI_OVER_180			= 3.14159265359 / 180.0; // would be better if this was in a shared location
-	
-	glm::vec3 front    = _direction;
-	
-	float left, right, bottom, top, nearVal, farVal;
-	computeOffsetFrustum(_fieldOfView, _aspectRatio, _nearClip, _farClip,
-	    _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z,
-	    left, right, bottom, top, nearVal, farVal);
-	
-	_nearHeight = top - bottom; 
-	_nearWidth = right - left;
-	_farHeight = _nearHeight * (farVal / nearVal);
-	_farWidth = _nearWidth * (farVal / nearVal);
-	
-	// Calculating field of view.
-	float fovInRadians = _fieldOfView * PI_OVER_180;
-	
-	float twoTimesTanHalfFOV = 2.0f * tan(fovInRadians/2.0f);
-
-    // Do we need this?
-	//tang = (float)tan(ANG2RAD * angle * 0.5) ;
-
-    float nearClip = _nearClip;
-    float farClip  = _farClip;
-	
-	_nearHeight = (twoTimesTanHalfFOV * nearClip);
-	_nearWidth  = _nearHeight * _aspectRatio;
-	_farHeight  = (twoTimesTanHalfFOV * farClip);
-	_farWidth   = _farHeight * _aspectRatio;
-
-	float farHalfHeight    = (_farHeight * 0.5f);
-	float farHalfWidth     = (_farWidth  * 0.5f);
-	_farCenter       = _position+front * farClip;
-	_farTopLeft      = _farCenter  + (_up * farHalfHeight)  - (_right * farHalfWidth); 
-	_farTopRight     = _farCenter  + (_up * farHalfHeight)  + (_right * farHalfWidth); 
-	_farBottomLeft   = _farCenter  - (_up * farHalfHeight)  - (_right * farHalfWidth); 
-	_farBottomRight  = _farCenter  - (_up * farHalfHeight)  + (_right * farHalfWidth); 
-
-	float nearHalfHeight   = (_nearHeight * 0.5f);
-	float nearHalfWidth    = (_nearWidth  * 0.5f);
-	_nearCenter      = _position+front * nearClip;
-	_nearTopLeft     = _nearCenter + (_up * nearHalfHeight) - (_right * nearHalfWidth); 
-	_nearTopRight    = _nearCenter + (_up * nearHalfHeight) + (_right * nearHalfWidth); 
-	_nearBottomLeft  = _nearCenter - (_up * nearHalfHeight) - (_right * nearHalfWidth); 
-	_nearBottomRight = _nearCenter - (_up * nearHalfHeight) + (_right * nearHalfWidth); 
-
-	// compute the six planes
-	// The planes are defined such that the normal points towards the inside of the view frustum. 
-	// Testing if an object is inside the view frustum is performed by computing on which side of 
-	// the plane the object resides. This can be done computing the signed distance from the point
-	// to the plane. If it is on the side that the normal is pointing, i.e. the signed distance 
-	// is positive, then it is on the right side of the respective plane. If an object is on the 
-	// right side of all six planes then the object is inside the frustum.
-
-	// the function set3Points assumes that the points are given in counter clockwise order, assume you
-	// are inside the frustum, facing the plane. Start with any point, and go counter clockwise for
-	// three consecutive points
-	
-	_planes[TOP_PLANE   ].set3Points(_nearTopRight,_nearTopLeft,_farTopLeft);
-	_planes[BOTTOM_PLANE].set3Points(_nearBottomLeft,_nearBottomRight,_farBottomRight);
-	_planes[LEFT_PLANE  ].set3Points(_nearBottomLeft,_farBottomLeft,_farTopLeft);
-	_planes[RIGHT_PLANE ].set3Points(_farBottomRight,_nearBottomRight,_nearTopRight);
-	_planes[NEAR_PLANE  ].set3Points(_nearBottomRight,_nearBottomLeft,_nearTopLeft);
-	_planes[FAR_PLANE   ].set3Points(_farBottomLeft,_farBottomRight,_farTopRight);
+    // the function set3Points assumes that the points are given in counter clockwise order, assume you
+    // are inside the frustum, facing the plane. Start with any point, and go counter clockwise for
+    // three consecutive points
+    
+    _planes[TOP_PLANE   ].set3Points(_nearTopRight,_nearTopLeft,_farTopLeft);
+    _planes[BOTTOM_PLANE].set3Points(_nearBottomLeft,_nearBottomRight,_farBottomRight);
+    _planes[LEFT_PLANE  ].set3Points(_nearBottomLeft,_farBottomLeft,_farTopLeft);
+    _planes[RIGHT_PLANE ].set3Points(_farBottomRight,_nearBottomRight,_nearTopRight);
+    _planes[NEAR_PLANE  ].set3Points(_nearBottomRight,_nearBottomLeft,_nearTopLeft);
+    _planes[FAR_PLANE   ].set3Points(_farBottomLeft,_farBottomRight,_farTopRight);
 
 }
 
@@ -124,34 +124,35 @@ void ViewFrustum::dump() const {
     printLog("right.x=%f, right.y=%f, right.z=%f\n", _right.x, _right.y, _right.z);
 
     printLog("farDist=%f\n", _farClip);
-    printLog("farHeight=%f\n", _farHeight);
-    printLog("farWidth=%f\n", _farWidth);
 
     printLog("nearDist=%f\n", _nearClip);
-    printLog("nearHeight=%f\n", _nearHeight);
-    printLog("nearWidth=%f\n", _nearWidth);
+
+    printLog("eyeOffsetPosition=%f,%f,%f\n", _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
+    
+    printLog("eyeOffsetOrientation=%f,%f,%f,%f\n", _eyeOffsetOrientation.x, _eyeOffsetOrientation.y,
+        _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
 
     printLog("farCenter.x=%f,      farCenter.y=%f,      farCenter.z=%f\n",
-    	_farCenter.x, _farCenter.y, _farCenter.z);
+        _farCenter.x, _farCenter.y, _farCenter.z);
     printLog("farTopLeft.x=%f,     farTopLeft.y=%f,     farTopLeft.z=%f\n",
-    	_farTopLeft.x, _farTopLeft.y, _farTopLeft.z);
+        _farTopLeft.x, _farTopLeft.y, _farTopLeft.z);
     printLog("farTopRight.x=%f,    farTopRight.y=%f,    farTopRight.z=%f\n",
-    	_farTopRight.x, _farTopRight.y, _farTopRight.z);
+        _farTopRight.x, _farTopRight.y, _farTopRight.z);
     printLog("farBottomLeft.x=%f,  farBottomLeft.y=%f,  farBottomLeft.z=%f\n",
-    	_farBottomLeft.x, _farBottomLeft.y, _farBottomLeft.z);
+        _farBottomLeft.x, _farBottomLeft.y, _farBottomLeft.z);
     printLog("farBottomRight.x=%f, farBottomRight.y=%f, farBottomRight.z=%f\n",
-    	_farBottomRight.x, _farBottomRight.y, _farBottomRight.z);
+        _farBottomRight.x, _farBottomRight.y, _farBottomRight.z);
 
     printLog("nearCenter.x=%f,      nearCenter.y=%f,      nearCenter.z=%f\n",
-    	_nearCenter.x, _nearCenter.y, _nearCenter.z);
+        _nearCenter.x, _nearCenter.y, _nearCenter.z);
     printLog("nearTopLeft.x=%f,     nearTopLeft.y=%f,     nearTopLeft.z=%f\n",
-    	_nearTopLeft.x, _nearTopLeft.y, _nearTopLeft.z);
+        _nearTopLeft.x, _nearTopLeft.y, _nearTopLeft.z);
     printLog("nearTopRight.x=%f,    nearTopRight.y=%f,    nearTopRight.z=%f\n",
-    	_nearTopRight.x, _nearTopRight.y, _nearTopRight.z);
+        _nearTopRight.x, _nearTopRight.y, _nearTopRight.z);
     printLog("nearBottomLeft.x=%f,  nearBottomLeft.y=%f,  nearBottomLeft.z=%f\n",
-    	_nearBottomLeft.x, _nearBottomLeft.y, _nearBottomLeft.z);
+        _nearBottomLeft.x, _nearBottomLeft.y, _nearBottomLeft.z);
     printLog("nearBottomRight.x=%f, nearBottomRight.y=%f, nearBottomRight.z=%f\n",
-    	_nearBottomRight.x, _nearBottomRight.y, _nearBottomRight.z);
+        _nearBottomRight.x, _nearBottomRight.y, _nearBottomRight.z);
 }
 
 
@@ -174,30 +175,30 @@ ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const 
     //printf("ViewFrustum::pointInFrustum() point=%f,%f,%f\n",point.x,point.y,point.z);
     //dump();
 
-	ViewFrustum::location result = INSIDE;
-	for(int i=0; i < 6; i++) {
-	    float distance = _planes[i].distance(point);
+    ViewFrustum::location result = INSIDE;
+    for(int i=0; i < 6; i++) {
+        float distance = _planes[i].distance(point);
 
         //printf("plane[%d] %s -- distance=%f \n",i,debugPlaneName(i),distance);
-	
-		if (distance < 0) {
-			return OUTSIDE;
-		}
-	}
-	return(result);
+    
+        if (distance < 0) {
+            return OUTSIDE;
+        }
+    }
+    return(result);
 }
 
 ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
-	ViewFrustum::location result = INSIDE;
-	float distance;
-	for(int i=0; i < 6; i++) {
-		distance = _planes[i].distance(center);
-		if (distance < -radius)
-			return OUTSIDE;
-		else if (distance < radius)
-			result =  INTERSECT;
-	}
-	return(result);
+    ViewFrustum::location result = INSIDE;
+    float distance;
+    for(int i=0; i < 6; i++) {
+        distance = _planes[i].distance(center);
+        if (distance < -radius)
+            return OUTSIDE;
+        else if (distance < radius)
+            result =  INTERSECT;
+    }
+    return(result);
 }
 
 
@@ -205,8 +206,8 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
 
     //printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",
     //    box.getCorner().x,box.getCorner().y,box.getCorner().z,box.getSize().x);
-	ViewFrustum::location result = INSIDE;
-	for(int i=0; i < 6; i++) {
+    ViewFrustum::location result = INSIDE;
+    for(int i=0; i < 6; i++) {
 
         //printf("plane[%d] -- point(%f,%f,%f) normal(%f,%f,%f) d=%f \n",i,
         //    _planes[i].getPoint().x, _planes[i].getPoint().y, _planes[i].getPoint().z,
@@ -214,26 +215,26 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         //    _planes[i].getDCoefficient()
         //);
 
-	    glm::vec3 normal = _planes[i].getNormal();
-	    glm::vec3 boxVertexP = box.getVertexP(normal);
-	    float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
+        glm::vec3 normal = _planes[i].getNormal();
+        glm::vec3 boxVertexP = box.getVertexP(normal);
+        float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 
-	    glm::vec3 boxVertexN = box.getVertexN(normal);
-	    float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
-	    
+        glm::vec3 boxVertexN = box.getVertexN(normal);
+        float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
+        
         //printf("plane[%d] normal=(%f,%f,%f) bVertexP=(%f,%f,%f) planeToBoxVertexPDistance=%f  boxVertexN=(%f,%f,%f) planeToBoxVertexNDistance=%f\n",i, 
         //    normal.x,normal.y,normal.z,
         //    boxVertexP.x,boxVertexP.y,boxVertexP.z,planeToBoxVertexPDistance,
         //    boxVertexN.x,boxVertexN.y,boxVertexN.z,planeToBoxVertexNDistance
         //    );
 
-		if (planeToBoxVertexPDistance < 0) {
-			return OUTSIDE;
-		} else if (planeToBoxVertexNDistance < 0) {
-			result =  INTERSECT;
-		}
-	}
-	return(result);
+        if (planeToBoxVertexPDistance < 0) {
+            return OUTSIDE;
+        } else if (planeToBoxVertexNDistance < 0) {
+            result =  INTERSECT;
+        }
+    }
+    return(result);
  }
  
 bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
@@ -245,7 +246,9 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
            compareTo._fieldOfView == _fieldOfView &&
            compareTo._aspectRatio == _aspectRatio &&
            compareTo._nearClip    == _nearClip &&
-           compareTo._farClip     == _farClip;
+           compareTo._farClip     == _farClip &&
+           compareTo._eyeOffsetPosition == _eyeOffsetPosition &&
+           compareTo._eyeOffsetOrientation == _eyeOffsetOrientation;
 
     if (!result && debug) {
         printLog("ViewFrustum::matches()... result=%s\n", (result ? "yes" : "no"));
@@ -277,6 +280,15 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
         printLog("%s -- compareTo._farClip=%f _farClip=%f\n", 
             (compareTo._farClip == _farClip ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
+        printLog("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
+            (compareTo._eyeOffsetPosition == _eyeOffsetPosition ? "MATCHES " : "NO MATCH"),
+            compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
+            _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
+        printLog("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
+            (compareTo._eyeOffsetOrientation == _eyeOffsetOrientation ? "MATCHES " : "NO MATCH"),
+            compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
+                compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
+            _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
     }
     return result;
 }
@@ -288,6 +300,51 @@ void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3&
     direction = glm::normalize(origin - _position);
 }
 
+void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
+                                        glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+    // compute our dimensions the usual way
+    float hheight = _nearClip * tanf(_fieldOfView * 0.5f * PI_OVER_180);
+    float hwidth = _aspectRatio * hheight;
+    
+    // get our frustum corners in view space
+    glm::mat4 eyeMatrix = glm::mat4_cast(glm::inverse(_eyeOffsetOrientation)) * glm::translate(-_eyeOffsetPosition);
+    glm::vec4 corners[8];
+    float farScale = _farClip / _nearClip;
+    corners[0] = eyeMatrix * glm::vec4(-hwidth, -hheight, -_nearClip, 1.0f);
+    corners[1] = eyeMatrix * glm::vec4(hwidth, -hheight, -_nearClip, 1.0f);
+    corners[2] = eyeMatrix * glm::vec4(hwidth, hheight, -_nearClip, 1.0f);
+    corners[3] = eyeMatrix * glm::vec4(-hwidth, hheight, -_nearClip, 1.0f);
+    corners[4] = eyeMatrix * glm::vec4(-hwidth * farScale, -hheight * farScale, -_farClip, 1.0f);
+    corners[5] = eyeMatrix * glm::vec4(hwidth * farScale, -hheight * farScale, -_farClip, 1.0f);
+    corners[6] = eyeMatrix * glm::vec4(hwidth * farScale, hheight * farScale, -_farClip, 1.0f);
+    corners[7] = eyeMatrix * glm::vec4(-hwidth * farScale, hheight * farScale, -_farClip, 1.0f);
+    
+    // find the minimum and maximum z values, which will be our near and far clip distances
+    near = FLT_MAX;
+    far = -FLT_MAX;
+    for (int i = 0; i < 8; i++) {
+        near = min(near, -corners[i].z);
+        far = max(far, -corners[i].z);
+    }
+    
+    // get the near/far normal and use it to find the clip planes
+    glm::vec4 normal = eyeMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    nearClipPlane = glm::vec4(-normal.x, -normal.y, -normal.z, glm::dot(normal, corners[0]));
+    farClipPlane = glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, corners[4]));
+    
+    // get the extents at Z = -near
+    left = FLT_MAX;
+    right = -FLT_MAX;
+    bottom = FLT_MAX;
+    top = -FLT_MAX;
+    for (int i = 0; i < 4; i++) {
+        glm::vec4 intersection = corners[i] * (-near / corners[i].z);
+        left = min(left, intersection.x);
+        right = max(right, intersection.x);
+        bottom = min(bottom, intersection.y);
+        top = max(top, intersection.y);
+    }
+}
 
 void ViewFrustum::printDebugDetails() const {
     printLog("ViewFrustum::printDebugDetails()... \n");
@@ -299,5 +356,8 @@ void ViewFrustum::printDebugDetails() const {
     printLog("_aspectRatio=%f\n", _aspectRatio);
     printLog("_nearClip=%f\n", _nearClip);
     printLog("_farClip=%f\n", _farClip);
+    printLog("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
+    printLog("_eyeOffsetOrientation=%f,%f,%f,%f\n",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
+        _eyeOffsetOrientation.w );
 }
 
