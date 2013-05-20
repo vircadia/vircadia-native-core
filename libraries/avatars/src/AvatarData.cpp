@@ -19,6 +19,20 @@
 using namespace std;
 using avatars_lib::printLog;
 
+int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
+    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
+    
+    uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
+    memcpy(buffer, &angleHolder, sizeof(uint16_t));
+    
+    return sizeof(uint16_t);
+}
+
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
+    return sizeof(uint16_t);
+}
+
 AvatarData::AvatarData() :
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
@@ -45,21 +59,6 @@ AvatarData::AvatarData() :
     _wantDelta(false)
 {
     
-}
-
-
-int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
-    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
-    
-    uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
-    memcpy(buffer, &angleHolder, sizeof(uint16_t));
-    
-    return sizeof(uint16_t);
-}
-
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
-    return sizeof(uint16_t);
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
