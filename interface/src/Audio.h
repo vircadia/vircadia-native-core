@@ -38,7 +38,6 @@ public:
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
     
     void startEchoTest();
-    void addedPingFrame();
     void renderEchoCompare();
     
 private:    
@@ -49,6 +48,8 @@ private:
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
+    float _jitterBufferLengthMsecs;
+    short _jitterBufferSamples;
     int _wasStarved;
     float _lastInputLoudness;
     bool _mixerLoopbackFlag;
@@ -57,12 +58,15 @@ private:
     int _totalPacketsReceived;
     timeval _firstPlaybackTime;
     int _packetsReceivedThisPlayback;
+    // Echo Analysis
     bool _shouldStartEcho;
     bool _isSendingEchoPing;
-    int _echoPingFrameCount;
     int16_t* _echoInputSamples;
     int16_t* _echoOutputSamples;
-    bool _isGatheringEchoFrames;
+    int _echoInputFrameCountdown;
+    bool _isGatheringEchoOutputFrames;
+
+    
     
     // give access to AudioData class from audioCallback
     friend int audioCallback (const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);

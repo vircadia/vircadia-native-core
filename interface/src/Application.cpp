@@ -152,8 +152,8 @@ Application::Application(int& argc, char** argv) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0)  {  
-    
+        _bytesCount(0)
+{
     gettimeofday(&_applicationStartupTime, NULL);
     printLog("Interface Startup:\n");
     
@@ -169,7 +169,9 @@ Application::Application(int& argc, char** argv) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
+    
     AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
         AgentList::getInstance()->getAgentSocket()->setBlocking(false);
@@ -934,11 +936,13 @@ void Application::idle() {
         }
         
         //  Update from Mouse
-        QPoint mouse = QCursor::pos();
-        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                  _glWidget->mapFromGlobal(mouse).y(),
-                                  _glWidget->width(),
-                                  _glWidget->height());
+        if (_mouseLook->isChecked()) {
+            QPoint mouse = QCursor::pos();
+            _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
+                                      _glWidget->mapFromGlobal(mouse).y(),
+                                      _glWidget->width(),
+                                      _glWidget->height());
+        }
        
         //  Read serial port interface devices
         if (_serialPort.active) {
@@ -1195,6 +1199,8 @@ void Application::initMenu() {
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
+    (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
+    _mouseLook->setChecked(false);
     optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");

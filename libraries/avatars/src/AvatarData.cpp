@@ -61,7 +61,6 @@ AvatarData::AvatarData() :
 {
 };
 
-
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     
