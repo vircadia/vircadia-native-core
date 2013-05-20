@@ -19,6 +19,7 @@
 using namespace std;
 using avatars_lib::printLog;
 
+
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
     
@@ -32,6 +33,33 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
     *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
+
+AvatarData::AvatarData() :
+    _handPosition(0,0,0),
+    _bodyYaw(-90.0),
+    _bodyPitch(0.0),
+    _bodyRoll(0.0),
+    _headYaw(0),
+    _headPitch(0),
+    _headRoll(0),
+    _headLeanSideways(0),
+    _headLeanForward(0),
+    _audioLoudness(0),
+    _handState(0),
+    _cameraPosition(0,0,0),
+    _cameraDirection(0,0,0),
+    _cameraUp(0,0,0),
+    _cameraRight(0,0,0),
+    _cameraFov(0.0f),
+    _cameraAspectRatio(0.0f),
+    _cameraNearClip(0.0f),
+    _cameraFarClip(0.0f),
+    _keyState(NO_KEY_DOWN),
+    _wantResIn(false),
+    _wantColor(true),
+    _wantDelta(false)
+{
+};
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
