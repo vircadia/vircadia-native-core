@@ -394,10 +394,7 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
     );
     
-    _head.setBodyYaw(_bodyYaw);
-
-//test
-setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f));   
+    setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
 
     if (_interactingOther) {
         _head.setLooking(true);
@@ -409,7 +406,7 @@ setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         _head.setLooking(false);
     }    
     
-    
+    _head.setBodyYaw(_bodyYaw);
     _head.setLookatPosition(_lookatPosition);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
