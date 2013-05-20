@@ -169,6 +169,16 @@ void Camera::setFarClip    (float f) {
     _frustumNeedsReshape = true; 
 }
 
+void Camera::setEyeOffsetPosition  (const glm::vec3& p) {
+    _eyeOffsetPosition = p;
+    _frustumNeedsReshape = true;
+}
+
+void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
+    _eyeOffsetOrientation = o;
+    _frustumNeedsReshape = true;
+}
+
 void Camera::initialize() {
     _needsToInitialize = true;
     _modeShift = 0.0;
