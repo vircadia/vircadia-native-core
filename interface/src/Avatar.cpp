@@ -396,6 +396,7 @@ void Avatar::simulate(float deltaTime) {
     
     _head.setBodyYaw(_bodyYaw);
 
+//test
 setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f));   
 
     if (_interactingOther) {
