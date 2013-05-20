@@ -58,6 +58,7 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
+
 Avatar::Avatar(bool isMine) {
     _orientation.setToIdentity();
     
@@ -691,19 +692,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
     _cameraPosition = cameraPosition; // store this for use in various parts of the code
 
-    // render a simple round on the ground projected down from the avatar's position
-    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
-
-    /*
-    // show avatar position
-    glColor4f(0.5f, 0.5f, 0.5f, 0.6);
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-    glScalef(0.03, 0.03, 0.03);
-    glutSolidSphere(1, 10, 10);
-    glPopMatrix();
-    */
-    
     if (usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
@@ -714,10 +702,12 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         glPopMatrix();
     }
     
+    // render a simple round on the ground projected down from the avatar's position
+    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
+
     //render body
     renderBody(lookingInMirror);
         
-    
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
         _avatarTouch.render(_cameraPosition);
@@ -1038,10 +1028,12 @@ void Avatar::updateBodySprings(float deltaTime) {
             _joint[b].springyVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         
+        /*
         //apply forces from touch...
         if (_joint[b].touchForce > 0.0) {
             _joint[b].springyVelocity += _mouseRayDirection * _joint[b].touchForce * 0.7f;
         }
+        */
         
         //update position by velocity...
         _joint[b].springyPosition += _joint[b].springyVelocity * deltaTime;
