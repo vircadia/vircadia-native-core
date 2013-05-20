@@ -102,23 +102,21 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
 
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
     
+/****
     // we could be coming down a branch that was already created, so don't stomp on it.
     if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
         lastParentNode->addChildAtIndex(indexOfNewChild);
     }
-
-/****
+***/
     if (lastParentNode->isLeaf() && lastParentNode->isColored()) {
         // for colored leaves, we must add *all* the children
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-printLog(">>>>>>>> createMissingNode() add *all* the children - calling addChildAtIndex() at %d  <<<<<<<\n",i);
             lastParentNode->addChildAtIndex(i);
             lastParentNode->getChildAtIndex(i)->setColor(lastParentNode->getColor());
         }
     } else if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
         lastParentNode->addChildAtIndex(indexOfNewChild);
     }
-***/
 
     // This works because we know we traversed down the same tree so if the length is the same, then the whole code is the same
     if (*lastParentNode->getChildAtIndex(indexOfNewChild)->getOctalCode() == *codeToReach) {
@@ -304,15 +302,16 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
-void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage) {
-//printLog(">>>>>>>> deleteVoxelCodeFromTree() <<<<<<<\n");
+void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
+
     VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
 
     // If the node exists...
     int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
-    if (0 == memcmp(nodeToDelete->getOctalCode(),codeBuffer,lengthInBytes)) {
+    // if the code we got back matches our target, then we know we can actually delete it
+    if (0 == memcmp(nodeToDelete->getOctalCode(), codeBuffer, lengthInBytes)) {
         if (parentNode) {
             int childIndex = branchIndexWithDescendant(parentNode->getOctalCode(), codeBuffer);
 
@@ -320,6 +319,17 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage) {
                 nodeToDelete->stageForDeletion();
             } else {
                 parentNode->deleteChildAtIndex(childIndex);
+            }
+            
+            // ok, also make sure, that if this is the last child of this parent, then we should
+            // delete the parent also... is that right?
+            if (parentNode->getChildCount() < 2) {
+                printLog("deleteVoxelCodeFromTree()... parentNode->getChildCount() = %d\n", parentNode->getChildCount() );
+                parentNode->printDebugDetails("deleteVoxelCodeFromTree()");
+                if (parentNode->getChildCount() == 0 && !parentNode->isColored()) {
+                    printLog("deleteVoxelCodeFromTree()... no more children and not colored... deleting parentNode\n" );
+                    deleteVoxelCodeFromTree(parentNode->getOctalCode(),stage);
+                }
             }
             
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
@@ -332,7 +342,6 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage) {
             int index = branchIndexWithDescendant(ancestorNode->getOctalCode(), codeBuffer);
             for (int i = 0; i < 8; i++) {
                 if (i != index) {
-//printLog(">>>>>>>> deleteVoxelCodeFromTree() calling addChildAtIndex() at %d  <<<<<<<\n",i);
                     ancestorNode->addChildAtIndex(i);
                     ancestorNode->getChildAtIndex(i)->setColor(nodeToDelete->getColor());
                 }
@@ -340,7 +349,6 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage) {
             if (*ancestorNode->getOctalCode() == *codeBuffer - 1) {
                 break;
             }
-//printLog(">>>>>>>> deleteVoxelCodeFromTree() calling addChildAtIndex() at %d  <<<<<<<\n",index);
             ancestorNode->addChildAtIndex(index);
             ancestorNode = ancestorNode->getChildAtIndex(index);
             ancestorNode->setColor(nodeToDelete->getColor());
@@ -874,6 +882,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                                             unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                                             const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits, 
                                             bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const {
+
+//printLog("encodeTreeBitstreamRecursion() currentEncodeLevel=%d\n",currentEncodeLevel);
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -974,13 +984,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
     // if the caller wants to include childExistsBits, then include them even if not in view
     if (includeExistsBits) {
-printLog("includeExistsBits, writing color exists bits...\n");
-printLog("childrenColoredBits=");
-outputBits(childrenColoredBits);
-printLog(" colorsExistInTreeBits=");
-outputBits(colorsExistInTreeBits);
-printLog(" childrenExistInTreeBits=");
-outputBits(childrenExistInTreeBits);
+//printLog("includeExistsBits, writing color exists bits...\n");
+//printLog("childrenColoredBits=");
+//outputBits(childrenColoredBits);
+//printLog(" colorsExistInTreeBits=");
+//outputBits(colorsExistInTreeBits);
+//printLog(" childrenExistInTreeBits=");
+//outputBits(childrenExistInTreeBits);
 
         *writeToThisLevelBuffer = colorsExistInTreeBits;
         writeToThisLevelBuffer += sizeof(colorsExistInTreeBits); // move the pointer
@@ -1001,7 +1011,7 @@ outputBits(childrenExistInTreeBits);
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
     if (includeExistsBits) {
-printLog("includeExistsBits, writing subtree exists bits\n");        
+//printLog("includeExistsBits, writing subtree exists bits\n");        
         *writeToThisLevelBuffer = childrenExistInTreeBits;
         writeToThisLevelBuffer += sizeof(childrenExistInTreeBits); // move the pointer
         bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
@@ -1068,7 +1078,7 @@ printLog("includeExistsBits, writing subtree exists bits\n");
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
                 if (includeColor && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
-printLog("childTreeBytesOut==2.... lopping empty lower tree\n");
+//printLog("childTreeBytesOut==2.... lopping empty lower tree\n");
                 }
 
                 bytesAtThisLevel += childTreeBytesOut;
@@ -1078,7 +1088,7 @@ printLog("childTreeBytesOut==2.... lopping empty lower tree\n");
                 // If we had previously started writing, and if the child DIDN'T write any bytes,
                 // then we want to remove their bit from the childExistsPlaceHolder bitmask
                 if (childTreeBytesOut == 0) {
-printLog("childTreeBytesOut == 0... actually lopping empty lower tree\n");
+//printLog("childTreeBytesOut == 0... actually lopping empty lower tree\n");
                     // remove this child's bit...
                     childrenExistInPacketBits -= (1 << (7 - i));
                     // repair the child exists mask

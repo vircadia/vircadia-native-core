@@ -107,6 +107,10 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
+//            printLog("PACKET_HEADER_VOXEL_DATA = \n");
+//            outputBufferBits(sourceBuffer, numBytes);
+
+
             _tree->readBitstreamToTree(voxelData, numBytes - 1, true, _wantsExistBits);
         }
         break;

@@ -67,6 +67,7 @@ public:
     float distanceToPoint(const glm::vec3& point) const;
 
     bool isLeaf() const { return _childCount == 0; }
+    int getChildCount() const { return _childCount; }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };

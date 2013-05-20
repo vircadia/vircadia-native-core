@@ -56,8 +56,8 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _wantResIn(false),
     _wantColor(true),
-    _wantDelta(true),
-    _wantExistsBits(true)
+    _wantDelta(false),
+    _wantExistsBits(false)
 {
 };
 

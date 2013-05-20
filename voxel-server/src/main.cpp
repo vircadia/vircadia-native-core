@@ -175,8 +175,8 @@ void resInVoxelDistributor(AgentList* agentList,
                 } else {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
-                    printf("sending packet...");
-                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
+                    //printf("sending packet...");
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -187,8 +187,8 @@ void resInVoxelDistributor(AgentList* agentList,
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                       agentData->getPacket(), agentData->getPacketLength());
-                    printf("sending packet...");
-                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
+                    //printf("sending packet...");
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -236,6 +236,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                                   VoxelAgentData* agentData,
                                   bool viewFrustumChanged) {
 
+//printf("deepestLevelVoxelDistributor()\n");    
+
     int maxLevelReached = 0;
     double start = usecTimestampNow();
 
@@ -254,12 +256,15 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
+    
+//printf("bag empty, search for stuff in view...\n");    
         // If the bag was empty, then send everything in view, not just the delta
         maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
                                                            agentData->nodeBag, wantDelta, lastViewFrustum);
 
         // if nothing was found in view, send the root node.
         if (agentData->nodeBag.isEmpty()){
+//printf("huh... bag STILL empty, what to do? Add the root?...\n");    
             agentData->nodeBag.insert(randomTree.rootNode);
         }
         agentData->setViewSent(false);
@@ -305,8 +310,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
                     
-                    printf("sending packet...");
-                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
+                    //printf("sending packet...");
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -317,8 +322,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
-                    printf("sending packet...");
-                    outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
+                    //printf("sending packet...");
+                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
