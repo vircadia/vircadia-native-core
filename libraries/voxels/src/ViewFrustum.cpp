@@ -60,40 +60,32 @@ void ViewFrustum::calculate() {
     glm::vec3 bottomLeft(left, bottom, -nearVal);
     glm::vec3 bottomRight(right, bottom, -nearVal);
     
-    // find the intersections of the rays through the corners with the clip planes in view space
-    _farTopLeft = topLeft * (-farClipPlane.w / glm::dot(topLeft, glm::vec3(farClipPlane)));
-    _farTopRight = topRight * (-farClipPlane.w / glm::dot(topRight, glm::vec3(farClipPlane)));
-    _farBottomLeft = bottomLeft * (-farClipPlane.w / glm::dot(bottomLeft, glm::vec3(farClipPlane)));
-    _farBottomRight = bottomRight * (-farClipPlane.w / glm::dot(bottomRight, glm::vec3(farClipPlane)));
-    _nearTopLeft = topLeft * (-nearClipPlane.w / glm::dot(topLeft, glm::vec3(nearClipPlane)));
-    _nearTopRight = topRight * (-nearClipPlane.w / glm::dot(topRight, glm::vec3(nearClipPlane)));
-    _nearBottomLeft = bottomLeft * (-nearClipPlane.w / glm::dot(bottomLeft, glm::vec3(nearClipPlane)));
-    _nearBottomRight = bottomRight * (-nearClipPlane.w / glm::dot(bottomRight, glm::vec3(nearClipPlane)));
+    // find the intersections of the rays through the corners with the clip planes in view space,
+    // then transform them to world space
+    glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, -_direction)) *
+        glm::translate(_eyeOffsetPosition) * glm::mat4_cast(_eyeOffsetOrientation);
+    _farTopLeft = glm::vec3(worldMatrix * glm::vec4(topLeft *
+        (-farClipPlane.w / glm::dot(topLeft, glm::vec3(farClipPlane))), 1.0f));
+    _farTopRight = glm::vec3(worldMatrix * glm::vec4(topRight *
+        (-farClipPlane.w / glm::dot(topRight, glm::vec3(farClipPlane))), 1.0f));
+    _farBottomLeft = glm::vec3(worldMatrix * glm::vec4(bottomLeft *
+        (-farClipPlane.w / glm::dot(bottomLeft, glm::vec3(farClipPlane))), 1.0f));
+    _farBottomRight = glm::vec3(worldMatrix * glm::vec4(bottomRight *
+        (-farClipPlane.w / glm::dot(bottomRight, glm::vec3(farClipPlane))), 1.0f));
+    _nearTopLeft = glm::vec3(worldMatrix * glm::vec4(topLeft *
+        (-nearClipPlane.w / glm::dot(topLeft, glm::vec3(nearClipPlane))), 1.0f));
+    _nearTopRight = glm::vec3(worldMatrix * glm::vec4(topRight *
+        (-nearClipPlane.w / glm::dot(topRight, glm::vec3(nearClipPlane))), 1.0f));
+    _nearBottomLeft = glm::vec3(worldMatrix * glm::vec4(bottomLeft *
+        (-nearClipPlane.w / glm::dot(bottomLeft, glm::vec3(nearClipPlane))), 1.0f));
+    _nearBottomRight = glm::vec3(worldMatrix * glm::vec4(bottomRight *
+        (-nearClipPlane.w / glm::dot(bottomRight, glm::vec3(nearClipPlane))), 1.0f));
     
     // compute the offset position and axes in world space
-    _offsetPosition = _position + _eyeOffsetPosition.x * _right + _eyeOffsetPosition.y * _up -
-        _eyeOffsetPosition.z * _direction;
-    _offsetDirection = _eyeOffsetOrientation * _direction;
-    _offsetUp = _eyeOffsetOrientation * _up;
-    _offsetRight = _eyeOffsetOrientation * _right;
-    
-    // now transform the intersections to world space
-    _farTopLeft = _offsetPosition + _farTopLeft.x * _offsetRight + _farTopLeft.y * _offsetUp -
-        _farTopLeft.z * _offsetDirection;
-    _farTopRight = _offsetPosition + _farTopRight.x * _offsetRight + _farTopRight.y * _offsetUp -
-        _farTopRight.z * _offsetDirection;
-    _farBottomLeft = _offsetPosition + _farBottomLeft.x * _offsetRight + _farBottomLeft.y * _offsetUp -
-        _farBottomLeft.z * _offsetDirection;
-    _farBottomRight = _offsetPosition + _farBottomRight.x * _offsetRight + _farBottomRight.y * _offsetUp -
-        _farBottomRight.z * _offsetDirection;
-    _nearTopLeft = _offsetPosition + _nearTopLeft.x * _offsetRight + _nearTopLeft.y * _offsetUp -
-        _nearTopLeft.z * _offsetDirection;
-    _nearTopRight = _offsetPosition + _nearTopRight.x * _offsetRight + _nearTopRight.y * _offsetUp -
-        _nearTopRight.z * _offsetDirection;
-    _nearBottomLeft = _offsetPosition + _nearBottomLeft.x * _offsetRight + _nearBottomLeft.y * _offsetUp -
-        _nearBottomLeft.z * _offsetDirection;
-    _nearBottomRight = _offsetPosition + _nearBottomRight.x * _offsetRight + _nearBottomRight.y * _offsetUp -
-        _nearBottomRight.z * _offsetDirection;
+    _offsetPosition = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    _offsetDirection = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
+    _offsetUp = glm::vec3(worldMatrix * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+    _offsetRight = glm::vec3(worldMatrix * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
     
     // compute the six planes
     // The planes are defined such that the normal points towards the inside of the view frustum. 

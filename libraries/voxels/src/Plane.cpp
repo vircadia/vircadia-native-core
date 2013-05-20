@@ -28,7 +28,7 @@ void Plane::set3Points(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3
 
     // this will be perpendicular to both lines
     _normal = glm::cross(linev1v2,linev1v3);
-    glm::normalize(_normal);
+    _normal = glm::normalize(_normal);
 
     // this is a point on the plane
     _point = v2;
