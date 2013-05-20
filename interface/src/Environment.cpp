@@ -21,7 +21,6 @@ void Environment::init() {
 }
 
 void Environment::renderAtmosphere(Camera& camera) {    
-    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(getAtmosphereCenter().x, getAtmosphereCenter().y, getAtmosphereCenter().z);
 
@@ -72,10 +71,7 @@ void Environment::renderAtmosphere(Camera& camera) {
     
     program->release();
     
-    glPopMatrix();
-       
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();   
+    glPopMatrix();  
 }
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
