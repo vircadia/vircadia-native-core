@@ -1710,7 +1710,6 @@ void Application::displaySide(Camera& whichCamera) {
         
         // Render my own Avatar 
         _myAvatar.render(_lookingInMirror, _myCamera.getPosition());
-        //_avatarRenderer.render();
     }
     
     //  Render the world box
