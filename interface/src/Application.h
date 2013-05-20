@@ -105,7 +105,7 @@ private:
     void init();
     
     void updateAvatar(float deltaTime);
-    void loadViewFrustum(ViewFrustum& viewFrustum);
+    void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     void displayOculus(Camera& whichCamera);
     void displaySide(Camera& whichCamera);

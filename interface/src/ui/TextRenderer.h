@@ -26,7 +26,7 @@ public:
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
     TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-                 EffectType effect = NO_EFFECT, int effectThickness = 2);
+                 EffectType effect = NO_EFFECT, int effectThickness = 1);
     ~TextRenderer();
 
     const QFontMetrics& metrics() const { return _metrics; }

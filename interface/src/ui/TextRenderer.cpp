@@ -139,7 +139,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
         painter.setFont(_font);
         if (_effectType == SHADOW_EFFECT) {
             for (int i = 0; i < _effectThickness; i++) {
-                painter.drawText(-bounds.x() - i, -bounds.y() + i, ch);
+                painter.drawText(-bounds.x() - 1 - i, -bounds.y() + 1 + i, ch);
             }
         } else if (_effectType == OUTLINE_EFFECT) {
             QPainterPath path;
