@@ -247,9 +247,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
 
     if (::debugVoxelSending) {
         printf("deepestLevelVoxelDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
-                viewFrustumChanged ? "yes" : "no", 
-                agentData->nodeBag.isEmpty() ? "yes" : "no", 
-                agentData->getViewSent() ? "yes" : "no"
+                debug::valueOf(viewFrustumChanged), debug::valueOf(agentData->nodeBag.isEmpty()), 
+                debug::valueOf(agentData->getViewSent())
             );
     }
     
@@ -416,7 +415,7 @@ void *distributeVoxelsToListeners(void *args) {
     		if (agentData) {
     		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
                 if (::debugVoxelSending) {
-    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", (viewFrustumChanged ? "yes" : "no"));
+    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
     		    }
 
                 if (agentData->getWantResIn()) { 
@@ -468,22 +467,22 @@ int main(int argc, const char * argv[])
 
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
-    printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+    printf("debugVoxelSending=%s\n", debug::valueOf(::debugVoxelSending));
 
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
-    printf("shouldShowAnimationDebug=%s\n", (::shouldShowAnimationDebug ? "yes" : "no"));
+    printf("shouldShowAnimationDebug=%s\n", debug::valueOf(::shouldShowAnimationDebug));
 
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-    printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
+    printf("wantColorRandomizer=%s\n", debug::valueOf(::wantColorRandomizer));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
     if (cmdOptionExists(argc, argv, NO_VOXEL_PERSIST)) {
         ::wantVoxelPersist = false;
     }
-    printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
+    printf("wantVoxelPersist=%s\n", debug::valueOf(::wantVoxelPersist));
 
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
@@ -491,7 +490,7 @@ int main(int argc, const char * argv[])
         printf("loading voxels from file...\n");
         persistantFileRead = ::randomTree.readFromFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        printf("DONE loading voxels from file... fileRead=%s\n", persistantFileRead ? "yes" : "no" );
+        printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         unsigned long nodeCount = ::randomTree.getVoxelCount();
         printf("Nodes after loading scene %ld nodes\n", nodeCount);
     }

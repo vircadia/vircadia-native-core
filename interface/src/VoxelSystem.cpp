@@ -182,7 +182,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
         if (_renderWarningsOn) { 
-            sprintf(buffer, "newTreeToArrays() _writeRenderFullVBO=%s", (_writeRenderFullVBO ? "yes" : "no")); 
+            sprintf(buffer, "newTreeToArrays() _writeRenderFullVBO=%s", debug::valueOf(_writeRenderFullVBO)); 
         };
         PerformanceWarning warn(_renderWarningsOn, buffer);
         _callsToTreesToArrays++;
@@ -610,7 +610,7 @@ void VoxelSystem::updatePartialVBOs() {
 void VoxelSystem::updateVBOs() {
     static char buffer[40] = { 0 };
     if (_renderWarningsOn) { 
-        sprintf(buffer, "updateVBOs() _readRenderFullVBO=%s", (_readRenderFullVBO ? "yes" : "no"));
+        sprintf(buffer, "updateVBOs() _readRenderFullVBO=%s", debug::valueOf(_readRenderFullVBO));
     };
     PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
     if (_voxelsDirty) {
@@ -1011,7 +1011,7 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
         if (args->hasIndexFound[nodeIndex]) {
             args->duplicateVBOIndex++;
             printLog("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s \n", nodeIndex, 
-                    node->isDirty() ? "yes" : "no" , node->getShouldRender()  ? "yes" : "no" );
+                    debug::valueOf(node->isDirty()), debug::valueOf(node->getShouldRender()));
         } else {
             args->hasIndexFound[nodeIndex] = true;
         }
@@ -1040,7 +1040,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     args.expectedMax = _voxelsInWriteArrays;
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", (_voxelsDirty ? "yes" : "no"), 
+    printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
         _voxelsInWriteArrays, minDirty, maxDirty);
 
     printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",

@@ -278,8 +278,8 @@ void VoxelNode::printDebugDetails(const char* label) const {
 
     printLog("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s isDirty=%s shouldRender=%s\n children=", label,
         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x,
-        debugHelpers::booleanValue(isLeaf()), debugHelpers::booleanValue(isColored()), debugHelpers::booleanValue(isDirty()), 
-        debugHelpers::booleanValue(getShouldRender()) );
+        debug::valueOf(isLeaf()), debug::valueOf(isColored()), debug::valueOf(isDirty()), 
+        debug::valueOf(getShouldRender()) );
         
     outputBits(childBits,false);
     printLog("\n octalCode=");

@@ -243,7 +243,7 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
            compareTo._eyeOffsetOrientation == _eyeOffsetOrientation;
 
     if (!result && debug) {
-        printLog("ViewFrustum::matches()... result=%s\n", (result ? "yes" : "no"));
+        printLog("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
         printLog("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
             (compareTo._position == _position ? "MATCHES " : "NO MATCH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
