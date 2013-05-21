@@ -79,39 +79,39 @@ protected:
 };
 
 void GLCanvas::initializeGL() {
-    static_cast<Application*>(QCoreApplication::instance())->initializeGL();
+    Application::getInstance()->initializeGL();
 }
 
 void GLCanvas::paintGL() {
-    static_cast<Application*>(QCoreApplication::instance())->paintGL();
+    Application::getInstance()->paintGL();
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    static_cast<Application*>(QCoreApplication::instance())->resizeGL(width, height);
+    Application::getInstance()->resizeGL(width, height);
 }
 
 void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->keyPressEvent(event);
+    Application::getInstance()->keyPressEvent(event);
 }
 
 void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->keyReleaseEvent(event);
+    Application::getInstance()->keyReleaseEvent(event);
 }
 
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mouseMoveEvent(event);
+    Application::getInstance()->mouseMoveEvent(event);
 }
 
 void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mousePressEvent(event);
+    Application::getInstance()->mousePressEvent(event);
 }
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mouseReleaseEvent(event);
+    Application::getInstance()->mouseReleaseEvent(event);
 }
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->wheelEvent(event);
+    Application::getInstance()->wheelEvent(event);
 }
 
 Application::Application(int& argc, char** argv) :
@@ -153,6 +153,7 @@ Application::Application(int& argc, char** argv) :
         _bytesCount(0)
 {
     gettimeofday(&_applicationStartupTime, NULL);
+    _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
     _voxels.setViewFrustum(&_viewFrustum);
@@ -308,6 +309,10 @@ void Application::paintGL() {
                                             0.0f,
                                             //-_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
+                //  Take a look at whether we are inside head, don't render it if so.
+                const float HEAD_RENDER_DISTANCE = 0.5;
+                glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
+                if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) { _myAvatar.setDisplayingHead(false); }
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
@@ -401,14 +406,16 @@ void Application::paintGL() {
         }
     }
     
-    _frameCount++;
     
+    _frameCount++;
+        
     //  If application has just started, report time from startup to now (first frame display)
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
         _justStarted = false;
-        char title[30];
-        snprintf(title, 30, "Interface: %4.2f seconds", startupTime);
+        char title[50];
+        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
+        printLog("%s", title);
         _window->setWindowTitle(title);
     }
 }
@@ -839,19 +846,18 @@ void Application::idle() {
     timeval check;
     gettimeofday(&check, NULL);
     
-    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
+    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
         
         float deltaTime = 1.f/_fps;
         
-        //  Use Transmitter Hand to move hand if connected, else use mouse 
-        if (_myAvatar.isTransmitterV2Connected()) {
-            const float HAND_FORCE_SCALING = 0.05f;
-            const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
-            _myAvatar.setMovedHandOffset(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
-                                                       handAcceleration[1] * HAND_FORCE_SCALING,
-                                                       handAcceleration[2] * HAND_FORCE_SCALING));
+        //  Use Transmitter Hand to move hand if connected, else use mouse
+        if (_myTransmitter.isConnected()) {
+            const float HAND_FORCE_SCALING = 0.01f;
+            glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
+            glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
+            _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
         } else {
             // update behaviors for avatar hand movement: handControl takes mouse values as input,
             // and gives back 3D values modulated for smooth transitioning between interaction modes.
@@ -957,20 +963,26 @@ void Application::idle() {
             networkReceive(0);
         }
         
-        //loop through all the remote avatars and simulate them...
+        //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
         agentList->lock();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime);
+                avatar->simulate(deltaTime, false);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
         agentList->unlock();
     
+        //  Simulate myself
         _myAvatar.setGravity(getGravity(_myAvatar.getPosition()));
-        _myAvatar.simulate(deltaTime);
+        if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
+            _myAvatar.simulate(deltaTime, &_myTransmitter);
+        } else {
+            _myAvatar.simulate(deltaTime, NULL);
+
+        }
         
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
@@ -1037,7 +1049,7 @@ void Application::setRenderFirstPerson(bool firstPerson) {
         a.distance  = 0.0f;
         a.tightness = 100.0f;
         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-        _myAvatar.setDisplayingHead(false);  
+        _myAvatar.setDisplayingHead(true);
     
     } else {
         Camera::CameraFollowingAttributes a;            
@@ -1197,6 +1209,9 @@ void Application::initMenu() {
     _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
+    (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
+    _transmitterDrives->setChecked(true);
+
     optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
@@ -1344,7 +1359,7 @@ void Application::updateAvatar(float deltaTime) {
     float measuredYawRate = _serialPort.getLastYawRate();
     
     //  Update gyro-based mouse (X,Y on screen)
-    const float MIN_MOUSE_RATE = 1.0;
+    const float MIN_MOUSE_RATE = 3.0;
     const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
     const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
@@ -1750,8 +1765,8 @@ void Application::displayOverlay() {
     if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
     
     //  Show hand transmitter data if detected
-    if (_myAvatar.isTransmitterV2Connected()) {
-        _myAvatar.transmitterV2RenderLevels(_glWidget->width(), _glWidget->height());
+    if (_myTransmitter.isConnected()) {
+        _myTransmitter.renderLevels(_glWidget->width(), _glWidget->height());
     }
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
@@ -2048,6 +2063,7 @@ void Application::resetSensors() {
     }
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
+    _myTransmitter.resetLevels();
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -2091,7 +2107,7 @@ void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
     
-    Application* app = static_cast<Application*>(QCoreApplication::instance());
+    Application* app = Application::getInstance();
     while (!app->_stopNetworkReceiveThread) {
         // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
         if (app->_wantToKillLocalVoxels) {
@@ -2104,13 +2120,9 @@ void* Application::networkReceive(void* args) {
             app->_bytesCount += bytesReceived;
             
             switch (app->_incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA_V1:
-                    //  V1 = android app, or the Google Glass 
-                    app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
-                    break;
                 case PACKET_HEADER_TRANSMITTER_DATA_V2:
                     //  V2 = IOS transmitter app 
-                    app->_myAvatar.processTransmitterDataV2(app->_incomingPacket, bytesReceived);
+                    app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
                     
                     break;
                 case PACKET_HEADER_MIXED_AUDIO:
