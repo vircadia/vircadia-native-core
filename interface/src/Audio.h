@@ -49,7 +49,6 @@ private:
     float _averagedLatency;
     float _measuredJitter;
     float _jitterBufferLengthMsecs;
-    short _jitterBufferSamples;
     int _wasStarved;
     float _lastInputLoudness;
     bool _mixerLoopbackFlag;
