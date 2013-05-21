@@ -126,10 +126,9 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
     // give this destination node the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     unsigned char colorInPacketMask = *nodeData;
-    unsigned char colorInTreeMask   = includeExistsBits ? *(nodeData+1) : ALL_CHILDREN_ASSUMED_TO_EXIST; 
 
     // instantiate variable for bytes already read
-    int bytesRead = includeExistsBits ? sizeof(colorInPacketMask) + sizeof(colorInTreeMask): sizeof(colorInPacketMask);
+    int bytesRead = sizeof(colorInPacketMask);
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(colorInPacketMask, i)) {
@@ -881,7 +880,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
 
     unsigned char childrenExistInTreeBits = 0;
-    unsigned char colorsExistInTreeBits = 0;
     unsigned char childrenExistInPacketBits = 0;
     unsigned char childrenColoredBits = 0;
     int inViewCount = 0;
@@ -896,9 +894,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         // if the caller wants to include childExistsBits, then include them even if not in view
         if (includeExistsBits && childNode) {
             childrenExistInTreeBits += (1 << (7 - i));
-            if (childNode->isColored()) {
-                colorsExistInTreeBits += (1 << (7 - i));
-            }
         }
         
         bool childIsInView  = (childNode && (!viewFrustum || childNode->isInView(*viewFrustum)));
@@ -933,13 +928,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     *writeToThisLevelBuffer = childrenColoredBits;
     writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
-    // if the caller wants to include childExistsBits, then include them even if not in view
-    if (includeExistsBits) {
-        *writeToThisLevelBuffer = colorsExistInTreeBits;
-        writeToThisLevelBuffer += sizeof(colorsExistInTreeBits); // move the pointer
-        bytesAtThisLevel += sizeof(colorsExistInTreeBits); // keep track of byte count
-    }
-    
+
     // write the color data...
     if (includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
