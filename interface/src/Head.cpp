@@ -43,7 +43,7 @@ Head::Head() :
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
-    _lookatPosition(0.0f, 0.0f, 0.0f),
+    //_lookatPosition(0.0f, 0.0f, 0.0f),
     //_yaw(0.0f),
     //_pitch(0.0f),
     //_roll(0.0f),
@@ -100,29 +100,55 @@ void Head::simulate(float deltaTime, bool isMine) {
     //generate orientation directions based on Euler angles...
     _orientation.setToPitchYawRoll
     (
-                            _headRotation.x, 
-        _bodyRotation.y +   _headRotation.y, 
-                            _headRotation.z
+                            _pitch, 
+        _bodyRotation.y +   _yaw, 
+                            _roll
     );
 
     //calculate the eye positions (algorithm still being designed)
-    updateEyePositions();
+    float rightShift = _scale * 0.27f;
+    float upShift    = _scale * 0.38f;
+    float frontShift = _scale * 0.8f;
+    
+    _leftEyePosition  = _position 
+                      - _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
+    _rightEyePosition = _position
+                      + _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
+
+    rightShift = _scale * 1.0f;
+    upShift    = _scale * 0.0f;
+    frontShift = _scale * 0.0f;
+
+    _leftEarPosition  = _position 
+                      - _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
+    _rightEarPosition = _position
+                      + _orientation.getRight() * rightShift 
+                      + _orientation.getUp   () * upShift 
+                      + _orientation.getFront() * frontShift;
+
+
 
     //  Decay head back to center if turned on
     if (isMine && _returnHeadToCenter) {
         //  Decay back toward center
-        _headRotation.x *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _headRotation.y *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _headRotation.z *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _yaw *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _roll *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
     }
     
     //  For invensense gyro, decay only slightly when roughly centered
     if (isMine) {
         const float RETURN_RANGE = 15.0;
         const float RETURN_STRENGTH = 2.0;
-        if (fabs(_headRotation.x) < RETURN_RANGE) { _headRotation.x *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headRotation.y) < RETURN_RANGE) { _headRotation.y *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_headRotation.z) < RETURN_RANGE) { _headRotation.z *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_pitch) < RETURN_RANGE) { _pitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_yaw) < RETURN_RANGE) { _yaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_roll) < RETURN_RANGE) { _roll *= (1.0f - RETURN_STRENGTH * deltaTime); }
     }
 
     /*
@@ -179,14 +205,14 @@ void Head::simulate(float deltaTime, bool isMine) {
         if (_eyeContactTarget == RIGHT_EYE) { eye_target_yaw_adjust   = -DEGREES_BETWEEN_VIEWER_EYES; }
         if (_eyeContactTarget == MOUTH    ) { eye_target_pitch_adjust =  DEGREES_TO_VIEWER_MOUTH;     }
         
-        _eyeballPitch[0] = _eyeballPitch[1] = -_headRotation.x + eye_target_pitch_adjust;
-        _eyeballYaw  [0] = _eyeballYaw  [1] =  _headRotation.y + eye_target_yaw_adjust;
+        _eyeballPitch[0] = _eyeballPitch[1] = -_pitch + eye_target_pitch_adjust;
+        _eyeballYaw  [0] = _eyeballYaw  [1] =  _yaw + eye_target_yaw_adjust;
     }
     
     if (noise)
     {
-        _headRotation.x += (randFloat() - 0.5) * 0.2 * _noiseEnvelope;
-        _headRotation.y += (randFloat() - 0.5) * 0.3 *_noiseEnvelope;
+        _pitch += (randFloat() - 0.5) * 0.2 * _noiseEnvelope;
+        _yaw += (randFloat() - 0.5) * 0.3 *_noiseEnvelope;
         //PupilSize += (randFloat() - 0.5) * 0.001*NoiseEnvelope;
         
         if (randFloat() < 0.005) _mouthWidth = _MouthWidthChoices[rand()%3];
@@ -223,21 +249,6 @@ void Head::simulate(float deltaTime, bool isMine) {
                                                         
 }
 
-void Head::updateEyePositions() {
-    float rightShift = _scale * 0.27f;
-    float upShift    = _scale * 0.38f;
-    float frontShift = _scale * 0.8f;
-    
-    _leftEyePosition  = _position 
-                      - _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-    _rightEyePosition = _position
-                      + _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-}
-
 
 void Head::setLooking(bool looking) {
 
@@ -260,8 +271,6 @@ void Head::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderEars();
-    
         
     glPushMatrix();
     
@@ -280,9 +289,9 @@ void Head::render(bool lookingInMirror) {
         glRotatef(_roll,  0, 0, 1);
     }*/
 
-    //glRotatef(                  _headRotation.x, IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-    //glRotatef(_bodyRotation.y + _headRotation.y, IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
-    //glRotatef(                  _headRotation.z, IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
+    //glRotatef(                  _pitch, IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
+    //glRotatef(_bodyRotation.y + _yaw, IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
+    //glRotatef(                  _roll, IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
     
     //draw head sphere
     glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
@@ -365,6 +374,10 @@ void Head::render(bool lookingInMirror) {
     glPopMatrix();
 
     renderEyeBalls();    
+    
+    renderEars();
+    
+    
         
     /*
     if (_lookingAtSomething) {
@@ -377,17 +390,16 @@ void Head::render(bool lookingInMirror) {
 
 void Head::renderEars() {
 
-    glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
     glPushMatrix();
-        glTranslatef(_position.x -_orientation.getRight().x * _scale, _position.x -_orientation.getRight().y * _scale, _position.x -_orientation.getRight().z * _scale);
-        //glScalef(0.3, 0.65, .65);
-        glutSolidSphere(0.01, 30, 30);
+        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glTranslatef(_leftEarPosition.x, _leftEarPosition.y, _leftEarPosition.z);        
+        glutSolidSphere(0.02, 30, 30);
     glPopMatrix();
 
     glPushMatrix();
-        glTranslatef(_position.x  + _orientation.getRight().x, _position.x  + _orientation.getRight().y, _position.x  + _orientation.getRight().z);
-        //glScalef(0.3, 0.65, .65);
-        glutSolidSphere(0.01, 30, 30);
+        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glTranslatef(_rightEarPosition.x, _rightEarPosition.y, _rightEarPosition.z);        
+        glutSolidSphere(0.02, 30, 30);
     glPopMatrix();
 }
 

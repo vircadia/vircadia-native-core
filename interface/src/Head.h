@@ -37,7 +37,7 @@ public:
     
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
-    void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
+    //void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
     void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
     void setRotationOffBody(glm::vec3 headRotation      ) { _headRotation       = headRotation;       }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
@@ -63,6 +63,8 @@ private:
     glm::vec3   _rotation;
     glm::vec3   _leftEyePosition;
     glm::vec3   _rightEyePosition; 
+    glm::vec3   _leftEarPosition;
+    glm::vec3   _rightEarPosition; 
     //float       _yaw;
     //float       _pitch;
     //float       _roll;

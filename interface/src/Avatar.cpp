@@ -370,7 +370,7 @@ void Avatar::simulate(float deltaTime) {
     }
 
     // set head lookat position 
-    setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
+    //setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
     if (_interactingOther) {
         _head.setLooking(true);
         
@@ -381,9 +381,9 @@ void Avatar::simulate(float deltaTime) {
         _head.setLooking(false);
     }    
     
-    _head.setLookatPosition(_lookatPosition); // this comes from Avatar Data
+    //_head.setLookatPosition(_lookatPosition); // this comes from Avatar Data
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
-    _head.setRotationOffBody(glm::vec3(_headPitch, _headYaw, _headRoll));
+    //_head.setRotationOffBody(glm::vec3(_headPitch, _headYaw, _headRoll));
     
     //_head.setRotationOffBody(glm::vec3(0.0f, 0.0f, 0.0f));
 
