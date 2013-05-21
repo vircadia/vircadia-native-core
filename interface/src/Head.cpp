@@ -118,13 +118,13 @@ void Head::setLooking(bool looking) {
 void Head::calculateGeometry(bool lookingInMirror) {
     //generate orientation directions based on Euler angles...
     
-    float pitch = -_pitch;
+    float pitch =  _pitch;
     float yaw   = -_yaw;
-    float roll  =  _roll;
+    float roll  = -_roll;
     
     if (lookingInMirror) {
         yaw   =  _yaw;
-        roll  = -_roll;
+        roll  =  _roll;
     }
     
     _orientation.setToPitchYawRoll
