@@ -272,6 +272,9 @@ void LogDisplay::render(unsigned screenWidth, unsigned screenHeight) {
 
     glPushMatrix();
     glScalef(xScale, yScale, 1.0f);
+    glColor3ub(GLubyte(TEXT_COLOR >> 16),
+               GLubyte((TEXT_COLOR >> 8) & 0xff),
+               GLubyte(TEXT_COLOR & 0xff));
     for (int y = yStart; y > 0; y -= yStep) {
 
         // debug mode: check line pointer is valid
@@ -293,9 +296,6 @@ void LogDisplay::render(unsigned screenWidth, unsigned screenHeight) {
         assert(! (chars < _charsEnd || chars >= _charsEnd + (_charsEnd - _chars)));
 
         // render the string
-        glColor3ub(GLubyte(TEXT_COLOR >> 16),
-                   GLubyte((TEXT_COLOR >> 8) & 0xff),
-                   GLubyte(TEXT_COLOR & 0xff));
         _textRenderer.draw(xStart, y, chars);
 
 //fprintf(stderr, "LogDisplay::render, message = \"%s\"\n", chars);

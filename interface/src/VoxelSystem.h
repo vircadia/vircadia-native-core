@@ -36,7 +36,7 @@ public:
 
     void init();
     void simulate(float deltaTime) { };
-    void render();
+    void render(bool texture);
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
@@ -118,13 +118,15 @@ private:
     GLubyte* _readColorsArray;
     GLfloat* _writeVerticesArray;
     GLubyte* _writeColorsArray;
-    bool* _voxelDirtyArray;
+    bool* _writeVoxelDirtyArray;
+    bool* _readVoxelDirtyArray;
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInWriteArrays;
     unsigned long _voxelsInReadArrays;
     unsigned long _unusedArraySpace;
     
-    bool _renderFullVBO;
+    bool _writeRenderFullVBO;
+    bool _readRenderFullVBO;
     
     double _setupNewVoxelsForDrawingLastElapsed;
     double _setupNewVoxelsForDrawingLastFinished;
@@ -148,7 +150,7 @@ private:
     void cleanupRemovedVoxels();
 
     void setupNewVoxelsForDrawing();
-    void copyWrittenDataToReadArrays();
+    void copyWrittenDataToReadArrays(bool fullVBOs);
 
     bool _voxelsDirty;
 

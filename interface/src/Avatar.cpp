@@ -50,65 +50,75 @@ const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
-float skinColor [] = {1.0, 0.84, 0.66};
-float lightBlue [] = {0.7, 0.8, 1.0};
+float skinColor    [] = {1.0, 0.84, 0.66};
+float darkSkinColor[] = {0.8, 0.74, 0.6 };
+float lightBlue    [] = {0.7, 0.8,  1.0 };
 
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.45;
 
-Avatar::Avatar(bool isMine) {
-    _orientation.setToIdentity();
+Avatar::Avatar(bool isMine) :
+    _isMine(isMine),
+    _TEST_bigSphereRadius(0.4f),
+    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
+    _mousePressed(false),
+    _bodyPitchDelta(0.0f),
+    _bodyYawDelta(0.0f),
+    _bodyRollDelta(0.0f),
+    _movedHandOffset(0.0f, 0.0f, 0.0f),
+    _rotation(0.0f, 0.0f, 0.0f, 0.0f),
+    _mode(AVATAR_MODE_STANDING),
+    _handHoldingPosition(0.0f, 0.0f, 0.0f),
+    _velocity(0.0f, 0.0f, 0.0f),
+    _thrust(0.0f, 0.0f, 0.0f),
+    _speed(0.0f),
+    _maxArmLength(0.0f),
+    _orientation(),
+    _transmitterIsFirstData(true),
+    _transmitterHz(0.0f),
+    _transmitterPackets(0),
+    _transmitterInitialReading(0.0f, 0.0f, 0.0f),
+    _isTransmitterV2Connected(false),
+    _pelvisStandingHeight(0.0f),
+    _displayingHead(true),
+    _distanceToNearestAvatar(std::numeric_limits<float>::max()),
+    _gravity(0.0f, -1.0f, 0.0f),
+    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
+    _mouseRayDirection(0.0f, 0.0f, 0.0f),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
+    _interactingOther(NULL),
+    _cumulativeMouseYaw(0.0f),
+    _isMouseTurningRight(false)
+{
     
-    _velocity                   = glm::vec3(0.0f, 0.0f, 0.0f);
-    _thrust                     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _rotation                   = glm::quat(0.0f, 0.0f, 0.0f, 0.0f);
-    _bodyYaw                    = -90.0;
-    _bodyPitch                  = 0.0;
-    _bodyRoll                   = 0.0;
-    _bodyPitchDelta             = 0.0;
-    _bodyYawDelta               = 0.0;
-    _bodyRollDelta              = 0.0;
-    _mousePressed               = false;
-    _mode                       = AVATAR_MODE_STANDING;
-    _isMine                     = isMine;
-    _maxArmLength               = 0.0;
-    _transmitterHz              = 0.0;
-    _transmitterPackets         = 0;
-    _transmitterIsFirstData     = true;
-    _transmitterInitialReading  = glm::vec3(0.f, 0.f, 0.f);
-    _isTransmitterV2Connected   = false;
-    _speed                      = 0.0;
-    _pelvisStandingHeight       = 0.0f;
-    _displayingHead             = true;
-    _TEST_bigSphereRadius       = 0.4f;
-    _TEST_bigSpherePosition     = glm::vec3(5.0f, _TEST_bigSphereRadius, 5.0f);
-    _mouseRayOrigin             = glm::vec3(0.0f, 0.0f, 0.0f);
-    _mouseRayDirection          = glm::vec3(0.0f, 0.0f, 0.0f);
-    _cameraPosition             = glm::vec3(0.0f, 0.0f, 0.0f);
-    _interactingOther           = NULL;
+    // give the pointer to our head to inherited _headData variable from AvatarData
+    _headData = &_head;
 
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) _driveKeys[i] = false;
-        
-    _movedHandOffset            = glm::vec3(0.0f, 0.0f, 0.0f);
-    _handHoldingPosition        = glm::vec3(0.0f, 0.0f, 0.0f);
-    _distanceToNearestAvatar    = std::numeric_limits<float>::max();
-    _gravity                    = glm::vec3(0.0f, -1.0f, 0.0f);
-    _cumulativeMouseYaw         = 0.f;
-    _isMouseTurningRight        = false;
+
+    for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
+        _driveKeys[i] = false;
+    }
 
     initializeSkeleton();
     
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
         
-    if (BALLS_ON)   { _balls = new Balls(100); }
-    else            { _balls = NULL; }
+    if (BALLS_ON) {
+        _balls = new Balls(100);
+    } else {
+        _balls = NULL;
+    }
+}
+
+Avatar::~Avatar() {
+    _headData = NULL;
+    delete _balls;
 }
 
 void Avatar::reset() {
-    _headPitch = _headYaw = _headRoll = 0;
-    _head.leanForward = _head.leanSideways = 0;
+    _head.reset();
 }
 
 //  Update avatar head rotation with sensor data
@@ -122,23 +132,16 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
-    const float MAX_YAW = 85;
-    const float MIN_YAW = -85;
-    const float MAX_ROLL = 50;
-    const float MIN_ROLL = -50;
     
-    addHeadPitch(measuredPitchRate * deltaTime);
-    addHeadYaw(measuredYawRate * deltaTime);
-    addHeadRoll(measuredRollRate * deltaTime);
-    
-    setHeadYaw(glm::clamp(getHeadYaw(), MIN_YAW, MAX_YAW));
-    setHeadRoll(glm::clamp(getHeadRoll(), MIN_ROLL, MAX_ROLL));
+    _head.addPitch(measuredPitchRate * deltaTime);
+    _head.addYaw(measuredYawRate * deltaTime);
+    _head.addRoll(measuredRollRate * deltaTime);
     
     //  Update head lean distance based on accelerometer data
     const float LEAN_SENSITIVITY = 0.15;
     const float LEAN_MAX = 0.45;
     const float LEAN_AVERAGING = 10.0;
-    glm::vec3 headRotationRates(getHeadPitch(), getHeadYaw(), getHeadRoll());
+    glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
     float headRateMax = 50.f;
     
     
@@ -147,35 +150,19 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
                         * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
     leaning.y = 0.f;
     if (glm::length(leaning) < LEAN_MAX) {
-        _head.leanForward = _head.leanForward * (1.f - LEAN_AVERAGING * deltaTime) +
-                                (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY;
-        _head.leanSideways = _head.leanSideways * (1.f - LEAN_AVERAGING * deltaTime) +
-                                (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY;
+        _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
+                             (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY);
+        _head.setLeanSideways(_head.getLeanSideways() * (1.f - LEAN_AVERAGING * deltaTime) +
+                              (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY);
     }
-    setHeadLeanSideways(_head.leanSideways);
-    setHeadLeanForward(_head.leanForward); 
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
-    return _bodyYaw + _headYaw;
+    return _bodyYaw + _head.getYaw();
 }
 
 float Avatar::getAbsoluteHeadPitch() const {
-    return _bodyPitch + _headPitch;
-}
-
-void Avatar::addLean(float x, float z) {
-    //Add lean as impulse
-    _head.leanSideways += x;
-    _head.leanForward  += z;
-}
-
-void Avatar::setLeanForward(float dist){
-    _head.leanForward = dist;
-}
-
-void Avatar::setLeanSideways(float dist){
-    _head.leanSideways = dist;
+    return _bodyPitch + _head.getPitch();
 }
 
 void Avatar::setMousePressed(bool mousePressed) {
@@ -219,7 +206,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
         if (fabs(mouseLocationY) > MOUSE_MOVE_RADIUS) {
             float mousePitchAdd = (fabs(mouseLocationY) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED;
             bool downPitching = (mouseLocationY > 0.f);
-            setHeadPitch(getHeadPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
+            _head.setPitch(_head.getPitch() + (downPitching ? mousePitchAdd : -mousePitchAdd));
         }
         
     }
@@ -352,20 +339,15 @@ void Avatar::simulate(float deltaTime) {
     // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
     // you start moving, but don't do this with an HMD like the Oculus. 
     if (!OculusManager::isConnected()) {
-        setHeadPitch(getHeadPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+        _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
 
-    // Get head position data from network for other people
-    if (!_isMine) {
-        _head.leanSideways = getHeadLeanSideways();
-        _head.leanForward = getHeadLeanForward(); 
-    }
     
     //apply the head lean values to the springy position...
-    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
+    if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
         glm::vec3 headLean = 
-            _orientation.getRight() * _head.leanSideways +
-            _orientation.getFront() * _head.leanForward;
+            _orientation.getRight() * _head.getLeanSideways() +
+            _orientation.getFront() * _head.getLeanForward();
 
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
@@ -387,23 +369,21 @@ void Avatar::simulate(float deltaTime) {
     }
 
     // update head state
-    _head.setPositionRotationAndScale(
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
-        glm::vec3(_headYaw, _headPitch, _headRoll), 
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
-    );
+    _head.setPositionAndScale(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition, _joint[AVATAR_JOINT_HEAD_BASE].radius);
     
-    _head.setBodyYaw(_bodyYaw);
-    
-    //the following is still being prototyped (making the eyes look at a specific location), it should be finished by 5/20/13
+    _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0
+
     if (_interactingOther) {
         _head.setLooking(true);
-        _head.setLookatPosition(_interactingOther->getSpringyHeadPosition());
-//_head.setLookatPosition(_interactingOther->getApproximateEyePosition());
+        
+        if (_isMine) {
+            _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
+        }        
     } else {
         _head.setLooking(false);
     }    
-        
+    
+    _head.setBodyYaw(_bodyYaw);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
@@ -692,19 +672,6 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
     _cameraPosition = cameraPosition; // store this for use in various parts of the code
 
-    // render a simple round on the ground projected down from the avatar's position
-    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
-
-    /*
-    // show avatar position
-    glColor4f(0.5f, 0.5f, 0.5f, 0.6);
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-    glScalef(0.03, 0.03, 0.03);
-    glutSolidSphere(1, 10, 10);
-    glPopMatrix();
-    */
-    
     if (usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
@@ -715,10 +682,12 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         glPopMatrix();
     }
     
+    // render a simple round on the ground projected down from the avatar's position
+    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
+
     //render body
     renderBody(lookingInMirror);
         
-    
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
         _avatarTouch.render(_cameraPosition);
@@ -1039,10 +1008,12 @@ void Avatar::updateBodySprings(float deltaTime) {
             _joint[b].springyVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         
+        /*
         //apply forces from touch...
         if (_joint[b].touchForce > 0.0) {
             _joint[b].springyVelocity += _mouseRayDirection * _joint[b].touchForce * 0.7f;
         }
+        */
         
         //update position by velocity...
         _joint[b].springyPosition += _joint[b].springyVelocity * deltaTime;
@@ -1133,14 +1104,27 @@ void Avatar::renderBody(bool lookingInMirror) {
             glPopMatrix();
         }
     }
- 
-    // Render lines connecting the joint positions
-    glColor3f(0.4f, 0.5f, 0.6f);
-    glLineWidth(3.0);
     
     for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
     if (_joint[b].parent != AVATAR_JOINT_NULL) 
         if (b != AVATAR_JOINT_HEAD_TOP) {
+                
+            /*
+            // Render cone sections connecting the joint positions 
+            glColor3fv(darkSkinColor);
+            renderJointConnectingCone
+            (
+                _joint[_joint[b].parent ].springyPosition, 
+                _joint[b                ].springyPosition, 
+                _joint[_joint[b].parent ].radius, 
+                _joint[b                ].radius
+            );
+            */
+            
+        
+            // Render lines connecting the joint positions
+            glColor3f(0.4f, 0.5f, 0.6f);
+            glLineWidth(3.0);
             glBegin(GL_LINE_STRIP);
             glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
             glVertex3fv(&_joint[ b ].springyPosition.x);
@@ -1325,27 +1309,21 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     //  absolute eulerAngles passed.
     //  
     //
-    float const MAX_YAW = 90.f;
-    float const MIN_YAW = -90.f;
-    float const MAX_PITCH = 85.f;
-    float const MIN_PITCH = -85.f;
-    float const MAX_ROLL = 90.f;
-    float const MIN_ROLL = -90.f;
     
     if (deltaTime == 0.f) {
         //  On first sample, set head to absolute position
-        setHeadYaw(eulerAngles->x);
-        setHeadPitch(eulerAngles->y);
-        setHeadRoll(eulerAngles->z);
+        _head.setYaw(eulerAngles->x);
+        _head.setPitch(eulerAngles->y);
+        _head.setRoll(eulerAngles->z);
     } else { 
-        glm::vec3 angles(getHeadYaw(), getHeadPitch(), getHeadRoll());
+        glm::vec3 angles(_head.getYaw(), _head.getPitch(), _head.getRoll());
         //  Increment by detected velocity 
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
         angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        setHeadYaw(fmin(fmax(angles.x, MIN_YAW), MAX_YAW));
-        setHeadPitch(fmin(fmax(angles.y, MIN_PITCH), MAX_PITCH));
-        setHeadRoll(fmin(fmax(angles.z, MIN_ROLL), MAX_ROLL));
+        _head.setYaw(angles.x);
+        _head.setPitch(angles.y);
+        _head.setRoll(angles.z);
         //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
 }
@@ -1378,3 +1356,47 @@ void Avatar::readAvatarDataFromFile() {
         fclose(avatarFile);
     }
 }
+
+void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
+
+    glBegin(GL_TRIANGLES);   
+    
+    int num = 5;
+    
+    glm::vec3 axis = glm::normalize(position2 - position1);
+    float length = glm::length(axis);
+
+    if (length > 0.0f) {
+    
+        glm::vec3 perpSin = glm::vec3(axis.y, axis.z, axis.x);
+        glm::vec3 perpCos = glm::vec3(axis.z, axis.x, axis.y);
+
+        for (int i = 0; i < num; i ++) {
+        
+            float angle1 = ((float)i     / (float)num) * PI * 2.0;
+            float angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+        
+            glm::vec3 p1a = position1 + perpSin * sin(angle1) * radius1; 
+            glm::vec3 p1b = position1 + perpCos * cos(angle2) * radius1;   
+
+            glm::vec3 p2a = position2 + perpSin * sin(angle1) * radius2; 
+            glm::vec3 p2b = position2 + perpCos * cos(angle2) * radius2;   
+        
+            glVertex3f(p1a.x, p1a.y, p1a.z); 
+            glVertex3f(p1b.x, p1b.y, p1b.z); 
+            glVertex3f(p2a.x, p2a.y, p2a.z); 
+
+            /*
+            glVertex3f(p1b.x, p1b.y, p1b.z); 
+            glVertex3f(p2a.x, p2a.y, p2a.z); 
+            glVertex3f(p2b.x, p2b.y, p2b.z); 
+            */
+        }
+    }
+    
+    glEnd();
+}
+
+
+
+

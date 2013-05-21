@@ -116,7 +116,7 @@ private:
     
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void addVoxelUnderCursor();
+    void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     
     void resetSensors();
@@ -135,6 +135,7 @@ private:
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _renderVoxels;          // Whether to render voxels
+    QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
     QAction* _renderAvatarsOn;       // Whether to render avatars 
@@ -187,6 +188,7 @@ private:
     Oscilloscope _audioScope;
     
     Avatar _myAvatar;                  // The rendered avatar of oneself
+    
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     
@@ -203,6 +205,7 @@ private:
     VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
+    bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting
