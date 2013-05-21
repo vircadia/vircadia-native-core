@@ -31,19 +31,21 @@ public:
     void render(bool lookingInMirror);
 
     void setLooking(bool looking);
-    void setPositionRotationAndScale(glm::vec3 position, glm::vec3 rotation, float scale);
-    void setNewTarget(float, float);
+    //void setPositionRotationAndScale(glm::vec3 position, glm::vec3 rotation, float scale);
+    //void setNewTarget(float, float);
     
+    void setScale          (float     scale             ) { _scale              = scale;              }
+    void setPosition       (glm::vec3 position          ) { _position           = position;           }
     void setLookatPosition (glm::vec3 lookatPosition    ) { _lookatPosition     = lookatPosition;     }
+    void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
+    void setRotationOffBody(glm::vec3 headRotation      ) { _headRotation       = headRotation;       }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
-    void setBodyYaw        (float     bodyYaw           ) { _bodyYaw            = bodyYaw;            }
     void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
     void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
         
-    glm::vec3  getApproximateEyePosition(); 
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float      getAverageLoudness() {return _averageLoudness;};
     
@@ -63,9 +65,9 @@ private:
     glm::vec3   _lookatPosition;
     glm::vec3   _leftEyePosition;
     glm::vec3   _rightEyePosition; 
-    float       _yaw;
-    float       _pitch;
-    float       _roll;
+    //float       _yaw;
+    //float       _pitch;
+    //float       _roll;
     float       _eyeballPitch[2];
     float       _eyeballYaw  [2];
     float       _eyebrowPitch[2];
@@ -75,8 +77,8 @@ private:
     float       _mouthYaw;
     float       _mouthWidth;
     float       _mouthHeight;
-    float       _pitchTarget; 
-    float       _yawTarget; 
+    //float       _pitchTarget; 
+    //float       _yawTarget; 
     float       _noiseEnvelope;
     float       _scale;
     int         _eyeContact;
@@ -88,11 +90,13 @@ private:
     float       _audioAttack;
     float       _returnSpringScale; //strength of return springs
     Orientation _orientation;
-    float       _bodyYaw;
+    glm::vec3   _bodyRotation;
+    glm::vec3   _headRotation;
     eyeContactTargets _eyeContactTarget;
     
     // private methods
     void renderEyeBalls();
+    void renderEars();
     void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void updateEyePositions();
 };

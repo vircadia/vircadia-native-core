@@ -51,7 +51,7 @@ const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 
 float skinColor    [] = {1.0, 0.84, 0.66};
-float darkSkinColor[] = {0.8, 0.74, 0.6 };
+float darkSkinColor[] = {0.9, 0.78, 0.63};
 float lightBlue    [] = {0.7, 0.8,  1.0 };
 
 bool usingBigSphereCollisionTest = true;
@@ -232,7 +232,8 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
 void Avatar::simulate(float deltaTime) {
 
     //figure out if the mouse cursor is over any body spheres... 
-    if (_isMine) {
+    //if (_isMine) {
+    {
         checkForMouseRayTouching();
     }
     // copy velocity so we can use it later for acceleration
@@ -388,15 +389,8 @@ void Avatar::simulate(float deltaTime) {
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
     }
 
-    // update head state
-    _head.setPositionRotationAndScale(
-        _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition, 
-        glm::vec3(_headYaw, _headPitch, _headRoll), 
-        _joint[ AVATAR_JOINT_HEAD_BASE ].radius 
-    );
-    
+    // set head lookat position 
     setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
-
     if (_interactingOther) {
         _head.setLooking(true);
         
@@ -407,8 +401,14 @@ void Avatar::simulate(float deltaTime) {
         _head.setLooking(false);
     }    
     
-    _head.setBodyYaw(_bodyYaw);
-    _head.setLookatPosition(_lookatPosition);
+    _head.setLookatPosition(_lookatPosition); // this comes from Avatar Data
+    _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
+    _head.setRotationOffBody(glm::vec3(_headPitch, _headYaw, _headRoll));
+    
+    //_head.setRotationOffBody(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
+    _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
     _head.simulate(deltaTime, _isMine);
@@ -1054,10 +1054,6 @@ const glm::vec3& Avatar::getHeadPosition() const {
     return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
 }
 
-glm::vec3 Avatar::getApproximateEyePosition() {
-    return _head.getApproximateEyePosition();
-}
-
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
     // determine the arm vector
@@ -1134,19 +1130,17 @@ void Avatar::renderBody(bool lookingInMirror) {
     if (_joint[b].parent != AVATAR_JOINT_NULL) 
         if (b != AVATAR_JOINT_HEAD_TOP) {
                 
-            /*
             // Render cone sections connecting the joint positions 
             glColor3fv(darkSkinColor);
             renderJointConnectingCone
             (
                 _joint[_joint[b].parent ].springyPosition, 
                 _joint[b                ].springyPosition, 
-                _joint[_joint[b].parent ].radius, 
-                _joint[b                ].radius
+                _joint[_joint[b].parent ].radius * 0.8, 
+                _joint[b                ].radius * 0.8
             );
-            */
-            
         
+            /*
             // Render lines connecting the joint positions
             glColor3f(0.4f, 0.5f, 0.6f);
             glLineWidth(3.0);
@@ -1154,6 +1148,7 @@ void Avatar::renderBody(bool lookingInMirror) {
             glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
             glVertex3fv(&_joint[ b ].springyPosition.x);
             glEnd();
+            */
         }
     }
 }
@@ -1388,11 +1383,12 @@ void Avatar::readAvatarDataFromFile() {
     }
 }
 
+// render a makeshift cone section that serves as a body part connecting joint spheres 
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
 
     glBegin(GL_TRIANGLES);   
     
-    int num = 5;
+    int num = 10;
     
     glm::vec3 axis = glm::normalize(position2 - position1);
     float length = glm::length(axis);
@@ -1402,26 +1398,30 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         glm::vec3 perpSin = glm::vec3(axis.y, axis.z, axis.x);
         glm::vec3 perpCos = glm::vec3(axis.z, axis.x, axis.y);
 
+        float angle1 = 0.0;
+        float angle2 = 0.0;
+
         for (int i = 0; i < num; i ++) {
         
-            float angle1 = ((float)i     / (float)num) * PI * 2.0;
-            float angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+            angle1 = angle2;
+            angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+            
+            float s1 = sin(angle1);
+            float s2 = sin(angle2);
+            float c1 = cos(angle1);
+            float c2 = cos(angle2);
         
-            glm::vec3 p1a = position1 + perpSin * sin(angle1) * radius1; 
-            glm::vec3 p1b = position1 + perpCos * cos(angle2) * radius1;   
+            glm::vec3 p1a = position1 + perpSin * s1 * radius1 + perpCos * c1 * radius1;  
+            glm::vec3 p1b = position1 + perpSin * s2 * radius1 + perpCos * c2 * radius1; 
+            glm::vec3 p2a = position2 + perpSin * s1 * radius2 + perpCos * c1 * radius2;   
+            glm::vec3 p2b = position2 + perpSin * s2 * radius2 + perpCos * c2 * radius2;  
 
-            glm::vec3 p2a = position2 + perpSin * sin(angle1) * radius2; 
-            glm::vec3 p2b = position2 + perpCos * cos(angle2) * radius2;   
-        
             glVertex3f(p1a.x, p1a.y, p1a.z); 
             glVertex3f(p1b.x, p1b.y, p1b.z); 
             glVertex3f(p2a.x, p2a.y, p2a.z); 
-
-            /*
             glVertex3f(p1b.x, p1b.y, p1b.z); 
             glVertex3f(p2a.x, p2a.y, p2a.z); 
             glVertex3f(p2b.x, p2b.y, p2b.z); 
-            */
         }
     }
     
