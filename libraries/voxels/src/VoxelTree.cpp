@@ -452,7 +452,6 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
         bool bail = false;
         while (!file.eof() && !bail) {
             file.get(octets);
-			//printLog("octets=%d...\n",octets);    
             totalBytesRead++;
             lengthInBytes = bytesRequiredForCodeLength(octets) - 1; 
             unsigned char * voxelData = new unsigned char[lengthInBytes + 1 + 3];
@@ -837,7 +836,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                                             const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits, 
                                             bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const {
 
-//printLog("encodeTreeBitstreamRecursion() currentEncodeLevel=%d\n",currentEncodeLevel);
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -897,7 +895,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
         
         // if the caller wants to include childExistsBits, then include them even if not in view
         if (includeExistsBits && childNode) {
-//printLog("includeExistsBits, calculating exists bits\n");        
             childrenExistInTreeBits += (1 << (7 - i));
             if (childNode->isColored()) {
                 colorsExistInTreeBits += (1 << (7 - i));
@@ -938,14 +935,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
     // if the caller wants to include childExistsBits, then include them even if not in view
     if (includeExistsBits) {
-//printLog("includeExistsBits, writing color exists bits...\n");
-//printLog("childrenColoredBits=");
-//outputBits(childrenColoredBits);
-//printLog(" colorsExistInTreeBits=");
-//outputBits(colorsExistInTreeBits);
-//printLog(" childrenExistInTreeBits=");
-//outputBits(childrenExistInTreeBits);
-
         *writeToThisLevelBuffer = colorsExistInTreeBits;
         writeToThisLevelBuffer += sizeof(colorsExistInTreeBits); // move the pointer
         bytesAtThisLevel += sizeof(colorsExistInTreeBits); // keep track of byte count
@@ -965,7 +954,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
     if (includeExistsBits) {
-//printLog("includeExistsBits, writing subtree exists bits\n");        
         *writeToThisLevelBuffer = childrenExistInTreeBits;
         writeToThisLevelBuffer += sizeof(childrenExistInTreeBits); // move the pointer
         bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
@@ -1032,7 +1020,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
                 if (includeColor && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
-//printLog("childTreeBytesOut==2.... lopping empty lower tree\n");
                 }
 
                 bytesAtThisLevel += childTreeBytesOut;
@@ -1042,7 +1029,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
                 // If we had previously started writing, and if the child DIDN'T write any bytes,
                 // then we want to remove their bit from the childExistsPlaceHolder bitmask
                 if (childTreeBytesOut == 0) {
-//printLog("childTreeBytesOut == 0... actually lopping empty lower tree\n");
                     // remove this child's bit...
                     childrenExistInPacketBits -= (1 << (7 - i));
                     // repair the child exists mask
