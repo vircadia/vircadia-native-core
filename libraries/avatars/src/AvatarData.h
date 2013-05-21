@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/9/13.
-//
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__AvatarData__
@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 
 #include <AgentData.h>
+#include "HeadData.h"
 
 const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
@@ -29,12 +30,12 @@ enum KeyState
 class AvatarData : public AgentData {
 public:
     AvatarData();
+    ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
     
     void setPosition      (const glm::vec3 position      ) { _position       = position;       }
     void setHandPosition  (const glm::vec3 handPosition  ) { _handPosition   = handPosition;   }
-    void setLookatPosition(const glm::vec3 lookatPosition) { _lookatPosition = lookatPosition; }
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -46,17 +47,6 @@ public:
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
-
-    // Head Rotation
-    void setHeadPitch(float p);
-    void setHeadYaw(float y) {_headYaw = y; }
-    void setHeadRoll(float r) {_headRoll = r; };
-    float getHeadPitch() const { return _headPitch; };
-    float getHeadYaw() const { return _headYaw; };
-    float getHeadRoll() const { return _headRoll; };
-    void  addHeadPitch(float p) { setHeadPitch(_headPitch - p); }
-    void  addHeadYaw(float y){_headYaw -= y; }
-    void  addHeadRoll(float r){_headRoll += r; }
 
     //  Head vector deflection from pelvix in X,Z
     void setHeadLeanSideways(float s) {_headLeanSideways = s; };
@@ -108,6 +98,8 @@ public:
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     
+    void setHeadData(HeadData* headData) { _headData = headData; }
+    
 protected:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
@@ -115,17 +107,11 @@ protected:
 
     glm::vec3 _position;
     glm::vec3 _handPosition;
-    glm::vec3 _lookatPosition;
     
     //  Body rotation
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
-    
-    //  Head rotation (relative to body) 
-    float _headYaw;
-    float _headPitch;
-    float _headRoll;
     
     float _headLeanSideways;
     float _headLeanForward;
@@ -158,6 +144,8 @@ protected:
     bool _wantResIn;
     bool _wantColor;
     bool _wantDelta;
+    
+    HeadData* _headData;
 };
 
 #endif /* defined(__hifi__AvatarData__) */
