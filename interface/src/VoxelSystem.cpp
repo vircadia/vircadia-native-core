@@ -930,6 +930,20 @@ bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     return true;
 }
 
+bool VoxelSystem::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
+    pthread_mutex_lock(&_treeLock);
+    bool result = _tree->findSpherePenetration(center, radius, penetration);
+    pthread_mutex_unlock(&_treeLock);
+    return result;
+}
+
+bool VoxelSystem::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
+    pthread_mutex_lock(&_treeLock);
+    bool result = _tree->findCapsulePenetration(start, end, radius, penetration);
+    pthread_mutex_unlock(&_treeLock);
+    return result;
+}
+
 class falseColorizeRandomEveryOtherArgs {
 public:
     falseColorizeRandomEveryOtherArgs() : totalNodes(0), colorableNodes(0), coloredNodes(0), colorThis(true) {};

@@ -652,7 +652,7 @@ public:
     bool found;
 };
 
-bool findRayOperation(VoxelNode* node, void* extraData) {
+bool findRayIntersectionOp(VoxelNode* node, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     AABox box = node->getAABox();
     float distance;
@@ -674,10 +674,103 @@ bool findRayOperation(VoxelNode* node, void* extraData) {
 }
 
 bool VoxelTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    VoxelNode*& node, float& distance, BoxFace& face)
-{
+                                    VoxelNode*& node, float& distance, BoxFace& face) {
     RayArgs args = { origin / (float)TREE_SCALE, direction, node, distance, face };
-    recurseTreeWithOperation(findRayOperation, &args);
+    recurseTreeWithOperation(findRayIntersectionOp, &args);
+    return args.found;
+}
+
+class SphereArgs {
+public:
+    glm::vec3 center;
+    float radius;
+    glm::vec3& penetration;
+    bool found;
+};
+
+bool findSpherePenetrationOp(VoxelNode* node, void* extraData) {
+    SphereArgs* args = static_cast<SphereArgs*>(extraData);
+    
+    // currently, we treat each node as a sphere enveloping the box
+    const glm::vec3& nodeCenter = node->getCenter();
+    float halfNodeScale = node->getScale() * 0.5f;
+    float halfNodeScale2 = halfNodeScale * halfNodeScale;
+    float nodeRadius = sqrtf(halfNodeScale2*3.0f);
+    glm::vec3 vector = args->center - nodeCenter;
+    float vectorLength = glm::length(vector);
+    float distance = vectorLength - nodeRadius - args->radius;
+    if (distance >= 0.0f) {
+        return false;
+    }
+    if (!node->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (node->isColored()) {
+        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
+        args->found = true;
+    }
+    return false;
+}
+
+bool VoxelTree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
+    SphereArgs args = { center / (float)TREE_SCALE, radius / TREE_SCALE, penetration };
+    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+    recurseTreeWithOperation(findSpherePenetrationOp, &args);
+    return args.found;
+}
+
+class CapsuleArgs {
+public:
+    glm::vec3 start;
+    glm::vec3 end;
+    float radius;
+    glm::vec3& penetration;
+    bool found;
+};
+
+glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
+    // compute the projection of the point vector onto the segment vector
+    glm::vec3 segmentVector = end - start;
+    float proj = glm::dot(point - start, segmentVector) / glm::dot(segmentVector, segmentVector);
+    if (proj <= 0.0f) { // closest to the start
+        return start - point;
+        
+    } else if (proj >= 1.0f) { // closest to the end
+        return end - point;
+    
+    } else { // closest to the middle
+        return start + segmentVector*proj - point;
+    }
+}
+
+bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
+    CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
+    
+    // currently, we treat each node as a sphere enveloping the box
+    const glm::vec3& nodeCenter = node->getCenter();
+    float halfNodeScale = node->getScale() * 0.5f;
+    float halfNodeScale2 = halfNodeScale * halfNodeScale;
+    float nodeRadius = sqrtf(halfNodeScale2*3.0f);
+    glm::vec3 vector = computeVectorFromPointToSegment(nodeCenter, args->start, args->end);
+    float vectorLength = glm::length(vector);
+    float distance = vectorLength - nodeRadius - args->radius;
+    if (distance >= 0.0f) {
+        return false;
+    }
+    if (!node->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (node->isColored()) {
+        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
+        args->found = true;
+    }
+    return false;
+}
+
+bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
+    CapsuleArgs args = { start / (float)TREE_SCALE, end / (float)TREE_SCALE, radius / TREE_SCALE, penetration };
+    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+    recurseTreeWithOperation(findCapsulePenetrationOp, &args);
     return args.found;
 }
 

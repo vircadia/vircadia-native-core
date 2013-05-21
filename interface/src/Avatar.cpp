@@ -10,6 +10,7 @@
 #include <lodepng.h>
 #include <SharedUtil.h>
 #include "world.h"
+#include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Log.h"
@@ -258,6 +259,9 @@ void Avatar::simulate(float deltaTime) {
     if (usingBigSphereCollisionTest) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
+    
+    // collision response with voxels
+    updateCollisionWithVoxels(deltaTime);
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
     if (_isMine) {
@@ -566,6 +570,20 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
             }
         }
         */
+    }
+}
+
+void Avatar::updateCollisionWithVoxels(float deltaTime) {
+    VoxelSystem* voxels = Application::getInstance()->getVoxels();
+    float radius = _height * 0.125f;
+    glm::vec3 halfVector = glm::vec3(0.0f, _height * ONE_HALF - radius, 0.0f);
+    glm::vec3 penetration;
+    if (voxels->findCapsulePenetration(_position - halfVector, _position + halfVector, radius, penetration)) {
+        _position += penetration;
+        
+        // reflect the velocity component in the direction of penetration
+        glm::vec3 direction = glm::normalize(penetration);
+        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
     }
 }
 
