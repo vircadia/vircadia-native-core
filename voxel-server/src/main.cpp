@@ -57,8 +57,7 @@ bool wantLocalDomain = false;
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
-
-
+bool wantSearchForColoredNodes = false;
 
 EnvironmentData environmentData;
 
@@ -249,23 +248,24 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
-    
-        // just add the rootNode, to see if this addresses the delete problem
-        agentData->nodeBag.insert(randomTree.rootNode);
 
-/***    
-//printf("bag empty, search for stuff in view...\n");    
-        // If the bag was empty, then send everything in view, not just the delta
-        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
-                                                           agentData->nodeBag, wantDelta, lastViewFrustum);
+        // For now, we're going to disable the "search for colored nodes" because that strategy doesn't work when we support
+        // deletion of nodes. Instead if we just start at the root we get the correct behavior we want. We are keeping this
+        // code for now because we want to be able to go back to it and find a solution to support both. The search method
+        // helps improve overall bitrate performance.
+        if (::wantSearchForColoredNodes) {
+            // If the bag was empty, then send everything in view, not just the delta
+            maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
+                                                               agentData->nodeBag, wantDelta, lastViewFrustum);
 
-        // if nothing was found in view, send the root node.
-        if (agentData->nodeBag.isEmpty()){
-printf("huh... bag STILL empty, what to do? Add the root?...\n");    
+            // if nothing was found in view, send the root node.
+            if (agentData->nodeBag.isEmpty()){
+                agentData->nodeBag.insert(randomTree.rootNode);
+            }
+            agentData->setViewSent(false);
+        } else {
             agentData->nodeBag.insert(randomTree.rootNode);
         }
-        agentData->setViewSent(false);
-**/
 
     }
     double end = usecTimestampNow();
@@ -465,6 +465,10 @@ int main(int argc, const char * argv[])
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
     printf("wantColorRandomizer=%s\n", debug::valueOf(::wantColorRandomizer));
+
+    const char* WANT_SEARCH_FOR_NODES = "--wantSearchForColoredNodes";
+    ::wantSearchForColoredNodes = cmdOptionExists(argc, argv, WANT_SEARCH_FOR_NODES);
+    printf("wantSearchForColoredNodes=%s\n", debug::valueOf(::wantSearchForColoredNodes));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
