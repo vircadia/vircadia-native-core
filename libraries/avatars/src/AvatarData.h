@@ -101,12 +101,12 @@ public:
     const std::string& chatMessage () const { return _chatMessage; }
 
     // related to Voxel Sending strategies
-    bool getWantResIn() const      { return _wantResIn; }
-    bool getWantColor() const      { return _wantColor; }
-    bool getWantDelta() const      { return _wantDelta; }
-    void setWantResIn(bool wantResIn)           { _wantResIn = wantResIn; }
-    void setWantColor(bool wantColor)           { _wantColor = wantColor; }
-    void setWantDelta(bool wantDelta)           { _wantDelta = wantDelta; }
+    bool getWantResIn() const { return _wantResIn; }
+    bool getWantColor() const { return _wantColor; }
+    bool getWantDelta() const { return _wantDelta; }
+    void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
+    void setWantColor(bool wantColor) { _wantColor = wantColor; }
+    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     
 protected:
     // privatize the copy constructor and assignment operator so they cannot be called
