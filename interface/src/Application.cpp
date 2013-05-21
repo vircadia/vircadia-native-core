@@ -1366,7 +1366,7 @@ void Application::updateAvatar(float deltaTime) {
     float measuredYawRate = _serialPort.getLastYawRate();
     
     //  Update gyro-based mouse (X,Y on screen)
-    const float MIN_MOUSE_RATE = 1.0;
+    const float MIN_MOUSE_RATE = 3.0;
     const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
     const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
