@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/9/13.
-//
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #include <cstdio>
@@ -35,15 +35,9 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 
 AvatarData::AvatarData() :
     _handPosition(0,0,0),
-    _lookatPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _headYaw(0),
-    _headPitch(0),
-    _headRoll(0),
-    _headLeanSideways(0),
-    _headLeanForward(0),
     _audioLoudness(0),
     _handState(0),
     _cameraPosition(0,0,0),
@@ -57,9 +51,14 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _wantResIn(false),
     _wantColor(true),
-    _wantDelta(false)
+    _wantDelta(false),
+    _headData(NULL)
 {
     
+}
+
+AvatarData::~AvatarData() {
+    delete _headData;
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -79,23 +78,23 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headYaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headPitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headRoll);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
-    memcpy(destinationBuffer, &_headLeanSideways, sizeof(float));
-    destinationBuffer += sizeof(float);
-    memcpy(destinationBuffer, &_headLeanForward, sizeof(float));
-    destinationBuffer += sizeof(float);
+    memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
+    destinationBuffer += sizeof(_headData->_leanSideways);
+    memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
+    destinationBuffer += sizeof(_headData->_leanForward);
 
     // Hand Position
     memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
 
     // Lookat Position
-    memcpy(destinationBuffer, &_lookatPosition, sizeof(_lookatPosition));
-    destinationBuffer += sizeof(_lookatPosition);
+    memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
+    destinationBuffer += sizeof(_headData->_lookAtPosition);
     
     // Hand State (0 = not grabbing, 1 = grabbing)
     memcpy(destinationBuffer, &_handState, sizeof(char));
@@ -145,7 +144,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 // called on the other agents - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
-//printf("AvatarData::parseData()\n");
+    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    if (!_headData) {
+        _headData = new HeadData();
+    }
 
     // increment to push past the packet header
     sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
@@ -160,28 +162,33 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(float) * 3;
     
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyYaw);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyPitch);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_bodyRoll);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headYaw);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headPitch);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t *)sourceBuffer, &_headRoll);
+    float headYaw, headPitch, headRoll;
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
+    
+    _headData->setYaw(headYaw);
+    _headData->setPitch(headPitch);
+    _headData->setRoll(headRoll);
 
     //  Head position relative to pelvis
-    memcpy(&_headLeanSideways, sourceBuffer, sizeof(float));
+    memcpy(&_headData->_leanSideways, sourceBuffer, sizeof(_headData->_leanSideways));
     sourceBuffer += sizeof(float);
-    memcpy(&_headLeanForward, sourceBuffer, sizeof(float));
-    sourceBuffer += sizeof(float);
+    memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
+    sourceBuffer += sizeof(_headData->_leanForward);
 
     // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
     
     // Lookat Position
-    memcpy(&_lookatPosition, sourceBuffer, sizeof(_lookatPosition));
-    sourceBuffer += sizeof(_lookatPosition);
+    memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
+    sourceBuffer += sizeof(_headData->_lookAtPosition);
     
     // Hand State
     memcpy(&_handState, sourceBuffer, sizeof(char));
@@ -226,11 +233,4 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     _wantDelta = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
     
     return sourceBuffer - startPosition;
-}
-
-void AvatarData::setHeadPitch(float p) {
-    // Set head pitch and apply limits
-    const float MAX_PITCH = 60;
-    const float MIN_PITCH = -60;
-    _headPitch = glm::clamp(p, MIN_PITCH, MAX_PITCH);
 }
