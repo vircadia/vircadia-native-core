@@ -693,12 +693,9 @@ bool findSpherePenetrationOp(VoxelNode* node, void* extraData) {
     
     // currently, we treat each node as a sphere enveloping the box
     const glm::vec3& nodeCenter = node->getCenter();
-    float halfNodeScale = node->getScale() * 0.5f;
-    float halfNodeScale2 = halfNodeScale * halfNodeScale;
-    float nodeRadius = sqrtf(halfNodeScale2*3.0f);
     glm::vec3 vector = args->center - nodeCenter;
     float vectorLength = glm::length(vector);
-    float distance = vectorLength - nodeRadius - args->radius;
+    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
     if (distance >= 0.0f) {
         return false;
     }
@@ -748,12 +745,9 @@ bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     
     // currently, we treat each node as a sphere enveloping the box
     const glm::vec3& nodeCenter = node->getCenter();
-    float halfNodeScale = node->getScale() * 0.5f;
-    float halfNodeScale2 = halfNodeScale * halfNodeScale;
-    float nodeRadius = sqrtf(halfNodeScale2*3.0f);
     glm::vec3 vector = computeVectorFromPointToSegment(nodeCenter, args->start, args->end);
     float vectorLength = glm::length(vector);
-    float distance = vectorLength - nodeRadius - args->radius;
+    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
     if (distance >= 0.0f) {
         return false;
     }
