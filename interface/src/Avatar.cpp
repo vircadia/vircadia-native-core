@@ -134,8 +134,8 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     //  Update avatar head position based on measured gyro rates
     
     _head.addPitch(measuredPitchRate * deltaTime);
-    _head.addYaw(measuredYawRate * deltaTime);
-    _head.addRoll(measuredRollRate * deltaTime);
+    _head.addYaw  (measuredYawRate   * deltaTime);
+    _head.addRoll (measuredRollRate  * deltaTime);
     
     //  Update head lean distance based on accelerometer data
     const float LEAN_SENSITIVITY = 0.15;
@@ -674,7 +674,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
 }
 
 void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
-
+        
     _cameraPosition = cameraPosition; // store this for use in various parts of the code
 
     if (usingBigSphereCollisionTest) {
@@ -1083,41 +1083,38 @@ void Avatar::renderBody(bool lookingInMirror) {
             }
         } else {
     
-            //show direction vectors of the bone orientation
-            //renderOrientationDirections(_joint[b].springyPosition, _joint[b].orientation, _joint[b].radius * 2.0);
-            
-            glColor3fv(skinColor);
+            glColor3f
+            (
+                skinColor[0] + _joint[b].touchForce * 0.3f, 
+                skinColor[1] - _joint[b].touchForce * 0.2f, 
+                skinColor[2] - _joint[b].touchForce * 0.1f
+            );
             glPushMatrix();
             glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
             glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
             glPopMatrix();
         }
-        
-        if (_joint[b].touchForce > 0.0f) {
-        
-            float alpha = _joint[b].touchForce * 0.2;
-            float r = _joint[b].radius * 1.1f + 0.005f;
-            glColor4f(0.5f, 0.2f, 0.2f, alpha);
-            glPushMatrix();
-            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
-            glScalef(r, r, r);
-            glutSolidSphere(1, 20, 20);
-            glPopMatrix();
-        }
     }
     
-    for (int b = 1; b < NUM_AVATAR_JOINTS; b++) {
-    if (_joint[b].parent != AVATAR_JOINT_NULL) 
-        if (b != AVATAR_JOINT_HEAD_TOP) {
-                
+    for (int j = 1; j < NUM_AVATAR_JOINTS; j++) {
+    if (_joint[j].parent != AVATAR_JOINT_NULL) 
+        if ((j != AVATAR_JOINT_HEAD_TOP      )
+        &&  (j != AVATAR_JOINT_HEAD_BASE     )	
+        &&  (j != AVATAR_JOINT_PELVIS        )	
+        &&  (j != AVATAR_JOINT_TORSO         )
+        &&  (j != AVATAR_JOINT_CHEST         )
+        &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
+        &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
+        &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
+        &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
             // Render cone sections connecting the joint positions 
             glColor3fv(darkSkinColor);
             renderJointConnectingCone
             (
-                _joint[_joint[b].parent ].springyPosition, 
-                _joint[b                ].springyPosition, 
-                _joint[_joint[b].parent ].radius * 0.8, 
-                _joint[b                ].radius * 0.8
+                _joint[_joint[j].parent ].springyPosition, 
+                _joint[j                ].springyPosition, 
+                _joint[_joint[j].parent ].radius * 0.8, 
+                _joint[j                ].radius * 0.8
             );
         
             /*
@@ -1312,18 +1309,18 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     
     if (deltaTime == 0.f) {
         //  On first sample, set head to absolute position
-        _head.setYaw(eulerAngles->x);
+        _head.setYaw  (eulerAngles->x);
         _head.setPitch(eulerAngles->y);
-        _head.setRoll(eulerAngles->z);
+        _head.setRoll (eulerAngles->z);
     } else { 
         glm::vec3 angles(_head.getYaw(), _head.getPitch(), _head.getRoll());
         //  Increment by detected velocity 
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
         angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        _head.setYaw(angles.x);
+        _head.setYaw  (angles.x);
         _head.setPitch(angles.y);
-        _head.setRoll(angles.z);
+        _head.setRoll (angles.z);
         //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
 }

@@ -1707,9 +1707,9 @@ void Application::displaySide(Camera& whichCamera) {
             }
         }
         agentList->unlock();
-        
+            
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror, _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
     }
     
     //  Render the world box

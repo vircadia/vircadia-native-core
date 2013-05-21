@@ -12,53 +12,32 @@
 
 using namespace std;
 
-const float HEAD_MOTION_DECAY = 0.1;
-const float MINIMUM_EYE_ROTATION = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
+const float EYE_RIGHT_OFFSET        =  0.27f;
+const float EYE_UP_OFFSET           =  0.38f;
+const float EYE_FRONT_OFFSET        =  0.8f;
+const float EAR_RIGHT_OFFSET        =  1.0;
+const float MOUTH_FRONT_OFFSET      =  1.0f;
+const float MOUTH_UP_OFFSET         = -0.2f;
+const float HEAD_MOTION_DECAY       = 0.1;
+const float MINIMUM_EYE_ROTATION    = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
+const float EYEBALL_RADIUS          = 0.02; 
+const float EYEBALL_COLOR[3]        = { 0.9f, 0.9f, 0.8f};
+const float IRIS_RADIUS             = 0.007;
+const float IRIS_PROTRUSION         = 0.018f;
+const char  IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
 
-const float EYEBALL_RADIUS  = 0.02; 
-const float IRIS_RADIUS     = 0.007;
-const float IRIS_PROTRUSION = 0.018f;
-
-float _browColor [] = {210.0/255.0, 105.0/255.0, 30.0/255.0};
-float _mouthColor[] = {1, 0, 0};
-
-float _BrowRollAngle [5] = {  0.0f,  15.0f, 30.0f, -30.0f, -15.0f};
-float _BrowPitchAngle[3] = {-70.0f, -60.0f, -50.0f};
-float _eyeColor      [3] = {  0.9f,  0.9f,   0.8f};
-
-float _MouthWidthChoices[3] = {0.5, 0.77, 0.3};
-
-float _browWidth = 0.8;
-float _browThickness = 0.16;
-
-const char IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
-unsigned int IRIS_TEXTURE_WIDTH = 768;
+unsigned int IRIS_TEXTURE_WIDTH  = 768;
 unsigned int IRIS_TEXTURE_HEIGHT = 498;
 vector<unsigned char> irisTexture;
 
 Head::Head() :
     yawRate(0.0f),
-    noise(0.0f),
     _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
-    //_lookatPosition(0.0f, 0.0f, 0.0f),
-    //_yaw(0.0f),
-    //_pitch(0.0f),
-    //_roll(0.0f),
-    _eyeballPitch(),
-    _eyeballYaw(),
-    _interBrowDistance(0.75f),
-    _mouthPitch(0),
-    _mouthYaw(0),
-    _mouthWidth(1.0f),
-    _mouthHeight(0.2f),
-    //_pitchTarget(0.0f),
-    //_yawTarget(0.0f),
-    _noiseEnvelope(1.0f),
+    _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
-    _eyeContact(1),
     _browAudioLift(0.0f),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
@@ -66,80 +45,24 @@ Head::Head() :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
-    _headRotation(0.0f, 0.0f, 0.0f),
-    _eyeContactTarget(LEFT_EYE)
-{
-    _eyebrowPitch[0]  = -30;
-    _eyebrowPitch[1]  = -30;
-    _eyebrowRoll [0]  =  20;
-    _eyebrowRoll [1]  = -20;
+    _headRotation(0.0f, 0.0f, 0.0f) {
 }
-
-/*
-void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
-    _position = p;
-    _scale    = s;
-    _headRotation = r;
-}
-*/
-
-/*
-void Head::setNewTarget(float pitch, float yaw) {
-    _pitchTarget = pitch;
-    _yawTarget   = yaw;
-}
-*/
 
 void Head::reset() {
     _yaw = _pitch = _roll = 0.0f;
     _leanForward = _leanSideways = 0.0f;
 }
 
+
 void Head::simulate(float deltaTime, bool isMine) {
-
-    //generate orientation directions based on Euler angles...
-    _orientation.setToPitchYawRoll
-    (
-                            _pitch, 
-        _bodyRotation.y +   _yaw, 
-                            _roll
-    );
-
-    //calculate the eye positions (algorithm still being designed)
-    float rightShift = _scale * 0.27f;
-    float upShift    = _scale * 0.38f;
-    float frontShift = _scale * 0.8f;
-    
-    _leftEyePosition  = _position 
-                      - _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-    _rightEyePosition = _position
-                      + _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-
-    rightShift = _scale * 1.0f;
-    upShift    = _scale * 0.0f;
-    frontShift = _scale * 0.0f;
-
-    _leftEarPosition  = _position 
-                      - _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-    _rightEarPosition = _position
-                      + _orientation.getRight() * rightShift 
-                      + _orientation.getUp   () * upShift 
-                      + _orientation.getFront() * frontShift;
-
-
 
     //  Decay head back to center if turned on
     if (isMine && _returnHeadToCenter) {
-        //  Decay back toward center
+    
+        //  Decay rotation back toward center
         _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _yaw *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _roll *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _yaw   *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
     }
     
     //  For invensense gyro, decay only slightly when roughly centered
@@ -147,106 +70,33 @@ void Head::simulate(float deltaTime, bool isMine) {
         const float RETURN_RANGE = 15.0;
         const float RETURN_STRENGTH = 2.0;
         if (fabs(_pitch) < RETURN_RANGE) { _pitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_yaw) < RETURN_RANGE) { _yaw *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_roll) < RETURN_RANGE) { _roll *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_yaw  ) < RETURN_RANGE) { _yaw   *= (1.0f - RETURN_STRENGTH * deltaTime); }
+        if (fabs(_roll ) < RETURN_RANGE) { _roll  *= (1.0f - RETURN_STRENGTH * deltaTime); }
     }
 
-    /*
-    if (noise) {
-        //  Move toward new target
-        _pitch += (_pitchTarget - _pitch) * 10 * deltaTime; // (1.f - DECAY*deltaTime)*Pitch + ;
-        _yaw   += (_yawTarget   - _yaw  ) * 10 * deltaTime; // (1.f - DECAY*deltaTime);
-        _roll *= 1.f - (HEAD_MOTION_DECAY * deltaTime);
-    }
-    */
-    
+    // decay lean
     _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
     _leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
-        
-    //  Update where the avatar's eyes are
-    //
-    //  First, decide if we are making eye contact or not
-    if (randFloat() < 0.005) {
-        _eyeContact = !_eyeContact;
-        _eyeContact = 1;
-        if (!_eyeContact) {
-            //  If we just stopped making eye contact,move the eyes markedly away
-            _eyeballPitch[0] = _eyeballPitch[1] = _eyeballPitch[0] + 5.0 + (randFloat() - 0.5) * 10;
-            _eyeballYaw  [0] = _eyeballYaw  [1] = _eyeballYaw  [0] + 5.0 + (randFloat() - 0.5) * 5;
-        } else {
-            //  If now making eye contact, turn head to look right at viewer
-            //setNewTarget(0,0);
-        }
-    }
-    
-    const float DEGREES_BETWEEN_VIEWER_EYES = 3;
-    const float DEGREES_TO_VIEWER_MOUTH = 7;
-    
-    if (_eyeContact) {
-        //  Should we pick a new eye contact target?
-        if (randFloat() < 0.01) {
-            //  Choose where to look next
-            if (randFloat() < 0.1) {
-                _eyeContactTarget = MOUTH;
-            } else {
-                if (randFloat() < 0.5) {
-                    _eyeContactTarget = LEFT_EYE; 
-                } else {
-                    _eyeContactTarget = RIGHT_EYE;
-                }
-            }
-        }
-        
-        //  Set eyeball pitch and yaw to make contact
-        float eye_target_yaw_adjust   = 0.0f;
-        float eye_target_pitch_adjust = 0.0f;
-
-        if (_eyeContactTarget == LEFT_EYE ) { eye_target_yaw_adjust   =  DEGREES_BETWEEN_VIEWER_EYES; }
-        if (_eyeContactTarget == RIGHT_EYE) { eye_target_yaw_adjust   = -DEGREES_BETWEEN_VIEWER_EYES; }
-        if (_eyeContactTarget == MOUTH    ) { eye_target_pitch_adjust =  DEGREES_TO_VIEWER_MOUTH;     }
-        
-        _eyeballPitch[0] = _eyeballPitch[1] = -_pitch + eye_target_pitch_adjust;
-        _eyeballYaw  [0] = _eyeballYaw  [1] =  _yaw + eye_target_yaw_adjust;
-    }
-    
-    if (noise)
-    {
-        _pitch += (randFloat() - 0.5) * 0.2 * _noiseEnvelope;
-        _yaw += (randFloat() - 0.5) * 0.3 *_noiseEnvelope;
-        //PupilSize += (randFloat() - 0.5) * 0.001*NoiseEnvelope;
-        
-        if (randFloat() < 0.005) _mouthWidth = _MouthWidthChoices[rand()%3];
-        
-        if (!_eyeContact) {
-            if (randFloat() < 0.01)  _eyeballPitch[0] = _eyeballPitch[1] = (randFloat() - 0.5) * 20;
-            if (randFloat() < 0.01)  _eyeballYaw[0] = _eyeballYaw[1] = (randFloat()- 0.5) * 10;
-        }
-        
-        /*
-        if ((randFloat() < 0.005) && (fabs(_pitchTarget - _pitch) < 1.0) && (fabs(_yawTarget - _yaw) < 1.0)) {
-            setNewTarget((randFloat()-0.5) * 20.0, (randFloat()-0.5) * 45.0);
-        }
-        */
-        
-        if (0) {
-            
-            //  Pick new target
-            //_pitchTarget = (randFloat() - 0.5) * 45;
-            //_yawTarget = (randFloat() - 0.5) * 22;
-        }
-        if (randFloat() < 0.01)
-        {
-            _eyebrowPitch[0] = _eyebrowPitch[1] = _BrowPitchAngle[rand()%3];
-            _eyebrowRoll [0] = _eyebrowRoll[1] = _BrowRollAngle[rand()%5];
-            _eyebrowRoll [1] *=-1;
-        }
-    }
-    
+                
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05;
     _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
                              (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-                                                        
+                             
+                             
+    //  Update audio attack data for facial animation (eyebrows and mouth)
+    _audioAttack = 0.9 * _audioAttack + 0.1 * fabs(_audioLoudness - _lastLoudness);
+    _lastLoudness = _audioLoudness;
+    
+    const float BROW_LIFT_THRESHOLD = 100;
+    if (_audioAttack > BROW_LIFT_THRESHOLD)
+        _browAudioLift += sqrt(_audioAttack) * 0.00005;
+        
+        float clamp = 0.01;
+        if (_browAudioLift > clamp) { _browAudioLift = clamp; }
+    
+    _browAudioLift *= 0.7f;                             
+                             
 }
 
 
@@ -264,120 +114,59 @@ void Head::setLooking(bool looking) {
 }
 
 
+
+
+void Head::calculateGeometry(bool lookingInMirror) {
+    //generate orientation directions based on Euler angles...
+    
+    float pitch = -_pitch;
+    float yaw   = -_yaw;
+    float roll  =  _roll;
+    
+    if (lookingInMirror) {
+        yaw   =  _yaw;
+        roll  = -_roll;
+    }
+    
+    _orientation.setToPitchYawRoll
+    (
+        _bodyRotation.x + pitch, 
+        _bodyRotation.y + yaw, 
+        _bodyRotation.z + roll
+    );
+
+    //calculate the eye positions 
+    _leftEyePosition  = _position 
+                      - _orientation.getRight() * _scale * EYE_RIGHT_OFFSET
+                      + _orientation.getUp   () * _scale * EYE_UP_OFFSET
+                      + _orientation.getFront() * _scale * EYE_FRONT_OFFSET;
+    _rightEyePosition = _position
+                      + _orientation.getRight() * _scale * EYE_RIGHT_OFFSET 
+                      + _orientation.getUp   () * _scale * EYE_UP_OFFSET 
+                      + _orientation.getFront() * _scale * EYE_FRONT_OFFSET;
+
+    //calculate the ear positions 
+    _leftEarPosition  = _position - _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
+    _rightEarPosition = _position + _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
+
+    //calculate the mouth position 
+    _mouthPosition    = _position + _orientation.getUp   () * _scale * MOUTH_UP_OFFSET
+                                  + _orientation.getFront() * _scale * MOUTH_FRONT_OFFSET;
+}
+
+
 void Head::render(bool lookingInMirror) {
 
-    //int side = 0;
-    
+    calculateGeometry(lookingInMirror);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-        
-    glPushMatrix();
-    
-        glTranslatef(_position.x, _position.y, _position.z); //translate to head position
-        glScalef(_scale, _scale, _scale); //scale to head size
-    
-    
-    /*
-    if (lookingInMirror) {
-        glRotatef(_bodyRotation.y - _yaw, 0, 1, 0);
-        glRotatef(_pitch,  1, 0, 0);   
-        glRotatef(-_roll,  0, 0, 1);
-    } else {
-        glRotatef(_bodyRotation.y + _yaw, 0, 1, 0);
-        glRotatef(_pitch, 1, 0, 0);
-        glRotatef(_roll,  0, 0, 1);
-    }*/
-
-    //glRotatef(                  _pitch, IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-    //glRotatef(_bodyRotation.y + _yaw, IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
-    //glRotatef(                  _roll, IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
-    
-    //draw head sphere
-    glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
-    glutSolidSphere(1, 30, 30);
-    
-    /*
-    // render ears
-    glPushMatrix();
-    glTranslatef(1.0, 0, 0);
-    for(int side = 0; side < 2; side++) {
-        glPushMatrix();
-        glScalef(0.3, 0.65, .65);
-        glutSolidSphere(0.5, 30, 30);
-        glPopMatrix();
-        glTranslatef(-2.0, 0, 0);
-    }
-    glPopMatrix();
-    */
-    
-    
-    
-    /*
-    //  Update audio attack data for facial animation (eyebrows and mouth)
-    _audioAttack = 0.9 * _audioAttack + 0.1 * fabs(_audioLoudness - _lastLoudness);
-    _lastLoudness = _audioLoudness;
-    
-    const float BROW_LIFT_THRESHOLD = 100;
-    if (_audioAttack > BROW_LIFT_THRESHOLD)
-        _browAudioLift += sqrt(_audioAttack) / 1000.0;
-    
-    _browAudioLift *= .90;
-    
-    //  Render Eyebrows
-    glPushMatrix();
-    glTranslatef(-_interBrowDistance / 2.0,0.4,0.45);
-    for(int side = 0; side < 2; side++) {
-        glColor3fv(_browColor);
-        glPushMatrix();
-        glTranslatef(0, 0.35 + _browAudioLift, 0);
-        glRotatef(_eyebrowPitch[side]/2.0, 1, 0, 0);
-        glRotatef(_eyebrowRoll[side]/2.0, 0, 0, 1);
-        glScalef(_browWidth, _browThickness, 1);
-        glutSolidCube(0.5);
-        glPopMatrix();
-        glTranslatef(_interBrowDistance, 0, 0);
-    }
-    glPopMatrix();
-    */
-    
-    
-    
-    
-    
-    
-    
-    /*
-    // Mouth
-//    const float MIN_LOUDNESS_SCALE_WIDTH = 0.7f;
-//    const float WIDTH_SENSITIVITY = 60.f;
-//    const float HEIGHT_SENSITIVITY = 30.f;
-//    const float MIN_LOUDNESS_SCALE_HEIGHT = 1.0f;
-    glPushMatrix();
-        glTranslatef(0,-0.35,0.75);
-        glColor3f(0,0,0);
-
-        glRotatef(_mouthPitch, 1, 0, 0);
-        glRotatef(_mouthYaw, 0, 0, 1);
-
-        if (_averageLoudness > 1.f) {
-            glScalef(_mouthWidth  * (.7f + sqrt(_averageLoudness) /60.f),
-                     _mouthHeight * (1.f + sqrt(_averageLoudness) /30.f), 1);
-        } else {
-            glScalef(_mouthWidth, _mouthHeight, 1);
-        } 
-
-        glutSolidCube(0.5);
-    glPopMatrix();
-    */
-    
-    glPopMatrix();
-
+    renderHeadSphere();
     renderEyeBalls();    
-    
     renderEars();
-    
-    
+    renderMouth();    
+    renderEyeBrows();    
         
     /*
     if (_lookingAtSomething) {
@@ -387,6 +176,14 @@ void Head::render(bool lookingInMirror) {
     */
 }
 
+void Head::renderHeadSphere() {
+    glPushMatrix();
+        glTranslatef(_position.x, _position.y, _position.z); //translate to head position
+        glScalef(_scale, _scale, _scale); //scale to head size        
+        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glutSolidSphere(1, 30, 30);
+    glPopMatrix();
+}
 
 void Head::renderEars() {
 
@@ -403,6 +200,129 @@ void Head::renderEars() {
     glPopMatrix();
 }
 
+
+
+void Head::renderMouth() {
+
+    float s = sqrt(_averageLoudness);
+    float height = _scale * (0.02f + s * 0.003f );
+    float width  = _scale * (0.30f + s * 0.001f );
+    
+    glm::vec3 leftCorner  = _mouthPosition;
+    glm::vec3 rightCorner = _mouthPosition;
+    glm::vec3 leftTop     = _mouthPosition;
+    glm::vec3 rightTop    = _mouthPosition;
+    glm::vec3 leftBottom  = _mouthPosition;
+    glm::vec3 rightBottom = _mouthPosition;
+    
+    leftCorner  -= _orientation.getRight() * width;
+    rightCorner += _orientation.getRight() * width;
+    leftTop     -= _orientation.getRight() * width * 0.3f;
+    rightTop    += _orientation.getRight() * width * 0.3f;
+    leftBottom  -= _orientation.getRight() * width * 0.3f;
+    rightBottom += _orientation.getRight() * width * 0.3f;
+
+    leftTop     += _orientation.getUp() * height * 0.7f;
+    rightTop    += _orientation.getUp() * height * 0.7f;
+    leftBottom  -= _orientation.getUp() * height;
+    rightBottom -= _orientation.getUp() * height;
+
+    leftTop     += _orientation.getFront() * _scale * 0.1f;
+    rightTop    += _orientation.getFront() * _scale * 0.1f;
+    leftBottom  += _orientation.getFront() * _scale * 0.1f;
+    rightBottom += _orientation.getFront() * _scale * 0.1f;
+
+    glColor3f(0.2f, 0.0f, 0.0f);
+    
+    glBegin(GL_TRIANGLES);             
+
+    glVertex3f(leftCorner.x, leftCorner.y, leftCorner.z); 
+    glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
+    glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
+
+    glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
+    glVertex3f(rightTop.x,   rightTop.y,   rightTop.z  ); 
+    glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
+    
+    glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+    glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+    glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
+
+    glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+    glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
+    glVertex3f(rightCorner.x, rightCorner.y, rightCorner.z); 
+
+    glEnd();
+}
+
+
+
+void Head::renderEyeBrows() {   
+
+    float height = _scale * 0.3f + _browAudioLift;
+    float length = _scale * 0.2f;
+    float width  = _scale * 0.07f;
+
+    glColor3f(0.3f, 0.25f, 0.2f);
+
+    glm::vec3 leftCorner  = _leftEyePosition;
+    glm::vec3 rightCorner = _leftEyePosition;
+    glm::vec3 leftTop     = _leftEyePosition;
+    glm::vec3 rightTop    = _leftEyePosition;
+    glm::vec3 leftBottom  = _leftEyePosition;
+    glm::vec3 rightBottom = _leftEyePosition;
+     
+    for (int i = 0; i<2; i++) {
+    
+        if ( i == 1 ) {
+            leftCorner = rightCorner = leftTop = rightTop = leftBottom = rightBottom = _rightEyePosition;
+        }
+       
+        leftCorner  -= _orientation.getRight() * length;
+        rightCorner += _orientation.getRight() * length;
+        leftTop     -= _orientation.getRight() * length * 0.4f;
+        rightTop    += _orientation.getRight() * length * 0.4f;
+        leftBottom  -= _orientation.getRight() * length * 0.4f;
+        rightBottom += _orientation.getRight() * length * 0.4f;
+
+        leftCorner  += _orientation.getUp() * height;
+        rightCorner += _orientation.getUp() * height;
+        leftTop     += _orientation.getUp() * (height + width);
+        rightTop    += _orientation.getUp() * (height + width);
+        leftBottom  += _orientation.getUp() * height;
+        rightBottom += _orientation.getUp() * height;
+
+        leftCorner  += _orientation.getFront() * _scale * -0.1f;
+        rightCorner += _orientation.getFront() * _scale * -0.1f;
+        leftTop     += _orientation.getFront() * _scale * -0.1f;
+        rightTop    += _orientation.getFront() * _scale * -0.1f;
+        leftBottom  += _orientation.getFront() * _scale * -0.1f;
+        rightBottom += _orientation.getFront() * _scale * -0.1f;
+        
+        
+        glBegin(GL_TRIANGLES);             
+
+        glVertex3f(leftCorner.x, leftCorner.y, leftCorner.z); 
+        glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
+        glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
+
+        glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
+        glVertex3f(rightTop.x,   rightTop.y,   rightTop.z  ); 
+        glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
+        
+        glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+        glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+        glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
+
+        glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+        glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
+        glVertex3f(rightCorner.x, rightCorner.y, rightCorner.z); 
+
+        glEnd();
+    }
+  }
+  
+  
 
 void Head::renderEyeBalls() {                                 
     
@@ -425,7 +345,7 @@ void Head::renderEyeBalls() {
 
     // render white ball of left eyeball
     glPushMatrix();
-        glColor3fv(_eyeColor);
+        glColor3fv(EYEBALL_COLOR);
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
         gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
@@ -469,7 +389,7 @@ void Head::renderEyeBalls() {
 
     //render white ball of right eyeball
     glPushMatrix();
-        glColor3fv(_eyeColor);
+        glColor3fv(EYEBALL_COLOR);
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
         gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
