@@ -68,6 +68,11 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
     
+    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    if (!_headData) {
+        _headData = new HeadData();
+    }
+    
     // Body world position
     memcpy(destinationBuffer, &_position, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
