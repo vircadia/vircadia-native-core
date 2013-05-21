@@ -19,7 +19,10 @@
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
+#define NO_EXISTS_BITS   false
 #define WANT_EXISTS_BITS true
+#define NO_COLOR         false
+#define WANT_COLOR       true
 
 class VoxelTree {
 public:
@@ -43,7 +46,7 @@ public:
 
     void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
     void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, 
-                             bool includeColor = true, bool includeExistsBits = false);
+                             bool includeColor = WANT_COLOR, bool includeExistsBits = false);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive = false);
     void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
     void printTreeForDebugging(VoxelNode *startNode);
@@ -61,7 +64,7 @@ public:
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
                             VoxelNodeBag& bag, const ViewFrustum* viewFrustum, 
-                            bool includeColor = true, bool includeExistsBits = false,
+                            bool includeColor = WANT_COLOR, bool includeExistsBits = false,
                             bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL) const;
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
@@ -100,7 +103,7 @@ private:
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 
-                     bool includeColor = true, bool includeExistsBits = false);
+                     bool includeColor = WANT_COLOR, bool includeExistsBits = false);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
