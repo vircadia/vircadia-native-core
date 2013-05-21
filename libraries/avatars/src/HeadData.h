@@ -24,6 +24,12 @@ class HeadData {
 public:
     HeadData();
     
+    float getLeanSideways() const { return _leanSideways; }
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    
+    float getLeanForward() const { return _leanForward; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
+    
     float getYaw() const { return _yaw; }
     void setYaw(float yaw) { _yaw = glm::clamp(yaw, MIN_HEAD_YAW, MAX_HEAD_YAW); }
     
@@ -36,6 +42,7 @@ public:
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
+    void addLean(float sideways, float forwards);
     
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
@@ -46,6 +53,8 @@ protected:
     float _pitch;
     float _roll;
     glm::vec3 _lookAtPosition;
+    float _leanSideways;
+    float _leanForward;
 };
 
 #endif /* defined(__hifi__HeadData__) */

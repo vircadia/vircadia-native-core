@@ -27,6 +27,7 @@ class Head : public HeadData {
 public:
     Head();
     
+    void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
 
@@ -49,8 +50,6 @@ public:
     //some public members (left-over from pulling Head out of Avatar - I may see about privatizing these later).
     float yawRate;
     float noise;
-    float leanForward;
-    float leanSideways;
 
 private: 
 

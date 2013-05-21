@@ -47,12 +47,6 @@ public:
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
-
-    //  Head vector deflection from pelvix in X,Z
-    void setHeadLeanSideways(float s) {_headLeanSideways = s; };
-    float getHeadLeanSideways() const { return _headLeanSideways; };
-    void setHeadLeanForward(float f) {_headLeanForward = f; };
-    float getHeadLeanForward() const { return _headLeanForward; };
     
     //  Hand State
     void setHandState(char s) { _handState = s; };
@@ -112,9 +106,6 @@ protected:
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
-    
-    float _headLeanSideways;
-    float _headLeanForward;
 
     //  Audio loudness (used to drive facial animation)
     float _audioLoudness;

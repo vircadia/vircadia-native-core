@@ -93,9 +93,6 @@ public:
         
     float getAbsoluteHeadYaw() const;
     float getAbsoluteHeadPitch() const;
-    void  setLeanForward(float dist);
-    void  setLeanSideways(float dist);
-    void  addLean(float x, float z);
     glm::vec3 getApproximateEyePosition(); 
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
