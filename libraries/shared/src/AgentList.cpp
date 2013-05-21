@@ -250,7 +250,9 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
         return newAgent;
     } else {
         
-        if (agent->getType() == AGENT_TYPE_AUDIO_MIXER || agent->getType() == AGENT_TYPE_VOXEL) {
+        if (agent->getType() == AGENT_TYPE_AUDIO_MIXER ||
+            agent->getType() == AGENT_TYPE_VOXEL ||
+            agent->getType() == AGENT_TYPE_ANIMATION_SERVER) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastHeardMicrostamp(usecTimestampNow());
