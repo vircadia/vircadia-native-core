@@ -29,35 +29,42 @@
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
 
-# default search dirs
-SET(_glm_HEADER_SEARCH_DIRS
-    "/usr/include"
-    "/usr/local/include")
+IF (GLM_INCLUDE_DIR)
+  set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
+  SET(GLM_FOUND TRUE)
+ELSE (GLM_INCLUDE_DIR)
+  # default search dirs
+  SET(_glm_HEADER_SEARCH_DIRS
+      "/usr/include"
+      "/usr/local/include")
 
-# check environment variable
-SET(_glm_ENV_ROOT_DIR "$ENV{GLM_ROOT_DIR}")
+  # check environment variable
+  SET(_glm_ENV_ROOT_DIR "$ENV{GLM_ROOT_DIR}")
 
-IF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
-    SET(GLM_ROOT_DIR "${_glm_ENV_ROOT_DIR}")
-ENDIF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
+  IF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
+      SET(GLM_ROOT_DIR "${_glm_ENV_ROOT_DIR}")
+  ENDIF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
 
-# put user specified location at beginning of search
-IF(GLM_ROOT_DIR)
-    SET(_glm_HEADER_SEARCH_DIRS "${GLM_ROOT_DIR}"
-                                "${GLM_ROOT_DIR}/include"
-                                 ${_glm_HEADER_SEARCH_DIRS})
-ENDIF(GLM_ROOT_DIR)
+  # put user specified location at beginning of search
+  IF(GLM_ROOT_DIR)
+      SET(_glm_HEADER_SEARCH_DIRS "${GLM_ROOT_DIR}"
+                                  "${GLM_ROOT_DIR}/include"
+                                   ${_glm_HEADER_SEARCH_DIRS})
+  ENDIF(GLM_ROOT_DIR)
 
-# locate header
-FIND_PATH(GLM_INCLUDE_DIR "glm/glm.hpp"
-    PATHS ${_glm_HEADER_SEARCH_DIRS})
+  # locate header
+  FIND_PATH(GLM_INCLUDE_DIR "glm/glm.hpp"
+      PATHS ${_glm_HEADER_SEARCH_DIRS})
 
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(GLM DEFAULT_MSG
-    GLM_INCLUDE_DIR)
+  INCLUDE(FindPackageHandleStandardArgs)
+  FIND_PACKAGE_HANDLE_STANDARD_ARGS(GLM DEFAULT_MSG
+      GLM_INCLUDE_DIR)
 
-IF(GLM_FOUND)
-    SET(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
-
-    MESSAGE(STATUS "GLM_INCLUDE_DIR = ${GLM_INCLUDE_DIR}")
-ENDIF(GLM_FOUND)
+  IF(GLM_FOUND)
+      SET(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
+    
+      if (NOT GLM_FIND_QUIETLY)
+        MESSAGE(STATUS "GLM_INCLUDE_DIR = ${GLM_INCLUDE_DIR}")
+      endif (NOT GLM_FIND_QUIETLY)
+  ENDIF(GLM_FOUND)
+ENDIF(GLM_INCLUDE_DIR) 
