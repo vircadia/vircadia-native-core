@@ -1043,7 +1043,7 @@ bool VoxelTree::readFromFileV2(const char* fileName) {
         // read the entire file into a buffer, WHAT!? Why not.
         unsigned char* entireFile = new unsigned char[fileLength];
         file.read((char*)entireFile, fileLength);
-        readBitstreamToTree(entireFile, fileLength, true);
+        readBitstreamToTree(entireFile, fileLength, WANT_COLOR, NO_EXISTS_BITS);
         delete[] entireFile;
     		
         file.close();
@@ -1068,7 +1068,7 @@ void VoxelTree::writeToFileV2(const char* fileName) const {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
             bytesWritten = encodeTreeBitstream(INT_MAX, subTree, &outputBuffer[0], 
-                    MAX_VOXEL_PACKET_SIZE - 1, nodeBag, NULL, true);
+                    MAX_VOXEL_PACKET_SIZE - 1, nodeBag, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
                                                       
             file.write((const char*)&outputBuffer[0], bytesWritten);
         }
