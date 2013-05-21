@@ -156,6 +156,7 @@ Application::Application(int& argc, char** argv) :
         _bytesCount(0)
 {
     gettimeofday(&_applicationStartupTime, NULL);
+    _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
     _voxels.setViewFrustum(&_viewFrustum);
@@ -408,14 +409,16 @@ void Application::paintGL() {
         }
     }
     
-    _frameCount++;
     
+    _frameCount++;
+        
     //  If application has just started, report time from startup to now (first frame display)
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
         _justStarted = false;
-        char title[30];
-        snprintf(title, 30, "Interface: %4.2f seconds", startupTime);
+        char title[50];
+        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
+        printLog("%s", title);
         _window->setWindowTitle(title);
     }
 }
@@ -852,13 +855,10 @@ void Application::idle() {
         
         float deltaTime = 1.f/_fps;
         
-        //  Use Transmitter Hand to move hand if connected, else use mouse 
-        if (_myAvatar.isTransmitterV2Connected()) {
+        //  Use Transmitter Hand to move hand if connected, else use mouse
+        if (_myTransmitter.isConnected()) {
             const float HAND_FORCE_SCALING = 0.05f;
-            const float* handAcceleration = _myAvatar.getTransmitterHandLastAcceleration();
-            _myAvatar.setMovedHandOffset(glm::vec3(-handAcceleration[0] * HAND_FORCE_SCALING,
-                                                       handAcceleration[1] * HAND_FORCE_SCALING,
-                                                       handAcceleration[2] * HAND_FORCE_SCALING));
+            _myAvatar.setMovedHandOffset(_myTransmitter.getLastAcceleration() *  HAND_FORCE_SCALING);
         } else {
             // update behaviors for avatar hand movement: handControl takes mouse values as input,
             // and gives back 3D values modulated for smooth transitioning between interaction modes.
@@ -1757,8 +1757,8 @@ void Application::displayOverlay() {
     if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
     
     //  Show hand transmitter data if detected
-    if (_myAvatar.isTransmitterV2Connected()) {
-        _myAvatar.transmitterV2RenderLevels(_glWidget->width(), _glWidget->height());
+    if (_myTransmitter.isConnected()) {
+        _myTransmitter.renderLevels(_glWidget->width(), _glWidget->height());
     }
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
@@ -2111,13 +2111,9 @@ void* Application::networkReceive(void* args) {
             app->_bytesCount += bytesReceived;
             
             switch (app->_incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA_V1:
-                    //  V1 = android app, or the Google Glass 
-                    app->_myAvatar.processTransmitterData(app->_incomingPacket, bytesReceived);
-                    break;
                 case PACKET_HEADER_TRANSMITTER_DATA_V2:
                     //  V2 = IOS transmitter app 
-                    app->_myAvatar.processTransmitterDataV2(app->_incomingPacket, bytesReceived);
+                    app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
                     
                     break;
                 case PACKET_HEADER_MIXED_AUDIO:

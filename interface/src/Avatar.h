@@ -20,6 +20,7 @@
 #include "SerialInterface.h"
 #include "Balls.h"
 #include "Head.h"
+#include "Transmitter.h"
 
 enum DriveKeys
 {
@@ -122,16 +123,6 @@ public:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
-
-    //  Related to getting transmitter UDP data used to animate the avatar hand
-    void processTransmitterData(unsigned char * packetData, int numBytes);
-    void processTransmitterDataV2(unsigned char * packetData, int numBytes);
-    const bool isTransmitterV2Connected() const { return _isTransmitterV2Connected; };
-    const float* getTransmitterHandLastAcceleration() const { return _transmitterHandLastAcceleration; };
-    const float* getTransmitterHandLastRotationRates() const { return _transmitterHandLastRotationRates; };
-    void transmitterV2RenderLevels(int width, int height);
-
-    float getTransmitterHz() { return _transmitterHz; };
     
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
@@ -179,15 +170,6 @@ private:
     float		_maxArmLength;
     Orientation	_orientation;
     int         _driveKeys[MAX_DRIVE_KEYS];
-    bool        _transmitterIsFirstData; 
-    timeval     _transmitterTimeLastReceived;
-    timeval     _transmitterTimer;
-    float       _transmitterHz;
-    int         _transmitterPackets;
-    glm::vec3   _transmitterInitialReading;
-    float       _transmitterHandLastRotationRates[3];
-    float       _transmitterHandLastAcceleration[3];
-    bool        _isTransmitterV2Connected;
     float       _pelvisStandingHeight;
     float       _height;
     Balls*      _balls;

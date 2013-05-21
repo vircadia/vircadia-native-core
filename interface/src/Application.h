@@ -189,6 +189,8 @@ private:
     
     Avatar _myAvatar;                  // The rendered avatar of oneself
     
+    Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
+    
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     
