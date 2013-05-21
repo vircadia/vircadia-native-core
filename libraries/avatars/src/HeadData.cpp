@@ -12,7 +12,9 @@ HeadData::HeadData() :
     _yaw(0.0f),
     _pitch(0.0f),
     _roll(0.0f),
-    _lookAtPosition(0.0f, 0.0f, 0.0f)
+    _lookAtPosition(0.0f, 0.0f, 0.0f),
+    _leanSideways(0.0f),
+    _leanForward(0.0f)
 {
     
 }
@@ -27,4 +29,10 @@ void HeadData::addPitch(float pitch) {
 
 void HeadData::addRoll(float roll) {
     setRoll(_roll + roll);
+}
+
+void HeadData::addLean(float sideways, float forwards) {
+    // Add lean as impulse
+    _leanSideways += sideways;
+    _leanForward  += forwards;
 }

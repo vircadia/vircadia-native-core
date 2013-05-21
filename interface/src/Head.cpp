@@ -39,8 +39,6 @@ vector<unsigned char> irisTexture;
 Head::Head() :
     yawRate(0.0f),
     noise(0.0f),
-    leanForward(0.0f),
-    leanSideways(0.0f),
     _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
@@ -83,6 +81,11 @@ void Head::setNewTarget(float pitch, float yaw) {
     _yawTarget   = yaw;
 }
 
+void Head::reset() {
+    _yaw = _pitch = _roll = 0.0f;
+    _leanForward = _leanSideways = 0.0f;
+}
+
 void Head::simulate(float deltaTime, bool isMine) {
 
     //generate orientation directions based on Euler angles...
@@ -115,8 +118,8 @@ void Head::simulate(float deltaTime, bool isMine) {
         _roll *= 1.f - (HEAD_MOTION_DECAY * deltaTime);
     }
     
-    leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
-    leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
         
     //  Update where the avatar's eyes are
     //

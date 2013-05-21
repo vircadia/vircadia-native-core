@@ -118,10 +118,7 @@ Avatar::~Avatar() {
 }
 
 void Avatar::reset() {
-    _head.setYaw(0.0f);
-    _head.setRoll(0.0f);
-    _head.setPitch(0.0f);
-    _head.leanForward = _head.leanSideways = 0;
+    _head.reset();
 }
 
 //  Update avatar head rotation with sensor data
@@ -153,13 +150,11 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
                         * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
     leaning.y = 0.f;
     if (glm::length(leaning) < LEAN_MAX) {
-        _head.leanForward = _head.leanForward * (1.f - LEAN_AVERAGING * deltaTime) +
-                                (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY;
-        _head.leanSideways = _head.leanSideways * (1.f - LEAN_AVERAGING * deltaTime) +
-                                (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY;
+        _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
+                             (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY);
+        _head.setLeanSideways(_head.getLeanSideways() * (1.f - LEAN_AVERAGING * deltaTime) +
+                              (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY);
     }
-    setHeadLeanSideways(_head.leanSideways);
-    setHeadLeanForward(_head.leanForward); 
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -168,20 +163,6 @@ float Avatar::getAbsoluteHeadYaw() const {
 
 float Avatar::getAbsoluteHeadPitch() const {
     return _bodyPitch + _head.getPitch();
-}
-
-void Avatar::addLean(float x, float z) {
-    //Add lean as impulse
-    _head.leanSideways += x;
-    _head.leanForward  += z;
-}
-
-void Avatar::setLeanForward(float dist){
-    _head.leanForward = dist;
-}
-
-void Avatar::setLeanSideways(float dist){
-    _head.leanSideways = dist;
 }
 
 void Avatar::setMousePressed(bool mousePressed) {
@@ -361,17 +342,12 @@ void Avatar::simulate(float deltaTime) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
 
-    // Get head position data from network for other people
-    if (!_isMine) {
-        _head.leanSideways = getHeadLeanSideways();
-        _head.leanForward = getHeadLeanForward(); 
-    }
     
     //apply the head lean values to the springy position...
-    if (fabs(_head.leanSideways + _head.leanForward) > 0.0f) {
+    if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
         glm::vec3 headLean = 
-            _orientation.getRight() * _head.leanSideways +
-            _orientation.getFront() * _head.leanForward;
+            _orientation.getRight() * _head.getLeanSideways() +
+            _orientation.getFront() * _head.getLeanForward();
 
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
