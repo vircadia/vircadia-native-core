@@ -77,6 +77,7 @@ enum AvatarJointID
 class Avatar : public AvatarData {
 public:
     Avatar(bool isMine);
+    ~Avatar();
     
     void  reset();
     void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
@@ -92,9 +93,6 @@ public:
         
     float getAbsoluteHeadYaw() const;
     float getAbsoluteHeadPitch() const;
-    void  setLeanForward(float dist);
-    void  setLeanSideways(float dist);
-    void  addLean(float x, float z);
     glm::vec3 getApproximateEyePosition(); 
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
@@ -106,6 +104,7 @@ public:
     float getHeight() const { return _height; }
     
     AvatarMode getMode() const { return _mode; }
+    Head getHead() const { return _head; }
     
     void setMousePressed(bool pressed); 
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
@@ -163,8 +162,8 @@ private:
 
     Head        _head;
     bool        _isMine;
-    glm::vec3   _TEST_bigSpherePosition;
     float       _TEST_bigSphereRadius;
+    glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;
     float       _bodyPitchDelta;
     float       _bodyYawDelta;
@@ -180,8 +179,6 @@ private:
     float		_maxArmLength;
     Orientation	_orientation;
     int         _driveKeys[MAX_DRIVE_KEYS];
-    float       _renderYaw;
-    float       _renderPitch; //   Pitch from view frustum when this is own head
     bool        _transmitterIsFirstData; 
     timeval     _transmitterTimeLastReceived;
     timeval     _transmitterTimer;
