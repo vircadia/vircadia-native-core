@@ -2049,10 +2049,8 @@ void Application::maybeEditVoxelUnderCursor() {
 
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
+        // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
-        
-        // delete the voxel locally so it disappears immediately            
-        //_voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         
         // remember the position for drag detection
         _justEditedVoxel = true;
