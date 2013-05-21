@@ -39,16 +39,10 @@ vector<unsigned char> irisTexture;
 Head::Head() :
     yawRate(0.0f),
     noise(0.0f),
-    leanForward(0.0f),
-    leanSideways(0.0f),
     _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
-    _lookatPosition(0.0f, 0.0f, 0.0f),
-    _yaw(0.0f),
-    _pitch(0.0f),
-    _roll(0.0f),
     _eyeballPitch(),
     _eyeballYaw(),
     _interBrowDistance(0.75f),
@@ -77,17 +71,19 @@ Head::Head() :
 }
 
 
-void Head::setPositionRotationAndScale(glm::vec3 p, glm::vec3 r, float s) {
-    _position = p;
-    _scale    = s;
-    _yaw      = r.x;
-    _pitch    = r.y;
-    _roll     = r.z;
+void Head::setPositionAndScale(glm::vec3 position, float scale) {
+    _position = position;
+    _scale    = scale;
 }
 
 void Head::setNewTarget(float pitch, float yaw) {
     _pitchTarget = pitch;
     _yawTarget   = yaw;
+}
+
+void Head::reset() {
+    _yaw = _pitch = _roll = 0.0f;
+    _leanForward = _leanSideways = 0.0f;
 }
 
 void Head::simulate(float deltaTime, bool isMine) {
@@ -122,8 +118,8 @@ void Head::simulate(float deltaTime, bool isMine) {
         _roll *= 1.f - (HEAD_MOTION_DECAY * deltaTime);
     }
     
-    leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
-    leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
         
     //  Update where the avatar's eyes are
     //
@@ -230,7 +226,7 @@ void Head::setLooking(bool looking) {
     _lookingAtSomething = looking;
 
     glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-    glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - averageEyePosition);
+    glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
     
     float dot = glm::dot(targetLookatAxis, _orientation.getFront());
     if (dot < MINIMUM_EYE_ROTATION) {
@@ -376,7 +372,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
 
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _leftEyePosition); // the lookat direction
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
@@ -420,7 +416,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
             
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookatPosition - _rightEyePosition);
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
