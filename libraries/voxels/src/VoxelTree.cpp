@@ -99,15 +99,7 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
 
 // returns the node created!
 VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char* codeToReach) {
-
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
-    
-/****
-    // we could be coming down a branch that was already created, so don't stomp on it.
-    if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
-        lastParentNode->addChildAtIndex(indexOfNewChild);
-    }
-***/
     if (lastParentNode->isLeaf() && lastParentNode->isColored()) {
         // for colored leaves, we must add *all* the children
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
