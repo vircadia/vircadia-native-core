@@ -69,7 +69,10 @@ public:
     
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
-
+    
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
+    
     void collectStatsForTreesAndVBOs();
 
     void deleteVoxelAt(float x, float y, float z, float s);

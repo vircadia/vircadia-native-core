@@ -84,7 +84,7 @@ int audioCallback (const void* inputBuffer,
     Audio* parentAudio = (Audio*) userData;
     AgentList* agentList = AgentList::getInstance();
     
-    Application* interface = (Application*) QCoreApplication::instance();
+    Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
     
     int16_t* inputLeft = ((int16_t**) inputBuffer)[0];

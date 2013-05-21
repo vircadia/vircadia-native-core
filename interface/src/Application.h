@@ -44,6 +44,8 @@ class Application : public QApplication {
     Q_OBJECT
 
 public:
+    static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+
     Application(int& argc, char** argv);
 
     void initializeGL();
@@ -60,6 +62,7 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     Avatar* getAvatar() { return &_myAvatar; }
+    VoxelSystem* getVoxels() { return &_voxels; }
 
 private slots:
     
