@@ -175,8 +175,6 @@ void resInVoxelDistributor(AgentList* agentList,
                 } else {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
-                    //printf("sending packet...");
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -187,8 +185,6 @@ void resInVoxelDistributor(AgentList* agentList,
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                       agentData->getPacket(), agentData->getPacketLength());
-                    //printf("sending packet...");
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -235,8 +231,6 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
                                   bool viewFrustumChanged) {
-
-//printf("deepestLevelVoxelDistributor()\n");    
 
     int maxLevelReached = 0;
     double start = usecTimestampNow();
@@ -313,9 +307,6 @@ printf("huh... bag STILL empty, what to do? Add the root?...\n");
                 } else {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
-                    
-                    //printf("sending packet...");
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -326,8 +317,6 @@ printf("huh... bag STILL empty, what to do? Add the root?...\n");
                 if (agentData->isPacketWaiting()) {
                     agentList->getAgentSocket()->send(agent->getActiveSocket(),
                                                      agentData->getPacket(), agentData->getPacketLength());
-                    //printf("sending packet...");
-                    //outputBufferBits((unsigned char*)agentData->getPacket(), agentData->getPacketLength());
                     trueBytesSent += agentData->getPacketLength();
                     truePacketsSent++;
                     agentData->resetVoxelPacket();
@@ -555,18 +544,12 @@ int main(int argc, const char * argv[])
         persistVoxelsWhenDirty();
     
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-        
-            //printf("got a packet with message %d %c\n",(int)packetData[0],packetData[0]);
-        	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
-
                 PerformanceWarning warn(::shouldShowAnimationDebug,
                                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
-            
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	
             	if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
