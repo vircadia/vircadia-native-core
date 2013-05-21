@@ -316,6 +316,10 @@ void Application::paintGL() {
                                             0.0f,
                                             //-_myAvatar.getAbsoluteHeadPitch(),
                                             0.0f);
+                //  Take a look at whether we are inside head, don't render it if so.
+                const float HEAD_RENDER_DISTANCE = 0.5;
+                glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
+                if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) { _myAvatar.setDisplayingHead(false); }
             
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
@@ -1052,7 +1056,7 @@ void Application::setRenderFirstPerson(bool firstPerson) {
         a.distance  = 0.0f;
         a.tightness = 100.0f;
         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-        _myAvatar.setDisplayingHead(false);  
+        _myAvatar.setDisplayingHead(true);
     
     } else {
         Camera::CameraFollowingAttributes a;            
