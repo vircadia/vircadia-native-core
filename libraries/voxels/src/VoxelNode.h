@@ -59,6 +59,8 @@ public:
     float getScale() const { return _box.getSize().x;  /* voxelScale = (1 / powf(2, *node->getOctalCode())); */ };
     int getLevel() const { return *_octalCode + 1; /* one based or zero based? */ };
     
+    float getEnclosingRadius() const;
+    
     bool isColored() const { return (_trueColor[3]==1); }; 
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;

@@ -79,6 +79,9 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelNode*& node, float& distance, BoxFace& face);
 
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
+
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
