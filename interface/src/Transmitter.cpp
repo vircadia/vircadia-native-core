@@ -30,7 +30,7 @@ void Transmitter::resetLevels() {
 }
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
-    if (numBytes == 3 + sizeof(_lastRotationRate) +
+    if (numBytes >= 3 + sizeof(_lastRotationRate) +
         sizeof(_lastAcceleration)) {
         memcpy(&_lastRotationRate, packetData + 2, sizeof(_lastRotationRate));
         memcpy(&_lastAcceleration, packetData + 3 + sizeof(_lastAcceleration), sizeof(_lastAcceleration));
