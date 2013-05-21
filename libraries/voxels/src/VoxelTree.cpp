@@ -128,11 +128,6 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
 
 int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData, int bytesLeftToRead, 
                             bool includeColor, bool includeExistsBits) {
-
-
-if (includeExistsBits) {
-    //printLog("readNodeData() expecting includeExistsBits\n");        
-}
     // give this destination node the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     unsigned char colorInPacketMask = *nodeData;
@@ -145,9 +140,6 @@ if (includeExistsBits) {
         if (oneAtBit(colorInPacketMask, i)) {
             // create the child if it doesn't exist
             if (!destinationNode->getChildAtIndex(i)) {
-//printLog(">>>>>>>> readNodeData() colorInPacketMask area -- calling addChildAtIndex() at %d  colorInTreeBitSet=%s<<<<<<<\n",i,
-//    debugHelpers::booleanValue(oneAtBit(colorInTreeMask, i)));
-    
                 destinationNode->addChildAtIndex(i);
                 if (destinationNode->isDirty()) {
                     _isDirty = true;
@@ -175,19 +167,6 @@ if (includeExistsBits) {
 			this->voxelsColored++;
 			this->voxelsColoredStats.updateAverage(1);
         }
-
-        // now also check the colorInTreeMask, if the mask is missing the bit, then it means we need to delete this child
-        // node, because it shouldn't actually exist in the tree.
-        /**
-        if (!oneAtBit(colorInTreeMask, i) && destinationNode->getChildAtIndex(i) && 
-            destinationNode->getChildAtIndex(i)->isColored()) {
-
-            destinationNode->printDebugDetails("colorInTreeMask mismatch ");
-            // we should delete this node!!!
-            printLog("colorInTreeMask for child %d missing, should delete this node? colorInTreeMask=",i);
-            outputBits(colorInTreeMask, true);
-        }
-        **/
     }
 
     // give this destination node the child mask from the packet
@@ -204,10 +183,6 @@ if (includeExistsBits) {
             if (!destinationNode->getChildAtIndex(childIndex)) {
                 // add a child at that index, if it doesn't exist
                 bool nodeWasDirty = destinationNode->isDirty();
-//printLog(">>>>>>>> readNodeData() childMask area -- calling addChildAtIndex() at %d  colorInTreeBitSet=%s<<<<<<<\n",childIndex,
-//    debugHelpers::booleanValue(oneAtBit(childrenInTreeMask, childIndex)));
-
-
                 destinationNode->addChildAtIndex(childIndex);
                 bool nodeIsDirty = destinationNode->isDirty();
                 if (nodeIsDirty) {
@@ -226,29 +201,19 @@ if (includeExistsBits) {
         }
         childIndex++;
     }
-
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
-        // subtree/node, because it shouldn't actually exist in the tree.
-        if (!oneAtBit(childrenInTreeMask, i) && destinationNode->getChildAtIndex(i)) {
-            // we should delete this node!!!
-            //destinationNode->printDebugDetails("childrenInTreeMask mismatch ");
-            //printLog("childrenInTreeMask for child %d missing, should delete this node? childrenInTreeMask=",i);
-            //outputBits(childrenInTreeMask, true);
-            
-            // If this node has a VBO index, then we can only stage it for deletion, otherwise delete away!
-            if (destinationNode->getChildAtIndex(i)->isKnownBufferIndex()) {
-                printLog("childrenInTreeMask for child %d missing, staging for deletion\n",i);
-                destinationNode->getChildAtIndex(i)->stageForDeletion();
-                _isDirty = true;
-            } else {
-                printLog("childrenInTreeMask for child %d missing, deleting now\n",i);
-                destinationNode->deleteChildAtIndex(i);
-                _isDirty = true;
-            }
-        }
-    }        
     
+
+    if (includeExistsBits) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
+            // subtree/node, because it shouldn't actually exist in the tree.
+            if (!oneAtBit(childrenInTreeMask, i) && destinationNode->getChildAtIndex(i)) {
+                bool stagedForDeletion = false; // assume staging is not needed
+                destinationNode->safeDeepDeleteChildAtIndex(i, stagedForDeletion);
+                _isDirty = true; // by definition!
+            }
+        }        
+    }
     return bytesRead;
 }
 
@@ -303,10 +268,8 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
-
     VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
-
     // If the node exists...
     int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
@@ -314,24 +277,20 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
     if (0 == memcmp(nodeToDelete->getOctalCode(), codeBuffer, lengthInBytes)) {
         if (parentNode) {
             int childIndex = branchIndexWithDescendant(parentNode->getOctalCode(), codeBuffer);
-
             if (stage) {
                 nodeToDelete->stageForDeletion();
             } else {
                 parentNode->deleteChildAtIndex(childIndex);
             }
-            
-            // ok, also make sure, that if this is the last child of this parent, then we should
-            // delete the parent also... is that right?
-            if (parentNode->getChildCount() < 2) {
-                printLog("deleteVoxelCodeFromTree()... parentNode->getChildCount() = %d\n", parentNode->getChildCount() );
-                parentNode->printDebugDetails("deleteVoxelCodeFromTree()");
-                if (parentNode->getChildCount() == 0 && !parentNode->isColored()) {
-                    printLog("deleteVoxelCodeFromTree()... no more children and not colored... deleting parentNode\n" );
+
+            // If we're not a colored leaf, and we have no children, then delete ourselves
+            // This will collapse the empty tree above us.            
+            if (parentNode->getChildCount() == 0 && !parentNode->isColored()) {
+                // Can't delete the root this way.
+                if (parentNode != rootNode) {
                     deleteVoxelCodeFromTree(parentNode->getOctalCode(),stage);
                 }
             }
-            
             reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
             _isDirty = true;
         }

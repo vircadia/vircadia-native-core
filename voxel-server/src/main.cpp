@@ -257,6 +257,10 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     // the current view frustum for things to send.
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
     
+        // just add the rootNode, to see if this addresses the delete problem
+        agentData->nodeBag.insert(randomTree.rootNode);
+
+/***    
 //printf("bag empty, search for stuff in view...\n");    
         // If the bag was empty, then send everything in view, not just the delta
         maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
@@ -264,10 +268,11 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
 
         // if nothing was found in view, send the root node.
         if (agentData->nodeBag.isEmpty()){
-//printf("huh... bag STILL empty, what to do? Add the root?...\n");    
+printf("huh... bag STILL empty, what to do? Add the root?...\n");    
             agentData->nodeBag.insert(randomTree.rootNode);
         }
         agentData->setViewSent(false);
+**/
 
     }
     double end = usecTimestampNow();

@@ -119,6 +119,33 @@ void VoxelNode::addChildAtIndex(int childIndex) {
     }
 }
 
+// handles staging or deletion of all deep children
+void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion) {
+    VoxelNode* childToDelete = getChildAtIndex(childIndex);
+    if (childToDelete) {
+        // If the child is not a leaf, then call ourselves recursively on all the children
+        if (!childToDelete->isLeaf()) {
+            // delete all it's children
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                childToDelete->safeDeepDeleteChildAtIndex(i, stagedForDeletion);
+            }
+        }
+        // if this node has a BufferIndex then we need to stage it for deletion
+        // instead of actually deleting it from the tree
+        if (childToDelete->isKnownBufferIndex()) {
+            stagedForDeletion = true;
+        }
+        if (stagedForDeletion) {
+            childToDelete->stageForDeletion();
+            _isDirty = true;
+        } else {
+            deleteChildAtIndex(childIndex);
+            _isDirty = true;
+        } 
+    }
+}
+
+
 // will average the child colors...
 void VoxelNode::setColorFromAverageOfChildren() {
     int colorArray[4] = {0,0,0,0};
