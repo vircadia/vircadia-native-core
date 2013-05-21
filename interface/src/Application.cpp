@@ -82,39 +82,39 @@ protected:
 };
 
 void GLCanvas::initializeGL() {
-    static_cast<Application*>(QCoreApplication::instance())->initializeGL();
+    Application::getInstance()->initializeGL();
 }
 
 void GLCanvas::paintGL() {
-    static_cast<Application*>(QCoreApplication::instance())->paintGL();
+    Application::getInstance()->paintGL();
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    static_cast<Application*>(QCoreApplication::instance())->resizeGL(width, height);
+    Application::getInstance()->resizeGL(width, height);
 }
 
 void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->keyPressEvent(event);
+    Application::getInstance()->keyPressEvent(event);
 }
 
 void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->keyReleaseEvent(event);
+    Application::getInstance()->keyReleaseEvent(event);
 }
 
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mouseMoveEvent(event);
+    Application::getInstance()->mouseMoveEvent(event);
 }
 
 void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mousePressEvent(event);
+    Application::getInstance()->mousePressEvent(event);
 }
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->mouseReleaseEvent(event);
+    Application::getInstance()->mouseReleaseEvent(event);
 }
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
-    static_cast<Application*>(QCoreApplication::instance())->wheelEvent(event);
+    Application::getInstance()->wheelEvent(event);
 }
 
 Application::Application(int& argc, char** argv) :
@@ -2114,7 +2114,7 @@ void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
     
-    Application* app = static_cast<Application*>(QCoreApplication::instance());
+    Application* app = Application::getInstance();
     while (!app->_stopNetworkReceiveThread) {
         // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
         if (app->_wantToKillLocalVoxels) {
