@@ -129,7 +129,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
     unsigned char colorInTreeMask   = includeExistsBits ? *(nodeData+1) : ALL_CHILDREN_ASSUMED_TO_EXIST; 
 
     // instantiate variable for bytes already read
-    int bytesRead = includeExistsBits ? 2 : 1;
+    int bytesRead = includeExistsBits ? sizeof(colorInPacketMask) + sizeof(colorInTreeMask): sizeof(colorInPacketMask);
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(colorInPacketMask, i)) {
@@ -166,10 +166,10 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
 
     // give this destination node the child mask from the packet
     unsigned char childrenInTreeMask = includeExistsBits ? *(nodeData + bytesRead) : ALL_CHILDREN_ASSUMED_TO_EXIST; 
-    unsigned char childMask = *(nodeData + bytesRead + (includeExistsBits ? 1 : 0) );
+    unsigned char childMask = *(nodeData + bytesRead + (includeExistsBits ? sizeof(childrenInTreeMask) : 0) );
 
     int childIndex = 0;
-    bytesRead += includeExistsBits ? 2 : 1;
+    bytesRead += includeExistsBits ? sizeof(childrenInTreeMask) + sizeof(childMask) : sizeof(childMask);
     
     while (bytesLeftToRead - bytesRead > 0 && childIndex < NUMBER_OF_CHILDREN) {
         // check the exists mask to see if we have a child to traverse into
