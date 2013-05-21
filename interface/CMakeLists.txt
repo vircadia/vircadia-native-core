@@ -57,7 +57,7 @@ endif (APPLE)
 
 find_package(Qt4 REQUIRED QtCore QtGui QtOpenGL)
 include(${QT_USE_FILE})
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
 # run qt moc on qt-enabled headers
 qt4_wrap_cpp(INTERFACE_SRCS src/Application.h)
