@@ -100,6 +100,8 @@ VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char *
 // returns the node created!
 VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char* codeToReach) {
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
+    // If this parent node is a leaf, then you know the child path doesn't exist, so deal with
+    // breaking up the leaf first, which will also create a child path
     if (lastParentNode->isLeaf() && lastParentNode->isColored()) {
         // for colored leaves, we must add *all* the children
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -107,6 +109,7 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
             lastParentNode->getChildAtIndex(i)->setColor(lastParentNode->getColor());
         }
     } else if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
+        // we could be coming down a branch that was already created, so don't stomp on it.
         lastParentNode->addChildAtIndex(indexOfNewChild);
     }
 
