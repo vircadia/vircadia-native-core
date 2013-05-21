@@ -17,7 +17,7 @@ const float EYE_UP_OFFSET           =  0.38f;
 const float EYE_FRONT_OFFSET        =  0.8f;
 const float EAR_RIGHT_OFFSET        =  1.0;
 const float MOUTH_FRONT_OFFSET      =  1.0f;
-const float MOUTH_UP_OFFSET         = -0.2f;
+const float MOUTH_UP_OFFSET         = -0.3f;
 const float HEAD_MOTION_DECAY       = 0.1;
 const float MINIMUM_EYE_ROTATION    = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
 const float EYEBALL_RADIUS          = 0.02; 
@@ -204,9 +204,9 @@ void Head::renderEars() {
 void Head::renderMouth() {
 
     float s = sqrt(_averageLoudness);
-    float height = _scale * (0.02f + s * 0.003f );
-    float width  = _scale * (0.30f + s * 0.001f );
-    
+    float height = _scale * (0.05f + s * 0.0040f );
+    float width  = _scale * (0.30f + s * 0.0014f );
+
     glm::vec3 leftCorner  = _mouthPosition;
     glm::vec3 rightCorner = _mouthPosition;
     glm::vec3 leftTop     = _mouthPosition;
@@ -216,10 +216,10 @@ void Head::renderMouth() {
     
     leftCorner  -= _orientation.getRight() * width;
     rightCorner += _orientation.getRight() * width;
-    leftTop     -= _orientation.getRight() * width * 0.3f;
-    rightTop    += _orientation.getRight() * width * 0.3f;
-    leftBottom  -= _orientation.getRight() * width * 0.3f;
-    rightBottom += _orientation.getRight() * width * 0.3f;
+    leftTop     -= _orientation.getRight() * width * 0.4f;
+    rightTop    += _orientation.getRight() * width * 0.4f;
+    leftBottom  -= _orientation.getRight() * width * 0.4f;
+    rightBottom += _orientation.getRight() * width * 0.4f;
 
     leftTop     += _orientation.getUp() * height * 0.7f;
     rightTop    += _orientation.getUp() * height * 0.7f;
@@ -355,7 +355,7 @@ void Head::renderEyeBalls() {
         
         glPushMatrix();
         
-            if (_lookingAtSomething) {
+//if (_lookingAtSomething) {
 
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
@@ -363,6 +363,7 @@ void Head::renderEyeBalls() {
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+/*
             } else {
 
                 //rotate the eyeball to aim straight ahead
@@ -376,6 +377,7 @@ void Head::renderEyeBalls() {
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
+*/
              
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
@@ -399,7 +401,7 @@ void Head::renderEyeBalls() {
 
         glPushMatrix();
         
-            if (_lookingAtSomething) {
+//if (_lookingAtSomething) {
             
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
@@ -407,6 +409,7 @@ void Head::renderEyeBalls() {
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+/*
             } else {
 
                 //rotate the eyeball to aim straight ahead
@@ -420,6 +423,7 @@ void Head::renderEyeBalls() {
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
+*/
             
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
