@@ -21,7 +21,7 @@ const float MOUTH_UP_OFFSET         = -0.2f;
 const float HEAD_MOTION_DECAY       = 0.1;
 const float MINIMUM_EYE_ROTATION    = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
 const float EYEBALL_RADIUS          = 0.02; 
-const float EYEBALL_COLOR[3]        = { 0.9f, 0.9f, 0.8f};
+const float EYEBALL_COLOR[3]        = { 0.9f, 0.9f, 0.8f };
 const float IRIS_RADIUS             = 0.007;
 const float IRIS_PROTRUSION         = 0.018f;
 const char  IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
@@ -272,7 +272,7 @@ void Head::renderEyeBrows() {
     glm::vec3 leftBottom  = _leftEyePosition;
     glm::vec3 rightBottom = _leftEyePosition;
      
-    for (int i = 0; i<2; i++) {
+    for (int i = 0; i < 2; i++) {
     
         if ( i == 1 ) {
             leftCorner = rightCorner = leftTop = rightTop = leftBottom = rightBottom = _rightEyePosition;

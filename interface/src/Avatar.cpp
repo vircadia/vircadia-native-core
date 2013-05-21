@@ -213,10 +213,8 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     //figure out if the mouse cursor is over any body spheres... 
-    //if (_isMine) {
-    {
-        checkForMouseRayTouching();
-    }
+    checkForMouseRayTouching();
+    
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
         
@@ -390,7 +388,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     // set head lookat position 
-    //setLookatPosition(glm::vec3(0.0f, 0.0f, 0.0f)); //default lookat position is 0,0,0   
     if (_interactingOther) {
         _head.setLooking(true);
         
@@ -401,12 +398,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _head.setLooking(false);
     }    
     
-    //_head.setLookatPosition(_lookatPosition); // this comes from Avatar Data
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
-    //_head.setRotationOffBody(glm::vec3(_headPitch, _headYaw, _headRoll));
-    
-    //_head.setRotationOffBody(glm::vec3(0.0f, 0.0f, 0.0f));
-
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
     _head.setAudioLoudness(_audioLoudness);
@@ -1117,12 +1109,12 @@ void Avatar::renderBody(bool lookingInMirror) {
             }
         } else {
     
-            glColor3f
-            (
+            glColor3f(
                 skinColor[0] + _joint[b].touchForce * 0.3f, 
                 skinColor[1] - _joint[b].touchForce * 0.2f, 
                 skinColor[2] - _joint[b].touchForce * 0.1f
             );
+            
             glPushMatrix();
             glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
             glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
@@ -1248,10 +1240,10 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
             angle1 = angle2;
             angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
             
-            float s1 = sin(angle1);
-            float s2 = sin(angle2);
-            float c1 = cos(angle1);
-            float c2 = cos(angle2);
+            float s1 = sinf(angle1);
+            float s2 = sinf(angle2);
+            float c1 = cosf(angle1);
+            float c2 = cosf(angle2);
         
             glm::vec3 p1a = position1 + perpSin * s1 * radius1 + perpCos * c1 * radius1;  
             glm::vec3 p1b = position1 + perpSin * s2 * radius1 + perpCos * c2 * radius1; 
