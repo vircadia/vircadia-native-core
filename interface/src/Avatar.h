@@ -110,7 +110,7 @@ public:
     void setMousePressed(bool pressed); 
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
     void renderBody(bool lookingInMirror);
-    void simulate(float);
+    void simulate(float deltaTime, Transmitter* transmitter);
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );

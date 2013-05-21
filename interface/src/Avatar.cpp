@@ -209,7 +209,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
     return;
 }
 
-void Avatar::simulate(float deltaTime) {
+void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     //figure out if the mouse cursor is over any body spheres... 
     if (_isMine) {
@@ -258,7 +258,8 @@ void Avatar::simulate(float deltaTime) {
     if (_isMine) {
         
         _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
-             
+        
+        //  Add Thrusts from keyboard
         if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getRight();}
@@ -267,6 +268,24 @@ void Avatar::simulate(float deltaTime) {
         if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getUp();}
         if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG    * deltaTime;}
         if (_driveKeys[ROT_LEFT ]) {_bodyYawDelta += YAW_MAG    * deltaTime;}
+
+        //  Add thrusts from Transmitter 
+        if (transmitter) {
+            glm::vec3 rotation = transmitter->getEstimatedRotation();
+            const float TRANSMITTER_MIN_RATE = 1.f;
+            const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
+            const float TRANSMITTER_FWD_FORCE_SCALE = 50.f;
+            const float TRANSMITTER_YAW_SCALE = 7.0f;
+            if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
+                _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * _orientation.getRight();
+            }
+            if (fabs(rotation.x) > TRANSMITTER_MIN_RATE) {
+                _thrust += -rotation.x * TRANSMITTER_FWD_FORCE_SCALE * deltaTime * _orientation.getFront();
+            }
+            if (fabs(rotation.y) > TRANSMITTER_MIN_RATE) {
+                _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
+            }
+        }
 	}
         
     // update body yaw by body yaw delta

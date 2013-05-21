@@ -849,7 +849,7 @@ void Application::idle() {
     timeval check;
     gettimeofday(&check, NULL);
     
-    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time
+    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
         
@@ -857,8 +857,10 @@ void Application::idle() {
         
         //  Use Transmitter Hand to move hand if connected, else use mouse
         if (_myTransmitter.isConnected()) {
-            const float HAND_FORCE_SCALING = 0.05f;
-            _myAvatar.setMovedHandOffset(_myTransmitter.getLastAcceleration() *  HAND_FORCE_SCALING);
+            const float HAND_FORCE_SCALING = 0.01f;
+            glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
+            glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
+            _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
         } else {
             // update behaviors for avatar hand movement: handControl takes mouse values as input,
             // and gives back 3D values modulated for smooth transitioning between interaction modes.
@@ -964,20 +966,26 @@ void Application::idle() {
             networkReceive(0);
         }
         
-        //loop through all the remote avatars and simulate them...
+        //loop through all the other avatars and simulate them...
         AgentList* agentList = AgentList::getInstance();
         agentList->lock();
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime);
+                avatar->simulate(deltaTime, false);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
         agentList->unlock();
     
+        //  Simulate myself
         _myAvatar.setGravity(getGravity(_myAvatar.getPosition()));
-        _myAvatar.simulate(deltaTime);
+        if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
+            _myAvatar.simulate(deltaTime, &_myTransmitter);
+        } else {
+            _myAvatar.simulate(deltaTime, NULL);
+
+        }
         
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
@@ -1204,6 +1212,9 @@ void Application::initMenu() {
     _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
+    (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
+    _transmitterDrives->setChecked(true);
+
     optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
@@ -2055,6 +2066,7 @@ void Application::resetSensors() {
     }
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
+    _myTransmitter.resetLevels();
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
