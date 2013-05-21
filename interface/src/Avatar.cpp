@@ -261,7 +261,9 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // collision response with voxels
-    updateCollisionWithVoxels(deltaTime);
+    if (_isMine) {
+        updateCollisionWithVoxels(deltaTime);
+    }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
     if (_isMine) {
