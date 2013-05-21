@@ -96,7 +96,6 @@ void Head::simulate(float deltaTime, bool isMine) {
         if (_browAudioLift > clamp) { _browAudioLift = clamp; }
     
     _browAudioLift *= 0.7f;                             
-                             
 }
 
 
