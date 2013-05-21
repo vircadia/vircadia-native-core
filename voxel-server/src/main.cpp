@@ -606,11 +606,6 @@ int main(int argc, const char * argv[])
             	// Send these bits off to the VoxelTree class to process them
 				printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
-
-            	// Now send this to the connected agents so they know to delete
-				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
-            	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
 
