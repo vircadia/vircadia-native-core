@@ -19,6 +19,8 @@
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
+#define WANT_EXISTS_BITS true
+
 class VoxelTree {
 public:
     // when a voxel is created in the tree (object new'd)

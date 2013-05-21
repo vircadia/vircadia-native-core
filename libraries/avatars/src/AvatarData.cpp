@@ -57,8 +57,7 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _wantResIn(false),
     _wantColor(true),
-    _wantDelta(false),
-    _wantExistsBits(false)
+    _wantDelta(false)
 {
 };
 
@@ -137,7 +136,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     if (_wantResIn)      { setAtBit(wantItems,WANT_RESIN_AT_BIT); }
     if (_wantColor)      { setAtBit(wantItems,WANT_COLOR_AT_BIT); }
     if (_wantDelta)      { setAtBit(wantItems,WANT_DELTA_AT_BIT); }
-    if (_wantExistsBits) { setAtBit(wantItems,WANT_EXISTS_BITS_BIT); }
     *destinationBuffer++ = wantItems;
     
     return destinationBuffer - bufferStart;
@@ -224,7 +222,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     _wantResIn      = oneAtBit(wantItems,WANT_RESIN_AT_BIT);
     _wantColor      = oneAtBit(wantItems,WANT_COLOR_AT_BIT);
     _wantDelta      = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
-    _wantExistsBits = oneAtBit(wantItems,WANT_EXISTS_BITS_BIT);
 
     return sourceBuffer - startPosition;
 }

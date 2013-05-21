@@ -168,7 +168,7 @@ void resInVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor(),agentData->getWantExistsBits());
+                                                              agentData->getWantColor(),WANT_EXISTS_BITS);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -306,7 +306,7 @@ printf("huh... bag STILL empty, what to do? Add the root?...\n");
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), agentData->getWantExistsBits(),
+                                                              agentData->getWantColor(), WANT_EXISTS_BITS,
                                                               wantDelta, lastViewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {

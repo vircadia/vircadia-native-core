@@ -1116,11 +1116,6 @@ void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
 
-void Application::setWantsExistsBits(bool wantsExistsBits) {
-    _myAvatar.setWantExistsBits(wantsExistsBits);
-    _voxels.setWantExistsBits(wantsExistsBits);
-}
-
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
@@ -1283,7 +1278,6 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
-    debugMenu->addAction("Wants Exists Bits", this, SLOT(setWantsExistsBits(bool)), Qt::CTRL | Qt::Key_M)->setCheckable(true);
 }
 
 void Application::updateFrustumRenderModeAction() {

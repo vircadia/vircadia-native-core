@@ -79,10 +79,6 @@ public:
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
-
-    void setWantExistsBits(bool on) { _wantsExistBits = on; };
-    bool getWantExistsBits() const { return _wantsExistBits; };
-    
 private:
     // disallow copying of VoxelSystem objects
     VoxelSystem(const VoxelSystem&);
@@ -157,8 +153,6 @@ private:
 
     bool _voxelsDirty;
     
-    bool _wantsExistBits;
-
 public:
     void updateVBOs();
     void updateFullVBOs(); // all voxels in the VBO
