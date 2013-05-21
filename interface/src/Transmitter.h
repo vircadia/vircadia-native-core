@@ -1,21 +1,38 @@
 //
 //  Transmitter.h
-//  interface
+//  hifi
 //
-//  Created by Brad Hefta-Gaub on 5/21/2013
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Created by Philip Rosedale on 5/20/13.
+//
 //
 
-#ifndef __interface__transmitter__
-#define __interface__transmitter__
+#ifndef __hifi__Transmitter__
+#define __hifi__Transmitter__
 
+#include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <cstring>
+#include "world.h"
 
-class Transmitter {
+class Transmitter
+{
 public:
-    void processIncomingData(unsigned char* buffer, int size) { };
-    void renderLevels(int x, int y) { };
-    void resetLevels(int x = 0, int y = 0) { };
-    bool isConnected() const { return false; };
-    glm::vec3 getEstimatedRotation() const { return glm::vec3(0, 0, 0); };
+    Transmitter();
+    void render();
+    void resetLevels();
+    void renderLevels(int width, int height);
+    bool isConnected() { return _isConnected; };
+    const glm::vec3 getLastRotationRate() const { return _lastRotationRate; };
+    const glm::vec3 getLastAcceleration() const { return _lastRotationRate; };
+    const glm::vec3 getEstimatedRotation() const { return _estimatedRotation; };
+    void processIncomingData(unsigned char* packetData, int numBytes);
+
+private:
+    bool _isConnected;
+    glm::vec3 _lastRotationRate;
+    glm::vec3 _lastAcceleration;
+    glm::vec3 _estimatedRotation;
+
+#endif /* defined(__hifi__Transmitter__) */
 };
-#endif
