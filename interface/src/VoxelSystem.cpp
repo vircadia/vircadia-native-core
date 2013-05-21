@@ -663,7 +663,8 @@ void VoxelSystem::render(bool texture) {
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    glDrawElements(GL_TRIANGLES, 36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+    glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays,
+        36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
