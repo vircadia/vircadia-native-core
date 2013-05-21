@@ -20,6 +20,7 @@
 #include "SerialInterface.h"
 #include "Balls.h"
 #include "Head.h"
+#include "Transmitter.h"
 
 enum DriveKeys
 {
@@ -109,7 +110,7 @@ public:
     void setMousePressed(bool pressed); 
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
     void renderBody(bool lookingInMirror);
-    void simulate(float);
+    void simulate(float deltaTime, Transmitter* transmitter);
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );
@@ -122,16 +123,6 @@ public:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
-
-    //  Related to getting transmitter UDP data used to animate the avatar hand
-    void processTransmitterData(unsigned char * packetData, int numBytes);
-    void processTransmitterDataV2(unsigned char * packetData, int numBytes);
-    const bool isTransmitterV2Connected() const { return _isTransmitterV2Connected; };
-    const float* getTransmitterHandLastAcceleration() const { return _transmitterHandLastAcceleration; };
-    const float* getTransmitterHandLastRotationRates() const { return _transmitterHandLastRotationRates; };
-    void transmitterV2RenderLevels(int width, int height);
-
-    float getTransmitterHz() { return _transmitterHz; };
     
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
@@ -179,15 +170,6 @@ private:
     float		_maxArmLength;
     Orientation	_orientation;
     int         _driveKeys[MAX_DRIVE_KEYS];
-    bool        _transmitterIsFirstData; 
-    timeval     _transmitterTimeLastReceived;
-    timeval     _transmitterTimer;
-    float       _transmitterHz;
-    int         _transmitterPackets;
-    glm::vec3   _transmitterInitialReading;
-    float       _transmitterHandLastRotationRates[3];
-    float       _transmitterHandLastAcceleration[3];
-    bool        _isTransmitterV2Connected;
     float       _pelvisStandingHeight;
     float       _height;
     Balls*      _balls;
@@ -212,6 +194,7 @@ private:
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
+    void updateCollisionWithVoxels(float deltaTime);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void checkForMouseRayTouching();

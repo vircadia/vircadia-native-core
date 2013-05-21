@@ -10,6 +10,7 @@
 #include <lodepng.h>
 #include <SharedUtil.h>
 #include "world.h"
+#include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Log.h"
@@ -76,11 +77,6 @@ Avatar::Avatar(bool isMine) :
     _speed(0.0f),
     _maxArmLength(0.0f),
     _orientation(),
-    _transmitterIsFirstData(true),
-    _transmitterHz(0.0f),
-    _transmitterPackets(0),
-    _transmitterInitialReading(0.0f, 0.0f, 0.0f),
-    _isTransmitterV2Connected(false),
     _pelvisStandingHeight(0.0f),
     _displayingHead(true),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -214,7 +210,7 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
     return;
 }
 
-void Avatar::simulate(float deltaTime) {
+void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     //figure out if the mouse cursor is over any body spheres... 
     //if (_isMine) {
@@ -260,11 +256,17 @@ void Avatar::simulate(float deltaTime) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
+    // collision response with voxels
+    if (_isMine) {
+        updateCollisionWithVoxels(deltaTime);
+    }
+    
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
     if (_isMine) {
         
         _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
-             
+        
+        //  Add Thrusts from keyboard
         if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getFront();}
         if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG * deltaTime * _orientation.getRight();}
@@ -273,6 +275,24 @@ void Avatar::simulate(float deltaTime) {
         if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG * deltaTime * _orientation.getUp();}
         if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG    * deltaTime;}
         if (_driveKeys[ROT_LEFT ]) {_bodyYawDelta += YAW_MAG    * deltaTime;}
+
+        //  Add thrusts from Transmitter 
+        if (transmitter) {
+            glm::vec3 rotation = transmitter->getEstimatedRotation();
+            const float TRANSMITTER_MIN_RATE = 1.f;
+            const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
+            const float TRANSMITTER_FWD_FORCE_SCALE = 50.f;
+            const float TRANSMITTER_YAW_SCALE = 7.0f;
+            if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
+                _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * _orientation.getRight();
+            }
+            if (fabs(rotation.x) > TRANSMITTER_MIN_RATE) {
+                _thrust += -rotation.x * TRANSMITTER_FWD_FORCE_SCALE * deltaTime * _orientation.getFront();
+            }
+            if (fabs(rotation.y) > TRANSMITTER_MIN_RATE) {
+                _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
+            }
+        }
 	}
         
     // update body yaw by body yaw delta
@@ -571,6 +591,20 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
             }
         }
         */
+    }
+}
+
+void Avatar::updateCollisionWithVoxels(float deltaTime) {
+    VoxelSystem* voxels = Application::getInstance()->getVoxels();
+    float radius = _height * 0.125f;
+    glm::vec3 halfVector = glm::vec3(0.0f, _height * ONE_HALF - radius, 0.0f);
+    glm::vec3 penetration;
+    if (voxels->findCapsulePenetration(_position - halfVector, _position + halfVector, radius, penetration)) {
+        _position += penetration;
+        
+        // reflect the velocity component in the direction of penetration
+        glm::vec3 direction = glm::normalize(penetration);
+        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
     }
 }
 
@@ -1128,169 +1162,6 @@ void Avatar::renderBody(bool lookingInMirror) {
             */
         }
     }
-}
-
-//
-// Process UDP interface data from Android transmitter or Google Glass
-//
-void Avatar::processTransmitterData(unsigned char* packetData, int numBytes) {
-    //  Read a packet from a transmitter app, process the data
-    float
-    accX, accY, accZ,           //  Measured acceleration
-    graX, graY, graZ,           //  Gravity
-    gyrX, gyrY, gyrZ,           //  Gyro velocity in radians/sec as (pitch, roll, yaw)
-    linX, linY, linZ,           //  Linear Acceleration (less gravity)
-    rot1, rot2, rot3, rot4;     //  Rotation of device:
-                                //    rot1 = roll, ranges from -1 to 1, 0 = flat on table
-                                //    rot2 = pitch, ranges from -1 to 1, 0 = flat on table
-                                //    rot3 = yaw, ranges from -1 to 1
-    char device[100];           //  Device ID
-    
-    enum deviceTypes            { DEVICE_GLASS, DEVICE_ANDROID, DEVICE_IPHONE, DEVICE_UNKNOWN };
-
-    sscanf((char *)packetData,
-           "tacc %f %f %f gra %f %f %f gyr %f %f %f lin %f %f %f rot %f %f %f %f dna \"%s",
-           &accX, &accY, &accZ,
-           &graX, &graY, &graZ,
-           &gyrX, &gyrY, &gyrZ,
-           &linX, &linY, &linZ,
-           &rot1, &rot2, &rot3, &rot4, (char *)&device);
-    
-    // decode transmitter device type
-    deviceTypes deviceType = DEVICE_UNKNOWN;
-    if (strcmp(device, "ADR")) {
-        deviceType = DEVICE_ANDROID;
-    } else {
-        deviceType = DEVICE_GLASS;
-    }
-    
-    if (_transmitterPackets++ == 0) {
-        // If first packet received, note time, turn head spring return OFF, get start rotation
-        gettimeofday(&_transmitterTimer, NULL);
-        if (deviceType == DEVICE_GLASS) {
-            _head.setReturnToCenter(true);
-            _head.setSpringScale(10.f);
-            printLog("Using Google Glass to drive head, springs ON.\n");
-
-        } else {
-            _head.setReturnToCenter(false);
-            printLog("Using Transmitter %s to drive head, springs OFF.\n", device);
-
-        }
-        //printLog("Packet: [%s]\n", packetData);
-        //printLog("Version:  %s\n", device);
-        
-        _transmitterInitialReading = glm::vec3(rot3, rot2, rot1);
-    }
-    
-    const int TRANSMITTER_COUNT = 100;
-    if (_transmitterPackets % TRANSMITTER_COUNT == 0) {
-        // Every 100 packets, record the observed Hz of the transmitter data
-        timeval now;
-        gettimeofday(&now, NULL);
-        double msecsElapsed = diffclock(&_transmitterTimer, &now);
-        _transmitterHz = static_cast<float>((double)TRANSMITTER_COUNT / (msecsElapsed / 1000.0));
-        _transmitterTimer = now;
-        printLog("Transmitter Hz: %3.1f\n", _transmitterHz);
-    }
-    //printLog("Gyr: %3.1f, %3.1f, %3.1f\n", glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
-    //printLog("Rot: %3.1f, %3.1f, %3.1f, %3.1f\n", rot1, rot2, rot3, rot4);
-    
-    //  Update the head with the transmitter data
-    glm::vec3 eulerAngles((rot3 - _transmitterInitialReading.x) * 180.f,
-                          -(rot2 - _transmitterInitialReading.y) * 180.f,
-                          (rot1 - _transmitterInitialReading.z) * 180.f);
-    if (eulerAngles.x > 180.f) { eulerAngles.x -= 360.f; }
-    if (eulerAngles.x < -180.f) { eulerAngles.x += 360.f; }
-    
-    glm::vec3 angularVelocity;
-    if (deviceType != DEVICE_GLASS) {
-        angularVelocity = glm::vec3(glm::degrees(gyrZ), glm::degrees(-gyrX), glm::degrees(gyrY));
-        setHeadFromGyros(&eulerAngles, &angularVelocity,
-                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1.0);
-
-    } else {
-        angularVelocity = glm::vec3(glm::degrees(gyrY), glm::degrees(-gyrX), glm::degrees(-gyrZ));
-        setHeadFromGyros(&eulerAngles, &angularVelocity,
-                         (_transmitterHz == 0.f) ? 0.f : 1.f / _transmitterHz, 1000.0);
-    }
-}
-//
-// Process UDP data from version 2 Transmitter acting as Hand 
-//
-void Avatar::processTransmitterDataV2(unsigned char* packetData, int numBytes) {
-    if (numBytes == 3 + sizeof(_transmitterHandLastRotationRates) +
-                        sizeof(_transmitterHandLastAcceleration)) {
-        memcpy(_transmitterHandLastRotationRates, packetData + 2,
-               sizeof(_transmitterHandLastRotationRates));
-        memcpy(_transmitterHandLastAcceleration, packetData + 3 +
-               sizeof(_transmitterHandLastRotationRates),
-               sizeof(_transmitterHandLastAcceleration));
-        //  Convert from transmitter units to internal units
-        for (int i = 0; i < 3; i++) {
-            _transmitterHandLastRotationRates[i] *= 180.f / PI;
-            _transmitterHandLastAcceleration[i] *= GRAVITY_EARTH;
-        }
-        if (!_isTransmitterV2Connected) {
-            printf("Transmitter V2 Connected.\n");
-            _isTransmitterV2Connected = true;
-        }
-    } else {
-        printf("Transmitter V2 packet read error.\n");
-    }
-}
-
-void Avatar::transmitterV2RenderLevels(int width, int height) {
-    
-    char val[50];
-    const int LEVEL_CORNER_X = 10;
-    const int LEVEL_CORNER_Y = 400;
-    
-    // Draw the numeric degree/sec values from the gyros
-    sprintf(val, "Yaw   %4.1f", _transmitterHandLastRotationRates[1]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    sprintf(val, "Pitch %4.1f", _transmitterHandLastRotationRates[0]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    sprintf(val, "Roll  %4.1f", _transmitterHandLastRotationRates[2]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    sprintf(val, "X     %4.3f", _transmitterHandLastAcceleration[0]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    sprintf(val, "Y     %4.3f", _transmitterHandLastAcceleration[1]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    sprintf(val, "Z     %4.3f", _transmitterHandLastAcceleration[2]);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-    
-    //  Draw the levels as horizontal lines
-    const int LEVEL_CENTER = 150;
-    const float ACCEL_VIEW_SCALING = 50.f;
-    glLineWidth(2.0);
-    glColor4f(1, 1, 1, 1);
-    glBegin(GL_LINES);
-    // Gyro rates
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[1], LEVEL_CORNER_Y - 3);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[0], LEVEL_CORNER_Y + 12);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _transmitterHandLastRotationRates[2], LEVEL_CORNER_Y + 27);
-    // Acceleration
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[0] * ACCEL_VIEW_SCALING),
-               LEVEL_CORNER_Y + 42);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[1] * ACCEL_VIEW_SCALING),
-               LEVEL_CORNER_Y + 57);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_transmitterHandLastAcceleration[2] * ACCEL_VIEW_SCALING),
-               LEVEL_CORNER_Y + 72);
-    
-    glEnd();
-    //  Draw green vertical centerline
-    glColor4f(0, 1, 0, 0.5);
-    glBegin(GL_LINES);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
-    glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
-    glEnd();
 }
 
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
