@@ -134,6 +134,8 @@ void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
     }
     
     
+_lookingAtSomething = true;    
+    
 /*
     if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
