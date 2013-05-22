@@ -30,14 +30,20 @@ bool operator== (const sockaddr& addr1, const sockaddr& addr2) {
     return socketMatch(&addr1, &addr2);
 }
 
+static sockaddr getZeroAddress() {
+    sockaddr addr;
+    memset(&addr, 0, sizeof(sockaddr));
+    addr.sa_family = AF_INET;
+    return addr;
+}
+
 void Environment::init() {
     switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
     // start off with a default-constructed environment data
-    sockaddr addr = { AF_INET };
-    _data[addr][0];
+    _data[getZeroAddress()][0];
 }
 
 void Environment::renderAtmospheres(Camera& camera) {    
@@ -118,8 +124,7 @@ int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer,
     _data[*senderAddress][newData.getID()] = newData;
     
     // remove the default mapping, if any
-    sockaddr addr = { AF_INET };
-    _data.remove(addr);
+    _data.remove(getZeroAddress());
     
     return bytesRead;
 }
