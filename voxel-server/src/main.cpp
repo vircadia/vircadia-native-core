@@ -49,7 +49,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
-VoxelTree randomTree;
+VoxelTree randomTree(true); // this is a reaveraging tree
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
 
@@ -225,11 +225,16 @@ void resInVoxelDistributor(AgentList* agentList,
     }
 }
 
+pthread_mutex_t treeLock;
+
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
                                   bool viewFrustumChanged) {
+
+
+    pthread_mutex_lock(&::treeLock);
 
     int maxLevelReached = 0;
     double start = usecTimestampNow();
@@ -356,6 +361,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         
         
     } // end if bag wasn't empty, and so we sent stuff...
+
+    pthread_mutex_unlock(&::treeLock);
 }
 
 double lastPersistVoxels = 0;
@@ -434,8 +441,10 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
+
+    pthread_mutex_init(&::treeLock, NULL);
+
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
@@ -605,7 +614,9 @@ int main(int argc, const char * argv[])
 
             	// Send these bits off to the VoxelTree class to process them
 				//printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+                pthread_mutex_lock(&::treeLock);
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
+                pthread_mutex_unlock(&::treeLock);
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
 
@@ -653,6 +664,7 @@ int main(int argc, const char * argv[])
     }
     
     pthread_join(sendVoxelThread, NULL);
+    pthread_mutex_destroy(&::treeLock);
 
     return 0;
 }

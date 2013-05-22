@@ -337,16 +337,15 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     } else {
         voxelsUpdated += updateNodeInArraysAsPartialVBO(node);
     }
+    node->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
     
     // If the node has been asked to be deleted, but we've gotten to here, after updateNodeInArraysXXX()
     // then it means our VBOs are "clean" and our vertices have been removed or not added. So we can now
     // safely remove the node from the tree and actually delete it.
-    // otherwise honor our calculated shouldRender
     if (node->isStagedForDeletion()) {
         _tree->deleteVoxelCodeFromTree(node->getOctalCode());
     }
     
-    node->clearDirtyBit(); // always clear the dirty bit, even if it doesn't need to be rendered
     return voxelsUpdated;
 }
 

@@ -83,7 +83,7 @@ const glm::vec3 bugParts[VOXELS_PER_BUG] = {
     glm::vec3(0,0,0), 
     glm::vec3(0,0,1), 
     glm::vec3(0,0,2), 
-    
+
     // eyes
     glm::vec3(1,0,3), 
     glm::vec3(-1,0,3), 
@@ -432,9 +432,9 @@ void* animateVoxels(void* args) {
 
         // some animations
         //sendVoxelBlinkMessage();
-        //sendBlinkingStringOfLights();
-        //sendBillboard();
-        renderMovingBug();
+        sendBlinkingStringOfLights();
+        sendBillboard();
+        //renderMovingBug();
         
         double end = usecTimestampNow();
         double elapsedSeconds = (end - ::start) / 1000000.0;
