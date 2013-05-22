@@ -48,7 +48,7 @@ public:
         
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
-    glm::vec3 getApproximateEyePosition();
+    glm::vec3 getAverageEyePosition();
     
     float yawRate;
     float noise;

@@ -404,7 +404,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // set head lookat position 
     if (_isMine) {
         if (_interactingOther) {
-            _head.setLookAtPosition(_interactingOther->getApproximateEyePosition());
+            _head.setLookAtPosition(_interactingOther->getAverageEyePosition());
         } else {
             _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         }
@@ -425,9 +425,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 	}
 }
 
-glm::vec3 Avatar::getApproximateEyePosition() {
+glm::vec3 Avatar::getAverageEyePosition() {
 
-    return _head.getApproximateEyePosition();
+    return _head.getAverageEyePosition();
 }
 
 void Avatar::checkForMouseRayTouching() {

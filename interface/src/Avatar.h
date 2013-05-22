@@ -94,7 +94,7 @@ public:
         
     float getAbsoluteHeadYaw() const;
     float getAbsoluteHeadPitch() const;
-    glm::vec3 getApproximateEyePosition(); 
+    glm::vec3 getAverageEyePosition();                  // get the position smack-dab between the eyes (for lookat)
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 

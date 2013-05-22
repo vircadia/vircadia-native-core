@@ -135,8 +135,7 @@ void Head::processLookat() {
     if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
-        glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
+        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - getAverageEyePosition());
         float dot = glm::dot(targetLookatAxis, _orientation.getFront());
         if (dot < MINIMUM_EYE_ROTATION) {
             _lookingAtSomething = false;
@@ -146,7 +145,7 @@ void Head::processLookat() {
     }
 }
 
-glm::vec3 Head::getApproximateEyePosition() {
+glm::vec3 Head::getAverageEyePosition() {
     return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
 }
 
