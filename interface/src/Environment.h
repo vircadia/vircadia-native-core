@@ -10,6 +10,7 @@
 #define __interface__Environment__
 
 #include <QHash>
+#include <QMutex>
 
 #include <UDPSocket.h>
 
@@ -25,10 +26,10 @@ public:
     void init();
     void renderAtmospheres(Camera& camera);
     
-    glm::vec3 getGravity (const glm::vec3& position) const;
-    const EnvironmentData& getClosestData(const glm::vec3& position) const;
+    glm::vec3 getGravity (const glm::vec3& position);
+    const EnvironmentData getClosestData(const glm::vec3& position);
     
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
     
     int parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes);
     
@@ -67,6 +68,8 @@ private:
     typedef QHash<int, EnvironmentData> ServerData;
     
     QHash<sockaddr, ServerData> _data;
+    
+    QMutex _mutex;
 };
 
 #endif /* defined(__interface__Environment__) */

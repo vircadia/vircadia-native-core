@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <vector>
 #include <lodepng.h>
 #include <SharedUtil.h>
@@ -50,6 +51,7 @@ const float HEAD_MIN_YAW                  = -85;
 const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
+const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 
 float skinColor    [] = {1.0, 0.84, 0.66};
 float darkSkinColor[] = {0.9, 0.78, 0.63};
@@ -335,7 +337,21 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _bodyRoll  *= tiltDecay;
     
     //the following will be used to make the avatar upright no matter what gravity is
-    //float f = angleBetween(_orientation.getUp(), _gravity);
+    float gravityLength = glm::length(_gravity);
+    if (gravityLength > 0.0f) {
+        glm::vec3 targetUp = _gravity / -gravityLength;
+        const glm::vec3& currentUp = _righting * glm::vec3(0.0f, 1.0f, 0.0f);
+        float angle = glm::degrees(acosf(glm::dot(currentUp, targetUp)));
+        if (angle > 0.0f) {
+            glm::vec3 axis;
+            if (angle > 180.0f - EPSILON) { // 180 degree rotation; must use another axis
+                axis = _orientation.getRight();
+            } else {
+                axis = glm::normalize(glm::cross(currentUp, targetUp));
+            }
+            _righting = glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis) * _righting;
+        }
+    }
     
     // update position by velocity
     _position += _velocity * deltaTime;
@@ -985,6 +1001,7 @@ void Avatar::updateSkeleton() {
     _orientation.yaw  (_bodyYaw  );
     _orientation.pitch(_bodyPitch);
     _orientation.roll (_bodyRoll );
+    _orientation.rotate(_righting);
     
     // calculate positions of all bones by traversing the skeleton tree:
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
