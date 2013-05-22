@@ -613,9 +613,8 @@ int main(int argc, const char * argv[]) {
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
                 // Send these bits off to the VoxelTree class to process them
-                //printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
                 pthread_mutex_lock(&::treeLock);
-                randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
+                randomTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -646,7 +645,7 @@ int main(int argc, const char * argv[]) {
 
                 // Now send this to the connected agents so they can also process these messages
                 printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-                agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
