@@ -282,6 +282,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
             const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
             const float TRANSMITTER_YAW_SCALE = 10.0f;
+            const float TRANSMITTER_LIFT_SCALE = 3.f;
+            const float TOUCH_POSITION_RANGE_HALF = 32767.f;
             if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
                 _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * _orientation.getRight();
             }
@@ -291,6 +293,14 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
                 _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
             }
+            if (transmitter->getTouchState() == 'D') {
+                _thrust += THRUST_MAG *
+                           (float)(transmitter->getTouchPoint()[1] - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
+                           TRANSMITTER_LIFT_SCALE *
+                           deltaTime *
+                           _orientation.getUp();
+            }
+            
         }
 	}
         

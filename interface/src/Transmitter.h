@@ -26,6 +26,8 @@ public:
     const glm::vec3 getLastRotationRate() const { return _lastRotationRate; };
     const glm::vec3 getLastAcceleration() const { return _lastRotationRate; };
     const glm::vec3 getEstimatedRotation() const { return _estimatedRotation; };
+    const uint16_t* getTouchPoint() const { return _touchPoint; };
+    const char getTouchState() const { return _touchState; };
     void processIncomingData(unsigned char* packetData, int numBytes);
 
 private:
