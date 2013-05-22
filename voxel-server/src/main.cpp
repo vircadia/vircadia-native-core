@@ -572,7 +572,8 @@ int main(int argc, const char * argv[]) {
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];
                 while (atByte < receivedBytes) {
                     unsigned char octets = (unsigned char)*voxelData;
-                    int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+                    const int COLOR_SIZE_IN_BYTES = 3;
+                    int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
                     int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
                     // color randomization on insert
