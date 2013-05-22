@@ -15,15 +15,13 @@
 #include "AgentTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "shared_Log.h"
+#include "Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
-
-using shared_lib::printLog;
 
 const char SOLO_AGENT_TYPES[3] = {
     AGENT_TYPE_AVATAR_MIXER,
