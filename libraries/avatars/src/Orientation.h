@@ -19,34 +19,36 @@ const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f, 1.0f);
 class Orientation
 {
 public:
-	Orientation();
-	
-	void set(Orientation);
-	void setToPitchYawRoll(float pitch_change, float yaw_change, float roll_change);
-	void setToIdentity();
+    Orientation();
+    
+    void set(Orientation);
+    void setToPitchYawRoll(float pitch_change, float yaw_change, float roll_change);
+    void setToIdentity();
 
-	void pitch(float pitch_change);
-	void yaw  (float yaw_change);
-	void roll (float roll_change);
+    void pitch(float pitch_change);
+    void yaw  (float yaw_change);
+    void roll (float roll_change);
     
     void rotate(float pitch, float yaw, float roll);
     void rotate(glm::vec3 EulerAngles);
     void rotate(glm::quat quaternion);
 
-	const glm::vec3 & getRight() const {return  right;}
-	const glm::vec3 & getUp   () const {return  up;   }
-	const glm::vec3 & getFront() const {return  front;}
+    const glm::quat& getQuat() const {return quat;}
 
-	const glm::vec3 & getIdentityRight() const {return IDENTITY_RIGHT;}
-	const glm::vec3 & getIdentityUp   () const {return IDENTITY_UP;}
-	const glm::vec3 & getIdentityFront() const {return IDENTITY_FRONT;}
+    const glm::vec3& getRight() const {return  right;}
+    const glm::vec3& getUp   () const {return  up;   }
+    const glm::vec3& getFront() const {return  front;}
+
+    const glm::vec3& getIdentityRight() const {return IDENTITY_RIGHT;}
+    const glm::vec3& getIdentityUp   () const {return IDENTITY_UP;}
+    const glm::vec3& getIdentityFront() const {return IDENTITY_FRONT;}
 
 private:
 
     glm::quat quat;
     glm::vec3 right;
-	glm::vec3 up;
-	glm::vec3 front;
+    glm::vec3 up;
+    glm::vec3 front;
     
     void rotateAndGenerateDirections(glm::quat rotation);
 };
