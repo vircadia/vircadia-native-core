@@ -51,7 +51,7 @@ private:
     LogDisplay& operator=(LogDisplay const&); // = delete;
 
     // format and log message - entrypoint used to replace global 'printLog'
-    static int static printLogHandler(char const* fmt, ...);
+    static int printLogHandler(char const* fmt, ...);
 
     // log formatted message (called by printLogHandler)
     inline void addMessage(char const*);
