@@ -95,10 +95,6 @@ public:
     void setHeadData(HeadData* headData) { _headData = headData; }
     
 protected:
-    // privatize the copy constructor and assignment operator so they cannot be called
-    AvatarData(const AvatarData&);
-    AvatarData& operator= (const AvatarData&);
-
     glm::vec3 _position;
     glm::vec3 _handPosition;
     
@@ -137,6 +133,10 @@ protected:
     bool _wantDelta;
     
     HeadData* _headData;
+private:
+    // privatize the copy constructor and assignment operator so they cannot be called
+    AvatarData(const AvatarData&);
+    AvatarData& operator= (const AvatarData&);
 };
 
 #endif /* defined(__hifi__AvatarData__) */
