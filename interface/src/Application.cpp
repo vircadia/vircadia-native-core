@@ -1173,8 +1173,10 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Pair", this, SLOT(pair()));
     fileMenu->addAction("Quit", this, SLOT(quit()), Qt::Key_Q);
+
+    QMenu* pairMenu = menuBar->addMenu("Pair");
+    pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);

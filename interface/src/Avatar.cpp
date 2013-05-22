@@ -279,7 +279,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             const float TRANSMITTER_MIN_RATE = 1.f;
             const float TRANSMITTER_MIN_YAW_RATE = 4.f;
             const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
-            const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
+            const float TRANSMITTER_FWD_FORCE_SCALE = 100.f;
             const float TRANSMITTER_YAW_SCALE = 10.0f;
             const float TRANSMITTER_LIFT_SCALE = 3.f;
             const float TOUCH_POSITION_RANGE_HALF = 32767.f;
