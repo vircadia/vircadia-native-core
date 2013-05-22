@@ -624,24 +624,24 @@ int main(int argc, const char * argv[]) {
                 // requests, like erase all, or add sphere scene
                 char* command = (char*) &packetData[1]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
-                int totalLength = 1+commandLength+1;
+                int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
 
-                printf("got Z message len(%ld)= %s\n",receivedBytes,command);
+                printf("got Z message len(%ld)= %s\n", receivedBytes, command);
 
                 while (totalLength <= receivedBytes) {
-                    if (strcmp(command,(char*)"erase all") == 0) {
+                    if (strcmp(command, (char*)"erase all") == 0) {
                         printf("got Z message == erase all\n");
                     
                         eraseVoxelTreeAndCleanupAgentVisitData();
                     }
-                    if (strcmp(command,(char*)"add scene") == 0) {
+                    if (strcmp(command, (char*)"add scene") == 0) {
                         printf("got Z message == add scene\n");
                         addSphereScene(&randomTree);
                     }
-                    if (strcmp(command,(char*)"a message") == 0) {
+                    if (strcmp(command, (char*)"a message") == 0) {
                         printf("got Z message == a message, nothing to do, just report\n");
                     }
-                    totalLength += commandLength+1;
+                    totalLength += commandLength + 1; // 1 for null termination
                 }
 
                 // Now send this to the connected agents so they can also process these messages
