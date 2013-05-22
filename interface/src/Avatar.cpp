@@ -612,7 +612,7 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 
 void Avatar::updateCollisionWithEnvironment() {
     if (_position.y < _pelvisStandingHeight) {
-        //applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
+        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
     }
 
     float radius = _height * 0.125f;
