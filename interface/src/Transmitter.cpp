@@ -12,7 +12,7 @@
 #include <cstring>
 #include <glm/glm.hpp>
 #include "Log.h"
-#include <stdint.h>
+#include <stdint.h> 
 
 const float DELTA_TIME = 1.f / 60.f;
 const float DECAY_RATE = 0.15f;
