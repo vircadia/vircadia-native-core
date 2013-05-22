@@ -24,6 +24,10 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define NO_COLOR            false
 #define WANT_COLOR          true
 #define IGNORE_VIEW_FRUSTUM NULL
+#define JUST_STAGE_DELETION true
+#define ACTUALLY_DELETE     false
+#define COLLAPSE_EMPTY_TREE true
+#define DONT_COLLAPSE       false
 
 class VoxelTree {
 public:
@@ -37,7 +41,7 @@ public:
     SimpleMovingAverage voxelsColoredStats;
     SimpleMovingAverage voxelsBytesReadStats;
 
-    VoxelTree();
+    VoxelTree(bool shouldReaverage = false);
     ~VoxelTree();
 
     VoxelNode *rootNode;
@@ -49,7 +53,8 @@ public:
     void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, 
                              bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS);
     void readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = false);
+    void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = ACTUALLY_DELETE, 
+                                 bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode *startNode);
     void reaverageVoxelColors(VoxelNode *startNode);
 
@@ -111,6 +116,7 @@ private:
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
+    bool _shouldReaverage;
 };
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel);

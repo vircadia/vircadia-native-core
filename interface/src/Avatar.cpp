@@ -238,12 +238,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // apply gravity and collision with the ground/floor
     if (_isMine && USING_AVATAR_GRAVITY) {
-        if (_position.y > _pelvisStandingHeight + 0.01f) {
-            _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
-        } else if (_position.y < _pelvisStandingHeight) {
-            _position.y = _pelvisStandingHeight;
-            _velocity.y = -_velocity.y * BOUNCE;
-        }
+        _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
+        
+        updateCollisionWithEnvironment();
     }
     
 	// update body springs
@@ -256,7 +253,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // collision response with voxels
     if (_isMine) {
-        updateCollisionWithVoxels(deltaTime);
+        updateCollisionWithVoxels();
     }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
@@ -597,18 +594,36 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     }
 }
 
-void Avatar::updateCollisionWithVoxels(float deltaTime) {
-    VoxelSystem* voxels = Application::getInstance()->getVoxels();
-    float radius = _height * 0.125f;
-    glm::vec3 halfVector = glm::vec3(0.0f, _height * ONE_HALF - radius, 0.0f);
-    glm::vec3 penetration;
-    if (voxels->findCapsulePenetration(_position - halfVector, _position + halfVector, radius, penetration)) {
-        _position += penetration;
-        
-        // reflect the velocity component in the direction of penetration
-        glm::vec3 direction = glm::normalize(penetration);
-        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+void Avatar::updateCollisionWithEnvironment() {
+    if (_position.y < _pelvisStandingHeight) {
+        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
     }
+
+    float radius = _height * 0.125f;
+    glm::vec3 penetration;
+    if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
+            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
+        applyCollisionWithScene(penetration);
+    }
+}
+
+void Avatar::updateCollisionWithVoxels() {
+    float radius = _height * 0.125f;
+    glm::vec3 penetration;
+    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
+        applyCollisionWithScene(penetration);
+    }
+}
+
+void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
+    _position += penetration;
+        
+    // reflect the velocity component in the direction of penetration
+    glm::vec3 direction = glm::normalize(penetration);
+    _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {

@@ -11,8 +11,10 @@
 #include "PacketHeaders.h"
 
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
-// GameEngine.cpp (and the radius of the earth)
-EnvironmentData::EnvironmentData() :
+// GameEngine.cpp
+EnvironmentData::EnvironmentData(int id) :
+    _id(id),
+    _gravity(1.0f),
     _atmosphereCenter(0, -1000, 0),
     _atmosphereInnerRadius(1000),
     _atmosphereOuterRadius(1025),
@@ -27,7 +29,13 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
     *destinationBuffer++ = PACKET_HEADER_ENVIRONMENT_DATA;  
-      
+    
+    memcpy(destinationBuffer, &_id, sizeof(_id));
+    destinationBuffer += sizeof(_id);
+    
+    memcpy(destinationBuffer, &_gravity, sizeof(_gravity));
+    destinationBuffer += sizeof(_gravity);
+    
     memcpy(destinationBuffer, &_atmosphereCenter, sizeof(_atmosphereCenter));
     destinationBuffer += sizeof(_atmosphereCenter);
 
@@ -60,6 +68,12 @@ int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer++;
     
     unsigned char* startPosition = sourceBuffer;
+    
+    memcpy(&_id, sourceBuffer, sizeof(_id));
+    sourceBuffer += sizeof(_id);
+    
+    memcpy(&_gravity, sourceBuffer, sizeof(_gravity));
+    sourceBuffer += sizeof(_gravity);
     
     memcpy(&_atmosphereCenter, sourceBuffer, sizeof(_atmosphereCenter));
     sourceBuffer += sizeof(_atmosphereCenter);

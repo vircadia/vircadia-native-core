@@ -9,21 +9,34 @@
 #ifndef __interface__Environment__
 #define __interface__Environment__
 
+#include <QHash>
+
+#include <UDPSocket.h>
+
 #include "EnvironmentData.h"
 #include "InterfaceConfig.h"
 
 class Camera;
 class ProgramObject;
 
-class Environment : public EnvironmentData {
+class Environment {
 public:
 
     void init();
-    void renderAtmosphere(Camera& camera);
+    void renderAtmospheres(Camera& camera);
+    
+    glm::vec3 getGravity (const glm::vec3& position) const;
+    const EnvironmentData& getClosestData(const glm::vec3& position) const;
+    
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
+    
+    int parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes);
     
 private:
 
     ProgramObject* createSkyProgram(const char* from, int* locations);
+
+    void renderAtmosphere(Camera& camera, const EnvironmentData& data);
 
     ProgramObject* _skyFromAtmosphereProgram;
     ProgramObject* _skyFromSpaceProgram;
@@ -50,6 +63,10 @@ private:
     
     int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
     int _skyFromSpaceUniformLocations[LOCATION_COUNT];
+    
+    typedef QHash<int, EnvironmentData> ServerData;
+    
+    QHash<sockaddr, ServerData> _data;
 };
 
 #endif /* defined(__interface__Environment__) */
