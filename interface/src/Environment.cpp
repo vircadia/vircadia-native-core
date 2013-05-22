@@ -35,7 +35,8 @@ void Environment::init() {
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
     // start off with a default-constructed environment data
-    _data[sockaddr()][0];
+    sockaddr addr = { AF_INET };
+    _data[addr][0];
 }
 
 void Environment::renderAtmospheres(Camera& camera) {    
@@ -101,7 +102,8 @@ int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer,
     _data[*senderAddress][newData.getID()] = newData;
     
     // remove the default mapping, if any
-    _data.remove(sockaddr());
+    sockaddr addr = { AF_INET };
+    _data.remove(addr);
     
     return bytesRead;
 }

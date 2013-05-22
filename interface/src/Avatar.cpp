@@ -585,20 +585,20 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 
 void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     float radius = _height * 0.125f;
-    glm::vec3 halfVector = glm::vec3(0.0f, _height * ONE_HALF - radius, 0.0f);
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
-            _position - halfVector, _position + halfVector, radius, penetration)) {
+            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
         applyCollisionWithScene(penetration, deltaTime);
     }
 }
 
 void Avatar::updateCollisionWithVoxels(float deltaTime) {
     float radius = _height * 0.125f;
-    glm::vec3 halfVector = glm::vec3(0.0f, _height * ONE_HALF - radius, 0.0f);
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
-            _position - halfVector, _position + halfVector, radius, penetration)) {
+            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
         applyCollisionWithScene(penetration, deltaTime);
     }
 }
