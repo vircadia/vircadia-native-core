@@ -240,7 +240,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     if (_isMine && USING_AVATAR_GRAVITY) {
         _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
         
-        updateCollisionWithEnvironment(deltaTime);
+        updateCollisionWithEnvironment();
     }
     
 	// update body springs
@@ -253,7 +253,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // collision response with voxels
     if (_isMine) {
-        updateCollisionWithVoxels(deltaTime);
+        updateCollisionWithVoxels();
     }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
@@ -583,9 +583,9 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     }
 }
 
-void Avatar::updateCollisionWithEnvironment(float deltaTime) {
+void Avatar::updateCollisionWithEnvironment() {
     if (_position.y < _pelvisStandingHeight) {
-        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f), deltaTime);
+        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
     }
 
     float radius = _height * 0.125f;
@@ -593,21 +593,21 @@ void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
             _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
-        applyCollisionWithScene(penetration, deltaTime);
+        applyCollisionWithScene(penetration);
     }
 }
 
-void Avatar::updateCollisionWithVoxels(float deltaTime) {
+void Avatar::updateCollisionWithVoxels() {
     float radius = _height * 0.125f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
             _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
-        applyCollisionWithScene(penetration, deltaTime);
+        applyCollisionWithScene(penetration);
     }
 }
 
-void Avatar::applyCollisionWithScene(const glm::vec3& penetration, float deltaTime) {
+void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     _position += penetration;
         
     // reflect the velocity component in the direction of penetration
