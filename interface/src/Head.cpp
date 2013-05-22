@@ -109,19 +109,18 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     _browAudioLift *= 0.7f;      
 
-//add comment when done...    
-processLookat();
-                                                                         
+    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.  
+    determineIfLookingAtSomething();                                                                         
 }
 
-void Head::processLookat() { 
+void Head::determineIfLookingAtSomething() { 
 
     if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
         glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - getAverageEyePosition());
         float dot = glm::dot(targetLookatAxis, _orientation.getFront());
-        if (dot < MINIMUM_EYE_ROTATION_DOT) {
+        if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
             _lookingAtSomething = false;
         } else {
             _lookingAtSomething = true;

@@ -85,7 +85,7 @@ private:
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
-    void processLookat();
+    void determineIfLookingAtSomething();
 };
 
 #endif
