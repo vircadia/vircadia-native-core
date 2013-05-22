@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
-#include "voxels_Log.h"
+#include "Log.h"
 #include "PacketHeaders.h"
 #include "OctalCode.h"
 #include "VoxelTree.h"
@@ -23,8 +23,6 @@
 #include "VoxelConstants.h"
 
 #include <glm/gtc/noise.hpp>
-
-using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     float voxelSizeScale = 50000.0f;
@@ -352,10 +350,9 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool d
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
-	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
-	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
-	int atByte = 3;
-	unsigned char* pVoxelData = (unsigned char*)&bitstream[3];
+	//unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
+	int atByte = sizeof(short int) + sizeof(PACKET_HEADER);
+	unsigned char* pVoxelData = (unsigned char*)&bitstream[atByte];
 	while (atByte < bufferSizeBytes) {
 		unsigned char octets = (unsigned char)*pVoxelData;
 		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!

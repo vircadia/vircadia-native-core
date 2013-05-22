@@ -38,7 +38,7 @@
 //
 
 #include "InterfaceConfig.h"
-#include "OGlProgram.h"
+#include "renderer/ProgramObject.h"
 #include "Log.h"
 
 #include <cstddef>

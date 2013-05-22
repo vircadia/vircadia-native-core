@@ -9,11 +9,10 @@
 //
 
 #include "Plane.h"
+
 #include <stdio.h>
 
-#include "voxels_Log.h"
-
-using voxels_lib::printLog;
+#include "Log.h"
 
 // These are some useful utilities that vec3 is missing
 void printVec3(const char* name, const glm::vec3& v) {

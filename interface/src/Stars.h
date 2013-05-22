@@ -17,11 +17,7 @@ namespace starfield { class Controller; }
 // Starfield rendering component.
 // 
 class Stars  {
-
-        starfield::Controller* _ptrController;
-
     public:
-
         Stars();
         ~Stars();
 
@@ -73,6 +69,10 @@ class Stars  {
         // don't copy/assign
         Stars(Stars const&); // = delete;
         Stars& operator=(Stars const&); // delete;
+
+        // variables
+
+        starfield::Controller* _controller;
 };
 
 
