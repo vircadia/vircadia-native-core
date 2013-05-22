@@ -120,6 +120,7 @@ void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
 
     _lookAtPosition = lookAtPosition;     
 
+/*
     if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
@@ -132,6 +133,8 @@ void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
     if (dot < MINIMUM_EYE_ROTATION) {
         _lookingAtSomething = false;
     }
+    */
+    
     
     
 _lookingAtSomething = true;    
