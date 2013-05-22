@@ -1201,7 +1201,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
         angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        printf("Setting head from gyros!\n");
         _head.setYaw  (angles.x);
         _head.setPitch(angles.y);
         _head.setRoll (angles.z);
