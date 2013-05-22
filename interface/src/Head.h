@@ -15,6 +15,7 @@
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Orientation.h"
+#include <SharedUtil.h>
 
 enum eyeContactTargets 
 {
@@ -45,7 +46,7 @@ public:
         
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
-    glm::vec3 getAverageEyePosition();
+    glm::vec3 caclulateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
     float noise;

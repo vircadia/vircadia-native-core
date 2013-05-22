@@ -400,7 +400,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // set head lookat position 
     if (_isMine) {
         if (_interactingOther) {
-            _head.setLookAtPosition(_interactingOther->getAverageEyePosition());
+            _head.setLookAtPosition(_interactingOther->caclulateAverageEyePosition());
         } else {
             _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
         }
@@ -419,11 +419,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 	} else {
 		_mode = AVATAR_MODE_INTERACTING;
 	}
-}
-
-glm::vec3 Avatar::getAverageEyePosition() {
-
-    return _head.getAverageEyePosition();
 }
 
 void Avatar::checkForMouseRayTouching() {
@@ -587,15 +582,6 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
                 }
             }
         }
-    
-        /*
-        if (jointCollision) {
-            if (!_usingBodySprings) {
-                _usingBodySprings = true;
-                initializeBodySprings();
-            }
-        }
-        */
     }
 }
 
@@ -716,13 +702,6 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
     otherAvatar->_velocity *= bodyMomentum;        
 }
 
-void Avatar::setDisplayingHead(bool displayingHead) {
-    _displayingHead = displayingHead;
-}
-
-void Avatar::setDisplayingLookatVectors(bool displayingLookatVectors) {
-    _head.setRenderLookatVectors(displayingLookatVectors);
-}
 
 static TextRenderer* textRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);

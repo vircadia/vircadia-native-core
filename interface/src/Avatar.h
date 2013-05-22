@@ -94,7 +94,7 @@ public:
         
     float getAbsoluteHeadYaw() const;
     float getAbsoluteHeadPitch() const;
-    glm::vec3 getAverageEyePosition();                  // get the position smack-dab between the eyes (for lookat)
+    glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
     const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
     const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
@@ -113,9 +113,9 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
-    void setDisplayingHead( bool displayingHead );
-    void setDisplayingLookatVectors(bool displayingLookatVectors);
-    
+    void setDisplayingHead( bool displayingHead ) { _displayingHead = displayingHead; }
+    void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
+        
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };

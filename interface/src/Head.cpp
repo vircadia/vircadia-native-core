@@ -7,7 +7,6 @@
 #include "Head.h"
 #include "Util.h"
 #include <vector>
-#include <SharedUtil.h>
 #include <lodepng.h>
 
 using namespace std;
@@ -118,7 +117,7 @@ void Head::determineIfLookingAtSomething() {
     if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
-        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - getAverageEyePosition());
+        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - caclulateAverageEyePosition());
         float dot = glm::dot(targetLookatAxis, _orientation.getFront());
         if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
             _lookingAtSomething = false;
@@ -126,10 +125,6 @@ void Head::determineIfLookingAtSomething() {
             _lookingAtSomething = true;
         }
     }
-}
-
-glm::vec3 Head::getAverageEyePosition() {
-    return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
 }
 
 void Head::calculateGeometry(bool lookingInMirror) {
@@ -188,10 +183,8 @@ void Head::render(bool lookingInMirror) {
     renderMouth();    
     renderEyeBrows();    
         
-    if (_renderLookatVectors) {
-        if (_lookingAtSomething) {
-            renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
-        }
+    if (_renderLookatVectors && _lookingAtSomething) {
+        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
 

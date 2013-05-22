@@ -1702,11 +1702,7 @@ void Application::displaySide(Camera& whichCamera) {
         // Render my own Avatar 
         _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
         
-        if (_renderLookatOn->isChecked()) {
-            _myAvatar.setDisplayingLookatVectors(true);
-        } else {
-            _myAvatar.setDisplayingLookatVectors(false);  
-        }
+        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
     //  Render the world box
