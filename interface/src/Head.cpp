@@ -13,32 +13,41 @@
 using namespace std;
 
 const float EYE_RIGHT_OFFSET        =  0.27f;
-const float EYE_UP_OFFSET           =  0.38f;
+const float EYE_UP_OFFSET           =  0.36f;
 const float EYE_FRONT_OFFSET        =  0.8f;
 const float EAR_RIGHT_OFFSET        =  1.0;
 const float MOUTH_FRONT_OFFSET      =  1.0f;
 const float MOUTH_UP_OFFSET         = -0.3f;
-const float HEAD_MOTION_DECAY       = 0.1;
-const float MINIMUM_EYE_ROTATION    = 0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
-const float EYEBALL_RADIUS          = 0.02; 
-const float EYEBALL_COLOR[3]        = { 0.9f, 0.9f, 0.8f };
-const float IRIS_RADIUS             = 0.007;
-const float IRIS_PROTRUSION         = 0.018f;
-const char  IRIS_TEXTURE_FILENAME[] = "resources/images/iris.png";
+const float HEAD_MOTION_DECAY       =  0.1;
+const float MINIMUM_EYE_ROTATION    =  0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
+const float EYEBALL_RADIUS          =  0.017; 
+const float EYEBALL_COLOR[3]        =  { 0.9f, 0.9f, 0.8f };
+const float IRIS_RADIUS             =  0.007;
+const float IRIS_PROTRUSION         =  0.0145f;
+const char  IRIS_TEXTURE_FILENAME[] =  "resources/images/iris.png";
 
 unsigned int IRIS_TEXTURE_WIDTH  = 768;
 unsigned int IRIS_TEXTURE_HEIGHT = 498;
 vector<unsigned char> irisTexture;
 
 Head::Head() :
+
     yawRate(0.0f),
+    _returnHeadToCenter(false),
     _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
+    _leftEyePosition(0.0f, 0.0f, 0.0f),
+    _rightEyePosition(0.0f, 0.0f, 0.0f),
+    _leftEyeBrowPosition(0.0f, 0.0f, 0.0f),
+    _rightEyeBrowPosition(0.0f, 0.0f, 0.0f),
+    _leftEarPosition(0.0f, 0.0f, 0.0f),
+    _rightEarPosition(0.0f, 0.0f, 0.0f),
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
     _browAudioLift(0.0f),
+    _lookingAtSomething(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _averageLoudness(0.0f),
@@ -46,7 +55,6 @@ Head::Head() :
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _headRotation(0.0f, 0.0f, 0.0f) {
-        _lookingAtSomething = false;
 }
 
 void Head::reset() {
@@ -190,6 +198,10 @@ void Head::calculateGeometry(bool lookingInMirror) {
                       + _orientation.getUp   () * _scale * EYE_UP_OFFSET 
                       + _orientation.getFront() * _scale * EYE_FRONT_OFFSET;
 
+    //calculate the eyebrow positions 
+    _leftEyeBrowPosition  = _leftEyePosition; 
+    _rightEyeBrowPosition = _rightEyePosition;
+    
     //calculate the ear positions 
     _leftEarPosition  = _position - _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
     _rightEarPosition = _position + _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
@@ -248,53 +260,33 @@ void Head::renderEars() {
 void Head::renderMouth() {
 
     float s = sqrt(_averageLoudness);
-    float height = _scale * (0.05f + s * 0.0040f );
-    float width  = _scale * (0.30f + s * 0.0014f );
 
-    glm::vec3 leftCorner  = _mouthPosition;
-    glm::vec3 rightCorner = _mouthPosition;
-    glm::vec3 leftTop     = _mouthPosition;
-    glm::vec3 rightTop    = _mouthPosition;
-    glm::vec3 leftBottom  = _mouthPosition;
-    glm::vec3 rightBottom = _mouthPosition;
-    
-    leftCorner  -= _orientation.getRight() * width;
-    rightCorner += _orientation.getRight() * width;
-    leftTop     -= _orientation.getRight() * width * 0.4f;
-    rightTop    += _orientation.getRight() * width * 0.4f;
-    leftBottom  -= _orientation.getRight() * width * 0.4f;
-    rightBottom += _orientation.getRight() * width * 0.4f;
+    glm::vec3 r = _orientation.getRight() * _scale * (0.30f + s * 0.0014f );
+    glm::vec3 u = _orientation.getUp   () * _scale * (0.05f + s * 0.0040f );
+    glm::vec3 f = _orientation.getFront() * _scale *  0.1f;
 
-    leftTop     += _orientation.getUp() * height * 0.7f;
-    rightTop    += _orientation.getUp() * height * 0.7f;
-    leftBottom  -= _orientation.getUp() * height;
-    rightBottom -= _orientation.getUp() * height;
-
-    leftTop     += _orientation.getFront() * _scale * 0.1f;
-    rightTop    += _orientation.getFront() * _scale * 0.1f;
-    leftBottom  += _orientation.getFront() * _scale * 0.1f;
-    rightBottom += _orientation.getFront() * _scale * 0.1f;
-
+    glm::vec3 leftCorner  = _mouthPosition - r * 1.0f;
+    glm::vec3 rightCorner = _mouthPosition + r * 1.0f;
+    glm::vec3 leftTop     = _mouthPosition - r * 0.4f + u * 0.7f + f;
+    glm::vec3 rightTop    = _mouthPosition + r * 0.4f + u * 0.7f + f;
+    glm::vec3 leftBottom  = _mouthPosition - r * 0.4f - u * 1.0f + f;
+    glm::vec3 rightBottom = _mouthPosition + r * 0.4f - u * 1.0f + f;
+        
     glColor3f(0.2f, 0.0f, 0.0f);
     
     glBegin(GL_TRIANGLES);             
-
-    glVertex3f(leftCorner.x, leftCorner.y, leftCorner.z); 
-    glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
-    glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
-
-    glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
-    glVertex3f(rightTop.x,   rightTop.y,   rightTop.z  ); 
-    glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
-    
+    glVertex3f(leftCorner.x,  leftCorner.y,  leftCorner.z ); 
+    glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+    glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+    glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+    glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+    glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
     glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
     glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
     glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
-
     glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
     glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
     glVertex3f(rightCorner.x, rightCorner.y, rightCorner.z); 
-
     glEnd();
 }
 
@@ -315,48 +307,42 @@ void Head::renderEyeBrows() {
     glm::vec3 leftBottom  = _leftEyePosition;
     glm::vec3 rightBottom = _leftEyePosition;
      
+    glm::vec3 r = _orientation.getRight() * length; 
+    glm::vec3 u = _orientation.getUp()    * height; 
+    glm::vec3 t = _orientation.getUp()    * (height + width); 
+    glm::vec3 f = _orientation.getFront() * _scale * -0.1f;
+     
     for (int i = 0; i < 2; i++) {
     
         if ( i == 1 ) {
             leftCorner = rightCorner = leftTop = rightTop = leftBottom = rightBottom = _rightEyePosition;
         }
        
-        leftCorner  -= _orientation.getRight() * length;
-        rightCorner += _orientation.getRight() * length;
-        leftTop     -= _orientation.getRight() * length * 0.4f;
-        rightTop    += _orientation.getRight() * length * 0.4f;
-        leftBottom  -= _orientation.getRight() * length * 0.4f;
-        rightBottom += _orientation.getRight() * length * 0.4f;
+        leftCorner  -= r * 1.0f;
+        rightCorner += r * 1.0f;
+        leftTop     -= r * 0.4f;
+        rightTop    += r * 0.4f;
+        leftBottom  -= r * 0.4f;
+        rightBottom += r * 0.4f;
 
-        leftCorner  += _orientation.getUp() * height;
-        rightCorner += _orientation.getUp() * height;
-        leftTop     += _orientation.getUp() * (height + width);
-        rightTop    += _orientation.getUp() * (height + width);
-        leftBottom  += _orientation.getUp() * height;
-        rightBottom += _orientation.getUp() * height;
-
-        leftCorner  += _orientation.getFront() * _scale * -0.1f;
-        rightCorner += _orientation.getFront() * _scale * -0.1f;
-        leftTop     += _orientation.getFront() * _scale * -0.1f;
-        rightTop    += _orientation.getFront() * _scale * -0.1f;
-        leftBottom  += _orientation.getFront() * _scale * -0.1f;
-        rightBottom += _orientation.getFront() * _scale * -0.1f;
-        
+        leftCorner  += u + f;
+        rightCorner += u + f;
+        leftTop     += t + f;
+        rightTop    += t + f;
+        leftBottom  += u + f;
+        rightBottom += u + f;        
         
         glBegin(GL_TRIANGLES);             
 
-        glVertex3f(leftCorner.x, leftCorner.y, leftCorner.z); 
-        glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
-        glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
-
-        glVertex3f(leftTop.x,    leftTop.y,    leftTop.z   ); 
-        glVertex3f(rightTop.x,   rightTop.y,   rightTop.z  ); 
-        glVertex3f(leftBottom.x, leftBottom.y, leftBottom.z); 
-        
+        glVertex3f(leftCorner.x,  leftCorner.y,  leftCorner.z ); 
+        glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+        glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+        glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+        glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+        glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
         glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
         glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
         glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
-
         glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
         glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
         glVertex3f(rightCorner.x, rightCorner.y, rightCorner.z); 

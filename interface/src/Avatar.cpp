@@ -374,20 +374,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             _orientation.getRight() * _head.getLeanSideways() +
             _orientation.getFront() * _head.getLeanForward();
     
-        /*
-        glm::vec3 leanForce = 
-            _orientation.getRight() * _head.getLeanSideways() +
-            _orientation.getFront() * _head.getLeanForward() * 10.0f;
-            
-        float magnitude = 1.0f * deltaTime;
-        if (magnitude > 1.0f ) {
-            headLean = leanForce;
-        } else {
-            headLean += (leanForce - headLean ) * magnitude;
-        }
-        */
-        
-
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
         
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;

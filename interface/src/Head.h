@@ -61,6 +61,8 @@ private:
     glm::vec3   _rotation;
     glm::vec3   _leftEyePosition;
     glm::vec3   _rightEyePosition; 
+    glm::vec3   _leftEyeBrowPosition;
+    glm::vec3   _rightEyeBrowPosition; 
     glm::vec3   _leftEarPosition;
     glm::vec3   _rightEarPosition; 
     glm::vec3   _mouthPosition; 
@@ -83,7 +85,6 @@ private:
     void renderEars();
     void renderMouth();
     void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
-    void updateEyePositions();
     void calculateGeometry( bool lookingInMirror);
 };
 
