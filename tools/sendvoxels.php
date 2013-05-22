@@ -30,8 +30,8 @@ function send_voxels($inputFileName,$server,$port,$command) {
 			echo "sending adding octets=$octets size=$size to packet packetSize=$packetSize\n";
 		}
 		
-		echo "sending packet server=$serverIP port=$serverSendPort $voxNum size=$packetSize result=$result\n";
 		$result = socket_sendto($socketHandle, $netData, $packetSize, 0, $serverIP, $serverSendPort);
+		echo "sent packet server=$serverIP port=$serverSendPort $voxNum size=$packetSize result=$result\n";
 		usleep(20000); // 1,000,000 per second
 		$voxNum++;
 	}
