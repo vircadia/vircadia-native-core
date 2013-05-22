@@ -340,7 +340,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     float gravityLength = glm::length(_gravity);
     if (gravityLength > 0.0f) {
         glm::vec3 targetUp = _gravity / -gravityLength;
-        const glm::vec3& currentUp = _orientation.getUp();
+        const glm::vec3& currentUp = _righting * glm::vec3(0.0f, 1.0f, 0.0f);
         float angle = glm::degrees(acosf(glm::dot(currentUp, targetUp)));
         if (angle > 0.0f) {
             glm::vec3 axis;
@@ -349,11 +349,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             } else {
                 axis = glm::normalize(glm::cross(currentUp, targetUp));
             }
-            _orientation.rotate(glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis));
-            glm::vec3 eulerAngles = glm::eulerAngles(_orientation.getQuat());
-            _bodyYaw = eulerAngles.y;
-            _bodyPitch = eulerAngles.x;
-            _bodyRoll = eulerAngles.z;
+            _righting = glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis) * _righting;
         }
     }
     
@@ -616,7 +612,7 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 
 void Avatar::updateCollisionWithEnvironment() {
     if (_position.y < _pelvisStandingHeight) {
-        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
+        //applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
     }
 
     float radius = _height * 0.125f;
@@ -1005,6 +1001,7 @@ void Avatar::updateSkeleton() {
     _orientation.yaw  (_bodyYaw  );
     _orientation.pitch(_bodyPitch);
     _orientation.roll (_bodyRoll );
+    _orientation.rotate(_righting);
     
     // calculate positions of all bones by traversing the skeleton tree:
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
