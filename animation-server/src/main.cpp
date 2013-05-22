@@ -66,31 +66,31 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 }
 
 const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE;
-glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE*10.0, 0, BUG_VOXEL_SIZE*10.0);
-glm::vec3 bugDirection = glm::vec3(0,0,1);
+glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, 0, BUG_VOXEL_SIZE * 10.0);
+glm::vec3 bugDirection = glm::vec3(0, 0, 1);
 const unsigned char bugColor[3] = {0, 255, 255};
 const int VOXELS_PER_BUG = 14;
 const glm::vec3 bugParts[VOXELS_PER_BUG] = {
 
     // body
-    glm::vec3(0,0,-3), 
-    glm::vec3(0,0,-2), 
-    glm::vec3(0,0,-1), 
-    glm::vec3(0,0,0), 
-    glm::vec3(0,0,1), 
-    glm::vec3(0,0,2), 
+    glm::vec3(0, 0, -3),
+    glm::vec3(0, 0, -2),
+    glm::vec3(0, 0, -1), 
+    glm::vec3(0, 0, 0),
+    glm::vec3(0, 0, 1),
+    glm::vec3(0, 0, 2),
 
     // eyes
-    glm::vec3(1,0,3), 
-    glm::vec3(-1,0,3), 
+    glm::vec3(1, 0, 3),
+    glm::vec3(-1, 0, 3),
 
     // wings
-    glm::vec3(1,0,1), 
-    glm::vec3(2,0,1), 
-    glm::vec3(3,0,1), 
-    glm::vec3(-1,0,1), 
-    glm::vec3(-2,0,1), 
-    glm::vec3(-3,0,1), 
+    glm::vec3(1, 0, 1),
+    glm::vec3(2, 0, 1),
+    glm::vec3(3, 0, 1),
+    glm::vec3(-1, 0, 1),
+    glm::vec3(-2, 0, 1),
+    glm::vec3(-3, 0, 1),
 };
 
 static void renderMovingBug() {
