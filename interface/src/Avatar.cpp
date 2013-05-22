@@ -58,7 +58,7 @@ float lightBlue    [] = {0.7, 0.8,  1.0 };
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
-float chatMessageHeight = 0.45;
+float chatMessageHeight = 0.10;
 
 Avatar::Avatar(bool isMine) :
     _isMine(isMine),
@@ -772,7 +772,8 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         float modelview[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
         
-        glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
+        //glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
+        glTranslatef(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition.x, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.y + chatMessageHeight, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         
         glColor3f(0, 0.8, 0);
