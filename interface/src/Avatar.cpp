@@ -99,7 +99,6 @@ Avatar::Avatar(bool isMine) :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
 
-
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
     }
@@ -1202,6 +1201,7 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         angles += (*angularVelocity) * deltaTime;
         //  Smooth to slowly follow absolute values
         angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
+        printf("Setting head from gyros!\n");
         _head.setYaw  (angles.x);
         _head.setPitch(angles.y);
         _head.setRoll (angles.z);
