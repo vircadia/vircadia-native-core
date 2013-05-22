@@ -20,10 +20,6 @@
 #include <PacketHeaders.h>
 #include <OculusManager.h>
 
-//test
-static glm::vec3 headLean(0.0f, 0.0f, 0.0f);
-
-
 using namespace std;
 
 const bool  BALLS_ON                      = false;
@@ -395,13 +391,14 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
      }
 
     // set head lookat position 
-    if ((_interactingOther)
-    &&  (_isMine)) {
-        _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
-    } else {
-        _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    if (_isMine) {
+        if (_interactingOther) {
+            _head.setLookAtPosition(_interactingOther->getApproximateEyePosition());
+        } else {
+            _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
     }    
-    
+
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
@@ -415,6 +412,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 	} else {
 		_mode = AVATAR_MODE_INTERACTING;
 	}
+}
+
+glm::vec3 Avatar::getApproximateEyePosition() {
+
+    return _head.getApproximateEyePosition();
 }
 
 void Avatar::checkForMouseRayTouching() {
@@ -722,7 +724,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
     //render body
     renderBody(lookingInMirror);
-        
+    
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
         _avatarTouch.render(_cameraPosition);

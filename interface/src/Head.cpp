@@ -104,7 +104,11 @@ void Head::simulate(float deltaTime, bool isMine) {
         float clamp = 0.01;
         if (_browAudioLift > clamp) { _browAudioLift = clamp; }
     
-    _browAudioLift *= 0.7f;                             
+    _browAudioLift *= 0.7f;      
+
+//add comment when done...    
+processLookat();
+                                                                         
 }
 
 
@@ -124,33 +128,9 @@ void Head::setLooking(bool looking) {
     */
 
 
-void Head::setLookAtPosition(const glm::vec3& lookAtPosition) { 
+void Head::processLookat() { 
 
-    _lookAtPosition = lookAtPosition;     
-
- _lookingAtSomething = true;
-
-/*
-    if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
-        _lookingAtSomething = false;
-    } else {
-        _lookingAtSomething = true;
-    }
-    
-    glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-    glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
-    float dot = glm::dot(targetLookatAxis, _orientation.getFront());
-    if (dot < MINIMUM_EYE_ROTATION) {
-        _lookingAtSomething = false;
-    }
-    */
-    
-    
-    
-_lookingAtSomething = true;    
-    
-/*
-    if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
+    if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
         glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
@@ -159,12 +139,13 @@ _lookingAtSomething = true;
         if (dot < MINIMUM_EYE_ROTATION) {
             _lookingAtSomething = false;
         } else {
-            _lookAtPosition = lookAtPosition;     
             _lookingAtSomething = true;
         }
     }
-    */
-    
+}
+
+glm::vec3 Head::getApproximateEyePosition() {
+    return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
 }
 
 

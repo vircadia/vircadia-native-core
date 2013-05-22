@@ -44,10 +44,11 @@ public:
     void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
 
-    void setLookAtPosition (const glm::vec3& lookAtPosition); // overrides method in HeadData
+    //void setLookAtPosition (const glm::vec3& lookAtPosition); // overrides method in HeadData
         
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
+    glm::vec3 getApproximateEyePosition();
     
     float yawRate;
     float noise;
@@ -86,6 +87,7 @@ private:
     void renderMouth();
     void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
+    void processLookat();
 };
 
 #endif
