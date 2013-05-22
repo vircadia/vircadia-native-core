@@ -233,11 +233,6 @@ void Application::initializeGL() {
     glutInit(&argc, 0);
     #endif
     
-    #ifdef _WIN32
-    glewInit();
-    printLog( "Glew Init complete.\n" );
-    #endif
-    
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
