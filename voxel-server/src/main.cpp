@@ -568,18 +568,18 @@ int main(int argc, const char * argv[]) {
                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
                         receivedBytes,itemNumber);
                 }
-                int atByte = 3;
-                unsigned char* pVoxelData = (unsigned char*)&packetData[3];
+                int atByte = sizeof(PACKET_HEADER) + sizeof(itemNumber);
+                unsigned char* voxelData = (unsigned char*)&packetData[atByte];
                 while (atByte < receivedBytes) {
-                    unsigned char octets = (unsigned char)*pVoxelData;
+                    unsigned char octets = (unsigned char)*voxelData;
                     int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
                     int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
                     // color randomization on insert
                     int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
-                    int red   = pVoxelData[voxelCodeSize+0];
-                    int green = pVoxelData[voxelCodeSize+1];
-                    int blue  = pVoxelData[voxelCodeSize+2];
+                    int red   = voxelData[voxelCodeSize+0];
+                    int green = voxelData[voxelCodeSize+1];
+                    int blue  = voxelData[voxelCodeSize+2];
 
                     if (::shouldShowAnimationDebug) {
                         printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
@@ -594,20 +594,20 @@ int main(int argc, const char * argv[]) {
                         printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
-                    pVoxelData[voxelCodeSize+0]=red;
-                    pVoxelData[voxelCodeSize+1]=green;
-                    pVoxelData[voxelCodeSize+2]=blue;
+                    voxelData[voxelCodeSize+0]=red;
+                    voxelData[voxelCodeSize+1]=green;
+                    voxelData[voxelCodeSize+2]=blue;
 
                     if (::shouldShowAnimationDebug) {
-                        float* vertices = firstVertexForCode(pVoxelData);
+                        float* vertices = firstVertexForCode(voxelData);
                         printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
                         delete []vertices;
                     }
                 
-                    randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
+                    randomTree.readCodeColorBufferToTree(voxelData, destructive);
                     // skip to next
-                    pVoxelData+=voxelDataSize;
-                    atByte+=voxelDataSize;
+                    voxelData += voxelDataSize;
+                    atByte += voxelDataSize;
                 }
             }
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
