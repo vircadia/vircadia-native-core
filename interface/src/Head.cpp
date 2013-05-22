@@ -65,13 +65,15 @@ void Head::reset() {
 
 void Head::simulate(float deltaTime, bool isMine) {
 
+    const float HEAD_MOTION_DECAY = 0.00;
+    
     //  Decay head back to center if turned on
     if (isMine && _returnHeadToCenter) {
     
         //  Decay rotation back toward center
-        _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _yaw   *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
-        _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * 2 * deltaTime);
+        _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
+        _yaw   *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
+        _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
     }
     
     //  For invensense gyro, decay only slightly when roughly centered

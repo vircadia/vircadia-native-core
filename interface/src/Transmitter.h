@@ -14,6 +14,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <cstring>
 #include "world.h"
+#include <stdint.h> 
+
+struct TouchState {
+    uint16_t x, y;
+    char state;
+};
 
 class Transmitter
 {
@@ -26,6 +32,7 @@ public:
     const glm::vec3 getLastRotationRate() const { return _lastRotationRate; };
     const glm::vec3 getLastAcceleration() const { return _lastRotationRate; };
     const glm::vec3 getEstimatedRotation() const { return _estimatedRotation; };
+    const TouchState* getTouchState() const { return &_touchState; };
     void processIncomingData(unsigned char* packetData, int numBytes);
 
 private:
@@ -33,6 +40,7 @@ private:
     glm::vec3 _lastRotationRate;
     glm::vec3 _lastAcceleration;
     glm::vec3 _estimatedRotation;
+    TouchState _touchState;
 
 #endif /* defined(__hifi__Transmitter__) */
 };
