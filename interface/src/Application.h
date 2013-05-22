@@ -63,6 +63,7 @@ public:
     
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    Environment* getEnvironment() { return &_environment; }
 
 private slots:
     
