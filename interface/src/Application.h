@@ -46,7 +46,7 @@ class Application : public QApplication {
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
 
-    Application(int& argc, char** argv);
+    Application(int& argc, char** argv, timeval &startup_time);
 
     void initializeGL();
     void paintGL();

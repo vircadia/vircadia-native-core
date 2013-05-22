@@ -114,7 +114,7 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
-Application::Application(int& argc, char** argv) :
+Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
@@ -152,7 +152,7 @@ Application::Application(int& argc, char** argv) :
         _bytesPerSecond(0),
         _bytesCount(0)
 {
-    gettimeofday(&_applicationStartupTime, NULL);
+    _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
@@ -268,6 +268,15 @@ void Application::initializeGL() {
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
+    
+    if (_justStarted) {
+        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
+        _justStarted = false;
+        char title[50];
+        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
+        printLog("%s", title);
+        _window->setWindowTitle(title);
+    }
 }
 
 void Application::paintGL() {
@@ -404,16 +413,6 @@ void Application::paintGL() {
     
     
     _frameCount++;
-        
-    //  If application has just started, report time from startup to now (first frame display)
-    if (_justStarted) {
-        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
-        _justStarted = false;
-        char title[50];
-        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
-        printLog("%s", title);
-        _window->setWindowTitle(title);
-    }
 }
 
 void Application::resizeGL(int width, int height) {

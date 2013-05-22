@@ -11,6 +11,7 @@
 #include "Util.h"
 #include <cstring>
 #include <glm/glm.hpp>
+#include "Log.h"
 
 const float DELTA_TIME = 1.f / 60.f;
 const float DECAY_RATE = 0.15f;
@@ -30,24 +31,50 @@ void Transmitter::resetLevels() {
 }
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
-    if (numBytes == 3 + sizeof(_lastRotationRate) +
-        sizeof(_lastAcceleration)) {
-        memcpy(&_lastRotationRate, packetData + 2, sizeof(_lastRotationRate));
-        memcpy(&_lastAcceleration, packetData + 3 + sizeof(_lastAcceleration), sizeof(_lastAcceleration));
-       
+    const int PACKET_HEADER_SIZE = 1;                   //  Packet's first byte is 'T'
+    const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
+    const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)
+    if (numBytes == PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE + ACCELERATION_MARKER_SIZE
+            + sizeof(_lastRotationRate) + sizeof(_lastAcceleration)
+            + sizeof(_touchState.x) + sizeof(_touchState.y) + sizeof(_touchState.state)) {
+        unsigned char* packetDataPosition = &packetData[PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE];
+        memcpy(&_lastRotationRate, packetDataPosition, sizeof(_lastRotationRate));
+        packetDataPosition += sizeof(_lastRotationRate) + ACCELERATION_MARKER_SIZE;
+        memcpy(&_lastAcceleration, packetDataPosition, sizeof(_lastAcceleration));
+        packetDataPosition += sizeof(_lastAcceleration);
+        memcpy(&_touchState.state, packetDataPosition, sizeof(_touchState.state));
+        packetDataPosition += sizeof(_touchState.state);
+        memcpy(&_touchState.x, packetDataPosition, sizeof(_touchState.x));
+        packetDataPosition += sizeof(_touchState.x);
+        memcpy(&_touchState.y, packetDataPosition, sizeof(_touchState.y));
+        packetDataPosition += sizeof(_touchState.y);
+
         //  Update estimated absolute position from rotation rates
         _estimatedRotation += _lastRotationRate * DELTA_TIME;
-        
-        //  Decay estimated absolute position to slowly return to zero regardless
-        _estimatedRotation *= (1.f - DECAY_RATE * DELTA_TIME); 
     
+        // Sensor Fusion!  Slowly adjust estimated rotation to be relative to gravity (average acceleration)
+        const float GRAVITY_FOLLOW_RATE = 1.f;
+        float rollAngle = angleBetween(glm::vec3(_lastAcceleration.x, _lastAcceleration.y, 0.f), glm::vec3(0,-1,0)) *
+                          ((_lastAcceleration.x < 0.f) ? -1.f : 1.f);
+        float pitchAngle = angleBetween(glm::vec3(0.f, _lastAcceleration.y, _lastAcceleration.z), glm::vec3(0,-1,0)) *
+                          ((_lastAcceleration.z < 0.f) ? 1.f : -1.f);
+
+        _estimatedRotation.x = (1.f - GRAVITY_FOLLOW_RATE * DELTA_TIME) * _estimatedRotation.x +
+                                GRAVITY_FOLLOW_RATE * DELTA_TIME * pitchAngle;
+        _estimatedRotation.z = (1.f - GRAVITY_FOLLOW_RATE * DELTA_TIME) * _estimatedRotation.z +
+                                GRAVITY_FOLLOW_RATE * DELTA_TIME * rollAngle;
+        
+        //  Can't apply gravity fusion to Yaw, so decay estimated yaw to zero,
+        //  presuming that the average yaw direction is toward screen
+        _estimatedRotation.y *= (1.f - DECAY_RATE * DELTA_TIME);
+
         if (!_isConnected) {
             printf("Transmitter V2 Connected.\n");
             _isConnected = true;
             _estimatedRotation *= 0.0;
         }
     } else {
-        printf("Transmitter V2 packet read error.\n");
+        printf("Transmitter V2 packet read error, %d bytes.\n", numBytes);
     }
 }
 
