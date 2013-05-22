@@ -268,7 +268,7 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
     int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
     // if the code we got back matches our target, then we know we can actually delete it
-    if (0 == memcmp(nodeToDelete->getOctalCode(), codeBuffer, lengthInBytes)) {
+    if (memcmp(nodeToDelete->getOctalCode(), codeBuffer, lengthInBytes) == 0) {
         if (parentNode) {
             int childIndex = branchIndexWithDescendant(parentNode->getOctalCode(), codeBuffer);
             if (stage) {

@@ -167,7 +167,7 @@ void resInVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor(),WANT_EXISTS_BITS);
+                                                              agentData->getWantColor(), WANT_EXISTS_BITS);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -604,7 +604,7 @@ int main(int argc, const char * argv[])
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
             	// Send these bits off to the VoxelTree class to process them
-				printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+				//printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
