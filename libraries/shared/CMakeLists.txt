@@ -26,3 +26,4 @@ if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
     target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 endif (UNIX AND NOT APPLE)
+
