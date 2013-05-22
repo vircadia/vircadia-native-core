@@ -705,6 +705,10 @@ void Avatar::setDisplayingHead(bool displayingHead) {
     _displayingHead = displayingHead;
 }
 
+void Avatar::setDisplayingLookatVectors(bool displayingLookatVectors) {
+    _head.setRenderLookatVectors(displayingLookatVectors);
+}
+
 static TextRenderer* textRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
     return renderer;

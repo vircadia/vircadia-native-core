@@ -1225,12 +1225,17 @@ void Application::initMenu() {
     _renderAvatarsOn->setChecked(true);
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
-
+    (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
+    _renderLookatOn->setChecked(false);
+    
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
+
     (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
+    
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
+    
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(true);
@@ -1336,6 +1341,7 @@ void Application::init() {
     a.tightness = 8.0f;
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
     _myAvatar.setDisplayingHead(true);
+    _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
     
@@ -1713,6 +1719,12 @@ void Application::displaySide(Camera& whichCamera) {
             
         // Render my own Avatar 
         _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        
+        if (_renderLookatOn->isChecked()) {
+            _myAvatar.setDisplayingLookatVectors(true);
+        } else {
+            _myAvatar.setDisplayingLookatVectors(false);  
+        }
     }
     
     //  Render the world box

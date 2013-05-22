@@ -114,6 +114,7 @@ public:
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
     void setDisplayingHead( bool displayingHead );
+    void setDisplayingLookatVectors(bool displayingLookatVectors);
     
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
