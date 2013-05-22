@@ -352,10 +352,9 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool d
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
-	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
-	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
-	int atByte = 3;
-	unsigned char* pVoxelData = (unsigned char*)&bitstream[3];
+	//unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
+	int atByte = sizeof(short int) + sizeof(PACKET_HEADER);
+	unsigned char* pVoxelData = (unsigned char*)&bitstream[atByte];
 	while (atByte < bufferSizeBytes) {
 		unsigned char octets = (unsigned char)*pVoxelData;
 		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
