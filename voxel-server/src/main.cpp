@@ -49,7 +49,7 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
-VoxelTree randomTree;
+VoxelTree randomTree(true); // this is a reaveraging tree
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
 
@@ -228,11 +228,16 @@ void resInVoxelDistributor(AgentList* agentList,
     }
 }
 
+pthread_mutex_t treeLock;
+
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(AgentList* agentList, 
                                   AgentList::iterator& agent,
                                   VoxelAgentData* agentData,
                                   bool viewFrustumChanged) {
+
+
+    pthread_mutex_lock(&::treeLock);
 
     int maxLevelReached = 0;
     double start = usecTimestampNow();
@@ -362,6 +367,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         
         
     } // end if bag wasn't empty, and so we sent stuff...
+
+    pthread_mutex_unlock(&::treeLock);
 }
 
 double lastPersistVoxels = 0;
@@ -407,11 +414,11 @@ void *distributeVoxelsToListeners(void *args) {
             VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
 
             // Sometimes the agent data has not yet been linked, in which case we can't really do anything
-    		if (agentData) {
-    		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
+            if (agentData) {
+                bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
                 if (::debugVoxelSending) {
-    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
-    		    }
+                    printf("agentData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+                }
 
                 if (agentData->getWantResIn()) { 
                     resInVoxelDistributor(agentList, agent, agentData);
@@ -440,8 +447,10 @@ void attachVoxelAgentDataToAgent(Agent *newAgent) {
     }
 }
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
+
+    pthread_mutex_init(&::treeLock, NULL);
+
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
@@ -569,89 +578,91 @@ int main(int argc, const char * argv[])
                 PerformanceWarning warn(::shouldShowAnimationDebug,
                                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
-            	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	if (::shouldShowAnimationDebug) {
+                unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+                if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
                         receivedBytes,itemNumber);
                 }
-            	int atByte = 3;
-            	unsigned char* pVoxelData = (unsigned char*)&packetData[3];
-            	while (atByte < receivedBytes) {
-            		unsigned char octets = (unsigned char)*pVoxelData;
-            		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
-            		int voxelCodeSize = bytesRequiredForCodeLength(octets);
+                int atByte = sizeof(PACKET_HEADER) + sizeof(itemNumber);
+                unsigned char* voxelData = (unsigned char*)&packetData[atByte];
+                while (atByte < receivedBytes) {
+                    unsigned char octets = (unsigned char)*voxelData;
+                    const int COLOR_SIZE_IN_BYTES = 3;
+                    int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
+                    int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
-					// color randomization on insert
-					int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
-					int red   = pVoxelData[voxelCodeSize+0];
-					int green = pVoxelData[voxelCodeSize+1];
-					int blue  = pVoxelData[voxelCodeSize+2];
+                    // color randomization on insert
+                    int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
+                    int red   = voxelData[voxelCodeSize + 0];
+                    int green = voxelData[voxelCodeSize + 1];
+                    int blue  = voxelData[voxelCodeSize + 2];
 
                     if (::shouldShowAnimationDebug) {
                         printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
-                    
-					red   = std::max(0,std::min(255,red   + colorRandomizer));
-					green = std::max(0,std::min(255,green + colorRandomizer));
-					blue  = std::max(0,std::min(255,blue  + colorRandomizer));
+                
+                    red   = std::max(0, std::min(255, red   + colorRandomizer));
+                    green = std::max(0, std::min(255, green + colorRandomizer));
+                    blue  = std::max(0, std::min(255, blue  + colorRandomizer));
 
                     if (::shouldShowAnimationDebug) {
                         printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
-					pVoxelData[voxelCodeSize+0]=red;
-					pVoxelData[voxelCodeSize+1]=green;
-					pVoxelData[voxelCodeSize+2]=blue;
+                    voxelData[voxelCodeSize + 0] = red;
+                    voxelData[voxelCodeSize + 1] = green;
+                    voxelData[voxelCodeSize + 2] = blue;
 
                     if (::shouldShowAnimationDebug) {
-                        float* vertices = firstVertexForCode(pVoxelData);
-                        printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+                        float* vertices = firstVertexForCode(voxelData);
+                        printf("inserting voxel at: %f,%f,%f\n", vertices[0], vertices[1], vertices[2]);
                         delete []vertices;
                     }
-            		
-		            randomTree.readCodeColorBufferToTree(pVoxelData, destructive);
-            		// skip to next
-            		pVoxelData+=voxelDataSize;
-            		atByte+=voxelDataSize;
-            	}
+                
+                    randomTree.readCodeColorBufferToTree(voxelData, destructive);
+                    // skip to next
+                    voxelData += voxelDataSize;
+                    atByte += voxelDataSize;
+                }
             }
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
-            	// Send these bits off to the VoxelTree class to process them
-				//printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
-            	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
+                // Send these bits off to the VoxelTree class to process them
+                pthread_mutex_lock(&::treeLock);
+                randomTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
+                pthread_mutex_unlock(&::treeLock);
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
 
-            	// the Z command is a special command that allows the sender to send the voxel server high level semantic
-            	// requests, like erase all, or add sphere scene
-				char* command = (char*) &packetData[1]; // start of the command
-				int commandLength = strlen(command); // commands are null terminated strings
-                int totalLength = 1+commandLength+1;
+                // the Z command is a special command that allows the sender to send the voxel server high level semantic
+                // requests, like erase all, or add sphere scene
+                char* command = (char*) &packetData[1]; // start of the command
+                int commandLength = strlen(command); // commands are null terminated strings
+                int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
 
-				printf("got Z message len(%ld)= %s\n",receivedBytes,command);
+                printf("got Z message len(%ld)= %s\n", receivedBytes, command);
 
-				while (totalLength <= receivedBytes) {
-					if (0==strcmp(command,(char*)"erase all")) {
-						printf("got Z message == erase all\n");
-						
-						eraseVoxelTreeAndCleanupAgentVisitData();
-					}
-					if (0==strcmp(command,(char*)"add scene")) {
-						printf("got Z message == add scene\n");
-						addSphereScene(&randomTree);
-					}
-					if (0==strcmp(command,(char*)"a message")) {
-						printf("got Z message == a message, nothing to do, just report\n");
-					}
-                    totalLength += commandLength+1;
-				}
+                while (totalLength <= receivedBytes) {
+                    if (strcmp(command, ERASE_ALL_COMMAND) == 0) {
+                        printf("got Z message == erase all\n");
+                    
+                        eraseVoxelTreeAndCleanupAgentVisitData();
+                    }
+                    if (strcmp(command, ADD_SCENE_COMMAND) == 0) {
+                        printf("got Z message == add scene\n");
+                        addSphereScene(&randomTree);
+                    }
+                    if (strcmp(command, TEST_COMMAND) == 0) {
+                        printf("got Z message == a message, nothing to do, just report\n");
+                    }
+                    totalLength += commandLength + 1; // 1 for null termination
+                }
 
-				// Now send this to the connected agents so they can also process these messages
-				printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                // Now send this to the connected agents so they can also process these messages
+                printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
+                agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
@@ -669,6 +680,7 @@ int main(int argc, const char * argv[])
     }
     
     pthread_join(sendVoxelThread, NULL);
+    pthread_mutex_destroy(&::treeLock);
 
     return 0;
 }
