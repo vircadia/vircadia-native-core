@@ -14,6 +14,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <cstring>
 #include "world.h"
+#include <stdint.h> 
 
 struct TouchState {
     uint16_t x, y;
