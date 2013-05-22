@@ -57,8 +57,7 @@ bool wantLocalDomain = false;
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
-
-
+bool wantSearchForColoredNodes = false;
 
 EnvironmentData environmentData[3];
 
@@ -169,7 +168,7 @@ void resInVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor());
+                                                              agentData->getWantColor(), WANT_EXISTS_BITS);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -244,20 +243,32 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
 
     if (::debugVoxelSending) {
         printf("deepestLevelVoxelDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
-                viewFrustumChanged ? "yes" : "no", 
-                agentData->nodeBag.isEmpty() ? "yes" : "no", 
-                agentData->getViewSent() ? "yes" : "no"
+                debug::valueOf(viewFrustumChanged), debug::valueOf(agentData->nodeBag.isEmpty()), 
+                debug::valueOf(agentData->getViewSent())
             );
     }
     
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
-        // If the bag was empty, then send everything in view, not just the delta
-        maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
-                                                           agentData->nodeBag, wantDelta, lastViewFrustum);
 
-        agentData->setViewSent(false);
+        // For now, we're going to disable the "search for colored nodes" because that strategy doesn't work when we support
+        // deletion of nodes. Instead if we just start at the root we get the correct behavior we want. We are keeping this
+        // code for now because we want to be able to go back to it and find a solution to support both. The search method
+        // helps improve overall bitrate performance.
+        if (::wantSearchForColoredNodes) {
+            // If the bag was empty, then send everything in view, not just the delta
+            maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
+                                                               agentData->nodeBag, wantDelta, lastViewFrustum);
+
+            // if nothing was found in view, send the root node.
+            if (agentData->nodeBag.isEmpty()){
+                agentData->nodeBag.insert(randomTree.rootNode);
+            }
+            agentData->setViewSent(false);
+        } else {
+            agentData->nodeBag.insert(randomTree.rootNode);
+        }
 
     }
     double end = usecTimestampNow();
@@ -292,7 +303,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), wantDelta, lastViewFrustum);
+                                                              agentData->getWantColor(), WANT_EXISTS_BITS,
+                                                              wantDelta, lastViewFrustum);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -398,7 +410,7 @@ void *distributeVoxelsToListeners(void *args) {
     		if (agentData) {
     		    bool viewFrustumChanged = agentData->updateCurrentViewFrustum();
                 if (::debugVoxelSending) {
-    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", (viewFrustumChanged ? "yes" : "no"));
+    		        printf("agentData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
     		    }
 
                 if (agentData->getWantResIn()) { 
@@ -450,22 +462,26 @@ int main(int argc, const char * argv[])
 
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
-    printf("debugVoxelSending=%s\n", (::debugVoxelSending ? "yes" : "no"));
+    printf("debugVoxelSending=%s\n", debug::valueOf(::debugVoxelSending));
 
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
-    printf("shouldShowAnimationDebug=%s\n", (::shouldShowAnimationDebug ? "yes" : "no"));
+    printf("shouldShowAnimationDebug=%s\n", debug::valueOf(::shouldShowAnimationDebug));
 
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-    printf("wantColorRandomizer=%s\n", (::wantColorRandomizer ? "yes" : "no"));
+    printf("wantColorRandomizer=%s\n", debug::valueOf(::wantColorRandomizer));
+
+    const char* WANT_SEARCH_FOR_NODES = "--wantSearchForColoredNodes";
+    ::wantSearchForColoredNodes = cmdOptionExists(argc, argv, WANT_SEARCH_FOR_NODES);
+    printf("wantSearchForColoredNodes=%s\n", debug::valueOf(::wantSearchForColoredNodes));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
     if (cmdOptionExists(argc, argv, NO_VOXEL_PERSIST)) {
         ::wantVoxelPersist = false;
     }
-    printf("wantVoxelPersist=%s\n", (::wantVoxelPersist ? "yes" : "no"));
+    printf("wantVoxelPersist=%s\n", debug::valueOf(::wantVoxelPersist));
 
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
@@ -473,7 +489,7 @@ int main(int argc, const char * argv[])
         printf("loading voxels from file...\n");
         persistantFileRead = ::randomTree.readFromFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        printf("DONE loading voxels from file... fileRead=%s\n", persistantFileRead ? "yes" : "no" );
+        printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         unsigned long nodeCount = ::randomTree.getVoxelCount();
         printf("Nodes after loading scene %ld nodes\n", nodeCount);
     }
@@ -548,16 +564,12 @@ int main(int argc, const char * argv[])
         persistVoxelsWhenDirty();
     
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-        	// XXXBHG: Hacked in support for 'S' SET command
             if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
-
                 PerformanceWarning warn(::shouldShowAnimationDebug,
                                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
-            
             	unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
-            	
             	if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
@@ -608,13 +620,8 @@ int main(int argc, const char * argv[])
             if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
 
             	// Send these bits off to the VoxelTree class to process them
-				printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
+				//printf("got Erase Voxels message, have voxel tree do the work... randomTree.processRemoveVoxelBitstream()\n");
             	randomTree.processRemoveVoxelBitstream((unsigned char*)packetData,receivedBytes);
-
-            	// Now send this to the connected agents so they know to delete
-				printf("rebroadcasting delete voxel message to connected agents... agentList.broadcastToAgents()\n");
-				agentList->broadcastToAgents(packetData,receivedBytes, &AGENT_TYPE_AVATAR, 1);
-            	
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
 

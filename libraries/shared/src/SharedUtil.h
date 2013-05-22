@@ -80,4 +80,9 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount);
 
+// Helper Class for debugging
+class debug {
+public:                           
+    static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; };
+};
 #endif /* defined(__hifi__SharedUtil__) */

@@ -43,10 +43,12 @@ public:
     ~VoxelNode();
     
     unsigned char* getOctalCode() const { return _octalCode; };
-    VoxelNode* getChildAtIndex(int i) const { return _children[i]; };
+    VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; };
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     void addChildAtIndex(int childIndex);
+    void safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion); // handles staging or deletion of all descendents
+
     void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
     bool collapseIdenticalLeaves();
@@ -69,6 +71,7 @@ public:
     float distanceToPoint(const glm::vec3& point) const;
 
     bool isLeaf() const { return _childCount == 0; }
+    int getChildCount() const { return _childCount; }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -81,7 +84,7 @@ public:
     bool getShouldRender() const { return _shouldRender; }
 
     // Used by VoxelSystem to mark a node as to be deleted on next render pass
-    void stageForDeletion() { _isStagedForDeletion = true; };
+    void stageForDeletion() { _isStagedForDeletion = true; _isDirty = true; };
     bool isStagedForDeletion() const { return _isStagedForDeletion; }
 
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color

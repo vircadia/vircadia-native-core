@@ -233,11 +233,6 @@ void Application::initializeGL() {
     glutInit(&argc, 0);
     #endif
     
-    #ifdef _WIN32
-    glewInit();
-    printLog( "Glew Init complete.\n" );
-    #endif
-    
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
@@ -1110,7 +1105,6 @@ void Application::setWantsResIn(bool wantsResIn) {
     _myAvatar.setWantResIn(wantsResIn);
 }
 
-
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
@@ -1266,7 +1260,7 @@ void Application::initMenu() {
     QMenu* debugMenu = menuBar->addMenu("Debug");
     debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
     debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
-    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()));
+    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     debugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
     debugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
     debugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
@@ -1704,9 +1698,9 @@ void Application::displaySide(Camera& whichCamera) {
             }
         }
         agentList->unlock();
-        
+            
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror, _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
     }
     
     //  Render the world box
@@ -2032,10 +2026,8 @@ void Application::maybeEditVoxelUnderCursor() {
 
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
+        // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
-        
-        // delete the voxel locally so it disappears immediately            
-        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         
         // remember the position for drag detection
         _justEditedVoxel = true;
