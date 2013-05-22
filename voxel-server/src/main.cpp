@@ -629,16 +629,16 @@ int main(int argc, const char * argv[]) {
                 printf("got Z message len(%ld)= %s\n",receivedBytes,command);
 
                 while (totalLength <= receivedBytes) {
-                    if (0==strcmp(command,(char*)"erase all")) {
+                    if (strcmp(command,(char*)"erase all") == 0) {
                         printf("got Z message == erase all\n");
                     
                         eraseVoxelTreeAndCleanupAgentVisitData();
                     }
-                    if (0==strcmp(command,(char*)"add scene")) {
+                    if (strcmp(command,(char*)"add scene") == 0) {
                         printf("got Z message == add scene\n");
                         addSphereScene(&randomTree);
                     }
-                    if (0==strcmp(command,(char*)"a message")) {
+                    if (strcmp(command,(char*)"a message") == 0) {
                         printf("got Z message == a message, nothing to do, just report\n");
                     }
                     totalLength += commandLength+1;
