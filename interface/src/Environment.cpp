@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <QByteArray>
+#include <QMutexLocker>
 #include <QtDebug>
 
 #include <GeometryUtil.h>
@@ -40,6 +41,9 @@ void Environment::init() {
 }
 
 void Environment::renderAtmospheres(Camera& camera) {    
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
+    
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             renderAtmosphere(camera, environmentData);
@@ -47,7 +51,10 @@ void Environment::renderAtmospheres(Camera& camera) {
     }
 }
 
-glm::vec3 Environment::getGravity (const glm::vec3& position) const {
+glm::vec3 Environment::getGravity (const glm::vec3& position) {
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
+    
     glm::vec3 gravity;
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
@@ -60,24 +67,30 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) const {
     return gravity;
 }
 
-const EnvironmentData& Environment::getClosestData(const glm::vec3& position) const {
-    const EnvironmentData* closest;
+const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
+    
+    EnvironmentData closest;
     float closestDistance = FLT_MAX;
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             float distance = glm::distance(position, environmentData.getAtmosphereCenter()) -
                 environmentData.getAtmosphereOuterRadius();
             if (distance < closestDistance) {
-                closest = &environmentData;
+                closest = environmentData;
                 closestDistance = distance;
             }
         }
     }
-    return *closest;
+    return closest;
 }
 
 bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
-                                         float radius, glm::vec3& penetration) const {
+                                         float radius, glm::vec3& penetration) {
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
+    
     bool found = false;
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     foreach (const ServerData& serverData, _data) {
@@ -97,6 +110,9 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes) {
     EnvironmentData newData;
     int bytesRead = newData.parseData(sourceBuffer, numBytes);
+    
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
     
     // update the mapping by address/ID
     _data[*senderAddress][newData.getID()] = newData;
