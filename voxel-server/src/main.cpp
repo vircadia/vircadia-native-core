@@ -600,7 +600,7 @@ int main(int argc, const char * argv[]) {
 
                     if (::shouldShowAnimationDebug) {
                         float* vertices = firstVertexForCode(voxelData);
-                        printf("inserting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
+                        printf("inserting voxel at: %f,%f,%f\n", vertices[0], vertices[1], vertices[2]);
                         delete []vertices;
                     }
                 
