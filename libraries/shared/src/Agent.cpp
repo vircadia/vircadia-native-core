@@ -10,7 +10,7 @@
 #include "Agent.h"
 #include "AgentTypes.h"
 #include <cstring>
-#include "shared_Log.h"
+#include "Log.h"
 #include "UDPSocket.h"
 #include "SharedUtil.h"
 
@@ -19,8 +19,6 @@
 #else
 #include <arpa/inet.h>
 #endif
-
-using shared_lib::printLog;
 
 int unpackAgentId(unsigned char* packedData, uint16_t* agentId) {
     memcpy(agentId, packedData, sizeof(uint16_t));

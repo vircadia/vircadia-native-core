@@ -32,31 +32,33 @@ namespace { // everything in here only exists while compiling this .cpp file
 }
 
 
-Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) :
+Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) : 
     enabled(isEnabled),
     inputPaused(false),
-    _valWidth(w),
-    _valHeight(h),
-    _arrSamples(0l),
-    _arrVertices(0l),
-    _valLowpass(0.4f),
-    _valDownsample(3) {
-    
+    _width(w),
+    _height(h), 
+    _samples(0l),
+    _vertices(0l),
+    // some filtering (see details in Log.h)
+    _lowPassCoeff(0.4f),
+    // three in -> one out
+    _downsampleRatio(3) {
+
     // allocate enough space for the sample data and to turn it into
     // vertices and since they're all 'short', do so in one shot
-    _arrSamples = new short[N_INT16_TO_ALLOC];
-    memset(_arrSamples, 0, N_INT16_TO_ALLOC * sizeof(short));
-    _arrVertices = _arrSamples + MAX_SAMPLES;
+    _samples = new short[N_INT16_TO_ALLOC];
+    memset(_samples, 0, N_INT16_TO_ALLOC * sizeof(short));
+    _vertices = _samples + MAX_SAMPLES;
 
     // initialize write positions to start of each channel's region
     for (unsigned ch = 0; ch < MAX_CHANNELS; ++ch) {
-        _arrWritePos[ch] = MAX_SAMPLES_PER_CHANNEL * ch;
+        _writePos[ch] = MAX_SAMPLES_PER_CHANNEL * ch;
     }
 }
 
 Oscilloscope::~Oscilloscope() {
 
-    delete[] _arrSamples;
+    delete[] _samples;
 }
 
 void Oscilloscope::addSamples(unsigned ch, short const* data, unsigned n) {
@@ -70,7 +72,7 @@ void Oscilloscope::addSamples(unsigned ch, short const* data, unsigned n) {
     unsigned endOffs = baseOffs + MAX_SAMPLES_PER_CHANNEL;
 
     // fetch write position for this channel
-    unsigned writePos = _arrWritePos[ch];
+    unsigned writePos = _writePos[ch];
 
     // determine write position after adding the samples 
     unsigned newWritePos = writePos + n;
@@ -83,13 +85,13 @@ void Oscilloscope::addSamples(unsigned ch, short const* data, unsigned n) {
     }
 
     // copy data 
-    memcpy(_arrSamples + writePos, data, n * sizeof(short));
+    memcpy(_samples + writePos, data, n * sizeof(short));
     if (n2 > 0) {
-        memcpy(_arrSamples + baseOffs, data + n, n2 * sizeof(short));
+        memcpy(_samples + baseOffs, data + n, n2 * sizeof(short));
     }
 
     // set new write position for this channel 
-    _arrWritePos[ch] = newWritePos;
+    _writePos[ch] = newWritePos;
 }
         
 void Oscilloscope::render(int x, int y) {
@@ -98,20 +100,20 @@ void Oscilloscope::render(int x, int y) {
         return;
     }
 
-    // determine lowpass / downsample factors
-    int lowpass = -int(std::numeric_limits<short>::min()) * _valLowpass;
-    unsigned downsample = _valDownsample;
+    // fetch low pass factor (and convert to fix point) / downsample factor
+    int lowPassFixPt = -int(std::numeric_limits<short>::min()) * _lowPassCoeff;
+    unsigned downsample = _downsampleRatio;
     // keep half of the buffer for writing and ensure an even vertex count
-    unsigned usedWidth = min(_valWidth, MAX_SAMPLES_PER_CHANNEL / (downsample * 2)) & ~1u;
+    unsigned usedWidth = min(_width, MAX_SAMPLES_PER_CHANNEL / (downsample * 2)) & ~1u;
     unsigned usedSamples = usedWidth * downsample;
     
     // expand samples to vertex data
     for (unsigned ch = 0; ch < MAX_CHANNELS; ++ch) {
         // for each channel: determine memory regions
-        short const* basePtr = _arrSamples + MAX_SAMPLES_PER_CHANNEL * ch;
+        short const* basePtr = _samples + MAX_SAMPLES_PER_CHANNEL * ch;
         short const* endPtr = basePtr + MAX_SAMPLES_PER_CHANNEL;
-        short const* inPtr = _arrSamples + _arrWritePos[ch];
-        short* outPtr = _arrVertices + MAX_COORDS_PER_CHANNEL * ch;
+        short const* inPtr = _samples + _writePos[ch];
+        short* outPtr = _vertices + MAX_COORDS_PER_CHANNEL * ch;
         int sample = 0, x = usedWidth;
         for (int i = int(usedSamples); --i >= 0 ;) {
             if (inPtr == basePtr) {
@@ -119,7 +121,7 @@ void Oscilloscope::render(int x, int y) {
                 inPtr = endPtr;
             }
             // read and (eventually) filter sample
-            sample += ((*--inPtr - sample) * lowpass) >> 15;
+            sample += ((*--inPtr - sample) * lowPassFixPt) >> 15;
             // write every nth as y with a corresponding x-coordinate 
             if (i % downsample == 0) {
                 *outPtr++ = short(--x);
@@ -128,13 +130,13 @@ void Oscilloscope::render(int x, int y) {
         }
     } 
 
-    // set up rendering state (vertex data lives at _arrVertices)
+    // set up rendering state (vertex data lives at _vertices)
     glLineWidth(1.0);
     glDisable(GL_LINE_SMOOTH);
     glPushMatrix();
-    glTranslatef((float)x + 0.0f, (float)y + _valHeight / 2.0f, 0.0f);
-    glScaled(1.0f, _valHeight / 32767.0f, 1.0f);
-    glVertexPointer(2, GL_SHORT, 0, _arrVertices);
+    glTranslatef((float)x + 0.0f, (float)y + _height / 2.0f, 0.0f);
+    glScaled(1.0f, _height / 32767.0f, 1.0f);
+    glVertexPointer(2, GL_SHORT, 0, _vertices);
     glEnableClientState(GL_VERTEX_ARRAY);
 
     // render channel 0

@@ -21,9 +21,7 @@
 #include <unistd.h>
 #endif
 
-#include "shared_Log.h"
-
-using shared_lib::printLog;
+#include "Log.h"
 
 sockaddr_in destSockaddr, senderAddress;
 

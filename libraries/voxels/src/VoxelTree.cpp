@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cmath>
 #include "SharedUtil.h"
-#include "voxels_Log.h"
+#include "Log.h"
 #include "PacketHeaders.h"
 #include "OctalCode.h"
 #include "GeometryUtil.h"
@@ -24,8 +24,6 @@
 #include "VoxelConstants.h"
 
 #include <glm/gtc/noise.hpp>
-
-using voxels_lib::printLog;
 
 int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     float voxelSizeScale = 50000.0f;
