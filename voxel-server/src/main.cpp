@@ -594,9 +594,9 @@ int main(int argc, const char * argv[]) {
                         printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
-                    voxelData[voxelCodeSize + 0]=red;
-                    voxelData[voxelCodeSize + 1]=green;
-                    voxelData[voxelCodeSize + 2]=blue;
+                    voxelData[voxelCodeSize + 0] = red;
+                    voxelData[voxelCodeSize + 1] = green;
+                    voxelData[voxelCodeSize + 2] = blue;
 
                     if (::shouldShowAnimationDebug) {
                         float* vertices = firstVertexForCode(voxelData);
@@ -628,16 +628,16 @@ int main(int argc, const char * argv[]) {
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
 
                 while (totalLength <= receivedBytes) {
-                    if (strcmp(command, (char*)"erase all") == 0) {
+                    if (strcmp(command, ERASE_ALL_COMMAND) == 0) {
                         printf("got Z message == erase all\n");
                     
                         eraseVoxelTreeAndCleanupAgentVisitData();
                     }
-                    if (strcmp(command, (char*)"add scene") == 0) {
+                    if (strcmp(command, ADD_SCENE_COMMAND) == 0) {
                         printf("got Z message == add scene\n");
                         addSphereScene(&randomTree);
                     }
-                    if (strcmp(command, (char*)"a message") == 0) {
+                    if (strcmp(command, TEST_COMMAND) == 0) {
                         printf("got Z message == a message, nothing to do, just report\n");
                     }
                     totalLength += commandLength + 1; // 1 for null termination
