@@ -33,6 +33,8 @@ public:
     void rotate(glm::vec3 EulerAngles);
     void rotate(glm::quat quaternion);
 
+    const glm::quat & getQuat() const {return quat;}
+
 	const glm::vec3 & getRight() const {return  right;}
 	const glm::vec3 & getUp   () const {return  up;   }
 	const glm::vec3 & getFront() const {return  front;}

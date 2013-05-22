@@ -51,6 +51,7 @@ const float HEAD_MIN_YAW                  = -85;
 const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
+const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 
 float skinColor    [] = {1.0, 0.84, 0.66};
 float darkSkinColor[] = {0.9, 0.78, 0.63};
@@ -348,8 +349,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             } else {
                 axis = glm::normalize(glm::cross(currentUp, targetUp));
             }
-            _orientation.rotate(glm::angleAxis(angle, axis));
-            
+            _orientation.rotate(glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis));
+            glm::vec3 eulerAngles = glm::eulerAngles(_orientation.getQuat());
+            _bodyYaw = eulerAngles.y;
+            _bodyPitch = eulerAngles.x;
+            _bodyRoll = eulerAngles.z;
         }
     }
     
