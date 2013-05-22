@@ -165,7 +165,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
 
     // give this destination node the child mask from the packet
     unsigned char childrenInTreeMask = includeExistsBits ? *(nodeData + bytesRead) : ALL_CHILDREN_ASSUMED_TO_EXIST; 
-    unsigned char childMask = *(nodeData + bytesRead + (includeExistsBits ? sizeof(childrenInTreeMask) : 0) );
+    unsigned char childMask = *(nodeData + bytesRead + (includeExistsBits ? sizeof(childrenInTreeMask) : 0));
 
     int childIndex = 0;
     bytesRead += includeExistsBits ? sizeof(childrenInTreeMask) + sizeof(childMask) : sizeof(childMask);
@@ -354,16 +354,11 @@ void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool d
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
 	// XXXBHG: validate buffer is at least 4 bytes long? other guards??
 	unsigned short int itemNumber = (*((unsigned short int*)&bitstream[1]));
-	printLog("processRemoveVoxelBitstream() receivedBytes=%d itemNumber=%d\n",bufferSizeBytes,itemNumber);
 	int atByte = 3;
 	unsigned char* pVoxelData = (unsigned char*)&bitstream[3];
 	while (atByte < bufferSizeBytes) {
 		unsigned char octets = (unsigned char)*pVoxelData;
 		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
-
-		float* vertices = firstVertexForCode(pVoxelData);
-		printLog("deleting voxel at: %f,%f,%f\n",vertices[0],vertices[1],vertices[2]);
-		delete []vertices;
 
 		deleteVoxelCodeFromTree(pVoxelData);
 
