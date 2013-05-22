@@ -577,9 +577,9 @@ int main(int argc, const char * argv[]) {
 
                     // color randomization on insert
                     int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
-                    int red   = voxelData[voxelCodeSize+0];
-                    int green = voxelData[voxelCodeSize+1];
-                    int blue  = voxelData[voxelCodeSize+2];
+                    int red   = voxelData[voxelCodeSize + 0];
+                    int green = voxelData[voxelCodeSize + 1];
+                    int blue  = voxelData[voxelCodeSize + 2];
 
                     if (::shouldShowAnimationDebug) {
                         printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
@@ -594,9 +594,9 @@ int main(int argc, const char * argv[]) {
                         printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
-                    voxelData[voxelCodeSize+0]=red;
-                    voxelData[voxelCodeSize+1]=green;
-                    voxelData[voxelCodeSize+2]=blue;
+                    voxelData[voxelCodeSize + 0]=red;
+                    voxelData[voxelCodeSize + 1]=green;
+                    voxelData[voxelCodeSize + 2]=blue;
 
                     if (::shouldShowAnimationDebug) {
                         float* vertices = firstVertexForCode(voxelData);
