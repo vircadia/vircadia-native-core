@@ -78,6 +78,7 @@ private slots:
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
+    //void setRenderLookatVectors(bool lookatVectors);
     void setOculus(bool oculus);
     
     void setFrustumOffset(bool frustumOffset);
@@ -147,6 +148,7 @@ private:
     QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
+    QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled

@@ -53,6 +53,11 @@ const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 
+const float LEAN_SENSITIVITY    = 0.15;
+const float LEAN_MAX            = 0.45;
+const float LEAN_AVERAGING      = 10.0;
+const float HEAD_RATE_MAX       = 50.f;
+
 float skinColor    [] = {1.0, 0.84, 0.66};
 float darkSkinColor[] = {0.9, 0.78, 0.63};
 float lightBlue    [] = {0.7, 0.8,  1.0 };
@@ -136,16 +141,12 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.addRoll (measuredRollRate  * deltaTime);
     
     //  Update head lean distance based on accelerometer data
-    const float LEAN_SENSITIVITY = 0.15;
-    const float LEAN_MAX = 0.45;
-    const float LEAN_AVERAGING = 10.0;
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
-    float headRateMax = 50.f;
     
     
     glm::vec3 leaning = (serialInterface->getLastAcceleration() -  serialInterface->getGravity())
                         * LEAN_SENSITIVITY
-                        * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
+                        * (1.f - fminf(glm::length(headRotationRates), HEAD_RATE_MAX) / HEAD_RATE_MAX);
     leaning.y = 0.f;
     if (glm::length(leaning) < LEAN_MAX) {
         _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
@@ -385,14 +386,15 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
 
-    
     //apply the head lean values to the springy position...
     if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
+
         glm::vec3 headLean = 
             _orientation.getRight() * _head.getLeanSideways() +
             _orientation.getFront() * _head.getLeanForward();
-
+    
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
+        
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
         _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
@@ -409,19 +411,17 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
         _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
-    }
+     }
 
     // set head lookat position 
-    if (_interactingOther) {
-        _head.setLooking(true);
-        
-        if (_isMine) {
-            _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
-        }        
-    } else {
-        _head.setLooking(false);
+    if (_isMine) {
+        if (_interactingOther) {
+            _head.setLookAtPosition(_interactingOther->caclulateAverageEyePosition());
+        } else {
+            _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
+        }
     }    
-    
+
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
@@ -598,15 +598,6 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
                 }
             }
         }
-    
-        /*
-        if (jointCollision) {
-            if (!_usingBodySprings) {
-                _usingBodySprings = true;
-                initializeBodySprings();
-            }
-        }
-        */
     }
 }
 
@@ -727,9 +718,6 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
     otherAvatar->_velocity *= bodyMomentum;        
 }
 
-void Avatar::setDisplayingHead(bool displayingHead) {
-    _displayingHead = displayingHead;
-}
 
 static TextRenderer* textRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
@@ -760,7 +748,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
 
     //render body
     renderBody(lookingInMirror);
-        
+    
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
         _avatarTouch.render(_cameraPosition);
@@ -1185,16 +1173,6 @@ void Avatar::renderBody(bool lookingInMirror) {
                 _joint[_joint[j].parent ].radius * 0.8, 
                 _joint[j                ].radius * 0.8
             );
-        
-            /*
-            // Render lines connecting the joint positions
-            glColor3f(0.4f, 0.5f, 0.6f);
-            glLineWidth(3.0);
-            glBegin(GL_LINE_STRIP);
-            glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
-            glVertex3fv(&_joint[ b ].springyPosition.x);
-            glEnd();
-            */
         }
     }
 }

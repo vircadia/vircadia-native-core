@@ -31,6 +31,7 @@ void HeadData::addRoll(float roll) {
     setRoll(_roll + roll);
 }
 
+
 void HeadData::addLean(float sideways, float forwards) {
     // Add lean as impulse
     _leanSideways += sideways;

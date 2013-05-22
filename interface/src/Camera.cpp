@@ -37,17 +37,24 @@ Camera::Camera() {
     _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
     _orientation.setToIdentity();
     
-    for (int m = 0; m < NUM_CAMERA_MODES; m ++) {
-        _attributes[m].upShift   = 0.0f; 
-        _attributes[m].distance  = 0.0f; 
-        _attributes[m].tightness = 0.0f; 
+    _attributes[CAMERA_MODE_FIRST_PERSON].upShift   = CAMERA_DEFAULT_FIRST_PERSON_MODE_UP_SHIFT;
+    _attributes[CAMERA_MODE_FIRST_PERSON].distance  = CAMERA_DEFAULT_FIRST_PERSON_MODE_DISTANCE; 
+    _attributes[CAMERA_MODE_FIRST_PERSON].tightness = CAMERA_DEFAULT_FIRST_PERSON_MODE_TIGHTNESS;
+
+    _attributes[CAMERA_MODE_THIRD_PERSON].upShift   = CAMERA_DEFAULT_THIRD_PERSON_MODE_UP_SHIFT; 
+    _attributes[CAMERA_MODE_THIRD_PERSON].distance  = CAMERA_DEFAULT_THIRD_PERSON_MODE_DISTANCE; 
+    _attributes[CAMERA_MODE_THIRD_PERSON].tightness = CAMERA_DEFAULT_THIRD_PERSON_MODE_TIGHTNESS; 
+
+    _attributes[CAMERA_MODE_MIRROR      ].upShift   = CAMERA_DEFAULT_MIRROR_MODE_UP_SHIFT;
+    _attributes[CAMERA_MODE_MIRROR      ].distance  = CAMERA_DEFAULT_MIRROR_MODE_DISTANCE; 
+    _attributes[CAMERA_MODE_MIRROR      ].tightness = CAMERA_DEFAULT_MIRROR_MODE_TIGHTNESS; 
         
+    for (int m = 0; m < NUM_CAMERA_MODES; m ++) {
         _previousAttributes[m].upShift   = 0.0f;
         _previousAttributes[m].distance  = 0.0f;
         _previousAttributes[m].tightness = 0.0f;
     }
 }
-
 
 void Camera::update(float deltaTime)  {
 
