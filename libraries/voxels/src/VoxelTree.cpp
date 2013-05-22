@@ -30,14 +30,15 @@ int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     return voxelSizeScale / powf(2, renderLevel);
 }
 
-VoxelTree::VoxelTree() :
+VoxelTree::VoxelTree(bool shouldReaverage) :
     voxelsCreated(0),
     voxelsColored(0),
     voxelsBytesRead(0),
     voxelsCreatedStats(100),
     voxelsColoredStats(100),
     voxelsBytesReadStats(100),
-    _isDirty(true) {
+    _isDirty(true),
+    _shouldReaverage(shouldReaverage) {
     rootNode = new VoxelNode();
 }
 
@@ -255,12 +256,13 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
     deleteVoxelCodeFromTree(octalCode, stage);
     delete octalCode; // cleanup memory
+    reaverageVoxelColors(rootNode); 
 }
 
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
-void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
+void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, bool collapseEmptyTrees) {
     VoxelNode* parentNode = NULL;
     VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
     // If the node exists...
@@ -277,14 +279,13 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage) {
             }
 
             // If we're not a colored leaf, and we have no children, then delete ourselves
-            // This will collapse the empty tree above us.            
-            if (parentNode->getChildCount() == 0 && !parentNode->isColored()) {
+            // This will collapse the empty tree above us.
+            if (collapseEmptyTrees && parentNode->getChildCount() == 0 && !parentNode->isColored()) {
                 // Can't delete the root this way.
                 if (parentNode != rootNode) {
-                    deleteVoxelCodeFromTree(parentNode->getOctalCode(),stage);
+                    deleteVoxelCodeFromTree(parentNode->getOctalCode(), stage, collapseEmptyTrees);
                 }
             }
-            reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
             _isDirty = true;
         }
     } else if (nodeToDelete->isLeaf()) {
@@ -358,11 +359,12 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
 		unsigned char octets = (unsigned char)*pVoxelData;
 		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
 
-		deleteVoxelCodeFromTree(pVoxelData);
+		deleteVoxelCodeFromTree(pVoxelData, ACTUALLY_DELETE, COLLAPSE_EMPTY_TREE);
 
 		pVoxelData+=voxelDataSize;
 		atByte+=voxelDataSize;
 	}
+    reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 }
 
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
@@ -412,19 +414,20 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 }
 
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
-    bool hasChildren = false;
+    // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
+    if (_shouldReaverage) {
+        bool hasChildren = false;
 
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (startNode->getChildAtIndex(i)) {
-            reaverageVoxelColors(startNode->getChildAtIndex(i));
-            hasChildren = true;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            if (startNode->getChildAtIndex(i)) {
+                reaverageVoxelColors(startNode->getChildAtIndex(i));
+                hasChildren = true;
+            }
         }
-    }
 
-    if (hasChildren) {
-        bool childrenCollapsed = startNode->collapseIdenticalLeaves();
-    
-        if (!childrenCollapsed) {
+        // collapseIdenticalLeaves() returns true if it collapses the leaves
+        // in which case we don't need to set the average color
+        if (hasChildren && !startNode->collapseIdenticalLeaves()) {
             startNode->setColorFromAverageOfChildren();
         }
     }

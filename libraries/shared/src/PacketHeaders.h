@@ -33,4 +33,10 @@ const PACKET_HEADER PACKET_HEADER_ENVIRONMENT_DATA = 'e';
 const PACKET_HEADER PACKET_HEADER_DOMAIN_LIST_REQUEST = 'L';
 const PACKET_HEADER PACKET_HEADER_DOMAIN_RFD = 'C';
 
+
+// These are supported Z-Command
+#define ERASE_ALL_COMMAND "erase all"
+#define ADD_SCENE_COMMAND "add scene"
+#define TEST_COMMAND      "a message"
+
 #endif
