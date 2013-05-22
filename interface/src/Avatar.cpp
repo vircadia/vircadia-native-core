@@ -410,11 +410,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     // set head lookat position 
     if ((_interactingOther)
-    && (_isMine)) {
+    &&  (_isMine)) {
         _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
     } else {
         _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-        //_head.setLooking(false);
     }    
     
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
