@@ -586,9 +586,9 @@ int main(int argc, const char * argv[]) {
                             (::wantColorRandomizer?"yes":"no"),red,green,blue);
                     }
                 
-                    red   = std::max(0,std::min(255,red   + colorRandomizer));
-                    green = std::max(0,std::min(255,green + colorRandomizer));
-                    blue  = std::max(0,std::min(255,blue  + colorRandomizer));
+                    red   = std::max(0, std::min(255, red   + colorRandomizer));
+                    green = std::max(0, std::min(255, green + colorRandomizer));
+                    blue  = std::max(0, std::min(255, blue  + colorRandomizer));
 
                     if (::shouldShowAnimationDebug) {
                         printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
