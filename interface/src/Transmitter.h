@@ -33,6 +33,8 @@ private:
     glm::vec3 _lastRotationRate;
     glm::vec3 _lastAcceleration;
     glm::vec3 _estimatedRotation;
+    uint16_t _touchPoint[2];
+    char _touchState;
 
 #endif /* defined(__hifi__Transmitter__) */
 };

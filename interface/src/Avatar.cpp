@@ -278,16 +278,17 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         if (transmitter) {
             glm::vec3 rotation = transmitter->getEstimatedRotation();
             const float TRANSMITTER_MIN_RATE = 1.f;
+            const float TRANSMITTER_MIN_YAW_RATE = 4.f;
             const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
-            const float TRANSMITTER_FWD_FORCE_SCALE = 50.f;
-            const float TRANSMITTER_YAW_SCALE = 7.0f;
+            const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
+            const float TRANSMITTER_YAW_SCALE = 10.0f;
             if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
                 _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * _orientation.getRight();
             }
             if (fabs(rotation.x) > TRANSMITTER_MIN_RATE) {
                 _thrust += -rotation.x * TRANSMITTER_FWD_FORCE_SCALE * deltaTime * _orientation.getFront();
             }
-            if (fabs(rotation.y) > TRANSMITTER_MIN_RATE) {
+            if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
                 _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
             }
         }
