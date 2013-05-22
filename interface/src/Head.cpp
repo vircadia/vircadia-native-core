@@ -46,6 +46,7 @@ Head::Head() :
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _headRotation(0.0f, 0.0f, 0.0f) {
+        _lookingAtSomething = false;
 }
 
 void Head::reset() {
@@ -99,6 +100,7 @@ void Head::simulate(float deltaTime, bool isMine) {
 }
 
 
+/*
 void Head::setLooking(bool looking) {
 
     _lookingAtSomething = looking;
@@ -111,7 +113,44 @@ void Head::setLooking(bool looking) {
         _lookingAtSomething = false;
     }
 }
+    */
 
+
+void Head::setLookAtPosition(const glm::vec3& lookAtPosition) { 
+
+    _lookAtPosition = lookAtPosition;     
+
+    if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
+        _lookingAtSomething = false;
+    } else {
+        _lookingAtSomething = true;
+    }
+    
+    glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
+    glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
+    float dot = glm::dot(targetLookatAxis, _orientation.getFront());
+    if (dot < MINIMUM_EYE_ROTATION) {
+        _lookingAtSomething = false;
+    }
+    
+    
+/*
+    if ( fabs(lookAtPosition.x + lookAtPosition.y + lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
+        _lookingAtSomething = false;
+    } else {
+        glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
+        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
+        float dot = glm::dot(targetLookatAxis, _orientation.getFront());
+        if (dot < MINIMUM_EYE_ROTATION) {
+            _lookingAtSomething = false;
+        } else {
+            _lookAtPosition = lookAtPosition;     
+            _lookingAtSomething = true;
+        }
+    }
+    */
+    
+}
 
 
 
@@ -405,6 +444,7 @@ void Head::renderEyeBalls() {
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+
             } else {
 
                 //rotate the eyeball to aim straight ahead

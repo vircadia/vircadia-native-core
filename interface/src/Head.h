@@ -31,7 +31,7 @@ public:
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
 
-    void setLooking(bool looking);
+    //void setLooking(bool looking);
     
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -43,6 +43,8 @@ public:
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
     void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
+
+    void setLookAtPosition (const glm::vec3& lookAtPosition); // overrides method in HeadData
         
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};

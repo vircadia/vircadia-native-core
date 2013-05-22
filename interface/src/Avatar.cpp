@@ -20,6 +20,10 @@
 #include <PacketHeaders.h>
 #include <OculusManager.h>
 
+//test
+static glm::vec3 headLean(0.0f, 0.0f, 0.0f);
+
+
 using namespace std;
 
 const bool  BALLS_ON                      = false;
@@ -50,6 +54,11 @@ const float HEAD_MIN_YAW                  = -85;
 const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
+
+const float LEAN_SENSITIVITY    = 0.15;
+const float LEAN_MAX            = 0.45;
+const float LEAN_AVERAGING      = 10.0;
+const float HEAD_RATE_MAX       = 50.f;
 
 float skinColor    [] = {1.0, 0.84, 0.66};
 float darkSkinColor[] = {0.9, 0.78, 0.63};
@@ -134,16 +143,12 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.addRoll (measuredRollRate  * deltaTime);
     
     //  Update head lean distance based on accelerometer data
-    const float LEAN_SENSITIVITY = 0.15;
-    const float LEAN_MAX = 0.45;
-    const float LEAN_AVERAGING = 10.0;
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
-    float headRateMax = 50.f;
     
     
     glm::vec3 leaning = (serialInterface->getLastAcceleration() -  serialInterface->getGravity())
                         * LEAN_SENSITIVITY
-                        * (1.f - fminf(glm::length(headRotationRates), headRateMax) / headRateMax);
+                        * (1.f - fminf(glm::length(headRotationRates), HEAD_RATE_MAX) / HEAD_RATE_MAX);
     leaning.y = 0.f;
     if (glm::length(leaning) < LEAN_MAX) {
         _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
@@ -364,11 +369,27 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     //apply the head lean values to the springy position...
     if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
+
         glm::vec3 headLean = 
             _orientation.getRight() * _head.getLeanSideways() +
             _orientation.getFront() * _head.getLeanForward();
+    
+        /*
+        glm::vec3 leanForce = 
+            _orientation.getRight() * _head.getLeanSideways() +
+            _orientation.getFront() * _head.getLeanForward() * 10.0f;
+            
+        float magnitude = 1.0f * deltaTime;
+        if (magnitude > 1.0f ) {
+            headLean = leanForce;
+        } else {
+            headLean += (leanForce - headLean ) * magnitude;
+        }
+        */
+        
 
         // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
+        
         _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
         _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
@@ -385,17 +406,15 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
         _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
         _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
-    }
+     }
 
     // set head lookat position 
-    if (_interactingOther) {
-        _head.setLooking(true);
-        
-        if (_isMine) {
-            _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
-        }        
+    if ((_interactingOther)
+    && (_isMine)) {
+        _head.setLookAtPosition(_interactingOther->getSpringyHeadPosition());
     } else {
-        _head.setLooking(false);
+        _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+        //_head.setLooking(false);
     }    
     
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
