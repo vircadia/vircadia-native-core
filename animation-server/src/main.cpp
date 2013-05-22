@@ -65,6 +65,115 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
+
+const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE;
+glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE*10.0,0,BUG_VOXEL_SIZE*10.0); ///BUG_VOXEL_SIZE * 10.f, BUG_VOXEL_SIZE * 10.f, BUG_VOXEL_SIZE * 10.f);
+glm::vec3 bugDirection = glm::vec3(0,0,1);
+
+
+const unsigned char bugColor[3] = { 0, 255, 255};
+
+const int VOXELS_PER_BUG = 14;
+const glm::vec3 bugParts[VOXELS_PER_BUG] = {
+
+    // body
+    glm::vec3(0,0,-3), 
+    glm::vec3(0,0,-2), 
+    glm::vec3(0,0,-1), 
+    glm::vec3(0,0,0), 
+    glm::vec3(0,0,1), 
+    glm::vec3(0,0,2), 
+    
+    // eyes
+    glm::vec3(1,0,3), 
+    glm::vec3(-1,0,3), 
+
+    // wings
+    glm::vec3(1,0,1), 
+    glm::vec3(2,0,1), 
+    glm::vec3(3,0,1), 
+    glm::vec3(-1,0,1), 
+    glm::vec3(-2,0,1), 
+    glm::vec3(-3,0,1), 
+};
+
+static void renderMovingBug() {
+    VoxelDetail details[VOXELS_PER_BUG];
+    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    unsigned char* bufferOut;
+    int sizeOut;
+    
+    // Generate voxels for where bug used to be
+    for (int i = 0; i < VOXELS_PER_BUG; i++) {
+        details[i].s = BUG_VOXEL_SIZE;
+        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
+        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
+        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+
+        details[i].red   = bugColor[0];
+        details[i].green = bugColor[1];
+        details[i].blue  = bugColor[2];
+    }
+    
+    // send the "erase message" first...
+    message = PACKET_HEADER_ERASE_VOXEL;
+    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
+
+        ::packetsSent++;
+        ::bytesSent += sizeOut;
+
+        if (::shouldShowPacketsPerSecond) {
+            printf("sending packet of size=%d\n",sizeOut);
+        }
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        delete[] bufferOut;
+    }
+
+    // Move the bug...
+    bugPosition.x += (bugDirection.x * BUG_VOXEL_SIZE);
+    bugPosition.y += (bugDirection.y * BUG_VOXEL_SIZE);
+    bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
+    
+    // Check boundaries
+    if (bugPosition.z > 0.25) {
+        bugDirection.z = -1;
+    }
+    if (bugPosition.z < 0.01) {
+        bugDirection.z = 1;
+    }
+    printf("bugPosition=(%f,%f,%f)\n",bugPosition.x,bugPosition.y,bugPosition.z);
+    printf("bugDirection=(%f,%f,%f)\n",bugDirection.x,bugDirection.y,bugDirection.z);
+    // would be nice to add some randomness here...
+
+    // Generate voxels for where bug is going to
+    for (int i = 0; i < VOXELS_PER_BUG; i++) {
+        details[i].s = BUG_VOXEL_SIZE;
+        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
+        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
+        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+
+        details[i].red   = bugColor[0];
+        details[i].green = bugColor[1];
+        details[i].blue  = bugColor[2];
+    }
+    
+    // send the "create message" ...
+    message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
+
+        ::packetsSent++;
+        ::bytesSent += sizeOut;
+
+        if (::shouldShowPacketsPerSecond) {
+            printf("sending packet of size=%d\n",sizeOut);
+        }
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        delete[] bufferOut;
+    }
+}
+
+
+
 float intensity = 0.5f;
 float intensityIncrement = 0.1f;
 const float MAX_INTENSITY = 1.0f;
@@ -323,8 +432,9 @@ void* animateVoxels(void* args) {
 
         // some animations
         //sendVoxelBlinkMessage();
-        sendBlinkingStringOfLights();
-        sendBillboard();
+        //sendBlinkingStringOfLights();
+        //sendBillboard();
+        renderMovingBug();
         
         double end = usecTimestampNow();
         double elapsedSeconds = (end - ::start) / 1000000.0;
