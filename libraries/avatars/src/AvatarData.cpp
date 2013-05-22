@@ -54,7 +54,6 @@ AvatarData::AvatarData() :
     _wantDelta(false),
     _headData(NULL)
 {
-    
 }
 
 AvatarData::~AvatarData() {
@@ -232,10 +231,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char wantItems = 0;
     wantItems = (unsigned char)*sourceBuffer++;
-
     _wantResIn = oneAtBit(wantItems,WANT_RESIN_AT_BIT);
     _wantColor = oneAtBit(wantItems,WANT_COLOR_AT_BIT);
     _wantDelta = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
-    
+
     return sourceBuffer - startPosition;
 }
