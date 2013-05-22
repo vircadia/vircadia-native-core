@@ -55,59 +55,25 @@
 namespace starfield {
 
     class Controller {
-
-        InputVertices           _seqInput;
-#if STARFIELD_MULTITHREADING
-        mutex                   _mtxInput;
-        atomic<unsigned>        _valTileResolution;
-
-        mutex                   _mtxLodState;
-#else
-        unsigned                _valTileResolution;
-#endif
-        double                  _valLodFraction;
-        double                  _valLodLowWaterMark;
-        double                  _valLodHighWaterMark;
-        double                  _valLodOveralloc;
-        size_t                  _valLodNalloc;
-        size_t                  _valLodNrender;
-        BrightnessLevels        _seqLodBrightness;
-
-#if STARFIELD_MULTITHREADING
-        atomic<BrightnessLevel> _valLodBrightness;
-        BrightnessLevel         _valLodAllocBrightness;
-
-        atomic<Renderer*>       _ptrRenderer;
-
-        typedef lock_guard<mutex> lock;
-#else
-        BrightnessLevel         _valLodBrightness;
-        BrightnessLevel         _valLodAllocBrightness;
-
-        Renderer*               _ptrRenderer;
-
-        #define lock
-        #define _(x)
-#endif
-
-        static inline size_t toBufSize(double f) {
-            return size_t(floor(f + 0.5f));
-        }
-
     public:
 
         Controller() :
-            _valTileResolution(20), 
-            _valLodFraction(1.0),
-            _valLodLowWaterMark(0.8),
-            _valLodHighWaterMark(1.0),
-            _valLodOveralloc(1.2),
-            _valLodNalloc(0),
-            _valLodNrender(0),
-            _valLodBrightness(0),
-            _valLodAllocBrightness(0),
-            _ptrRenderer(0l) {
+            _tileResolution(20), 
+            _lodFraction(1.0),
+            _lodLowWaterMark(0.8),
+            _lodHighWaterMark(1.0),
+            _lodOveralloc(1.2),
+            _lodNalloc(0),
+            _lodNRender(0),
+            _lodBrightness(0),
+            _lodAllocBrightness(0),
+            _renderer(0l) {
         }
+
+#if !STARFIELD_MULTITHREADING
+        #define lock
+        #define _(x)
+#endif
 
         bool readInput(const char* url, const char* cacheFile, unsigned limit)
         {
@@ -121,13 +87,13 @@ namespace starfield {
 
             // input is read, now run the entire data pipeline on the new input
 
-            {   lock _(_mtxInput);
+            {   lock _(_inputMutex);
 
-                _seqInput.swap(vertices);
+                _inputSequence.swap(vertices);
 #if STARFIELD_MULTITHREADING
-                unsigned k = _valTileResolution.load(memory_order_relaxed);
+                unsigned k = _tileResolution.load(memory_order_relaxed);
 #else
-                unsigned k = _valTileResolution;
+                unsigned k = _tileResolution;
 #endif
                 size_t n, nRender;
                 BrightnessLevel bMin, b;
@@ -136,27 +102,27 @@ namespace starfield {
                 // we'll have to build a new LOD state for a new total N,
                 // ideally keeping allocation size and number of vertices
 
-                {   lock _(_mtxLodState); 
+                {   lock _(_lodStateMutex); 
 
-                    size_t newLast = _seqInput.size() - 1;
+                    size_t newLast = _inputSequence.size() - 1;
 
                     // reciprocal change N_old/N_new tells us how to scale
                     // the fractions
-                    rcpChange = min(1.0, double(vertices.size()) / _seqInput.size());
+                    rcpChange = min(1.0, double(vertices.size()) / _inputSequence.size());
 
                     // initialization? use defaults / previously set values
                     if (rcpChange == 0.0) {
 
                         rcpChange = 1.0;
 
-                        nRender = toBufSize(_valLodFraction * newLast);
-                        n = min(newLast, toBufSize(_valLodOveralloc * nRender));
+                        nRender = toBufSize(_lodFraction * newLast);
+                        n = min(newLast, toBufSize(_lodOveralloc * nRender));
 
                     } else {
 
                         // cannot allocate or render more than we have
-                        n = min(newLast, _valLodNalloc);
-                        nRender = min(newLast, _valLodNrender);
+                        n = min(newLast, _lodNalloc);
+                        nRender = min(newLast, _lodNRender);
                     }
 
                     // determine new minimum brightness levels
@@ -178,26 +144,26 @@ namespace starfield {
                 } catch (...) {
 
                     // rollback transaction and rethrow
-                    vertices.swap(_seqInput);
+                    vertices.swap(_inputSequence);
                     throw;
                 }
 
                 // finally publish the new LOD state
 
-                {   lock _(_mtxLodState);
+                {   lock _(_lodStateMutex);
 
-                    _seqLodBrightness.swap(brightness);
-                    _valLodFraction *= rcpChange;
-                    _valLodLowWaterMark *= rcpChange;
-                    _valLodHighWaterMark *= rcpChange;
-                    _valLodOveralloc *= rcpChange;
-                    _valLodNalloc = n;
-                    _valLodNrender = nRender;
-                    _valLodAllocBrightness = bMin;
+                    _lodBrightnessSequence.swap(brightness);
+                    _lodFraction *= rcpChange;
+                    _lodLowWaterMark *= rcpChange;
+                    _lodHighWaterMark *= rcpChange;
+                    _lodOveralloc *= rcpChange;
+                    _lodNalloc = n;
+                    _lodNRender = nRender;
+                    _lodAllocBrightness = bMin;
 #if STARFIELD_MULTITHREADING
-                    _valLodBrightness.store(b, memory_order_relaxed);
+                    _lodBrightness.store(b, memory_order_relaxed);
 #else
-                    _valLodBrightness = b;
+                    _lodBrightness = b;
 #endif
                 }
             }
@@ -214,24 +180,24 @@ namespace starfield {
 // printLog("Stars.cpp: setResolution(%d)\n", k);
 
 #if STARFIELD_MULTITHREADING
-            if (k != _valTileResolution.load(memory_order_relaxed)) 
+            if (k != _tileResolution.load(memory_order_relaxed)) 
 #else
-            if (k != _valTileResolution) 
+            if (k != _tileResolution) 
 #endif
-            {   lock _(_mtxInput);
+            {   lock _(_inputMutex);
 
                 unsigned n;
                 BrightnessLevel b, bMin;
 
-                {   lock _(_mtxLodState);
+                {   lock _(_lodStateMutex);
 
-                    n = _valLodNalloc;
+                    n = _lodNalloc;
 #if STARFIELD_MULTITHREADING
-                    b = _valLodBrightness.load(memory_order_relaxed);
+                    b = _lodBrightness.load(memory_order_relaxed);
 #else
-                    b = _valLodBrightness;
+                    b = _lodBrightness;
 #endif
-                    bMin = _valLodAllocBrightness;
+                    bMin = _lodAllocBrightness;
                 }
 
                 this->retile(n, k, b, bMin);
@@ -241,25 +207,6 @@ namespace starfield {
                 return false;
             }
         } 
-
-    private:
-
-        void retile(size_t n, unsigned k, 
-                    BrightnessLevel b, BrightnessLevel bMin) {
-
-            Tiling tiling(k);
-            VertexOrder scanner(tiling);
-            radix2InplaceSort(_seqInput.begin(), _seqInput.end(), scanner);
-
-// printLog(
-//        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
-     
-            recreateRenderer(n, k, b, bMin);
-
-            _valTileResolution = k;
-        }
-
-    public:
 
         double changeLOD(double factor, double overalloc, double realloc) {
 
@@ -273,13 +220,13 @@ namespace starfield {
             BrightnessLevel bMin, b;
             double fraction, lwm, hwm;
 
-            {   lock _(_mtxLodState);
+            {   lock _(_lodStateMutex);
         
                 // acuire a consistent copy of the current LOD state
-                fraction = _valLodFraction;
-                lwm = _valLodLowWaterMark;
-                hwm = _valLodHighWaterMark;
-                size_t last = _seqLodBrightness.size() - 1;
+                fraction = _lodFraction;
+                lwm = _lodLowWaterMark;
+                hwm = _lodHighWaterMark;
+                size_t last = _lodBrightnessSequence.size() - 1;
 
                 // apply factor
                 fraction = max(0.0, min(1.0, fraction * factor));
@@ -288,23 +235,23 @@ namespace starfield {
                 // threshold
                 double oaFract = std::min(fraction * (1.0 + overalloc), 1.0);
                 n = toBufSize(oaFract * last);
-                bMin = _seqLodBrightness[n];
+                bMin = _lodBrightnessSequence[n];
                 n = std::upper_bound(
-                        _seqLodBrightness.begin() + n - 1,
-                        _seqLodBrightness.end(), 
-                        bMin, GreaterBrightness() ) - _seqLodBrightness.begin();
+                        _lodBrightnessSequence.begin() + n - 1,
+                        _lodBrightnessSequence.end(), 
+                        bMin, GreaterBrightness() ) - _lodBrightnessSequence.begin();
 
                 // also determine number of vertices to render and brightness
                 nRender = toBufSize(fraction * last);
                 // Note: nRender does not have to be accurate
-                b = _seqLodBrightness[nRender];
+                b = _lodBrightnessSequence[nRender];
                 // this setting controls the renderer, also keep b as the 
                 // brightness becomes volatile as soon as the mutex is
                 // released, so keep b
 #if STARFIELD_MULTITHREADING
-                _valLodBrightness.store(b, memory_order_relaxed);
+                _lodBrightness.store(b, memory_order_relaxed);
 #else
-                _valLodBrightness = b;
+                _lodBrightness = b;
 #endif
 
 // printLog("Stars.cpp: "
@@ -313,69 +260,54 @@ namespace starfield {
 
                 // will not have to reallocate? set new fraction right away
                 // (it is consistent with the rest of the state in this case)
-                if (fraction >= _valLodLowWaterMark 
-                        && fraction <= _valLodHighWaterMark) {
+                if (fraction >= _lodLowWaterMark 
+                        && fraction <= _lodHighWaterMark) {
 
-                    _valLodFraction = fraction;
+                    _lodFraction = fraction;
                     return fraction;
                 }
             }
 
             // reallocate
 
-            {   lock _(_mtxInput);
+            {   lock _(_inputMutex);
 
-                recreateRenderer(n, _valTileResolution, b, bMin); 
+                recreateRenderer(n, _tileResolution, b, bMin); 
 
 // printLog("Stars.cpp: LOD reallocation\n"); 
      
                 // publish new lod state
 
-                {   lock _(_mtxLodState);
+                {   lock _(_lodStateMutex);
 
-                    _valLodNalloc = n;
-                    _valLodNrender = nRender;
+                    _lodNalloc = n;
+                    _lodNRender = nRender;
 
-                    _valLodFraction = fraction;
-                    _valLodLowWaterMark = fraction * (1.0 - realloc);
-                    _valLodHighWaterMark = fraction * (1.0 + realloc);
-                    _valLodOveralloc = fraction * (1.0 + overalloc);
-                    _valLodAllocBrightness = bMin;
+                    _lodFraction = fraction;
+                    _lodLowWaterMark = fraction * (1.0 - realloc);
+                    _lodHighWaterMark = fraction * (1.0 + realloc);
+                    _lodOveralloc = fraction * (1.0 + overalloc);
+                    _lodAllocBrightness = bMin;
                 }
             }
             return fraction;
         }
 
-    private:
-
-        void recreateRenderer(size_t n, unsigned k, 
-                              BrightnessLevel b, BrightnessLevel bMin) {
-
-#if STARFIELD_MULTITHREADING
-            delete _ptrRenderer.exchange(new Renderer(_seqInput, n, k, b, bMin) ); 
-#else
-            delete _ptrRenderer;
-            _ptrRenderer = new Renderer(_seqInput, n, k, b, bMin);
-#endif
-        }
-
-    public:
-
         void render(float perspective, float angle, mat4 const& orientation, float alpha) {
 
 #if STARFIELD_MULTITHREADING
             // check out renderer
-            Renderer* renderer = _ptrRenderer.exchange(0l);
+            Renderer* renderer = _renderer.exchange(0l);
 #else
-            Renderer* renderer = _ptrRenderer;
+            Renderer* renderer = _renderer;
 #endif
 
             // have it render
             if (renderer != 0l) {
 #if STARFIELD_MULTITHREADING
-                BrightnessLevel b = _valLodBrightness.load(memory_order_relaxed); 
+                BrightnessLevel b = _lodBrightness.load(memory_order_relaxed); 
 #else
-                BrightnessLevel b = _valLodBrightness; 
+                BrightnessLevel b = _lodBrightness; 
 #endif
                 renderer->render(perspective, angle, orientation, b, alpha);
             }
@@ -383,7 +315,7 @@ namespace starfield {
 #if STARFIELD_MULTITHREADING
             // check in - or dispose if there is a new one
             Renderer* newOne = 0l;
-            if (! _ptrRenderer.compare_exchange_strong(newOne, renderer)) {
+            if (! _renderer.compare_exchange_strong(newOne, renderer)) {
 
                 assert(!! newOne);
                 delete renderer;
@@ -395,6 +327,37 @@ namespace starfield {
         }
 
     private:
+
+        void retile(size_t n, unsigned k, 
+                    BrightnessLevel b, BrightnessLevel bMin) {
+
+            Tiling tiling(k);
+            VertexOrder scanner(tiling);
+            radix2InplaceSort(_inputSequence.begin(), _inputSequence.end(), scanner);
+
+// printLog(
+//        "Stars.cpp: recreateRenderer(%d, %d, %d, %d)\n", n, k, b, bMin);
+     
+            recreateRenderer(n, k, b, bMin);
+
+            _tileResolution = k;
+        }
+
+        void recreateRenderer(size_t n, unsigned k, 
+                              BrightnessLevel b, BrightnessLevel bMin) {
+
+#if STARFIELD_MULTITHREADING
+            delete _renderer.exchange(new Renderer(_inputSequence, n, k, b, bMin) ); 
+#else
+            delete _renderer;
+            _renderer = new Renderer(_inputSequence, n, k, b, bMin);
+#endif
+        }
+
+
+        static inline size_t toBufSize(double f) {
+            return size_t(floor(f + 0.5f));
+        }
 
         struct BrightnessSortScanner : Radix2IntegerScanner<BrightnessLevel> {
 
@@ -420,6 +383,39 @@ namespace starfield {
             radix2InplaceSort(dst.begin(), dst.end(), BrightnessSortScanner());
         }
 
+        InputVertices           _inputSequence;
+#if STARFIELD_MULTITHREADING
+        mutex                   _inputMutex;
+        atomic<unsigned>        _tileResolution;
+
+        mutex                   _lodStateMutex;
+#else
+        unsigned                _tileResolution;
+#endif
+        double                  _lodFraction;
+        double                  _lodLowWaterMark;
+        double                  _lodHighWaterMark;
+        double                  _lodOveralloc;
+        size_t                  _lodNalloc;
+        size_t                  _lodNRender;
+        BrightnessLevels        _lodBrightnessSequence;
+
+#if STARFIELD_MULTITHREADING
+        atomic<BrightnessLevel> _lodBrightness;
+        BrightnessLevel         _lodAllocBrightness;
+
+        atomic<Renderer*>       _renderer;
+
+        typedef lock_guard<mutex> lock;
+#else
+        BrightnessLevel         _lodBrightness;
+        BrightnessLevel         _lodAllocBrightness;
+
+        Renderer*               _renderer;
+
+        #undef lock
+        #undef _
+#endif
     };
 }
 
