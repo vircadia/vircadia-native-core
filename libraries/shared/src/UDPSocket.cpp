@@ -27,7 +27,7 @@ using shared_lib::printLog;
 
 sockaddr_in destSockaddr, senderAddress;
 
-bool socketMatch(sockaddr* first, sockaddr* second) {
+bool socketMatch(const sockaddr* first, const sockaddr* second) {
     if (first != NULL && second != NULL) {
         // utility function that indicates if two sockets are equivalent
         
@@ -38,8 +38,8 @@ bool socketMatch(sockaddr* first, sockaddr* second) {
             // not the same family, can't be equal
             return false;
         } else if (first->sa_family == AF_INET) {
-            sockaddr_in *firstIn = (sockaddr_in *) first;
-            sockaddr_in *secondIn = (sockaddr_in *) second;
+            const sockaddr_in *firstIn = (const sockaddr_in *) first;
+            const sockaddr_in *secondIn = (const sockaddr_in *) second;
             
             return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
             && firstIn->sin_port == secondIn->sin_port;

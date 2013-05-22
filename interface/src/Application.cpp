@@ -389,7 +389,8 @@ void Application::paintGL() {
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        glm::vec3 relativeSunLoc = glm::normalize(_environment.getSunLocation() - whichCamera.getPosition());
+        glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
+            whichCamera.getPosition());
         GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
         glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
         GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
@@ -829,26 +830,6 @@ static glm::vec3 getFaceVector(BoxFace face) {
     }
 }
 
-//Find and return the gravity vector at this location
-static glm::vec3 getGravity(const glm::vec3& pos) {
-    //
-    //  For now, we'll test this with a simple global lookup, but soon we will add getting this
-    //  from the domain/voxelserver (or something similar)
-    //
-    if ((pos.x >  0.f) &&
-        (pos.x < 10.f) &&
-        (pos.z >  0.f) &&
-        (pos.z < 10.f) &&
-        (pos.y >  0.f) &&
-        (pos.y <  3.f)) {
-        //  If above ground plane, turn gravity on
-        return glm::vec3(0.f, -1.f, 0.f);
-    } else {
-        //  If flying in space, turn gravity OFF
-        return glm::vec3(0.f, 0.f, 0.f);
-    }
-}
-
 void Application::idle() {
     timeval check;
     gettimeofday(&check, NULL);
@@ -983,7 +964,7 @@ void Application::idle() {
         agentList->unlock();
     
         //  Simulate myself
-        _myAvatar.setGravity(getGravity(_myAvatar.getPosition()));
+        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
         if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
             _myAvatar.simulate(deltaTime, &_myTransmitter);
         } else {
@@ -1653,13 +1634,14 @@ void Application::displaySide(Camera& whichCamera) {
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
         if (_renderAtmosphereOn->isChecked()) {
-            float height = glm::distance(whichCamera.getPosition(), _environment.getAtmosphereCenter());
-            if (height < _environment.getAtmosphereInnerRadius()) {
+            const EnvironmentData& closestData = _environment.getClosestData(whichCamera.getPosition());
+            float height = glm::distance(whichCamera.getPosition(), closestData.getAtmosphereCenter());
+            if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
                 
-            } else if (height < _environment.getAtmosphereOuterRadius()) {
-                alpha = (height - _environment.getAtmosphereInnerRadius()) /
-                    (_environment.getAtmosphereOuterRadius() - _environment.getAtmosphereInnerRadius());
+            } else if (height < closestData.getAtmosphereOuterRadius()) {
+                alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
             }
         }
 
@@ -1669,7 +1651,7 @@ void Application::displaySide(Camera& whichCamera) {
 
     // draw the sky dome
     if (_renderAtmosphereOn->isChecked()) {
-        _environment.renderAtmosphere(whichCamera);
+        _environment.renderAtmospheres(whichCamera);
     }
     
     glEnable(GL_LIGHTING);
@@ -2142,7 +2124,7 @@ void* Application::networkReceive(void* args) {
                     app->_voxels.parseData(app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_ENVIRONMENT_DATA:
-                    app->_environment.parseData(app->_incomingPacket, bytesReceived);
+                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,

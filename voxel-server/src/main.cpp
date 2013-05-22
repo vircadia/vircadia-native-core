@@ -60,7 +60,7 @@ bool shouldShowAnimationDebug = false;
 
 
 
-EnvironmentData environmentData;
+EnvironmentData environmentData[3];
 
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
@@ -162,7 +162,8 @@ void resInVoxelDistributor(AgentList* agentList,
         int trueBytesSent = 0;
         double start = usecTimestampNow();
 
-        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - 1) {
+        int environmentPacketCount = sizeof(environmentData) / sizeof(environmentData[0]);
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - environmentPacketCount) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
@@ -193,11 +194,13 @@ void resInVoxelDistributor(AgentList* agentList,
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
-        // send the environment packet
-        int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
-        agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
-        trueBytesSent += envPacketLength;
-        truePacketsSent++;
+        // send the environment packets
+        for (int i = 0; i < environmentPacketCount; i++) {
+            int envPacketLength = environmentData[i].getBroadcastData(tempOutputBuffer);
+            agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+            trueBytesSent += envPacketLength;
+            truePacketsSent++;    
+        }
         
         double end = usecTimestampNow();
         double elapsedmsec = (end - start)/1000.0;
@@ -282,7 +285,8 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         int trueBytesSent = 0;
         double start = usecTimestampNow();
 
-        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - 1) {
+        int environmentPacketCount = sizeof(environmentData) / sizeof(environmentData[0]);
+        while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - environmentPacketCount) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
@@ -313,11 +317,13 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
-        // send the environment packet
-        int envPacketLength = environmentData.getBroadcastData(tempOutputBuffer);
-        agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
-        trueBytesSent += envPacketLength;
-        truePacketsSent++;
+        // send the environment packets
+        for (int i = 0; i < environmentPacketCount; i++) {
+            int envPacketLength = environmentData[i].getBroadcastData(tempOutputBuffer);
+            agentList->getAgentSocket()->send(agent->getActiveSocket(), tempOutputBuffer, envPacketLength);
+            trueBytesSent += envPacketLength;
+            truePacketsSent++;
+        }
         
         double end = usecTimestampNow();
         double elapsedmsec = (end - start)/1000.0;
@@ -516,6 +522,16 @@ int main(int argc, const char * argv[])
     if (actuallyAddScene) {
         addSphereScene(&randomTree);
     }
+    
+    // for now, initialize the environments with fixed values
+    environmentData[1].setID(1);
+    environmentData[1].setAtmosphereCenter(glm::vec3(0.5, 0.5, (0.25 - 0.06125)) * (float)TREE_SCALE);
+    environmentData[1].setAtmosphereInnerRadius(0.030625f * TREE_SCALE);
+    environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.025f);
+    environmentData[2].setID(2);
+    environmentData[2].setAtmosphereCenter(glm::vec3(0.5f, 0.5f, 0.5f) * (float)TREE_SCALE);
+    environmentData[2].setAtmosphereInnerRadius(0.1875f * TREE_SCALE);
+    environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.025f);
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);

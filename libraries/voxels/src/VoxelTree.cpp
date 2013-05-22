@@ -16,6 +16,7 @@
 #include "voxels_Log.h"
 #include "PacketHeaders.h"
 #include "OctalCode.h"
+#include "GeometryUtil.h"
 #include "VoxelTree.h"
 #include "VoxelNodeBag.h"
 #include "ViewFrustum.h"
@@ -724,21 +725,6 @@ public:
     glm::vec3& penetration;
     bool found;
 };
-
-glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
-    // compute the projection of the point vector onto the segment vector
-    glm::vec3 segmentVector = end - start;
-    float proj = glm::dot(point - start, segmentVector) / glm::dot(segmentVector, segmentVector);
-    if (proj <= 0.0f) { // closest to the start
-        return start - point;
-        
-    } else if (proj >= 1.0f) { // closest to the end
-        return end - point;
-    
-    } else { // closest to the middle
-        return start + segmentVector*proj - point;
-    }
-}
 
 bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);

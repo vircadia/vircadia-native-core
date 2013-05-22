@@ -14,7 +14,13 @@
 class EnvironmentData {
 public:
 
-    EnvironmentData();
+    EnvironmentData(int id = 0);
+
+    void setID(int id) { _id = id; }
+    int getID() const { return _id; }
+
+    void setGravity(float gravity) { _gravity = gravity; }
+    float getGravity() const { return _gravity; }
 
     void setAtmosphereCenter(const glm::vec3& center) { _atmosphereCenter = center; }
     void setAtmosphereInnerRadius(float radius) { _atmosphereInnerRadius = radius; }
@@ -40,6 +46,10 @@ public:
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
 private:
+
+    int _id;
+    
+    float _gravity;
 
     glm::vec3 _atmosphereCenter;
     float _atmosphereInnerRadius;

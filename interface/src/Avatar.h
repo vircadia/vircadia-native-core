@@ -194,7 +194,9 @@ private:
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
+    void updateCollisionWithEnvironment(float deltaTime);
     void updateCollisionWithVoxels(float deltaTime);
+    void applyCollisionWithScene(const glm::vec3& penetration, float deltaTime);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void checkForMouseRayTouching();
