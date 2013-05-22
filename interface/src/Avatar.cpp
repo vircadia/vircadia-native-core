@@ -729,7 +729,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         
     _cameraPosition = cameraPosition; // store this for use in various parts of the code
 
-    if (usingBigSphereCollisionTest) {
+    if (_isMine && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
         glPushMatrix();
@@ -1127,58 +1127,51 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 
 void Avatar::renderBody(bool lookingInMirror) {
     
-    //  Render joint positions as spheres
-    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        
-        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (_displayingHead) {
-                _head.render(lookingInMirror);
-            }
-        } else {
-    
-            glColor3f(
-                skinColor[0] + _joint[b].touchForce * 0.3f, 
-                skinColor[1] - _joint[b].touchForce * 0.2f, 
-                skinColor[2] - _joint[b].touchForce * 0.1f
-            );
-            
-            glPushMatrix();
-            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
-            glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
-            glPopMatrix();
-        }
+    //  Render Head
+    if (_displayingHead) {
+        _head.render(lookingInMirror);
     }
     
-    for (int j = 1; j < NUM_AVATAR_JOINTS; j++) {
-    if (_joint[j].parent != AVATAR_JOINT_NULL) 
-        if ((j != AVATAR_JOINT_HEAD_TOP      )
-        &&  (j != AVATAR_JOINT_HEAD_BASE     )	
-        &&  (j != AVATAR_JOINT_PELVIS        )	
-        &&  (j != AVATAR_JOINT_TORSO         )
-        &&  (j != AVATAR_JOINT_CHEST         )
-        &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
-        &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
-        &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
-        &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
-            // Render cone sections connecting the joint positions 
-            glColor3fv(darkSkinColor);
-            renderJointConnectingCone
-            (
-                _joint[_joint[j].parent ].springyPosition, 
-                _joint[j                ].springyPosition, 
-                _joint[_joint[j].parent ].radius * 0.8, 
-                _joint[j                ].radius * 0.8
-            );
+    //  Render reset of body if not in mirror mode
+    if (!lookingInMirror) {
+        //  Render joint positions as spheres
+        for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
+            
+            if (b != AVATAR_JOINT_HEAD_BASE) {
+               glColor3f(
+                    skinColor[0] + _joint[b].touchForce * 0.3f, 
+                    skinColor[1] - _joint[b].touchForce * 0.2f, 
+                    skinColor[2] - _joint[b].touchForce * 0.1f
+                );
+                
+                glPushMatrix();
+                glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
+                glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
+                glPopMatrix();
+            }
+        }
         
-            /*
-            // Render lines connecting the joint positions
-            glColor3f(0.4f, 0.5f, 0.6f);
-            glLineWidth(3.0);
-            glBegin(GL_LINE_STRIP);
-            glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
-            glVertex3fv(&_joint[ b ].springyPosition.x);
-            glEnd();
-            */
+        for (int j = 1; j < NUM_AVATAR_JOINTS; j++) {
+        if (_joint[j].parent != AVATAR_JOINT_NULL) 
+            if ((j != AVATAR_JOINT_HEAD_TOP      )
+            &&  (j != AVATAR_JOINT_HEAD_BASE     )	
+            &&  (j != AVATAR_JOINT_PELVIS        )	
+            &&  (j != AVATAR_JOINT_TORSO         )
+            &&  (j != AVATAR_JOINT_CHEST         )
+            &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
+            &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
+            &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
+            &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
+                // Render cone sections connecting the joint positions 
+                glColor3fv(darkSkinColor);
+                renderJointConnectingCone
+                (
+                    _joint[_joint[j].parent ].springyPosition, 
+                    _joint[j                ].springyPosition, 
+                    _joint[_joint[j].parent ].radius * 0.8, 
+                    _joint[j                ].radius * 0.8
+                );        
+            }
         }
     }
 }
