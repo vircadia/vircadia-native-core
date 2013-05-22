@@ -44,15 +44,18 @@ add_subdirectory(src/starfield)
 if (APPLE)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
-
-  # grab the image and audio files
-  FILE(GLOB INTERFACE_RES_DIRS resources/*)
-  set(INTERFACE_RSRCS ${INTERFACE_RES_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
-
+  
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${INTERFACE_RSRCS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-  # include the icns file and resource files in the target
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_RSRCS})
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  
+  # grab the directories in resources and put them in the right spot in Resources
+  FILE(GLOB INTERFACE_IMAGES resources/images/*)
+  SET_SOURCE_FILES_PROPERTIES(${INTERFACE_IMAGES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/images)
+  
+  FILE(GLOB INTERFACE_SHADERS resources/shaders/*)
+  SET_SOURCE_FILES_PROPERTIES(${INTERFACE_SHADERS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/shaders)
+  
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_IMAGES} ${INTERFACE_SHADERS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
 endif (APPLE)
 
 find_package(Qt4 REQUIRED QtCore QtGui QtOpenGL)
