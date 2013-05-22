@@ -119,7 +119,7 @@ static void renderMovingBug() {
         ::bytesSent += sizeOut;
 
         if (::shouldShowPacketsPerSecond) {
-            printf("sending packet of size=%d\n",sizeOut);
+            printf("sending packet of size=%d\n", sizeOut);
         }
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
         delete[] bufferOut;
@@ -137,8 +137,8 @@ static void renderMovingBug() {
     if (bugPosition.z < 0.01) {
         bugDirection.z = 1;
     }
-    printf("bugPosition=(%f,%f,%f)\n",bugPosition.x,bugPosition.y,bugPosition.z);
-    printf("bugDirection=(%f,%f,%f)\n",bugDirection.x,bugDirection.y,bugDirection.z);
+    printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
+    printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
     // would be nice to add some randomness here...
 
     // Generate voxels for where bug is going to
@@ -161,7 +161,7 @@ static void renderMovingBug() {
         ::bytesSent += sizeOut;
 
         if (::shouldShowPacketsPerSecond) {
-            printf("sending packet of size=%d\n",sizeOut);
+            printf("sending packet of size=%d\n", sizeOut);
         }
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
         delete[] bufferOut;
