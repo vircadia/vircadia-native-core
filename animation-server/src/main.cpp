@@ -95,7 +95,6 @@ const glm::vec3 bugParts[VOXELS_PER_BUG] = {
 
 static void renderMovingBug() {
     VoxelDetail details[VOXELS_PER_BUG];
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
     unsigned char* bufferOut;
     int sizeOut;
     
@@ -112,7 +111,7 @@ static void renderMovingBug() {
     }
     
     // send the "erase message" first...
-    message = PACKET_HEADER_ERASE_VOXEL;
+    PACKET_HEADER message = PACKET_HEADER_ERASE_VOXEL;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
         ::packetsSent++;
