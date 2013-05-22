@@ -31,8 +31,6 @@ public:
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
 
-    //void setLooking(bool looking);
-    
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
     void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
@@ -43,8 +41,7 @@ public:
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
     void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
-
-    //void setLookAtPosition (const glm::vec3& lookAtPosition); // overrides method in HeadData
+    void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
         
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
@@ -78,6 +75,7 @@ private:
     Orientation _orientation;
     glm::vec3   _bodyRotation;
     glm::vec3   _headRotation;
+    bool        _renderLookatVectors;
     
     // private methods
     void renderHeadSphere();
@@ -85,7 +83,7 @@ private:
     void renderEyeBrows();
     void renderEars();
     void renderMouth();
-    void debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
     void processLookat();
 };

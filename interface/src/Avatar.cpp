@@ -373,7 +373,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
     }
 
-    
     //apply the head lean values to the springy position...
     if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
 
@@ -406,7 +405,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         if (_interactingOther) {
             _head.setLookAtPosition(_interactingOther->getAverageEyePosition());
         } else {
-            _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+            _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
         }
     }    
 
@@ -1159,16 +1158,6 @@ void Avatar::renderBody(bool lookingInMirror) {
                 _joint[_joint[j].parent ].radius * 0.8, 
                 _joint[j                ].radius * 0.8
             );
-        
-            /*
-            // Render lines connecting the joint positions
-            glColor3f(0.4f, 0.5f, 0.6f);
-            glLineWidth(3.0);
-            glBegin(GL_LINE_STRIP);
-            glVertex3fv(&_joint[ _joint[ b ].parent ].springyPosition.x);
-            glVertex3fv(&_joint[ b ].springyPosition.x);
-            glEnd();
-            */
         }
     }
 }

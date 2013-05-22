@@ -12,19 +12,19 @@
 
 using namespace std;
 
-const float EYE_RIGHT_OFFSET        =  0.27f;
-const float EYE_UP_OFFSET           =  0.36f;
-const float EYE_FRONT_OFFSET        =  0.8f;
-const float EAR_RIGHT_OFFSET        =  1.0;
-const float MOUTH_FRONT_OFFSET      =  1.0f;
-const float MOUTH_UP_OFFSET         = -0.3f;
-const float HEAD_MOTION_DECAY       =  0.1;
-const float MINIMUM_EYE_ROTATION    =  0.7f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
-const float EYEBALL_RADIUS          =  0.017; 
-const float EYEBALL_COLOR[3]        =  { 0.9f, 0.9f, 0.8f };
-const float IRIS_RADIUS             =  0.007;
-const float IRIS_PROTRUSION         =  0.0145f;
-const char  IRIS_TEXTURE_FILENAME[] =  "resources/images/iris.png";
+const float EYE_RIGHT_OFFSET         =  0.27f;
+const float EYE_UP_OFFSET            =  0.36f;
+const float EYE_FRONT_OFFSET         =  0.8f;
+const float EAR_RIGHT_OFFSET         =  1.0;
+const float MOUTH_FRONT_OFFSET       =  1.0f;
+const float MOUTH_UP_OFFSET          = -0.3f;
+const float HEAD_MOTION_DECAY        =  0.1;
+const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
+const float EYEBALL_RADIUS           =  0.017; 
+const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
+const float IRIS_RADIUS              =  0.007;
+const float IRIS_PROTRUSION          =  0.0145f;
+const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
 unsigned int IRIS_TEXTURE_WIDTH  = 768;
 unsigned int IRIS_TEXTURE_HEIGHT = 498;
@@ -54,7 +54,8 @@ Head::Head() :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
-    _headRotation(0.0f, 0.0f, 0.0f) {
+    _headRotation(0.0f, 0.0f, 0.0f),
+    _renderLookatVectors(false) {
 }
 
 void Head::reset() {
@@ -113,23 +114,6 @@ processLookat();
                                                                          
 }
 
-
-/*
-void Head::setLooking(bool looking) {
-
-    _lookingAtSomething = looking;
-
-    glm::vec3 averageEyePosition = _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
-    glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - averageEyePosition);
-    
-    float dot = glm::dot(targetLookatAxis, _orientation.getFront());
-    if (dot < MINIMUM_EYE_ROTATION) {
-        _lookingAtSomething = false;
-    }
-}
-    */
-
-
 void Head::processLookat() { 
 
     if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
@@ -137,7 +121,7 @@ void Head::processLookat() {
     } else {
         glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - getAverageEyePosition());
         float dot = glm::dot(targetLookatAxis, _orientation.getFront());
-        if (dot < MINIMUM_EYE_ROTATION) {
+        if (dot < MINIMUM_EYE_ROTATION_DOT) {
             _lookingAtSomething = false;
         } else {
             _lookingAtSomething = true;
@@ -148,8 +132,6 @@ void Head::processLookat() {
 glm::vec3 Head::getAverageEyePosition() {
     return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF;
 }
-
-
 
 void Head::calculateGeometry(bool lookingInMirror) {
     //generate orientation directions based on Euler angles...
@@ -207,9 +189,10 @@ void Head::render(bool lookingInMirror) {
     renderMouth();    
     renderEyeBrows();    
         
-    if (_lookingAtSomething) {
-        // Render lines originating from the eyes and converging on the lookatPosition    
-        debugRenderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+    if (_renderLookatVectors) {
+        if (_lookingAtSomething) {
+            renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        }
     }
 }
 
@@ -447,7 +430,7 @@ void Head::renderEyeBalls() {
     glPopMatrix();
 }
 
-void Head::debugRenderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
     glColor3f(0.0f, 0.0f, 0.0f);
     glLineWidth(2.0);
