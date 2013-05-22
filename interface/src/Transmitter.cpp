@@ -31,21 +31,24 @@ void Transmitter::resetLevels() {
 }
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
-    if (numBytes >= 3 + sizeof(_lastRotationRate) +
-        sizeof(_lastAcceleration) + sizeof(_touchState)) {
-        unsigned char* ptr = &packetData[2];
-        memcpy(&_lastRotationRate, ptr, sizeof(_lastRotationRate));
-        ptr += sizeof(_lastRotationRate) + 1;
-        memcpy(&_lastAcceleration, ptr, sizeof(_lastAcceleration));
-        ptr += sizeof(_lastAcceleration);
-        memcpy(&_touchState, ptr, sizeof(_touchState));
-        ptr += sizeof(_touchState);
-        if (_touchState == 'D') {
-            memcpy(&_touchPoint, ptr, sizeof(_touchPoint));
-            ptr += sizeof(_touchPoint);
-        } else {
-            _touchPoint[0] = _touchPoint[1] = 0;
-        }
+    const int PACKET_HEADER_SIZE = 1;                   //  Packet's first byte is 'T'
+    const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
+    const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)
+    if (numBytes == PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE + ACCELERATION_MARKER_SIZE
+            + sizeof(_lastRotationRate) + sizeof(_lastAcceleration)
+            + sizeof(_touchState.x) + sizeof(_touchState.y) + sizeof(_touchState.state)) {
+        unsigned char* packetDataPosition = &packetData[PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE];
+        memcpy(&_lastRotationRate, packetDataPosition, sizeof(_lastRotationRate));
+        packetDataPosition += sizeof(_lastRotationRate) + ACCELERATION_MARKER_SIZE;
+        memcpy(&_lastAcceleration, packetDataPosition, sizeof(_lastAcceleration));
+        packetDataPosition += sizeof(_lastAcceleration);
+        memcpy(&_touchState.state, packetDataPosition, sizeof(_touchState.state));
+        packetDataPosition += sizeof(_touchState.state);
+        memcpy(&_touchState.x, packetDataPosition, sizeof(_touchState.x));
+        packetDataPosition += sizeof(_touchState.x);
+        memcpy(&_touchState.y, packetDataPosition, sizeof(_touchState.y));
+        packetDataPosition += sizeof(_touchState.y);
+
         //  Update estimated absolute position from rotation rates
         _estimatedRotation += _lastRotationRate * DELTA_TIME;
     

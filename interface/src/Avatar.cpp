@@ -293,9 +293,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
                 _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
             }
-            if (transmitter->getTouchState() == 'D') {
+            if (transmitter->getTouchState()->state == 'D') {
                 _thrust += THRUST_MAG *
-                           (float)(transmitter->getTouchPoint()[1] - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
+                           (float)(transmitter->getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
                            TRANSMITTER_LIFT_SCALE *
                            deltaTime *
                            _orientation.getUp();

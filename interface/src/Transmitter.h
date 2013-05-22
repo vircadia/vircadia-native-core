@@ -15,6 +15,11 @@
 #include <cstring>
 #include "world.h"
 
+struct TouchState {
+    uint16_t x, y;
+    char state;
+};
+
 class Transmitter
 {
 public:
@@ -26,8 +31,7 @@ public:
     const glm::vec3 getLastRotationRate() const { return _lastRotationRate; };
     const glm::vec3 getLastAcceleration() const { return _lastRotationRate; };
     const glm::vec3 getEstimatedRotation() const { return _estimatedRotation; };
-    const uint16_t* getTouchPoint() const { return _touchPoint; };
-    const char getTouchState() const { return _touchState; };
+    const TouchState* getTouchState() const { return &_touchState; };
     void processIncomingData(unsigned char* packetData, int numBytes);
 
 private:
@@ -35,8 +39,7 @@ private:
     glm::vec3 _lastRotationRate;
     glm::vec3 _lastAcceleration;
     glm::vec3 _estimatedRotation;
-    uint16_t _touchPoint[2];
-    char _touchState;
+    TouchState _touchState;
 
 #endif /* defined(__hifi__Transmitter__) */
 };
