@@ -1052,28 +1052,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    
-    _manualFirstPerson = firstPerson;
-    
-    /*
-    if (firstPerson) {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = 0.0f;
-        a.distance  = 0.0f;
-        a.tightness = 100.0f;
-        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-        _myAvatar.setDisplayingHead(true);
-    
-    } else {
-        Camera::CameraFollowingAttributes a;            
-        a.upShift   = -0.2f;
-        a.distance  = 1.5f;
-        a.tightness = 8.0f;
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-        _myAvatar.setDisplayingHead(true);  
-    } 
-    */
-    
+    _manualFirstPerson = firstPerson;    
 }
 
 void Application::setOculus(bool oculus) {
