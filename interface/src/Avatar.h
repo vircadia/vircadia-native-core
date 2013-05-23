@@ -15,7 +15,6 @@
 #include <Orientation.h>
 #include "world.h"
 #include "AvatarTouch.h"
-#include "AvatarRenderer.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
