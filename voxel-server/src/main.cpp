@@ -641,10 +641,8 @@ int main(int argc, const char * argv[]) {
                 char* command = (char*) &packetData[1]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
                 int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
-
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
-                
-                bool rebroadcast = true; // be default rebroadcast
+                bool rebroadcast = true; // by default rebroadcast
 
                 while (totalLength <= receivedBytes) {
                     if (strcmp(command, ERASE_ALL_COMMAND) == 0) {
