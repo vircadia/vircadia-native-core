@@ -52,6 +52,7 @@ const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
+const float FLOATING_HEIGHT               = 0.13f;
 const bool  USING_HEAD_LEAN               = false;
 
 const float LEAN_SENSITIVITY    = 0.15;
@@ -86,6 +87,7 @@ Avatar::Avatar(bool isMine) :
     _maxArmLength(0.0f),
     _orientation(),
     _pelvisStandingHeight(0.0f),
+    _pelvisFloatingHeight(0.0f),
     _displayingHead(true),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _gravity(0.0f, -1.0f, 0.0f),
@@ -603,8 +605,8 @@ void Avatar::updateCollisionWithEnvironment() {
     float radius = _height * 0.125f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
+            _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
         applyCollisionWithScene(penetration);
     }
 }
@@ -613,8 +615,8 @@ void Avatar::updateCollisionWithVoxels() {
     float radius = _height * 0.125f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, _pelvisStandingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, _height - _pelvisStandingHeight - radius, 0.0f), radius, penetration)) {
+            _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
         applyCollisionWithScene(penetration);
     }
 }
@@ -866,14 +868,14 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
     
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].defaultPosePosition = glm::vec3( -0.05,  0.0,  -0.02 );
-    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27,  0.02 );
-    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27, -0.01 );
-    _joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
+    _joint[ AVATAR_JOINT_LEFT_KNEE		  ].defaultPosePosition = glm::vec3(  0.01, -0.25,  0.03 );
+    _joint[ AVATAR_JOINT_LEFT_HEEL		  ].defaultPosePosition = glm::vec3(  0.01, -0.22, -0.08 );
+    _joint[ AVATAR_JOINT_LEFT_TOES		  ].defaultPosePosition = glm::vec3(  0.00, -0.03,  0.05 );
     
     _joint[ AVATAR_JOINT_RIGHT_HIP		  ].defaultPosePosition = glm::vec3(  0.05,  0.0,  -0.02 );
-    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27,  0.02 );
-    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3(  0.0,  -0.27, -0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3(  0.0,   0.0,   0.05 );
+    _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].defaultPosePosition = glm::vec3( -0.01, -0.25,  0.03 );
+    _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].defaultPosePosition = glm::vec3( -0.01, -0.22, -0.08 );
+    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].defaultPosePosition = glm::vec3( -0.00, -0.03,  0.05 );
     
     // specify the radii of the joints
     _joint[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
@@ -897,12 +899,12 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].radius = 0.04;
     _joint[ AVATAR_JOINT_LEFT_KNEE		  ].radius = 0.025;
     _joint[ AVATAR_JOINT_LEFT_HEEL		  ].radius = 0.025;
-    _joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.027;
+    _joint[ AVATAR_JOINT_LEFT_TOES		  ].radius = 0.025;
     
     _joint[ AVATAR_JOINT_RIGHT_HIP		  ].radius = 0.04;
     _joint[ AVATAR_JOINT_RIGHT_KNEE		  ].radius = 0.025;
     _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.025;
-    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.027;
+    _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.025;
     
     // specify the tightness of the springy positions as far as attraction to rigid body
     _joint[ AVATAR_JOINT_PELVIS           ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 1.0;
@@ -942,6 +944,8 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_LEFT_HEEL ].length +
     _joint[ AVATAR_JOINT_LEFT_KNEE ].length;
     //printf("_pelvisStandingHeight = %f\n", _pelvisStandingHeight);
+    
+    _pelvisFloatingHeight = _pelvisStandingHeight + FLOATING_HEIGHT;
     
     _height = 
     (
