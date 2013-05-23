@@ -131,12 +131,12 @@ void Head::calculateGeometry(bool lookingInMirror) {
     //generate orientation directions based on Euler angles...
     
     float pitch =  _pitch;
-    float yaw   = -_yaw;
-    float roll  = -_roll;
+    float yaw   = _yaw;
+    float roll  = _roll;
     
     if (lookingInMirror) {
-        yaw   =  _yaw;
-        roll  =  _roll;
+        yaw   =  -_yaw;
+        roll  =  -_roll;
     }
 
     _orientation.setToIdentity();
@@ -209,8 +209,6 @@ void Head::renderEars() {
         glutSolidSphere(0.02, 30, 30);
     glPopMatrix();
 }
-
-
 
 void Head::renderMouth() {
 

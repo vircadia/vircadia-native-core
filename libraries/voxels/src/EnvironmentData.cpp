@@ -28,8 +28,6 @@ EnvironmentData::EnvironmentData(int id) :
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
-    *destinationBuffer++ = PACKET_HEADER_ENVIRONMENT_DATA;  
-    
     memcpy(destinationBuffer, &_id, sizeof(_id));
     destinationBuffer += sizeof(_id);
     
@@ -64,9 +62,6 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
 }
 
 int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    // increment to push past the packet header
-    sourceBuffer++;
-    
     unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_id, sourceBuffer, sizeof(_id));

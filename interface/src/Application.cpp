@@ -303,8 +303,8 @@ void Application::paintGL() {
             _myCamera.setTightness     (100.0f);
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                        -_myAvatar.getHead().getPitch(),
-                                        _myAvatar.getHead().getRoll());
+                                        _myAvatar.getHead().getPitch(),
+                                        -_myAvatar.getHead().getRoll());
         } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
@@ -1365,7 +1365,7 @@ void Application::updateAvatar(float deltaTime) {
     const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
              measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
-        _headMouseX += measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
+        _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
         _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
     }
     _headMouseX = max(_headMouseX, 0);
@@ -1377,7 +1377,7 @@ void Application::updateAvatar(float deltaTime) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
     
-        _myAvatar.getHead().setYaw(-yaw);
+        _myAvatar.getHead().setYaw(yaw);
         _myAvatar.getHead().setPitch(pitch);
         _myAvatar.getHead().setRoll(roll);
     }
