@@ -14,7 +14,7 @@
 // GameEngine.cpp
 EnvironmentData::EnvironmentData(int id) :
     _id(id),
-    _gravity(1.0f),
+    _gravity(0.0f),
     _atmosphereCenter(0, -1000, 0),
     _atmosphereInnerRadius(1000),
     _atmosphereOuterRadius(1025),

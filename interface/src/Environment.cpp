@@ -58,10 +58,16 @@ void Environment::renderAtmospheres(Camera& camera) {
 }
 
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
+    // the "original gravity"
+    glm::vec3 gravity;
+    if (position.x > 0.0f && position.x < 10.0f && position.y > 0.0f &&
+            position.y < 3.0f && position.z > 0.0f && position.z < 10.0f) {
+        gravity = glm::vec3(0.0f, -1.0f, 0.0f);
+    }
+    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
-    glm::vec3 gravity;
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
@@ -94,13 +100,23 @@ const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
 
 bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
                                          float radius, glm::vec3& penetration) {
+    // collide with the "floor"
+    bool found = false;
+    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+    float floorDist = qMin(start.y, end.y) - radius;
+    if (floorDist < 0.0f) {
+        penetration.y = -floorDist;
+        found = true;
+    }
+    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
-    bool found = false;
-    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
+            if (environmentData.getGravity() == 0.0f) {
+                continue; // don't bother colliding with gravity-less environments
+            }
             glm::vec3 vector = computeVectorFromPointToSegment(environmentData.getAtmosphereCenter(), start, end);
             float vectorLength = glm::length(vector);
             float distance = vectorLength - environmentData.getAtmosphereInnerRadius() - radius;
