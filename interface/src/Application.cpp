@@ -290,42 +290,40 @@ void Application::paintGL() {
     glPushMatrix();  {
         glLoadIdentity();
     
-        // camera settings
-        if (OculusManager::isConnected()) {
-            _myAvatar.setDisplayingHead(false);            
-            _myCamera.setUpShift       (0.0f);
-            _myCamera.setDistance      (0.0f);
-            _myCamera.setTightness     (100.0f); 
-            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() + _myAvatar.getHead().getYaw(),
-                                        -_myAvatar.getHead().getPitch(),
-                                        _myAvatar.getHead().getRoll());
-         
-        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myCamera.setTightness     (100.0f); 
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
                                         0.0f,
                                         0.0f);
-        } else {
-            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-                _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                            0.0f,
-                                            //-_myAvatar.getAbsoluteHeadPitch(),
-                                            0.0f);
-                //  Take a look at whether we are inside head, don't render it if so.
-                const float HEAD_RENDER_DISTANCE = 0.5;
-                glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
-                if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) { _myAvatar.setDisplayingHead(false); }
+        } else if (OculusManager::isConnected()) {
+            _myAvatar.setDisplayingHead(false);
+            _myCamera.setUpShift       (0.0f);
+            _myCamera.setDistance      (0.0f);
+            _myCamera.setTightness     (100.0f);
+            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                        -_myAvatar.getHead().getPitch(),
+                                        _myAvatar.getHead().getRoll());
+        } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                        0.0f,
+                                        //-_myAvatar.getAbsoluteHeadPitch(),
+                                        0.0f);
+            //  Take a look at whether we are inside head, don't render it if so.
+            const float HEAD_RENDER_DISTANCE = 0.5;
+            glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
             
-            } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-                _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-                _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                            0.0f,
-                                            //-_myAvatar.getAbsoluteHeadPitch(),
-                                            0.0f);
+            if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
+                _myAvatar.setDisplayingHead(false);
             }
+        } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+            _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
+                                        0.0f,
+                                        //-_myAvatar.getAbsoluteHeadPitch(),
+                                        0.0f);
         }
                 
         // important...
@@ -1387,8 +1385,7 @@ void Application::updateAvatar(float deltaTime) {
     const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
     const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
-             measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE)
-    {
+             measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
         _headMouseX += measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
         _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
     }
@@ -1400,7 +1397,7 @@ void Application::updateAvatar(float deltaTime) {
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
-        
+    
         _myAvatar.getHead().setYaw(-yaw);
         _myAvatar.getHead().setPitch(pitch);
         _myAvatar.getHead().setRoll(roll);

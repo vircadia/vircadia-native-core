@@ -29,7 +29,6 @@ public:
     void injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket);
     
     bool isInjectingAudio() const { return _isInjectingAudio; }
-    void setIsInjectingAudio(bool isInjectingAudio) { _isInjectingAudio = isInjectingAudio; }
     
     unsigned char getVolume() const  { return _volume; }
     void setVolume(unsigned char volume) { _volume = volume; }

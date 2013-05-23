@@ -100,7 +100,6 @@ Avatar::Avatar(bool isMine) :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
 
-
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
     }
@@ -351,7 +350,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             } else {
                 axis = glm::normalize(glm::cross(currentUp, targetUp));
             }
-            _righting = glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis) * _righting;
+            //_righting = glm::angleAxis(min(deltaTime * ANGULAR_RIGHTING_SPEED, angle), axis) * _righting;
         }
     }
     
@@ -602,10 +601,6 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 }
 
 void Avatar::updateCollisionWithEnvironment() {
-    if (_position.y < _pelvisStandingHeight) {
-        applyCollisionWithScene(glm::vec3(0.0f, _pelvisStandingHeight - _position.y, 0.0f));
-    }
-
     float radius = _height * 0.125f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(

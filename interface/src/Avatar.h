@@ -105,7 +105,7 @@ public:
     float getHeight() const { return _height; }
     
     AvatarMode getMode() const { return _mode; }
-    Head getHead() const { return _head; }
+    Head& getHead() { return _head; }
     
     void setMousePressed(bool pressed); 
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
