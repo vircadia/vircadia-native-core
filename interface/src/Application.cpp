@@ -1365,7 +1365,7 @@ void Application::updateAvatar(float deltaTime) {
     const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
     if (powf(measuredYawRate * measuredYawRate +
              measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
-        _headMouseX += measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
+        _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
         _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
     }
     _headMouseX = max(_headMouseX, 0);
