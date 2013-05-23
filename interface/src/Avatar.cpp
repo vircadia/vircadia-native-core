@@ -378,11 +378,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     //  Compute instantaneous acceleration 
     float acceleration = glm::distance(getVelocity(), oldVelocity) / deltaTime;
     const float ACCELERATION_PITCH_DECAY = 0.4f;
+    const float ACCELERATION_YAW_DECAY = 0.4f;
     
     // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
     // you start moving, but don't do this with an HMD like the Oculus. 
     if (!OculusManager::isConnected()) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+        _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
     }
 
     //apply the head lean values to the springy position...
