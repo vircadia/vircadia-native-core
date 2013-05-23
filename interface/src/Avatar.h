@@ -173,6 +173,7 @@ private:
     glm::quat   _righting;
     int         _driveKeys[MAX_DRIVE_KEYS];
     float       _pelvisStandingHeight;
+    float       _pelvisFloatingHeight;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
