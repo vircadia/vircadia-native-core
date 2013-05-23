@@ -114,19 +114,29 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 }
 
 int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes) {
-    EnvironmentData newData;
-    int bytesRead = newData.parseData(sourceBuffer, numBytes);
+    // push past the packet header
+    unsigned char* start = sourceBuffer;
+    sourceBuffer++;
+    numBytes--;
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
-    // update the mapping by address/ID
-    _data[*senderAddress][newData.getID()] = newData;
+    EnvironmentData newData;
+    while (numBytes > 0) {
+        int dataLength = newData.parseData(sourceBuffer, numBytes);
+        
+        // update the mapping by address/ID
+        _data[*senderAddress][newData.getID()] = newData;    
+        
+        sourceBuffer += dataLength;
+        numBytes -= dataLength;    
+    }
     
     // remove the default mapping, if any
     _data.remove(getZeroAddress());
     
-    return bytesRead;
+    return sourceBuffer - start;
 }
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {

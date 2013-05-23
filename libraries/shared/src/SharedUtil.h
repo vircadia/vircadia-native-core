@@ -44,6 +44,8 @@ float randFloatInRange (float min,float max);
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
+bool shouldDo(float desiredInterval, float deltaTime);
+
 void outputBufferBits(unsigned char* buffer, int length, bool withNewLine = true);
 void outputBits(unsigned char byte, bool withNewLine = true);
 void printVoxelCode(unsigned char* voxelCode);
