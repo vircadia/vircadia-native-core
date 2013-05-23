@@ -51,7 +51,7 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 const int ENVIRONMENT_SEND_INTERVAL_USECS = 1000000;
 
-VoxelTree randomTree(true); // this is a reaveraging tree
+VoxelTree randomTree(false); // this is NOT a reaveraging tree 
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
 
@@ -652,18 +652,19 @@ int main(int argc, const char * argv[]) {
                 char* command = (char*) &packetData[1]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
                 int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
-
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
+                bool rebroadcast = true; // by default rebroadcast
 
                 while (totalLength <= receivedBytes) {
                     if (strcmp(command, ERASE_ALL_COMMAND) == 0) {
                         printf("got Z message == erase all\n");
-                    
                         eraseVoxelTreeAndCleanupAgentVisitData();
+                        rebroadcast = false;
                     }
                     if (strcmp(command, ADD_SCENE_COMMAND) == 0) {
                         printf("got Z message == add scene\n");
                         addSphereScene(&randomTree);
+                        rebroadcast = false;
                     }
                     if (strcmp(command, TEST_COMMAND) == 0) {
                         printf("got Z message == a message, nothing to do, just report\n");
@@ -671,9 +672,11 @@ int main(int argc, const char * argv[]) {
                     totalLength += commandLength + 1; // 1 for null termination
                 }
 
-                // Now send this to the connected agents so they can also process these messages
-                printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-                agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                if (rebroadcast) {
+                    // Now send this to the connected agents so they can also process these messages
+                    printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
+                    agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                }
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.
