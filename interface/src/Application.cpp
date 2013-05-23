@@ -52,7 +52,7 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-const glm::vec3 START_LOCATION(0.f, 0.f, 0.f);   //  Where one's own agent begins in the world
+const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
@@ -295,7 +295,6 @@ void Application::paintGL() {
                                         0.0f,
                                         0.0f);
         } else if (OculusManager::isConnected()) {
-            _myAvatar.setDisplayingHead(false);
             _myCamera.setUpShift       (0.0f);
             _myCamera.setDistance      (0.0f);
             _myCamera.setTightness     (100.0f);
@@ -313,7 +312,6 @@ void Application::paintGL() {
             glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
             
             if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
-                _myAvatar.setDisplayingHead(false);
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
@@ -567,6 +565,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
             
         case Qt::Key_Space:
             resetSensors();
+            break;
+            
+        case Qt::Key_G:
+            goHome();
             break;
         
         case Qt::Key_A:
@@ -961,7 +963,6 @@ void Application::idle() {
                     a.distance  = 0.0f;
                     a.tightness = 100.0f;
                     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                    _myAvatar.setDisplayingHead(true);
                 }
             } else {
         
@@ -973,7 +974,6 @@ void Application::idle() {
                         a.distance  = 0.0f;
                         a.tightness = 100.0f;
                         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);
                     }
                 } 
                 else {
@@ -983,7 +983,6 @@ void Application::idle() {
                         a.distance  = 1.5f;
                         a.tightness = 8.0f;
                         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);  
                     }
                 }
             }
@@ -1027,15 +1026,13 @@ void Application::setHead(bool head) {
         a.distance  = 0.2f;
         a.tightness = 100.0f;
         _myCamera.setMode(CAMERA_MODE_MIRROR, a);
-        _myAvatar.setDisplayingHead(true);  
     } else {
         Camera::CameraFollowingAttributes a;
         a.upShift   = -0.2f;
         a.distance  = 1.5f;
         a.tightness = 8.0f;
         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-        _myAvatar.setDisplayingHead(true);  
-    } 
+    }
 }
 
 void Application::setNoise(bool noise) {
@@ -1339,7 +1336,6 @@ void Application::init() {
     a.distance  = 1.5f;
     a.tightness = 8.0f;
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-    _myAvatar.setDisplayingHead(true);
     _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
@@ -1711,13 +1707,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(0, _myCamera.getPosition());
+                avatar->render(false);
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
@@ -2050,6 +2046,10 @@ void Application::deleteVoxelUnderCursor() {
         // remember the position for drag detection
         _justEditedVoxel = true;
     }
+}
+
+void Application::goHome() {
+    _myAvatar.setPosition(START_LOCATION);
 }
 
 void Application::resetSensors() {

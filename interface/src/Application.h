@@ -123,6 +123,7 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     
+    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
