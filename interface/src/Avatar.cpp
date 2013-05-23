@@ -770,8 +770,9 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         float modelview[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
         
-        //glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
-        glTranslatef(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition.x, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.y + chatMessageHeight, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.z);
+        glTranslatef(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition.x,
+                     _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.y + chatMessageHeight,
+                     _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         
         glColor3f(0, 0.8, 0);
@@ -836,8 +837,6 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].parent = AVATAR_JOINT_CHEST;
     _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].parent = AVATAR_JOINT_RIGHT_COLLAR;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].parent = AVATAR_JOINT_RIGHT_SHOULDER;
-    _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].parent = AVATAR_JOINT_RIGHT_ELBOW;
-    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].parent = AVATAR_JOINT_RIGHT_WRIST;
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].parent = AVATAR_JOINT_PELVIS;
     _joint[ AVATAR_JOINT_LEFT_KNEE		  ].parent = AVATAR_JOINT_LEFT_HIP;
     _joint[ AVATAR_JOINT_LEFT_HEEL		  ].parent = AVATAR_JOINT_LEFT_KNEE;
