@@ -114,6 +114,9 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
+            if (environmentData.getGravity() == 0.0f) {
+                continue; // don't bother colliding with gravity-less environments
+            }
             glm::vec3 vector = computeVectorFromPointToSegment(environmentData.getAtmosphereCenter(), start, end);
             float vectorLength = glm::length(vector);
             float distance = vectorLength - environmentData.getAtmosphereInnerRadius() - radius;
