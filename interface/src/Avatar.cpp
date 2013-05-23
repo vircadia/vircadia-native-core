@@ -88,12 +88,10 @@ Avatar::Avatar(bool isMine) :
     _orientation(),
     _pelvisStandingHeight(0.0f),
     _pelvisFloatingHeight(0.0f),
-    _displayingHead(true),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _gravity(0.0f, -1.0f, 0.0f),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
-    _cameraPosition(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
     _cumulativeMouseYaw(0.0f),
     _isMouseTurningRight(false)
@@ -128,19 +126,19 @@ void Avatar::reset() {
 
 //  Update avatar head rotation with sensor data
 void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
-    float measuredPitchRate = 0.0f;
-    float measuredRollRate = 0.0f;
-    float measuredYawRate = 0.0f;
+    const float AMPLIFY_PITCH = 2.f;
+    const float AMPLIFY_YAW = 2.f;
+    const float AMPLIFY_ROLL = 2.f;
     
-    measuredPitchRate = serialInterface->getLastPitchRate();
-    measuredYawRate = serialInterface->getLastYawRate();
-    measuredRollRate = serialInterface->getLastRollRate();
+    float measuredPitchRate = serialInterface->getLastPitchRate();
+    float measuredYawRate = serialInterface->getLastYawRate();
+    float measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
     
-    _head.addPitch(measuredPitchRate * deltaTime);
-    _head.addYaw  (measuredYawRate   * deltaTime);
-    _head.addRoll (measuredRollRate  * deltaTime);
+    _head.addPitch(measuredPitchRate * AMPLIFY_PITCH * deltaTime);
+    _head.addYaw  (measuredYawRate   * AMPLIFY_YAW * deltaTime);
+    _head.addRoll (measuredRollRate  * AMPLIFY_ROLL * deltaTime);
     
     //  Update head lean distance based on accelerometer data
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
@@ -727,10 +725,8 @@ void Avatar::setGravity(glm::vec3 gravity) {
     _head.setGravity(_gravity);
 }
 
-void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
-        
-    _cameraPosition = cameraPosition; // store this for use in various parts of the code
-
+void Avatar::render(bool lookingInMirror) {
+    
     if (_isMine && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
@@ -749,7 +745,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     // if this is my avatar, then render my interactions with the other avatar
     if (_isMine) {			
-        _avatarTouch.render(_cameraPosition);
+        _avatarTouch.render(getCameraPosition());
     }
     
     //  Render the balls
@@ -1131,49 +1127,60 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 
 void Avatar::renderBody(bool lookingInMirror) {
     
-    //  Render joint positions as spheres
+    const float RENDER_OPAQUE_BEYOND = 1.2f;        //  Meters beyond which body is shown opaque
+    const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
+    
+    //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        
+        float distanceToCamera = glm::length(getCameraPosition() - _joint[b].position);
+        //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (_displayingHead) {
+            if (lookingInMirror || !_isMine || distanceToCamera > RENDER_OPAQUE_BEYOND) {
                 _head.render(lookingInMirror);
             }
-        } else {
-            
-            glColor3f(
-                      skinColor[0] + _joint[b].touchForce * 0.3f,
-                      skinColor[1] - _joint[b].touchForce * 0.2f,
-                      skinColor[2] - _joint[b].touchForce * 0.1f
-                      );
-            
+        } else if (!_isMine || distanceToCamera > RENDER_TRANSLUCENT_BEYOND) {
+            //  Render the sphere at the joint
+            if (!_isMine) {
+                glColor3f(skinColor[0] + _joint[b].touchForce * 0.3f,
+                          skinColor[1] - _joint[b].touchForce * 0.2f,
+                          skinColor[2] - _joint[b].touchForce * 0.1f);
+            } else {
+                glColor4f(skinColor[0] + _joint[b].touchForce * 0.3f,
+                          skinColor[1] - _joint[b].touchForce * 0.2f,
+                          skinColor[2] - _joint[b].touchForce * 0.1f,
+                          glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND)
+                                     / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f));
+            }
             glPushMatrix();
             glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
             glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
             glPopMatrix();
+            
+            //  Render the cone connecting this joint to it's parent
+            
+            if (_joint[b].parent != AVATAR_JOINT_NULL)
+                if ((b != AVATAR_JOINT_HEAD_TOP      )
+                    &&  (b != AVATAR_JOINT_HEAD_BASE     )
+                    &&  (b != AVATAR_JOINT_PELVIS        )
+                    &&  (b != AVATAR_JOINT_TORSO         )
+                    &&  (b != AVATAR_JOINT_CHEST         )
+                    &&  (b != AVATAR_JOINT_LEFT_COLLAR   )
+                    &&  (b != AVATAR_JOINT_LEFT_SHOULDER )
+                    &&  (b != AVATAR_JOINT_RIGHT_COLLAR  )
+                    &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
+                    // Render cone sections connecting the joint positions
+                    glColor3fv(darkSkinColor);
+                    renderJointConnectingCone
+                    (
+                     _joint[_joint[b].parent ].springyPosition,
+                     _joint[b                ].springyPosition,
+                     _joint[_joint[b].parent ].radius * 0.8,
+                     _joint[b                ].radius * 0.8
+                     );
+                } 
+
         }
-    }
-    
-    for (int j = 1; j < NUM_AVATAR_JOINTS; j++) {
-        if (_joint[j].parent != AVATAR_JOINT_NULL)
-            if ((j != AVATAR_JOINT_HEAD_TOP      )
-                &&  (j != AVATAR_JOINT_HEAD_BASE     )
-                &&  (j != AVATAR_JOINT_PELVIS        )
-                &&  (j != AVATAR_JOINT_TORSO         )
-                &&  (j != AVATAR_JOINT_CHEST         )
-                &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
-                &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
-                &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
-                &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
-                // Render cone sections connecting the joint positions
-                glColor3fv(darkSkinColor);
-                renderJointConnectingCone
-                (
-                 _joint[_joint[j].parent ].springyPosition,
-                 _joint[j                ].springyPosition,
-                 _joint[_joint[j].parent ].radius * 0.8,
-                 _joint[j                ].radius * 0.8
-                 );
-            }
+        
     }
 }
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {

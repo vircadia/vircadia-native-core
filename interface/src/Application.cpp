@@ -52,13 +52,11 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-const glm::vec3 START_LOCATION(0.f, 0.f, 0.f);   //  Where one's own agent begins in the world
+const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
-                                           
-const bool DISPLAY_HEAD_MOUSE = true;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
@@ -297,7 +295,6 @@ void Application::paintGL() {
                                         0.0f,
                                         0.0f);
         } else if (OculusManager::isConnected()) {
-            _myAvatar.setDisplayingHead(false);
             _myCamera.setUpShift       (0.0f);
             _myCamera.setDistance      (0.0f);
             _myCamera.setTightness     (100.0f);
@@ -315,16 +312,14 @@ void Application::paintGL() {
             glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
             
             if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
-                _myAvatar.setDisplayingHead(false);
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                        0.0f,
-                                        //-_myAvatar.getAbsoluteHeadPitch(),
+            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                        _myAvatar.getAbsoluteHeadPitch(),
                                         0.0f);
         }
-                
+        
         // important...
         _myCamera.update( 1.f/_fps );
         
@@ -570,6 +565,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
             
         case Qt::Key_Space:
             resetSensors();
+            break;
+            
+        case Qt::Key_G:
+            goHome();
             break;
         
         case Qt::Key_A:
@@ -964,7 +963,6 @@ void Application::idle() {
                     a.distance  = 0.0f;
                     a.tightness = 100.0f;
                     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                    _myAvatar.setDisplayingHead(true);
                 }
             } else {
         
@@ -976,7 +974,6 @@ void Application::idle() {
                         a.distance  = 0.0f;
                         a.tightness = 100.0f;
                         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);
                     }
                 } 
                 else {
@@ -986,7 +983,6 @@ void Application::idle() {
                         a.distance  = 1.5f;
                         a.tightness = 8.0f;
                         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);  
                     }
                 }
             }
@@ -1030,15 +1026,13 @@ void Application::setHead(bool head) {
         a.distance  = 0.2f;
         a.tightness = 100.0f;
         _myCamera.setMode(CAMERA_MODE_MIRROR, a);
-        _myAvatar.setDisplayingHead(true);  
     } else {
         Camera::CameraFollowingAttributes a;
         a.upShift   = -0.2f;
         a.distance  = 1.5f;
         a.tightness = 8.0f;
         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-        _myAvatar.setDisplayingHead(true);  
-    } 
+    }
 }
 
 void Application::setNoise(bool noise) {
@@ -1203,6 +1197,8 @@ void Application::initMenu() {
     _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
+    (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
+    _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
 
@@ -1340,7 +1336,6 @@ void Application::init() {
     a.distance  = 1.5f;
     a.tightness = 8.0f;
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-    _myAvatar.setDisplayingHead(true);
     _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
@@ -1712,13 +1707,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(0, _myCamera.getPosition());
+                avatar->render(false);
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
@@ -1748,7 +1743,7 @@ void Application::displayOverlay() {
 
        //noiseTest(_glWidget->width(), _glWidget->height());
     
-    if (DISPLAY_HEAD_MOUSE && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
+    if (_showHeadMouse->isChecked() && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -2051,6 +2046,10 @@ void Application::deleteVoxelUnderCursor() {
         // remember the position for drag detection
         _justEditedVoxel = true;
     }
+}
+
+void Application::goHome() {
+    _myAvatar.setPosition(START_LOCATION);
 }
 
 void Application::resetSensors() {
