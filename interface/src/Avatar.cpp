@@ -66,7 +66,7 @@ float lightBlue    [] = {0.7, 0.8,  1.0 };
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
-float chatMessageHeight = 0.45;
+float chatMessageHeight = 0.10;
 
 Avatar::Avatar(bool isMine) :
     _isMine(isMine),
@@ -727,7 +727,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         
     _cameraPosition = cameraPosition; // store this for use in various parts of the code
 
-    if (usingBigSphereCollisionTest) {
+    if (_isMine && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
         glPushMatrix();
@@ -770,7 +770,8 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         float modelview[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
         
-        glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
+        //glTranslatef(_position.x, _position.y + chatMessageHeight, _position.z);
+        glTranslatef(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition.x, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.y + chatMessageHeight, _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.z);
         glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
         
         glColor3f(0, 0.8, 0);
@@ -1133,12 +1134,12 @@ void Avatar::renderBody(bool lookingInMirror) {
                 _head.render(lookingInMirror);
             }
         } else {
-    
+            
             glColor3f(
-                skinColor[0] + _joint[b].touchForce * 0.3f, 
-                skinColor[1] - _joint[b].touchForce * 0.2f, 
-                skinColor[2] - _joint[b].touchForce * 0.1f
-            );
+                      skinColor[0] + _joint[b].touchForce * 0.3f,
+                      skinColor[1] - _joint[b].touchForce * 0.2f,
+                      skinColor[2] - _joint[b].touchForce * 0.1f
+                      );
             
             glPushMatrix();
             glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
@@ -1148,29 +1149,28 @@ void Avatar::renderBody(bool lookingInMirror) {
     }
     
     for (int j = 1; j < NUM_AVATAR_JOINTS; j++) {
-    if (_joint[j].parent != AVATAR_JOINT_NULL) 
-        if ((j != AVATAR_JOINT_HEAD_TOP      )
-        &&  (j != AVATAR_JOINT_HEAD_BASE     )	
-        &&  (j != AVATAR_JOINT_PELVIS        )	
-        &&  (j != AVATAR_JOINT_TORSO         )
-        &&  (j != AVATAR_JOINT_CHEST         )
-        &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
-        &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
-        &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
-        &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
-            // Render cone sections connecting the joint positions 
-            glColor3fv(darkSkinColor);
-            renderJointConnectingCone
-            (
-                _joint[_joint[j].parent ].springyPosition, 
-                _joint[j                ].springyPosition, 
-                _joint[_joint[j].parent ].radius * 0.8, 
-                _joint[j                ].radius * 0.8
-            );
-        }
+        if (_joint[j].parent != AVATAR_JOINT_NULL)
+            if ((j != AVATAR_JOINT_HEAD_TOP      )
+                &&  (j != AVATAR_JOINT_HEAD_BASE     )
+                &&  (j != AVATAR_JOINT_PELVIS        )
+                &&  (j != AVATAR_JOINT_TORSO         )
+                &&  (j != AVATAR_JOINT_CHEST         )
+                &&  (j != AVATAR_JOINT_LEFT_COLLAR   )
+                &&  (j != AVATAR_JOINT_LEFT_SHOULDER )
+                &&  (j != AVATAR_JOINT_RIGHT_COLLAR  )
+                &&  (j != AVATAR_JOINT_RIGHT_SHOULDER)) {
+                // Render cone sections connecting the joint positions
+                glColor3fv(darkSkinColor);
+                renderJointConnectingCone
+                (
+                 _joint[_joint[j].parent ].springyPosition,
+                 _joint[j                ].springyPosition,
+                 _joint[_joint[j].parent ].radius * 0.8,
+                 _joint[j                ].radius * 0.8
+                 );
+            }
     }
 }
-
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
     //  Given absolute position and angular velocity information, update the avatar's head angles

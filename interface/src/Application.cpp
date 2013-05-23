@@ -1238,7 +1238,7 @@ void Application::initMenu() {
     
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
-    _logOn->setChecked(true);
+    _logOn->setChecked(false);
     
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
