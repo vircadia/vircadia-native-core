@@ -203,8 +203,8 @@ void SerialInterface::readData() {
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.        
-        _lastRollRate = ((float) rollRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastYawRate = ((float) yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRollRate = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastYawRate = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
         _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
         
         //  Accumulate a set of initial baseline readings for setting gravity
