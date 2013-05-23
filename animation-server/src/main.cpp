@@ -29,6 +29,11 @@
 #endif
 
 bool shouldShowPacketsPerSecond = false; // do we want to debug packets per second
+bool includeBillboard = true; 
+bool includeBorderTracer = true;
+bool includeMovingBug = true;
+bool includeBlinkingVoxel = false;
+
 
 const int ANIMATION_LISTEN_PORT = 40107;
 const int ACTUAL_FPS = 60;
@@ -36,13 +41,6 @@ const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from
 const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
-
-static void sendVoxelServerZMessage() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"a message");
-    int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
 
 unsigned long packetsSent = 0;
 unsigned long bytesSent = 0;
@@ -65,9 +63,9 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE;
-glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, 0, BUG_VOXEL_SIZE * 10.0);
-glm::vec3 bugDirection = glm::vec3(0, 0, 1);
+const float BUG_VOXEL_SIZE = 0.125f /*0.0625f*/ / TREE_SCALE;
+glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, BUG_VOXEL_SIZE * 30.0, 0);
+glm::vec3 bugDirection = glm::vec3(0, 0, 0);
 const unsigned char bugColor[3] = {0, 255, 255};
 const int VOXELS_PER_BUG = 14;
 const glm::vec3 bugParts[VOXELS_PER_BUG] = {
@@ -93,6 +91,8 @@ const glm::vec3 bugParts[VOXELS_PER_BUG] = {
     glm::vec3(-3, 0, 1),
 };
 
+bool positionA = true;
+
 static void renderMovingBug() {
     VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
@@ -101,9 +101,9 @@ static void renderMovingBug() {
     // Generate voxels for where bug used to be
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
+        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
+        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
 
         details[i].red   = bugColor[0];
         details[i].green = bugColor[1];
@@ -130,22 +130,22 @@ static void renderMovingBug() {
     bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
     
     // Check boundaries
-    if (bugPosition.z > 0.25) {
+    if (bugPosition.z > 1.0) {
         bugDirection.z = -1;
     }
-    if (bugPosition.z < 0.01) {
+    if (bugPosition.z < BUG_VOXEL_SIZE) {
         bugDirection.z = 1;
     }
-    printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
-    printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
+    //printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
+    //printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
     // would be nice to add some randomness here...
 
     // Generate voxels for where bug is going to
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
+        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
+        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
 
         details[i].red   = bugColor[0];
         details[i].green = bugColor[1];
@@ -419,7 +419,6 @@ double start = 0;
 
 void* animateVoxels(void* args) {
     
-    AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     while (true) {
@@ -427,9 +426,19 @@ void* animateVoxels(void* args) {
 
         // some animations
         //sendVoxelBlinkMessage();
-        sendBlinkingStringOfLights();
-        sendBillboard();
-        //renderMovingBug();
+
+        if (::includeBillboard) {
+            sendBillboard();
+        }
+        if (::includeBorderTracer) {
+            sendBlinkingStringOfLights();
+        }
+        if (::includeMovingBug) {
+            renderMovingBug();
+        }
+        if (::includeBlinkingVoxel) {
+            sendVoxelBlinkMessage();
+        }
         
         double end = usecTimestampNow();
         double elapsedSeconds = (end - ::start) / 1000000.0;
@@ -457,6 +466,19 @@ int main(int argc, const char * argv[])
 
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
+
+    // Handle Local Domain testing with the --local command line
+    const char* NO_BILLBOARD = "--NoBillboard";
+    ::includeBillboard = !cmdOptionExists(argc, argv, NO_BILLBOARD);
+
+    const char* NO_BORDER_TRACER = "--NoBorderTracer";
+    ::includeBorderTracer = !cmdOptionExists(argc, argv, NO_BORDER_TRACER);
+
+    const char* NO_MOVING_BUG = "--NoMovingBug";
+    ::includeMovingBug = !cmdOptionExists(argc, argv, NO_MOVING_BUG);
+
+    const char* INCLUDE_BLINKING_VOXEL = "--includeBlinkingVoxel";
+    ::includeBlinkingVoxel = cmdOptionExists(argc, argv, INCLUDE_BLINKING_VOXEL);
 
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";
