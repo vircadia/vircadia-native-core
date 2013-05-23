@@ -140,9 +140,9 @@ void Head::calculateGeometry(bool lookingInMirror) {
     }
 
     _orientation.setToIdentity();
+    _orientation.roll (_bodyRotation.z + roll );
     _orientation.pitch(_bodyRotation.x + pitch);
     _orientation.yaw  (_bodyRotation.y + yaw  );
-    //_orientation.roll (_bodyRotation.z + roll );
 
     //calculate the eye positions 
     _leftEyePosition  = _position 
