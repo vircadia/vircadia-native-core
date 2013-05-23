@@ -131,6 +131,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
         _myAvatar(true),
+        _manualFirstPerson(false),
         _mouseX(0),
         _mouseY(0),
         _mousePressed(false),
@@ -956,9 +957,44 @@ void Application::idle() {
             _myAvatar.simulate(deltaTime, &_myTransmitter);
         } else {
             _myAvatar.simulate(deltaTime, NULL);
-
         }
         
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {        
+            if (_manualFirstPerson) {
+                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                   Camera::CameraFollowingAttributes a;
+                    a.upShift   = 0.0f;
+                    a.distance  = 0.0f;
+                    a.tightness = 100.0f;
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+                    _myAvatar.setDisplayingHead(true);
+                }
+            } else {
+        
+                if (_myAvatar.getIsNearInteractingOther()) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                    
+                        Camera::CameraFollowingAttributes a;
+                        a.upShift   = 0.0f;
+                        a.distance  = 0.0f;
+                        a.tightness = 100.0f;
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+                        _myAvatar.setDisplayingHead(true);
+                    }
+                } 
+                else {
+                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                        Camera::CameraFollowingAttributes a;            
+                        a.upShift   = -0.2f;
+                        a.distance  = 1.5f;
+                        a.tightness = 8.0f;
+                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+                        _myAvatar.setDisplayingHead(true);  
+                    }
+                }
+            }
+        }
+                
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
         _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -1018,6 +1054,10 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
+    
+    _manualFirstPerson = firstPerson;
+    
+    /*
     if (firstPerson) {
         Camera::CameraFollowingAttributes a;
         a.upShift   = 0.0f;
@@ -1034,6 +1074,8 @@ void Application::setRenderFirstPerson(bool firstPerson) {
         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
         _myAvatar.setDisplayingHead(true);  
     } 
+    */
+    
 }
 
 void Application::setOculus(bool oculus) {
@@ -1701,7 +1743,6 @@ void Application::displaySide(Camera& whichCamera) {
             
         // Render my own Avatar 
         _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
-        
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
