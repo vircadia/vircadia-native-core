@@ -91,8 +91,6 @@ const glm::vec3 bugParts[VOXELS_PER_BUG] = {
     glm::vec3(-3, 0, 1),
 };
 
-bool positionA = true;
-
 static void renderMovingBug() {
     VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
