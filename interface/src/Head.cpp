@@ -76,10 +76,10 @@ void Head::simulate(float deltaTime, bool isMine) {
         _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
     }
     
-    //  For invensense gyro, decay only slightly when roughly centered
+    //  For invensense gyro, decay only slightly when near center (until we add fusion)
     if (isMine) {
         const float RETURN_RANGE = 15.0;
-        const float RETURN_STRENGTH = 2.0;
+        const float RETURN_STRENGTH = 0.5;
         if (fabs(_pitch) < RETURN_RANGE) { _pitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_yaw  ) < RETURN_RANGE) { _yaw   *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_roll ) < RETURN_RANGE) { _roll  *= (1.0f - RETURN_STRENGTH * deltaTime); }
