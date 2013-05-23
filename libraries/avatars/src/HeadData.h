@@ -55,6 +55,10 @@ protected:
     glm::vec3 _lookAtPosition;
     float _leanSideways;
     float _leanForward;
+private:
+    // privatize copy ctor and assignment operator so copies of this object cannot be made
+    HeadData(const HeadData&);
+    HeadData& operator= (const HeadData&);
 };
 
 #endif /* defined(__hifi__HeadData__) */

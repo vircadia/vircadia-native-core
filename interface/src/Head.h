@@ -51,7 +51,10 @@ public:
     float yawRate;
     float noise;
 
-private: 
+private:
+    // disallow copies of the Head, copy of owning Avatar is disallowed too
+    Head(const Head&);
+    Head& operator= (const Head&);
 
     bool        _returnHeadToCenter;
     float       _audioLoudness;

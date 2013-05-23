@@ -99,7 +99,6 @@ Avatar::Avatar(bool isMine) :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
 
-
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
     }
