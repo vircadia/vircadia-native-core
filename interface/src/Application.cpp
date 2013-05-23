@@ -57,8 +57,6 @@ const glm::vec3 START_LOCATION(0.f, 0.f, 0.f);   //  Where one's own agent begin
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
-                                           
-const bool DISPLAY_HEAD_MOUSE = true;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
@@ -319,12 +317,11 @@ void Application::paintGL() {
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                        0.0f,
-                                        //-_myAvatar.getAbsoluteHeadPitch(),
+            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                        _myAvatar.getAbsoluteHeadPitch(),
                                         0.0f);
         }
-                
+        
         // important...
         _myCamera.update( 1.f/_fps );
         
@@ -1203,6 +1200,8 @@ void Application::initMenu() {
     _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
+    (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
+    _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
 
@@ -1747,7 +1746,7 @@ void Application::displayOverlay() {
 
        //noiseTest(_glWidget->width(), _glWidget->height());
     
-    if (DISPLAY_HEAD_MOUSE && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
+    if (_showHeadMouse->isChecked() && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);

@@ -138,6 +138,7 @@ private:
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
+    QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
