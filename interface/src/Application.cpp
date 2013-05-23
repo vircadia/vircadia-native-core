@@ -303,8 +303,8 @@ void Application::paintGL() {
             _myCamera.setTightness     (100.0f);
             _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                        -_myAvatar.getHead().getPitch(),
-                                        _myAvatar.getHead().getRoll());
+                                        _myAvatar.getHead().getPitch(),
+                                        -_myAvatar.getHead().getRoll());
         } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
