@@ -167,7 +167,7 @@ int main(int argc, const char* argv[]) {
                                     
                                     float minCoefficient = std::min(1.0f,
                                                                     powf(0.5,
-                                                                         (logf(DISTANCE_RATIO * distanceToAgent) / logf(3)) - 1));
+                                                                         (logf(DISTANCE_RATIO * distanceToAgent) / logf(2)) - 1));
                                     distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
                                 }
                                 
