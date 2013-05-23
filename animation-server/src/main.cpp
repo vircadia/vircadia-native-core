@@ -63,7 +63,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-const float BUG_VOXEL_SIZE = 0.125f /*0.0625f*/ / TREE_SCALE;
+const float BUG_VOXEL_SIZE = 0.125f / TREE_SCALE; 
 glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, BUG_VOXEL_SIZE * 30.0, 0);
 glm::vec3 bugDirection = glm::vec3(0, 0, 0);
 const unsigned char bugColor[3] = {0, 255, 255};
