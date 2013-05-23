@@ -28,7 +28,8 @@ LogDisplay LogDisplay::instance;
 
 LogDisplay::LogDisplay() :
 
-    _textRenderer(MONO_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
+    
+    _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
     _stream(DEFAULT_STREAM),
     _chars(0l),
     _lines(0l),
