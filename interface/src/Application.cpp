@@ -52,7 +52,7 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-const glm::vec3 START_LOCATION(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
+const glm::vec3 START_LOCATION(0.f, 0.f, 0.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
@@ -308,8 +308,7 @@ void Application::paintGL() {
         } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
             _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                        0.0f,
-                                        //-_myAvatar.getAbsoluteHeadPitch(),
+                                        _myAvatar.getAbsoluteHeadPitch(),
                                         0.0f);
             //  Take a look at whether we are inside head, don't render it if so.
             const float HEAD_RENDER_DISTANCE = 0.5;
@@ -1238,7 +1237,7 @@ void Application::initMenu() {
     
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
-    _logOn->setChecked(true);
+    _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
     
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
@@ -2055,7 +2054,6 @@ void Application::deleteVoxelUnderCursor() {
 }
 
 void Application::resetSensors() {
-    _myAvatar.setPosition(START_LOCATION);
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
