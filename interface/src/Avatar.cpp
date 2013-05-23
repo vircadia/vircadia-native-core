@@ -143,8 +143,7 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     //  Update head lean distance based on accelerometer data
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
     
-    
-    glm::vec3 leaning = (serialInterface->getLastAcceleration() -  serialInterface->getGravity())
+    glm::vec3 leaning = (serialInterface->getLastAcceleration() - serialInterface->getGravity())
                         * LEAN_SENSITIVITY
                         * (1.f - fminf(glm::length(headRotationRates), HEAD_RATE_MAX) / HEAD_RATE_MAX);
     leaning.y = 0.f;

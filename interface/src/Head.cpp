@@ -210,8 +210,6 @@ void Head::renderEars() {
     glPopMatrix();
 }
 
-
-
 void Head::renderMouth() {
 
     float s = sqrt(_averageLoudness);
