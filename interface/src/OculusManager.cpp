@@ -38,7 +38,7 @@ void OculusManager::connect() {
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef __APPLE__
-    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CW, Handed_R>(&yaw, &pitch, &roll);
+    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     
     // convert each angle to degrees
     yaw = glm::degrees(yaw);
