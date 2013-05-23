@@ -15,7 +15,6 @@
 #include <Orientation.h>
 #include "world.h"
 #include "AvatarTouch.h"
-#include "AvatarRenderer.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
@@ -108,12 +107,11 @@ public:
     Head& getHead() { return _head; }
     
     void setMousePressed(bool pressed); 
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void render(bool lookingInMirror);
     void renderBody(bool lookingInMirror);
     void simulate(float deltaTime, Transmitter* transmitter);
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void updateArmIKAndConstraints( float deltaTime );
-    void setDisplayingHead( bool displayingHead ) { _displayingHead = displayingHead; }
     void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
         
     //  Set what driving keys are being pressed to control thrust levels
@@ -177,12 +175,10 @@ private:
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
-    bool        _displayingHead; // should be false if in first-person view
     float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
-    glm::vec3   _cameraPosition;
     Avatar*     _interactingOther;
     float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
