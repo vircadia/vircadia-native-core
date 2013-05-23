@@ -559,10 +559,12 @@ int main(int argc, const char * argv[]) {
     
     // for now, initialize the environments with fixed values
     environmentData[1].setID(1);
+    environmentData[1].setGravity(1.0f);
     environmentData[1].setAtmosphereCenter(glm::vec3(0.5, 0.5, (0.25 - 0.06125)) * (float)TREE_SCALE);
     environmentData[1].setAtmosphereInnerRadius(0.030625f * TREE_SCALE);
     environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.025f);
     environmentData[2].setID(2);
+    environmentData[2].setGravity(1.0f);
     environmentData[2].setAtmosphereCenter(glm::vec3(0.5f, 0.5f, 0.5f) * (float)TREE_SCALE);
     environmentData[2].setAtmosphereInnerRadius(0.1875f * TREE_SCALE);
     environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.025f);
