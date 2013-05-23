@@ -22,7 +22,6 @@ public:
     Orientation();
     
     void set(Orientation);
-    //void setToPitchYawRoll(float pitch_change, float yaw_change, float roll_change);
     void setToIdentity();
 
     void pitch(float pitch_change);
