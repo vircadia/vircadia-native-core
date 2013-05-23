@@ -52,6 +52,7 @@ const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
 const float JOINT_TOUCH_RANGE             = 0.0005f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
+const bool  USING_HEAD_LEAN               = false;
 
 const float LEAN_SENSITIVITY    = 0.15;
 const float LEAN_MAX            = 0.45;
@@ -386,30 +387,29 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     //apply the head lean values to the springy position...
-    if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
-
-        glm::vec3 headLean = 
-            _orientation.getRight() * _head.getLeanSideways() +
-            _orientation.getFront() * _head.getLeanForward();
-    
-        // this is not a long-term solution, but it works ok for initial purposes of making the avatar lean
-        
-        _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
-        _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
-        _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
-        
-        _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
-        _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
-        
-        _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
-        _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
-        _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
-        _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
+    if (USING_HEAD_LEAN) {
+        if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
+            glm::vec3 headLean = 
+                _orientation.getRight() * _head.getLeanSideways() +
+                _orientation.getFront() * _head.getLeanForward();
+                        
+            _joint[ AVATAR_JOINT_TORSO            ].springyPosition += headLean * 0.1f;
+            _joint[ AVATAR_JOINT_CHEST            ].springyPosition += headLean * 0.4f;
+            _joint[ AVATAR_JOINT_NECK_BASE        ].springyPosition += headLean * 0.7f;
+            _joint[ AVATAR_JOINT_HEAD_BASE        ].springyPosition += headLean * 1.0f;
+            
+            _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springyPosition += headLean * 0.6f;
+            _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springyPosition += headLean * 0.6f;
+            _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springyPosition += headLean * 0.2f;
+            _joint[ AVATAR_JOINT_LEFT_WRIST       ].springyPosition += headLean * 0.1f;
+            _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springyPosition += headLean * 0.0f;
+            
+            _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springyPosition += headLean * 0.6f;
+            _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springyPosition += headLean * 0.6f;
+            _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springyPosition += headLean * 0.2f;
+            _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springyPosition += headLean * 0.1f;
+            _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition += headLean * 0.0f;
+        }
      }
 
     // set head lookat position 

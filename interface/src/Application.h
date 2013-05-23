@@ -78,7 +78,6 @@ private slots:
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
-    //void setRenderLookatVectors(bool lookatVectors);
     void setOculus(bool oculus);
     
     void setFrustumOffset(bool frustumOffset);
@@ -204,6 +203,7 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
+    bool _manualFirstPerson;
     
     HandControl _handControl;
     

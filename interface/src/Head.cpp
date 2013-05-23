@@ -15,7 +15,7 @@ const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
 const float EAR_RIGHT_OFFSET         =  1.0;
-const float MOUTH_FRONT_OFFSET       =  1.0f;
+const float MOUTH_FRONT_OFFSET       =  0.9f;
 const float MOUTH_UP_OFFSET          = -0.3f;
 const float HEAD_MOTION_DECAY        =  0.1;
 const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
@@ -139,13 +139,14 @@ void Head::calculateGeometry(bool lookingInMirror) {
         roll  =  _roll;
     }
     
+    
     _orientation.setToPitchYawRoll
     (
         _bodyRotation.x + pitch, 
         _bodyRotation.y + yaw, 
         _bodyRotation.z + roll
     );
-
+    
     //calculate the eye positions 
     _leftEyePosition  = _position 
                       - _orientation.getRight() * _scale * EYE_RIGHT_OFFSET
@@ -220,14 +221,14 @@ void Head::renderMouth() {
 
     glm::vec3 r = _orientation.getRight() * _scale * (0.30f + s * 0.0014f );
     glm::vec3 u = _orientation.getUp   () * _scale * (0.05f + s * 0.0040f );
-    glm::vec3 f = _orientation.getFront() * _scale *  0.1f;
+    glm::vec3 f = _orientation.getFront() * _scale *  0.09f;
 
     glm::vec3 leftCorner  = _mouthPosition - r * 1.0f;
     glm::vec3 rightCorner = _mouthPosition + r * 1.0f;
     glm::vec3 leftTop     = _mouthPosition - r * 0.4f + u * 0.7f + f;
     glm::vec3 rightTop    = _mouthPosition + r * 0.4f + u * 0.7f + f;
-    glm::vec3 leftBottom  = _mouthPosition - r * 0.4f - u * 1.0f + f;
-    glm::vec3 rightBottom = _mouthPosition + r * 0.4f - u * 1.0f + f;
+    glm::vec3 leftBottom  = _mouthPosition - r * 0.4f - u * 1.0f + f * 0.7f;
+    glm::vec3 rightBottom = _mouthPosition + r * 0.4f - u * 1.0f + f * 0.7f;
         
     glColor3f(0.2f, 0.0f, 0.0f);
     
@@ -246,8 +247,6 @@ void Head::renderMouth() {
     glVertex3f(rightCorner.x, rightCorner.y, rightCorner.z); 
     glEnd();
 }
-
-
 
 void Head::renderEyeBrows() {   
 
@@ -307,7 +306,6 @@ void Head::renderEyeBrows() {
         glEnd();
     }
   }
-  
   
 
 void Head::renderEyeBalls() {                                 
