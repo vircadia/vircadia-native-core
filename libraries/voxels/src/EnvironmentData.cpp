@@ -14,7 +14,7 @@
 // GameEngine.cpp
 EnvironmentData::EnvironmentData(int id) :
     _id(id),
-    _gravity(1.0f),
+    _gravity(0.0f),
     _atmosphereCenter(0, -1000, 0),
     _atmosphereInnerRadius(1000),
     _atmosphereOuterRadius(1025),
@@ -27,8 +27,6 @@ EnvironmentData::EnvironmentData(int id) :
 
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
-    
-    *destinationBuffer++ = PACKET_HEADER_ENVIRONMENT_DATA;  
     
     memcpy(destinationBuffer, &_id, sizeof(_id));
     destinationBuffer += sizeof(_id);
@@ -64,9 +62,6 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
 }
 
 int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    // increment to push past the packet header
-    sourceBuffer++;
-    
     unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_id, sourceBuffer, sizeof(_id));

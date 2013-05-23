@@ -52,6 +52,10 @@ bool randomBoolean() {
     return rand() % 2;
 }
 
+bool shouldDo(float desiredInterval, float deltaTime) {
+    return randFloat() < deltaTime / desiredInterval;
+}
+
 void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
     for (int i = 0; i < length; i++) {
         outputBits(buffer[i], false);
@@ -417,4 +421,3 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
     }
     return -1; // error case
 }
-
