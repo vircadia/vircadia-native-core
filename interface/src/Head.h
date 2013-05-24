@@ -83,6 +83,7 @@ private:
     bool        _renderLookatVectors;
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
+    bool        _mohawkExists;
     
     // private methods
     void createMohawk();
