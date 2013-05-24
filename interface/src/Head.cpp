@@ -197,7 +197,9 @@ void Head::createMohawk() {
         agentId = _owningAvatar->getOwningAgent()->getAgentID();
     } else {
         agentId = AgentList::getInstance()->getOwnerID();
-        if (agentId == UNKNOWN_AGENT_ID) return;
+        if (agentId == UNKNOWN_AGENT_ID) {
+            return;
+        }
     }
     srand(agentId);
     float height = 0.08f + randFloat() * 0.05f;
