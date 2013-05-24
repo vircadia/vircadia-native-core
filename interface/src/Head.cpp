@@ -55,7 +55,6 @@ Head::Head() :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
-    _headRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
     _mohawkColors(NULL)
@@ -180,7 +179,7 @@ void Head::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderMohawk();
+    renderMohawk(lookingInMirror);
     renderHeadSphere();
     renderEyeBalls();    
     renderEars();
@@ -213,13 +212,15 @@ void Head::createMohawk() {
     }
 }
 
-void Head::renderMohawk() {
+void Head::renderMohawk(bool lookingInMirror) {
     if (!_mohawkTriangleFan) {
         createMohawk();
     } else {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
-        glRotatef(_bodyRotation.y, 0, 1, 0);
+        glRotatef(-(_bodyRotation.y + _yaw) - 90, 0, 1, 0);
+        //glRotatef((lookingInMirror ? _roll: -roll), 0, 0, 1);
+        glRotatef(-_pitch, 1, 0, 0);
         glBegin(GL_TRIANGLE_FAN);
         for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
             glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);
