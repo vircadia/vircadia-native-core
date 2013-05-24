@@ -95,7 +95,7 @@ int main(int argc, const char* argv[]) {
     pthread_create(&receiveAgentDataThread, NULL, receiveAgentData, NULL);
     
     // create an AvatarData object, "eve"
-    AvatarData eve(NULL);
+    AvatarData eve;
     
     // move eve away from the origin
     // pick a random point inside a 10x10 grid

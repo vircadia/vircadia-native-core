@@ -22,14 +22,14 @@ const int WANT_DELTA_AT_BIT = 2;
 
 enum KeyState
 {
-    NO_KEY_DOWN, 
+    NO_KEY_DOWN,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
 };
 
 class AvatarData : public AgentData {
 public:
-    AvatarData(Agent* owningAgent);
+    AvatarData(Agent* owningAgent = NULL);
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }

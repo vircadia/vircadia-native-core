@@ -16,7 +16,7 @@ public:
     AgentData(Agent* owningAgent);
     virtual ~AgentData() = 0;
     virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
-private:
+protected:
     Agent* _owningAgent;
 };
 
