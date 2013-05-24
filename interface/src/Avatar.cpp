@@ -1139,9 +1139,14 @@ void Avatar::renderBody(bool lookingInMirror) {
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
                 _head.render(lookingInMirror);
             }
-        } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND) {
+        } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
+                   || b == AVATAR_JOINT_RIGHT_ELBOW
+                   || b == AVATAR_JOINT_RIGHT_WRIST
+                   || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
             //  Render the sphere at the joint
-            if (_owningAgent) {
+            if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
+                             || b == AVATAR_JOINT_RIGHT_WRIST
+                             || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
                 glColor3f(skinColor[0] + _joint[b].touchForce * 0.3f,
                           skinColor[1] - _joint[b].touchForce * 0.2f,
                           skinColor[2] - _joint[b].touchForce * 0.1f);
