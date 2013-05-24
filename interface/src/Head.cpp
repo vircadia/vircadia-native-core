@@ -192,7 +192,7 @@ void Head::render(bool lookingInMirror) {
 }
 
 void Head::createMohawk() {
-//    int agentId = AgentList::getInstance()
+    //if (_owningAvatar->getOwningAgent)
     float height = 0.05f + randFloat() * 0.10f;
     float variance = 0.05 + randFloat() * 0.05f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
@@ -219,7 +219,7 @@ void Head::renderMohawk(bool lookingInMirror) {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
         glRotatef(-(_bodyRotation.y + _yaw) - 90, 0, 1, 0);
-        //glRotatef((lookingInMirror ? _roll: -roll), 0, 0, 1);
+        glRotatef(lookingInMirror ? _roll: -_roll, 0, 0, 1);
         glRotatef(-_pitch, 1, 0, 0);
         glBegin(GL_TRIANGLE_FAN);
         for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
