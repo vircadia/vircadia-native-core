@@ -128,7 +128,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
-        _myAvatar(true),
         _manualFirstPerson(false),
         _mouseX(0),
         _mouseY(0),
@@ -2098,9 +2097,9 @@ QAction* Application::checkedVoxelModeAction() const {
     return 0;
 }
 
-void Application::attachNewHeadToAgent(Agent *newAgent) {
+void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(false));
+        newAgent->setLinkedData(new Avatar(newAgent));
     }
 }
 

@@ -450,9 +450,9 @@ void *distributeVoxelsToListeners(void *args) {
     pthread_exit(0);
 }
 
-void attachVoxelAgentDataToAgent(Agent *newAgent) {
+void attachVoxelAgentDataToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new VoxelAgentData());
+        newAgent->setLinkedData(new VoxelAgentData(newAgent));
     }
 }
 
