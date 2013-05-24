@@ -192,9 +192,16 @@ void Head::render(bool lookingInMirror) {
 }
 
 void Head::createMohawk() {
-    //if (_owningAvatar->getOwningAgent)
-    float height = 0.05f + randFloat() * 0.10f;
-    float variance = 0.05 + randFloat() * 0.05f;
+    uint16_t agentId = 0;
+    if (_owningAvatar->getOwningAgent()) {
+        agentId = _owningAvatar->getOwningAgent()->getAgentID();
+    } else {
+        agentId = AgentList::getInstance()->getOwnerID();
+        if (agentId == UNKNOWN_AGENT_ID) return;
+    }
+    srand(agentId);
+    float height = 0.08f + randFloat() * 0.05f;
+    float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
     _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
     _mohawkColors = new glm::vec3[MOHAWK_TRIANGLES];
@@ -218,9 +225,10 @@ void Head::renderMohawk(bool lookingInMirror) {
     } else {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
-        glRotatef(-(_bodyRotation.y + _yaw) - 90, 0, 1, 0);
+        glRotatef((lookingInMirror ? (_bodyRotation.y - _yaw) : (_bodyRotation.y + _yaw)), 0, 1, 0);
         glRotatef(lookingInMirror ? _roll: -_roll, 0, 0, 1);
         glRotatef(-_pitch, 1, 0, 0);
+       
         glBegin(GL_TRIANGLE_FAN);
         for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
             glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);

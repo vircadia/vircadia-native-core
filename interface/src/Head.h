@@ -33,7 +33,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
-    void renderMohawk();
+    void renderMohawk(bool lookingInMirror);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
