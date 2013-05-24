@@ -192,17 +192,17 @@ void Head::render(bool lookingInMirror) {
 void Head::createMohawk() {
     float height = 0.05f + randFloat() * 0.10f;
     float variance = 0.05 + randFloat() * 0.05f;
-    const float RAD_PER_TRIANGLE = (2.3f + randFloat()*0.2f) / (float)MOHAWK_TRIANGLES;
+    const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
     _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
     _mohawkColors = new glm::vec3[MOHAWK_TRIANGLES];
-    _mohawkTriangleFan[0] = glm::vec3(0,0,0);
+    _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
     glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
     _mohawkColors[0] = basicColor;
     for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
         _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
-                                           height * cosf(i * RAD_PER_TRIANGLE - PI/2.f)
+                                           height * cosf(i * RAD_PER_TRIANGLE - PI / 2.f)
                                            + (randFloat()  - 0.5f) * variance,
-                                           height * sinf(i * RAD_PER_TRIANGLE - PI/2.f)
+                                           height * sinf(i * RAD_PER_TRIANGLE - PI / 2.f)
                                            + (randFloat() - 0.5f) * variance);
         _mohawkColors[i] = randFloat() * basicColor;
 
