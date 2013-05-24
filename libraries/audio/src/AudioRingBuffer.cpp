@@ -13,6 +13,7 @@
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
+    AgentData(NULL),
     _ringBufferLengthSamples(ringSamples),
     _bufferLengthSamples(bufferSamples),
     _endOfLastWrite(NULL),
@@ -20,7 +21,7 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     _shouldBeAddedToMix(false),
     _shouldLoopbackForAgent(false),
     _streamIdentifier()
-{        
+{
     _buffer = new int16_t[_ringBufferLengthSamples];
     _nextOutput = _buffer;
 };

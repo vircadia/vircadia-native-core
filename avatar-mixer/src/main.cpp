@@ -47,7 +47,7 @@ unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *
 
 void attachAvatarDataToAgent(Agent *newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new AvatarData());
+        newAgent->setLinkedData(new AvatarData(newAgent));
     }
 }
 

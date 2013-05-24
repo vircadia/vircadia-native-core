@@ -29,7 +29,7 @@ enum KeyState
 
 class AvatarData : public AgentData {
 public:
-    AvatarData();
+    AvatarData(Agent* owningAgent);
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }

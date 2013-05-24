@@ -71,7 +71,7 @@ void *receiveAgentData(void *args) {
 
 void createAvatarDataForAgent(Agent* agent) {
     if (!agent->getLinkedData()) {
-        agent->setLinkedData(new AvatarData());
+        agent->setLinkedData(new AvatarData(agent));
     }
 }
 
@@ -95,7 +95,7 @@ int main(int argc, const char* argv[]) {
     pthread_create(&receiveAgentDataThread, NULL, receiveAgentData, NULL);
     
     // create an AvatarData object, "eve"
-    AvatarData eve;
+    AvatarData eve(NULL);
     
     // move eve away from the origin
     // pick a random point inside a 10x10 grid

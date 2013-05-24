@@ -76,7 +76,7 @@ enum AvatarJointID
 
 class Avatar : public AvatarData {
 public:
-    Avatar(bool isMine);
+    Avatar(Agent* owningAgent, bool isMine);
     ~Avatar();
     
     void  reset();

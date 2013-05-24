@@ -31,7 +31,8 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
     return sizeof(uint16_t);
 }
 
-AvatarData::AvatarData() :
+AvatarData::AvatarData(Agent* owningAgent) :
+    AgentData(owningAgent),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
