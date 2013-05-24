@@ -64,31 +64,54 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 }
 
 const float BUG_VOXEL_SIZE = 0.125f / TREE_SCALE; 
-glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, BUG_VOXEL_SIZE * 30.0, 0);
+glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 10.0);
 glm::vec3 bugDirection = glm::vec3(0, 0, 1);
-const unsigned char bugColor[3] = {0, 255, 255};
-const int VOXELS_PER_BUG = 14;
-const glm::vec3 bugParts[VOXELS_PER_BUG] = {
+const int VOXELS_PER_BUG = 18;
+
+class BugPart {
+public:
+    glm::vec3       partLocation;
+    unsigned char   partColor[3];
+    
+    BugPart(const glm::vec3& location, unsigned char red, unsigned char green, unsigned char blue ) {
+        partLocation = location;
+        partColor[0] = red;
+        partColor[1] = green;
+        partColor[2] = blue;
+    }
+};
+
+const BugPart bugParts[VOXELS_PER_BUG] = {
+
+    // tail
+    BugPart(glm::vec3( 0, 0, -3), 51, 51, 153) ,
+    BugPart(glm::vec3( 0, 0, -2), 51, 51, 153) ,
+    BugPart(glm::vec3( 0, 0, -1), 51, 51, 153) ,
 
     // body
-    glm::vec3(0, 0, -3),
-    glm::vec3(0, 0, -2),
-    glm::vec3(0, 0, -1), 
-    glm::vec3(0, 0, 0),
-    glm::vec3(0, 0, 1),
-    glm::vec3(0, 0, 2),
+    BugPart(glm::vec3( 0, 0,  0), 255, 200, 0) ,
+    BugPart(glm::vec3( 0, 0,  1), 255, 200, 0) ,
+
+    // head
+    BugPart(glm::vec3( 0, 0,  2), 200, 0, 0) ,
 
     // eyes
-    glm::vec3(1, 0, 3),
-    glm::vec3(-1, 0, 3),
+    BugPart(glm::vec3( 1, 0,  3), 64, 64, 64) ,
+    BugPart(glm::vec3(-1, 0,  3), 64, 64, 64) ,
 
     // wings
-    glm::vec3(1, 0, 1),
-    glm::vec3(2, 0, 1),
-    glm::vec3(3, 0, 1),
-    glm::vec3(-1, 0, 1),
-    glm::vec3(-2, 0, 1),
-    glm::vec3(-3, 0, 1),
+    BugPart(glm::vec3( 3, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3( 2, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3( 1, 0,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-1, 0,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-2, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-3, 1,  1), 0, 153, 0) ,
+
+
+    BugPart(glm::vec3( 2, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3( 1, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3(-1, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3(-2, -1,  0), 153, 200, 0) ,
 };
 
 static void renderMovingBug() {
@@ -99,13 +122,13 @@ static void renderMovingBug() {
     // Generate voxels for where bug used to be
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
+        details[i].x = bugPosition.x + (bugParts[i].partLocation.x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
+        details[i].y = bugPosition.y + (bugParts[i].partLocation.y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
+        details[i].z = bugPosition.z + (bugParts[i].partLocation.z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
 
-        details[i].red   = bugColor[0];
-        details[i].green = bugColor[1];
-        details[i].blue  = bugColor[2];
+        details[i].red   = bugParts[i].partColor[0];
+        details[i].green = bugParts[i].partColor[1];
+        details[i].blue  = bugParts[i].partColor[2];
     }
     
     // send the "erase message" first...
@@ -141,13 +164,13 @@ static void renderMovingBug() {
     // Generate voxels for where bug is going to
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
+        details[i].x = bugPosition.x + (bugParts[i].partLocation.x * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1 : 1));
+        details[i].y = bugPosition.y + (bugParts[i].partLocation.y * BUG_VOXEL_SIZE * (bugDirection.y < 0 ? -1 : 1));
+        details[i].z = bugPosition.z + (bugParts[i].partLocation.z * BUG_VOXEL_SIZE * (bugDirection.z < 0 ? -1 : 1));
 
-        details[i].red   = bugColor[0];
-        details[i].green = bugColor[1];
-        details[i].blue  = bugColor[2];
+        details[i].red   = bugParts[i].partColor[0];
+        details[i].green = bugParts[i].partColor[1];
+        details[i].blue  = bugParts[i].partColor[2];
     }
     
     // send the "create message" ...
