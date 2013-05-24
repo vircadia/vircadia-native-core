@@ -63,8 +63,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-glm::vec3 rotatePoint(glm::vec3 point, float angle)
-{
+glm::vec3 rotatePoint(glm::vec3 point, float angle) {
     //  First, create the quaternion based on this angle of rotation
     glm::quat q(glm::vec3(0, -angle, 0));
 
