@@ -17,7 +17,7 @@
 
 class VoxelAgentData : public AvatarData {
 public:
-    VoxelAgentData();
+    VoxelAgentData(Agent* owningAgent);
     ~VoxelAgentData();
 
     void resetVoxelPacket();  // resets voxel packet to after "V" header

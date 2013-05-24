@@ -31,8 +31,8 @@ unsigned int IRIS_TEXTURE_WIDTH  = 768;
 unsigned int IRIS_TEXTURE_HEIGHT = 498;
 vector<unsigned char> irisTexture;
 
-Head::Head() :
-
+Head::Head(Avatar* owningAvatar) :
+    HeadData((AvatarData*)owningAvatar),
     yawRate(0.0f),
     _returnHeadToCenter(false),
     _audioLoudness(0.0f),
