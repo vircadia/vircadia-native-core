@@ -24,13 +24,15 @@ enum eyeContactTargets
     MOUTH
 };
 
+const int NUM_HAIR_TUFTS = 4;
+
 class Head : public HeadData {
 public:
     Head();
     
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -56,6 +58,17 @@ private:
     Head(const Head&);
     Head& operator= (const Head&);
 
+    struct HairTuft
+    {
+        float length;
+        float thickness;
+        glm::vec3 basePosition;				
+        glm::vec3 midPosition;          
+        glm::vec3 endPosition;          
+        glm::vec3 midVelocity;          
+        glm::vec3 endVelocity;          
+    };
+
     bool        _returnHeadToCenter;
     float       _audioLoudness;
     glm::vec3   _skinColor;
@@ -80,6 +93,7 @@ private:
     glm::vec3   _bodyRotation;
     glm::vec3   _headRotation;
     bool        _renderLookatVectors;
+    HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     
     // private methods
     void renderHeadSphere();
@@ -90,6 +104,8 @@ private:
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
     void determineIfLookingAtSomething();
+    void updateHair(float deltaTime);
+    void renderHair(glm::vec3 cameraPosition);
 };
 
 #endif
