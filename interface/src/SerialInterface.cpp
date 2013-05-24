@@ -15,6 +15,7 @@
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
+const int LONG_TERM_RATE_SAMPLES = 1000;            
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
@@ -136,6 +137,16 @@ void SerialInterface::renderLevels(int width, int height) {
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastPitchRate(), LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastRollRate(), LEVEL_CORNER_Y + 27);
+        // Gyro Estimated Rotation
+        glColor4f(0, 1, 1, 1);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 1);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.y, LEVEL_CORNER_Y - 1);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 14);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.z, LEVEL_CORNER_Y + 14);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 29);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.x, LEVEL_CORNER_Y + 29);
+
+        
         // Acceleration
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelX - _gravity.x)* ACCEL_VIEW_SCALING),
@@ -169,7 +180,7 @@ void convertHexToInt(unsigned char* sourceBuffer, int& destinationInt) {
     
     destinationInt = result;
 }
-void SerialInterface::readData() {
+void SerialInterface::readData(float deltaTime) {
 #ifdef __APPLE__
     
     int initialSamples = totalSamples;
@@ -207,6 +218,11 @@ void SerialInterface::readData() {
         _lastYawRate = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
         _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
         
+        //  Update raw rotation estimates
+        _estimatedRotation += deltaTime * glm::vec3(_lastRollRate - _averageGyroRates[0],
+                                                    _lastYawRate - _averageGyroRates[1],
+                                                    _lastPitchRate - _averageGyroRates[2]);
+        
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
             _averageGyroRates[0] = _lastRollRate;
@@ -216,17 +232,20 @@ void SerialInterface::readData() {
             _gravity.y = _lastAccelY;
             _gravity.z = _lastAccelZ;
 
-        }
-        else if (totalSamples < GRAVITY_SAMPLES) {
-            _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
-            1.f/(float)GRAVITY_SAMPLES * glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ);
-            
-            _averageGyroRates[0] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[0] +
-                                            1.f/(float)GRAVITY_SAMPLES * _lastRollRate;
-            _averageGyroRates[1] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[1] +
-                                            1.f/(float)GRAVITY_SAMPLES * _lastYawRate;
-            _averageGyroRates[2] =  (1.f - 1.f/(float)GRAVITY_SAMPLES) * _averageGyroRates[2] +
-                                            1.f/(float)GRAVITY_SAMPLES * _lastPitchRate;
+        } 
+        else {
+            //  Cumulate long term average to (hopefully) take DC bias out of rotation rates
+            _averageGyroRates[0] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[0] +
+            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastRollRate;
+            _averageGyroRates[1] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[1] +
+            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastYawRate;
+            _averageGyroRates[2] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[2] +
+            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastPitchRate;
+
+            if (totalSamples < GRAVITY_SAMPLES) {
+                _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
+                1.f/(float)GRAVITY_SAMPLES * glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ);
+            }
         }
         
         totalSamples++;

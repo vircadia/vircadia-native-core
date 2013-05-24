@@ -883,7 +883,7 @@ void Application::idle() {
        
         //  Read serial port interface devices
         if (_serialPort.active) {
-            _serialPort.readData();
+            _serialPort.readData(deltaTime);
         }
         
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
