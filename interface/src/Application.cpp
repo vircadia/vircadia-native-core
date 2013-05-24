@@ -1169,7 +1169,6 @@ void Application::initMenu() {
     _renderVoxels->setChecked(true);
     _renderVoxels->setShortcut(Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
-    _renderVoxelTextures->setChecked(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
     _renderStarsOn->setShortcut(Qt::Key_Asterisk);
