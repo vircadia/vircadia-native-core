@@ -31,6 +31,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
+    void renderMohawk();
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -80,8 +81,11 @@ private:
     glm::vec3   _bodyRotation;
     glm::vec3   _headRotation;
     bool        _renderLookatVectors;
+    glm::vec3*  _mohawkTriangleFan;
+    glm::vec3*  _mohawkColors;
     
     // private methods
+    void createMohawk();
     void renderHeadSphere();
     void renderEyeBalls();
     void renderEyeBrows();

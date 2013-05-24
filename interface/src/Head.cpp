@@ -10,7 +10,8 @@
 #include <lodepng.h>
 
 using namespace std;
-
+ 
+const int   MOHAWK_TRIANGLES         =  50;
 const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
@@ -55,6 +56,7 @@ Head::Head() :
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _headRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false) {
+    createMohawk();
 }
 
 void Head::reset() {
@@ -175,6 +177,7 @@ void Head::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
+    renderMohawk();
     renderHeadSphere();
     renderEyeBalls();    
     renderEars();
@@ -185,6 +188,42 @@ void Head::render(bool lookingInMirror) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
+
+void Head::createMohawk() {
+    float height = 0.05f + randFloat() * 0.10f;
+    float variance = 0.05 + randFloat() * 0.05f;
+    const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
+    _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
+    _mohawkColors = new glm::vec3[MOHAWK_TRIANGLES];
+    _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
+    glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
+    _mohawkColors[0] = basicColor;
+    for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
+        _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
+                                           height * cosf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           + (randFloat()  - 0.5f) * variance,
+                                           height * sinf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           + (randFloat() - 0.5f) * variance);
+        _mohawkColors[i] = randFloat() * basicColor;
+
+    }
+    
+}
+
+void Head::renderMohawk() {
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    glRotatef(_bodyRotation.y, 0, 1, 0);
+    glBegin(GL_TRIANGLE_FAN);
+    for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
+        glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);
+        glVertex3fv(&_mohawkTriangleFan[i].x);
+        glNormal3fv(&_mohawkColors[i].x);
+    }
+    glEnd();
+    glPopMatrix();
+}
+
 
 void Head::renderHeadSphere() {
     glPushMatrix();
