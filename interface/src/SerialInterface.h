@@ -38,7 +38,8 @@ class SerialInterface {
 public:
     SerialInterface() : active(false),
                         _gravity(0,0,0),
-                        _averageGyroRates(0,0,0),
+                        _averageGyroRates(0, 0, 0),
+                        _estimatedRotation(0, 0, 0),
                         _lastAccelX(0),
                         _lastAccelY(0),
                         _lastAccelZ(0),
@@ -47,7 +48,7 @@ public:
                         _lastRollRate(0) {}
     
     void pair();
-    void readData();
+    void readData(float deltaTime);
     
     float getLastYawRate() const { return _lastYawRate - _averageGyroRates[1]; }
     float getLastPitchRate() const { return _lastPitchRate - _averageGyroRates[2]; }
@@ -68,6 +69,7 @@ private:
     timeval lastGoodRead;
     glm::vec3 _gravity;
     glm::vec3 _averageGyroRates;
+    glm::vec3 _estimatedRotation;
     float _lastAccelX;
     float _lastAccelY;
     float _lastAccelZ;

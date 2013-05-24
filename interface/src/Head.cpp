@@ -8,6 +8,7 @@
 #include "Util.h"
 #include <vector>
 #include <lodepng.h>
+#include <AgentList.h>
 
 using namespace std;
  
@@ -55,8 +56,10 @@ Head::Head() :
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _headRotation(0.0f, 0.0f, 0.0f),
-    _renderLookatVectors(false) {
-    createMohawk();
+    _renderLookatVectors(false),
+    _mohawkTriangleFan(NULL),
+    _mohawkColors(NULL)
+{
 }
 
 void Head::reset() {
@@ -190,6 +193,7 @@ void Head::render(bool lookingInMirror) {
 }
 
 void Head::createMohawk() {
+//    int agentId = AgentList::getInstance()
     float height = 0.05f + randFloat() * 0.10f;
     float variance = 0.05 + randFloat() * 0.05f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
@@ -207,21 +211,24 @@ void Head::createMohawk() {
         _mohawkColors[i] = randFloat() * basicColor;
 
     }
-    
 }
 
 void Head::renderMohawk() {
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-    glRotatef(_bodyRotation.y, 0, 1, 0);
-    glBegin(GL_TRIANGLE_FAN);
-    for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
-        glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);
-        glVertex3fv(&_mohawkTriangleFan[i].x);
-        glNormal3fv(&_mohawkColors[i].x);
+    if (!_mohawkTriangleFan) {
+        createMohawk();
+    } else {
+        glPushMatrix();
+        glTranslatef(_position.x, _position.y, _position.z);
+        glRotatef(_bodyRotation.y, 0, 1, 0);
+        glBegin(GL_TRIANGLE_FAN);
+        for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
+            glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);
+            glVertex3fv(&_mohawkTriangleFan[i].x);
+            glNormal3fv(&_mohawkColors[i].x);
+        }
+        glEnd();
+        glPopMatrix();
     }
-    glEnd();
-    glPopMatrix();
 }
 
 

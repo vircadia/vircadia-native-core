@@ -67,7 +67,7 @@ float lightBlue    [] = {0.7, 0.8,  1.0 };
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
-float chatMessageHeight = 0.10;
+float chatMessageHeight = 0.20;
 
 Avatar::Avatar(bool isMine) :
     _isMine(isMine),
@@ -1135,7 +1135,7 @@ void Avatar::renderBody(bool lookingInMirror) {
         float distanceToCamera = glm::length(getCameraPosition() - _joint[b].position);
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (lookingInMirror || !_isMine || distanceToCamera > RENDER_OPAQUE_BEYOND) {
+            if (lookingInMirror || !_isMine || distanceToCamera > RENDER_TRANSLUCENT_BEYOND) {
                 _head.render(lookingInMirror);
             }
         } else if (!_isMine || distanceToCamera > RENDER_TRANSLUCENT_BEYOND) {
