@@ -64,13 +64,16 @@ Head::Head() :
     _renderLookatVectors(false) {
     
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-            _hairTuft[t].length       = HAIR_LENGTH;
-            _hairTuft[t].thickness    = HAIR_THICKNESS;
+            _hairTuft[t].length        = HAIR_LENGTH;
+            _hairTuft[t].thickness     = HAIR_THICKNESS;
+            _hairTuft[t].basePosition  = glm::vec3(0.0f, 0.0f, 0.0f);					
+            //_hairTuft[t].baseDirection = glm::vec3(0.0f, 1.0f, 0.0f);					
+
             _hairTuft[t].basePosition = glm::vec3(0.0f, 0.0f, 0.0f);			
             _hairTuft[t].midPosition  = glm::vec3(0.0f, 0.0f, 0.0f);			
             _hairTuft[t].endPosition  = glm::vec3(0.0f, 0.0f, 0.0f);	
             _hairTuft[t].midVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);			
-            _hairTuft[t].endVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);	
+            _hairTuft[t].endVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);
         }
 }
 
@@ -79,6 +82,7 @@ void Head::reset() {
     _leanForward = _leanSideways = 0.0f;
     
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
+        
         _hairTuft[t].basePosition = _position + _orientation.getUp() * _scale * 0.9f;
         _hairTuft[t].midPosition  = _hairTuft[t].basePosition + _orientation.getUp() * _hairTuft[t].length * ONE_HALF;			
         _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + _orientation.getUp() * _hairTuft[t].length * ONE_HALF;			
@@ -564,7 +568,6 @@ void Head::renderHair(glm::vec3 cameraPosition) {
 
         glm::vec3 base1 = _hairTuft[t].basePosition - basePerpendicular * _hairTuft[t].thickness * ONE_HALF;
         glm::vec3 base2 = _hairTuft[t].basePosition + basePerpendicular * _hairTuft[t].thickness * ONE_HALF;
-
         glm::vec3 mid1  = _hairTuft[t].midPosition  - midPerpendicular  * _hairTuft[t].thickness * ONE_HALF * ONE_HALF;
         glm::vec3 mid2  = _hairTuft[t].midPosition  + midPerpendicular  * _hairTuft[t].thickness * ONE_HALF * ONE_HALF;
         
@@ -587,8 +590,4 @@ void Head::renderHair(glm::vec3 cameraPosition) {
         glEnd();
     }
 }
-
-
-
-
 

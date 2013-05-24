@@ -24,7 +24,8 @@ enum eyeContactTargets
     MOUTH
 };
 
-const int NUM_HAIR_TUFTS = 4;
+const int NUM_HAIR_TUFTS    = 4;
+const int NUM_HAIR_SEGMENTS = 4;
 
 class Head : public HeadData {
 public:
@@ -62,11 +63,12 @@ private:
     {
         float length;
         float thickness;
+        
         glm::vec3 basePosition;				
         glm::vec3 midPosition;          
         glm::vec3 endPosition;          
         glm::vec3 midVelocity;          
-        glm::vec3 endVelocity;          
+        glm::vec3 endVelocity;  
     };
 
     bool        _returnHeadToCenter;
