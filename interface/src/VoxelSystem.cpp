@@ -372,7 +372,10 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
         _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
-    }    
+    } else {
+        node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+    }
+    
     return 0; // not-rendered
 }
 
@@ -978,6 +981,7 @@ public:
         shouldRenderNodes(0),
         coloredNodes(0),
         nodesInVBO(0),
+        nodesInVBONotShouldRender(0),
         nodesInVBOOverExpectedMax(0),
         duplicateVBOIndex(0),
         leafNodes(0)
@@ -990,6 +994,7 @@ public:
     unsigned long shouldRenderNodes;
     unsigned long coloredNodes;
     unsigned long nodesInVBO;
+    unsigned long nodesInVBONotShouldRender;
     unsigned long nodesInVBOOverExpectedMax;
     unsigned long duplicateVBOIndex;
     unsigned long leafNodes;
@@ -1032,6 +1037,11 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
         if (nodeIndex > args->expectedMax) {
             args->nodesInVBOOverExpectedMax++;
         }
+        
+        // if it's in VBO but not-shouldRender, track that also...
+        if (!node->getShouldRender()) {
+            args->nodesInVBONotShouldRender++;
+        }
     }
 
     return true; // keep going!
@@ -1060,8 +1070,8 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
-        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex);
+    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld, nodesInVBONotShouldRender %ld\n", 
+        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxInVBO = 0;
