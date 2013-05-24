@@ -57,7 +57,8 @@ Head::Head() :
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _headRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
-    _mohawkExists(false)
+    _mohawkTriangleFan(NULL),
+    _mohawkColors(NULL)
 {
 }
 
@@ -210,11 +211,10 @@ void Head::createMohawk() {
         _mohawkColors[i] = randFloat() * basicColor;
 
     }
-    _mohawkExists = true; 
 }
 
 void Head::renderMohawk() {
-    if (!_mohawkExists) {
+    if (!_mohawkTriangleFan) {
         createMohawk();
     } else {
         glPushMatrix();
