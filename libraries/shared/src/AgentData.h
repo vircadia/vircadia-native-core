@@ -14,8 +14,11 @@ class Agent;
 class AgentData {
 public:
     AgentData(Agent* owningAgent);
+    
     virtual ~AgentData() = 0;
     virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
+    
+    Agent* getOwningAgent() { return _owningAgent; }
 protected:
     Agent* _owningAgent;
 };
