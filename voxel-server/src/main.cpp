@@ -45,7 +45,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -450,9 +450,9 @@ void *distributeVoxelsToListeners(void *args) {
     pthread_exit(0);
 }
 
-void attachVoxelAgentDataToAgent(Agent *newAgent) {
+void attachVoxelAgentDataToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new VoxelAgentData());
+        newAgent->setLinkedData(new VoxelAgentData(newAgent));
     }
 }
 
@@ -562,12 +562,13 @@ int main(int argc, const char * argv[]) {
     environmentData[1].setGravity(1.0f);
     environmentData[1].setAtmosphereCenter(glm::vec3(0.5, 0.5, (0.25 - 0.06125)) * (float)TREE_SCALE);
     environmentData[1].setAtmosphereInnerRadius(0.030625f * TREE_SCALE);
-    environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.025f);
+    environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.05f);
     environmentData[2].setID(2);
     environmentData[2].setGravity(1.0f);
     environmentData[2].setAtmosphereCenter(glm::vec3(0.5f, 0.5f, 0.5f) * (float)TREE_SCALE);
     environmentData[2].setAtmosphereInnerRadius(0.1875f * TREE_SCALE);
-    environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.025f);
+    environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.05f);
+    environmentData[2].setScatteringWavelengths(glm::vec3(0.475f, 0.570f, 0.650f)); // swaps red and blue
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);

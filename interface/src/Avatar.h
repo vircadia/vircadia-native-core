@@ -76,7 +76,7 @@ enum AvatarJointID
 
 class Avatar : public AvatarData {
 public:
-    Avatar(bool isMine);
+    Avatar(Agent* owningAgent = NULL);
     ~Avatar();
     
     void  reset();
@@ -151,7 +151,6 @@ private:
     };
 
     Head        _head;
-    bool        _isMine;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;

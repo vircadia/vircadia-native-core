@@ -67,10 +67,11 @@ float lightBlue    [] = {0.7, 0.8,  1.0 };
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
-float chatMessageHeight = 0.10;
+float chatMessageHeight = 0.20;
 
-Avatar::Avatar(bool isMine) :
-    _isMine(isMine),
+Avatar::Avatar(Agent* owningAgent) :
+    AvatarData(owningAgent),
+    _head(this),
     _TEST_bigSphereRadius(0.4f),
     _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
     _mousePressed(false),
@@ -230,7 +231,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 	updateSkeleton();
 	
     //detect and respond to collisions with other avatars... 
-    if (_isMine) {
+    if (!_owningAgent) {
         updateAvatarCollisions(deltaTime);
     }
     
@@ -240,7 +241,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _avatarTouch.simulate(deltaTime);        
     
     // apply gravity and collision with the ground/floor
-    if (_isMine && USING_AVATAR_GRAVITY) {
+    if (!_owningAgent && USING_AVATAR_GRAVITY) {
         _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
         
         updateCollisionWithEnvironment();
@@ -255,12 +256,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // collision response with voxels
-    if (_isMine) {
+    if (!_owningAgent) {
         updateCollisionWithVoxels();
     }
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
-    if (_isMine) {
+    if (!_owningAgent) {
         
         _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
         
@@ -305,7 +306,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 	}
         
     // update body yaw by body yaw delta
-    if (_isMine) {
+    if (!_owningAgent) {
         _bodyPitch += _bodyPitchDelta * deltaTime;
         _bodyYaw   += _bodyYawDelta   * deltaTime;
         _bodyRoll  += _bodyRollDelta  * deltaTime;
@@ -366,7 +367,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // If another avatar is near, dampen velocity as a function of closeness
-    if (_isMine && (_distanceToNearestAvatar < PERIPERSONAL_RADIUS)) {    
+    if (!_owningAgent && (_distanceToNearestAvatar < PERIPERSONAL_RADIUS)) {
         float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
         float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
         if ( drag > 0.0f ) {
@@ -415,7 +416,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
      }
 
     // set head lookat position 
-    if (_isMine) {
+    if (!_owningAgent) {
         if (_interactingOther) {
             _head.setLookAtPosition(_interactingOther->caclulateAverageEyePosition());
         } else {
@@ -428,7 +429,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
     _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
-    _head.simulate(deltaTime, _isMine);
+    _head.simulate(deltaTime, !_owningAgent);
     
     // use speed and angular velocity to determine walking vs. standing                                
 	if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -467,7 +468,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
             
-    if (_isMine) {
+    if (!_owningAgent) {
         _avatarTouch.setMyBodyPosition(_position);
                 
         float closestDistance = std::numeric_limits<float>::max();
@@ -559,7 +560,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     updateArmIKAndConstraints(deltaTime);
     
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
-    if (_isMine) {
+    if (!_owningAgent) {
         setHandPosition(_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
      
         if (_mousePressed) {
@@ -730,7 +731,7 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     
     _cameraPosition = cameraPosition;
     
-    if (_isMine && usingBigSphereCollisionTest) {
+    if (!_owningAgent && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
         glPushMatrix();
@@ -747,8 +748,8 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
     renderBody(lookingInMirror);
     
     // if this is my avatar, then render my interactions with the other avatar
-    if (_isMine) {			
-        _avatarTouch.render(_cameraPosition);
+    if (!_owningAgent) {
+        _avatarTouch.render(getCameraPosition());
     }
     
     //  Render the balls
@@ -840,6 +841,8 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].parent = AVATAR_JOINT_CHEST;
     _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].parent = AVATAR_JOINT_RIGHT_COLLAR;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].parent = AVATAR_JOINT_RIGHT_SHOULDER;
+    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].parent = AVATAR_JOINT_RIGHT_ELBOW;
+    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].parent = AVATAR_JOINT_RIGHT_WRIST;
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].parent = AVATAR_JOINT_PELVIS;
     _joint[ AVATAR_JOINT_LEFT_KNEE		  ].parent = AVATAR_JOINT_LEFT_HIP;
     _joint[ AVATAR_JOINT_LEFT_HEEL		  ].parent = AVATAR_JOINT_LEFT_KNEE;
@@ -1002,7 +1005,7 @@ void Avatar::updateSkeleton() {
         }
         
         // if this is not my avatar, then hand position comes from transmitted data
-        if (! _isMine) {
+        if (_owningAgent) {
             _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
         }
         
@@ -1138,12 +1141,17 @@ void Avatar::renderBody(bool lookingInMirror) {
         float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (lookingInMirror || !_isMine || distanceToCamera > RENDER_OPAQUE_BEYOND) {
+            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
                 _head.render(lookingInMirror, _cameraPosition);
             }
-        } else if (!_isMine || distanceToCamera > RENDER_TRANSLUCENT_BEYOND) {
+        } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
+                   || b == AVATAR_JOINT_RIGHT_ELBOW
+                   || b == AVATAR_JOINT_RIGHT_WRIST
+                   || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
             //  Render the sphere at the joint
-            if (!_isMine) {
+            if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
+                             || b == AVATAR_JOINT_RIGHT_WRIST
+                             || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
                 glColor3f(skinColor[0] + _joint[b].touchForce * 0.3f,
                           skinColor[1] - _joint[b].touchForce * 0.2f,
                           skinColor[2] - _joint[b].touchForce * 0.1f);

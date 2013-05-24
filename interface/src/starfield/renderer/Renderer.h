@@ -116,19 +116,6 @@ namespace starfield {
 
             float halfPersp = perspective * 0.5f;
 
-            // define diagonal and near distance
-            float halfDiag = std::sin(halfPersp);
-            float nearClip = std::cos(halfPersp);
-            
-            // determine half dimensions based on the screen diagonal
-            //
-            //  ww + hh = dd
-            //  a = w / h => w = ha
-            //  hh + hh aa = dd
-            //  hh = dd / (1 + aa)
-            float hh = sqrt(halfDiag * halfDiag / (1.0f + aspect * aspect));
-            float hw = hh * aspect;
-
             // cancel all translation
             mat4 matrix = orientation;
             matrix[3][0] = 0.0f;
@@ -149,15 +136,14 @@ namespace starfield {
 #endif
 
 #if STARFIELD_DEBUG_CULLING
-            mat4 matrix_debug = glm::translate(glm::frustum(-hw, hw, -hh, hh, nearClip, 10.0f), 
-                                               vec3(0.0f, 0.0f, -4.0f)) *
+            mat4 matrix_debug = glm::translate(vec3(0.0f, 0.0f, -4.0f)) *
                     glm::affineInverse(matrix);
 #endif
 
-            matrix = glm::frustum(-hw,hw, -hh,hh, nearClip,10.0f) * glm::affineInverse(matrix); 
+            matrix = glm::affineInverse(matrix); 
 
             this->_outIndexPos = (unsigned*) _batchOffs;
-            this->_wRowVec = vec3(row(matrix, 3));
+            this->_wRowVec = -vec3(row(matrix, 2));
             this->_halfPerspectiveAngle = halfPersp;
             this->_minBright = minBright;
 
@@ -498,13 +484,7 @@ namespace starfield {
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_LIGHTING);
 
-            // setup modelview matrix (identity)
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-            glLoadIdentity();
-
-            // set projection matrix
-            glMatrixMode(GL_PROJECTION);
+            // setup modelview matrix
             glPushMatrix();
             glLoadMatrixf(matrix);
 
@@ -529,8 +509,7 @@ namespace starfield {
             _program.release();
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glDisable(GL_POINT_SMOOTH);
-            glPopMatrix();
-            glMatrixMode(GL_MODELVIEW);
+
             glPopMatrix();
         }
 

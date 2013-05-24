@@ -8,4 +8,10 @@
 
 #include "AgentData.h"
 
+AgentData::AgentData(Agent* owningAgent) :
+    _owningAgent(owningAgent)
+{
+    
+}
+
 AgentData::~AgentData() {}

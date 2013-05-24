@@ -27,18 +27,20 @@ enum eyeContactTargets
 const int NUM_HAIR_TUFTS    = 4;
 const int NUM_HAIR_SEGMENTS = 4;
 
+class Avatar;
+
 class Head : public HeadData {
 public:
-    Head();
+    Head(Avatar* owningAvatar);
     
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void renderMohawk(bool lookingInMirror);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
     void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
-    void setRotationOffBody(glm::vec3 headRotation      ) { _headRotation       = headRotation;       }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
     void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
@@ -93,11 +95,13 @@ private:
     float       _returnSpringScale; //strength of return springs
     Orientation _orientation;
     glm::vec3   _bodyRotation;
-    glm::vec3   _headRotation;
     bool        _renderLookatVectors;
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
+    glm::vec3*  _mohawkTriangleFan;
+    glm::vec3*  _mohawkColors;
     
     // private methods
+    void createMohawk();
     void renderHeadSphere();
     void renderEyeBalls();
     void renderEyeBrows();
