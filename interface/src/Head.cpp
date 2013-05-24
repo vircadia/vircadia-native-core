@@ -229,7 +229,7 @@ void Head::renderMohawk(bool lookingInMirror) {
         glTranslatef(_position.x, _position.y, _position.z);
         glRotatef((lookingInMirror ? (_bodyRotation.y - _yaw) : (_bodyRotation.y + _yaw)), 0, 1, 0);
         glRotatef(lookingInMirror ? _roll: -_roll, 0, 0, 1);
-        glRotatef(-_pitch, 1, 0, 0);
+        glRotatef(-_pitch - _bodyRotation.x, 1, 0, 0);
        
         glBegin(GL_TRIANGLE_FAN);
         for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
