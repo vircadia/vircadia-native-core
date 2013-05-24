@@ -68,7 +68,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
-        _headData = new HeadData();
+        _headData = new HeadData(this);
     }
     
     // Body world position
@@ -149,7 +149,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
-        _headData = new HeadData();
+        _headData = new HeadData(this);
     }
 
     // increment to push past the packet header

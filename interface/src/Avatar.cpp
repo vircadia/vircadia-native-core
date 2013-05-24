@@ -71,6 +71,7 @@ float chatMessageHeight = 0.10;
 
 Avatar::Avatar(Agent* owningAgent, bool isMine) :
     AvatarData(owningAgent),
+    _head(this),
     _isMine(isMine),
     _TEST_bigSphereRadius(0.4f),
     _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),

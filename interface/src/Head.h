@@ -24,9 +24,11 @@ enum eyeContactTargets
     MOUTH
 };
 
+class Avatar;
+
 class Head : public HeadData {
 public:
-    Head();
+    Head(Avatar* owningAvatar);
     
     void reset();
     void simulate(float deltaTime, bool isMine);
