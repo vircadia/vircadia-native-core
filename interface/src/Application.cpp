@@ -1002,6 +1002,7 @@ void Application::setNoise(bool noise) {
 void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    updateCursor();
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
@@ -1010,6 +1011,7 @@ void Application::setRenderFirstPerson(bool firstPerson) {
 
 void Application::setOculus(bool oculus) {
     resizeGL(_glWidget->width(), _glWidget->height());
+    updateCursor();
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -2078,6 +2080,11 @@ static void setShortcutsEnabled(QWidget* widget, bool enabled) {
 
 void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
+}
+
+void Application::updateCursor() {
+    _glWidget->setCursor(_oculusOn->isChecked() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
+        Qt::BlankCursor : Qt::ArrowCursor);
 }
 
 // when QActionGroup is set to non-exclusive, it doesn't return anything as checked;

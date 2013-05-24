@@ -128,6 +128,8 @@ private:
     
     void setMenuShortcutsEnabled(bool enabled);
     
+    void updateCursor();
+    
     QAction* checkedVoxelModeAction() const;
     
     static void attachNewHeadToAgent(Agent *newAgent);
