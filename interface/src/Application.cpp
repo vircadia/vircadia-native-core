@@ -351,9 +351,8 @@ void Application::paintGL() {
         whichCamera = _viewFrustumOffsetCamera;
     }        
 
-    if (_oculusOn->isChecked()) {
+    if (OculusManager::isConnected()) {
         displayOculus(whichCamera);
-        
     } else {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -376,7 +375,7 @@ void Application::resizeGL(int width, int height) {
     float farClip = camera.getFarClip();
     float fov;
 
-    if (_oculusOn->isChecked()) {
+    if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
         camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PI));
@@ -1008,11 +1007,6 @@ void Application::setRenderFirstPerson(bool firstPerson) {
     _manualFirstPerson = firstPerson;    
 }
 
-void Application::setOculus(bool oculus) {
-    resizeGL(_glWidget->width(), _glWidget->height());
-    updateCursor();
-}
-
 void Application::setFrustumOffset(bool frustumOffset) {
     // reshape so that OpenGL will get the right lens details for the camera of choice  
     resizeGL(_glWidget->width(), _glWidget->height());
@@ -1163,7 +1157,7 @@ void Application::initMenu() {
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
 
-    optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
+    (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
@@ -1184,8 +1178,6 @@ void Application::initMenu() {
     _renderLookatOn->setChecked(false);
     
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
-
-    (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     
@@ -1301,6 +1293,9 @@ void Application::init() {
     QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
+    if (OculusManager::isConnected()) {
+        QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
+    }
     
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
@@ -2082,7 +2077,7 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateCursor() {
-    _glWidget->setCursor(_oculusOn->isChecked() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
+    _glWidget->setCursor(OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
         Qt::BlankCursor : Qt::ArrowCursor);
 }
 

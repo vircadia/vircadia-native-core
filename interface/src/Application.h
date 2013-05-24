@@ -78,7 +78,6 @@ private slots:
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
-    void setOculus(bool oculus);
     
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
@@ -147,8 +146,7 @@ private:
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
-    QAction* _renderAvatarsOn;       // Whether to render avatars 
-    QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
+    QAction* _renderAvatarsOn;       // Whether to render avatars
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
@@ -161,7 +159,8 @@ private:
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
-    QAction* _cameraFrustum;         // which frustum to look at 
+    QAction* _cameraFrustum;         // which frustum to look at
+    QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     
     SerialInterface _serialPort;
