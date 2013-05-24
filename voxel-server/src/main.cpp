@@ -45,7 +45,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -450,9 +450,9 @@ void *distributeVoxelsToListeners(void *args) {
     pthread_exit(0);
 }
 
-void attachVoxelAgentDataToAgent(Agent *newAgent) {
+void attachVoxelAgentDataToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new VoxelAgentData());
+        newAgent->setLinkedData(new VoxelAgentData(newAgent));
     }
 }
 

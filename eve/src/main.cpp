@@ -71,7 +71,7 @@ void *receiveAgentData(void *args) {
 
 void createAvatarDataForAgent(Agent* agent) {
     if (!agent->getLinkedData()) {
-        agent->setLinkedData(new AvatarData());
+        agent->setLinkedData(new AvatarData(agent));
     }
 }
 
