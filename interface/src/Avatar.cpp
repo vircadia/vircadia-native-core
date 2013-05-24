@@ -300,7 +300,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                            deltaTime *
                            _orientation.getUp();
             }
-            
         }
 	}
         
@@ -381,11 +380,28 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float ACCELERATION_PITCH_DECAY = 0.4f;
     const float ACCELERATION_YAW_DECAY = 0.4f;
     
+    const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
+    const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
+    
     // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
     // you start moving, but don't do this with an HMD like the Oculus. 
     if (!OculusManager::isConnected()) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
         _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
+    } else if (fabsf(acceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
+               && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
+        // if we're wearing the oculus
+        // and this acceleration is above the pull threshold
+        // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
+        
+        // match the body yaw to the oculus yaw
+        _bodyYaw = getAbsoluteHeadYaw();
+        
+        // set the head yaw to zero for this draw
+        _head.setYaw(0);
+        
+        // correct the oculus yaw offset
+        OculusManager::updateYawOffset();
     }
 
     //apply the head lean values to the springy position...
