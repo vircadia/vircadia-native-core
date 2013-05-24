@@ -67,7 +67,7 @@ float lightBlue    [] = {0.7, 0.8,  1.0 };
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
-float chatMessageHeight = 0.10;
+float chatMessageHeight = 0.20;
 
 Avatar::Avatar(bool isMine) :
     _isMine(isMine),
