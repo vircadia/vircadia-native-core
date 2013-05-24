@@ -11,8 +11,8 @@
 #include <cstring>
 #include <cstdio>
 
-VoxelAgentData::VoxelAgentData() :
-    AvatarData(NULL),
+VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
+    AvatarData(owningAgent),
     _viewSent(false),
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
