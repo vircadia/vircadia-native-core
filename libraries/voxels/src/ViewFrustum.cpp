@@ -27,12 +27,10 @@ ViewFrustum::ViewFrustum() :
     _aspectRatio(1.0),
     _nearClip(0.1),
     _farClip(500.0),
-    _farCenter(glm::vec3(0,0,0)),
     _farTopLeft(glm::vec3(0,0,0)),
     _farTopRight(glm::vec3(0,0,0)),
     _farBottomLeft(glm::vec3(0,0,0)),
     _farBottomRight(glm::vec3(0,0,0)),
-    _nearCenter(glm::vec3(0,0,0)),
     _nearTopLeft(glm::vec3(0,0,0)),
     _nearTopRight(glm::vec3(0,0,0)),
     _nearBottomLeft(glm::vec3(0,0,0)),
@@ -123,8 +121,6 @@ void ViewFrustum::dump() const {
     printLog("eyeOffsetOrientation=%f,%f,%f,%f\n", _eyeOffsetOrientation.x, _eyeOffsetOrientation.y,
         _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
 
-    printLog("farCenter.x=%f,      farCenter.y=%f,      farCenter.z=%f\n",
-        _farCenter.x, _farCenter.y, _farCenter.z);
     printLog("farTopLeft.x=%f,     farTopLeft.y=%f,     farTopLeft.z=%f\n",
         _farTopLeft.x, _farTopLeft.y, _farTopLeft.z);
     printLog("farTopRight.x=%f,    farTopRight.y=%f,    farTopRight.z=%f\n",
@@ -134,8 +130,6 @@ void ViewFrustum::dump() const {
     printLog("farBottomRight.x=%f, farBottomRight.y=%f, farBottomRight.z=%f\n",
         _farBottomRight.x, _farBottomRight.y, _farBottomRight.z);
 
-    printLog("nearCenter.x=%f,      nearCenter.y=%f,      nearCenter.z=%f\n",
-        _nearCenter.x, _nearCenter.y, _nearCenter.z);
     printLog("nearTopLeft.x=%f,     nearTopLeft.y=%f,     nearTopLeft.z=%f\n",
         _nearTopLeft.x, _nearTopLeft.y, _nearTopLeft.z);
     printLog("nearTopRight.x=%f,    nearTopRight.y=%f,    nearTopRight.z=%f\n",
