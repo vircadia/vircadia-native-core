@@ -80,6 +80,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f, 0.0f),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
@@ -726,7 +727,9 @@ void Avatar::setGravity(glm::vec3 gravity) {
     _head.setGravity(_gravity);
 }
 
-void Avatar::render(bool lookingInMirror) {
+void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
+    
+    _cameraPosition = cameraPosition;
     
     if (!_owningAgent && usingBigSphereCollisionTest) {
         // show TEST big sphere
@@ -1135,11 +1138,11 @@ void Avatar::renderBody(bool lookingInMirror) {
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        float distanceToCamera = glm::length(getCameraPosition() - _joint[b].position);
+        float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
-                _head.render(lookingInMirror);
+                _head.render(lookingInMirror, _cameraPosition);
             }
         } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
                    || b == AVATAR_JOINT_RIGHT_ELBOW

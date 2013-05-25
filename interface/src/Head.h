@@ -24,6 +24,9 @@ enum eyeContactTargets
     MOUTH
 };
 
+const int NUM_HAIR_TUFTS    = 4;
+const int NUM_HAIR_SEGMENTS = 4;
+
 class Avatar;
 
 class Head : public HeadData {
@@ -32,7 +35,7 @@ public:
     
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition);
     void renderMohawk(bool lookingInMirror);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
@@ -58,6 +61,18 @@ private:
     Head(const Head&);
     Head& operator= (const Head&);
 
+    struct HairTuft
+    {
+        float length;
+        float thickness;
+        
+        glm::vec3 basePosition;				
+        glm::vec3 midPosition;          
+        glm::vec3 endPosition;          
+        glm::vec3 midVelocity;          
+        glm::vec3 endVelocity;  
+    };
+
     bool        _returnHeadToCenter;
     float       _audioLoudness;
     glm::vec3   _skinColor;
@@ -81,6 +96,7 @@ private:
     Orientation _orientation;
     glm::vec3   _bodyRotation;
     bool        _renderLookatVectors;
+    HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     
@@ -94,6 +110,8 @@ private:
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
     void determineIfLookingAtSomething();
+    void updateHair(float deltaTime);
+    void renderHair(glm::vec3 cameraPosition);
 };
 
 #endif
