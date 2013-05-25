@@ -28,8 +28,8 @@ const float HAIR_SPRING_FORCE        =  10.0f;
 const float HAIR_TORQUE_FORCE        =  0.1f;
 const float HAIR_GRAVITY_FORCE       =  0.05f;
 const float HAIR_DRAG                =  10.0f;
-const float HAIR_LENGTH              =  0.06f;
-const float HAIR_THICKNESS           =  0.02f;
+const float HAIR_LENGTH              =  0.09f;
+const float HAIR_THICKNESS           =  0.03f;
 const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
@@ -65,12 +65,11 @@ Head::Head(Avatar* owningAvatar) :
     _mohawkTriangleFan(NULL),
     _mohawkColors(NULL),
     _renderLookatVectors(false) {
-    
+
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
             _hairTuft[t].length        = HAIR_LENGTH;
             _hairTuft[t].thickness     = HAIR_THICKNESS;
             _hairTuft[t].basePosition  = glm::vec3(0.0f, 0.0f, 0.0f);					
-            //_hairTuft[t].baseDirection = glm::vec3(0.0f, 1.0f, 0.0f);					
 
             _hairTuft[t].basePosition = glm::vec3(0.0f, 0.0f, 0.0f);			
             _hairTuft[t].midPosition  = glm::vec3(0.0f, 0.0f, 0.0f);			
@@ -240,6 +239,7 @@ void Head::createMohawk() {
     _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
     glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
     _mohawkColors[0] = basicColor;
+        
     for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
         _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
                                            height * cosf(i * RAD_PER_TRIANGLE - PI / 2.f)
