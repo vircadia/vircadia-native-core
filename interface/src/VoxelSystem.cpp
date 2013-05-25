@@ -160,13 +160,15 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     double sinceLastViewCulling = (start - _lastViewCulling) / 1000.0;
-    // If the view frustum has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) && hasViewChanged()) {
+    // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
+    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) 
+            && !isViewChanging() && hasViewChanged()) {
         _lastViewCulling = start;
 
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
+printLog("CALLING---removeOutOfView(); sinceLastViewCulling=%lf \n",sinceLastViewCulling);
         removeOutOfView();
         
         // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
@@ -883,11 +885,29 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     return true; // keep going!
 }
 
-bool VoxelSystem::hasViewChanged() {
+
+bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
+    // If our viewFrustum has changed since our _lastKnowViewFrustum
     if (_viewFrustum && !_lastKnowViewFrustum.matches(_viewFrustum)) {
         result = true;
         _lastKnowViewFrustum = *_viewFrustum; // save last known
+    }
+    return result;
+}
+
+bool VoxelSystem::hasViewChanged() {
+    bool result = false; // assume the best
+    
+    // If we're still changing, report no change yet.
+    if (isViewChanging()) {
+        return false;
+    }
+    
+    // If our viewFrustum has changed since our _lastKnowViewFrustum
+    if (_viewFrustum && !_lastStableViewFrustum.matches(_viewFrustum)) {
+        result = true;
+        _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
     return result;
 }
