@@ -168,7 +168,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
-printLog("CALLING---removeOutOfView(); sinceLastViewCulling=%lf \n",sinceLastViewCulling);
         removeOutOfView();
         
         // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
