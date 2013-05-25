@@ -21,12 +21,15 @@ public:
     static bool isConnected() { return _isConnected; }
     
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
+    
+    static void updateYawOffset();
 private:    
     static bool _isConnected;
     static Ptr<DeviceManager> _deviceManager;
     static Ptr<HMDDevice> _hmdDevice;
     static Ptr<SensorDevice> _sensorDevice;
     static SensorFusion _sensorFusion;
+    static float _yawOffset;
 };
 
 #endif /* defined(__hifi__OculusManager__) */
