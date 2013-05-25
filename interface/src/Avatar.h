@@ -76,7 +76,7 @@ enum AvatarJointID
 
 class Avatar : public AvatarData {
 public:
-    Avatar(bool isMine);
+    Avatar(Agent* owningAgent = NULL);
     ~Avatar();
     
     void  reset();
@@ -107,7 +107,7 @@ public:
     Head& getHead() { return _head; }
     
     void setMousePressed(bool pressed); 
-    void render(bool lookingInMirror);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition);
     void renderBody(bool lookingInMirror);
     void simulate(float deltaTime, Transmitter* transmitter);
     void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
@@ -151,7 +151,6 @@ private:
     };
 
     Head        _head;
-    bool        _isMine;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;
@@ -162,6 +161,7 @@ private:
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
     AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
     AvatarMode  _mode;
+    glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
     glm::vec3	_thrust;

@@ -44,7 +44,7 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z- .
                               10,11,15, 10,15,14, // Y+
                               4,5,6,    4,6,7 };  // Z+ .
 
-VoxelSystem::VoxelSystem() {
+VoxelSystem::VoxelSystem() : AgentData(NULL) {
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;

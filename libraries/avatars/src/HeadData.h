@@ -20,9 +20,11 @@ const float MAX_HEAD_PITCH = 60;
 const float MIN_HEAD_ROLL = -50;
 const float MAX_HEAD_ROLL = 50;
 
+class AvatarData;
+
 class HeadData {
 public:
-    HeadData();
+    HeadData(AvatarData* owningAvatar);
     
     float getLeanSideways() const { return _leanSideways; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
@@ -55,6 +57,7 @@ protected:
     glm::vec3 _lookAtPosition;
     float _leanSideways;
     float _leanForward;
+    AvatarData* _owningAvatar;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HeadData(const HeadData&);

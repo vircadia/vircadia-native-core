@@ -37,6 +37,8 @@
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <AudioInjectionManager.h>
+#include <AudioInjector.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -128,7 +130,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
-        _myAvatar(true),
         _manualFirstPerson(false),
         _mouseX(0),
         _mouseY(0),
@@ -352,9 +353,8 @@ void Application::paintGL() {
         whichCamera = _viewFrustumOffsetCamera;
     }        
 
-    if (_oculusOn->isChecked()) {
+    if (OculusManager::isConnected()) {
         displayOculus(whichCamera);
-        
     } else {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -377,7 +377,7 @@ void Application::resizeGL(int width, int height) {
     float farClip = camera.getFarClip();
     float fov;
 
-    if (_oculusOn->isChecked()) {
+    if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
         camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PI));
@@ -884,7 +884,7 @@ void Application::idle() {
        
         //  Read serial port interface devices
         if (_serialPort.active) {
-            _serialPort.readData();
+            _serialPort.readData(deltaTime);
         }
         
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
@@ -1007,11 +1007,6 @@ void Application::setFullscreen(bool fullscreen) {
 
 void Application::setRenderFirstPerson(bool firstPerson) {
     _manualFirstPerson = firstPerson;    
-}
-
-void Application::setOculus(bool oculus) {
-    resizeGL(_glWidget->width(), _glWidget->height());
-    updateCursor();
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1164,7 +1159,7 @@ void Application::initMenu() {
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
 
-    optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
+    (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
@@ -1185,8 +1180,6 @@ void Application::initMenu() {
     _renderLookatOn->setChecked(false);
     
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
-
-    (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     
@@ -1302,6 +1295,9 @@ void Application::init() {
     QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
+    if (OculusManager::isConnected()) {
+        QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
+    }
     
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
@@ -1673,7 +1669,8 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(10.f);
+    const float EDGE_SIZE_GROUND_PLANE = 20.f;
+    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -1708,13 +1705,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(false);
+                avatar->render(false, _myCamera.getPosition());
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked());
+        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
@@ -2018,22 +2015,77 @@ void Application::shiftPaintingColor() {
     _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
 }
 
+
 void Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
-        if (_mouseVoxel.s != 0) {    
+        if (_mouseVoxel.s != 0) {
             PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
             sendVoxelEditMessage(message, _mouseVoxel);
             
-            // create the voxel locally so it appears immediately            
+            // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
                                 _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
-        
+            
             // remember the position for drag detection
             _justEditedVoxel = true;
+            
+            AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
+            voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+            //_myAvatar.getPosition()
+            voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
+            voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
+            // printf("mousevoxelscale is %f\n", _mouseVoxel.s);
+            
+            /* for (int i = 0; i
+             < 22050; i++) {
+             if (i % 4 == 0) {
+             voxelInjector->addSample(4000);
+             } else if (i % 4 == 1) {
+             voxelInjector->addSample(0);
+             } else if (i % 4 == 2) {
+             voxelInjector->addSample(-4000);
+             } else {
+             voxelInjector->addSample(0);
+             }
+             */
+            
+            
+            const float BIG_VOXEL_MIN_SIZE = .01f;
+            
+            for (int i = 0; i < 11025; i++) {
+                
+                /*
+                 A440 square wave
+                 if (sin(i * 2 * PIE / 50)>=0) {
+                 voxelInjector->addSample(4000);
+                 } else {
+                 voxelInjector->addSample(-4000);
+                 }
+                 */
+                
+                if (_mouseVoxel.s > BIG_VOXEL_MIN_SIZE) {
+                    voxelInjector->addSample(20000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 200))));
+                } else {
+                    voxelInjector->addSample(16000 * sin(i / (1.5 * log (_mouseVoxel.s / .0001) * ((i + 11025) / 5512.5)))); //808
+                }
+            }
+            
+            //voxelInjector->addSample(32500 * sin(i/(2 * 1 * ((i+5000)/5512.5)))); //80
+            //voxelInjector->addSample(20000 * sin(i/(6 * (_mouseVoxel.s/.001) *((i+5512.5)/5512.5)))); //808
+            //voxelInjector->addSample(20000 * sin(i/(6 * ((i+5512.5)/5512.5)))); //808
+            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50)); //A440 sine wave
+            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50) * sin (i/500)); //A440 sine wave with amplitude modulation
+            
+            //FM library
+            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(500*sin((i+1)/200))));  //FM 1 dubstep
+            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(300*sin((i+1)/5.0))));  //FM 2 flange sweep
+            //voxelInjector->addSample(10000 * sin((i * 2 * PIE) /(500*sin((i+1)/500.0))));  //FM 3 resonant pulse
+
+            AudioInjectionManager::threadInjector(voxelInjector);
         }
     } else if (_deleteVoxelMode->isChecked()) {
-        deleteVoxelUnderCursor();    
+        deleteVoxelUnderCursor();
     }
 }
 
@@ -2041,10 +2093,21 @@ void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
+        AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
+        voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+        voxelInjector->setBearing(0); //straight down the z axis
+        voxelInjector->setVolume (255); //255 is max, and also default value
         
-        // remember the position for drag detection
-        _justEditedVoxel = true;
+        
+        for (int i = 0; i < 5000; i++) {
+            voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
+            //            voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+        }
+        
+        AudioInjectionManager::threadInjector(voxelInjector);
     }
+    // remember the position for drag detection
+    _justEditedVoxel = true;
 }
 
 void Application::goHome() {
@@ -2083,7 +2146,7 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateCursor() {
-    _glWidget->setCursor(_oculusOn->isChecked() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
+    _glWidget->setCursor(OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
         Qt::BlankCursor : Qt::ArrowCursor);
 }
 
@@ -2098,9 +2161,9 @@ QAction* Application::checkedVoxelModeAction() const {
     return 0;
 }
 
-void Application::attachNewHeadToAgent(Agent *newAgent) {
+void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(false));
+        newAgent->setLinkedData(new Avatar(newAgent));
     }
 }
 
