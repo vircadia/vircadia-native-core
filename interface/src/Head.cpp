@@ -78,7 +78,6 @@ Head::Head(Avatar* owningAvatar) :
             _hairTuft[t].midVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);			
             _hairTuft[t].endVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);
         }
-
 }
 
 void Head::reset() {
@@ -312,6 +311,15 @@ void Head::renderMouth() {
     glm::vec3 rightTop    = _mouthPosition + r * 0.4f + u * 0.7f + f;
     glm::vec3 leftBottom  = _mouthPosition - r * 0.4f - u * 1.0f + f * 0.7f;
     glm::vec3 rightBottom = _mouthPosition + r * 0.4f - u * 1.0f + f * 0.7f;
+    
+    // constrain all mouth vertices to a sphere slightly larger than the head...
+    float constrainedRadius = _scale + 0.001f;
+    leftCorner  = _position + glm::normalize(leftCorner  - _position) * constrainedRadius;
+    rightCorner = _position + glm::normalize(rightCorner - _position) * constrainedRadius;
+    leftTop     = _position + glm::normalize(leftTop     - _position) * constrainedRadius;
+    rightTop    = _position + glm::normalize(rightTop    - _position) * constrainedRadius;
+    leftBottom  = _position + glm::normalize(leftBottom  - _position) * constrainedRadius;
+    rightBottom = _position + glm::normalize(rightBottom - _position) * constrainedRadius;
         
     glColor3f(0.2f, 0.0f, 0.0f);
     
