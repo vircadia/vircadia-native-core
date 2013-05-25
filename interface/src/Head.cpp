@@ -530,7 +530,7 @@ void Head::updateHair(float deltaTime) {
 
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
-        float fraction = (float)t / (float)(NUM_HAIR_TUFTS-1);
+        float fraction = (float)t / (float)(NUM_HAIR_TUFTS - 1);
         
         float angle = -20.0f + 40.0f * fraction;
         
