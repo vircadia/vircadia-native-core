@@ -1667,7 +1667,8 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(10.f);
+    const float EDGE_SIZE_GROUND_PLANE = 20.f;
+    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
