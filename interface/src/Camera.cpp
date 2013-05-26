@@ -83,7 +83,7 @@ void Camera::updateFollowMode(float deltaTime) {
     if (_linearModeShift < 1.0f) {
         _linearModeShift += _modeShiftRate * deltaTime;
         
-        _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE * 1.0);
+        _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE );
 
         _upShift   = _previousUpShift   * (1.0f - _modeShift) + _newUpShift   * _modeShift;
         _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;

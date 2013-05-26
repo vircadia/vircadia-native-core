@@ -75,7 +75,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         p.y = 0.0005f;
         renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 
-        // show if we are golding hands...
+        // show if we are holding hands...
         if (_weAreHoldingHands) {
             renderBeamBetweenHands();
             
