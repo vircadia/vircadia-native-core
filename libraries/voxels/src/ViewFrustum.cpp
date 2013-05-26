@@ -220,57 +220,70 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         }
     }
     return(result);
- }
- 
-bool ViewFrustum::matches(const ViewFrustum& compareTo) const {
-    bool debug = false;
-    bool result = compareTo._position    == _position &&
-           compareTo._direction   == _direction &&
-           compareTo._up          == _up &&
-           compareTo._right       == _right &&
-           compareTo._fieldOfView == _fieldOfView &&
-           compareTo._aspectRatio == _aspectRatio &&
-           compareTo._nearClip    == _nearClip &&
-           compareTo._farClip     == _farClip &&
-           compareTo._eyeOffsetPosition == _eyeOffsetPosition &&
-           compareTo._eyeOffsetOrientation == _eyeOffsetOrientation;
+}
+
+bool testMatches(glm::quat lhs, glm::quat rhs) {
+    return (fabs(lhs.x - rhs.x) <= EPSILON && fabs(lhs.y - rhs.y) <= EPSILON && fabs(lhs.z - rhs.z) <= EPSILON
+            && fabs(lhs.w - rhs.w) <= EPSILON);
+}
+
+bool testMatches(glm::vec3 lhs, glm::vec3 rhs) {
+    return (fabs(lhs.x - rhs.x) <= EPSILON && fabs(lhs.y - rhs.y) <= EPSILON && fabs(lhs.z - rhs.z) <= EPSILON);
+}
+
+bool testMatches(float lhs, float rhs) {
+    return (fabs(lhs - rhs) <= EPSILON);
+}
+
+bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
+    bool result = 
+           testMatches(compareTo._position,             _position            ) &&
+           testMatches(compareTo._direction,            _direction           ) &&
+           testMatches(compareTo._up,                   _up                  ) &&
+           testMatches(compareTo._right,                _right               ) &&
+           testMatches(compareTo._fieldOfView,          _fieldOfView         ) &&
+           testMatches(compareTo._aspectRatio,          _aspectRatio         ) &&
+           testMatches(compareTo._nearClip,             _nearClip            ) &&
+           testMatches(compareTo._farClip,              _farClip             ) &&
+           testMatches(compareTo._eyeOffsetPosition,    _eyeOffsetPosition   ) &&
+           testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation);
 
     if (!result && debug) {
         printLog("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
         printLog("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
-            (compareTo._position == _position ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
             _position.x, _position.y, _position.z );
         printLog("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
-            (compareTo._direction == _direction ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
             compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
             _direction.x, _direction.y, _direction.z );
         printLog("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
-            (compareTo._up == _up ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
             compareTo._up.x, compareTo._up.y, compareTo._up.z,
             _up.x, _up.y, _up.z );
         printLog("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
-            (compareTo._right == _right ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
             compareTo._right.x, compareTo._right.y, compareTo._right.z,
             _right.x, _right.y, _right.z );
         printLog("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
-            (compareTo._fieldOfView == _fieldOfView ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
             compareTo._fieldOfView, _fieldOfView);
         printLog("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
-            (compareTo._aspectRatio == _aspectRatio ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
             compareTo._aspectRatio, _aspectRatio);
         printLog("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
-            (compareTo._nearClip == _nearClip ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
             compareTo._nearClip, _nearClip);
         printLog("%s -- compareTo._farClip=%f _farClip=%f\n", 
-            (compareTo._farClip == _farClip ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
         printLog("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
-            (compareTo._eyeOffsetPosition == _eyeOffsetPosition ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
             _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
         printLog("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
-            (compareTo._eyeOffsetOrientation == _eyeOffsetOrientation ? "MATCHES " : "NO MATCH"),
+            (testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
                 compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
             _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
