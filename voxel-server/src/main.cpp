@@ -314,7 +314,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
                                                               agentData->getWantColor(), WANT_EXISTS_BITS,
-                                                              wantDelta, lastViewFrustum);
+                                                              wantDelta, lastViewFrustum, agentData->getLastViewSent());
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -370,6 +370,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all 
         // the voxels from the current view frustum
         if (agentData->nodeBag.isEmpty()) {
+printf("agentData->nodeBag.isEmpty()...\n");        
             agentData->updateLastKnownViewFrustum();
             agentData->setViewSent(true);
         }

@@ -48,6 +48,9 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
+    double getLastViewSent() const          { return _lastViewFrustumSent; };
+    void   setLastViewSent(double viewSent) { _lastViewFrustumSent = viewSent; }
+
 private:
     VoxelAgentData(const VoxelAgentData &);
     VoxelAgentData& operator= (const VoxelAgentData&);
@@ -61,6 +64,7 @@ private:
     int _maxLevelReachedInLastSearch;
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
+    double _lastViewFrustumSent;
 
 };
 

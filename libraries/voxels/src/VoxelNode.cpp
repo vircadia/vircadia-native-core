@@ -47,6 +47,8 @@ void VoxelNode::init(unsigned char * octalCode) {
     _shouldRender = false;
     _isStagedForDeletion = false;
     
+    _lastChanged = usecTimestampNow();
+    
     calculateAABox();
 }
 
@@ -66,6 +68,7 @@ void VoxelNode::setShouldRender(bool shouldRender) {
     if (shouldRender != _shouldRender) {
         _shouldRender = shouldRender;
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
     }
 }
 
@@ -89,6 +92,7 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
         delete _children[childIndex];
         _children[childIndex] = NULL;
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
         _childCount--;
     }
 }
@@ -99,6 +103,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     if (_children[childIndex]) {
         _children[childIndex] = NULL;
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
         _childCount--;
     }
     return returnedChild;
@@ -108,6 +113,7 @@ void VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
         _childCount++;
     }
 }
@@ -135,6 +141,7 @@ void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeleti
             deleteChildAtIndex(childIndex);
             _isDirty = true;
         } 
+        _lastChanged = usecTimestampNow();
     }
 }
 
@@ -178,6 +185,7 @@ void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
         _currentColor[2] = blue;
         _currentColor[3] = 1; // XXXBHG - False colors are always considered set
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
     }
 }
 
@@ -189,6 +197,7 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
         }
         _falseColored = isFalseColored; 
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
     }
 };
 
@@ -202,6 +211,7 @@ void VoxelNode::setColor(const nodeColor& color) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
         _isDirty = true;
+        _lastChanged = usecTimestampNow();
     }
 }
 #endif

@@ -8,6 +8,7 @@
 
 #include "PacketHeaders.h"
 #include "VoxelAgentData.h"
+#include "SharedUtil.h"
 #include <cstring>
 #include <cstdio>
 
@@ -20,6 +21,7 @@ VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
+    _lastViewFrustumSent = 0;
     
     resetVoxelPacket();
 }
@@ -72,5 +74,10 @@ void VoxelAgentData::updateLastKnownViewFrustum() {
         // save our currentViewFrustum into our lastKnownViewFrustum
         _lastKnownViewFrustum = _currentViewFrustum;
     }
+    
+    // save that we know the view has been sent.
+    double now = usecTimestampNow();
+    printf("updateLastKnownViewFrustum() setLastViewSent() to %lf\n", now);
+    setLastViewSent(now);
 }
 

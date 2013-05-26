@@ -36,6 +36,8 @@ private:
     void calculateAABox();
 
     void init(unsigned char * octalCode);
+    
+    double _lastChanged;
 
 public:
     VoxelNode(); // root node constructor
@@ -75,6 +77,8 @@ public:
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
+    bool hasChangedSince(double time) const { return (_lastChanged > time);  };
+    
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; };
