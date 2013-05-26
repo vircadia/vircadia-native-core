@@ -486,6 +486,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
             
     if (!_owningAgent) {
         _avatarTouch.setMyBodyPosition(_position);
+        _avatarTouch.setMyOrientation(_orientation);
                 
         float closestDistance = std::numeric_limits<float>::max();
         
@@ -518,6 +519,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         if (_interactingOther) {
 
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
+            _avatarTouch.setYourOrientation (_interactingOther->_orientation);
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             

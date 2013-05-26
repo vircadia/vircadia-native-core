@@ -27,55 +27,38 @@ AvatarTouch::AvatarTouch() {
     _weAreHoldingHands       = false;
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
+    _myOrientation.setToIdentity();
+    _yourOrientation.setToIdentity();
 
     for (int p=0; p<NUM_POINTS; p++) {
         _point[p] = glm::vec3(0.0, 0.0, 0.0);
     }
 }
 
-void AvatarTouch::setMyHandPosition(glm::vec3 position) {
-    _myHandPosition = position;
-}
-
-void AvatarTouch::setYourHandPosition(glm::vec3 position) {
-    _yourHandPosition = position;
-}
-
-void AvatarTouch::setMyBodyPosition(glm::vec3 position) {
-    _myBodyPosition = position;
-}
-
-void AvatarTouch::setYourBodyPosition(glm::vec3 position) {
-    _yourBodyPosition = position;
-}
-
-void AvatarTouch::setMyHandState(int state) {
-    _myHandState = state;
-}
-
-void AvatarTouch::setYourHandState(int state) {
-    _yourHandState = state;
-}
-
-void AvatarTouch::setReachableRadius(float r) {
-    _reachableRadius = r;
-}
-
 void AvatarTouch::simulate (float deltaTime) {
 
     glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
     float distanceBetweenBodies = glm::length(vectorBetweenBodies);
+    glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
+    
+    bool facingEachOther = false;
+    
+    if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -0.1f)
+    &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  0.1f)) {
+        facingEachOther = true;
+    }
 
-    if (distanceBetweenBodies < _reachableRadius) {
+    if ((distanceBetweenBodies < _reachableRadius)
+    &&  (facingEachOther)) {
         _vectorBetweenHands = _yourHandPosition - _myHandPosition;
         
-    float distanceBetweenHands = glm::length(_vectorBetweenHands);
+        float distanceBetweenHands = glm::length(_vectorBetweenHands);
         if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) {
             _handsCloseEnoughToGrasp = true;
         } else {
             _handsCloseEnoughToGrasp = false;
         }
-        
+
         _canReachToOtherAvatar = true;
     } else {
         _canReachToOtherAvatar = false;
@@ -92,7 +75,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         p.y = 0.0005f;
         renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 
-        // show is we are golding hands...
+        // show if we are golding hands...
         if (_weAreHoldingHands) {
             renderBeamBetweenHands();
             

@@ -21,30 +21,10 @@ enum CameraMode
     NUM_CAMERA_MODES
 };
 
-
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_TIGHTNESS = 100.0f;
-
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_UP_SHIFT  = -0.2f;
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
-
-const float CAMERA_DEFAULT_MIRROR_MODE_UP_SHIFT        = 0.0f;
-const float CAMERA_DEFAULT_MIRROR_MODE_DISTANCE        = 0.2f;
-const float CAMERA_DEFAULT_MIRROR_MODE_TIGHTNESS       = 100.0f;
-
 class Camera
 {
 public:
     Camera();
-
-    struct CameraFollowingAttributes
-    {
-        float upShift;
-        float distance;
-        float tightness;
-    };
 
     void initialize(); // instantly put the camera at the ideal position and rotation. 
 
@@ -62,7 +42,7 @@ public:
     void setTargetRotation( float yaw, float pitch, float roll );
     
     void setMode          ( CameraMode  m );
-    void setMode          ( CameraMode  m, CameraFollowingAttributes attributes );
+    void setModeShiftRate ( float       r );
     void setFieldOfView   ( float       f );
     void setAspectRatio   ( float       a );
     void setNearClip      ( float       n );
@@ -102,18 +82,23 @@ private:
     float       _yaw;
     float       _pitch;
     float       _roll;
-    float       _upShift;
     float       _idealYaw;
     float       _idealPitch;
     float       _idealRoll;
+    float       _upShift;
     float       _distance;
     float       _tightness;
+    float       _previousUpShift;
+    float       _previousDistance;
+    float       _previousTightness;
+    float       _newUpShift;
+    float       _newDistance;
+    float       _newTightness;
     Orientation _orientation;
     float       _modeShift;
+    float       _linearModeShift;
+    float       _modeShiftRate;
 
-    CameraFollowingAttributes _attributes[NUM_CAMERA_MODES];
-    CameraFollowingAttributes _previousAttributes[NUM_CAMERA_MODES];
-    
     void generateOrientation();
     void updateFollowMode( float deltaTime );
 };
