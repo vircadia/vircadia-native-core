@@ -68,23 +68,27 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
             _shouldLoopbackForAgent = false;
         }        
     }
-
-    if (!_endOfLastWrite) {
-        _endOfLastWrite = _buffer;
-    } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
-        _endOfLastWrite = _buffer;
-        _nextOutput = _buffer;
-        _started = false;
+    
+    // make sure we have enough bytes left for this to be the right amount of audio
+    // otherwise we should not copy that data, and leave the buffer pointers where they are
+    if (numBytes - (dataBuffer - sourceBuffer) == _bufferLengthSamples * sizeof(int16_t)) {
+        if (!_endOfLastWrite) {
+            _endOfLastWrite = _buffer;
+        } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
+            _endOfLastWrite = _buffer;
+            _nextOutput = _buffer;
+            _started = false;
+        }
+        
+        memcpy(_endOfLastWrite, dataBuffer, _bufferLengthSamples * sizeof(int16_t));
+        
+        _endOfLastWrite += _bufferLengthSamples;
+        
+        if (_endOfLastWrite >= _buffer + _ringBufferLengthSamples) {
+            _endOfLastWrite = _buffer;
+        }
     }
-    
-    memcpy(_endOfLastWrite, dataBuffer, _bufferLengthSamples * sizeof(int16_t));
-    
-    _endOfLastWrite += _bufferLengthSamples;
-    
-    if (_endOfLastWrite >= _buffer + _ringBufferLengthSamples) {
-        _endOfLastWrite = _buffer;
-    }
-    
+        
     return numBytes;
 }
 

@@ -66,7 +66,11 @@ bool VoxelAgentData::updateCurrentViewFrustum() {
 }
 
 void VoxelAgentData::updateLastKnownViewFrustum() {
-    // save our currentViewFrustum into our lastKnownViewFrustum
-    _lastKnownViewFrustum = _currentViewFrustum;
+    bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
+    
+    if (frustumChanges) {
+        // save our currentViewFrustum into our lastKnownViewFrustum
+        _lastKnownViewFrustum = _currentViewFrustum;
+    }
 }
 
