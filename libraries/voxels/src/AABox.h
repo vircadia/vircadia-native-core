@@ -19,7 +19,8 @@ enum BoxFace {
     MIN_Y_FACE,
     MAX_Y_FACE,
     MIN_Z_FACE,
-    MAX_Z_FACE
+    MAX_Z_FACE,
+    FACE_COUNT
 };
 
 class AABox 
@@ -46,9 +47,15 @@ public:
 	const glm::vec3& getCenter() const { return _center; };
 
     bool contains(const glm::vec3& point) const;
+    bool expandedContains(const glm::vec3& point, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
 
 private:
+    
+    glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
+    glm::vec4 getPlane(BoxFace face) const;
+    
 	glm::vec3 _corner;
 	glm::vec3 _center;
 	glm::vec3 _size;

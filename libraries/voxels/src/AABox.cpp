@@ -11,6 +11,7 @@
 #include "SharedUtil.h"
 
 #include "AABox.h"
+#include "GeometryUtil.h"
 
 
 void AABox::scale(float scale) {
@@ -82,6 +83,17 @@ bool AABox::contains(const glm::vec3& point) const {
         isWithin(point.z, _corner.z, _size.z);
 }
 
+// determines whether a value is within the expanded extents
+static bool isWithinExpanded(float value, float corner, float size, float expansion) {
+    return value >= corner - expansion && value <= corner + size + expansion;
+}
+
+bool AABox::expandedContains(const glm::vec3& point, float expansion) const {
+    return isWithinExpanded(point.x, _corner.x, _size.x, expansion) &&
+        isWithinExpanded(point.y, _corner.y, _size.y, expansion) &&
+        isWithinExpanded(point.z, _corner.z, _size.z, expansion);
+}
+
 // finds the intersection between a ray and the facing plane on one axis
 static bool findIntersection(float origin, float direction, float corner, float size, float& distance) {
     if (direction > EPSILON) {
@@ -125,4 +137,62 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
         return true;
     }
     return false;
+}
+
+bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+    glm::vec4 center4 = glm::vec4(center, 1.0f);
+    
+    float minPenetrationLength = FLT_MAX;
+    for (int i = 0; i < FACE_COUNT; i++) {
+        glm::vec3 vector = getClosestPointOnFace(center, (BoxFace)i) - center;
+        if (glm::dot(center4, getPlane((BoxFace)i)) >= 0.0f) {
+            return ::findSpherePenetration(vector, radius, penetration);
+        }
+        float vectorLength = glm::length(vector);
+        if (vectorLength < minPenetrationLength) {
+            penetration = vector * ((vectorLength + radius) / -vectorLength);
+            minPenetrationLength = vectorLength;
+        }
+    }
+    
+    return true;
+}
+
+glm::vec3 AABox::getClosestPointOnFace(const glm::vec3& point, BoxFace face) const {
+    switch (face) {
+        case MIN_X_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
+                glm::vec3(_corner.x, _corner.y + _size.y, _corner.z + _size.z));
+        
+        case MAX_X_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x + _size.x, _corner.y, _corner.z),
+                glm::vec3(_corner.x + _size.x, _corner.y + _size.y, _corner.z + _size.z));
+        
+        case MIN_Y_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
+                glm::vec3(_corner.x + _size.x, _corner.y, _corner.z + _size.z));
+    
+        case MAX_Y_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y + _size.y, _corner.z),
+                glm::vec3(_corner.x + _size.x, _corner.y + _size.y, _corner.z + _size.z));
+    
+        case MIN_Z_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
+                glm::vec3(_corner.x + _size.x, _corner.y + _size.y, _corner.z));
+    
+        case MAX_Z_FACE:
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z + _size.z),
+                glm::vec3(_corner.x + _size.x, _corner.y + _size.y, _corner.z + _size.z));
+    }
+}
+
+glm::vec4 AABox::getPlane(BoxFace face) const {
+    switch (face) {
+        case MIN_X_FACE: return glm::vec4(-1.0f, 0.0f, 0.0f, _corner.x);
+        case MAX_X_FACE: return glm::vec4(1.0f, 0.0f, 0.0f, -_corner.x - _size.x);
+        case MIN_Y_FACE: return glm::vec4(0.0f, -1.0f, 0.0f, _corner.y);
+        case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_corner.y - _size.y);
+        case MIN_Z_FACE: return glm::vec4(0.0f, 0.0f, -1.0f, _corner.z);
+        case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_corner.z - _size.z);
+    }
 }

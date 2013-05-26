@@ -615,15 +615,19 @@ void Avatar::updateCollisionWithEnvironment() {
 void Avatar::updateCollisionWithVoxels() {
     float radius = _height * 0.125f;
     glm::vec3 penetration;
-    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+    //if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+    //        _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
+    //        _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+    //    applyCollisionWithScene(penetration);
+    //}
+    
+    if (Application::getInstance()->getVoxels()->findSpherePenetration(_position, _height/2, penetration)) {
         applyCollisionWithScene(penetration);
     }
 }
 
 void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
-    _position += penetration;
+    _position -= penetration;
         
     // reflect the velocity component in the direction of penetration
     glm::vec3 direction = glm::normalize(penetration);
