@@ -64,6 +64,14 @@ public:
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
+    
+    bool getSettingBool(const char* settingName, bool &boolSetting, bool defaultSetting = false);
+    bool getSettingFloat(const char* settingName, float &floatSetting, float defaultSetting = 0.0f);
+    bool getSettingVec3(const char* settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting = glm::vec3(0, 0, 0));
+    
+    void setSettingBool(const char* settingName, bool boolSetting);
+    void setSettingFloat(const char* settingName, float floatSetting);
+    void setSettingVec3(const char* settingName, glm::vec3 vecSetting);
 
 private slots:
     
@@ -131,6 +139,12 @@ private:
     
     static void attachNewHeadToAgent(Agent *newAgent);
     static void* networkReceive(void* args);
+    
+    bool openSettingsFile(const char* mode);
+    void closeSettingsFile();
+    
+    void saveSettings();
+    void readSettings();
     
     QMainWindow* _window;
     QGLWidget* _glWidget;
@@ -248,6 +262,8 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+    
+    FILE* _settingsFile;
 };
 
 #endif /* defined(__interface__Application__) */

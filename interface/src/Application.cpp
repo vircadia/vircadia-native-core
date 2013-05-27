@@ -255,8 +255,6 @@ void Application::initializeGL() {
         printLog("Network receive thread created.\n"); 
     }
     
-    _myAvatar.readAvatarDataFromFile();
-    
     // call terminate before exiting
     connect(this, SIGNAL(aboutToQuit()), SLOT(terminate()));
     
@@ -269,6 +267,8 @@ void Application::initializeGL() {
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
+    
+    readSettings();
     
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
@@ -775,7 +775,176 @@ void Application::wheelEvent(QWheelEvent* event) {
         decreaseVoxelSize();
     }
 }
+
+const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
+
+bool Application::openSettingsFile(const char *mode)
+{
+    _settingsFile = fopen(AVATAR_DATA_FILENAME, mode);
     
+    if (_settingsFile)
+    {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void Application::closeSettingsFile()
+{
+    if (_settingsFile)
+    {
+        fclose(_settingsFile);
+        _settingsFile = NULL;
+    }
+}
+
+bool Application::getSettingBool(const char *settingName, bool &boolSetting, bool defaultSetting)
+{
+    if (_settingsFile)
+    {
+        int readPosition;
+        
+        char setting[128];
+        char vals[] = "%d";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        
+        int res = fscanf(_settingsFile, setting, &readPosition);
+        
+        if (res != EOF)
+        {
+            if (readPosition == 1)
+            {
+                boolSetting = true;
+            } else if (readPosition == 0) {
+                boolSetting = false;
+            }
+        } else {
+            boolSetting = defaultSetting;
+            return false;
+        }
+        
+    } else {
+        boolSetting = defaultSetting;
+        
+        printLog("Call to getSetting function without _settingsFile being open! Forgot to call openSettingsFile perhaps?\n");
+        
+        return false;
+    }
+    
+    return true;
+}
+
+bool Application::getSettingFloat(const char *settingName, float &floatSetting, float defaultSetting)
+{
+    if (_settingsFile)
+    {
+        float readPosition;
+        
+        char setting[128];
+        char vals[] = "%f";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        
+        int res = fscanf(_settingsFile, setting, &readPosition);
+        
+        if (res != EOF)
+        {
+            if (!isnan(readPosition)) {
+                floatSetting = readPosition;
+            } else {
+                floatSetting = defaultSetting;
+            }
+        } else {
+            floatSetting = defaultSetting;
+            return false;
+        }
+    } else {
+        floatSetting = defaultSetting;
+        
+        printLog("Call to getSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
+        
+        return false;
+    }
+    
+    return true;
+}
+
+bool Application::getSettingVec3(const char *settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting)
+{
+    if (_settingsFile)
+    {
+        glm::vec3 readPosition;
+        
+        char setting[128];
+        char vals[] = "%f,%f,%f";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        
+        int res = fscanf(_settingsFile, setting, &readPosition.x, &readPosition.y, &readPosition.z);
+        
+        if (res != EOF)
+        {
+            if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z)) {
+                vecSetting = readPosition;
+            } else {
+                vecSetting = defaultSetting;
+            }
+        } else {
+            vecSetting = defaultSetting;
+            return  false;
+        }
+    } else {
+        vecSetting = defaultSetting;
+        
+        printLog("Call to getSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
+        
+        return false;
+    }
+    
+    return true;
+}
+
+void Application::setSettingBool(const char *settingName, bool boolSetting)
+{
+    if (_settingsFile)
+    {
+        char setting[128];
+        char vals[] = "%d";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        printLog(setting, boolSetting);
+        fprintf(_settingsFile, setting, boolSetting);
+    } else {
+        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
+    }
+}
+
+void Application::setSettingFloat(const char *settingName, float floatSetting)
+{
+    if (_settingsFile)
+    {
+        char setting[128];
+        char vals[] = "%f";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        printLog(setting, floatSetting);
+        fprintf(_settingsFile, setting, floatSetting);
+    } else {
+        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
+    }
+}
+
+void Application::setSettingVec3(const char *settingName, glm::vec3 vecSetting)
+{
+    if (_settingsFile)
+    {
+        char setting[128];
+        char vals[] = "%f,%f,%f";
+        sprintf(setting, "\n%s=%s", settingName, vals);
+        printLog(setting, vecSetting.x, vecSetting.y, vecSetting.z);
+        fprintf(_settingsFile, setting, vecSetting.x, vecSetting.y, vecSetting.z);
+    } else {
+        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
+    }
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -1008,7 +1177,7 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    _myAvatar.writeAvatarDataToFile();
+    saveSettings();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -2155,5 +2324,99 @@ void* Application::networkReceive(void* args) {
         pthread_exit(0); 
     }
     return NULL; 
+}
+
+void Application::saveSettings()
+{
+    // Handle any persistent settings saving here when we get a call to terminate.
+    // This should probably be moved to a map stored in memory at some point to cache settings.
+    openSettingsFile("wt");
+    _myAvatar.writeAvatarDataToFile();
+    
+    setSettingBool("_gyroLook", _gyroLook->isChecked());
+    
+    setSettingBool("_mouseLook", _mouseLook->isChecked());
+    
+    setSettingBool("_transmitterDrives", _transmitterDrives->isChecked());
+    
+    setSettingBool("_renderVoxels", _renderVoxels->isChecked());
+    
+    setSettingBool("_renderVoxelTextures", _renderVoxelTextures->isChecked());
+    
+    setSettingBool("_renderStarsOn", _renderStarsOn->isChecked());
+    
+    setSettingBool("_renderAtmosphereOn", _renderAtmosphereOn->isChecked());
+    
+    setSettingBool("_renderAvatarsOn", _renderAvatarsOn->isChecked());
+    
+    setSettingBool("_oculusOn", _oculusOn->isChecked());
+    
+    setSettingBool("_renderStatsOn", _renderStatsOn->isChecked());
+    
+    setSettingBool("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
+    
+    setSettingBool("_renderLookatOn", _renderLookatOn->isChecked());
+    
+    setSettingBool("_logOn", _logOn->isChecked());
+    
+    setSettingBool("_frustumOn", _frustumOn->isChecked());
+    
+    setSettingBool("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
+    
+    closeSettingsFile();
+}
+
+void Application::readSettings()
+{
+    openSettingsFile("rt");
+    _myAvatar.readAvatarDataFromFile();
+    
+    bool settingState;
+    getSettingBool("_gyroLook", settingState, _gyroLook->isChecked());
+    _gyroLook->setChecked(settingState);
+    
+    getSettingBool("_mouseLook", settingState, _mouseLook->isChecked());
+    _mouseLook->setChecked(settingState);
+    
+    getSettingBool("_transmitterDrives", settingState, _transmitterDrives->isChecked());
+    _transmitterDrives->setChecked(settingState);
+    
+    getSettingBool("_renderVoxels", settingState, _renderVoxels->isChecked());
+    _renderVoxels->setChecked(settingState);
+    
+    getSettingBool("_renderVoxelTextures", settingState, _renderVoxelTextures->isChecked());
+    _renderVoxelTextures->setChecked(settingState);
+    
+    getSettingBool("_renderStarsOn", settingState, _renderStarsOn->isChecked());
+    _renderStarsOn->setChecked(settingState);
+    
+    getSettingBool("_renderAtmosphereOn", settingState, _renderAtmosphereOn->isChecked());
+    _renderAtmosphereOn->setChecked(settingState);
+    
+    getSettingBool("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
+    _renderAvatarsOn->setChecked(settingState);
+    
+    getSettingBool("_oculusOn", settingState, _oculusOn->isChecked());
+    _oculusOn->setChecked(settingState);
+    
+    getSettingBool("_renderStatsOn", settingState, _renderStatsOn->isChecked());
+    _renderStatsOn->setChecked(settingState);
+    
+    getSettingBool("_renderFrameTimerOn", settingState, _renderFrameTimerOn->isChecked());
+    _renderFrameTimerOn->setChecked(settingState);
+    
+    getSettingBool("_renderLookatOn", settingState, _renderLookatOn->isChecked());
+    _renderLookatOn->setChecked(settingState);
+    
+    getSettingBool("_logOn", settingState, _logOn->isChecked());
+    _logOn->setChecked(settingState);
+    
+    getSettingBool("_frustumOn", settingState, _frustumOn->isChecked());
+    _frustumOn->setChecked(settingState);
+    
+    getSettingBool("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
+    _viewFrustumFromOffset->setChecked(settingState);
+    
+    closeSettingsFile();
 }
 
