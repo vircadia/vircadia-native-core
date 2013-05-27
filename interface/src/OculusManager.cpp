@@ -16,6 +16,7 @@ Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
 SensorFusion OculusManager::_sensorFusion;
+float OculusManager::_yawOffset = 0;
 #endif
 
 void OculusManager::connect() {
@@ -36,12 +37,19 @@ void OculusManager::connect() {
 #endif
 }
 
+void OculusManager::updateYawOffset() {
+    float yaw, pitch, roll;
+   _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    _yawOffset = yaw;
+}
+
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef __APPLE__
     _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     
     // convert each angle to degrees
-    yaw = glm::degrees(yaw);
+    // remove the yaw offset from the returned yaw
+    yaw = glm::degrees(yaw - _yawOffset);
     pitch = glm::degrees(pitch);
     roll = glm::degrees(roll);
 #endif

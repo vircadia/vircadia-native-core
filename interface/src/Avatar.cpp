@@ -80,6 +80,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f, 0.0f),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
@@ -300,7 +301,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                            deltaTime *
                            _orientation.getUp();
             }
-            
         }
 	}
         
@@ -381,11 +381,28 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float ACCELERATION_PITCH_DECAY = 0.4f;
     const float ACCELERATION_YAW_DECAY = 0.4f;
     
+    const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
+    const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
+    
     // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
     // you start moving, but don't do this with an HMD like the Oculus. 
     if (!OculusManager::isConnected()) {
         _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
         _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
+    } else if (fabsf(acceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
+               && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
+        // if we're wearing the oculus
+        // and this acceleration is above the pull threshold
+        // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
+        
+        // match the body yaw to the oculus yaw
+        _bodyYaw = getAbsoluteHeadYaw();
+        
+        // set the head yaw to zero for this draw
+        _head.setYaw(0);
+        
+        // correct the oculus yaw offset
+        OculusManager::updateYawOffset();
     }
 
     //apply the head lean values to the springy position...
@@ -729,7 +746,9 @@ void Avatar::setGravity(glm::vec3 gravity) {
     _head.setGravity(_gravity);
 }
 
-void Avatar::render(bool lookingInMirror) {
+void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
+    
+    _cameraPosition = cameraPosition;
     
     if (!_owningAgent && usingBigSphereCollisionTest) {
         // show TEST big sphere
@@ -841,6 +860,8 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].parent = AVATAR_JOINT_CHEST;
     _joint[ AVATAR_JOINT_RIGHT_SHOULDER	  ].parent = AVATAR_JOINT_RIGHT_COLLAR;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].parent = AVATAR_JOINT_RIGHT_SHOULDER;
+    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].parent = AVATAR_JOINT_RIGHT_ELBOW;
+    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].parent = AVATAR_JOINT_RIGHT_WRIST;
     _joint[ AVATAR_JOINT_LEFT_HIP		  ].parent = AVATAR_JOINT_PELVIS;
     _joint[ AVATAR_JOINT_LEFT_KNEE		  ].parent = AVATAR_JOINT_LEFT_HIP;
     _joint[ AVATAR_JOINT_LEFT_HEEL		  ].parent = AVATAR_JOINT_LEFT_KNEE;
@@ -1136,11 +1157,11 @@ void Avatar::renderBody(bool lookingInMirror) {
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        float distanceToCamera = glm::length(getCameraPosition() - _joint[b].position);
+        float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
-                _head.render(lookingInMirror);
+                _head.render(lookingInMirror, _cameraPosition);
             }
         } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
                    || b == AVATAR_JOINT_RIGHT_ELBOW

@@ -66,6 +66,7 @@ public:
 
     void removeOutOfView();
     bool hasViewChanged();
+    bool isViewChanging();
     
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
@@ -147,6 +148,7 @@ private:
 
     ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
+    ViewFrustum _lastStableViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();

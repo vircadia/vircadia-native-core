@@ -13,8 +13,8 @@
 
 #include <glm/glm.hpp>
 
-const float MIN_HEAD_YAW = -85;
-const float MAX_HEAD_YAW = 85;
+const float MIN_HEAD_YAW = -110;
+const float MAX_HEAD_YAW = 110;
 const float MIN_HEAD_PITCH = -60;
 const float MAX_HEAD_PITCH = 60;
 const float MIN_HEAD_ROLL = -50;
