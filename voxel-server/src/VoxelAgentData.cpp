@@ -50,7 +50,7 @@ bool VoxelAgentData::updateCurrentViewFrustum() {
     ViewFrustum newestViewFrustum;
     // get position and orientation details from the camera
     newestViewFrustum.setPosition(getCameraPosition());
-    newestViewFrustum.setOrientation(getCameraDirection(), getCameraUp(), getCameraRight());
+    newestViewFrustum.setOrientation(getCameraOrientation());
 
     // Also make sure it's got the correct lens details from the camera
     newestViewFrustum.setFieldOfView(getCameraFov());

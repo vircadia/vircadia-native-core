@@ -1092,7 +1092,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 void Application::addVoxelInFrontOfAvatar() {
     VoxelDetail detail;
     
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
+    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.calculateCameraDirection()) * (1.0f / TREE_SCALE);
     detail.s = _mouseVoxelScale;
     
     detail.x = detail.s * floor(position.x / detail.s);
@@ -1347,9 +1347,7 @@ void Application::updateAvatar(float deltaTime) {
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
     _myAvatar.setCameraPosition(_viewFrustum.getPosition());
-    _myAvatar.setCameraDirection(_viewFrustum.getDirection());
-    _myAvatar.setCameraUp(_viewFrustum.getUp());
-    _myAvatar.setCameraRight(_viewFrustum.getRight());
+    _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
@@ -1435,7 +1433,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(direction,up,right);
+    viewFrustum.setOrientation(o.getQuat());
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
