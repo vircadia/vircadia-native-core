@@ -2,7 +2,6 @@
 //  Avatar.h
 //  interface
 //
-//  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
@@ -79,50 +78,47 @@ public:
     Avatar(Agent* owningAgent = NULL);
     ~Avatar();
     
-    void  reset();
-    void  updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
-    void  updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
-    void  setNoise (float mag) {_head.noise = mag;}
-    float getLastMeasuredHeadYaw() const {return _head.yawRate;}
-    float getBodyYaw() {return _bodyYaw;};
-    void  addBodyYaw(float y) {_bodyYaw += y;};
-    void  setGravity(glm::vec3 gravity);
-
-    void  setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction );
-    bool  getIsNearInteractingOther();
-        
-    float getAbsoluteHeadYaw() const;
-    float getAbsoluteHeadPitch() const;
-    glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
-    const glm::vec3& getHeadPosition() const ;          // get the position of the avatar's rigid body head
-    const glm::vec3& getSpringyHeadPosition() const ;   // get the springy position of the avatar's head
-    const glm::vec3& getJointPosition(AvatarJointID j) const { return _joint[j].springyPosition; }; 
-    const glm::vec3& getBodyUpDirection() const { return _orientation.getUp(); };
-    float getSpeed() const { return _speed; }
-    const glm::vec3& getVelocity() const { return _velocity; };
-    float getGirth();
-    float getHeight() const { return _height; }
-    
-    AvatarMode getMode() const { return _mode; }
-    Head& getHead() { return _head; }
-    
-    void setMousePressed(bool pressed); 
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
-    void renderBody(bool lookingInMirror);
+    void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
-    void updateArmIKAndConstraints( float deltaTime );
-    void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
-        
+    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+    void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
+    void addBodyYaw(float y) {_bodyYaw += y;};
+    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+
+    //setters
+    void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
+    void setNoise                  (float     mag                    ) { _head.noise      = mag;}
+    void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
+    void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
+    void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
+    void setGravity                (glm::vec3 gravity);
+    void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
+
+    //getters
+    float            getLastMeasuredHeadYaw   ()                const { return _head.yawRate;}
+    float            getBodyYaw               ()                const { return _bodyYaw;}
+    bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
+    const glm::vec3& getHeadPosition          ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getSpringyHeadPosition   ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;}
+    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _joint[j].springyPosition;} 
+    const glm::vec3& getBodyUpDirection       ()                const { return _orientation.getUp();}
+    const glm::vec3& getVelocity              ()                const { return _velocity;}
+    float            getSpeed                 ()                const { return _speed;}
+    float            getHeight                ()                const { return _height;}
+    AvatarMode       getMode                  ()                const { return _mode;}
+    float            getAbsoluteHeadYaw       () const;
+    float            getAbsoluteHeadPitch     () const;
+    Head&            getHead                  () {return _head; }
+    
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
 
     //  Set/Get update the thrust that will move the avatar around
-    void setThrust(glm::vec3 newThrust) { _thrust = newThrust; };
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     
+    //read/write avatar data
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
 
@@ -184,6 +180,8 @@ private:
     bool        _isMouseTurningRight;
     
     // private methods...
+    glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
+    void renderBody(bool lookingInMirror);
     void initializeSkeleton();
     void updateSkeleton();
     void initializeBodySprings();
@@ -192,6 +190,7 @@ private:
     void readSensors();
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
+    void updateArmIKAndConstraints( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithEnvironment();
     void updateCollisionWithVoxels();

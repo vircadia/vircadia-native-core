@@ -54,15 +54,12 @@ const float JOINT_TOUCH_RANGE             = 0.0005f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 const float FLOATING_HEIGHT               = 0.13f;
 const bool  USING_HEAD_LEAN               = false;
-
-const float LEAN_SENSITIVITY    = 0.15;
-const float LEAN_MAX            = 0.45;
-const float LEAN_AVERAGING      = 10.0;
-const float HEAD_RATE_MAX       = 50.f;
-
-float skinColor    [] = {1.0, 0.84, 0.66};
-float darkSkinColor[] = {0.9, 0.78, 0.63};
-float lightBlue    [] = {0.7, 0.8,  1.0 };
+const float LEAN_SENSITIVITY              = 0.15;
+const float LEAN_MAX                      = 0.45;
+const float LEAN_AVERAGING                = 10.0;
+const float HEAD_RATE_MAX                 = 50.f;
+const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
+const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
 
 bool usingBigSphereCollisionTest = true;
 
@@ -80,8 +77,8 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f, 0.0f),
-    _cameraPosition(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
@@ -163,14 +160,6 @@ float Avatar::getAbsoluteHeadYaw() const {
 
 float Avatar::getAbsoluteHeadPitch() const {
     return _bodyPitch + _head.getPitch();
-}
-
-void Avatar::setMousePressed(bool mousePressed) {
-	_mousePressed = mousePressed;
-}
-
-bool Avatar::getIsNearInteractingOther() { 
-    return _avatarTouch.getAbleToReachOtherAvatar(); 
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
@@ -444,7 +433,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
     _head.setAudioLoudness(_audioLoudness);
-    _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, !_owningAgent);
     
     // use speed and angular velocity to determine walking vs. standing                                
@@ -471,7 +460,8 @@ void Avatar::checkForMouseRayTouching() {
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction ) {
-    _mouseRayOrigin = origin; _mouseRayDirection = direction;    
+    _mouseRayOrigin = origin; 
+    _mouseRayDirection = direction;    
 }
 
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
@@ -1077,15 +1067,6 @@ void Avatar::updateBodySprings(float deltaTime) {
     }
 }
 
-
-const glm::vec3& Avatar::getSpringyHeadPosition() const {
-    return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;
-}
-
-const glm::vec3& Avatar::getHeadPosition() const {
-    return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
-}
-
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
     // determine the arm vector
@@ -1145,13 +1126,13 @@ void Avatar::renderBody(bool lookingInMirror) {
             if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
                              || b == AVATAR_JOINT_RIGHT_WRIST
                              || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
-                glColor3f(skinColor[0] + _joint[b].touchForce * 0.3f,
-                          skinColor[1] - _joint[b].touchForce * 0.2f,
-                          skinColor[2] - _joint[b].touchForce * 0.1f);
+                glColor3f(SKIN_COLOR[0] + _joint[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _joint[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _joint[b].touchForce * 0.1f);
             } else {
-                glColor4f(skinColor[0] + _joint[b].touchForce * 0.3f,
-                          skinColor[1] - _joint[b].touchForce * 0.2f,
-                          skinColor[2] - _joint[b].touchForce * 0.1f,
+                glColor4f(SKIN_COLOR[0] + _joint[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _joint[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _joint[b].touchForce * 0.1f,
                           glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND)
                                      / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f));
             }
@@ -1172,7 +1153,7 @@ void Avatar::renderBody(bool lookingInMirror) {
                 &&  (b != AVATAR_JOINT_LEFT_SHOULDER )
                 &&  (b != AVATAR_JOINT_RIGHT_COLLAR  )
                 &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
-                    glColor3fv(darkSkinColor);
+                    glColor3fv(DARK_SKIN_COLOR);
                     
                     float r1 = _joint[_joint[b].parent ].radius * 0.8;
                     float r2 = _joint[b                ].radius * 0.8;
