@@ -34,7 +34,7 @@ const float BODY_UPRIGHT_FORCE            = 10.0;
 const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
@@ -928,31 +928,6 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.025;
     _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.025;
     
-    // specify the tightness of the springy positions as far as attraction to rigid body
-    _joint[ AVATAR_JOINT_PELVIS           ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 1.0;
-    _joint[ AVATAR_JOINT_TORSO            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.8;	
-    _joint[ AVATAR_JOINT_CHEST            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_NECK_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.4;
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_WRIST       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_HIP         ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_KNEE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_HEEL        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_TOES        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_HIP        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_KNEE       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_HEEL       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_TOES       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    
     // to aid in hand-shaking and hand-holding, the right hand is not collidable
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].isCollidable = false;
     _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].isCollidable = false;
@@ -1283,33 +1258,36 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
 
     glBegin(GL_TRIANGLES);   
     
-    int num = 10;
+    int num = 9;
     
-    glm::vec3 axis = glm::normalize(position2 - position1);
+    glm::vec3 axis = position2 - position1;
     float length = glm::length(axis);
 
     if (length > 0.0f) {
     
-        glm::vec3 perpSin = glm::vec3(axis.y, axis.z, axis.x);
-        glm::vec3 perpCos = glm::vec3(axis.z, axis.x, axis.y);
+        axis /= length;
+        
+        glm::vec3 perpSin = glm::vec3(1.0f, 0.0f, 0.0f);
+        glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
+        perpSin = glm::cross(perpCos, axis);
 
-        float angle1 = 0.0;
-        float angle2 = 0.0;
+        float anglea = 0.0;
+        float angleb = 0.0;
 
         for (int i = 0; i < num; i ++) {
         
-            angle1 = angle2;
-            angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+            anglea = angleb;
+            angleb = ((float)(i+1) / (float)num) * PI * 2.0f;
             
-            float s1 = sinf(angle1);
-            float s2 = sinf(angle2);
-            float c1 = cosf(angle1);
-            float c2 = cosf(angle2);
-        
-            glm::vec3 p1a = position1 + perpSin * s1 * radius1 + perpCos * c1 * radius1;  
-            glm::vec3 p1b = position1 + perpSin * s2 * radius1 + perpCos * c2 * radius1; 
-            glm::vec3 p2a = position2 + perpSin * s1 * radius2 + perpCos * c1 * radius2;   
-            glm::vec3 p2b = position2 + perpSin * s2 * radius2 + perpCos * c2 * radius2;  
+            float sa = sinf(anglea);
+            float sb = sinf(angleb);
+            float ca = cosf(anglea);
+            float cb = cosf(angleb);
+    
+            glm::vec3 p1a = position1 + perpSin * sa * radius1 + perpCos * ca * radius1;  
+            glm::vec3 p1b = position1 + perpSin * sb * radius1 + perpCos * cb * radius1; 
+            glm::vec3 p2a = position2 + perpSin * sa * radius2 + perpCos * ca * radius2;   
+            glm::vec3 p2b = position2 + perpSin * sb * radius2 + perpCos * cb * radius2;  
 
             glVertex3f(p1a.x, p1a.y, p1a.z); 
             glVertex3f(p1b.x, p1b.y, p1b.z); 
