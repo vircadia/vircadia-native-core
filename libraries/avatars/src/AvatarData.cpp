@@ -83,13 +83,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
-    // Hand State (0 = not grabbing, 1 = grabbing)
-    memcpy(destinationBuffer, &_handState, sizeof(char));
-    destinationBuffer += sizeof(char);
-    
     // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(destinationBuffer, &_audioLoudness, sizeof(float));
-    destinationBuffer += sizeof(float); 
+    destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
 
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -100,20 +95,22 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraNearClip);
     destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
 
-    // key state
-    *destinationBuffer++ = _keyState;
-
     // chat message
     *destinationBuffer++ = _chatMessage.size();
     memcpy(destinationBuffer, _chatMessage.data(), _chatMessage.size() * sizeof(char));
     destinationBuffer += _chatMessage.size() * sizeof(char);
     
-    // voxel sending features...
-    unsigned char wantItems = 0;
-    if (_wantResIn) { setAtBit(wantItems,WANT_RESIN_AT_BIT); }
-    if (_wantColor) { setAtBit(wantItems,WANT_COLOR_AT_BIT); }
-    if (_wantDelta) { setAtBit(wantItems,WANT_DELTA_AT_BIT); }
-    *destinationBuffer++ = wantItems;
+    // bitMask of less than byte wide items
+    unsigned char bitItems = 0;
+    if (_wantResIn) { setAtBit(bitItems,WANT_RESIN_AT_BIT); }
+    if (_wantColor) { setAtBit(bitItems,WANT_COLOR_AT_BIT); }
+    if (_wantDelta) { setAtBit(bitItems,WANT_DELTA_AT_BIT); }
+
+    // key state
+    setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
+    // hand state
+    setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
+    *destinationBuffer++ = bitItems;
     
     return destinationBuffer - bufferStart;
 }
@@ -162,18 +159,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // Hand Position
     memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
-    
+
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
     sourceBuffer += sizeof(_headData->_lookAtPosition);
-        
-    // Hand State
-    memcpy(&_handState, sourceBuffer, sizeof(char));
-    sourceBuffer += sizeof(char);
-    
+
     // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(&_audioLoudness, sourceBuffer, sizeof(float));
-    sourceBuffer += sizeof(float);
+    sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
@@ -184,20 +176,23 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraNearClip);
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
 
-    // key state
-    _keyState = (KeyState)*sourceBuffer++;
-    
     // the rest is a chat message
     int chatMessageSize = *sourceBuffer++;
     _chatMessage = string((char*)sourceBuffer, chatMessageSize);
     sourceBuffer += chatMessageSize * sizeof(char);
 
     // voxel sending features...
-    unsigned char wantItems = 0;
-    wantItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(wantItems,WANT_RESIN_AT_BIT);
-    _wantColor = oneAtBit(wantItems,WANT_COLOR_AT_BIT);
-    _wantDelta = oneAtBit(wantItems,WANT_DELTA_AT_BIT);
+    unsigned char bitItems = 0;
+    bitItems = (unsigned char)*sourceBuffer++;
+    _wantResIn = oneAtBit(bitItems,WANT_RESIN_AT_BIT);
+    _wantColor = oneAtBit(bitItems,WANT_COLOR_AT_BIT);
+    _wantDelta = oneAtBit(bitItems,WANT_DELTA_AT_BIT);
+
+    // key state, stored as a semi-nibble in the bitItems
+    _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
+
+    // hand state, stored as a semi-nibble in the bitItems
+    _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
     return sourceBuffer - startPosition;
 }
@@ -308,5 +303,20 @@ int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue) {
         // If it's negative, than the original holder can be found as the opposite sign of holder
         clipValue = -1.0f * holder;
     }
+    return sizeof(holder);
+}
+
+int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
+    unsigned char holder;
+    const float CONVERSION_RATIO = (255 / scaleBy);
+    holder = floorf(value * CONVERSION_RATIO);
+    memcpy(buffer, &holder, sizeof(holder));
+    return sizeof(holder);
+}
+
+int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
+    unsigned char holder;
+    memcpy(&holder, buffer, sizeof(holder));
+    value = ((float)holder / (float) 255) * scaleBy;
     return sizeof(holder);
 }

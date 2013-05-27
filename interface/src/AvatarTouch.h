@@ -12,7 +12,7 @@
 
 enum AvatarHandState
 {
-    HAND_STATE_NULL = -1,
+    HAND_STATE_NULL = 0,
     HAND_STATE_OPEN,
     HAND_STATE_GRASPING,
     HAND_STATE_POINTING,

@@ -20,10 +20,15 @@
 const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
+const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
+const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
+
+const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
+
 
 enum KeyState
 {
-    NO_KEY_DOWN,
+    NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
 };
@@ -156,5 +161,10 @@ int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio);
 // they are never greater than 16,000, this allows us to encode each component in 16bits
 int packClipValueToTwoByte(unsigned char* buffer, float clipValue);
 int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
+
+// Positive floats that don't need to be very precise
+int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
+int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
+
 
 #endif /* defined(__hifi__AvatarData__) */
