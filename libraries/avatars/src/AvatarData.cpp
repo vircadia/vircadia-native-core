@@ -109,7 +109,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += _chatMessage.size() * sizeof(char);
     
     // voxel sending features...
-    // voxel sending features...
     unsigned char wantItems = 0;
     if (_wantResIn) { setAtBit(wantItems,WANT_RESIN_AT_BIT); }
     if (_wantColor) { setAtBit(wantItems,WANT_COLOR_AT_BIT); }
