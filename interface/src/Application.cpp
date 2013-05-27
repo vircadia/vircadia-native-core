@@ -855,13 +855,18 @@ bool Application::getSettingBool(const char *settingName, bool &boolSetting, boo
     if (_settingsTable[settingName] != "")
     {
         int readBool;
-        sscanf(_settingsTable[settingName].data(), "%d", &readBool);
+        int res = sscanf(_settingsTable[settingName].data(), "%d", &readBool);
         
-        if (readBool == 1)
+        printLog("Found setting %d times!", res);
+        
+        if (res == 1)
         {
-            boolSetting = true;
-        } else if (readBool == 0) {
-            boolSetting = false;
+            if (readBool == 1)
+            {
+                boolSetting = true;
+            } else if (readBool == 0) {
+                boolSetting = false;
+            }
         }
     } else {
         boolSetting = defaultSetting;
@@ -876,10 +881,18 @@ bool Application::getSettingFloat(const char *settingName, float &floatSetting, 
     if (_settingsTable[settingName] != "")
     {
         float readFloat;
-        sscanf(_settingsTable[settingName].data(), "%f", &readFloat);
+        int res = sscanf(_settingsTable[settingName].data(), "%f", &readFloat);
         
-        if (!isnan(readFloat)) {
-            floatSetting = readFloat;
+        printLog("Found setting %d times!", res);
+        
+        if (res == 1)
+        {
+            if (!isnan(readFloat)) {
+                floatSetting = readFloat;
+            } else {
+                floatSetting = defaultSetting;
+                return false;
+            }
         } else {
             floatSetting = defaultSetting;
             return false;
@@ -897,10 +910,18 @@ bool Application::getSettingVec3(const char *settingName, glm::vec3 &vecSetting,
     if (_settingsTable[settingName] != "")
     {
         glm::vec3 readVec;
-        sscanf(_settingsTable[settingName].data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
+        int res = sscanf(_settingsTable[settingName].data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
         
-        if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
-            vecSetting = readVec;
+        printLog("Found setting %d times!", res);
+        
+        if (res == 3)
+        {
+            if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
+                vecSetting = readVec;
+            } else {
+                vecSetting = defaultSetting;
+                return false;
+            }
         } else {
             vecSetting = defaultSetting;
             return false;
@@ -2351,6 +2372,8 @@ void Application::saveSettings()
     
     setSettingBool("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
     
+    setSettingBool("_cameraFrustum", _cameraFrustum->isChecked());
+    
     saveSettingsFile();
 }
 
@@ -2404,6 +2427,9 @@ void Application::readSettings()
     
     getSettingBool("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
     _viewFrustumFromOffset->setChecked(settingState);
+    
+    getSettingBool("_cameraFrustum", settingState, _cameraFrustum->isChecked());
+    _cameraFrustum->setChecked(settingState);
     
 }
 
