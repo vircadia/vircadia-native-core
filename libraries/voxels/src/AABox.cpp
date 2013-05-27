@@ -177,7 +177,8 @@ bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::ve
         float vectorLength = glm::length(vector);
         if (vectorLength < minPenetrationLength) {
             // remember the smallest penetration vector; if we're inside all faces, we'll use that
-            penetration = vector * ((vectorLength + radius) / -vectorLength);
+            penetration = (vectorLength < EPSILON) ? glm::vec3(-facePlane) * radius :
+                vector * ((vectorLength + radius) / -vectorLength);
             minPenetrationLength = vectorLength;
         }
     }
@@ -204,7 +205,8 @@ bool AABox::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
         float vectorLength = glm::length(vector);
         if (vectorLength < minPenetrationLength) {
             // remember the smallest penetration vector; if we're inside all faces, we'll use that
-            penetration = vector * ((vectorLength + radius) / -vectorLength);
+            penetration = (vectorLength < EPSILON) ? glm::vec3(-facePlane) * radius :
+                vector * ((vectorLength + radius) / -vectorLength);
             minPenetrationLength = vectorLength;
         }
     } 

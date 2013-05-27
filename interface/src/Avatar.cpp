@@ -626,8 +626,11 @@ void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     _position -= penetration;
         
     // reflect the velocity component in the direction of penetration
-    glm::vec3 direction = glm::normalize(penetration);
-    _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    float penetrationLength = glm::length(penetration);
+    if (penetrationLength > EPSILON) {
+        glm::vec3 direction = penetration / penetrationLength;
+        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    }
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {
