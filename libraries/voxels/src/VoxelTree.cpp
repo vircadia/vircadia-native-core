@@ -753,18 +753,20 @@ public:
 bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
     
-    // currently, we treat each node as a sphere enveloping the box
-    glm::vec3 nodePenetration;
-    if (!findCapsuleSpherePenetration(args->start, args->end, args->radius, node->getCenter(),
-            node->getEnclosingRadius(), nodePenetration)) {
+    // coarse check against bounds
+    const AABox& box = node->getAABox();
+    if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->isColored()) {
-        args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
-        args->found = true;
+        glm::vec3 nodePenetration;
+        if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->found = true;
+        }        
     }
     return false;
 }
