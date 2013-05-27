@@ -874,8 +874,8 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.0 );
     _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.01 );
     _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  0.01  );
-    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.12,  -0.01 );
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.08,  0.00 );
+    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.14,  -0.01 );
+    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.04,  0.00 );
     
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04, -0.01 );
     _joint[ AVATAR_JOINT_LEFT_SHOULDER	  ].defaultPosePosition = glm::vec3( -0.05,  0.0,  -0.01 );
@@ -1180,38 +1180,43 @@ void Avatar::renderBody(bool lookingInMirror) {
                           glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND)
                                      / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f));
             }
+            
             glPushMatrix();
             glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
             glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
             glPopMatrix();
             
-            //  Render the cone connecting this joint to it's parent
-            
-            if (_joint[b].parent != AVATAR_JOINT_NULL)
+            //  Render the cone connecting this joint to its parent
+            if (_joint[b].parent != AVATAR_JOINT_NULL) {
                 if ((b != AVATAR_JOINT_HEAD_TOP      )
-                    &&  (b != AVATAR_JOINT_HEAD_BASE     )
-                    &&  (b != AVATAR_JOINT_PELVIS        )
-                    &&  (b != AVATAR_JOINT_TORSO         )
-                    &&  (b != AVATAR_JOINT_CHEST         )
-                    &&  (b != AVATAR_JOINT_LEFT_COLLAR   )
-                    &&  (b != AVATAR_JOINT_LEFT_SHOULDER )
-                    &&  (b != AVATAR_JOINT_RIGHT_COLLAR  )
-                    &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
-                    // Render cone sections connecting the joint positions
+                &&  (b != AVATAR_JOINT_HEAD_BASE     )
+                &&  (b != AVATAR_JOINT_PELVIS        )
+                &&  (b != AVATAR_JOINT_TORSO         )
+                &&  (b != AVATAR_JOINT_CHEST         )
+                &&  (b != AVATAR_JOINT_LEFT_COLLAR   )
+                &&  (b != AVATAR_JOINT_LEFT_SHOULDER )
+                &&  (b != AVATAR_JOINT_RIGHT_COLLAR  )
+                &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
                     glColor3fv(darkSkinColor);
+                    
+                    float r1 = _joint[_joint[b].parent ].radius * 0.8;
+                    float r2 = _joint[b                ].radius * 0.8;
+                    if (b == AVATAR_JOINT_HEAD_BASE) {
+                        r1 *= 0.5f;
+                    }
                     renderJointConnectingCone
                     (
                      _joint[_joint[b].parent ].springyPosition,
-                     _joint[b                ].springyPosition,
-                     _joint[_joint[b].parent ].radius * 0.8,
-                     _joint[b                ].radius * 0.8
+                     _joint[b                ].springyPosition, r2, r2
                      );
-                } 
-
+                }
+            } 
         }
-        
     }
 }
+
+
+
 void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
     //
     //  Given absolute position and angular velocity information, update the avatar's head angles
