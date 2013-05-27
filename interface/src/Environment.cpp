@@ -60,8 +60,8 @@ void Environment::renderAtmospheres(Camera& camera) {
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
     // the "original gravity"
     glm::vec3 gravity;
-    if (position.x > 0.0f && position.x < 10.0f && position.y > 0.0f &&
-            position.y < 3.0f && position.z > 0.0f && position.z < 10.0f) {
+    if (position.x > 0.0f && position.x < EDGE_SIZE_GROUND_PLANE && position.y > 0.0f &&
+            position.y < 3.0f && position.z > 0.0f && position.z < EDGE_SIZE_GROUND_PLANE) {
         gravity = glm::vec3(0.0f, -1.0f, 0.0f);
     }
     

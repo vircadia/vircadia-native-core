@@ -901,7 +901,7 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime, false);
+                avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
@@ -1669,7 +1669,6 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    const float EDGE_SIZE_GROUND_PLANE = 20.f;
     drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
