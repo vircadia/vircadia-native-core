@@ -2363,6 +2363,14 @@ void Application::saveSettings()
     
     setSettingBool("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
     
+    setSettingBool("wantsViewDeltaSending", _myAvatar.getWantDelta());
+    
+    setSettingBool("wantsResIn", _myAvatar.getWantResIn());
+    
+    setSettingBool("wantsMonochrome", _myAvatar.getWantColor());
+    
+    setSettingBool("renderPipelineWarnings", _voxels.getRenderPipelineWarnings());
+    
     closeSettingsFile();
 }
 
@@ -2416,6 +2424,18 @@ void Application::readSettings()
     
     getSettingBool("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
     _viewFrustumFromOffset->setChecked(settingState);
+    
+    getSettingBool("wantsResIn", settingState, false);
+    setWantsResIn(settingState);
+    
+    getSettingBool("wantsMonochrome", settingState, false);
+    setWantsMonochrome(settingState);
+    
+    getSettingBool("renderPipelineWarnings", settingState, false);
+    setRenderWarnings(settingState);
+    
+    getSettingBool("wantsViewDeltaSending", settingState, false);
+    setWantsDelta(settingState);
     
     closeSettingsFile();
 }
