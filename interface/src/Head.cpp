@@ -62,9 +62,9 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-    _mohawkColors(NULL),
-    _renderLookatVectors(false) {
+    _mohawkColors(NULL) {
 
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
             _hairTuft[t].length        = HAIR_LENGTH;

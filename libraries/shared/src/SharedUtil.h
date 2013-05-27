@@ -87,4 +87,5 @@ class debug {
 public:                           
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; };
 };
+
 #endif /* defined(__hifi__SharedUtil__) */
