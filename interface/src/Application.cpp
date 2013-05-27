@@ -778,57 +778,93 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
 
-bool Application::openSettingsFile(const char *mode)
+void Application::readSettingsFile()
 {
-    _settingsFile = fopen(AVATAR_DATA_FILENAME, mode);
+    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "rt");
     
-    if (_settingsFile)
+    if (settingsFile)
     {
-        return true;
-    } else {
-        return false;
+        char line[LINE_MAX];
+        
+        while (fgets(line, LINE_MAX, settingsFile) != NULL)
+        {
+            if (strcmp(line, " \n") > 0)
+            {
+                char *token = NULL;
+                char *settingLine = NULL;
+                char *toFree = NULL;
+                
+                settingLine = strdup(line);
+                
+                if (settingLine != NULL)
+                {
+                    toFree = settingLine;
+                    
+                    int i = 0;
+                    
+                    char key[128];
+                    char value[128];
+                    
+                    
+                    while ((token = strsep(&settingLine, "=")) != NULL)
+                    {
+                        switch (i) {
+                            case 0:
+                                strcpy(key, token);
+                                _settingsTable[key] = "";
+                                break;
+                                
+                            case 1:
+                                strcpy(value, token);
+                                _settingsTable[key] = token;
+                                break;
+                                
+                            default:
+                                break;
+                        }
+                        
+                        i++;
+                    }
+                    
+                    free(toFree);
+                }
+            }
+        }
     }
+    
+    fclose(settingsFile);
 }
 
-void Application::closeSettingsFile()
+void Application::saveSettingsFile()
 {
-    if (_settingsFile)
+    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "wt");
+    
+    if (settingsFile)
     {
-        fclose(_settingsFile);
-        _settingsFile = NULL;
+        for (std::map<std::string, std::string>::iterator i = _settingsTable.begin(); i != _settingsTable.end(); i++)
+        {
+            fprintf(settingsFile, "\n%s=%s", i->first.data(), i->second.data());
+        }
     }
+    
+    fclose(settingsFile);
 }
 
 bool Application::getSettingBool(const char *settingName, bool &boolSetting, bool defaultSetting)
 {
-    if (_settingsFile)
+    if (_settingsTable[settingName] != "")
     {
-        int readPosition;
+        int readBool;
+        sscanf(_settingsTable[settingName].data(), "%d", &readBool);
         
-        char setting[128];
-        char vals[] = "%d";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        
-        int res = fscanf(_settingsFile, setting, &readPosition);
-        
-        if (res != EOF)
+        if (readBool == 1)
         {
-            if (readPosition == 1)
-            {
-                boolSetting = true;
-            } else if (readPosition == 0) {
-                boolSetting = false;
-            }
-        } else {
-            boolSetting = defaultSetting;
-            return false;
+            boolSetting = true;
+        } else if (readBool == 0) {
+            boolSetting = false;
         }
-        
     } else {
         boolSetting = defaultSetting;
-        
-        printLog("Call to getSetting function without _settingsFile being open! Forgot to call openSettingsFile perhaps?\n");
-        
         return false;
     }
     
@@ -837,32 +873,19 @@ bool Application::getSettingBool(const char *settingName, bool &boolSetting, boo
 
 bool Application::getSettingFloat(const char *settingName, float &floatSetting, float defaultSetting)
 {
-    if (_settingsFile)
+    if (_settingsTable[settingName] != "")
     {
-        float readPosition;
+        float readFloat;
+        sscanf(_settingsTable[settingName].data(), "%f", &readFloat);
         
-        char setting[128];
-        char vals[] = "%f";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        
-        int res = fscanf(_settingsFile, setting, &readPosition);
-        
-        if (res != EOF)
-        {
-            if (!isnan(readPosition)) {
-                floatSetting = readPosition;
-            } else {
-                floatSetting = defaultSetting;
-            }
+        if (!isnan(readFloat)) {
+            floatSetting = readFloat;
         } else {
             floatSetting = defaultSetting;
             return false;
         }
     } else {
         floatSetting = defaultSetting;
-        
-        printLog("Call to getSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
-        
         return false;
     }
     
@@ -871,32 +894,19 @@ bool Application::getSettingFloat(const char *settingName, float &floatSetting, 
 
 bool Application::getSettingVec3(const char *settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting)
 {
-    if (_settingsFile)
+    if (_settingsTable[settingName] != "")
     {
-        glm::vec3 readPosition;
+        glm::vec3 readVec;
+        sscanf(_settingsTable[settingName].data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
         
-        char setting[128];
-        char vals[] = "%f,%f,%f";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        
-        int res = fscanf(_settingsFile, setting, &readPosition.x, &readPosition.y, &readPosition.z);
-        
-        if (res != EOF)
-        {
-            if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z)) {
-                vecSetting = readPosition;
-            } else {
-                vecSetting = defaultSetting;
-            }
+        if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
+            vecSetting = readVec;
         } else {
             vecSetting = defaultSetting;
-            return  false;
+            return false;
         }
     } else {
         vecSetting = defaultSetting;
-        
-        printLog("Call to getSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
-        
         return false;
     }
     
@@ -905,44 +915,23 @@ bool Application::getSettingVec3(const char *settingName, glm::vec3 &vecSetting,
 
 void Application::setSettingBool(const char *settingName, bool boolSetting)
 {
-    if (_settingsFile)
-    {
-        char setting[128];
-        char vals[] = "%d";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        printLog(setting, boolSetting);
-        fprintf(_settingsFile, setting, boolSetting);
-    } else {
-        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
-    }
+    char setting[128];
+    sprintf(setting, "%d", boolSetting);
+    _settingsTable[settingName] = setting;
 }
 
 void Application::setSettingFloat(const char *settingName, float floatSetting)
 {
-    if (_settingsFile)
-    {
-        char setting[128];
-        char vals[] = "%f";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        printLog(setting, floatSetting);
-        fprintf(_settingsFile, setting, floatSetting);
-    } else {
-        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
-    }
+    char setting[128];
+    sprintf(setting, "%f", floatSetting);
+    _settingsTable[settingName] = setting;
 }
 
 void Application::setSettingVec3(const char *settingName, glm::vec3 vecSetting)
 {
-    if (_settingsFile)
-    {
-        char setting[128];
-        char vals[] = "%f,%f,%f";
-        sprintf(setting, "\n%s=%s", settingName, vals);
-        printLog(setting, vecSetting.x, vecSetting.y, vecSetting.z);
-        fprintf(_settingsFile, setting, vecSetting.x, vecSetting.y, vecSetting.z);
-    } else {
-        printLog("Call to setSetting function without _settingsFile! Forgot to call openSettingsFile perhaps?\n");
-    }
+    char setting[128];
+    sprintf(setting, "%f,%f,%f", vecSetting.x, vecSetting.y, vecSetting.z);
+    _settingsTable[settingName] = setting;
 }
 
 //  Every second, check the frame rates and other stuff
@@ -2330,7 +2319,6 @@ void Application::saveSettings()
 {
     // Handle any persistent settings saving here when we get a call to terminate.
     // This should probably be moved to a map stored in memory at some point to cache settings.
-    openSettingsFile("wt");
     _myAvatar.writeAvatarDataToFile();
     
     setSettingBool("_gyroLook", _gyroLook->isChecked());
@@ -2363,20 +2351,12 @@ void Application::saveSettings()
     
     setSettingBool("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
     
-    setSettingBool("wantsViewDeltaSending", _myAvatar.getWantDelta());
-    
-    setSettingBool("wantsResIn", _myAvatar.getWantResIn());
-    
-    setSettingBool("wantsMonochrome", _myAvatar.getWantColor());
-    
-    setSettingBool("renderPipelineWarnings", _voxels.getRenderPipelineWarnings());
-    
-    closeSettingsFile();
+    saveSettingsFile();
 }
 
 void Application::readSettings()
 {
-    openSettingsFile("rt");
+    readSettingsFile();
     _myAvatar.readAvatarDataFromFile();
     
     bool settingState;
@@ -2425,18 +2405,5 @@ void Application::readSettings()
     getSettingBool("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
     _viewFrustumFromOffset->setChecked(settingState);
     
-    getSettingBool("wantsResIn", settingState, false);
-    setWantsResIn(settingState);
-    
-    getSettingBool("wantsMonochrome", settingState, false);
-    setWantsMonochrome(settingState);
-    
-    getSettingBool("renderPipelineWarnings", settingState, false);
-    setRenderWarnings(settingState);
-    
-    getSettingBool("wantsViewDeltaSending", settingState, false);
-    setWantsDelta(settingState);
-    
-    closeSettingsFile();
 }
 

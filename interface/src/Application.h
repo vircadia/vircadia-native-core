@@ -11,6 +11,7 @@
 
 #include <pthread.h> 
 #include <time.h>
+#include <map>
 
 #include <QApplication>
 
@@ -183,11 +184,12 @@ private:
     static void attachNewHeadToAgent(Agent *newAgent);
     static void* networkReceive(void* args);
     
-    bool openSettingsFile(const char* mode);
-    void closeSettingsFile();
+    // These two functions are technically not necessary, but they help keep things in one place.
+    void readSettings(); //! This function is largely to help consolidate getting settings in one place.
+    void saveSettings(); //! This function is to consolidate any settings setting in one place.
     
-    void saveSettings();
-    void readSettings();
+    void readSettingsFile(); //! This function reads data from the settings file, splitting data into key value pairs using '=' as a delimiter.
+    void saveSettingsFile(); //! This function writes all changes in the settings table to the settings file, serializing all settings added through the setSetting functions.
     
     QMainWindow* _window;
     QGLWidget* _glWidget;
@@ -214,7 +216,7 @@ private:
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
-    QAction* _cameraFrustum;         // which frustum to look at 
+    QAction* _cameraFrustum;         // which frustum to look at
     QAction* _frustumRenderModeAction;
     
     SerialInterface _serialPort;
@@ -306,7 +308,11 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    FILE* _settingsFile;
+    /*!
+     * Store settings in a map, storing keys and values as strings.
+     * Interpret values as needed on demand. through the appropriate getters and setters.
+     */
+    std::map<std::string, std::string> _settingsTable; 
 };
 
 #endif /* defined(__interface__Application__) */
