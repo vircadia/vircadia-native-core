@@ -18,7 +18,7 @@ const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
 const float EAR_RIGHT_OFFSET         =  1.0;
-const float MOUTH_FRONT_OFFSET       =  0.9f;
+//const float MOUTH_FRONT_OFFSET       =  0.9f;
 const float MOUTH_UP_OFFSET          = -0.3f;
 const float HEAD_MOTION_DECAY        =  0.1;
 const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
@@ -202,7 +202,7 @@ void Head::calculateGeometry(bool lookingInMirror) {
 
     //calculate the mouth position 
     _mouthPosition    = _position + _orientation.getUp   () * _scale * MOUTH_UP_OFFSET
-                                  + _orientation.getFront() * _scale * MOUTH_FRONT_OFFSET;
+                                  + _orientation.getFront() * _scale;
 }
 
 
@@ -343,6 +343,7 @@ void Head::renderMouth() {
     glm::vec3 u = _orientation.getUp   () * _scale * (0.05f + s * 0.0040f );
     glm::vec3 f = _orientation.getFront() * _scale *  0.09f;
 
+    glm::vec3 middle      = _mouthPosition;
     glm::vec3 leftCorner  = _mouthPosition - r * 1.0f;
     glm::vec3 rightCorner = _mouthPosition + r * 1.0f;
     glm::vec3 leftTop     = _mouthPosition - r * 0.4f + u * 0.7f + f;
@@ -352,6 +353,7 @@ void Head::renderMouth() {
     
     // constrain all mouth vertices to a sphere slightly larger than the head...
     float constrainedRadius = _scale + 0.001f;
+    middle      = _position + glm::normalize(middle      - _position) * constrainedRadius;
     leftCorner  = _position + glm::normalize(leftCorner  - _position) * constrainedRadius;
     rightCorner = _position + glm::normalize(rightCorner - _position) * constrainedRadius;
     leftTop     = _position + glm::normalize(leftTop     - _position) * constrainedRadius;
@@ -366,10 +368,16 @@ void Head::renderMouth() {
     glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
     glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
     glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+    glVertex3f(middle.x,      middle.y,      middle.z     ); 
     glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
+    glVertex3f(leftTop.x,     leftTop.y,     leftTop.z    ); 
+    glVertex3f(middle.x,      middle.y,      middle.z     ); 
     glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+    glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+    glVertex3f(middle.x,      middle.y,      middle.z     ); 
+    glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
     glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
-    glVertex3f(leftBottom.x,  leftBottom.y,  leftBottom.z ); 
+    glVertex3f(middle.x,      middle.y,      middle.z     ); 
     glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
     glVertex3f(rightTop.x,    rightTop.y,    rightTop.z   ); 
     glVertex3f(rightBottom.x, rightBottom.y, rightBottom.z); 
