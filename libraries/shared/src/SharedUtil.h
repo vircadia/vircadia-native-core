@@ -53,6 +53,10 @@ int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
 
+int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
+void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
+
+
 void switchToResourcesParentIfRequired();
 
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
