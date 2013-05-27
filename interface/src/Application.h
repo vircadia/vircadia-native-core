@@ -65,12 +65,55 @@ public:
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
     
+    /*!
+     @fn getSettingBool
+     @brief A function for getting boolean settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param boolSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to false.
+    */
     bool getSettingBool(const char* settingName, bool &boolSetting, bool defaultSetting = false);
-    bool getSettingFloat(const char* settingName, float &floatSetting, float defaultSetting = 0.0f);
-    bool getSettingVec3(const char* settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting = glm::vec3(0, 0, 0));
     
+    /*!
+     @fn getSettingFloat
+     @brief A function for getting float settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param floatSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to 0.0f.
+     */
+    bool getSettingFloat(const char* settingName, float &floatSetting, float defaultSetting = 0.0f);
+    
+    /*!
+     @fn getSettingVec3
+     @brief A function for getting boolean settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param vecSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to <0.0f, 0.0f, 0.0f>
+     */
+    bool getSettingVec3(const char* settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting = glm::vec3(0.0f, 0.0f, 0.0f));
+    
+    /*!
+     @fn setSettingBool
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param boolSetting The value to set.
+     */
     void setSettingBool(const char* settingName, bool boolSetting);
+    
+    /*!
+     @fn setSettingFloat
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param floatSetting The value to set.
+     */
     void setSettingFloat(const char* settingName, float floatSetting);
+    
+    /*!
+     @fn setSettingVec3
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param vecSetting The value to set.
+     */
     void setSettingVec3(const char* settingName, glm::vec3 vecSetting);
 
 private slots:
