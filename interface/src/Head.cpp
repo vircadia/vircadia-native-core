@@ -42,7 +42,6 @@ Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
     yawRate(0.0f),
     _returnHeadToCenter(false),
-    _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),

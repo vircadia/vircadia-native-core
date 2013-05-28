@@ -44,7 +44,6 @@ public:
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
     void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
-    void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
         
@@ -73,7 +72,6 @@ private:
     };
 
     bool        _returnHeadToCenter;
-    float       _audioLoudness;
     glm::vec3   _skinColor;
     glm::vec3   _position;
     glm::vec3   _rotation;

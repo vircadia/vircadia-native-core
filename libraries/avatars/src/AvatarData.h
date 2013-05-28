@@ -51,11 +51,7 @@ public:
     //  Hand State
     void setHandState(char s) { _handState = s; };
     char getHandState() const {return _handState; };
-
-    //  Instantaneous audio loudness to drive mouth/facial animation
-    void setLoudness(float l) { _audioLoudness = l; };
-    float getLoudness() const {return _audioLoudness; };
-
+    
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
     const glm::vec3& getCameraDirection()   const { return _cameraDirection; }
@@ -103,9 +99,6 @@ protected:
     float _bodyPitch;
     float _bodyRoll;
 
-    //  Audio loudness (used to drive facial animation)
-    float _audioLoudness;
-    
     //  Hand state (are we grabbing something or not)
     char _handState;
     
