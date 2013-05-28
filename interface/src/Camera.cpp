@@ -11,49 +11,51 @@
 
 #include "Camera.h"
 
-const float MODE_SHIFT_RATE = 6.0f;
+const float CAMERA_MINIMUM_MODE_SHIFT_RATE     = 0.5f;
+
+const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
+const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
+const float CAMERA_FIRST_PERSON_MODE_TIGHTNESS = 100.0f;
+
+const float CAMERA_THIRD_PERSON_MODE_UP_SHIFT  = -0.2f;
+const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
+const float CAMERA_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
+
+const float CAMERA_MIRROR_MODE_UP_SHIFT        = 0.0f;
+const float CAMERA_MIRROR_MODE_DISTANCE        = 0.2f;
+const float CAMERA_MIRROR_MODE_TIGHTNESS       = 100.0f;
 
 Camera::Camera() {
 
     _needsToInitialize   = true;
     _frustumNeedsReshape = true;
     
-    _modeShift      = 0.0;
-    _mode           = CAMERA_MODE_THIRD_PERSON;
-    _tightness      = 10.0; // default
-    _fieldOfView    = 60.0; // default
-    _nearClip       = 0.08; // default
-    _farClip        = 50.0 * TREE_SCALE; // default
-    _yaw            = 0.0;
-    _pitch          = 0.0;
-    _roll           = 0.0;
-    _upShift        = 0.0;
-    _distance       = 0.0;
-    _idealYaw       = 0.0;
-    _idealPitch     = 0.0;
-    _idealRoll      = 0.0;
-    _targetPosition = glm::vec3(0.0, 0.0, 0.0);
-    _position       = glm::vec3(0.0, 0.0, 0.0);
-    _idealPosition  = glm::vec3(0.0, 0.0, 0.0);
+    _modeShift         = 0.0f;
+    _modeShiftRate     = 1.0f;
+    _linearModeShift   = 0.0f;
+    _mode              = CAMERA_MODE_THIRD_PERSON;
+    _tightness         = 10.0f; // default
+    _fieldOfView       = 60.0f; // default
+    _nearClip          = 0.08f; // default
+    _farClip           = 50.0f * TREE_SCALE; // default
+    _yaw               = 0.0f;
+    _pitch             = 0.0f;
+    _roll              = 0.0f;
+    _upShift           = 0.0f;
+    _distance          = 0.0f;
+    _previousUpShift   = 0.0f;
+    _previousDistance  = 0.0f;
+    _previousTightness = 0.0f;
+    _newUpShift        = 0.0f;
+    _newDistance       = 0.0f;
+    _newTightness      = 0.0f;
+    _idealYaw          = 0.0f;
+    _idealPitch        = 0.0f;
+    _idealRoll         = 0.0f;
+    _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
+    _position          = glm::vec3(0.0f, 0.0f, 0.0f);
+    _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
     _orientation.setToIdentity();
-    
-    _attributes[CAMERA_MODE_FIRST_PERSON].upShift   = CAMERA_DEFAULT_FIRST_PERSON_MODE_UP_SHIFT;
-    _attributes[CAMERA_MODE_FIRST_PERSON].distance  = CAMERA_DEFAULT_FIRST_PERSON_MODE_DISTANCE; 
-    _attributes[CAMERA_MODE_FIRST_PERSON].tightness = CAMERA_DEFAULT_FIRST_PERSON_MODE_TIGHTNESS;
-
-    _attributes[CAMERA_MODE_THIRD_PERSON].upShift   = CAMERA_DEFAULT_THIRD_PERSON_MODE_UP_SHIFT; 
-    _attributes[CAMERA_MODE_THIRD_PERSON].distance  = CAMERA_DEFAULT_THIRD_PERSON_MODE_DISTANCE; 
-    _attributes[CAMERA_MODE_THIRD_PERSON].tightness = CAMERA_DEFAULT_THIRD_PERSON_MODE_TIGHTNESS; 
-
-    _attributes[CAMERA_MODE_MIRROR      ].upShift   = CAMERA_DEFAULT_MIRROR_MODE_UP_SHIFT;
-    _attributes[CAMERA_MODE_MIRROR      ].distance  = CAMERA_DEFAULT_MIRROR_MODE_DISTANCE; 
-    _attributes[CAMERA_MODE_MIRROR      ].tightness = CAMERA_DEFAULT_MIRROR_MODE_TIGHTNESS; 
-        
-    for (int m = 0; m < NUM_CAMERA_MODES; m ++) {
-        _previousAttributes[m].upShift   = 0.0f;
-        _previousAttributes[m].distance  = 0.0f;
-        _previousAttributes[m].tightness = 0.0f;
-    }
 }
 
 void Camera::update(float deltaTime)  {
@@ -67,7 +69,6 @@ void Camera::update(float deltaTime)  {
     generateOrientation();    
 }
 
-
 // generate the ortho-normals for the orientation based on the three Euler angles
 void Camera::generateOrientation() {
     _orientation.setToIdentity();
@@ -79,15 +80,26 @@ void Camera::generateOrientation() {
 // use iterative forces to keep the camera at the desired position and angle
 void Camera::updateFollowMode(float deltaTime) {  
 
-    if (_modeShift < 1.0f) {
-        _modeShift += 5.0f * deltaTime;
-        if (_modeShift > 1.0f ) {
+    if (_linearModeShift < 1.0f) {
+        _linearModeShift += _modeShiftRate * deltaTime;
+        
+        _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE );
+
+        _upShift   = _previousUpShift   * (1.0f - _modeShift) + _newUpShift   * _modeShift;
+        _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;
+        _tightness = _previousTightness * (1.0f - _modeShift) + _newTightness * _modeShift;
+
+        if (_linearModeShift > 1.0f ) {
+            _linearModeShift = 1.0f;
             _modeShift = 1.0f;
+            _upShift   = _newUpShift;
+            _distance  = _newDistance;
+            _tightness = _newTightness;
         }
     }
 
     // derive t from tightness
-    float t = _tightness * deltaTime;	
+    float t = _tightness * _modeShift * deltaTime;	
     if (t > 1.0) {
         t = 1.0;
     }
@@ -103,10 +115,6 @@ void Camera::updateFollowMode(float deltaTime) {
         _pitch += (_idealPitch - _pitch) * t;
         _roll  += (_idealRoll  - _roll ) * t;
     }
-    
-    _orientation.yaw  (_yaw  );
-    _orientation.pitch(_pitch);
-    _orientation.roll (_roll );
             
     float radian = (_yaw / 180.0) * PIE;
 
@@ -124,31 +132,44 @@ void Camera::updateFollowMode(float deltaTime) {
         // force position towards ideal position
         _position += (_idealPosition - _position) * t; 
     }
-
-    float inverseModeShift = 1.0f - _modeShift;
-    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
-    _distance  = _attributes[_mode].distance * _modeShift + _previousAttributes[_mode].distance * inverseModeShift;
-    _upShift   = _attributes[_mode].upShift  * _modeShift + _previousAttributes[_mode].upShift  * inverseModeShift;
 }
 
-
-void Camera::setMode(CameraMode  m, CameraFollowingAttributes a) { 
- 
-    _previousAttributes[m].upShift   = _attributes[m].upShift;
-    _previousAttributes[m].distance  = _attributes[m].distance;
-    _previousAttributes[m].tightness = _attributes[m].tightness;
- 
-    _attributes[m].upShift   = a.upShift;
-    _attributes[m].distance  = a.distance;
-    _attributes[m].tightness = a.tightness;
+void Camera::setModeShiftRate ( float rate ) {
     
-    setMode(m);
+    _modeShiftRate = rate;
+    
+    if (_modeShiftRate < CAMERA_MINIMUM_MODE_SHIFT_RATE ) {
+        _modeShiftRate = CAMERA_MINIMUM_MODE_SHIFT_RATE;
+    }
 }
 
-void Camera::setMode(CameraMode  m) { 
+void Camera::setMode(CameraMode m) { 
+ 
     _mode = m;
     _modeShift = 0.0;
+    _linearModeShift = 0.0;
+    
+    _previousUpShift   = _upShift;
+    _previousDistance  = _distance;
+    _previousTightness = _tightness;
+
+    if (_mode == CAMERA_MODE_THIRD_PERSON) {
+        _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
+        _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
+        
+    } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
+        _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
+        _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
+        
+    } else if (_mode == CAMERA_MODE_MIRROR) {
+        _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
+        _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
+    }
 }
+
 
 void Camera::setTargetRotation( float yaw, float pitch, float roll ) {
     _idealYaw   = yaw;
