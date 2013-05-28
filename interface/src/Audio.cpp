@@ -116,7 +116,7 @@ int audioCallback (const void* inputBuffer,
         printLog("got output\n");
     }
     
-    if (inputLeft != NULL) {
+    if (inputLeft) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
@@ -457,7 +457,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         gettimeofday(&_firstPlaybackTime, NULL);
     }
     
-    _ringBuffer.parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
+    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;
 }
