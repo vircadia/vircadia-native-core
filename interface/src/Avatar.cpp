@@ -434,7 +434,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
-    _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, !_owningAgent);
     
     // use speed and angular velocity to determine walking vs. standing                                
