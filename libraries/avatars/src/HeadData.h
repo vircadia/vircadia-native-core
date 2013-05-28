@@ -41,6 +41,8 @@ public:
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
     
+    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+    
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
@@ -57,6 +59,7 @@ protected:
     glm::vec3 _lookAtPosition;
     float _leanSideways;
     float _leanForward;
+    float _audioLoudness;
     AvatarData* _owningAvatar;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

@@ -37,7 +37,6 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _audioLoudness(0),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraDirection(0,0,0),
@@ -53,6 +52,7 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _wantDelta(false),
     _headData(NULL)
 {
+    
 }
 
 AvatarData::~AvatarData() {
@@ -104,7 +104,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(char);
     
     // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(destinationBuffer, &_audioLoudness, sizeof(float));
+    memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float); 
 
     // camera details
@@ -198,7 +198,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(char);
     
     // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(&_audioLoudness, sourceBuffer, sizeof(float));
+    memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
     
     // camera details
