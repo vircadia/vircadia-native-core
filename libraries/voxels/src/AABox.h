@@ -19,9 +19,10 @@ enum BoxFace {
     MIN_Y_FACE,
     MAX_Y_FACE,
     MIN_Z_FACE,
-    MAX_Z_FACE,
-    FACE_COUNT
+    MAX_Z_FACE
 };
+
+const int FACE_COUNT = 6;
 
 class AABox 
 {
