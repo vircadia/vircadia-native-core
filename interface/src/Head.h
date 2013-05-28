@@ -25,7 +25,6 @@ enum eyeContactTargets
 };
 
 const int NUM_HAIR_TUFTS    = 4;
-const int NUM_HAIR_SEGMENTS = 4;
 
 class Avatar;
 
@@ -36,7 +35,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror, glm::vec3 cameraPosition);
-    void renderMohawk(bool lookingInMirror);
+    void renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -110,8 +109,8 @@ private:
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
     void determineIfLookingAtSomething();
-    void updateHair(float deltaTime);
-    void renderHair(glm::vec3 cameraPosition);
+    void resetHairPhysics();
+    void updateHairPhysics(float deltaTime);
 };
 
 #endif

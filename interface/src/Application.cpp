@@ -918,31 +918,21 @@ void Application::idle() {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {        
             if (_manualFirstPerson) {
                 if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                   Camera::CameraFollowingAttributes a;
-                    a.upShift   = 0.0f;
-                    a.distance  = 0.0f;
-                    a.tightness = 100.0f;
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
                 }
             } else {
         
                 if (_myAvatar.getIsNearInteractingOther()) {
                     if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                    
-                        Camera::CameraFollowingAttributes a;
-                        a.upShift   = 0.0f;
-                        a.distance  = 0.0f;
-                        a.tightness = 100.0f;
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
                     }
                 } 
                 else {
                     if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        Camera::CameraFollowingAttributes a;            
-                        a.upShift   = -0.2f;
-                        a.distance  = 1.5f;
-                        a.tightness = 8.0f;
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
                     }
                 }
             }
@@ -981,17 +971,11 @@ void Application::setHead(bool head) {
     #endif
     
     if (head) {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = 0.0f;
-        a.distance  = 0.2f;
-        a.tightness = 100.0f;
-        _myCamera.setMode(CAMERA_MODE_MIRROR, a);
+        _myCamera.setMode(CAMERA_MODE_MIRROR);
+        _myCamera.setModeShiftRate(100.0f);
     } else {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = -0.2f;
-        a.distance  = 1.5f;
-        a.tightness = 8.0f;
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+        _myCamera.setModeShiftRate(1.0f);
     }
 }
 
@@ -1285,11 +1269,8 @@ void Application::init() {
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
     _myAvatar.setPosition(START_LOCATION);
-    Camera::CameraFollowingAttributes a;            
-    a.upShift   = -0.2f;
-    a.distance  = 1.5f;
-    a.tightness = 8.0f;
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
+    _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
