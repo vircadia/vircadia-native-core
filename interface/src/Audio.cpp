@@ -457,7 +457,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         gettimeofday(&_firstPlaybackTime, NULL);
     }
     
-    _ringBuffer.parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
+    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;
 }
