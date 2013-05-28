@@ -18,6 +18,7 @@
 #include "SerialInterface.h"
 #include "Balls.h"
 #include "Head.h"
+#include "Skeleton.h"
 #include "Transmitter.h"
 
 enum DriveKeys
@@ -41,38 +42,6 @@ enum AvatarMode
 	NUM_AVATAR_MODES
 };
 
-enum AvatarJointID
-{
-	AVATAR_JOINT_NULL = -1,
-	AVATAR_JOINT_PELVIS,	
-	AVATAR_JOINT_TORSO,	
-	AVATAR_JOINT_CHEST,	
-	AVATAR_JOINT_NECK_BASE,	
-	AVATAR_JOINT_HEAD_BASE,	
-	AVATAR_JOINT_HEAD_TOP,	
-	AVATAR_JOINT_LEFT_COLLAR,
-	AVATAR_JOINT_LEFT_SHOULDER,
-	AVATAR_JOINT_LEFT_ELBOW,
-	AVATAR_JOINT_LEFT_WRIST,
-	AVATAR_JOINT_LEFT_FINGERTIPS,
-	AVATAR_JOINT_RIGHT_COLLAR,
-	AVATAR_JOINT_RIGHT_SHOULDER,
-	AVATAR_JOINT_RIGHT_ELBOW,
-	AVATAR_JOINT_RIGHT_WRIST,
-	AVATAR_JOINT_RIGHT_FINGERTIPS,
-	AVATAR_JOINT_LEFT_HIP,
-	AVATAR_JOINT_LEFT_KNEE,
-	AVATAR_JOINT_LEFT_HEEL,		
-	AVATAR_JOINT_LEFT_TOES,		
-	AVATAR_JOINT_RIGHT_HIP,	
-	AVATAR_JOINT_RIGHT_KNEE,	
-	AVATAR_JOINT_RIGHT_HEEL,	
-	AVATAR_JOINT_RIGHT_TOES,	
-    
-	NUM_AVATAR_JOINTS
-};
-
-
 class Avatar : public AvatarData {
 public:
     Avatar(Agent* owningAgent = NULL);
@@ -95,7 +64,7 @@ public:
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
 
     //getters
-    float            getLastMeasuredHeadYaw   ()                const { return _head.yawRate;}
+    float            getHeadYawRate           ()                const { return _head.yawRate;}
     float            getBodyYaw               ()                const { return _bodyYaw;}
     bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadPosition          ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].position;}
@@ -147,6 +116,7 @@ private:
     };
 
     Head        _head;
+    Skeleton    _skeleton;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;

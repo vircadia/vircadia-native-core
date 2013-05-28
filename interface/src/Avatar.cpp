@@ -60,6 +60,8 @@ const float LEAN_AVERAGING                = 10.0;
 const float HEAD_RATE_MAX                 = 50.f;
 const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
+const int   NUM_BODY_CONE_SIDES           = 9;
+
 
 bool usingBigSphereCollisionTest = true;
 
@@ -1238,9 +1240,7 @@ void Avatar::readAvatarDataFromFile() {
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
 
     glBegin(GL_TRIANGLES);   
-    
-    int num = 9;
-    
+        
     glm::vec3 axis = position2 - position1;
     float length = glm::length(axis);
 
@@ -1255,10 +1255,12 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         float anglea = 0.0;
         float angleb = 0.0;
 
-        for (int i = 0; i < num; i ++) {
+        for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
         
+            // the rectangles that comprise the sides of the cone section are
+            // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
             anglea = angleb;
-            angleb = ((float)(i+1) / (float)num) * PI * 2.0f;
+            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PI * 2.0f;
             
             float sa = sinf(anglea);
             float sb = sinf(angleb);
