@@ -13,6 +13,7 @@
 
 const float THREAD_RADIUS = 0.007;
 const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.2;
+const float AVATAR_FACING_THRESHOLD = 0.1f;    // (-1 to 1) (larger value indicates narrower angle of influence
 
 AvatarTouch::AvatarTouch() {
 
@@ -43,8 +44,8 @@ void AvatarTouch::simulate (float deltaTime) {
     
     bool facingEachOther = false;
     
-    if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -0.1f)
-    &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  0.1f)) {
+    if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)
+    &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {
         facingEachOther = true;
     }
 
