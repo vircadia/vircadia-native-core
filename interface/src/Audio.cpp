@@ -19,7 +19,6 @@
 #include <PacketHeaders.h>
 #include <AgentList.h>
 #include <AgentTypes.h>
-#include <QAction>
 
 #include "Application.h"
 #include "Audio.h"
@@ -159,10 +158,10 @@ int audioCallback (const void* inputBuffer,
                 correctedYaw += 360;
             }
             
-            if (Application::getInstance()->getEchoAudioMode()->isChecked()) {
+            if (Application::getInstance()->shouldEchoAudio()) {
                 correctedYaw = correctedYaw > 0
-                ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
+                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));

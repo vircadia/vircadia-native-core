@@ -61,10 +61,11 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
+    bool shouldEchoAudio();
+    
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
-    QAction* getEchoAudioMode() { return _echoAudioMode; }
 
 private slots:
     
