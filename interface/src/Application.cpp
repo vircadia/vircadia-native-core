@@ -217,10 +217,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // initialization continues in initializeGL when OpenGL context is ready
 }
 
-bool Application::shouldEchoAudio() {
-    return _echoAudioMode->isChecked();
-}
-
 void Application::initializeGL() {
     printLog( "Created Display Window.\n" );
     

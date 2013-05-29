@@ -13,6 +13,7 @@
 #include <time.h>
 
 #include <QApplication>
+#include <QAction>
 
 #include <AgentList.h>
 
@@ -61,11 +62,10 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
-    bool shouldEchoAudio();
-    
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
+    bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
 
 private slots:
     
