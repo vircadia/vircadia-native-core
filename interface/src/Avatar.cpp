@@ -34,7 +34,7 @@ const float BODY_UPRIGHT_FORCE            = 10.0;
 const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 1500.0f;
+const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
 const float COLLISION_RADIUS_SCALAR       = 1.8;
@@ -54,15 +54,14 @@ const float JOINT_TOUCH_RANGE             = 0.0005f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 const float FLOATING_HEIGHT               = 0.13f;
 const bool  USING_HEAD_LEAN               = false;
+const float LEAN_SENSITIVITY              = 0.15;
+const float LEAN_MAX                      = 0.45;
+const float LEAN_AVERAGING                = 10.0;
+const float HEAD_RATE_MAX                 = 50.f;
+const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
+const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
+const int   NUM_BODY_CONE_SIDES           = 9;
 
-const float LEAN_SENSITIVITY    = 0.15;
-const float LEAN_MAX            = 0.45;
-const float LEAN_AVERAGING      = 10.0;
-const float HEAD_RATE_MAX       = 50.f;
-
-float skinColor    [] = {1.0, 0.84, 0.66};
-float darkSkinColor[] = {0.9, 0.78, 0.63};
-float lightBlue    [] = {0.7, 0.8,  1.0 };
 
 bool usingBigSphereCollisionTest = true;
 
@@ -80,8 +79,8 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f, 0.0f),
-    _cameraPosition(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
@@ -163,14 +162,6 @@ float Avatar::getAbsoluteHeadYaw() const {
 
 float Avatar::getAbsoluteHeadPitch() const {
     return _bodyPitch + _head.getPitch();
-}
-
-void Avatar::setMousePressed(bool mousePressed) {
-	_mousePressed = mousePressed;
-}
-
-bool Avatar::getIsNearInteractingOther() { 
-    return _avatarTouch.getAbleToReachOtherAvatar(); 
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
@@ -443,8 +434,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
-    _head.setAudioLoudness(_audioLoudness);
-    _head.setSkinColor(glm::vec3(skinColor[0], skinColor[1], skinColor[2]));
+    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, !_owningAgent);
     
     // use speed and angular velocity to determine walking vs. standing                                
@@ -471,7 +461,8 @@ void Avatar::checkForMouseRayTouching() {
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction ) {
-    _mouseRayOrigin = origin; _mouseRayDirection = direction;    
+    _mouseRayOrigin = origin; 
+    _mouseRayDirection = direction;    
 }
 
 void Avatar::updateHandMovementAndTouching(float deltaTime) {
@@ -518,6 +509,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         
         if (_interactingOther) {
 
+            _avatarTouch.setHasInteractingOther(true);
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourOrientation (_interactingOther->_orientation);
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
@@ -570,6 +562,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     _velocity += vectorFromMyHandToYourHand * force;
                 }
             }
+        } else {
+            _avatarTouch.setHasInteractingOther(false);
         }
     }//if (_isMine)
     
@@ -642,11 +636,14 @@ void Avatar::updateCollisionWithVoxels() {
 }
 
 void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
-    _position += penetration;
+    _position -= penetration;
         
     // reflect the velocity component in the direction of penetration
-    glm::vec3 direction = glm::normalize(penetration);
-    _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    float penetrationLength = glm::length(penetration);
+    if (penetrationLength > EPSILON) {
+        glm::vec3 direction = penetration / penetrationLength;
+        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    }
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {
@@ -928,31 +925,6 @@ void Avatar::initializeSkeleton() {
     _joint[ AVATAR_JOINT_RIGHT_HEEL		  ].radius = 0.025;
     _joint[ AVATAR_JOINT_RIGHT_TOES		  ].radius = 0.025;
     
-    // specify the tightness of the springy positions as far as attraction to rigid body
-    _joint[ AVATAR_JOINT_PELVIS           ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 1.0;
-    _joint[ AVATAR_JOINT_TORSO            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.8;	
-    _joint[ AVATAR_JOINT_CHEST            ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_NECK_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.4;
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_LEFT_WRIST       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.5;
-    _joint[ AVATAR_JOINT_RIGHT_WRIST      ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-	_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS * 0.3;
-    _joint[ AVATAR_JOINT_LEFT_HIP         ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_KNEE        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_HEEL        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_LEFT_TOES        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_HIP        ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_KNEE       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_HEEL       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    _joint[ AVATAR_JOINT_RIGHT_TOES       ].springBodyTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    
     // to aid in hand-shaking and hand-holding, the right hand is not collidable
     _joint[ AVATAR_JOINT_RIGHT_ELBOW	  ].isCollidable = false;
     _joint[ AVATAR_JOINT_RIGHT_WRIST	  ].isCollidable = false;
@@ -1102,15 +1074,6 @@ void Avatar::updateBodySprings(float deltaTime) {
     }
 }
 
-
-const glm::vec3& Avatar::getSpringyHeadPosition() const {
-    return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;
-}
-
-const glm::vec3& Avatar::getHeadPosition() const {
-    return _joint[ AVATAR_JOINT_HEAD_BASE ].position;
-}
-
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
     // determine the arm vector
@@ -1151,12 +1114,15 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 
 void Avatar::renderBody(bool lookingInMirror) {
     
-    const float RENDER_OPAQUE_BEYOND = 1.2f;        //  Meters beyond which body is shown opaque
+    const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
+        
+        float alpha = glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+        
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
@@ -1170,21 +1136,23 @@ void Avatar::renderBody(bool lookingInMirror) {
             if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
                              || b == AVATAR_JOINT_RIGHT_WRIST
                              || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
-                glColor3f(skinColor[0] + _joint[b].touchForce * 0.3f,
-                          skinColor[1] - _joint[b].touchForce * 0.2f,
-                          skinColor[2] - _joint[b].touchForce * 0.1f);
+                glColor3f(SKIN_COLOR[0] + _joint[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _joint[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _joint[b].touchForce * 0.1f);
             } else {
-                glColor4f(skinColor[0] + _joint[b].touchForce * 0.3f,
-                          skinColor[1] - _joint[b].touchForce * 0.2f,
-                          skinColor[2] - _joint[b].touchForce * 0.1f,
-                          glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND)
-                                     / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f));
+                glColor4f(SKIN_COLOR[0] + _joint[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _joint[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _joint[b].touchForce * 0.1f,
+                          alpha);
             }
             
-            glPushMatrix();
-            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
-            glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
-            glPopMatrix();
+            if ((b != AVATAR_JOINT_HEAD_TOP  )
+            &&  (b != AVATAR_JOINT_HEAD_BASE )) {
+                glPushMatrix();
+                glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
+                glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
+                glPopMatrix();
+            }
             
             //  Render the cone connecting this joint to its parent
             if (_joint[b].parent != AVATAR_JOINT_NULL) {
@@ -1197,7 +1165,7 @@ void Avatar::renderBody(bool lookingInMirror) {
                 &&  (b != AVATAR_JOINT_LEFT_SHOULDER )
                 &&  (b != AVATAR_JOINT_RIGHT_COLLAR  )
                 &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
-                    glColor3fv(darkSkinColor);
+                    glColor3fv(DARK_SKIN_COLOR);
                     
                     float r1 = _joint[_joint[b].parent ].radius * 0.8;
                     float r2 = _joint[b                ].radius * 0.8;
@@ -1282,34 +1250,37 @@ void Avatar::readAvatarDataFromFile() {
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
 
     glBegin(GL_TRIANGLES);   
-    
-    int num = 10;
-    
-    glm::vec3 axis = glm::normalize(position2 - position1);
+        
+    glm::vec3 axis = position2 - position1;
     float length = glm::length(axis);
 
     if (length > 0.0f) {
     
-        glm::vec3 perpSin = glm::vec3(axis.y, axis.z, axis.x);
-        glm::vec3 perpCos = glm::vec3(axis.z, axis.x, axis.y);
-
-        float angle1 = 0.0;
-        float angle2 = 0.0;
-
-        for (int i = 0; i < num; i ++) {
+        axis /= length;
         
-            angle1 = angle2;
-            angle2 = ((float)(i+1) / (float)num) * PI * 2.0;
+        glm::vec3 perpSin = glm::vec3(1.0f, 0.0f, 0.0f);
+        glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
+        perpSin = glm::cross(perpCos, axis);
+
+        float anglea = 0.0;
+        float angleb = 0.0;
+
+        for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
+        
+            // the rectangles that comprise the sides of the cone section are
+            // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
+            anglea = angleb;
+            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PI * 2.0f;
             
-            float s1 = sinf(angle1);
-            float s2 = sinf(angle2);
-            float c1 = cosf(angle1);
-            float c2 = cosf(angle2);
-        
-            glm::vec3 p1a = position1 + perpSin * s1 * radius1 + perpCos * c1 * radius1;  
-            glm::vec3 p1b = position1 + perpSin * s2 * radius1 + perpCos * c2 * radius1; 
-            glm::vec3 p2a = position2 + perpSin * s1 * radius2 + perpCos * c1 * radius2;   
-            glm::vec3 p2b = position2 + perpSin * s2 * radius2 + perpCos * c2 * radius2;  
+            float sa = sinf(anglea);
+            float sb = sinf(angleb);
+            float ca = cosf(anglea);
+            float cb = cosf(angleb);
+    
+            glm::vec3 p1a = position1 + perpSin * sa * radius1 + perpCos * ca * radius1;  
+            glm::vec3 p1b = position1 + perpSin * sb * radius1 + perpCos * cb * radius1; 
+            glm::vec3 p2a = position2 + perpSin * sa * radius2 + perpCos * ca * radius2;   
+            glm::vec3 p2b = position2 + perpSin * sb * radius2 + perpCos * cb * radius2;  
 
             glVertex3f(p1a.x, p1a.y, p1a.z); 
             glVertex3f(p1b.x, p1b.y, p1b.z); 

@@ -60,8 +60,8 @@ void Environment::renderAtmospheres(Camera& camera) {
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
     // the "original gravity"
     glm::vec3 gravity;
-    if (position.x > 0.0f && position.x < 10.0f && position.y > 0.0f &&
-            position.y < 3.0f && position.z > 0.0f && position.z < 10.0f) {
+    if (position.x > 0.0f && position.x < EDGE_SIZE_GROUND_PLANE && position.y > 0.0f &&
+            position.y < 3.0f && position.z > 0.0f && position.z < EDGE_SIZE_GROUND_PLANE) {
         gravity = glm::vec3(0.0f, -1.0f, 0.0f);
     }
     
@@ -101,13 +101,7 @@ const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
 bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
                                          float radius, glm::vec3& penetration) {
     // collide with the "floor"
-    bool found = false;
-    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
-    float floorDist = qMin(start.y, end.y) - radius;
-    if (floorDist < 0.0f) {
-        penetration.y = -floorDist;
-        found = true;
-    }
+    bool found = findCapsulePlanePenetration(start, end, radius, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), penetration);
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
@@ -117,11 +111,10 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
             if (environmentData.getGravity() == 0.0f) {
                 continue; // don't bother colliding with gravity-less environments
             }
-            glm::vec3 vector = computeVectorFromPointToSegment(environmentData.getAtmosphereCenter(), start, end);
-            float vectorLength = glm::length(vector);
-            float distance = vectorLength - environmentData.getAtmosphereInnerRadius() - radius;
-            if (distance < 0.0f) {
-                penetration += vector * (-distance / vectorLength);
+            glm::vec3 environmentPenetration;
+            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(),
+                    environmentData.getAtmosphereInnerRadius(), environmentPenetration)) {
+                penetration = addPenetrations(penetration, environmentPenetration);
                 found = true;
             }
         }

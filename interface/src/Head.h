@@ -34,7 +34,7 @@ public:
     
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha);
     void renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
@@ -44,7 +44,6 @@ public:
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
     void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
-    void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
         
@@ -72,8 +71,8 @@ private:
         glm::vec3 endVelocity;  
     };
 
+    float       _renderAlpha;
     bool        _returnHeadToCenter;
-    float       _audioLoudness;
     glm::vec3   _skinColor;
     glm::vec3   _position;
     glm::vec3   _rotation;

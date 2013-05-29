@@ -13,6 +13,7 @@
 
 const float THREAD_RADIUS = 0.007;
 const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.2;
+const float AVATAR_FACING_THRESHOLD = 0.1f;    // (-1 to 1) (larger value indicates narrower angle of influence
 
 AvatarTouch::AvatarTouch() {
 
@@ -27,43 +28,48 @@ AvatarTouch::AvatarTouch() {
     _weAreHoldingHands       = false;
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
+    _hasInteractingOther     = false;
     _myOrientation.setToIdentity();
     _yourOrientation.setToIdentity();
 
-    for (int p=0; p<NUM_POINTS; p++) {
+    for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
         _point[p] = glm::vec3(0.0, 0.0, 0.0);
     }
 }
 
 void AvatarTouch::simulate (float deltaTime) {
 
-    glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
-    float distanceBetweenBodies = glm::length(vectorBetweenBodies);
-    glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
-    
-    bool facingEachOther = false;
-    
-    if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -0.1f)
-    &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  0.1f)) {
-        facingEachOther = true;
-    }
+    _canReachToOtherAvatar = false; // default
 
-    if ((distanceBetweenBodies < _reachableRadius)
-    &&  (facingEachOther)) {
-        _vectorBetweenHands = _yourHandPosition - _myHandPosition;
+    if (_hasInteractingOther) {
+
+        glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
+        float distanceBetweenBodies = glm::length(vectorBetweenBodies);
+        glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
         
-        float distanceBetweenHands = glm::length(_vectorBetweenHands);
-        if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) {
-            _handsCloseEnoughToGrasp = true;
-        } else {
-            _handsCloseEnoughToGrasp = false;
+        bool facingEachOther = false;
+        
+        if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
+        &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
+            facingEachOther = true;
         }
 
-        _canReachToOtherAvatar = true;
-    } else {
-        _canReachToOtherAvatar = false;
-    }    
+        if ((distanceBetweenBodies < _reachableRadius)
+        &&  (facingEachOther)) {
+            _canReachToOtherAvatar = true;
+
+            _vectorBetweenHands = _yourHandPosition - _myHandPosition;
+            
+            float distanceBetweenHands = glm::length(_vectorBetweenHands);
+            if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) {
+                _handsCloseEnoughToGrasp = true;
+            } else {
+                _handsCloseEnoughToGrasp = false;
+            }
+        }
+    }
 }
+
 
 void AvatarTouch::render(glm::vec3 cameraPosition) {
 
@@ -130,7 +136,6 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
 }
 
 
- 
 void AvatarTouch::renderBeamBetweenHands() {
 
     glm::vec3 v1(_myHandPosition);
@@ -144,9 +149,9 @@ void AvatarTouch::renderBeamBetweenHands() {
     glEnd();
 
     glColor3f(0.5f, 0.3f, 0.0f);
-    for (int p=0; p<NUM_POINTS; p++) {
+    for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
 
-        _point[p] = _myHandPosition + _vectorBetweenHands * ((float)p / (float)NUM_POINTS);
+        _point[p] = _myHandPosition + _vectorBetweenHands * ((float)p / (float)NUM_PARTICLE_POINTS);
         _point[p].x += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
         _point[p].y += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
         _point[p].z += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
