@@ -1158,9 +1158,9 @@ void Avatar::renderBody(bool lookingInMirror) {
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
         //  Always render other people, and render myself when beyond threshold distance
-        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
-                _head.render(lookingInMirror, _cameraPosition);
+        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special
+            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                _head.render(lookingInMirror, _cameraPosition, 1.f);
             }
         } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
                    || b == AVATAR_JOINT_RIGHT_ELBOW
