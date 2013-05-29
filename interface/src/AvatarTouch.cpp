@@ -53,6 +53,8 @@ void AvatarTouch::simulate (float deltaTime) {
         &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
             facingEachOther = true;
         }
+        
+        ///udhfhduf
 
         if (distanceBetweenBodies < _reachableRadius)
         //&&  (facingEachOther)) 
