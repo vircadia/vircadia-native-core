@@ -509,6 +509,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         
         if (_interactingOther) {
 
+            _avatarTouch.setHasInteractingOther(true);
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
             _avatarTouch.setYourOrientation (_interactingOther->_orientation);
             _avatarTouch.setYourHandPosition(_interactingOther->_joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].springyPosition);   
@@ -561,6 +562,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
                     _velocity += vectorFromMyHandToYourHand * force;
                 }
             }
+        } else {
+            _avatarTouch.setHasInteractingOther(false);
         }
     }//if (_isMine)
     
