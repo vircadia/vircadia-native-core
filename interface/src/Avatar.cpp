@@ -37,11 +37,22 @@ const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
+
+/*
 const float COLLISION_RADIUS_SCALAR       = 1.8;   //pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FORCE          = 1.0;   //pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE          = 6.0;   //pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
+*/
+
+const float COLLISION_RADIUS_SCALAR       = 1.2;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE          = 20.0;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE          = 6.0;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
+
+
 const float HEAD_ROTATION_SCALE           = 0.70;
 const float HEAD_ROLL_SCALE               = 0.40;
 const float HEAD_MAX_PITCH                = 45;
@@ -50,7 +61,7 @@ const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
 const float PERIPERSONAL_RADIUS           = 1.0f;
 const float AVATAR_BRAKING_STRENGTH       = 40.0f;
-const float JOINT_TOUCH_RANGE             = 0.0005f;
+const float JOINT_TOUCH_RANGE             = 0.01f;
 const float ANGULAR_RIGHTING_SPEED        = 45.0f;
 const float FLOATING_HEIGHT               = 0.13f;
 const bool  USING_HEAD_LEAN               = false;
@@ -452,8 +463,10 @@ void Avatar::checkForMouseRayTouching() {
         glm::vec3 directionToBodySphere = glm::normalize(_joint[b].springyPosition - _mouseRayOrigin);
         float dot = glm::dot(directionToBodySphere, _mouseRayDirection);
 
-        if (dot > (1.0f - JOINT_TOUCH_RANGE)) {
-            _joint[b].touchForce = (dot - (1.0f - JOINT_TOUCH_RANGE)) / JOINT_TOUCH_RANGE;
+        float range = _joint[b].radius * JOINT_TOUCH_RANGE;
+
+        if (dot > (1.0f - range)) {
+            _joint[b].touchForce = (dot - (1.0f - range)) / range;
         } else {
             _joint[b].touchForce = 0.0;
         }
@@ -689,8 +702,6 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
             for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
                 if (otherAvatar->_joint[o].isCollidable) {
                 
-                    /*
-                
                     glm::vec3 vectorBetweenJoints(_joint[b].springyPosition - otherAvatar->_joint[o].springyPosition);
                     float distanceBetweenJoints = glm::length(vectorBetweenJoints);
                     
@@ -703,13 +714,21 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
 
                             // push balls away from each other and apply friction
                             glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
-                                                            
+
+                            /*                                                            
                             float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
                             if (ballMomentum < 0.0) { ballMomentum = 0.0;}
-                                                            
+                            */
+                            
                                          _joint[b].springyVelocity += ballPushForce;
                             otherAvatar->_joint[o].springyVelocity -= ballPushForce;
+
+                            float shift = distanceBetweenJoints - combinedRadius * COLLISION_RADIUS_SCALAR;
                             
+                                         _joint[b].springyPosition += directionVector * shift;
+                            otherAvatar->_joint[o].springyPosition -= directionVector * shift;
+                            
+                            /*
                                          _joint[b].springyVelocity *= ballMomentum;
                             otherAvatar->_joint[o].springyVelocity *= ballMomentum;
                             
@@ -717,11 +736,10 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
                             bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
                             if (bodyMomentum < 0.0) { bodyMomentum = 0.0;}
+                            */
                                                             
                         }// check for collision
                     }   // to avoid divide by zero
-                    */
-                    
                 }      // o loop
             }         // collidable
         }            // b loop

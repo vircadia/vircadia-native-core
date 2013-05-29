@@ -361,7 +361,7 @@ void Head::renderMouth() {
     rightTop    = _position + glm::normalize(rightTop    - _position) * constrainedRadius;
     leftBottom  = _position + glm::normalize(leftBottom  - _position) * constrainedRadius;
     rightBottom = _position + glm::normalize(rightBottom - _position) * constrainedRadius;
-        
+
     glColor3f(0.2f, 0.0f, 0.0f);
     
     glBegin(GL_TRIANGLES);             
