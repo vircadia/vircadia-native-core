@@ -36,6 +36,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* dataBuffer = sourceBuffer + 1;
     
+    printf("The number of bytes received is %d\n", numBytes);
+    
     if (sourceBuffer[0] == PACKET_HEADER_INJECT_AUDIO ||
         sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
         // if this came from an injector or interface client
@@ -55,6 +57,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         
         memcpy(&_bearing, dataBuffer, sizeof(float));
         dataBuffer += sizeof(_bearing);
+        
+        printf("This agent's bearing is %f\n", _bearing);
         
         if (_bearing > 180 || _bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
