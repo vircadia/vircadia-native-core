@@ -1096,10 +1096,9 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
     }
     
     // set elbow position
-    glm::vec3 newElbowPosition = _joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
-    newElbowPosition += armVector * ONE_HALF;
+    glm::vec3 newElbowPosition = _joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position + armVector * ONE_HALF;
 
-    glm::vec3 perpendicular = glm::cross(_orientation.getFront(),  armVector);
+    glm::vec3 perpendicular = glm::cross( _orientation.getRight(),  armVector);
     
     newElbowPosition += perpendicular * (1.0f - (_maxArmLength / distance)) * ONE_HALF;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW ].position = newElbowPosition;
