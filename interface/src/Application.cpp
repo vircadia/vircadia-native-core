@@ -1153,6 +1153,22 @@ void Application::importVoxels() {
     // not yet supported!!!
     _voxels.readFromFileV2(fileName,selectedNode);
 }
+
+void Application::copyVoxels() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    printf("copyVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        selectedNode->printDebugDetails("selected voxel");
+    }
+}
+
+void Application::pasteVoxels() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    printf("pasteVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        selectedNode->printDebugDetails("selected voxel");
+    }
+}
     
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
@@ -1211,29 +1227,32 @@ void Application::initMenu() {
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_1))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_A))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_2))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_D))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_3))->setCheckable(true);
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_C))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     (_selectVoxelMode = voxelMenu->addAction(
-        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_8))->setCheckable(true);
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_S))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     
-    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::Key_6);
+    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::SHIFT | Qt::Key_P);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::CTRL | Qt::SHIFT | Qt::Key_Minus);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::CTRL | Qt::SHIFT | Qt::Key_Plus);
     
-    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), 
+                                            Qt::CTRL | Qt::SHIFT | Qt::Key_C);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
     voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Copy Voxels", this, SLOT(copyVoxels()), Qt::CTRL | Qt::Key_C);
+    voxelMenu->addAction("Paste Voxels", this, SLOT(pasteVoxels()), Qt::CTRL | Qt::Key_V);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 

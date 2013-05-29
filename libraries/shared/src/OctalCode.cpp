@@ -168,3 +168,54 @@ OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB
     return result;
 }
 
+
+char getOctalCodeSectionValue(unsigned char* octalCode, int section) {
+    return sectionValue(octalCode + 1 + (3 * section / 8), (3 * section) % 8);
+}
+
+void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectionValue) {
+    unsigned char* byteAt = octalCode + 1 + (3 * section / 8);
+    char bitInByte = (3 * section) % 8;
+    char shiftBy = 8 - bitInByte - 3;
+    const unsigned char UNSHIFTED_MASK = 0x03;
+    unsigned char shiftedMask;
+    unsigned char shiftedValue;
+
+
+    if (shiftBy >=0) {
+        shiftedMask  = UNSHIFTED_MASK << shiftBy;
+        shiftedValue = sectionValue << shiftBy;
+    } else {
+        shiftedMask  = UNSHIFTED_MASK >> -shiftBy;
+        shiftedValue = sectionValue >> -shiftBy;
+    }
+    
+    byteAt[0] = byteAt[0] & (shiftedMask | shiftedValue);
+    if (bitInByte >= 6) {
+        shiftBy = bitInByte + 1;
+        shiftedMask  = UNSHIFTED_MASK << shiftBy;
+        shiftedValue = sectionValue << shiftBy;
+    
+        byteAt[1] = byteAt[1] & (shiftedMask | shiftedValue);
+    }
+}
+
+unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels) {
+    int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
+    unsigned char* newCode = NULL;
+    if (codeLength > chopLevels) {
+        int newLength = codeLength - chopLevels;
+        newCode = new unsigned char[newLength+1];
+        *newCode = newLength; // set the length byte
+    
+        for (int section = chopLevels; section < codeLength; section++) {
+            char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
+            setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
+        }
+    }
+    return newCode;
+}
+
+unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode) {
+}
+

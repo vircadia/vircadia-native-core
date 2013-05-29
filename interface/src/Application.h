@@ -101,6 +101,8 @@ private slots:
     void chooseVoxelPaintColor();
     void exportVoxels();
     void importVoxels();
+    void copyVoxels();
+    void pasteVoxels();
    
 private:
     

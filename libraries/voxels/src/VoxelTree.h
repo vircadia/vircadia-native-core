@@ -95,6 +95,9 @@ public:
     bool readFromFileV2(const char* filename, VoxelNode* node = NULL);
 
     unsigned long getVoxelCount();
+
+    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
+    void copyNodeIntoTree(VoxelNode* node);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
@@ -107,6 +110,7 @@ private:
                                        bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool copySubTreeIntoNewTreeOperation(VoxelNode* node, void* extraData);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;

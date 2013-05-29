@@ -53,7 +53,7 @@ VoxelTree::~VoxelTree() {
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
-    recurseNodeWithOperation(rootNode, operation,extraData);
+    recurseNodeWithOperation(rootNode, operation, extraData);
 }
 
 // Recurses voxel node with an operation function
@@ -1164,4 +1164,29 @@ unsigned long VoxelTree::getVoxelCount() {
 bool VoxelTree::countVoxelsOperation(VoxelNode* node, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
+}
+
+void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
+
+    printLog("copySubTreeIntoNewTree()...\n");
+
+    VoxelNodeBag nodeBag;
+    // If we were given a specific node, start from there, otherwise start from root
+    nodeBag.insert(startNode);
+
+    static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+    int bytesWritten = 0;
+    
+    while (!nodeBag.isEmpty()) {
+        VoxelNode* subTree = nodeBag.extract();
+        
+        // ask our tree to write a bitsteam
+        bytesWritten = encodeTreeBitstream(INT_MAX, subTree, &outputBuffer[0], 
+                MAX_VOXEL_PACKET_SIZE - 1, nodeBag, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
+
+        // ask destination tree to read the bitstream
+        destinationTree->readBitstreamToTree(&outputBuffer[0], bytesWritten, WANT_COLOR, NO_EXISTS_BITS);
+    }
+
+
 }

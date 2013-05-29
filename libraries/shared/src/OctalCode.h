@@ -17,6 +17,9 @@ bool isDirectParentOfChild(unsigned char *parentOctalCode, unsigned char * child
 int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode);
 unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber);
 
+unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
+unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode);
+
 
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
 // but other than that these do the same thing.
