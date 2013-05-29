@@ -158,10 +158,10 @@ int audioCallback (const void* inputBuffer,
                 correctedYaw += 360;
             }
             
-            if (parentAudio->_mixerLoopbackFlag) {
+            if (Application::getInstance()->shouldEchoAudio()) {
                 correctedYaw = correctedYaw > 0
-                ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
+                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
@@ -310,7 +310,6 @@ Audio::Audio(Oscilloscope* scope) :
                      NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
     _wasStarved(0),
     _lastInputLoudness(0),
-    _mixerLoopbackFlag(false),
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),

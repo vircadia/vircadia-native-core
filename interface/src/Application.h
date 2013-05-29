@@ -13,6 +13,7 @@
 #include <time.h>
 
 #include <QApplication>
+#include <QAction>
 
 #include <AgentList.h>
 
@@ -64,6 +65,7 @@ public:
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
+    bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
 
 private slots:
     
@@ -137,7 +139,8 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
-    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
+    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
+    QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
