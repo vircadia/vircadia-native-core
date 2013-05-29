@@ -40,8 +40,8 @@ vector<unsigned char> irisTexture;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
-    _renderAlpha(0.0),
     yawRate(0.0f),
+    _renderAlpha(0.0),
     _returnHeadToCenter(false),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
