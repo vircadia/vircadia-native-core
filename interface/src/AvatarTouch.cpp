@@ -37,12 +37,6 @@ AvatarTouch::AvatarTouch() {
     }
 }
 
-
-void AvatarTouch::setHasInteractingOther(bool hasInteractingOther) {
-    _hasInteractingOther = hasInteractingOther;
-}
-
-
 void AvatarTouch::simulate (float deltaTime) {
 
     _canReachToOtherAvatar = false; // default
