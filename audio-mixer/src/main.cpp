@@ -225,15 +225,15 @@ int main(int argc, const char* argv[]) {
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                            : clientSamples;
+                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                                : clientSamples;
                             int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientSamples
-                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                                ? clientSamples
+                                : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                             
                             int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
-                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                                ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
+                                : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                             
                             for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                                 
@@ -247,6 +247,9 @@ int main(int argc, const char* argv[]) {
                                 plateauAdditionOfSamples(goodChannel[s], currentSample);
                                 
                                 if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                                    printf("Attemping to grab a sample at %d\n", s + numSamplesDelay);
+                                    printf("The sample here is %d\n", delayedChannel[s + numSamplesDelay]);
+                                    
                                     plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
                                                              currentSample * weakChannelAmplitudeRatio);
                                 }
