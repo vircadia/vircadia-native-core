@@ -46,11 +46,11 @@ public:
 
 private:
 
-    static const int NUM_POINTS = 100;
+    static const int NUM_PARTICLE_POINTS = 100;
     
     bool        _hasInteractingOther;
     bool        _weAreHoldingHands;
-    glm::vec3   _point [NUM_POINTS];
+    glm::vec3   _point [NUM_PARTICLE_POINTS];
     glm::vec3   _myBodyPosition;
     glm::vec3   _yourBodyPosition;
     glm::vec3   _myHandPosition;

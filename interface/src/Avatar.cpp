@@ -1114,16 +1114,19 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 
 void Avatar::renderBody(bool lookingInMirror) {
     
-    const float RENDER_OPAQUE_BEYOND = 1.2f;        //  Meters beyond which body is shown opaque
+    const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         float distanceToCamera = glm::length(_cameraPosition - _joint[b].position);
+        
+        float alpha = glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+        
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
-            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND) {
-                _head.render(lookingInMirror, _cameraPosition);
+            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                _head.render(lookingInMirror, _cameraPosition, alpha);
             }
         } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
                    || b == AVATAR_JOINT_RIGHT_ELBOW
@@ -1140,14 +1143,16 @@ void Avatar::renderBody(bool lookingInMirror) {
                 glColor4f(SKIN_COLOR[0] + _joint[b].touchForce * 0.3f,
                           SKIN_COLOR[1] - _joint[b].touchForce * 0.2f,
                           SKIN_COLOR[2] - _joint[b].touchForce * 0.1f,
-                          glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND)
-                                     / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f));
+                          alpha);
             }
             
-            glPushMatrix();
-            glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
-            glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
-            glPopMatrix();
+            if ((b != AVATAR_JOINT_HEAD_TOP  )
+            &&  (b != AVATAR_JOINT_HEAD_BASE )) {
+                glPushMatrix();
+                glTranslatef(_joint[b].springyPosition.x, _joint[b].springyPosition.y, _joint[b].springyPosition.z);
+                glutSolidSphere(_joint[b].radius, 20.0f, 20.0f);
+                glPopMatrix();
+            }
             
             //  Render the cone connecting this joint to its parent
             if (_joint[b].parent != AVATAR_JOINT_NULL) {

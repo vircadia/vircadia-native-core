@@ -34,7 +34,7 @@ public:
     
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha);
     void renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
@@ -71,6 +71,7 @@ private:
         glm::vec3 endVelocity;  
     };
 
+    float       _renderAlpha;
     bool        _returnHeadToCenter;
     glm::vec3   _skinColor;
     glm::vec3   _position;
