@@ -42,7 +42,6 @@ Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
     yawRate(0.0f),
     _returnHeadToCenter(false),
-    _audioLoudness(0.0f),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
@@ -62,10 +61,10 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-    _mohawkColors(NULL),
-    _renderLookatVectors(false) {
-    
+     _mohawkColors(NULL)
+{
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
     }

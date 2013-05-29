@@ -434,7 +434,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition);
     _head.setScale   (_joint[ AVATAR_JOINT_HEAD_BASE ].radius);
-    _head.setAudioLoudness(_audioLoudness);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, !_owningAgent);
     
@@ -634,11 +633,14 @@ void Avatar::updateCollisionWithVoxels() {
 }
 
 void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
-    _position += penetration;
+    _position -= penetration;
         
     // reflect the velocity component in the direction of penetration
-    glm::vec3 direction = glm::normalize(penetration);
-    _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    float penetrationLength = glm::length(penetration);
+    if (penetrationLength > EPSILON) {
+        glm::vec3 direction = penetration / penetrationLength;
+        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+    }
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {

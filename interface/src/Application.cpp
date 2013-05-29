@@ -901,7 +901,7 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime, false);
+                avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
@@ -1317,7 +1317,7 @@ void Application::updateAvatar(float deltaTime) {
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
-        _myAvatar.setLoudness(_audio.getLastInputLoudness());
+        _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -1650,7 +1650,6 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    const float EDGE_SIZE_GROUND_PLANE = 20.f;
     drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
