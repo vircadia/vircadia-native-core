@@ -59,7 +59,6 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         
         // if this agent sent us a NaN bearing then don't consider this good audio and bail
         if (std::isnan(_bearing)) {
-            printf("Got a nan bearing for this agent\n");
             _endOfLastWrite = _nextOutput = _buffer;
             _started = false;
             return 0;
@@ -69,8 +68,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
             
             // correct the bearing
             _bearing = _bearing  > 0
-            ? _bearing - AGENT_LOOPBACK_MODIFIER
-            : _bearing + AGENT_LOOPBACK_MODIFIER;
+                ? _bearing - AGENT_LOOPBACK_MODIFIER
+                : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
             _shouldLoopbackForAgent = false;
         }

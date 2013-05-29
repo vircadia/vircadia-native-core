@@ -220,7 +220,6 @@ int main(int argc, const char* argv[]) {
                                 bearingRelativeAngleToSource *= (M_PI / 180);
                                 
                                 float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                                printf("BRA: %f, SR: %f\n", bearingRelativeAngleToSource, sinRatio);
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
@@ -291,6 +290,11 @@ int main(int argc, const char* argv[]) {
                 }
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+                
+                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getBearing())) {
+                    // kill off this agent - temporary solution to mixer crash on mac sleep
+                    avatarAgent->setAlive(false);
+                }
             } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                 Agent* matchingInjector = NULL;
                 
