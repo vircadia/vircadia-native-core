@@ -1123,6 +1123,10 @@ void Avatar::renderBody(bool lookingInMirror) {
         
         float alpha = glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
         
+        if (lookingInMirror || _owningAgent) {
+            alpha = 1.0f;
+        }
+                
         //  Always render other people, and render myself when beyond threshold distance
         if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
