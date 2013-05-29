@@ -246,10 +246,7 @@ int main(int argc, const char* argv[]) {
                                 int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
                                 plateauAdditionOfSamples(goodChannel[s], currentSample);
                                 
-                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                                    printf("Attemping to grab a sample at %d\n", s + numSamplesDelay);
-                                    printf("The sample here is %d\n", delayedChannel[s + numSamplesDelay]);
-                                    
+                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {                                    
                                     plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
                                                              currentSample * weakChannelAmplitudeRatio);
                                 }
