@@ -214,12 +214,13 @@ int main(int argc, const char* argv[]) {
                                 (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                                 
                                 attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
-                                * otherAgentBuffer->getAttenuationRatio()
-                                * offAxisCoefficient;
+                                    * otherAgentBuffer->getAttenuationRatio()
+                                    * offAxisCoefficient;
                                 
                                 bearingRelativeAngleToSource *= (M_PI / 180);
                                 
                                 float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                                printf("BRA: %f, SR: %f\n", bearingRelativeAngleToSource, sinRatio);
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
