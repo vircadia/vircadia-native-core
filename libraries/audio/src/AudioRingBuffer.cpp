@@ -7,6 +7,7 @@
 //
 
 #include <cstring>
+#include <math.h>
 
 #include "PacketHeaders.h"
 
@@ -57,7 +58,8 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         dataBuffer += sizeof(_bearing);
         
         // if this agent sent us a NaN bearing then don't consider this good audio and bail
-        if (_bearing != _bearing) {
+        if (std::isnan(_bearing)) {
+            printf("Got a nan bearing for this agent\n");
             _endOfLastWrite = _nextOutput = _buffer;
             _started = false;
             return 0;
