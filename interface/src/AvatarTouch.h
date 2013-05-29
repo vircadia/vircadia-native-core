@@ -28,6 +28,7 @@ public:
     void simulate(float deltaTime);
     void render(glm::vec3 cameraPosition);
 
+    void setHasInteractingOther(bool hasInteractingOther);
     void setMyHandPosition  (glm::vec3   position   ) { _myHandPosition   = position;    }
     void setYourHandPosition(glm::vec3   position   ) { _yourHandPosition = position;    }
     void setMyOrientation   (Orientation orientation) { _myOrientation    = orientation; }
@@ -47,6 +48,7 @@ private:
 
     static const int NUM_POINTS = 100;
     
+    bool        _hasInteractingOther;
     bool        _weAreHoldingHands;
     glm::vec3   _point [NUM_POINTS];
     glm::vec3   _myBodyPosition;

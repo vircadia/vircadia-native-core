@@ -28,6 +28,7 @@ AvatarTouch::AvatarTouch() {
     _weAreHoldingHands       = false;
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
+    _hasInteractingOther     = false;
     _myOrientation.setToIdentity();
     _yourOrientation.setToIdentity();
 
@@ -36,35 +37,45 @@ AvatarTouch::AvatarTouch() {
     }
 }
 
+
+void AvatarTouch::setHasInteractingOther(bool hasInteractingOther) {
+    _hasInteractingOther = hasInteractingOther;
+}
+
+
 void AvatarTouch::simulate (float deltaTime) {
 
-    glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
-    float distanceBetweenBodies = glm::length(vectorBetweenBodies);
-    glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
-    
-    bool facingEachOther = false;
-    
-    if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)
-    &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {
-        facingEachOther = true;
-    }
+    _canReachToOtherAvatar = false; // default
 
-    if ((distanceBetweenBodies < _reachableRadius)
-    &&  (facingEachOther)) {
-        _vectorBetweenHands = _yourHandPosition - _myHandPosition;
+    if (_hasInteractingOther) {
+
+        glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
+        float distanceBetweenBodies = glm::length(vectorBetweenBodies);
+        glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
         
-        float distanceBetweenHands = glm::length(_vectorBetweenHands);
-        if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) {
-            _handsCloseEnoughToGrasp = true;
-        } else {
-            _handsCloseEnoughToGrasp = false;
+        bool facingEachOther = false;
+        
+        if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
+        &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
+            facingEachOther = true;
         }
 
-        _canReachToOtherAvatar = true;
-    } else {
-        _canReachToOtherAvatar = false;
-    }    
+        if ((distanceBetweenBodies < _reachableRadius)
+        &&  (facingEachOther)) {
+            _canReachToOtherAvatar = true;
+
+            _vectorBetweenHands = _yourHandPosition - _myHandPosition;
+            
+            float distanceBetweenHands = glm::length(_vectorBetweenHands);
+            if (distanceBetweenHands < HANDS_CLOSE_ENOUGH_TO_GRASP) {
+                _handsCloseEnoughToGrasp = true;
+            } else {
+                _handsCloseEnoughToGrasp = false;
+            }
+        }
+    }
 }
+
 
 void AvatarTouch::render(glm::vec3 cameraPosition) {
 
