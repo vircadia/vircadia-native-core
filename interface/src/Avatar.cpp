@@ -37,11 +37,11 @@ const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
-const float COLLISION_RADIUS_SCALAR       = 1.8;
-const float COLLISION_BALL_FORCE          = 1.0;
-const float COLLISION_BODY_FORCE          = 6.0;
-const float COLLISION_BALL_FRICTION       = 60.0;
-const float COLLISION_BODY_FRICTION       = 0.5;
+const float COLLISION_RADIUS_SCALAR       = 1.8;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE          = 1.0;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE          = 6.0;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
 const float HEAD_ROTATION_SCALE           = 0.70;
 const float HEAD_ROLL_SCALE               = 0.40;
 const float HEAD_MAX_PITCH                = 45;
@@ -689,6 +689,8 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
             for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
                 if (otherAvatar->_joint[o].isCollidable) {
                 
+                    /*
+                
                     glm::vec3 vectorBetweenJoints(_joint[b].springyPosition - otherAvatar->_joint[o].springyPosition);
                     float distanceBetweenJoints = glm::length(vectorBetweenJoints);
                     
@@ -718,11 +720,12 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                                                             
                         }// check for collision
                     }   // to avoid divide by zero
+                    */
+                    
                 }      // o loop
             }         // collidable
         }            // b loop
     }               // collidable
-    
     
     //apply forces and frictions on the bodies of both avatars 
                  _velocity += bodyPushForce;

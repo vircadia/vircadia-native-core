@@ -54,8 +54,6 @@ void AvatarTouch::simulate (float deltaTime) {
             facingEachOther = true;
         }
         
-        ///udhfhduf
-
         if (distanceBetweenBodies < _reachableRadius)
         //&&  (facingEachOther)) 
         {
