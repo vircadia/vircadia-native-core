@@ -90,9 +90,10 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         memcpy(currentPacketPtr, &_bearing, sizeof(_bearing));
         currentPacketPtr += sizeof(_bearing);
         
+        gettimeofday(&startTime, NULL);
+        int nextFrame = 0;
+        
         for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
-            gettimeofday(&startTime, NULL);
-            
             int numSamplesToCopy = BUFFER_LENGTH_SAMPLES;
             
             if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES) {
@@ -104,7 +105,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
             
-            double usecToSleep = BUFFER_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&startTime));
+            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }

@@ -14,6 +14,7 @@
 #include <map>
 
 #include <QApplication>
+#include <QAction>
 
 #include <AgentList.h>
 
@@ -65,6 +66,7 @@ public:
     Avatar* getAvatar() { return &_myAvatar; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
+    bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     
     /*!
      @fn getSettingBool
@@ -130,7 +132,6 @@ private slots:
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
-    void setOculus(bool oculus);
     
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
@@ -175,9 +176,12 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     
+    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
+    
+    void updateCursor();
     
     QAction* checkedVoxelModeAction() const;
     
@@ -194,16 +198,17 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
-    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
+    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
+    QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
+    QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
-    QAction* _renderAvatarsOn;       // Whether to render avatars 
-    QAction* _oculusOn;              // Whether to configure the display for the Oculus Rift 
+    QAction* _renderAvatarsOn;       // Whether to render avatars
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
@@ -217,6 +222,7 @@ private:
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _cameraFrustum;         // which frustum to look at
+    QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     
     SerialInterface _serialPort;

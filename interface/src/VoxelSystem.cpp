@@ -44,7 +44,7 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z- .
                               10,11,15, 10,15,14, // Y+
                               4,5,6,    4,6,7 };  // Z+ .
 
-VoxelSystem::VoxelSystem() {
+VoxelSystem::VoxelSystem() : AgentData(NULL) {
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
@@ -160,8 +160,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     double sinceLastViewCulling = (start - _lastViewCulling) / 1000.0;
-    // If the view frustum has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) && hasViewChanged()) {
+    // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
+    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) 
+            && !isViewChanging() && hasViewChanged()) {
         _lastViewCulling = start;
 
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
@@ -372,7 +373,10 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
         _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
-    }    
+    } else {
+        node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+    }
+    
     return 0; // not-rendered
 }
 
@@ -880,11 +884,32 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     return true; // keep going!
 }
 
-bool VoxelSystem::hasViewChanged() {
+
+bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
+
+/** TEMPORARY HACK ******
+    // If our viewFrustum has changed since our _lastKnowViewFrustum
     if (_viewFrustum && !_lastKnowViewFrustum.matches(_viewFrustum)) {
         result = true;
         _lastKnowViewFrustum = *_viewFrustum; // save last known
+    }
+**/
+    return result;
+}
+
+bool VoxelSystem::hasViewChanged() {
+    bool result = false; // assume the best
+    
+    // If we're still changing, report no change yet.
+    if (isViewChanging()) {
+        return false;
+    }
+    
+    // If our viewFrustum has changed since our _lastKnowViewFrustum
+    if (_viewFrustum && !_lastStableViewFrustum.matches(_viewFrustum)) {
+        result = true;
+        _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
     return result;
 }
@@ -978,6 +1003,7 @@ public:
         shouldRenderNodes(0),
         coloredNodes(0),
         nodesInVBO(0),
+        nodesInVBONotShouldRender(0),
         nodesInVBOOverExpectedMax(0),
         duplicateVBOIndex(0),
         leafNodes(0)
@@ -990,6 +1016,7 @@ public:
     unsigned long shouldRenderNodes;
     unsigned long coloredNodes;
     unsigned long nodesInVBO;
+    unsigned long nodesInVBONotShouldRender;
     unsigned long nodesInVBOOverExpectedMax;
     unsigned long duplicateVBOIndex;
     unsigned long leafNodes;
@@ -1032,6 +1059,11 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
         if (nodeIndex > args->expectedMax) {
             args->nodesInVBOOverExpectedMax++;
         }
+        
+        // if it's in VBO but not-shouldRender, track that also...
+        if (!node->getShouldRender()) {
+            args->nodesInVBONotShouldRender++;
+        }
     }
 
     return true; // keep going!
@@ -1060,8 +1092,8 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld\n", 
-        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex);
+    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld, nodesInVBONotShouldRender %ld\n", 
+        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxInVBO = 0;

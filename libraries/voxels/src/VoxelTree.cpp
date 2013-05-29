@@ -68,18 +68,18 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode *ancestorNode, unsigned char * needleCode, VoxelNode** parentOfFoundNode) const {
+VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
-        VoxelNode *childNode = ancestorNode->getChildAtIndex(branchForNeedle);
+        VoxelNode* childNode = ancestorNode->getChildAtIndex(branchForNeedle);
         
         if (childNode) {
             if (*childNode->getOctalCode() == *needleCode) {
             
             	// If the caller asked for the parent, then give them that too...
             	if (parentOfFoundNode) {
-					*parentOfFoundNode=ancestorNode;
+					*parentOfFoundNode = ancestorNode;
 				}
                 // the fact that the number of sections is equivalent does not always guarantee
                 // that this is the same node, however due to the recursive traversal
@@ -276,6 +276,9 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, b
                 nodeToDelete->stageForDeletion();
             } else {
                 parentNode->deleteChildAtIndex(childIndex);
+                if (_shouldReaverage) {
+                    parentNode->setColorFromAverageOfChildren();
+                }
             }
 
             // If we're not a colored leaf, and we have no children, then delete ourselves
@@ -296,7 +299,9 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, b
             for (int i = 0; i < 8; i++) {
                 if (i != index) {
                     ancestorNode->addChildAtIndex(i);
-                    ancestorNode->getChildAtIndex(i)->setColor(nodeToDelete->getColor());
+                    if (nodeToDelete->isColored()) {
+                        ancestorNode->getChildAtIndex(i)->setColor(nodeToDelete->getColor());
+                    }
                 }
             }
             if (*ancestorNode->getOctalCode() == *codeBuffer - 1) {
@@ -304,7 +309,9 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, b
             }
             ancestorNode->addChildAtIndex(index);
             ancestorNode = ancestorNode->getChildAtIndex(index);
-            ancestorNode->setColor(nodeToDelete->getColor());
+            if (nodeToDelete->isColored()) {
+                ancestorNode->setColor(nodeToDelete->getColor());
+            }
         }
         _isDirty = true;
     }
@@ -319,7 +326,6 @@ void VoxelTree::eraseAllVoxels() {
 
 void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive) {
     VoxelNode* lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
-
     // create the node if it does not exist
     if (*lastCreatedNode->getOctalCode() != *codeColorBuffer) {
         lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
@@ -710,20 +716,20 @@ public:
 bool findSpherePenetrationOp(VoxelNode* node, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
     
-    // currently, we treat each node as a sphere enveloping the box
-    const glm::vec3& nodeCenter = node->getCenter();
-    glm::vec3 vector = args->center - nodeCenter;
-    float vectorLength = glm::length(vector);
-    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
-    if (distance >= 0.0f) {
+    // coarse check against bounds
+    const AABox& box = node->getAABox();
+    if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->isColored()) {
-        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
-        args->found = true;
+        glm::vec3 nodePenetration;
+        if (box.findSpherePenetration(args->center, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->found = true;
+        }        
     }
     return false;
 }
@@ -747,20 +753,20 @@ public:
 bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
     
-    // currently, we treat each node as a sphere enveloping the box
-    const glm::vec3& nodeCenter = node->getCenter();
-    glm::vec3 vector = computeVectorFromPointToSegment(nodeCenter, args->start, args->end);
-    float vectorLength = glm::length(vector);
-    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
-    if (distance >= 0.0f) {
+    // coarse check against bounds
+    const AABox& box = node->getAABox();
+    if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->isColored()) {
-        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
-        args->found = true;
+        glm::vec3 nodePenetration;
+        if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->found = true;
+        }        
     }
     return false;
 }

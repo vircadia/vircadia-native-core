@@ -45,13 +45,13 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 50;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 const int ENVIRONMENT_SEND_INTERVAL_USECS = 1000000;
 
-VoxelTree randomTree(true); // this is a reaveraging tree
+VoxelTree randomTree(false); // this is NOT a reaveraging tree 
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
 
@@ -450,9 +450,9 @@ void *distributeVoxelsToListeners(void *args) {
     pthread_exit(0);
 }
 
-void attachVoxelAgentDataToAgent(Agent *newAgent) {
+void attachVoxelAgentDataToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new VoxelAgentData());
+        newAgent->setLinkedData(new VoxelAgentData(newAgent));
     }
 }
 
@@ -559,13 +559,16 @@ int main(int argc, const char * argv[]) {
     
     // for now, initialize the environments with fixed values
     environmentData[1].setID(1);
+    environmentData[1].setGravity(1.0f);
     environmentData[1].setAtmosphereCenter(glm::vec3(0.5, 0.5, (0.25 - 0.06125)) * (float)TREE_SCALE);
     environmentData[1].setAtmosphereInnerRadius(0.030625f * TREE_SCALE);
-    environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.025f);
+    environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.05f);
     environmentData[2].setID(2);
+    environmentData[2].setGravity(1.0f);
     environmentData[2].setAtmosphereCenter(glm::vec3(0.5f, 0.5f, 0.5f) * (float)TREE_SCALE);
     environmentData[2].setAtmosphereInnerRadius(0.1875f * TREE_SCALE);
-    environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.025f);
+    environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.05f);
+    environmentData[2].setScatteringWavelengths(glm::vec3(0.475f, 0.570f, 0.650f)); // swaps red and blue
     
     pthread_t sendVoxelThread;
     pthread_create(&sendVoxelThread, NULL, distributeVoxelsToListeners, NULL);
@@ -650,18 +653,19 @@ int main(int argc, const char * argv[]) {
                 char* command = (char*) &packetData[1]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
                 int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
-
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
+                bool rebroadcast = true; // by default rebroadcast
 
                 while (totalLength <= receivedBytes) {
                     if (strcmp(command, ERASE_ALL_COMMAND) == 0) {
                         printf("got Z message == erase all\n");
-                    
                         eraseVoxelTreeAndCleanupAgentVisitData();
+                        rebroadcast = false;
                     }
                     if (strcmp(command, ADD_SCENE_COMMAND) == 0) {
                         printf("got Z message == add scene\n");
                         addSphereScene(&randomTree);
+                        rebroadcast = false;
                     }
                     if (strcmp(command, TEST_COMMAND) == 0) {
                         printf("got Z message == a message, nothing to do, just report\n");
@@ -669,9 +673,11 @@ int main(int argc, const char * argv[]) {
                     totalLength += commandLength + 1; // 1 for null termination
                 }
 
-                // Now send this to the connected agents so they can also process these messages
-                printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
-                agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                if (rebroadcast) {
+                    // Now send this to the connected agents so they can also process these messages
+                    printf("rebroadcasting Z message to connected agents... agentList.broadcastToAgents()\n");
+                    agentList->broadcastToAgents(packetData, receivedBytes, &AGENT_TYPE_AVATAR, 1);
+                }
             }
             // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an AGENT_TYPE_AVATAR, and we
             // need to make sure we have it in our agentList.

@@ -38,12 +38,10 @@ private:
     glm::vec3   _offsetDirection;
     glm::vec3   _offsetUp;
     glm::vec3   _offsetRight;
-    glm::vec3   _farCenter;
     glm::vec3   _farTopLeft;      
     glm::vec3   _farTopRight;     
     glm::vec3   _farBottomLeft;   
     glm::vec3   _farBottomRight;  
-    glm::vec3   _nearCenter; 
     glm::vec3   _nearTopLeft;     
     glm::vec3   _nearTopRight;    
     glm::vec3   _nearBottomLeft;  
@@ -87,13 +85,11 @@ public:
     const glm::vec3& getOffsetUp()          const { return _offsetUp;       };
     const glm::vec3& getOffsetRight()       const { return _offsetRight;    };
 
-    const glm::vec3& getFarCenter()         const { return _farCenter;      };
     const glm::vec3& getFarTopLeft()        const { return _farTopLeft;     };  
     const glm::vec3& getFarTopRight()       const { return _farTopRight;    };
     const glm::vec3& getFarBottomLeft()     const { return _farBottomLeft;  };
     const glm::vec3& getFarBottomRight()    const { return _farBottomRight; };
 
-    const glm::vec3& getNearCenter()        const { return _nearCenter;     };
     const glm::vec3& getNearTopLeft()       const { return _nearTopLeft;    };  
     const glm::vec3& getNearTopRight()      const { return _nearTopRight;   };
     const glm::vec3& getNearBottomLeft()    const { return _nearBottomLeft; };
@@ -112,8 +108,8 @@ public:
     ViewFrustum::location boxInFrustum(const AABox& box) const;
     
     // some frustum comparisons
-    bool matches(const ViewFrustum& compareTo) const;
-    bool matches(const ViewFrustum* compareTo) const { return matches(*compareTo); };
+    bool matches(const ViewFrustum& compareTo, bool debug = false) const;
+    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); };
 
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 

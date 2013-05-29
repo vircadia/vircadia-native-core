@@ -37,6 +37,8 @@
 #include <AgentTypes.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <AudioInjectionManager.h>
+#include <AudioInjector.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -52,13 +54,11 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-const glm::vec3 START_LOCATION(6.1f, 0, 1.4f);   //  Where one's own agent begins in the world
+const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
-                                           
-const bool DISPLAY_HEAD_MOUSE = true;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
@@ -130,7 +130,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
-        _myAvatar(true),
         _manualFirstPerson(false),
         _mouseX(0),
         _mouseY(0),
@@ -285,131 +284,86 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW);
     
-    glPushMatrix();  {
-        glLoadIdentity();
-    
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            _myCamera.setTightness     (100.0f); 
-            _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
-                                        0.0f,
-                                        0.0f);
-        } else if (OculusManager::isConnected()) {
-            _myAvatar.setDisplayingHead(false);
-            _myCamera.setUpShift       (0.0f);
-            _myCamera.setDistance      (0.0f);
-            _myCamera.setTightness     (100.0f);
-            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                        _myAvatar.getHead().getPitch(),
-                                        -_myAvatar.getHead().getRoll());
-        } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                        0.0f,
-                                        //-_myAvatar.getAbsoluteHeadPitch(),
-                                        0.0f);
-            //  Take a look at whether we are inside head, don't render it if so.
-            const float HEAD_RENDER_DISTANCE = 0.5;
-            glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
-            
-            if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
-                _myAvatar.setDisplayingHead(false);
-            }
-        } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-            _myCamera.setTargetRotation(_myAvatar.getBodyYaw(),
-                                        0.0f,
-                                        //-_myAvatar.getAbsoluteHeadPitch(),
-                                        0.0f);
+    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        _myCamera.setTightness     (100.0f); 
+        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
+                                    0.0f,
+                                    0.0f);
+    } else if (OculusManager::isConnected()) {
+        _myCamera.setUpShift       (0.0f);
+        _myCamera.setDistance      (0.0f);
+        _myCamera.setTightness     (100.0f);
+        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                    _myAvatar.getHead().getPitch(),
+                                    -_myAvatar.getHead().getRoll());
+    } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                    _myAvatar.getAbsoluteHeadPitch(),
+                                    0.0f);
+        //  Take a look at whether we are inside head, don't render it if so.
+        const float HEAD_RENDER_DISTANCE = 0.5;
+        glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
+        
+        if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
         }
-                
-        // important...
-        _myCamera.update( 1.f/_fps );
-        
-        // Render anything (like HUD items) that we want to be in 3D but not in worldspace
-        /*
-        const float HUD_Z_OFFSET = -5.f;
-        glPushMatrix();
-        glm::vec3 test(0.5, 0.5, 0.5);
-        glTranslatef(1, 1, HUD_Z_OFFSET);
-        drawVector(&test);
-        glPopMatrix();
-         */
-        
-        
-        // Note: whichCamera is used to pick between the normal camera myCamera for our 
-        // main camera, vs, an alternate camera. The alternate camera we support right now
-        // is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
-        // to add other cameras.
-        //
-        // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
-        // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
-        // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-        Camera whichCamera = _myCamera;
-
-        if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
-
-            // set the camera to third-person view but offset so we can see the frustum
-            _viewFrustumOffsetCamera.setTargetYaw(_viewFrustumOffsetYaw + _myAvatar.getBodyYaw());
-            _viewFrustumOffsetCamera.setPitch    (_viewFrustumOffsetPitch   );
-            _viewFrustumOffsetCamera.setRoll     (_viewFrustumOffsetRoll    ); 
-            _viewFrustumOffsetCamera.setUpShift  (_viewFrustumOffsetUp      );
-            _viewFrustumOffsetCamera.setDistance (_viewFrustumOffsetDistance);
-            _viewFrustumOffsetCamera.update(1.f/_fps);
-            whichCamera = _viewFrustumOffsetCamera;
-        }        
-
-        // transform by eye offset
-
-        glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
-        glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
-        glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
-        glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-        glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
-
-        // transform view according to whichCamera
-        // could be myCamera (if in normal mode)
-        // or could be viewFrustumOffsetCamera if in offset mode
-        // I changed the ordering here - roll is FIRST (JJV) 
-
-        glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
-        glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-        glRotatef   (180.0 - whichCamera.getYaw(),     IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
-
-        glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
-        
-        //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-        glEnable(GL_COLOR_MATERIAL);
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-        
-        glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
-            whichCamera.getPosition());
-        GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
-        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-        
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-        glMateriali(GL_FRONT, GL_SHININESS, 96);
-        
-        if (_oculusOn->isChecked()) {
-            displayOculus(whichCamera);
-            
-        } else {
-            displaySide(whichCamera);
-            glPopMatrix();
-            
-            displayOverlay();
-        }
+    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
+                                    _myAvatar.getAbsoluteHeadPitch(),
+                                    0.0f);
     }
     
+    // important...
+    _myCamera.update( 1.f/_fps );
+    
+    // Render anything (like HUD items) that we want to be in 3D but not in worldspace
+    /*
+    const float HUD_Z_OFFSET = -5.f;
+    glPushMatrix();
+    glm::vec3 test(0.5, 0.5, 0.5);
+    glTranslatef(1, 1, HUD_Z_OFFSET);
+    drawVector(&test);
+    glPopMatrix();
+     */
+    
+    
+    // Note: whichCamera is used to pick between the normal camera myCamera for our 
+    // main camera, vs, an alternate camera. The alternate camera we support right now
+    // is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
+    // to add other cameras.
+    //
+    // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
+    // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
+    // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
+    Camera whichCamera = _myCamera;
+
+    if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
+
+        // set the camera to third-person view but offset so we can see the frustum
+        _viewFrustumOffsetCamera.setTargetYaw(_viewFrustumOffsetYaw + _myAvatar.getBodyYaw());
+        _viewFrustumOffsetCamera.setPitch    (_viewFrustumOffsetPitch   );
+        _viewFrustumOffsetCamera.setRoll     (_viewFrustumOffsetRoll    ); 
+        _viewFrustumOffsetCamera.setUpShift  (_viewFrustumOffsetUp      );
+        _viewFrustumOffsetCamera.setDistance (_viewFrustumOffsetDistance);
+        _viewFrustumOffsetCamera.update(1.f/_fps);
+        whichCamera = _viewFrustumOffsetCamera;
+    }        
+
+    if (OculusManager::isConnected()) {
+        displayOculus(whichCamera);
+    } else {
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        displaySide(whichCamera);
+        glPopMatrix();
+        
+        displayOverlay();
+    }
     
     _frameCount++;
 }
@@ -423,7 +377,7 @@ void Application::resizeGL(int width, int height) {
     float farClip = camera.getFarClip();
     float fov;
 
-    if (_oculusOn->isChecked()) {
+    if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
         camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PI));
@@ -571,6 +525,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
             
         case Qt::Key_Space:
             resetSensors();
+            break;
+            
+        case Qt::Key_G:
+            goHome();
             break;
         
         case Qt::Key_A:
@@ -1097,7 +1055,7 @@ void Application::idle() {
        
         //  Read serial port interface devices
         if (_serialPort.active) {
-            _serialPort.readData();
+            _serialPort.readData(deltaTime);
         }
         
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
@@ -1114,7 +1072,7 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime, false);
+                avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
@@ -1128,42 +1086,29 @@ void Application::idle() {
             _myAvatar.simulate(deltaTime, NULL);
         }
         
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {        
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
             if (_manualFirstPerson) {
                 if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                   Camera::CameraFollowingAttributes a;
-                    a.upShift   = 0.0f;
-                    a.distance  = 0.0f;
-                    a.tightness = 100.0f;
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                    _myAvatar.setDisplayingHead(true);
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
                 }
             } else {
         
                 if (_myAvatar.getIsNearInteractingOther()) {
                     if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                    
-                        Camera::CameraFollowingAttributes a;
-                        a.upShift   = 0.0f;
-                        a.distance  = 0.0f;
-                        a.tightness = 100.0f;
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
                     }
                 } 
                 else {
                     if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        Camera::CameraFollowingAttributes a;            
-                        a.upShift   = -0.2f;
-                        a.distance  = 1.5f;
-                        a.tightness = 8.0f;
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-                        _myAvatar.setDisplayingHead(true);  
+                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
                     }
                 }
             }
         }
-                
+
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
         _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -1191,26 +1136,14 @@ void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setHead(bool head) {
-    #ifndef _WIN32
-    _audio.setMixerLoopbackFlag(head);
-    #endif
-    
+void Application::setHead(bool head) {    
     if (head) {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = 0.0f;
-        a.distance  = 0.2f;
-        a.tightness = 100.0f;
-        _myCamera.setMode(CAMERA_MODE_MIRROR, a);
-        _myAvatar.setDisplayingHead(true);  
+        _myCamera.setMode(CAMERA_MODE_MIRROR);
+        _myCamera.setModeShiftRate(100.0f);
     } else {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = -0.2f;
-        a.distance  = 1.5f;
-        a.tightness = 8.0f;
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-        _myAvatar.setDisplayingHead(true);  
-    } 
+        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+        _myCamera.setModeShiftRate(1.0f);
+    }
 }
 
 void Application::setNoise(bool noise) {
@@ -1220,14 +1153,11 @@ void Application::setNoise(bool noise) {
 void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    updateCursor();
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
     _manualFirstPerson = firstPerson;    
-}
-
-void Application::setOculus(bool oculus) {
-    resizeGL(_glWidget->width(), _glWidget->height());
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1370,22 +1300,25 @@ void Application::initMenu() {
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
+    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
+    
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
+    (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
+    _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
 
-    optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F)->setCheckable(true);
+    (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
     _renderVoxels->setShortcut(Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
-    _renderVoxelTextures->setChecked(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
     _renderStarsOn->setShortcut(Qt::Key_Asterisk);
@@ -1400,8 +1333,6 @@ void Application::initMenu() {
     _renderLookatOn->setChecked(false);
     
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
-
-    (_oculusOn = renderMenu->addAction("Oculus", this, SLOT(setOculus(bool)), Qt::Key_O))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     
@@ -1409,7 +1340,8 @@ void Application::initMenu() {
     
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
-    _logOn->setChecked(true);
+    _logOn->setChecked(false);
+    _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
     
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
@@ -1506,17 +1438,16 @@ void Application::init() {
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
     _myAvatar.setPosition(START_LOCATION);
-    Camera::CameraFollowingAttributes a;            
-    a.upShift   = -0.2f;
-    a.distance  = 1.5f;
-    a.tightness = 8.0f;
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
-    _myAvatar.setDisplayingHead(true);
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
+    _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
+    if (OculusManager::isConnected()) {
+        QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
+    }
     
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
@@ -1555,7 +1486,7 @@ void Application::updateAvatar(float deltaTime) {
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
-        _myAvatar.setLoudness(_audio.getLastInputLoudness());
+        _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -1708,10 +1639,13 @@ void Application::displayOculus(Camera& whichCamera) {
     glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
     gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
         whichCamera.getNearClip(), whichCamera.getFarClip());
+    
+    glViewport(0, 0, _glWidget->width() / 2, _glWidget->height());
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
     glTranslatef(0.032, 0, 0); // dip/2, see p. 27
     
-    glMatrixMode(GL_MODELVIEW);
-    glViewport(0, 0, _glWidget->width() / 2, _glWidget->height());
     displaySide(whichCamera);
 
     // and the right eye to the right side
@@ -1720,10 +1654,12 @@ void Application::displayOculus(Camera& whichCamera) {
     glTranslatef(-0.151976, 0, 0); // -h
     gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
         whichCamera.getNearClip(), whichCamera.getFarClip());
+    
+    glViewport(_glWidget->width() / 2, 0, _glWidget->width() / 2, _glWidget->height());
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     glTranslatef(-0.032, 0, 0);
     
-    glMatrixMode(GL_MODELVIEW);
-    glViewport(_glWidget->width() / 2, 0, _glWidget->width() / 2, _glWidget->height());
     displaySide(whichCamera);
 
     glPopMatrix();
@@ -1809,7 +1745,42 @@ void Application::displayOculus(Camera& whichCamera) {
 }
 
 void Application::displaySide(Camera& whichCamera) {
-    glPushMatrix();
+    // transform by eye offset
+
+    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
+    glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
+    glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
+    glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
+    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+
+    // transform view according to whichCamera
+    // could be myCamera (if in normal mode)
+    // or could be viewFrustumOffsetCamera if in offset mode
+    // I changed the ordering here - roll is FIRST (JJV) 
+
+    glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
+    glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
+    glRotatef   (180.0 - whichCamera.getYaw(),     IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
+
+    glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
+    
+    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    
+    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
+        whichCamera.getPosition());
+    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+    glMateriali(GL_FRONT, GL_SHININESS, 96);
     
     if (_renderStarsOn->isChecked()) {
         // should be the first rendering pass - w/o depth buffer / lighting
@@ -1848,7 +1819,7 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(10.f);
+    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -1883,7 +1854,7 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(0, _myCamera.getPosition());
+                avatar->render(false, _myCamera.getPosition());
             }
         }
         agentList->unlock();
@@ -1898,8 +1869,6 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
-    glPopMatrix();
 }
 
 void Application::displayOverlay() {
@@ -1919,7 +1888,7 @@ void Application::displayOverlay() {
 
        //noiseTest(_glWidget->width(), _glWidget->height());
     
-    if (DISPLAY_HEAD_MOUSE && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
+    if (_showHeadMouse->isChecked() && !_lookingInMirror->isChecked() && USING_INVENSENSE_MPU9150) {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
@@ -2195,22 +2164,77 @@ void Application::shiftPaintingColor() {
     _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
 }
 
+
 void Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
-        if (_mouseVoxel.s != 0) {    
+        if (_mouseVoxel.s != 0) {
             PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
             sendVoxelEditMessage(message, _mouseVoxel);
             
-            // create the voxel locally so it appears immediately            
+            // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
                                 _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
-        
+            
             // remember the position for drag detection
             _justEditedVoxel = true;
+            
+            AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
+            voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+            //_myAvatar.getPosition()
+            voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
+            voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
+            // printf("mousevoxelscale is %f\n", _mouseVoxel.s);
+            
+            /* for (int i = 0; i
+             < 22050; i++) {
+             if (i % 4 == 0) {
+             voxelInjector->addSample(4000);
+             } else if (i % 4 == 1) {
+             voxelInjector->addSample(0);
+             } else if (i % 4 == 2) {
+             voxelInjector->addSample(-4000);
+             } else {
+             voxelInjector->addSample(0);
+             }
+             */
+            
+            
+            const float BIG_VOXEL_MIN_SIZE = .01f;
+            
+            for (int i = 0; i < 11025; i++) {
+                
+                /*
+                 A440 square wave
+                 if (sin(i * 2 * PIE / 50)>=0) {
+                 voxelInjector->addSample(4000);
+                 } else {
+                 voxelInjector->addSample(-4000);
+                 }
+                 */
+                
+                if (_mouseVoxel.s > BIG_VOXEL_MIN_SIZE) {
+                    voxelInjector->addSample(20000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 200))));
+                } else {
+                    voxelInjector->addSample(16000 * sin(i / (1.5 * log (_mouseVoxel.s / .0001) * ((i + 11025) / 5512.5)))); //808
+                }
+            }
+            
+            //voxelInjector->addSample(32500 * sin(i/(2 * 1 * ((i+5000)/5512.5)))); //80
+            //voxelInjector->addSample(20000 * sin(i/(6 * (_mouseVoxel.s/.001) *((i+5512.5)/5512.5)))); //808
+            //voxelInjector->addSample(20000 * sin(i/(6 * ((i+5512.5)/5512.5)))); //808
+            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50)); //A440 sine wave
+            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50) * sin (i/500)); //A440 sine wave with amplitude modulation
+            
+            //FM library
+            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(500*sin((i+1)/200))));  //FM 1 dubstep
+            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(300*sin((i+1)/5.0))));  //FM 2 flange sweep
+            //voxelInjector->addSample(10000 * sin((i * 2 * PIE) /(500*sin((i+1)/500.0))));  //FM 3 resonant pulse
+
+            AudioInjectionManager::threadInjector(voxelInjector);
         }
     } else if (_deleteVoxelMode->isChecked()) {
-        deleteVoxelUnderCursor();    
+        deleteVoxelUnderCursor();
     }
 }
 
@@ -2218,14 +2242,28 @@ void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
+        AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
+        voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+        voxelInjector->setBearing(0); //straight down the z axis
+        voxelInjector->setVolume (255); //255 is max, and also default value
         
-        // remember the position for drag detection
-        _justEditedVoxel = true;
+        
+        for (int i = 0; i < 5000; i++) {
+            voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
+            //            voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+        }
+        
+        AudioInjectionManager::threadInjector(voxelInjector);
     }
+    // remember the position for drag detection
+    _justEditedVoxel = true;
+}
+
+void Application::goHome() {
+    _myAvatar.setPosition(START_LOCATION);
 }
 
 void Application::resetSensors() {
-    _myAvatar.setPosition(START_LOCATION);
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
@@ -2256,6 +2294,11 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
+void Application::updateCursor() {
+    _glWidget->setCursor(OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
+        Qt::BlankCursor : Qt::ArrowCursor);
+}
+
 // when QActionGroup is set to non-exclusive, it doesn't return anything as checked;
 // hence, we must check ourselves
 QAction* Application::checkedVoxelModeAction() const {
@@ -2267,9 +2310,9 @@ QAction* Application::checkedVoxelModeAction() const {
     return 0;
 }
 
-void Application::attachNewHeadToAgent(Agent *newAgent) {
+void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(false));
+        newAgent->setLinkedData(new Avatar(newAgent));
     }
 }
 
@@ -2350,8 +2393,6 @@ void Application::saveSettings()
     
     setSettingBool("_renderAvatarsOn", _renderAvatarsOn->isChecked());
     
-    setSettingBool("_oculusOn", _oculusOn->isChecked());
-    
     setSettingBool("_renderStatsOn", _renderStatsOn->isChecked());
     
     setSettingBool("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
@@ -2398,9 +2439,6 @@ void Application::readSettings()
     
     getSettingBool("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
     _renderAvatarsOn->setChecked(settingState);
-    
-    getSettingBool("_oculusOn", settingState, _oculusOn->isChecked());
-    _oculusOn->setChecked(settingState);
     
     getSettingBool("_renderStatsOn", settingState, _renderStatsOn->isChecked());
     _renderStatsOn->setChecked(settingState);

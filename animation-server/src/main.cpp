@@ -29,6 +29,11 @@
 #endif
 
 bool shouldShowPacketsPerSecond = false; // do we want to debug packets per second
+bool includeBillboard = true; 
+bool includeBorderTracer = true;
+bool includeMovingBug = true;
+bool includeBlinkingVoxel = false;
+
 
 const int ANIMATION_LISTEN_PORT = 40107;
 const int ACTUAL_FPS = 60;
@@ -36,13 +41,6 @@ const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from
 const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
-
-static void sendVoxelServerZMessage() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"a message");
-    int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*) message, messageSize, &AGENT_TYPE_VOXEL, 1);
-}
 
 unsigned long packetsSent = 0;
 unsigned long bytesSent = 0;
@@ -65,32 +63,76 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE;
-glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 10.0, 0, BUG_VOXEL_SIZE * 10.0);
+glm::vec3 rotatePoint(glm::vec3 point, float angle) {
+    //  First, create the quaternion based on this angle of rotation
+    glm::quat q(glm::vec3(0, -angle, 0));
+
+    //  Next, create a rotation matrix from that quaternion
+    glm::mat4 rotation = glm::mat4_cast(q);
+    
+    //  Transform the original vectors by the rotation matrix to get the new vectors
+    glm::vec4 quatPoint(point.x, point.y, point.z, 0);
+    glm::vec4 newPoint = quatPoint * rotation;
+    
+    return glm::vec3(newPoint.x, newPoint.y, newPoint.z);
+}
+
+
+const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE; 
+glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0);
 glm::vec3 bugDirection = glm::vec3(0, 0, 1);
-const unsigned char bugColor[3] = {0, 255, 255};
-const int VOXELS_PER_BUG = 14;
-const glm::vec3 bugParts[VOXELS_PER_BUG] = {
+const int VOXELS_PER_BUG = 18;
+glm::vec3 bugPathCenter = glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
+float bugPathRadius = BUG_VOXEL_SIZE * 140.0;
+float bugPathTheta = 0.0 * PI_OVER_180;
+float bugRotation = 0.0 * PI_OVER_180;
+float bugAngleDelta = 0.2 * PI_OVER_180;
+bool moveBugInLine = false;
+
+class BugPart {
+public:
+    glm::vec3       partLocation;
+    unsigned char   partColor[3];
+    
+    BugPart(const glm::vec3& location, unsigned char red, unsigned char green, unsigned char blue ) {
+        partLocation = location;
+        partColor[0] = red;
+        partColor[1] = green;
+        partColor[2] = blue;
+    }
+};
+
+const BugPart bugParts[VOXELS_PER_BUG] = {
+
+    // tail
+    BugPart(glm::vec3( 0, 0, -3), 51, 51, 153) ,
+    BugPart(glm::vec3( 0, 0, -2), 51, 51, 153) ,
+    BugPart(glm::vec3( 0, 0, -1), 51, 51, 153) ,
 
     // body
-    glm::vec3(0, 0, -3),
-    glm::vec3(0, 0, -2),
-    glm::vec3(0, 0, -1), 
-    glm::vec3(0, 0, 0),
-    glm::vec3(0, 0, 1),
-    glm::vec3(0, 0, 2),
+    BugPart(glm::vec3( 0, 0,  0), 255, 200, 0) ,
+    BugPart(glm::vec3( 0, 0,  1), 255, 200, 0) ,
+
+    // head
+    BugPart(glm::vec3( 0, 0,  2), 200, 0, 0) ,
 
     // eyes
-    glm::vec3(1, 0, 3),
-    glm::vec3(-1, 0, 3),
+    BugPart(glm::vec3( 1, 0,  3), 64, 64, 64) ,
+    BugPart(glm::vec3(-1, 0,  3), 64, 64, 64) ,
 
     // wings
-    glm::vec3(1, 0, 1),
-    glm::vec3(2, 0, 1),
-    glm::vec3(3, 0, 1),
-    glm::vec3(-1, 0, 1),
-    glm::vec3(-2, 0, 1),
-    glm::vec3(-3, 0, 1),
+    BugPart(glm::vec3( 3, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3( 2, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3( 1, 0,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-1, 0,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-2, 1,  1), 0, 153, 0) ,
+    BugPart(glm::vec3(-3, 1,  1), 0, 153, 0) ,
+
+
+    BugPart(glm::vec3( 2, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3( 1, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3(-1, -1,  0), 153, 200, 0) ,
+    BugPart(glm::vec3(-2, -1,  0), 153, 200, 0) ,
 };
 
 static void renderMovingBug() {
@@ -101,13 +143,18 @@ static void renderMovingBug() {
     // Generate voxels for where bug used to be
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+        
+        glm::vec3 partAt = bugParts[i].partLocation * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1.0f : 1.0f);
+        glm::vec3 rotatedPartAt = rotatePoint(partAt, bugRotation);
+        glm::vec3 offsetPartAt = rotatedPartAt + bugPosition;
 
-        details[i].red   = bugColor[0];
-        details[i].green = bugColor[1];
-        details[i].blue  = bugColor[2];
+        details[i].x = offsetPartAt.x;
+        details[i].y = offsetPartAt.y;
+        details[i].z = offsetPartAt.z;
+        
+        details[i].red   = bugParts[i].partColor[0];
+        details[i].green = bugParts[i].partColor[1];
+        details[i].blue  = bugParts[i].partColor[2];
     }
     
     // send the "erase message" first...
@@ -125,31 +172,59 @@ static void renderMovingBug() {
     }
 
     // Move the bug...
-    bugPosition.x += (bugDirection.x * BUG_VOXEL_SIZE);
-    bugPosition.y += (bugDirection.y * BUG_VOXEL_SIZE);
-    bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
+    if (moveBugInLine) {
+        bugPosition.x += (bugDirection.x * BUG_VOXEL_SIZE);
+        bugPosition.y += (bugDirection.y * BUG_VOXEL_SIZE);
+        bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
     
-    // Check boundaries
-    if (bugPosition.z > 0.25) {
-        bugDirection.z = -1;
+        // Check boundaries
+        if (bugPosition.z > 1.0) {
+            bugDirection.z = -1;
+        }
+        if (bugPosition.z < BUG_VOXEL_SIZE) {
+            bugDirection.z = 1;
+        }
+    } else {
+
+        //printf("bugPathCenter=(%f,%f,%f)\n", bugPathCenter.x, bugPathCenter.y, bugPathCenter.z);
+
+        bugPathTheta += bugAngleDelta; // move slightly
+        bugRotation  -= bugAngleDelta; // rotate slightly
+        
+        // If we loop past end of circle, just reset back into normal range
+        if (bugPathTheta > (360.0f * PI_OVER_180)) {
+            bugPathTheta = 0;
+            bugRotation  = 0;
+        }
+
+        float x = bugPathCenter.x + bugPathRadius * cos(bugPathTheta);
+        float z = bugPathCenter.z + bugPathRadius * sin(bugPathTheta);
+        float y = bugPathCenter.y;
+        
+        bugPosition = glm::vec3(x, y, z);
+        //printf("bugPathTheta=%f\n", bugPathTheta);
+        //printf("bugRotation=%f\n", bugRotation);
     }
-    if (bugPosition.z < 0.01) {
-        bugDirection.z = 1;
-    }
-    printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
-    printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
+    
+    //printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
+    //printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
     // would be nice to add some randomness here...
 
     // Generate voxels for where bug is going to
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
-        details[i].x = bugPosition.x + (bugParts[i].x * BUG_VOXEL_SIZE);
-        details[i].y = bugPosition.y + (bugParts[i].y * BUG_VOXEL_SIZE);
-        details[i].z = bugPosition.z + (bugParts[i].z * BUG_VOXEL_SIZE);
+        
+        glm::vec3 partAt = bugParts[i].partLocation * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1.0f : 1.0f);
+        glm::vec3 rotatedPartAt = rotatePoint(partAt, bugRotation);
+        glm::vec3 offsetPartAt = rotatedPartAt + bugPosition;
 
-        details[i].red   = bugColor[0];
-        details[i].green = bugColor[1];
-        details[i].blue  = bugColor[2];
+        details[i].x = offsetPartAt.x;
+        details[i].y = offsetPartAt.y;
+        details[i].z = offsetPartAt.z;
+        
+        details[i].red   = bugParts[i].partColor[0];
+        details[i].green = bugParts[i].partColor[1];
+        details[i].blue  = bugParts[i].partColor[2];
     }
     
     // send the "create message" ...
@@ -419,7 +494,6 @@ double start = 0;
 
 void* animateVoxels(void* args) {
     
-    AgentList* agentList = AgentList::getInstance();
     timeval lastSendTime;
     
     while (true) {
@@ -427,9 +501,19 @@ void* animateVoxels(void* args) {
 
         // some animations
         //sendVoxelBlinkMessage();
-        sendBlinkingStringOfLights();
-        sendBillboard();
-        //renderMovingBug();
+
+        if (::includeBillboard) {
+            sendBillboard();
+        }
+        if (::includeBorderTracer) {
+            sendBlinkingStringOfLights();
+        }
+        if (::includeMovingBug) {
+            renderMovingBug();
+        }
+        if (::includeBlinkingVoxel) {
+            sendVoxelBlinkMessage();
+        }
         
         double end = usecTimestampNow();
         double elapsedSeconds = (end - ::start) / 1000000.0;
@@ -457,6 +541,19 @@ int main(int argc, const char * argv[])
 
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
+
+    // Handle Local Domain testing with the --local command line
+    const char* NO_BILLBOARD = "--NoBillboard";
+    ::includeBillboard = !cmdOptionExists(argc, argv, NO_BILLBOARD);
+
+    const char* NO_BORDER_TRACER = "--NoBorderTracer";
+    ::includeBorderTracer = !cmdOptionExists(argc, argv, NO_BORDER_TRACER);
+
+    const char* NO_MOVING_BUG = "--NoMovingBug";
+    ::includeMovingBug = !cmdOptionExists(argc, argv, NO_MOVING_BUG);
+
+    const char* INCLUDE_BLINKING_VOXEL = "--includeBlinkingVoxel";
+    ::includeBlinkingVoxel = cmdOptionExists(argc, argv, INCLUDE_BLINKING_VOXEL);
 
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";

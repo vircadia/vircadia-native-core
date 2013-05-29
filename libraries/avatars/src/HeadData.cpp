@@ -8,13 +8,15 @@
 
 #include "HeadData.h"
 
-HeadData::HeadData() :
+HeadData::HeadData(AvatarData* owningAvatar) :
     _yaw(0.0f),
     _pitch(0.0f),
     _roll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
     _leanSideways(0.0f),
-    _leanForward(0.0f)
+    _leanForward(0.0f),
+    _audioLoudness(0.0f),
+    _owningAvatar(owningAvatar)
 {
     
 }

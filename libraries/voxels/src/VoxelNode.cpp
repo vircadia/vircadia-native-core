@@ -29,9 +29,12 @@ VoxelNode::VoxelNode(unsigned char * octalCode) {
 void VoxelNode::init(unsigned char * octalCode) {
     _octalCode = octalCode;
     
-#ifdef HAS_FALSE_COLOR
+#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     _falseColored = false; // assume true color
+    _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
 #endif
+    _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
+
     
     // default pointers to child nodes to NULL
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -104,13 +107,6 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
 void VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
-    
-        // XXXBHG - When the node is constructed, it should be cleanly set up as 
-        // true colored, but for some reason, not so much. I've added a a basecamp
-        // to-do to research this. But for now we'll use belt and suspenders and set
-        // it to not-false-colored here!
-        _children[childIndex]->setFalseColored(false);
-    
         _isDirty = true;
         _childCount++;
     }
@@ -273,10 +269,10 @@ void VoxelNode::printDebugDetails(const char* label) const {
         }
     }
 
-    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s isDirty=%s shouldRender=%s\n children=", label,
+    printLog("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s (%d,%d,%d,%d) isDirty=%s shouldRender=%s\n children=", label,
         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x,
-        debug::valueOf(isLeaf()), debug::valueOf(isColored()), debug::valueOf(isDirty()), 
-        debug::valueOf(getShouldRender()));
+        debug::valueOf(isLeaf()), debug::valueOf(isColored()), getColor()[0], getColor()[1], getColor()[2], getColor()[3],
+        debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
         
     outputBits(childBits, false);
     printLog("\n octalCode=");

@@ -7,12 +7,14 @@
 //
 
 #include <cstring>
+#include <math.h>
 
 #include "PacketHeaders.h"
 
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
+    AgentData(NULL),
     _ringBufferLengthSamples(ringSamples),
     _bufferLengthSamples(bufferSamples),
     _endOfLastWrite(NULL),
@@ -20,7 +22,7 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     _shouldBeAddedToMix(false),
     _shouldLoopbackForAgent(false),
     _streamIdentifier()
-{        
+{
     _buffer = new int16_t[_ringBufferLengthSamples];
     _nextOutput = _buffer;
 };
@@ -55,7 +57,12 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         memcpy(&_bearing, dataBuffer, sizeof(float));
         dataBuffer += sizeof(_bearing);
         
-        if (_bearing > 180 || _bearing < -180) {
+        // if this agent sent us a NaN bearing then don't consider this good audio and bail
+        if (std::isnan(_bearing)) {
+            _endOfLastWrite = _nextOutput = _buffer;
+            _started = false;
+            return 0;
+        } else if (_bearing > 180 || _bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
             _shouldLoopbackForAgent = true;
             
@@ -65,25 +72,29 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
                 : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
             _shouldLoopbackForAgent = false;
-        }        
-    }
-
-    if (!_endOfLastWrite) {
-        _endOfLastWrite = _buffer;
-    } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
-        _endOfLastWrite = _buffer;
-        _nextOutput = _buffer;
-        _started = false;
+        }
     }
     
-    memcpy(_endOfLastWrite, dataBuffer, _bufferLengthSamples * sizeof(int16_t));
-    
-    _endOfLastWrite += _bufferLengthSamples;
-    
-    if (_endOfLastWrite >= _buffer + _ringBufferLengthSamples) {
-        _endOfLastWrite = _buffer;
+    // make sure we have enough bytes left for this to be the right amount of audio
+    // otherwise we should not copy that data, and leave the buffer pointers where they are
+    if (numBytes - (dataBuffer - sourceBuffer) == _bufferLengthSamples * sizeof(int16_t)) {
+        if (!_endOfLastWrite) {
+            _endOfLastWrite = _buffer;
+        } else if (diffLastWriteNextOutput() > _ringBufferLengthSamples - _bufferLengthSamples) {
+            _endOfLastWrite = _buffer;
+            _nextOutput = _buffer;
+            _started = false;
+        }
+        
+        memcpy(_endOfLastWrite, dataBuffer, _bufferLengthSamples * sizeof(int16_t));
+        
+        _endOfLastWrite += _bufferLengthSamples;
+        
+        if (_endOfLastWrite >= _buffer + _ringBufferLengthSamples) {
+            _endOfLastWrite = _buffer;
+        }
     }
-    
+        
     return numBytes;
 }
 

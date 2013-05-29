@@ -13,16 +13,18 @@
 
 #include <glm/glm.hpp>
 
-const float MIN_HEAD_YAW = -85;
-const float MAX_HEAD_YAW = 85;
+const float MIN_HEAD_YAW = -110;
+const float MAX_HEAD_YAW = 110;
 const float MIN_HEAD_PITCH = -60;
 const float MAX_HEAD_PITCH = 60;
 const float MIN_HEAD_ROLL = -50;
 const float MAX_HEAD_ROLL = 50;
 
+class AvatarData;
+
 class HeadData {
 public:
-    HeadData();
+    HeadData(AvatarData* owningAvatar);
     
     float getLeanSideways() const { return _leanSideways; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
@@ -38,6 +40,8 @@ public:
     
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
+    
+    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
     
     void addYaw(float yaw);
     void addPitch(float pitch);
@@ -55,6 +59,8 @@ protected:
     glm::vec3 _lookAtPosition;
     float _leanSideways;
     float _leanForward;
+    float _audioLoudness;
+    AvatarData* _owningAvatar;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HeadData(const HeadData&);

@@ -24,23 +24,26 @@ enum eyeContactTargets
     MOUTH
 };
 
+const int NUM_HAIR_TUFTS    = 4;
+
+class Avatar;
+
 class Head : public HeadData {
 public:
-    Head();
+    Head(Avatar* owningAvatar);
     
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror);
+    void render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha);
+    void renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
     void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
-    void setRotationOffBody(glm::vec3 headRotation      ) { _headRotation       = headRotation;       }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
     void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
     void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
-    void setAudioLoudness  (float     audioLoudness     ) { _audioLoudness      = audioLoudness;      }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
         
@@ -56,8 +59,20 @@ private:
     Head(const Head&);
     Head& operator= (const Head&);
 
+    struct HairTuft
+    {
+        float length;
+        float thickness;
+        
+        glm::vec3 basePosition;				
+        glm::vec3 midPosition;          
+        glm::vec3 endPosition;          
+        glm::vec3 midVelocity;          
+        glm::vec3 endVelocity;  
+    };
+
+    float       _renderAlpha;
     bool        _returnHeadToCenter;
-    float       _audioLoudness;
     glm::vec3   _skinColor;
     glm::vec3   _position;
     glm::vec3   _rotation;
@@ -78,10 +93,13 @@ private:
     float       _returnSpringScale; //strength of return springs
     Orientation _orientation;
     glm::vec3   _bodyRotation;
-    glm::vec3   _headRotation;
     bool        _renderLookatVectors;
+    HairTuft    _hairTuft[NUM_HAIR_TUFTS];
+    glm::vec3*  _mohawkTriangleFan;
+    glm::vec3*  _mohawkColors;
     
     // private methods
+    void createMohawk();
     void renderHeadSphere();
     void renderEyeBalls();
     void renderEyeBrows();
@@ -90,6 +108,8 @@ private:
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry( bool lookingInMirror);
     void determineIfLookingAtSomething();
+    void resetHairPhysics();
+    void updateHairPhysics(float deltaTime);
 };
 
 #endif

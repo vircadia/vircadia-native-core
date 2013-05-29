@@ -11,7 +11,8 @@
 #include <cstring>
 #include <cstdio>
 
-VoxelAgentData::VoxelAgentData() :
+VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
+    AvatarData(owningAgent),
     _viewSent(false),
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
@@ -65,7 +66,11 @@ bool VoxelAgentData::updateCurrentViewFrustum() {
 }
 
 void VoxelAgentData::updateLastKnownViewFrustum() {
-    // save our currentViewFrustum into our lastKnownViewFrustum
-    _lastKnownViewFrustum = _currentViewFrustum;
+    bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
+    
+    if (frustumChanges) {
+        // save our currentViewFrustum into our lastKnownViewFrustum
+        _lastKnownViewFrustum = _currentViewFrustum;
+    }
 }
 
