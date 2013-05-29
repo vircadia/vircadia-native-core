@@ -70,6 +70,18 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
+void VoxelSystem::writeToFileV2(const char* filename, VoxelNode* node) const {
+    _tree->writeToFileV2(filename, node);
+}
+
+bool VoxelSystem::readFromFileV2(const char* filename, VoxelNode* node) {
+    bool result = _tree->readFromFileV2(filename, node);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }

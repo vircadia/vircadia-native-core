@@ -99,7 +99,9 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
-    
+    void exportVoxels();
+    void importVoxels();
+   
 private:
     
     void initMenu();
@@ -155,6 +157,7 @@ private:
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
     QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
     QAction* _colorVoxelMode;        // Whether color voxel mode is enabled
+    QAction* _selectVoxelMode;       // Whether select voxel mode is enabled
     QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 

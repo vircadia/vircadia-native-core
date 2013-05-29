@@ -32,6 +32,7 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QtDebug>
+#include <QFileDialog>
 #include <PairingHandler.h>
 
 #include <AgentTypes.h>
@@ -853,7 +854,10 @@ void Application::idle() {
                 // red indicates deletion
                 _mouseVoxel.red = 255;
                 _mouseVoxel.green = _mouseVoxel.blue = 0;
-            
+            } else if (_selectVoxelMode->isChecked()) {
+                // yellow indicates deletion
+                _mouseVoxel.red = _mouseVoxel.green = 255;
+                _mouseVoxel.blue = 0;
             } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
                 QColor paintColor = _voxelPaintColor->data().value<QColor>();
                 _mouseVoxel.red = paintColor.red();
@@ -1136,6 +1140,35 @@ void Application::chooseVoxelPaintColor() {
     // restore the main window's active state
     _window->activateWindow();
 }
+
+void Application::exportVoxels() {
+    QString    fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), "~/voxels.hio2", 
+                                                    tr("High Fidelity Voxel Files (*.hio2)"));
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    printf("exportVoxels() fileName: %s  _mouseVoxel: %f,%f,%f-%f \n", fileName,
+        _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        selectedNode->printDebugDetails("selected voxel");
+    }
+    _voxels.writeToFileV2(fileName,selectedNode);
+}
+
+void Application::importVoxels() {
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), "~", tr("High Fidelity Voxel Files (*.hio2)"));
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    printf("importVoxels() fileName: %s  _mouseVoxel: %f,%f,%f-%f \n", fileName,
+        _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        selectedNode->printDebugDetails("selected voxel");
+    }
+    
+    // not yet supported!!!
+    _voxels.readFromFileV2(fileName,selectedNode);
+}
     
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
@@ -1202,6 +1235,9 @@ void Application::initMenu() {
     (_colorVoxelMode = voxelMenu->addAction(
         "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_3))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
+    (_selectVoxelMode = voxelMenu->addAction(
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_8))->setCheckable(true);
+    _voxelModeActions->addAction(_selectVoxelMode);
     
     voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
@@ -1212,6 +1248,8 @@ void Application::initMenu() {
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
+    voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
+    voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 

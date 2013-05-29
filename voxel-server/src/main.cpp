@@ -517,7 +517,7 @@ int main(int argc, const char * argv[]) {
     const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
-        randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+        randomTree.readFromFileV2(voxelsFilename);
     }
 
     // Check to see if the user passed in a command line option for setting packet send rate

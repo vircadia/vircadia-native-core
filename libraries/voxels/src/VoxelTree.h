@@ -91,8 +91,8 @@ public:
     void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
-    void writeToFileV2(const char* filename) const;
-    bool readFromFileV2(const char* filename);
+    void writeToFileV2(const char* filename, VoxelNode* node = NULL) const;
+    bool readFromFileV2(const char* filename, VoxelNode* node = NULL);
 
     unsigned long getVoxelCount();
     

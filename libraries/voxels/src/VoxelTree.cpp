@@ -1105,7 +1105,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     return bytesAtThisLevel;
 }
 
-bool VoxelTree::readFromFileV2(const char* fileName) {
+bool VoxelTree::readFromFileV2(const char* fileName, VoxelNode* node) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
 		printLog("loading file %s...\n", fileName);
@@ -1126,7 +1126,7 @@ bool VoxelTree::readFromFileV2(const char* fileName) {
     return false;
 }
 
-void VoxelTree::writeToFileV2(const char* fileName) const {
+void VoxelTree::writeToFileV2(const char* fileName, VoxelNode* node) const {
 
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
@@ -1134,7 +1134,12 @@ void VoxelTree::writeToFileV2(const char* fileName) const {
 		printLog("saving to file %s...\n", fileName);
 
         VoxelNodeBag nodeBag;
-        nodeBag.insert(rootNode);
+        // If we were given a specific node, start from there, otherwise start from root
+        if (node) {
+            nodeBag.insert(node);
+        } else {
+            nodeBag.insert(rootNode);
+        }
 
         static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;

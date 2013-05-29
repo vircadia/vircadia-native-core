@@ -44,6 +44,8 @@ public:
     void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
     void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
+    void writeToFileV2(const char* filename, VoxelNode* node) const;
+    bool readFromFileV2(const char* filename, VoxelNode* node);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();
