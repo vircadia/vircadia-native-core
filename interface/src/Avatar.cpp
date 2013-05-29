@@ -1128,9 +1128,9 @@ void Avatar::renderBody(bool lookingInMirror) {
         }
                 
         //  Always render other people, and render myself when beyond threshold distance
-        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
+        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
-                _head.render(lookingInMirror, _cameraPosition, alpha);
+                _head.render(lookingInMirror, _cameraPosition, 1.f);
             }
         } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
                    || b == AVATAR_JOINT_RIGHT_ELBOW
