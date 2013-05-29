@@ -470,8 +470,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     // reset hand and arm positions according to hand movement
     glm::vec3 transformedHandMovement
     = _orientation.getRight() *  _movedHandOffset.x * 2.0f
-    + _orientation.getUp()	  * -_movedHandOffset.y * 1.0f
-    + _orientation.getFront() * -_movedHandOffset.y * 1.0f;
+    + _orientation.getUp()	  * -_movedHandOffset.y * 2.0f
+    + _orientation.getFront() * -_movedHandOffset.y * 2.0f;
     
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
             
