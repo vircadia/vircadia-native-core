@@ -184,6 +184,8 @@ private:
     Stars _stars;
     
     VoxelSystem _voxels;
+    VoxelTree _clipboardTree; // if I copy/paste
+
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
     

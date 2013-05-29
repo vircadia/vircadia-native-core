@@ -21,19 +21,6 @@
 #include <OctalCode.h>
 
 int main(int argc, const char * argv[]) {
-
-    unsigned char test1[2] = {2, 0xE0 };
-    unsigned char test2[2] = {2, 0xFC };
-
-    unsigned char* result1 = chopOctalCode((unsigned char*)&test1, 1);
-    
-    printOctalCode((unsigned char*)&test1);
-    printOctalCode(result1);
-
-    unsigned char* result2 = chopOctalCode((unsigned char*)&test2, 1);
-    printOctalCode((unsigned char*)&test2);
-    printOctalCode(result2);
-    
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
     

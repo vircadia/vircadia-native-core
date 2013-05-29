@@ -1159,6 +1159,7 @@ void Application::copyVoxels() {
     printf("copyVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         selectedNode->printDebugDetails("selected voxel");
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
     }
 }
 
@@ -1166,7 +1167,17 @@ void Application::pasteVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     printf("pasteVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
-        selectedNode->printDebugDetails("selected voxel");
+        //selectedNode->printDebugDetails("selected voxel");
+        
+        // First, create a temporary Paste Tree
+        VoxelTree _temporaryPasteTree;
+        
+        // Create a destination node to paste into
+        _temporaryPasteTree.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s, 0, 0, 0);
+        
+        // Paste into the temporary tree
+        destinationNode = _temporaryPasteTree.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        _temporaryPasteTree.copyFromTreeIntoSubTree(&_clipboardTree, destinationNode);
     }
 }
     

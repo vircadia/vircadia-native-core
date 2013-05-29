@@ -44,19 +44,20 @@ public:
     VoxelTree(bool shouldReaverage = false);
     ~VoxelTree();
 
-    VoxelNode *rootNode;
+    VoxelNode* rootNode;
     int leavesWrittenToBitstream;
 
     void eraseAllVoxels();
 
-    void processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char * bitstream,  unsigned long int bufferSizeBytes, 
-                             bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS);
-    void readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char *codeBuffer, bool stage = ACTUALLY_DELETE, 
+    void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
+    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, 
+                             bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
+                             VoxelNode* destinationNode = NULL);
+    void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
+    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage = ACTUALLY_DELETE, 
                                  bool collapseEmptyTrees = DONT_COLLAPSE);
-    void printTreeForDebugging(VoxelNode *startNode);
-    void reaverageVoxelColors(VoxelNode *startNode);
+    void printTreeForDebugging(VoxelNode* startNode);
+    void reaverageVoxelColors(VoxelNode* startNode);
 
     void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
@@ -70,7 +71,7 @@ public:
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
                             VoxelNodeBag& bag, const ViewFrustum* viewFrustum, 
-                            bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS,
+                            bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, int chopLevels = 0,
                             bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL) const;
 
     int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
@@ -97,20 +98,19 @@ public:
     unsigned long getVoxelCount();
 
     void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
-    void copyNodeIntoTree(VoxelNode* node);
+    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
     
 private:
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
-                                     const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits,
-                                     bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const;
+                                     const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits, 
+                                     int chopLevels, bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) const;
 
     int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
                                        bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
-    static bool copySubTreeIntoNewTreeOperation(VoxelNode* node, void* extraData);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;

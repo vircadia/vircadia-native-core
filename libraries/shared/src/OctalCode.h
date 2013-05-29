@@ -19,6 +19,7 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
 
 unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
 unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode);
+int numberOfThreeBitSectionsInCode(unsigned char * octalCode);
 
 
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return

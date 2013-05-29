@@ -170,14 +170,18 @@ OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB
 
 
 char getOctalCodeSectionValue(unsigned char* octalCode, int section) {
-    return sectionValue(octalCode + 1 + (3 * section / 8), (3 * section) % 8);
+    int startAtByte = 1 + (3 * section / 8);
+    char startIndexInByte = (3 * section) % 8;
+    unsigned char* startByte = octalCode + startAtByte;
+    
+    return sectionValue(startByte, startIndexInByte);
 }
 
 void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectionValue) {
     unsigned char* byteAt = octalCode + 1 + (3 * section / 8);
     char bitInByte = (3 * section) % 8;
     char shiftBy = 8 - bitInByte - 3;
-    const unsigned char UNSHIFTED_MASK = 0x03;
+    const unsigned char UNSHIFTED_MASK = 0x07;
     unsigned char shiftedMask;
     unsigned char shiftedValue;
 
@@ -190,13 +194,17 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
         shiftedValue = sectionValue >> -shiftBy;
     }
     
-    byteAt[0] = byteAt[0] & (shiftedMask | shiftedValue);
+    unsigned char oldValue = *byteAt & ~shiftedMask;
+    unsigned char newValue = oldValue | shiftedValue;
+    *byteAt = newValue;
     if (bitInByte >= 6) {
         shiftBy = bitInByte + 1;
         shiftedMask  = UNSHIFTED_MASK << shiftBy;
         shiftedValue = sectionValue << shiftBy;
     
-        byteAt[1] = byteAt[1] & (shiftedMask | shiftedValue);
+        oldValue = byteAt[1] & ~shiftedMask;
+        newValue = oldValue | shiftedValue;
+        byteAt[1] = newValue;
     }
 }
 
