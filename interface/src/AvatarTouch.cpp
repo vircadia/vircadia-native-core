@@ -13,7 +13,7 @@
 
 const float THREAD_RADIUS = 0.007;
 const float HANDS_CLOSE_ENOUGH_TO_GRASP = 0.2;
-const float AVATAR_FACING_THRESHOLD = 0.1f;    // (-1 to 1) (larger value indicates narrower angle of influence
+const float AVATAR_FACING_THRESHOLD = -0.5f;    // (-1 to 1) (larger value indicates narrower angle of influence
 
 AvatarTouch::AvatarTouch() {
 
