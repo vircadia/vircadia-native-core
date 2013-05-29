@@ -40,6 +40,7 @@ vector<unsigned char> irisTexture;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
+    _renderAlpha(0.0),
     yawRate(0.0f),
     _returnHeadToCenter(false),
     _skinColor(0.0f, 0.0f, 0.0f),
@@ -205,8 +206,10 @@ void Head::calculateGeometry(bool lookingInMirror) {
 }
 
 
-void Head::render(bool lookingInMirror, glm::vec3 cameraPosition) {
+void Head::render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha) {
 
+    _renderAlpha = alpha;
+    
     calculateGeometry(lookingInMirror);
 
     glEnable(GL_DEPTH_TEST);
@@ -314,7 +317,7 @@ void Head::renderHeadSphere() {
     glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z); //translate to head position
         glScalef(_scale, _scale, _scale); //scale to head size        
-        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glutSolidSphere(1, 30, 30);
     glPopMatrix();
 }
@@ -322,13 +325,13 @@ void Head::renderHeadSphere() {
 void Head::renderEars() {
 
     glPushMatrix();
-        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glTranslatef(_leftEarPosition.x, _leftEarPosition.y, _leftEarPosition.z);        
         glutSolidSphere(0.02, 30, 30);
     glPopMatrix();
 
     glPushMatrix();
-        glColor3f(_skinColor.x, _skinColor.y, _skinColor.z);
+        glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glTranslatef(_rightEarPosition.x, _rightEarPosition.y, _rightEarPosition.z);        
         glutSolidSphere(0.02, 30, 30);
     glPopMatrix();

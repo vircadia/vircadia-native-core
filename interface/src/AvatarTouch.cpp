@@ -32,7 +32,7 @@ AvatarTouch::AvatarTouch() {
     _myOrientation.setToIdentity();
     _yourOrientation.setToIdentity();
 
-    for (int p=0; p<NUM_POINTS; p++) {
+    for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
         _point[p] = glm::vec3(0.0, 0.0, 0.0);
     }
 }
@@ -136,7 +136,6 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
 }
 
 
- 
 void AvatarTouch::renderBeamBetweenHands() {
 
     glm::vec3 v1(_myHandPosition);
@@ -150,9 +149,9 @@ void AvatarTouch::renderBeamBetweenHands() {
     glEnd();
 
     glColor3f(0.5f, 0.3f, 0.0f);
-    for (int p=0; p<NUM_POINTS; p++) {
+    for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
 
-        _point[p] = _myHandPosition + _vectorBetweenHands * ((float)p / (float)NUM_POINTS);
+        _point[p] = _myHandPosition + _vectorBetweenHands * ((float)p / (float)NUM_PARTICLE_POINTS);
         _point[p].x += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
         _point[p].y += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
         _point[p].z += randFloatInRange(-THREAD_RADIUS, THREAD_RADIUS);
