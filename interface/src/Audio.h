@@ -24,8 +24,6 @@ public:
 
     void render(int screenWidth, int screenHeight);
     
-    void setMixerLoopbackFlag(bool mixerLoopbackFlag) { _mixerLoopbackFlag = mixerLoopbackFlag; }
-    
     float getLastInputLoudness() const { return _lastInputLoudness; };
     
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
@@ -52,7 +50,6 @@ private:
     short _jitterBufferSamples;
     int _wasStarved;
     float _lastInputLoudness;
-    bool _mixerLoopbackFlag;
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
