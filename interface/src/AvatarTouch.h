@@ -9,6 +9,7 @@
 #define __interface__AvatarTouch__
 
 #include <glm/glm.hpp>
+#include "Orientation.h"
 
 enum AvatarHandState
 {
@@ -26,18 +27,18 @@ public:
 
     void simulate(float deltaTime);
     void render(glm::vec3 cameraPosition);
-    
-    void setMyHandPosition  (glm::vec3 position);
-    void setYourHandPosition(glm::vec3 position);
-    void setMyBodyPosition  (glm::vec3 position);
-    void setYourBodyPosition(glm::vec3 position);
-    void setMyHandState     (int state);
-    void setYourHandState   (int state);
-    void setReachableRadius (float r);
-    
-    void setAbleToReachOtherAvatar (bool a) {_canReachToOtherAvatar   = a;}
-    void setHandsCloseEnoughToGrasp(bool h) {_handsCloseEnoughToGrasp = h;}
-    void setHoldingHands           (bool h) {_weAreHoldingHands       = h;}
+
+    void setHasInteractingOther(bool hasInteractingOther) { _hasInteractingOther = hasInteractingOther;}
+    void setMyHandPosition     (glm::vec3   position    ) { _myHandPosition      = position;}
+    void setYourHandPosition   (glm::vec3   position    ) { _yourHandPosition    = position;}
+    void setMyOrientation      (Orientation orientation ) { _myOrientation       = orientation;}
+    void setYourOrientation    (Orientation orientation ) { _yourOrientation     = orientation;}
+    void setMyBodyPosition     (glm::vec3   position    ) { _myBodyPosition      = position;}
+    void setYourBodyPosition   (glm::vec3   position    ) { _yourBodyPosition    = position;}
+    void setMyHandState        (int         state       ) { _myHandState         = state;}
+    void setYourHandState      (int         state       ) { _yourHandState       = state;}
+    void setReachableRadius    (float       radius      ) { _reachableRadius     = radius;}
+    void setHoldingHands       (bool        holding     ) { _weAreHoldingHands   = holding;}
     
     bool getAbleToReachOtherAvatar () const {return _canReachToOtherAvatar;  }
     bool getHandsCloseEnoughToGrasp() const {return _handsCloseEnoughToGrasp;}
@@ -47,18 +48,21 @@ private:
 
     static const int NUM_POINTS = 100;
     
-    bool      _weAreHoldingHands;
-    glm::vec3 _point [NUM_POINTS];
-    glm::vec3 _myBodyPosition;
-    glm::vec3 _yourBodyPosition;
-    glm::vec3 _myHandPosition;
-    glm::vec3 _yourHandPosition;
-    glm::vec3 _vectorBetweenHands;
-    int       _myHandState;
-    int       _yourHandState;
-    bool      _canReachToOtherAvatar;
-    bool      _handsCloseEnoughToGrasp;
-    float     _reachableRadius;
+    bool        _hasInteractingOther;
+    bool        _weAreHoldingHands;
+    glm::vec3   _point [NUM_POINTS];
+    glm::vec3   _myBodyPosition;
+    glm::vec3   _yourBodyPosition;
+    glm::vec3   _myHandPosition;
+    glm::vec3   _yourHandPosition;
+    Orientation _myOrientation;
+    Orientation _yourOrientation;
+    glm::vec3   _vectorBetweenHands;
+    int         _myHandState;
+    int         _yourHandState;
+    bool        _canReachToOtherAvatar;
+    bool        _handsCloseEnoughToGrasp;
+    float       _reachableRadius;
     
     void renderBeamBetweenHands();
 };
