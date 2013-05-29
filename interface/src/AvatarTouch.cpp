@@ -54,8 +54,7 @@ void AvatarTouch::simulate (float deltaTime) {
             facingEachOther = true;
         }
 
-        if ((distanceBetweenBodies < _reachableRadius)
-        &&  (facingEachOther)) {
+        if (distanceBetweenBodies < _reachableRadius) {
             _canReachToOtherAvatar = true;
 
             _vectorBetweenHands = _yourHandPosition - _myHandPosition;
