@@ -778,26 +778,22 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
 
-void Application::readSettingsFile()
-{
+void Application::readSettingsFile() {
     FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "rt");
     
-    if (settingsFile)
-    {
+    if (settingsFile) {
         char line[LINE_MAX];
         
         while (fgets(line, LINE_MAX, settingsFile) != NULL)
         {
-            if (strcmp(line, " \n") > 0)
-            {
+            if (strcmp(line, " \n") > 0) {
                 char *token = NULL;
                 char *settingLine = NULL;
                 char *toFree = NULL;
                 
                 settingLine = strdup(line);
                 
-                if (settingLine != NULL)
-                {
+                if (settingLine != NULL) {
                     toFree = settingLine;
                     
                     int i = 0;
@@ -835,12 +831,10 @@ void Application::readSettingsFile()
     fclose(settingsFile);
 }
 
-void Application::saveSettingsFile()
-{
+void Application::saveSettingsFile() {
     FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "wt");
     
-    if (settingsFile)
-    {
+    if (settingsFile) {
         for (std::map<std::string, std::string>::iterator i = _settingsTable.begin(); i != _settingsTable.end(); i++)
         {
             fprintf(settingsFile, "\n%s=%s", i->first.data(), i->second.data());
@@ -850,109 +844,107 @@ void Application::saveSettingsFile()
     fclose(settingsFile);
 }
 
-bool Application::getSettingBool(const char *settingName, bool &boolSetting, bool defaultSetting)
-{
-    if (_settingsTable[settingName] != "")
-    {
+bool Application::getSettingBool(const char* setting, bool& value, const bool defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
         int readBool;
-        int res = sscanf(_settingsTable[settingName].data(), "%d", &readBool);
         
-        printLog("Found setting %d times!", res);
+        int res = sscanf(iter->second.data(), "%d", &readBool);
         
-        if (res == 1)
-        {
-            if (readBool == 1)
-            {
-                boolSetting = true;
+        const char EXPECTED_ITEMS = 1;
+        
+        if (res == EXPECTED_ITEMS) {
+            if (readBool == 1) {
+                value = true;
             } else if (readBool == 0) {
-                boolSetting = false;
+                value = false;
             }
         }
     } else {
-        boolSetting = defaultSetting;
+        value = defaultSetting;
         return false;
     }
     
     return true;
 }
 
-bool Application::getSettingFloat(const char *settingName, float &floatSetting, float defaultSetting)
-{
-    if (_settingsTable[settingName] != "")
-    {
+bool Application::getSettingFloat(const char* setting, float& value, const float defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
         float readFloat;
-        int res = sscanf(_settingsTable[settingName].data(), "%f", &readFloat);
         
-        printLog("Found setting %d times!", res);
+        int res = sscanf(iter->second.data(), "%f", &readFloat);
         
-        if (res == 1)
-        {
+        const char EXPECTED_ITEMS = 1;
+        
+        if (res == EXPECTED_ITEMS) {
             if (!isnan(readFloat)) {
-                floatSetting = readFloat;
+                value = readFloat;
             } else {
-                floatSetting = defaultSetting;
+                value = defaultSetting;
                 return false;
             }
         } else {
-            floatSetting = defaultSetting;
+            value = defaultSetting;
             return false;
         }
     } else {
-        floatSetting = defaultSetting;
+        value = defaultSetting;
         return false;
     }
     
     return true;
 }
 
-bool Application::getSettingVec3(const char *settingName, glm::vec3 &vecSetting, glm::vec3 defaultSetting)
-{
-    if (_settingsTable[settingName] != "")
-    {
+bool Application::getSettingVec3(const char* setting, glm::vec3& value, const glm::vec3& defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
         glm::vec3 readVec;
-        int res = sscanf(_settingsTable[settingName].data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
         
-        printLog("Found setting %d times!", res);
+        int res = sscanf(iter->second.data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
         
-        if (res == 3)
-        {
+        const char EXPECTED_ITEMS = 3;
+        
+        if (res == EXPECTED_ITEMS) {
             if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
-                vecSetting = readVec;
+                value = readVec;
             } else {
-                vecSetting = defaultSetting;
+                value = defaultSetting;
                 return false;
             }
         } else {
-            vecSetting = defaultSetting;
+            value = defaultSetting;
             return false;
         }
     } else {
-        vecSetting = defaultSetting;
+        value = defaultSetting;
         return false;
     }
     
     return true;
 }
 
-void Application::setSettingBool(const char *settingName, bool boolSetting)
-{
-    char setting[128];
-    sprintf(setting, "%d", boolSetting);
-    _settingsTable[settingName] = setting;
+const short MAX_SETTINGS_LENGTH = 128;
+
+void Application::setSettingBool(const char* setting, const bool value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%d", value);
+    _settingsTable[setting] = settingValues;
 }
 
-void Application::setSettingFloat(const char *settingName, float floatSetting)
-{
-    char setting[128];
-    sprintf(setting, "%f", floatSetting);
-    _settingsTable[settingName] = setting;
+void Application::setSettingFloat(const char* setting, const float value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%f", value);
+    _settingsTable[setting] = settingValues;
 }
 
-void Application::setSettingVec3(const char *settingName, glm::vec3 vecSetting)
-{
-    char setting[128];
-    sprintf(setting, "%f,%f,%f", vecSetting.x, vecSetting.y, vecSetting.z);
-    _settingsTable[settingName] = setting;
+void Application::setSettingVec3(const char* setting, const glm::vec3& value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%f,%f,%f", value.x, value.y, value.z);
+    _settingsTable[setting] = settingValues;
 }
 
 //  Every second, check the frame rates and other stuff
