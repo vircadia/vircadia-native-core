@@ -38,20 +38,11 @@ const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
 
-/*
-const float COLLISION_RADIUS_SCALAR       = 1.8;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE          = 1.0;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE          = 6.0;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
-*/
-
 const float COLLISION_RADIUS_SCALAR       = 1.2;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE          = 20.0;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE          = 6.0;   //pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE          = 200.0; //pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE          = 30.0;  //pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
-
 
 const float HEAD_ROTATION_SCALE           = 0.70;
 const float HEAD_ROLL_SCALE               = 0.40;
@@ -713,7 +704,11 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
                             // push balls away from each other and apply friction
-                            glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * deltaTime;
+                            
+                            float penetration = 1.0f - (distanceBetweenJoints / (combinedRadius * COLLISION_RADIUS_SCALAR));
+                            
+                            glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * penetration * deltaTime;
+                            bodyPushForce +=          directionVector * COLLISION_BODY_FORCE * penetration * deltaTime;                                
 
                             /*                                                            
                             float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
@@ -722,21 +717,26 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             
                                          _joint[b].springyVelocity += ballPushForce;
                             otherAvatar->_joint[o].springyVelocity -= ballPushForce;
+                            
 
+                            /*
                             float shift = distanceBetweenJoints - combinedRadius * COLLISION_RADIUS_SCALAR;
                             
-                                         _joint[b].springyPosition += directionVector * shift;
-                            otherAvatar->_joint[o].springyPosition -= directionVector * shift;
+                                         _joint[b].springyPosition += directionVector * 2.0f * deltaTime;
+                            otherAvatar->_joint[o].springyPosition -= directionVector * 2.0f * deltaTime;
+                            */
+                            
                             
                             /*
                                          _joint[b].springyVelocity *= ballMomentum;
                             otherAvatar->_joint[o].springyVelocity *= ballMomentum;
+                            */
                             
                             // accumulate forces and frictions to apply to the velocities of avatar bodies
-                            bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
-                            bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
-                            if (bodyMomentum < 0.0) { bodyMomentum = 0.0;}
-                            */
+                            //bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
+                            //bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
+                            //if (bodyMomentum < 0.0) { bodyMomentum = 0.0;}
+                            
                                                             
                         }// check for collision
                     }   // to avoid divide by zero
@@ -747,9 +747,9 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
     
     //apply forces and frictions on the bodies of both avatars 
                  _velocity += bodyPushForce;
-    otherAvatar->_velocity -= bodyPushForce;
-                 _velocity *= bodyMomentum;
-    otherAvatar->_velocity *= bodyMomentum;        
+//otherAvatar->_velocity -= bodyPushForce;
+    //             _velocity *= bodyMomentum;
+    //otherAvatar->_velocity *= bodyMomentum;        
 }
 
 
