@@ -9,7 +9,9 @@
 #define __interface__AvatarTouch__
 
 #include <glm/glm.hpp>
-#include "Orientation.h"
+#include <glm/gtc/quaternion.hpp>
+
+#include <AvatarData.h>
 
 enum AvatarHandState
 {

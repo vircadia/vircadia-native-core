@@ -77,7 +77,6 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyYawDelta(0.0f),
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
-    _rotation(0.0f, 0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
     _cameraPosition(0.0f, 0.0f, 0.0f),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
@@ -327,11 +326,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _speed = glm::length(_velocity);
     
     //pitch and roll the body as a function of forward speed and turning delta
-    const float BODY_PITCH_WHILE_WALKING      = 20.0;
+    const float BODY_PITCH_WHILE_WALKING      = -20.0;
     const float BODY_ROLL_WHILE_TURNING       = 0.2;
     float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
     orientation = orientation * glm::quat(glm::radians(glm::vec3(
-        -BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
+        BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
         BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
     
     // these forces keep the body upright...     
@@ -857,59 +856,59 @@ void Avatar::initializeSkeleton() {
     }
     
     // specify the parental hierarchy
-    _joint[ AVATAR_JOINT_PELVIS              ].parent = AVATAR_JOINT_NULL;
+    _joint[ AVATAR_JOINT_PELVIS           ].parent = AVATAR_JOINT_NULL;
     _joint[ AVATAR_JOINT_TORSO            ].parent = AVATAR_JOINT_PELVIS;
-    _joint[ AVATAR_JOINT_CHEST              ].parent = AVATAR_JOINT_TORSO;
-    _joint[ AVATAR_JOINT_NECK_BASE          ].parent = AVATAR_JOINT_CHEST;
+    _joint[ AVATAR_JOINT_CHEST            ].parent = AVATAR_JOINT_TORSO;
+    _joint[ AVATAR_JOINT_NECK_BASE        ].parent = AVATAR_JOINT_CHEST;
     _joint[ AVATAR_JOINT_HEAD_BASE        ].parent = AVATAR_JOINT_NECK_BASE;
     _joint[ AVATAR_JOINT_HEAD_TOP         ].parent = AVATAR_JOINT_HEAD_BASE;
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].parent = AVATAR_JOINT_CHEST;
     _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].parent = AVATAR_JOINT_LEFT_COLLAR;
-    _joint[ AVATAR_JOINT_LEFT_ELBOW          ].parent = AVATAR_JOINT_LEFT_SHOULDER;
-    _joint[ AVATAR_JOINT_LEFT_WRIST          ].parent = AVATAR_JOINT_LEFT_ELBOW;
+    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].parent = AVATAR_JOINT_LEFT_SHOULDER;
+    _joint[ AVATAR_JOINT_LEFT_WRIST       ].parent = AVATAR_JOINT_LEFT_ELBOW;
     _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].parent = AVATAR_JOINT_LEFT_WRIST;
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].parent = AVATAR_JOINT_CHEST;
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER      ].parent = AVATAR_JOINT_RIGHT_COLLAR;
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].parent = AVATAR_JOINT_RIGHT_COLLAR;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].parent = AVATAR_JOINT_RIGHT_SHOULDER;
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].parent = AVATAR_JOINT_RIGHT_ELBOW;
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].parent = AVATAR_JOINT_RIGHT_WRIST;
-    _joint[ AVATAR_JOINT_LEFT_HIP          ].parent = AVATAR_JOINT_PELVIS;
-    _joint[ AVATAR_JOINT_LEFT_KNEE          ].parent = AVATAR_JOINT_LEFT_HIP;
-    _joint[ AVATAR_JOINT_LEFT_HEEL          ].parent = AVATAR_JOINT_LEFT_KNEE;
-    _joint[ AVATAR_JOINT_LEFT_TOES          ].parent = AVATAR_JOINT_LEFT_HEEL;
-    _joint[ AVATAR_JOINT_RIGHT_HIP          ].parent = AVATAR_JOINT_PELVIS;
-    _joint[ AVATAR_JOINT_RIGHT_KNEE          ].parent = AVATAR_JOINT_RIGHT_HIP;
-    _joint[ AVATAR_JOINT_RIGHT_HEEL          ].parent = AVATAR_JOINT_RIGHT_KNEE;
-    _joint[ AVATAR_JOINT_RIGHT_TOES          ].parent = AVATAR_JOINT_RIGHT_HEEL;
+    _joint[ AVATAR_JOINT_LEFT_HIP         ].parent = AVATAR_JOINT_PELVIS;
+    _joint[ AVATAR_JOINT_LEFT_KNEE        ].parent = AVATAR_JOINT_LEFT_HIP;
+    _joint[ AVATAR_JOINT_LEFT_HEEL        ].parent = AVATAR_JOINT_LEFT_KNEE;
+    _joint[ AVATAR_JOINT_LEFT_TOES        ].parent = AVATAR_JOINT_LEFT_HEEL;
+    _joint[ AVATAR_JOINT_RIGHT_HIP        ].parent = AVATAR_JOINT_PELVIS;
+    _joint[ AVATAR_JOINT_RIGHT_KNEE       ].parent = AVATAR_JOINT_RIGHT_HIP;
+    _joint[ AVATAR_JOINT_RIGHT_HEEL       ].parent = AVATAR_JOINT_RIGHT_KNEE;
+    _joint[ AVATAR_JOINT_RIGHT_TOES       ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
     // specify the default pose position
-    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,  0.0 );
+    _joint[ AVATAR_JOINT_PELVIS           ].defaultPosePosition = glm::vec3(  0.0,   0.0,    0.0  );
     _joint[ AVATAR_JOINT_TORSO            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  -0.01 );
-    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  -0.01  );
-    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.14,  0.01 );
-    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.04,  0.00 );
+    _joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  -0.01 );
+    _joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.14,   0.01 );
+    _joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.04,   0.00 );
     
-    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04, 0.01 );
-    _joint[ AVATAR_JOINT_LEFT_SHOULDER      ].defaultPosePosition = glm::vec3( -0.05,  0.0,  0.01 );
-    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.16,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_WRIST          ].defaultPosePosition = glm::vec3(  0.0,  -0.117,  0.0  );
-    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04,   0.01 );
+    _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].defaultPosePosition = glm::vec3( -0.05,  0.0,    0.01 );
+    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].defaultPosePosition = glm::vec3(  0.0,  -0.16,   0.0  );
+    _joint[ AVATAR_JOINT_LEFT_WRIST       ].defaultPosePosition = glm::vec3(  0.0,  -0.117,  0.0  );
+    _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].defaultPosePosition = glm::vec3(  0.0,  -0.1,    0.0  );
     
-    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3( 0.06,  0.04, 0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER      ].defaultPosePosition = glm::vec3( 0.05,  0.0,  0.01 );
-    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.16,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].defaultPosePosition = glm::vec3(  0.06,  0.04,   0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].defaultPosePosition = glm::vec3(  0.05,  0.0,    0.01 );
+    _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].defaultPosePosition = glm::vec3(  0.0,  -0.16,   0.0  );
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].defaultPosePosition = glm::vec3(  0.0,  -0.117,  0.0  );
-    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.1,  0.0  );
+    _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].defaultPosePosition = glm::vec3(  0.0,  -0.1,    0.0  );
     
-    _joint[ AVATAR_JOINT_LEFT_HIP          ].defaultPosePosition = glm::vec3(  -0.05,  0.0,  0.02 );
-    _joint[ AVATAR_JOINT_LEFT_KNEE          ].defaultPosePosition = glm::vec3( 0.01, -0.25,  -0.03 );
-    _joint[ AVATAR_JOINT_LEFT_HEEL          ].defaultPosePosition = glm::vec3( 0.01, -0.22, 0.08 );
-    _joint[ AVATAR_JOINT_LEFT_TOES          ].defaultPosePosition = glm::vec3(  0.00, -0.03,  -0.05 );
+    _joint[ AVATAR_JOINT_LEFT_HIP         ].defaultPosePosition = glm::vec3( -0.05,  0.0,    0.02 );
+    _joint[ AVATAR_JOINT_LEFT_KNEE        ].defaultPosePosition = glm::vec3(  0.01, -0.25,  -0.03 );
+    _joint[ AVATAR_JOINT_LEFT_HEEL        ].defaultPosePosition = glm::vec3(  0.01, -0.22,   0.08 );
+    _joint[ AVATAR_JOINT_LEFT_TOES        ].defaultPosePosition = glm::vec3(  0.00, -0.03,  -0.05 );
     
-    _joint[ AVATAR_JOINT_RIGHT_HIP          ].defaultPosePosition = glm::vec3(  0.05,  0.0,  0.02 );
-    _joint[ AVATAR_JOINT_RIGHT_KNEE          ].defaultPosePosition = glm::vec3(  -0.01, -0.25,  -0.03 );
-    _joint[ AVATAR_JOINT_RIGHT_HEEL          ].defaultPosePosition = glm::vec3(  -0.01, -0.22, 0.08 );
-    _joint[ AVATAR_JOINT_RIGHT_TOES          ].defaultPosePosition = glm::vec3(  0.00, -0.03,  -0.05 );
+    _joint[ AVATAR_JOINT_RIGHT_HIP        ].defaultPosePosition = glm::vec3(  0.05,  0.0,    0.02 );
+    _joint[ AVATAR_JOINT_RIGHT_KNEE       ].defaultPosePosition = glm::vec3( -0.01, -0.25,  -0.03 );
+    _joint[ AVATAR_JOINT_RIGHT_HEEL       ].defaultPosePosition = glm::vec3( -0.01, -0.22,   0.08 );
+    _joint[ AVATAR_JOINT_RIGHT_TOES       ].defaultPosePosition = glm::vec3(  0.00, -0.03,  -0.05 );
     
     // specify the radii of the joints
     _joint[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
@@ -920,25 +919,25 @@ void Avatar::initializeSkeleton() {
     
     _joint[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.04;
     _joint[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.03;
-    _joint[ AVATAR_JOINT_LEFT_ELBOW          ].radius = 0.02;
+    _joint[ AVATAR_JOINT_LEFT_ELBOW       ].radius = 0.02;
     _joint[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.02;
     _joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
     
     _joint[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.04;
-    _joint[ AVATAR_JOINT_RIGHT_SHOULDER      ].radius = 0.03;
+    _joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].radius = 0.03;
     _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].radius = 0.02;
     _joint[ AVATAR_JOINT_RIGHT_WRIST      ].radius = 0.02;
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
     
-    _joint[ AVATAR_JOINT_LEFT_HIP          ].radius = 0.04;
-    _joint[ AVATAR_JOINT_LEFT_KNEE          ].radius = 0.025;
-    _joint[ AVATAR_JOINT_LEFT_HEEL          ].radius = 0.025;
-    _joint[ AVATAR_JOINT_LEFT_TOES          ].radius = 0.025;
+    _joint[ AVATAR_JOINT_LEFT_HIP         ].radius = 0.04;
+    _joint[ AVATAR_JOINT_LEFT_KNEE        ].radius = 0.025;
+    _joint[ AVATAR_JOINT_LEFT_HEEL        ].radius = 0.025;
+    _joint[ AVATAR_JOINT_LEFT_TOES        ].radius = 0.025;
     
-    _joint[ AVATAR_JOINT_RIGHT_HIP          ].radius = 0.04;
-    _joint[ AVATAR_JOINT_RIGHT_KNEE          ].radius = 0.025;
-    _joint[ AVATAR_JOINT_RIGHT_HEEL          ].radius = 0.025;
-    _joint[ AVATAR_JOINT_RIGHT_TOES          ].radius = 0.025;
+    _joint[ AVATAR_JOINT_RIGHT_HIP        ].radius = 0.04;
+    _joint[ AVATAR_JOINT_RIGHT_KNEE       ].radius = 0.025;
+    _joint[ AVATAR_JOINT_RIGHT_HEEL       ].radius = 0.025;
+    _joint[ AVATAR_JOINT_RIGHT_TOES       ].radius = 0.025;
     
     // to aid in hand-shaking and hand-holding, the right hand is not collidable
     _joint[ AVATAR_JOINT_RIGHT_ELBOW      ].isCollidable = false;

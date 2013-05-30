@@ -47,8 +47,8 @@ void AvatarTouch::simulate (float deltaTime) {
         
         bool facingEachOther = false;
         
-        glm::vec3 myFront = _myOrientation * IDENTITY_FRONT;
-        glm::vec3 yourFront = _yourOrientation * IDENTITY_FRONT;
+        glm::vec3 myFront = _myOrientation * AVATAR_FRONT;
+        glm::vec3 yourFront = _yourOrientation * AVATAR_FRONT;
         
         if (( glm::dot(myFront, yourFront) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
         &&  ( glm::dot(myFront, directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you

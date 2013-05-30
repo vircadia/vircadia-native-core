@@ -98,7 +98,7 @@ void Camera::updateFollowMode(float deltaTime) {
             
     _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
     
-    if (_needsToInitialize || true) {
+    if (_needsToInitialize) {
         _position = _idealPosition; 
         _needsToInitialize = false;
     } else {
