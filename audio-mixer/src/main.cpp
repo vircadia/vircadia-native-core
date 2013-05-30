@@ -79,6 +79,11 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
+struct SharedAudioFactors {
+    float distanceCoefficient;
+    float effectMix;
+};
+
 int main(int argc, const char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
     
@@ -106,12 +111,15 @@ int main(int argc, const char* argv[]) {
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
-    // setup STK for the reverb effect    
+    // setup STK for the reverb effect
+    const float DISTANCE_REVERB_DAMPING = 0.8f;
+    const float DISTANCE_REVERB_ROOM_SIZE = 1.0f;
+    const float DISTANCE_REVERB_WIDTH = 0.5f;
+    
     stk::FreeVerb freeVerb;
-    freeVerb.setEffectMix(0.5f);
-    freeVerb.setDamping(0.5f);
-    freeVerb.setRoomSize(0.5f);
-    freeVerb.setWidth(0.5f);
+    freeVerb.setDamping(DISTANCE_REVERB_DAMPING);
+    freeVerb.setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
+    freeVerb.setWidth(DISTANCE_REVERB_WIDTH);
     
     gettimeofday(&startTime, NULL);
     
@@ -138,8 +146,8 @@ int main(int argc, const char* argv[]) {
         }
         
         int numAgents = agentList->size();
-        float distanceCoefficients[numAgents][numAgents];
-        memset(distanceCoefficients, 0, sizeof(distanceCoefficients));
+        SharedAudioFactors audioFactors[numAgents][numAgents];
+        memset(audioFactors, 0, sizeof(audioFactors));
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getType() == AGENT_TYPE_AVATAR) {
@@ -159,6 +167,9 @@ int main(int argc, const char* argv[]) {
                             int numSamplesDelay = 0;
                             float weakChannelAmplitudeRatio = 1.f;
                             
+                            // echo effect mix is 0
+                            freeVerb.setEffectMix(0.0f);
+                            
                             if (otherAgent != agent) {
                                 glm::vec3 agentPosition = agentRingBuffer->getPosition();
                                 glm::vec3 otherAgentPosition = otherAgentBuffer->getPosition();
@@ -169,7 +180,10 @@ int main(int argc, const char* argv[]) {
                                 int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
                                 int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
                                 
-                                if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
+                                const float DISTANCE_REVERB_LOG_REMAINDER = 0.32f;
+                                const float DISTANCE_REVERB_MAX_WETNESS = 1.0f;
+                                
+                                if (audioFactors[lowAgentIndex][highAgentIndex].distanceCoefficient == 0) {
                                     float distanceToAgent = sqrtf(powf(agentPosition.x - otherAgentPosition.x, 2) +
                                                                   powf(agentPosition.y - otherAgentPosition.y, 2) +
                                                                   powf(agentPosition.z - otherAgentPosition.z, 2));
@@ -178,7 +192,16 @@ int main(int argc, const char* argv[]) {
                                                                     powf(0.3,
                                                                          (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
                                                                          - 1));
-                                    distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
+                                    
+                                    audioFactors[lowAgentIndex][highAgentIndex].distanceCoefficient = minCoefficient;
+                                    
+                                    float effectMix = powf(2.0f,
+                                                           (logf(distanceToAgent) / logf(2.0f) - DISTANCE_REVERB_LOG_REMAINDER)
+                                                            * DISTANCE_REVERB_MAX_WETNESS);
+                                    
+                                    audioFactors[lowAgentIndex][highAgentIndex].effectMix = (effectMix / 32.0f);
+                                    
+//                                    printf("DA: %f, EM: %f\n", distanceToAgent, effectMix / 32.0f);
                                 }
                                 
                                 
@@ -222,9 +245,11 @@ int main(int argc, const char* argv[]) {
                                 float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
                                 (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                                 
-                                attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
+                                attenuationCoefficient = audioFactors[lowAgentIndex][highAgentIndex].distanceCoefficient
                                     * otherAgentBuffer->getAttenuationRatio()
                                     * offAxisCoefficient;
+                                
+                                freeVerb.setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
                                 
                                 bearingRelativeAngleToSource *= (M_PI / 180);
                                 
@@ -244,15 +269,25 @@ int main(int argc, const char* argv[]) {
                                 ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
                                 : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                             
+                            
                             for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                                
                                 if (s < numSamplesDelay) {
                                     // pull the earlier sample for the delayed channel
-                                    int earlierSample = delaySamplePointer[s] * attenuationCoefficient;
-                                    plateauAdditionOfSamples(delayedChannel[s], earlierSample * weakChannelAmplitudeRatio);
+                                    int earlierSample = delaySamplePointer[s]
+                                                        * attenuationCoefficient
+                                                        * weakChannelAmplitudeRatio;
+                                    
+                                    // apply the STK FreeVerb effect
+                                    earlierSample = freeVerb.tick(earlierSample);
+                                    
+                                    plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                                 }
                                 
                                 int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
+                                
+                                // apply the STK FreeVerb effect
+                                currentSample = freeVerb.tick(currentSample);
+                                
                                 plateauAdditionOfSamples(goodChannel[s], currentSample);
                                 
                                 if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {                                    
@@ -262,13 +297,6 @@ int main(int argc, const char* argv[]) {
                             }
                         }
                     }
-                }
-                
-                // apply the FreeVerb to the clientSamples array
-                for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                    clientSamples[s] = freeVerb.tick(clientSamples[s],
-                                                     clientSamples[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL]);
-                    clientSamples[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL] = freeVerb.lastOut(1);
                 }
                 
                 memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
