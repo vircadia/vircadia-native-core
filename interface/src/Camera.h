@@ -8,7 +8,6 @@
 #ifndef __interface__camera__
 #define __interface__camera__
 
-#include "Orientation.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
