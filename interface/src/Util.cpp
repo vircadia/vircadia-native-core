@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <SharedUtil.h>
 
 #include "Log.h"
@@ -69,6 +70,65 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 //  Helper function returns the positive angle in degrees between two 3D vectors 
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PI;
+}
+
+//  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
+//  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
+// https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
+glm::vec3 safeEulerAngles(const glm::quat& q) {
+    float sy = 2.0f * (q.y * q.w - q.x * q.z);
+    if (sy < 1.0f - EPSILON) {
+        if (sy > -1.0f + EPSILON) {
+            return glm::degrees(glm::vec3(
+                atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
+                asinf(sy),
+                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
+                
+        } else {
+            // not a unique solution; x + z = atan2(-m21, m11)
+            return glm::degrees(glm::vec3(
+                0.0f,
+                PIf * -0.5f,
+                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+        }
+    } else {
+        // not a unique solution; x - z = atan2(-m21, m11)
+        return glm::degrees(glm::vec3(
+            0.0f,
+            PIf * 0.5f,
+            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+    }
+}
+
+//  Safe version of glm::mix; based on the code in Nick Bobick's article,
+//  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
+//  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
+glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
+    float cosa = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+    float ox = q2.x, oy = q2.y, oz = q2.z, ow = q2.w, s0, s1;
+
+    // adjust signs if necessary
+    if (cosa < 0.0f) {
+        cosa = -cosa;
+        ox = -ox;
+        oy = -oy;
+        oz = -oz;
+        ow = -ow;
+    }
+
+    // calculate coefficients; if the angle is too close to zero, we must fall back
+    // to linear interpolation
+    if ((1.0f - cosa) > EPSILON) {
+        float angle = acosf(cosa), sina = sinf(angle);
+        s0 = sinf((1.0f - proportion) * angle) / sina;
+        s1 = sinf(proportion * angle) / sina;
+        
+    } else {
+        s0 = 1.0f - proportion;
+        s1 = proportion;
+    }
+
+    return glm::normalize(glm::quat(s0 * q1.w + s1 * ow, s0 * q1.x + s1 * ox, s0 * q1.y + s1 * oy, s0 * q1.z + s1 * oz));
 }
 
 //  Draw a 3D vector floating in space

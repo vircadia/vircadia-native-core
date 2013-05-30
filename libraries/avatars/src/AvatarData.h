@@ -20,6 +20,11 @@ const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
 
+// this is where the coordinate system is represented
+const glm::vec3 AVATAR_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+const glm::vec3 AVATAR_UP    = glm::vec3(0.0f, 1.0f, 0.0f);
+const glm::vec3 AVATAR_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
+
 enum KeyState
 {
     NO_KEY_DOWN,

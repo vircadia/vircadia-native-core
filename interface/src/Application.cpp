@@ -288,33 +288,22 @@ void Application::paintGL() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
-                                    0.0f,
-                                    0.0f);
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
         _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getHead().getPitch(),
-                                    -_myAvatar.getHead().getRoll());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
+    
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getAbsoluteHeadPitch(),
-                                    0.0f);
-        //  Take a look at whether we are inside head, don't render it if so.
-        const float HEAD_RENDER_DISTANCE = 0.5;
-        glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
-        if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
-        }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getAbsoluteHeadPitch(),
-                                    0.0f);
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
     // important...
@@ -344,11 +333,12 @@ void Application::paintGL() {
     if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
-        _viewFrustumOffsetCamera.setTargetYaw(_viewFrustumOffsetYaw + _myAvatar.getBodyYaw());
-        _viewFrustumOffsetCamera.setPitch    (_viewFrustumOffsetPitch   );
-        _viewFrustumOffsetCamera.setRoll     (_viewFrustumOffsetRoll    ); 
+        _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
+        _viewFrustumOffsetCamera.setTargetRotation(_myCamera.getTargetRotation() * glm::quat(glm::radians(glm::vec3(
+            _viewFrustumOffsetPitch, _viewFrustumOffsetYaw, _viewFrustumOffsetRoll))));
         _viewFrustumOffsetCamera.setUpShift  (_viewFrustumOffsetUp      );
         _viewFrustumOffsetCamera.setDistance (_viewFrustumOffsetDistance);
+        _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
         whichCamera = _viewFrustumOffsetCamera;
     }        
@@ -1122,7 +1112,7 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), (Qt::Key_Q || Qt::Key_Control));
+    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
@@ -1379,10 +1369,6 @@ void Application::updateAvatar(float deltaTime) {
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
     glm::vec3 position;
-    glm::vec3 direction;
-    glm::vec3 up;
-    glm::vec3 right;
-    float fov, nearClip, farClip;
     
     // Camera or Head?
     if (_cameraFrustum->isChecked()) {
@@ -1391,15 +1377,14 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
         position = _myAvatar.getHeadPosition();
     }
     
-    fov         = camera.getFieldOfView();
-    nearClip    = camera.getNearClip();
-    farClip     = camera.getFarClip();
+    float fov         = camera.getFieldOfView();
+    float nearClip    = camera.getNearClip();
+    float farClip     = camera.getFarClip();
 
-    Orientation o = camera.getOrientation();
-
-    direction   = o.getFront();
-    up          = o.getUp();
-    right       = o.getRight();
+    glm::quat rotation = camera.getRotation();
+    glm::vec3 direction = rotation * AVATAR_FRONT;
+    glm::vec3 up = rotation * AVATAR_UP;
+    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     /*
     printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
@@ -1585,11 +1570,10 @@ void Application::displaySide(Camera& whichCamera) {
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
-    // I changed the ordering here - roll is FIRST (JJV) 
 
-    glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
-    glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-    glRotatef   (180.0 - whichCamera.getYaw(),     IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
+    glm::quat rotation = whichCamera.getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
     
