@@ -55,7 +55,7 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float DISTANCE_RATIO = 3.0f / 0.3f;
+const float DISTANCE_SCALE = 5.0f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
@@ -166,8 +166,8 @@ int main(int argc, const char* argv[]) {
                                                                   powf(agentPosition.z - otherAgentPosition.z, 2));
                                     
                                     float minCoefficient = std::min(1.0f,
-                                                                    powf(0.5,
-                                                                         (logf(DISTANCE_RATIO * distanceToAgent) / logf(2.5))
+                                                                    powf(0.3,
+                                                                         (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
                                                                          - 1));
                                     distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
                                 }
