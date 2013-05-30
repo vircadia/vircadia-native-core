@@ -1249,7 +1249,6 @@ void Avatar::writeAvatarDataToFile() {
 void Avatar::readAvatarDataFromFile() {
     glm::vec3 readPosition;
     glm::vec3 readRotation;
-    float readYaw;
     
     Application::getInstance()->getSettingVec3("avatarPos", readPosition, glm::vec3(6.1f, 0, 1.4f));
     Application::getInstance()->getSettingVec3("avatarRotation", readRotation, glm::vec3(0, 0, 0));
