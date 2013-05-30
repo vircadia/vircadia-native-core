@@ -71,7 +71,8 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
-            if (glm::length(vector) < environmentData.getAtmosphereOuterRadius() * 2.0f) {
+            const float GRAVITY_RADIUS_MULTIPLIER = 1.5f;
+            if (glm::length(vector) < environmentData.getAtmosphereOuterRadius() * GRAVITY_RADIUS_MULTIPLIER) {
                 gravity += glm::normalize(vector) * environmentData.getGravity();
             }
         }
