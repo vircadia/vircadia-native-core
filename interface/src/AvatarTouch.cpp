@@ -29,8 +29,6 @@ AvatarTouch::AvatarTouch() {
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
     _hasInteractingOther     = false;
-    _myOrientation.setToIdentity();
-    _yourOrientation.setToIdentity();
 
     for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
         _point[p] = glm::vec3(0.0, 0.0, 0.0);
@@ -49,8 +47,11 @@ void AvatarTouch::simulate (float deltaTime) {
         
         bool facingEachOther = false;
         
-        if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
-        &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
+        glm::vec3 myFront = _myOrientation * AVATAR_FRONT;
+        glm::vec3 yourFront = _yourOrientation * AVATAR_FRONT;
+        
+        if (( glm::dot(myFront, yourFront) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
+        &&  ( glm::dot(myFront, directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
             facingEachOther = true;
         }
 
