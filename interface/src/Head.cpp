@@ -172,9 +172,9 @@ void Head::determineIfLookingAtSomething() {
 void Head::calculateGeometry() {
     //generate orientation directions 
     glm::quat orientation = getOrientation();
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * AVATAR_RIGHT;
+    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 front = orientation * AVATAR_FRONT;
 
     //calculate the eye positions 
     _leftEyePosition  = _position 
@@ -347,9 +347,9 @@ void Head::renderMouth() {
     float s = sqrt(_averageLoudness);
 
     glm::quat orientation = getOrientation();
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * AVATAR_RIGHT;
+    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 front = orientation * AVATAR_FRONT;
 
     glm::vec3 r = right * _scale * (0.30f + s * 0.0014f );
     glm::vec3 u = up * _scale * (0.05f + s * 0.0040f );
@@ -415,9 +415,9 @@ void Head::renderEyeBrows() {
     glm::vec3 rightBottom = _leftEyePosition;
    
     glm::quat orientation = getOrientation();
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * AVATAR_RIGHT;
+    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 front = orientation * AVATAR_FRONT;
     
     glm::vec3 r = right * length; 
     glm::vec3 u = up * height; 
@@ -502,20 +502,20 @@ void Head::renderEyeBalls() {
 
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, AVATAR_UP);
+                float angle = 180.0f - angleBetween(targetLookatAxis, AVATAR_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
             } else {
 
                 //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
+                glm::vec3 rotationAxisToHeadFront = glm::cross(front, AVATAR_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(front, AVATAR_UP);            
                 glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
 
                 //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT);            
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
+                float rollRotation = angleBetween(front, AVATAR_FRONT);            
+                float dot = glm::dot(front, -AVATAR_RIGHT);
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
@@ -546,21 +546,21 @@ void Head::renderEyeBalls() {
             
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, AVATAR_UP);
+                float angle = 180.0f - angleBetween(targetLookatAxis, AVATAR_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
 
             } else {
 
                 //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
+                glm::vec3 rotationAxisToHeadFront = glm::cross(front, AVATAR_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(front, AVATAR_UP);            
                 glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
 
                 //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT); 
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
+                float rollRotation = angleBetween(front, AVATAR_FRONT); 
+                float dot = glm::dot(front, -AVATAR_RIGHT);
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
@@ -596,9 +596,9 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
 void Head::updateHairPhysics(float deltaTime) {
 
     glm::quat orientation = getOrientation();
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * AVATAR_RIGHT;
+    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 front = orientation * AVATAR_FRONT;
 
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 

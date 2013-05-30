@@ -14,7 +14,6 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
-#include "Orientation.h"
 #include <SharedUtil.h>
 
 enum eyeContactTargets 
@@ -50,9 +49,9 @@ public:
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation () const;
     
-    glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
-    glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    glm::vec3 getRightDirection() const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3 getUpDirection   () const { return getOrientation() * AVATAR_UP;    }
+    glm::vec3 getFrontDirection() const { return getOrientation() * AVATAR_FRONT; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};

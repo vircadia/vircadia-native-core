@@ -288,22 +288,22 @@ void Application::paintGL() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
         _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
     // important...
@@ -1111,7 +1111,7 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), (Qt::Key_Q || Qt::Key_Control));
+    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));

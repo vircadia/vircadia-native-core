@@ -11,7 +11,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <AvatarData.h>
-#include <Orientation.h>
 #include "world.h"
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
@@ -71,9 +70,9 @@ public:
     const glm::vec3& getHeadPosition          ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].position;}
     const glm::vec3& getSpringyHeadPosition   ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;}
     const glm::vec3& getJointPosition         (AvatarJointID j) const { return _joint[j].springyPosition;}
-    glm::vec3        getBodyRightDirection    ()                const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3        getBodyUpDirection       ()                const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3        getBodyFrontDirection    ()                const { return getOrientation() * IDENTITY_FRONT; }
+    glm::vec3        getBodyRightDirection    ()                const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3        getBodyUpDirection       ()                const { return getOrientation() * AVATAR_UP; }
+    glm::vec3        getBodyFrontDirection    ()                const { return getOrientation() * AVATAR_FRONT; }
     const glm::vec3& getVelocity              ()                const { return _velocity;}
     float            getSpeed                 ()                const { return _speed;}
     float            getHeight                ()                const { return _height;}
