@@ -108,9 +108,9 @@ int main(int argc, const char* argv[]) {
     
     // setup STK for the reverb effect    
     stk::FreeVerb freeVerb;
+    freeVerb.setEffectMix(0.5f);
     freeVerb.setDamping(0.5f);
     freeVerb.setRoomSize(0.5f);
-    freeVerb.setDamping(0.5f);
     freeVerb.setWidth(0.5f);
     
     gettimeofday(&startTime, NULL);
