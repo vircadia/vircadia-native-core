@@ -22,6 +22,8 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <Stk.h>
+#include <FreeVerb.h>
 
 #include "AudioRingBuffer.h"
 #include "PacketHeaders.h"
@@ -103,6 +105,13 @@ int main(int argc, const char* argv[]) {
     clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
+    
+    // setup STK for the reverb effect    
+    stk::FreeVerb freeVerb;
+    freeVerb.setDamping(0.5f);
+    freeVerb.setRoomSize(0.5f);
+    freeVerb.setDamping(0.5f);
+    freeVerb.setWidth(0.5f);
     
     gettimeofday(&startTime, NULL);
     
@@ -253,6 +262,13 @@ int main(int argc, const char* argv[]) {
                             }
                         }
                     }
+                }
+                
+                // apply the FreeVerb to the clientSamples array
+                for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                    clientSamples[s] = freeVerb.tick(clientSamples[s],
+                                                     clientSamples[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL]);
+                    clientSamples[s + BUFFER_LENGTH_SAMPLES_PER_CHANNEL] = freeVerb.lastOut(1);
                 }
                 
                 memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
