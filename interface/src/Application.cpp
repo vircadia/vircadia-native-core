@@ -1294,6 +1294,10 @@ void Application::updateAvatar(float deltaTime) {
     _headMouseY = max(_headMouseY, 0);
     _headMouseY = min(_headMouseY, _glWidget->height());
     
+    _eyeOffsetVelocity += _serialPort.getLastAcceleration() * deltaTime;
+    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + _eyeOffsetVelocity * deltaTime);
+    resizeGL(_glWidget->width(), _glWidget->height());
+    
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
@@ -2086,6 +2090,9 @@ void Application::resetSensors() {
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
+    _myCamera.setEyeOffsetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    _eyeOffsetVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    resizeGL(_glWidget->width(), _glWidget->height());
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {

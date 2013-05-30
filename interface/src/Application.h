@@ -206,6 +206,7 @@ private:
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+    glm::vec3 _eyeOffsetVelocity;
     
     Environment _environment;
     
