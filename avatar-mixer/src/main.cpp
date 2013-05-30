@@ -84,7 +84,7 @@ int main(int argc, const char* argv[]) {
                     
                     // parse positional data from an agent
                     agentList->updateAgentWithData(avatarAgent, packetData, receivedBytes);
-                
+                case PACKET_HEADER_INJECT_AUDIO:
                     currentBufferPosition = broadcastPacket + 1;
                     
                     // send back a packet with other active agent data to this agent

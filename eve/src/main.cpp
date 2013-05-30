@@ -205,5 +205,3 @@ int main(int argc, const char* argv[]) {
     agentList->stopPingUnknownAgentsThread();
     agentList->stopSilentAgentRemovalThread();
 }
-
-
