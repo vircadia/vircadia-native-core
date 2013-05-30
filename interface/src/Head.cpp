@@ -4,6 +4,8 @@
 //
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <glm/gtx/quaternion.hpp>
+#include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
 #include <vector>
@@ -62,6 +64,7 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _lookingInMirror(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
      _mohawkColors(NULL)
@@ -84,13 +87,14 @@ void Head::reset() {
 
 
 void Head::resetHairPhysics() {
+    glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
         
         _hairTuft[t].length       = HAIR_LENGTH;
         _hairTuft[t].thickness    = HAIR_THICKNESS;
-        _hairTuft[t].basePosition = _position + _orientation.getUp() * _scale * 0.9f;
-        _hairTuft[t].midPosition  = _hairTuft[t].basePosition + _orientation.getUp() * _hairTuft[t].length * ONE_HALF;			
-        _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + _orientation.getUp() * _hairTuft[t].length * ONE_HALF;			
+        _hairTuft[t].basePosition = _position + up * _scale * 0.9f;
+        _hairTuft[t].midPosition  = _hairTuft[t].basePosition + up * _hairTuft[t].length * ONE_HALF;			
+        _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + up * _hairTuft[t].length * ONE_HALF;			
         _hairTuft[t].midVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);			
         _hairTuft[t].endVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);	
     }
@@ -156,7 +160,7 @@ void Head::determineIfLookingAtSomething() {
         _lookingAtSomething = false;
     } else {
         glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - caclulateAverageEyePosition());
-        float dot = glm::dot(targetLookatAxis, _orientation.getFront());
+        float dot = glm::dot(targetLookatAxis, getFrontDirection());
         if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
             _lookingAtSomething = false;
         } else {
@@ -165,57 +169,48 @@ void Head::determineIfLookingAtSomething() {
     }
 }
 
-void Head::calculateGeometry(bool lookingInMirror) {
-    //generate orientation directions based on Euler angles...
-    
-    float pitch =  _pitch;
-    float yaw   = _yaw;
-    float roll  = _roll;
-    
-    if (lookingInMirror) {
-        yaw   =  -_yaw;
-        roll  =  -_roll;
-    }
-
-    _orientation.setToIdentity();
-    _orientation.roll (_bodyRotation.z + roll );
-    _orientation.pitch(_bodyRotation.x + pitch);
-    _orientation.yaw  (_bodyRotation.y + yaw  );
+void Head::calculateGeometry() {
+    //generate orientation directions 
+    glm::quat orientation = getOrientation();
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
 
     //calculate the eye positions 
     _leftEyePosition  = _position 
-                      - _orientation.getRight() * _scale * EYE_RIGHT_OFFSET
-                      + _orientation.getUp   () * _scale * EYE_UP_OFFSET
-                      + _orientation.getFront() * _scale * EYE_FRONT_OFFSET;
+                      - right * _scale * EYE_RIGHT_OFFSET
+                      + up * _scale * EYE_UP_OFFSET
+                      + front * _scale * EYE_FRONT_OFFSET;
     _rightEyePosition = _position
-                      + _orientation.getRight() * _scale * EYE_RIGHT_OFFSET 
-                      + _orientation.getUp   () * _scale * EYE_UP_OFFSET 
-                      + _orientation.getFront() * _scale * EYE_FRONT_OFFSET;
+                      + right * _scale * EYE_RIGHT_OFFSET 
+                      + up * _scale * EYE_UP_OFFSET 
+                      + front * _scale * EYE_FRONT_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 
     _rightEyeBrowPosition = _rightEyePosition;
     
     //calculate the ear positions 
-    _leftEarPosition  = _position - _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
-    _rightEarPosition = _position + _orientation.getRight() * _scale * EAR_RIGHT_OFFSET;
+    _leftEarPosition  = _position - right * _scale * EAR_RIGHT_OFFSET;
+    _rightEarPosition = _position + right * _scale * EAR_RIGHT_OFFSET;
 
     //calculate the mouth position 
-    _mouthPosition    = _position + _orientation.getUp   () * _scale * MOUTH_UP_OFFSET
-                                  + _orientation.getFront() * _scale;
+    _mouthPosition    = _position + up * _scale * MOUTH_UP_OFFSET
+                                  + front * _scale;
 }
 
 
 void Head::render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha) {
 
     _renderAlpha = alpha;
+    _lookingInMirror = lookingInMirror;
     
-    calculateGeometry(lookingInMirror);
+    calculateGeometry();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderMohawk(lookingInMirror, cameraPosition);
+    renderMohawk(cameraPosition);
     renderHeadSphere();
     renderEyeBalls();    
     renderEars();
@@ -259,7 +254,7 @@ void Head::createMohawk() {
     }
 }
 
-void Head::renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition) {
+void Head::renderMohawk(glm::vec3 cameraPosition) {
     
     if (!_mohawkTriangleFan) {
         createMohawk();
@@ -297,8 +292,8 @@ void Head::renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition) {
     } else {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
-        glRotatef((lookingInMirror ? (_bodyRotation.y - _yaw) : (_bodyRotation.y + _yaw)), 0, 1, 0);
-        glRotatef(lookingInMirror ? _roll: -_roll, 0, 0, 1);
+        glRotatef((_lookingInMirror ? (_bodyRotation.y - _yaw) : (_bodyRotation.y + _yaw)), 0, 1, 0);
+        glRotatef(_lookingInMirror ? _roll: -_roll, 0, 0, 1);
         glRotatef(-_pitch - _bodyRotation.x, 1, 0, 0);
        
         glBegin(GL_TRIANGLE_FAN);
@@ -312,6 +307,16 @@ void Head::renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition) {
     } 
 }
 
+glm::quat Head::getOrientation() const {
+    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(_lookingInMirror ?
+        glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
+}
+
+glm::quat Head::getWorldAlignedOrientation () const {
+    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(_lookingInMirror ?
+        glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
+}
 
 void Head::renderHeadSphere() {
     glPushMatrix();
@@ -341,9 +346,14 @@ void Head::renderMouth() {
 
     float s = sqrt(_averageLoudness);
 
-    glm::vec3 r = _orientation.getRight() * _scale * (0.30f + s * 0.0014f );
-    glm::vec3 u = _orientation.getUp   () * _scale * (0.05f + s * 0.0040f );
-    glm::vec3 f = _orientation.getFront() * _scale *  0.09f;
+    glm::quat orientation = getOrientation();
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    glm::vec3 r = right * _scale * (0.30f + s * 0.0014f );
+    glm::vec3 u = up * _scale * (0.05f + s * 0.0040f );
+    glm::vec3 f = front * _scale *  0.09f;
 
     glm::vec3 middle      = _mouthPosition;
     glm::vec3 leftCorner  = _mouthPosition - r * 1.0f;
@@ -401,11 +411,16 @@ void Head::renderEyeBrows() {
     glm::vec3 rightTop    = _leftEyePosition;
     glm::vec3 leftBottom  = _leftEyePosition;
     glm::vec3 rightBottom = _leftEyePosition;
-     
-    glm::vec3 r = _orientation.getRight() * length; 
-    glm::vec3 u = _orientation.getUp()    * height; 
-    glm::vec3 t = _orientation.getUp()    * (height + width); 
-    glm::vec3 f = _orientation.getFront() * _scale * -0.1f;
+   
+    glm::quat orientation = getOrientation();
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+    
+    glm::vec3 r = right * length; 
+    glm::vec3 u = up * height; 
+    glm::vec3 t = up * (height + width); 
+    glm::vec3 f = front * _scale * -0.1f;
      
     for (int i = 0; i < 2; i++) {
     
@@ -473,6 +488,8 @@ void Head::renderEyeBalls() {
         gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
     
+    glm::vec3 front = getFrontDirection();
+    
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
@@ -490,13 +507,13 @@ void Head::renderEyeBalls() {
             } else {
 
                 //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(_orientation.getFront(), IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(_orientation.getFront(), IDENTITY_UP);            
+                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
                 glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
 
                 //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(_orientation.getFront(), IDENTITY_FRONT);            
-                float dot = glm::dot(_orientation.getFront(), -IDENTITY_RIGHT);
+                float rollRotation = angleBetween(front, IDENTITY_FRONT);            
+                float dot = glm::dot(front, -IDENTITY_RIGHT);
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
@@ -535,13 +552,13 @@ void Head::renderEyeBalls() {
             } else {
 
                 //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(_orientation.getFront(), IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(_orientation.getFront(), IDENTITY_UP);            
+                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
+                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
                 glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
 
                 //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(_orientation.getFront(), IDENTITY_FRONT); 
-                float dot = glm::dot(_orientation.getFront(), -IDENTITY_RIGHT);
+                float rollRotation = angleBetween(front, IDENTITY_FRONT); 
+                float dot = glm::dot(front, -IDENTITY_RIGHT);
                 if ( dot < 0.0f ) { rollRotation = -rollRotation; }
                 glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
             }
@@ -576,6 +593,11 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
 
 void Head::updateHairPhysics(float deltaTime) {
 
+    glm::quat orientation = getOrientation();
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
         float fraction = (float)t / (float)(NUM_HAIR_TUFTS - 1);
@@ -584,8 +606,8 @@ void Head::updateHairPhysics(float deltaTime) {
         
         float radian = angle * PI_OVER_180;
         glm::vec3 baseDirection
-        = _orientation.getFront() * sinf(radian)
-        + _orientation.getUp()    * cosf(radian);
+        = front * sinf(radian)
+        + up    * cosf(radian);
         
         _hairTuft[t].basePosition = _position + _scale * 0.9f * baseDirection;
                 
@@ -601,13 +623,13 @@ void Head::updateHairPhysics(float deltaTime) {
         if (midLength > 0.0f) {
             midDirection = midAxis / midLength;
         } else {
-            midDirection = _orientation.getUp();
+            midDirection = up;
         }
         
         if (endLength > 0.0f) {
             endDirection = endAxis / endLength;
         } else {
-            endDirection = _orientation.getUp();
+            endDirection = up;
         }
         
         // add spring force
@@ -652,13 +674,13 @@ void Head::updateHairPhysics(float deltaTime) {
         if (newMidLength > 0.0f) {
             newMidDirection = newMidVector/newMidLength;
         } else {
-            newMidDirection = _orientation.getUp();
+            newMidDirection = up;
         }
 
         if (newEndLength > 0.0f) {
             newEndDirection = newEndVector/newEndLength;
         } else {
-            newEndDirection = _orientation.getUp();
+            newEndDirection = up;
         }
         
         _hairTuft[t].endPosition = _hairTuft[t].midPosition  + newEndDirection * _hairTuft[t].length * ONE_HALF;

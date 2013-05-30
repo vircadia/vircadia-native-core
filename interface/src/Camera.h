@@ -30,16 +30,12 @@ public:
 
     void update( float deltaTime );
     
-    void setYaw           ( float       y ) { _yaw            = y; }
-    void setPitch         ( float       p ) { _pitch          = p; }
-    void setRoll          ( float       r ) { _roll           = r; }
     void setUpShift       ( float       u ) { _upShift        = u; }
     void setDistance      ( float       d ) { _distance       = d; }
     void setTargetPosition( glm::vec3   t ) { _targetPosition = t; }
-    void setTargetYaw     ( float       y ) { _idealYaw       = y; }
     void setPosition      ( glm::vec3   p ) { _position       = p; }
     void setTightness     ( float       t ) { _tightness      = t; }
-    void setTargetRotation( float yaw, float pitch, float roll );
+    void setTargetRotation( const glm::quat& rotation );
     
     void setMode          ( CameraMode  m );
     void setModeShiftRate ( float       r );
@@ -49,12 +45,11 @@ public:
     void setFarClip       ( float       f );
     void setEyeOffsetPosition     ( const glm::vec3& p);
     void setEyeOffsetOrientation  ( const glm::quat& o);
-
-    float       getYaw        () { return _yaw;         }
-    float       getPitch      () { return _pitch;       }
-    float       getRoll       () { return _roll;        }
+    
+    glm::vec3   getTargetPosition () { return _targetPosition; }
     glm::vec3   getPosition   () { return _position;    }
-    Orientation getOrientation() { return _orientation; }
+    glm::quat   getTargetRotation () { return _idealRotation; }
+    glm::quat   getRotation   () { return _rotation;    }
     CameraMode  getMode       () { return _mode;        }
     float       getFieldOfView() { return _fieldOfView; }
     float       getAspectRatio() { return _aspectRatio; }
@@ -79,12 +74,8 @@ private:
     float       _farClip;
     glm::vec3   _eyeOffsetPosition;
     glm::quat   _eyeOffsetOrientation;
-    float       _yaw;
-    float       _pitch;
-    float       _roll;
-    float       _idealYaw;
-    float       _idealPitch;
-    float       _idealRoll;
+    glm::quat   _rotation;
+    glm::quat   _idealRotation;
     float       _upShift;
     float       _distance;
     float       _tightness;
@@ -94,12 +85,10 @@ private:
     float       _newUpShift;
     float       _newDistance;
     float       _newTightness;
-    Orientation _orientation;
     float       _modeShift;
     float       _linearModeShift;
     float       _modeShiftRate;
 
-    void generateOrientation();
     void updateFollowMode( float deltaTime );
 };
 
