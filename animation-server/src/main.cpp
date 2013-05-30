@@ -397,31 +397,29 @@ bool danceFloorInitialized = false;
 const float DANCE_FLOOR_LIGHT_SIZE = 1.0f / TREE_SCALE; // approximately 1 meter
 const int DANCE_FLOOR_LENGTH = 10;
 const int DANCE_FLOOR_WIDTH  = 10;
-//const int DANCE_FLOOR_HEIGHT = 10;
-glm::vec3 danceFloorPosition(100.0f / TREE_SCALE, 30.0f / TREE_SCALE, 10.0f / TREE_SCALE); //(1.0f - (DANCE_FLOOR_WIDTH * DANCE_FLOOR_LIGHT_SIZE), 0, 0);
+glm::vec3 danceFloorPosition(100.0f / TREE_SCALE, 30.0f / TREE_SCALE, 10.0f / TREE_SCALE); 
 glm::vec3 danceFloorLights[DANCE_FLOOR_LENGTH][DANCE_FLOOR_WIDTH];
 unsigned char danceFloorOffColor[3] = { 240, 240, 240 };
-unsigned char danceFloorOnColorA[3] = {   0,   0, 255 };
-unsigned char danceFloorOnColorB[3] = {   0, 255,   0 };
+const int DANCE_FLOOR_COLORS = 6;
+
+unsigned char danceFloorOnColorA[DANCE_FLOOR_COLORS][3] = { 
+    { 255,   0,   0 }, {    0, 255,   0 }, {    0,   0, 255 },
+    {   0, 191, 255 }, {    0, 250, 154 }, {  255,  69,   0 },
+};
+unsigned char danceFloorOnColorB[DANCE_FLOOR_COLORS][3] = { 
+    {   0,   0,   0 }, {    0,   0,   0 }, {    0,   0,   0 }  ,
+    {   0,   0,   0 }, {    0,   0,   0 }, {    0,   0,   0 }  
+};
 float danceFloorGradient = 0.5f;
-float danceFloorGradientIncrement = 0.01f;
+const float BEATS_PER_MINUTE = 118.0f;
+const float SECONDS_PER_MINUTE = 60.0f;
+const float FRAMES_PER_BEAT = (SECONDS_PER_MINUTE * ACTUAL_FPS) / BEATS_PER_MINUTE;
+float danceFloorGradientIncrement = 1.0f / FRAMES_PER_BEAT;
 const float DANCE_FLOOR_MAX_GRADIENT = 1.0f;
 const float DANCE_FLOOR_MIN_GRADIENT = 0.0f;
 const int DANCE_FLOOR_VOXELS_PER_PACKET = 100;
 const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR_WIDTH * DANCE_FLOOR_LENGTH);
-bool danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH] = {
- { 0,1,0,1,0,1,0,1,0,1 },
- { 1,0,1,0,1,0,1,0,1,0 },
- { 0,1,0,1,0,1,0,1,0,1 },
- { 1,0,1,0,1,0,1,0,1,0 },
- { 0,1,0,1,0,1,0,1,0,1 },
- { 1,0,1,0,1,0,1,0,1,0 },
- { 0,1,0,1,0,1,0,1,0,1 },
- { 1,0,1,0,1,0,1,0,1,0 },
- { 0,1,0,1,0,1,0,1,0,1 },
- { 1,0,1,0,1,0,1,0,1,0 },
-};
-
+int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
@@ -431,13 +429,17 @@ void sendDanceFloor() {
     int sizeOut;
 
     // first initialized the billboard of lights if needed...
-    if (!danceFloorInitialized) {
+    if (!::danceFloorInitialized) {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
-                danceFloorLights[i][j] = danceFloorPosition + glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
+
+                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                ::danceFloorColors[i][j] = randomColorIndex;
+                ::danceFloorLights[i][j] = ::danceFloorPosition + 
+                                         glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
             }
         }
-        danceFloorInitialized = true;
+        ::danceFloorInitialized = true;
     }
 
     ::danceFloorGradient += ::danceFloorGradientIncrement;
@@ -457,28 +459,52 @@ void sendDanceFloor() {
             int nthVoxel = ((i * DANCE_FLOOR_WIDTH) + j);
             int item = nthVoxel % DANCE_FLOOR_VOXELS_PER_PACKET;
             
-            danceFloorLights[i][j] = danceFloorPosition + glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
-
-            //printf("danceFloorLights[%d][%d] = %f,%f,%f\n",i,j, danceFloorLights[i][j].x, danceFloorLights[i][j].y, danceFloorLights[i][j].z);
-
+            ::danceFloorLights[i][j] = ::danceFloorPosition + 
+                                        glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
 
             details[item].s = lightScale;
-            details[item].x = danceFloorLights[i][j].x;
-            details[item].y = danceFloorLights[i][j].y;
-            details[item].z = danceFloorLights[i][j].z;
+            details[item].x = ::danceFloorLights[i][j].x;
+            details[item].y = ::danceFloorLights[i][j].y;
+            details[item].z = ::danceFloorLights[i][j].z;
 
-            if (danceFloorColors[i][j]) {
-                details[item].red   = (danceFloorOnColorA[0] + ((danceFloorOnColorB[0] - danceFloorOnColorA[0]) * ::danceFloorGradient));
-                details[item].green = (danceFloorOnColorA[1] + ((danceFloorOnColorB[1] - danceFloorOnColorA[1]) * ::danceFloorGradient));
-                details[item].blue  = (danceFloorOnColorA[2] + ((danceFloorOnColorB[2] - danceFloorOnColorA[2]) * ::danceFloorGradient));
+            if (danceFloorColors[i][j] > 0) {
+                int color = danceFloorColors[i][j] - 1;
+                details[item].red   = (::danceFloorOnColorA[color][0] + 
+                                        ((::danceFloorOnColorB[color][0] - ::danceFloorOnColorA[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorA[color][1] + 
+                                        ((::danceFloorOnColorB[color][1] - ::danceFloorOnColorA[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorA[color][2] + 
+                                        ((::danceFloorOnColorB[color][2] - ::danceFloorOnColorA[color][2]) 
+                                         * ::danceFloorGradient));
+            } else if (::danceFloorColors[i][j] < 0) {
+                int color = -(::danceFloorColors[i][j] + 1);
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
             } else {
-                details[item].red   = danceFloorOffColor[0];
-                details[item].green = danceFloorOffColor[1];
-                details[item].blue  = danceFloorOffColor[2];
+                int color = 0;
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
             }
             
             if (item == DANCE_FLOOR_VOXELS_PER_PACKET - 1) {
-                if (createVoxelEditMessage(message, 0, DANCE_FLOOR_VOXELS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
+                if (createVoxelEditMessage(message, 0, DANCE_FLOOR_VOXELS_PER_PACKET, 
+                                            (VoxelDetail*)&details, bufferOut, sizeOut)){
                     ::packetsSent++;
                     ::bytesSent += sizeOut;
                     if (::shouldShowPacketsPerSecond) {
