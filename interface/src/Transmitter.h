@@ -26,6 +26,7 @@ class Transmitter
 public:
     Transmitter();
     void render();
+    void checkForLostTransmitter();
     void resetLevels();
     void renderLevels(int width, int height);
     bool isConnected() { return _isConnected; };
@@ -41,6 +42,7 @@ private:
     glm::vec3 _lastAcceleration;
     glm::vec3 _estimatedRotation;
     TouchState _touchState;
+    timeval* _lastReceivedPacket;
 
 #endif /* defined(__hifi__Transmitter__) */
 };
