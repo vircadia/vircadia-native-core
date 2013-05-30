@@ -59,7 +59,7 @@ void ViewFrustum::calculate() {
     
     // find the intersections of the rays through the corners with the clip planes in view space,
     // then transform them to world space
-    glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, _direction)) *
+    glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, -_direction)) *
         glm::translate(_eyeOffsetPosition) * glm::mat4_cast(_eyeOffsetOrientation);
     _farTopLeft = glm::vec3(worldMatrix * glm::vec4(topLeft *
         (-farClipPlane.w / glm::dot(topLeft, glm::vec3(farClipPlane))), 1.0f));

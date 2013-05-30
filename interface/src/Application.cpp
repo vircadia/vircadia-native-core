@@ -338,6 +338,7 @@ void Application::paintGL() {
             _viewFrustumOffsetPitch, _viewFrustumOffsetYaw, _viewFrustumOffsetRoll))));
         _viewFrustumOffsetCamera.setUpShift  (_viewFrustumOffsetUp      );
         _viewFrustumOffsetCamera.setDistance (_viewFrustumOffsetDistance);
+        _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
         whichCamera = _viewFrustumOffsetCamera;
     }        
@@ -1381,9 +1382,9 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float farClip     = camera.getFarClip();
 
     glm::quat rotation = camera.getRotation();
-    glm::vec3 direction = rotation * IDENTITY_FRONT;
-    glm::vec3 up = rotation * IDENTITY_UP;
-    glm::vec3 right = rotation * IDENTITY_RIGHT;
+    glm::vec3 direction = rotation * AVATAR_FRONT;
+    glm::vec3 up = rotation * AVATAR_UP;
+    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     /*
     printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
@@ -1398,7 +1399,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(direction,up,-right);
+    viewFrustum.setOrientation(direction,up,right);
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
