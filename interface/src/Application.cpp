@@ -1276,7 +1276,7 @@ void Application::init() {
 
 void Application::updateAvatar(float deltaTime) {
     // Update my avatar's head position from gyros
-    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort, &_gravity);
+    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort);
 
     //  Grab latest readings from the gyros
     float measuredPitchRate = _serialPort.getLastPitchRate();
