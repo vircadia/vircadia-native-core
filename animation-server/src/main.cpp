@@ -429,17 +429,17 @@ void sendDanceFloor() {
     int sizeOut;
 
     // first initialized the billboard of lights if needed...
-    if (!danceFloorInitialized) {
+    if (!::danceFloorInitialized) {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
 
                 int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
-                danceFloorColors[i][j] = randomColorIndex;
-                danceFloorLights[i][j] = danceFloorPosition + 
+                ::danceFloorColors[i][j] = randomColorIndex;
+                ::danceFloorLights[i][j] = ::danceFloorPosition + 
                                          glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
             }
         }
-        danceFloorInitialized = true;
+        ::danceFloorInitialized = true;
     }
 
     ::danceFloorGradient += ::danceFloorGradientIncrement;
@@ -459,37 +459,47 @@ void sendDanceFloor() {
             int nthVoxel = ((i * DANCE_FLOOR_WIDTH) + j);
             int item = nthVoxel % DANCE_FLOOR_VOXELS_PER_PACKET;
             
-            danceFloorLights[i][j] = danceFloorPosition + glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
+            ::danceFloorLights[i][j] = ::danceFloorPosition + 
+                                        glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
 
             details[item].s = lightScale;
-            details[item].x = danceFloorLights[i][j].x;
-            details[item].y = danceFloorLights[i][j].y;
-            details[item].z = danceFloorLights[i][j].z;
+            details[item].x = ::danceFloorLights[i][j].x;
+            details[item].y = ::danceFloorLights[i][j].y;
+            details[item].z = ::danceFloorLights[i][j].z;
 
             if (danceFloorColors[i][j] > 0) {
                 int color = danceFloorColors[i][j] - 1;
-                details[item].red   = (danceFloorOnColorA[color][0] + 
-                                        ((danceFloorOnColorB[color][0] - danceFloorOnColorA[color][0]) * ::danceFloorGradient));
-                details[item].green = (danceFloorOnColorA[color][1] + 
-                                        ((danceFloorOnColorB[color][1] - danceFloorOnColorA[color][1]) * ::danceFloorGradient));
-                details[item].blue  = (danceFloorOnColorA[color][2] + 
-                                        ((danceFloorOnColorB[color][2] - danceFloorOnColorA[color][2]) * ::danceFloorGradient));
-            } else if (danceFloorColors[i][j] < 0) {
-                int color = -(danceFloorColors[i][j] + 1);
-                details[item].red   = (danceFloorOnColorB[color][0] + 
-                                      ((danceFloorOnColorA[color][0] - danceFloorOnColorB[color][0]) * ::danceFloorGradient));
-                details[item].green = (danceFloorOnColorB[color][1] + 
-                                      ((danceFloorOnColorA[color][1] - danceFloorOnColorB[color][1]) * ::danceFloorGradient));
-                details[item].blue  = (danceFloorOnColorB[color][2] + 
-                                      ((danceFloorOnColorA[color][2] - danceFloorOnColorB[color][2]) * ::danceFloorGradient));
+                details[item].red   = (::danceFloorOnColorA[color][0] + 
+                                        ((::danceFloorOnColorB[color][0] - ::danceFloorOnColorA[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorA[color][1] + 
+                                        ((::danceFloorOnColorB[color][1] - ::danceFloorOnColorA[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorA[color][2] + 
+                                        ((::danceFloorOnColorB[color][2] - ::danceFloorOnColorA[color][2]) 
+                                         * ::danceFloorGradient));
+            } else if (::danceFloorColors[i][j] < 0) {
+                int color = -(::danceFloorColors[i][j] + 1);
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
             } else {
                 int color = 0;
-                details[item].red   = (danceFloorOnColorB[color][0] + 
-                                      ((danceFloorOnColorA[color][0] - danceFloorOnColorB[color][0]) * ::danceFloorGradient));
-                details[item].green = (danceFloorOnColorB[color][1] + 
-                                      ((danceFloorOnColorA[color][1] - danceFloorOnColorB[color][1]) * ::danceFloorGradient));
-                details[item].blue  = (danceFloorOnColorB[color][2] + 
-                                      ((danceFloorOnColorA[color][2] - danceFloorOnColorB[color][2]) * ::danceFloorGradient));
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
             }
             
             if (item == DANCE_FLOOR_VOXELS_PER_PACKET - 1) {
