@@ -299,6 +299,9 @@ int main(int argc, const char* argv[]) {
                 
                 memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
                 agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
+                
+                // clear the FreeVerb to be re-used on next iteration
+                freeVerb.clear();
             }
         }
         
