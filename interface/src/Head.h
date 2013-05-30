@@ -45,9 +45,6 @@ public:
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
-    void setOrientation(const glm::quat& orientation);
-    
-    void addOrientation(float pitch, float yaw, float roll);
     
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation () const;
