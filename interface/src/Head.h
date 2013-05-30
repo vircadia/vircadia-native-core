@@ -47,6 +47,8 @@ public:
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
     void setOrientation(const glm::quat& orientation);
     
+    void addOrientation(float pitch, float yaw, float roll);
+    
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation () const;
     

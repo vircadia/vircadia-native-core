@@ -307,6 +307,14 @@ void Head::renderMohawk(glm::vec3 cameraPosition) {
     } 
 }
 
+void Head::addOrientation(float pitch, float yaw, float roll) {
+    if (_lookingInMirror) {
+        yaw = -yaw;
+        roll = -roll;
+    }
+    setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(pitch, yaw, roll))));
+}
+
 void Head::setOrientation(const glm::quat& orientation) {
     glm::vec3 eulerAngles = safeEulerAngles(glm::inverse(glm::quat(glm::radians(_bodyRotation))) * orientation);
     if (_lookingInMirror) {
