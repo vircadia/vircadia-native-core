@@ -124,7 +124,7 @@ void Avatar::reset() {
 }
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface, glm::vec3* gravity) {
+void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface) {
     const float AMPLIFY_PITCH = 2.f;
     const float AMPLIFY_YAW = 2.f;
     const float AMPLIFY_ROLL = 2.f;
@@ -134,10 +134,10 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     float measuredRollRate = serialInterface->getLastRollRate();
    
     //  Update avatar head position based on measured gyro rates
-    
-    _head.addPitch(measuredPitchRate * AMPLIFY_PITCH * deltaTime);
-    _head.addYaw  (measuredYawRate   * AMPLIFY_YAW * deltaTime);
-    _head.addRoll (measuredRollRate  * AMPLIFY_ROLL * deltaTime);
+    _head.setOrientation(_head.getOrientation() * glm::quat(glm::radians(glm::vec3(
+        measuredPitchRate * AMPLIFY_PITCH * deltaTime,
+        measuredYawRate * AMPLIFY_YAW * deltaTime,
+        measuredRollRate * AMPLIFY_ROLL * deltaTime))));
     
     //  Update head lean distance based on accelerometer data
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
