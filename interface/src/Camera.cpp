@@ -90,10 +90,10 @@ void Camera::updateFollowMode(float deltaTime) {
     
     // update rotation (before position!)
     if (_needsToInitialize || OculusManager::isConnected()) {
-        _rotation = _idealRotation;
+        _rotation = _targetRotation;
     } else {
         // pull rotation towards ideal
-        _rotation = safeMix(_rotation, _idealRotation, t);
+        _rotation = safeMix(_rotation, _targetRotation, t);
     }
             
     _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
@@ -145,7 +145,7 @@ void Camera::setMode(CameraMode m) {
 
 
 void Camera::setTargetRotation( const glm::quat& targetRotation ) {
-    _idealRotation = targetRotation;
+    _targetRotation = targetRotation;
 }
 
 void Camera::setFieldOfView(float f) { 
