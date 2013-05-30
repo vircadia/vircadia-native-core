@@ -117,9 +117,6 @@ int main(int argc, const char* argv[]) {
     const float DISTANCE_REVERB_WIDTH = 0.5f;
     
     stk::FreeVerb freeVerb;
-    freeVerb.setDamping(DISTANCE_REVERB_DAMPING);
-    freeVerb.setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
-    freeVerb.setWidth(DISTANCE_REVERB_WIDTH);
     
     gettimeofday(&startTime, NULL);
     
@@ -247,6 +244,10 @@ int main(int argc, const char* argv[]) {
                                     * otherAgentBuffer->getAttenuationRatio()
                                     * offAxisCoefficient;
                                 
+                                // setup the freeVerb effect for this source for this client
+                                freeVerb.setDamping(DISTANCE_REVERB_DAMPING);
+                                freeVerb.setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
+                                freeVerb.setWidth(DISTANCE_REVERB_WIDTH);
                                 freeVerb.setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
                                 
                                 bearingRelativeAngleToSource *= (M_PI / 180);
