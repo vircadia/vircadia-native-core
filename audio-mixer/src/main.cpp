@@ -166,7 +166,7 @@ int main(int argc, const char* argv[]) {
                                                                   powf(agentPosition.z - otherAgentPosition.z, 2));
                                     
                                     float minCoefficient = std::min(1.0f,
-                                                                    powf(0.4,
+                                                                    powf(0.3,
                                                                          (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
                                                                          - 1));
                                     distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
