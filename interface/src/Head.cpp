@@ -311,12 +311,12 @@ void Head::setOrientation(const glm::quat& orientation) {
     glm::vec3 eulerAngles = safeEulerAngles(glm::inverse(glm::quat(glm::radians(_bodyRotation))) * orientation);
     if (_lookingInMirror) {
         setPitch(eulerAngles.x);
-        setYaw(eulerAngles.y);
-        setRoll(eulerAngles.z);
-    } else {
-        setPitch(eulerAngles.x);
         setYaw(-eulerAngles.y);
         setRoll(-eulerAngles.z);
+    } else {
+        setPitch(eulerAngles.x);
+        setYaw(eulerAngles.y);
+        setRoll(eulerAngles.z);
     }
 }
 
