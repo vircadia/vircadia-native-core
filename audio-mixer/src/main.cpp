@@ -112,8 +112,8 @@ int main(int argc, const char* argv[]) {
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
     // setup STK for the reverb effect
-    const float DISTANCE_REVERB_DAMPING = 0.8f;
-    const float DISTANCE_REVERB_ROOM_SIZE = 1.0f;
+    const float DISTANCE_REVERB_DAMPING = 0.6f;
+    const float DISTANCE_REVERB_ROOM_SIZE = 0.75f;
     const float DISTANCE_REVERB_WIDTH = 0.5f;
     
     stk::FreeVerb freeVerb;
@@ -189,7 +189,7 @@ int main(int argc, const char* argv[]) {
                                                                   powf(agentPosition.z - otherAgentPosition.z, 2));
                                     
                                     float minCoefficient = std::min(1.0f,
-                                                                    powf(0.3,
+                                                                    powf(0.4,
                                                                          (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
                                                                          - 1));
                                     
@@ -199,9 +199,7 @@ int main(int argc, const char* argv[]) {
                                                            (logf(distanceToAgent) / logf(2.0f) - DISTANCE_REVERB_LOG_REMAINDER)
                                                             * DISTANCE_REVERB_MAX_WETNESS);
                                     
-                                    audioFactors[lowAgentIndex][highAgentIndex].effectMix = (effectMix / 32.0f);
-                                    
-//                                    printf("DA: %f, EM: %f\n", distanceToAgent, effectMix / 32.0f);
+                                    audioFactors[lowAgentIndex][highAgentIndex].effectMix = (effectMix / 64.0f);
                                 }
                                 
                                 
