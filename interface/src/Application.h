@@ -63,6 +63,7 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     Avatar* getAvatar() { return &_myAvatar; }
+    Camera* getCamera() { return &_myCamera; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }

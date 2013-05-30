@@ -51,7 +51,7 @@ public:
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void render(bool lookingInMirror);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 

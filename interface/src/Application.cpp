@@ -1667,13 +1667,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(false, _myCamera.getPosition());
+                avatar->render(false);
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     

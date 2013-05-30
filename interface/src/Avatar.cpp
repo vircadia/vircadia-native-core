@@ -758,9 +758,9 @@ void Avatar::setGravity(glm::vec3 gravity) {
     }
 }
 
-void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
+void Avatar::render(bool lookingInMirror) {
     
-    _cameraPosition = cameraPosition;
+    _cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
     if (!_owningAgent && usingBigSphereCollisionTest) {
         // show TEST big sphere
@@ -799,18 +799,14 @@ void Avatar::render(bool lookingInMirror, glm::vec3 cameraPosition) {
         }
         glPushMatrix();
         
-        // extract the view direction from the modelview matrix: transform (0, 0, 1) by the
-        // transpose of the modelview to get its direction in world space, then use the X/Z
-        // components to determine the angle
-        float modelview[16];
-        glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
-        
-        glTranslatef(_joint[AVATAR_JOINT_HEAD_BASE].springyPosition.x,
-                     _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.y + chatMessageHeight,
-                     _joint[AVATAR_JOINT_HEAD_BASE].springyPosition.z);
-        glRotatef(atan2(-modelview[2], -modelview[10]) * 180 / PI, 0, 1, 0);
+        glm::vec3 chatPosition = _joint[AVATAR_JOINT_HEAD_BASE].springyPosition + getBodyUpDirection() * chatMessageHeight;
+        glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
+        glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
+        glm::vec3 chatAxis = glm::axis(chatRotation);
+        glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
         
         glColor3f(0, 0.8, 0);
+        glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
         glScalef(chatMessageScale, chatMessageScale, 1.0f);
 
