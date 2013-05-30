@@ -1242,16 +1242,16 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
 }
 
 void Avatar::writeAvatarDataToFile() {
-    Application::getInstance()->setSettingVec3("avatarPos", _position);
-    Application::getInstance()->setSettingVec3("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
+    Application::getInstance()->setSetting("avatarPos", _position);
+    Application::getInstance()->setSetting("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
 }
 
 void Avatar::readAvatarDataFromFile() {
     glm::vec3 readPosition;
     glm::vec3 readRotation;
     
-    Application::getInstance()->getSettingVec3("avatarPos", readPosition, glm::vec3(6.1f, 0, 1.4f));
-    Application::getInstance()->getSettingVec3("avatarRotation", readRotation, glm::vec3(0, 0, 0));
+    Application::getInstance()->getSetting("avatarPos", readPosition, glm::vec3(6.1f, 0, 1.4f));
+    Application::getInstance()->getSetting("avatarRotation", readRotation, glm::vec3(0, 0, 0));
     
     _bodyYaw = readRotation.x;
     _bodyPitch = readRotation.y;

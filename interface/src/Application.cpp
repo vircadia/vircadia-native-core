@@ -792,7 +792,7 @@ void Application::saveSettingsFile() {
     fclose(settingsFile);
 }
 
-bool Application::getSettingBool(const char* setting, bool& value, const bool defaultSetting) const {
+bool Application::getSetting(const char* setting, bool& value, const bool defaultSetting) const {
     std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
     
     if (iter != _settingsTable.end()) {
@@ -817,7 +817,7 @@ bool Application::getSettingBool(const char* setting, bool& value, const bool de
     return true;
 }
 
-bool Application::getSettingFloat(const char* setting, float& value, const float defaultSetting) const {
+bool Application::getSetting(const char* setting, float& value, const float defaultSetting) const {
     std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
     
     if (iter != _settingsTable.end()) {
@@ -846,7 +846,7 @@ bool Application::getSettingFloat(const char* setting, float& value, const float
     return true;
 }
 
-bool Application::getSettingVec3(const char* setting, glm::vec3& value, const glm::vec3& defaultSetting) const {
+bool Application::getSetting(const char* setting, glm::vec3& value, const glm::vec3& defaultSetting) const {
     std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
     
     if (iter != _settingsTable.end()) {
@@ -877,19 +877,19 @@ bool Application::getSettingVec3(const char* setting, glm::vec3& value, const gl
 
 const short MAX_SETTINGS_LENGTH = 128;
 
-void Application::setSettingBool(const char* setting, const bool value) {
+void Application::setSetting(const char* setting, const bool value) {
     char settingValues[MAX_SETTINGS_LENGTH];
     sprintf(settingValues, "%d", value);
     _settingsTable[setting] = settingValues;
 }
 
-void Application::setSettingFloat(const char* setting, const float value) {
+void Application::setSetting(const char* setting, const float value) {
     char settingValues[MAX_SETTINGS_LENGTH];
     sprintf(settingValues, "%f", value);
     _settingsTable[setting] = settingValues;
 }
 
-void Application::setSettingVec3(const char* setting, const glm::vec3& value) {
+void Application::setSetting(const char* setting, const glm::vec3& value) {
     char settingValues[MAX_SETTINGS_LENGTH];
     sprintf(settingValues, "%f,%f,%f", value.x, value.y, value.z);
     _settingsTable[setting] = settingValues;
@@ -2361,35 +2361,35 @@ void Application::saveSettings()
     // This should probably be moved to a map stored in memory at some point to cache settings.
     _myAvatar.writeAvatarDataToFile();
     
-    setSettingBool("_gyroLook", _gyroLook->isChecked());
+    setSetting("_gyroLook", _gyroLook->isChecked());
     
-    setSettingBool("_mouseLook", _mouseLook->isChecked());
+    setSetting("_mouseLook", _mouseLook->isChecked());
     
-    setSettingBool("_transmitterDrives", _transmitterDrives->isChecked());
+    setSetting("_transmitterDrives", _transmitterDrives->isChecked());
     
-    setSettingBool("_renderVoxels", _renderVoxels->isChecked());
+    setSetting("_renderVoxels", _renderVoxels->isChecked());
     
-    setSettingBool("_renderVoxelTextures", _renderVoxelTextures->isChecked());
+    setSetting("_renderVoxelTextures", _renderVoxelTextures->isChecked());
     
-    setSettingBool("_renderStarsOn", _renderStarsOn->isChecked());
+    setSetting("_renderStarsOn", _renderStarsOn->isChecked());
     
-    setSettingBool("_renderAtmosphereOn", _renderAtmosphereOn->isChecked());
+    setSetting("_renderAtmosphereOn", _renderAtmosphereOn->isChecked());
     
-    setSettingBool("_renderAvatarsOn", _renderAvatarsOn->isChecked());
+    setSetting("_renderAvatarsOn", _renderAvatarsOn->isChecked());
     
-    setSettingBool("_renderStatsOn", _renderStatsOn->isChecked());
+    setSetting("_renderStatsOn", _renderStatsOn->isChecked());
     
-    setSettingBool("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
+    setSetting("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
     
-    setSettingBool("_renderLookatOn", _renderLookatOn->isChecked());
+    setSetting("_renderLookatOn", _renderLookatOn->isChecked());
     
-    setSettingBool("_logOn", _logOn->isChecked());
+    setSetting("_logOn", _logOn->isChecked());
     
-    setSettingBool("_frustumOn", _frustumOn->isChecked());
+    setSetting("_frustumOn", _frustumOn->isChecked());
     
-    setSettingBool("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
+    setSetting("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
     
-    setSettingBool("_cameraFrustum", _cameraFrustum->isChecked());
+    setSetting("_cameraFrustum", _cameraFrustum->isChecked());
     
     saveSettingsFile();
 }
@@ -2400,49 +2400,49 @@ void Application::readSettings()
     _myAvatar.readAvatarDataFromFile();
     
     bool settingState;
-    getSettingBool("_gyroLook", settingState, _gyroLook->isChecked());
+    getSetting("_gyroLook", settingState, _gyroLook->isChecked());
     _gyroLook->setChecked(settingState);
     
-    getSettingBool("_mouseLook", settingState, _mouseLook->isChecked());
+    getSetting("_mouseLook", settingState, _mouseLook->isChecked());
     _mouseLook->setChecked(settingState);
     
-    getSettingBool("_transmitterDrives", settingState, _transmitterDrives->isChecked());
+    getSetting("_transmitterDrives", settingState, _transmitterDrives->isChecked());
     _transmitterDrives->setChecked(settingState);
     
-    getSettingBool("_renderVoxels", settingState, _renderVoxels->isChecked());
+    getSetting("_renderVoxels", settingState, _renderVoxels->isChecked());
     _renderVoxels->setChecked(settingState);
     
-    getSettingBool("_renderVoxelTextures", settingState, _renderVoxelTextures->isChecked());
+    getSetting("_renderVoxelTextures", settingState, _renderVoxelTextures->isChecked());
     _renderVoxelTextures->setChecked(settingState);
     
-    getSettingBool("_renderStarsOn", settingState, _renderStarsOn->isChecked());
+    getSetting("_renderStarsOn", settingState, _renderStarsOn->isChecked());
     _renderStarsOn->setChecked(settingState);
     
-    getSettingBool("_renderAtmosphereOn", settingState, _renderAtmosphereOn->isChecked());
+    getSetting("_renderAtmosphereOn", settingState, _renderAtmosphereOn->isChecked());
     _renderAtmosphereOn->setChecked(settingState);
     
-    getSettingBool("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
+    getSetting("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
     _renderAvatarsOn->setChecked(settingState);
     
-    getSettingBool("_renderStatsOn", settingState, _renderStatsOn->isChecked());
+    getSetting("_renderStatsOn", settingState, _renderStatsOn->isChecked());
     _renderStatsOn->setChecked(settingState);
     
-    getSettingBool("_renderFrameTimerOn", settingState, _renderFrameTimerOn->isChecked());
+    getSetting("_renderFrameTimerOn", settingState, _renderFrameTimerOn->isChecked());
     _renderFrameTimerOn->setChecked(settingState);
     
-    getSettingBool("_renderLookatOn", settingState, _renderLookatOn->isChecked());
+    getSetting("_renderLookatOn", settingState, _renderLookatOn->isChecked());
     _renderLookatOn->setChecked(settingState);
     
-    getSettingBool("_logOn", settingState, _logOn->isChecked());
+    getSetting("_logOn", settingState, _logOn->isChecked());
     _logOn->setChecked(settingState);
     
-    getSettingBool("_frustumOn", settingState, _frustumOn->isChecked());
+    getSetting("_frustumOn", settingState, _frustumOn->isChecked());
     _frustumOn->setChecked(settingState);
     
-    getSettingBool("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
+    getSetting("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
     _viewFrustumFromOffset->setChecked(settingState);
     
-    getSettingBool("_cameraFrustum", settingState, _cameraFrustum->isChecked());
+    getSetting("_cameraFrustum", settingState, _cameraFrustum->isChecked());
     _cameraFrustum->setChecked(settingState);
     
 }

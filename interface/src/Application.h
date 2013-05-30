@@ -75,7 +75,7 @@ public:
      @param boolSetting The referenced variable where the setting will be stored.
      @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to false.
     */
-    bool getSettingBool(const char* setting, bool &value, const bool defaultSetting = false) const;
+    bool getSetting(const char* setting, bool &value, const bool defaultSetting = false) const;
     
     /*!
      @fn getSettingFloat
@@ -84,7 +84,7 @@ public:
      @param floatSetting The referenced variable where the setting will be stored.
      @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to 0.0f.
      */
-    bool getSettingFloat(const char* setting, float &value, const float defaultSetting = 0.0f) const;
+    bool getSetting(const char* setting, float &value, const float defaultSetting = 0.0f) const;
     
     /*!
      @fn getSettingVec3
@@ -93,7 +93,7 @@ public:
      @param vecSetting The referenced variable where the setting will be stored.
      @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to <0.0f, 0.0f, 0.0f>
      */
-    bool getSettingVec3(const char* setting, glm::vec3 &value, const glm::vec3& defaultSetting = glm::vec3(0.0f, 0.0f, 0.0f)) const;
+    bool getSetting(const char* setting, glm::vec3 &value, const glm::vec3& defaultSetting = glm::vec3(0.0f, 0.0f, 0.0f)) const;
     
     /*!
      @fn setSettingBool
@@ -101,7 +101,7 @@ public:
      @param settingName The desired setting to populate a value for.
      @param boolSetting The value to set.
      */
-    void setSettingBool(const char* setting, const bool value);
+    void setSetting(const char* setting, const bool value);
     
     /*!
      @fn setSettingFloat
@@ -109,7 +109,7 @@ public:
      @param settingName The desired setting to populate a value for.
      @param floatSetting The value to set.
      */
-    void setSettingFloat(const char* setting, const float value);
+    void setSetting(const char* setting, const float value);
     
     /*!
      @fn setSettingVec3
@@ -117,7 +117,7 @@ public:
      @param settingName The desired setting to populate a value for.
      @param vecSetting The value to set.
      */
-    void setSettingVec3(const char* setting, const glm::vec3& value);
+    void setSetting(const char* setting, const glm::vec3& value);
 
 private slots:
     
