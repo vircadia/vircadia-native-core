@@ -299,11 +299,13 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_gyroEyeOffset->isChecked() ? _myAvatar.getWorldAlignedOrientation() :
+            _myAvatar.getHead().getWorldAlignedOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_gyroEyeOffset->isChecked() ? _myAvatar.getWorldAlignedOrientation() :
+            _myAvatar.getHead().getWorldAlignedOrientation());
     }
     
     // important...
@@ -1124,6 +1126,7 @@ void Application::initMenu() {
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
+    (_gyroEyeOffset = optionsMenu->addAction("Gyro Eye Offset"))->setCheckable(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
@@ -1294,9 +1297,11 @@ void Application::updateAvatar(float deltaTime) {
     _headMouseY = max(_headMouseY, 0);
     _headMouseY = min(_headMouseY, _glWidget->height());
     
-    _eyeOffsetVelocity += _serialPort.getLastAcceleration() * deltaTime;
-    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + _eyeOffsetVelocity * deltaTime);
-    resizeGL(_glWidget->width(), _glWidget->height());
+    if (_gyroEyeOffset->isChecked()) {
+        _eyeOffsetVelocity += _serialPort.getLastAcceleration() * deltaTime;
+        _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + _eyeOffsetVelocity * deltaTime);
+        resizeGL(_glWidget->width(), _glWidget->height());
+    }
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
