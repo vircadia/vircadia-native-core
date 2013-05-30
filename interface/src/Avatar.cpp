@@ -1237,40 +1237,25 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
-
 void Avatar::writeAvatarDataToFile() {
-    // write the avatar position and yaw to a local file
-    FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "w");
-    
-    if (avatarFile) {
-        fprintf(avatarFile, "%f,%f,%f %f,%f,%f", _position.x, _position.y, _position.z, _bodyYaw, _bodyPitch, _bodyRoll);
-        fclose(avatarFile);
-    }
+    Application::getInstance()->setSetting("avatarPos", _position);
+    Application::getInstance()->setSetting("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
 }
 
 void Avatar::readAvatarDataFromFile() {
-    FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "r");
+    glm::vec3 readPosition;
+    glm::vec3 readRotation;
     
-    if (avatarFile) {
-        glm::vec3 readPosition;
-        float readYaw, readPitch, readRoll;
-        fscanf(avatarFile, "%f,%f,%f %f,%f,%f", &readPosition.x, &readPosition.y, &readPosition.z,
-            &readYaw, &readPitch, &readRoll);
-
-        // make sure these values are sane
-        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) &&
-                !isnan(readYaw) && !isnan(readPitch) && !isnan(readRoll)) {
-            _position = readPosition;
-            _bodyYaw = readYaw;
-            _bodyPitch = readPitch;
-            _bodyRoll = readRoll;
-        }
-        fclose(avatarFile);
-    }
+    Application::getInstance()->getSetting("avatarPos", readPosition, glm::vec3(6.1f, 0, 1.4f));
+    Application::getInstance()->getSetting("avatarRotation", readRotation, glm::vec3(0, 0, 0));
+    
+    _bodyYaw = readRotation.x;
+    _bodyPitch = readRotation.y;
+    _bodyRoll = readRotation.z;
+    _position = readPosition;
 }
 
-// render a makeshift cone section that serves as a body part connecting joint spheres 
+// render a makeshift cone section that serves as a body part connecting joint spheres
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
 
     glBegin(GL_TRIANGLES);   
