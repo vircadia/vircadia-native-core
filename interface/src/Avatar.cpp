@@ -304,96 +304,94 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                            up;
             }
         }
-    }
-    
-    // update body yaw by body yaw delta
-    if (!_owningAgent) {
+
+        // update body yaw by body yaw delta
         orientation = orientation * glm::quat(glm::radians(
             glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
-    }
-    
-    // decay body rotation momentum
-    float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
-    if  (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; } 
-    _bodyPitchDelta *= bodySpinMomentum;
-    _bodyYawDelta   *= bodySpinMomentum;
-    _bodyRollDelta  *= bodySpinMomentum;
+
+        // decay body rotation momentum
+        float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
+        if  (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; } 
+        _bodyPitchDelta *= bodySpinMomentum;
+        _bodyYawDelta   *= bodySpinMomentum;
+        _bodyRollDelta  *= bodySpinMomentum;
+            
+        // add thrust to velocity
+        _velocity += _thrust * deltaTime;
         
-    // add thrust to velocity
-    _velocity += _thrust * deltaTime;
-    
-    // calculate speed 
-    _speed = glm::length(_velocity);
-    
-    //pitch and roll the body as a function of forward speed and turning delta
-    const float BODY_PITCH_WHILE_WALKING      = -20.0;
-    const float BODY_ROLL_WHILE_TURNING       = 0.2;
-    float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
-    orientation = orientation * glm::quat(glm::radians(glm::vec3(
-        BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
-        BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
-    
-    // these forces keep the body upright...     
-    float tiltDecay = BODY_UPRIGHT_FORCE * deltaTime;
-    if  (tiltDecay > 1.0f) {tiltDecay = 1.0f;}     
+        // calculate speed 
+        _speed = glm::length(_velocity);
+        
+        //pitch and roll the body as a function of forward speed and turning delta
+        const float BODY_PITCH_WHILE_WALKING      = -20.0;
+        const float BODY_ROLL_WHILE_TURNING       = 0.2;
+        float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
+        orientation = orientation * glm::quat(glm::radians(glm::vec3(
+            BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
+            BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
+        
+        // these forces keep the body upright...     
+        float tiltDecay = BODY_UPRIGHT_FORCE * deltaTime;
+        if  (tiltDecay > 1.0f) {tiltDecay = 1.0f;}     
 
-    // update the euler angles
-    setOrientation(orientation);
+        // update the euler angles
+        setOrientation(orientation);
 
-    //the following will be used to make the avatar upright no matter what gravity is
-    setOrientation(computeRotationFromBodyToWorldUp(tiltDecay) * orientation);
+        //the following will be used to make the avatar upright no matter what gravity is
+        setOrientation(computeRotationFromBodyToWorldUp(tiltDecay) * orientation);
 
-    // update position by velocity
-    _position += _velocity * deltaTime;
+        // update position by velocity
+        _position += _velocity * deltaTime;
 
-    // decay velocity
-    float decay = 1.0 - VELOCITY_DECAY * deltaTime;
-    if ( decay < 0.0 ) {
-        _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
-    } else {
-        _velocity *= decay;
-    }
-    
-    // If another avatar is near, dampen velocity as a function of closeness
-    if (!_owningAgent && (_distanceToNearestAvatar < PERIPERSONAL_RADIUS)) {
-        float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
-        float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
-        if ( drag > 0.0f ) {
-            _velocity *= drag;
-        } else {
+        // decay velocity
+        float decay = 1.0 - VELOCITY_DECAY * deltaTime;
+        if ( decay < 0.0 ) {
             _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+        } else {
+            _velocity *= decay;
+        }
+        
+        // If another avatar is near, dampen velocity as a function of closeness
+        if (_distanceToNearestAvatar < PERIPERSONAL_RADIUS) {
+            float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
+            float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
+            if ( drag > 0.0f ) {
+                _velocity *= drag;
+            } else {
+                _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
+            }
+        }
+        
+        //  Compute instantaneous acceleration 
+        float acceleration = glm::distance(getVelocity(), oldVelocity) / deltaTime;
+        const float ACCELERATION_PITCH_DECAY = 0.4f;
+        const float ACCELERATION_YAW_DECAY = 0.4f;
+        
+        const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
+        const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
+        
+        // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
+        // you start moving, but don't do this with an HMD like the Oculus. 
+        if (!OculusManager::isConnected()) {
+            _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+            _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
+        } else if (fabsf(acceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
+                   && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
+            // if we're wearing the oculus
+            // and this acceleration is above the pull threshold
+            // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
+            
+            // match the body yaw to the oculus yaw
+            _bodyYaw = getAbsoluteHeadYaw();
+            
+            // set the head yaw to zero for this draw
+            _head.setYaw(0);
+            
+            // correct the oculus yaw offset
+            OculusManager::updateYawOffset();
         }
     }
     
-    //  Compute instantaneous acceleration 
-    float acceleration = glm::distance(getVelocity(), oldVelocity) / deltaTime;
-    const float ACCELERATION_PITCH_DECAY = 0.4f;
-    const float ACCELERATION_YAW_DECAY = 0.4f;
-    
-    const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
-    const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
-    
-    // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
-    // you start moving, but don't do this with an HMD like the Oculus. 
-    if (!OculusManager::isConnected()) {
-        _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
-        _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
-    } else if (fabsf(acceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
-               && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
-        // if we're wearing the oculus
-        // and this acceleration is above the pull threshold
-        // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
-        
-        // match the body yaw to the oculus yaw
-        _bodyYaw = getAbsoluteHeadYaw();
-        
-        // set the head yaw to zero for this draw
-        _head.setYaw(0);
-        
-        // correct the oculus yaw offset
-        OculusManager::updateYawOffset();
-    }
-
     //apply the head lean values to the springy position...
     if (USING_HEAD_LEAN) {
         if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
@@ -1250,7 +1248,7 @@ void Avatar::writeAvatarDataToFile() {
     FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "w");
     
     if (avatarFile) {
-        fprintf(avatarFile, "%f,%f,%f %f", _position.x, _position.y, _position.z, _bodyYaw);
+        fprintf(avatarFile, "%f,%f,%f %f,%f,%f", _position.x, _position.y, _position.z, _bodyYaw, _bodyPitch, _bodyRoll);
         fclose(avatarFile);
     }
 }
@@ -1260,13 +1258,17 @@ void Avatar::readAvatarDataFromFile() {
     
     if (avatarFile) {
         glm::vec3 readPosition;
-        float readYaw;
-        fscanf(avatarFile, "%f,%f,%f %f", &readPosition.x, &readPosition.y, &readPosition.z, &readYaw);
+        float readYaw, readPitch, readRoll;
+        fscanf(avatarFile, "%f,%f,%f %f,%f,%f", &readPosition.x, &readPosition.y, &readPosition.z,
+            &readYaw, &readPitch, &readRoll);
 
         // make sure these values are sane
-        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) && !isnan(readYaw)) {
+        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) &&
+                !isnan(readYaw) && !isnan(readPitch) && !isnan(readRoll)) {
             _position = readPosition;
             _bodyYaw = readYaw;
+            _bodyPitch = readPitch;
+            _bodyRoll = readRoll;
         }
         fclose(avatarFile);
     }
