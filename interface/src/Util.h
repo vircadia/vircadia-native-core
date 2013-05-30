@@ -16,8 +16,7 @@
 #endif
 
 #include <glm/glm.hpp>
-
-#include <Orientation.h>
+#include <glm/gtc/quaternion.hpp>
 
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
@@ -56,44 +55,9 @@ void drawGroundPlaneGrid(float size);
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
 
-void renderOrientationDirections( glm::vec3 position, Orientation orientation, float size );
+void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );
 
 void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition);
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
-
-
-class oTestCase {
-public:
-    float yaw;
-    float pitch;
-    float roll;
-    
-    float frontX;    
-    float frontY;
-    float frontZ;    
-    
-    float upX;    
-    float upY;
-    float upZ;    
-    
-    float rightX;    
-    float rightY;
-    float rightZ;    
-    
-    oTestCase(
-        float yaw, float pitch, float roll, 
-        float frontX, float frontY, float frontZ,
-        float upX, float upY, float upZ,
-        float rightX, float rightY, float rightZ
-    ) : 
-        yaw(yaw),pitch(pitch),roll(roll),
-        frontX(frontX),frontY(frontY),frontZ(frontZ),
-        upX(upX),upY(upY),upZ(upZ),
-        rightX(rightX),rightY(rightY),rightZ(rightZ)
-    {};
-};
-
-
-void testOrientationClass();
 
 #endif

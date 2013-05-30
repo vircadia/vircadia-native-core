@@ -48,7 +48,7 @@ public:
     
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror);
