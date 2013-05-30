@@ -116,8 +116,6 @@ int main(int argc, const char* argv[]) {
     const float DISTANCE_REVERB_ROOM_SIZE = 0.75f;
     const float DISTANCE_REVERB_WIDTH = 0.5f;
     
-    stk::FreeVerb freeVerb;
-    
     gettimeofday(&startTime, NULL);
     
     while (true) {
@@ -164,7 +162,8 @@ int main(int argc, const char* argv[]) {
                             int numSamplesDelay = 0;
                             float weakChannelAmplitudeRatio = 1.f;
                             
-                            // echo effect mix is 0
+                            // setup the FreeVerb object for this client and source
+                            stk::FreeVerb freeVerb;
                             freeVerb.setEffectMix(0.0f);
                             
                             if (otherAgent != agent) {
@@ -248,6 +247,8 @@ int main(int argc, const char* argv[]) {
                                 freeVerb.setDamping(DISTANCE_REVERB_DAMPING);
                                 freeVerb.setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
                                 freeVerb.setWidth(DISTANCE_REVERB_WIDTH);
+                                
+                                printf("EM set to %f\n", audioFactors[lowAgentIndex][highAgentIndex].effectMix);
                                 freeVerb.setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
                                 
                                 bearingRelativeAngleToSource *= (M_PI / 180);
@@ -300,9 +301,6 @@ int main(int argc, const char* argv[]) {
                 
                 memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
                 agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
-                
-                // clear the FreeVerb to be re-used on next iteration
-                freeVerb.clear();
             }
         }
         
