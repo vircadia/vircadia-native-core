@@ -288,7 +288,7 @@ void Application::paintGL() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
@@ -1667,13 +1667,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(false, _myCamera.getPosition());
+                avatar->render(false);
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
