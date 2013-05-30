@@ -735,9 +735,9 @@ void Application::readSettingsFile() {
         while (fgets(line, LINE_MAX, settingsFile) != NULL)
         {
             if (strcmp(line, " \n") > 0) {
-                char *token = NULL;
-                char *settingLine = NULL;
-                char *toFree = NULL;
+                char* token = NULL;
+                char* settingLine = NULL;
+                char* toFree = NULL;
                 
                 settingLine = strdup(line);
                 
