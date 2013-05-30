@@ -42,8 +42,8 @@ vector<unsigned char> irisTexture;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
-    _renderAlpha(0.0),
     yawRate(0.0f),
+    _renderAlpha(0.0),
     _returnHeadToCenter(false),
     _skinColor(0.0f, 0.0f, 0.0f),
     _position(0.0f, 0.0f, 0.0f),
@@ -364,7 +364,9 @@ void Head::renderMouth() {
     glm::vec3 rightBottom = _mouthPosition + r * 0.4f - u * 1.0f + f * 0.7f;
     
     // constrain all mouth vertices to a sphere slightly larger than the head...
-    float constrainedRadius = _scale + 0.001f;
+    const float MOUTH_OFFSET_OFF_FACE = 0.003f;
+    
+    float constrainedRadius = _scale + MOUTH_OFFSET_OFF_FACE;
     middle      = _position + glm::normalize(middle      - _position) * constrainedRadius;
     leftCorner  = _position + glm::normalize(leftCorner  - _position) * constrainedRadius;
     rightCorner = _position + glm::normalize(rightCorner - _position) * constrainedRadius;

@@ -476,7 +476,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     glm::quat orientation = getOrientation();
 
     // reset hand and arm positions according to hand movement
-    glm::vec3 transformedHandMovement = orientation * (_movedHandOffset * glm::vec3(-2.0f, -1.0f, -1.0f));
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    glm::vec3 transformedHandMovement
+    = right *  _movedHandOffset.x * 2.0f
+    + up	  * -_movedHandOffset.y * 2.0f
+    + front * -_movedHandOffset.y * 2.0f;
     
     _joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
             
@@ -1139,8 +1146,12 @@ void Avatar::renderBody(bool lookingInMirror) {
         float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
             (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
         
+        if (lookingInMirror || _owningAgent) {
+            alpha = 1.0f;
+        }
+    
         //  Always render other people, and render myself when beyond threshold distance
-        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special case
+        if (b == AVATAR_JOINT_HEAD_BASE) { // the head is rendered as a special
             if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
                 _head.render(lookingInMirror, _cameraPosition, alpha);
             }

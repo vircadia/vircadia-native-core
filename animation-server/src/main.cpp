@@ -33,6 +33,7 @@ bool includeBillboard = true;
 bool includeBorderTracer = true;
 bool includeMovingBug = true;
 bool includeBlinkingVoxel = false;
+bool includeDanceFloor = true;
 
 
 const int ANIMATION_LISTEN_PORT = 40107;
@@ -392,6 +393,131 @@ static void sendBlinkingStringOfLights() {
     }
 }
 
+bool danceFloorInitialized = false;
+const float DANCE_FLOOR_LIGHT_SIZE = 1.0f / TREE_SCALE; // approximately 1 meter
+const int DANCE_FLOOR_LENGTH = 10;
+const int DANCE_FLOOR_WIDTH  = 10;
+glm::vec3 danceFloorPosition(100.0f / TREE_SCALE, 30.0f / TREE_SCALE, 10.0f / TREE_SCALE); 
+glm::vec3 danceFloorLights[DANCE_FLOOR_LENGTH][DANCE_FLOOR_WIDTH];
+unsigned char danceFloorOffColor[3] = { 240, 240, 240 };
+const int DANCE_FLOOR_COLORS = 6;
+
+unsigned char danceFloorOnColorA[DANCE_FLOOR_COLORS][3] = { 
+    { 255,   0,   0 }, {    0, 255,   0 }, {    0,   0, 255 },
+    {   0, 191, 255 }, {    0, 250, 154 }, {  255,  69,   0 },
+};
+unsigned char danceFloorOnColorB[DANCE_FLOOR_COLORS][3] = { 
+    {   0,   0,   0 }, {    0,   0,   0 }, {    0,   0,   0 }  ,
+    {   0,   0,   0 }, {    0,   0,   0 }, {    0,   0,   0 }  
+};
+float danceFloorGradient = 0.5f;
+const float BEATS_PER_MINUTE = 118.0f;
+const float SECONDS_PER_MINUTE = 60.0f;
+const float FRAMES_PER_BEAT = (SECONDS_PER_MINUTE * ACTUAL_FPS) / BEATS_PER_MINUTE;
+float danceFloorGradientIncrement = 1.0f / FRAMES_PER_BEAT;
+const float DANCE_FLOOR_MAX_GRADIENT = 1.0f;
+const float DANCE_FLOOR_MIN_GRADIENT = 0.0f;
+const int DANCE_FLOOR_VOXELS_PER_PACKET = 100;
+const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR_WIDTH * DANCE_FLOOR_LENGTH);
+int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
+
+void sendDanceFloor() {
+    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    float lightScale = DANCE_FLOOR_LIGHT_SIZE;
+    static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
+    unsigned char* bufferOut;
+    int sizeOut;
+
+    // first initialized the billboard of lights if needed...
+    if (!::danceFloorInitialized) {
+        for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
+            for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
+
+                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                ::danceFloorColors[i][j] = randomColorIndex;
+                ::danceFloorLights[i][j] = ::danceFloorPosition + 
+                                         glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
+            }
+        }
+        ::danceFloorInitialized = true;
+    }
+
+    ::danceFloorGradient += ::danceFloorGradientIncrement;
+    
+    if (::danceFloorGradient >= DANCE_FLOOR_MAX_GRADIENT) {
+        ::danceFloorGradient = DANCE_FLOOR_MAX_GRADIENT;
+        ::danceFloorGradientIncrement = -::danceFloorGradientIncrement;
+    }
+    if (::danceFloorGradient <= DANCE_FLOOR_MIN_GRADIENT) {
+        ::danceFloorGradient = DANCE_FLOOR_MIN_GRADIENT;
+        ::danceFloorGradientIncrement = -::danceFloorGradientIncrement;
+    }
+
+    for (int i = 0; i < DANCE_FLOOR_LENGTH; i++) {
+        for (int j = 0; j < DANCE_FLOOR_WIDTH; j++) {
+
+            int nthVoxel = ((i * DANCE_FLOOR_WIDTH) + j);
+            int item = nthVoxel % DANCE_FLOOR_VOXELS_PER_PACKET;
+            
+            ::danceFloorLights[i][j] = ::danceFloorPosition + 
+                                        glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
+
+            details[item].s = lightScale;
+            details[item].x = ::danceFloorLights[i][j].x;
+            details[item].y = ::danceFloorLights[i][j].y;
+            details[item].z = ::danceFloorLights[i][j].z;
+
+            if (danceFloorColors[i][j] > 0) {
+                int color = danceFloorColors[i][j] - 1;
+                details[item].red   = (::danceFloorOnColorA[color][0] + 
+                                        ((::danceFloorOnColorB[color][0] - ::danceFloorOnColorA[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorA[color][1] + 
+                                        ((::danceFloorOnColorB[color][1] - ::danceFloorOnColorA[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorA[color][2] + 
+                                        ((::danceFloorOnColorB[color][2] - ::danceFloorOnColorA[color][2]) 
+                                         * ::danceFloorGradient));
+            } else if (::danceFloorColors[i][j] < 0) {
+                int color = -(::danceFloorColors[i][j] + 1);
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
+            } else {
+                int color = 0;
+                details[item].red   = (::danceFloorOnColorB[color][0] + 
+                                        ((::danceFloorOnColorA[color][0] - ::danceFloorOnColorB[color][0]) 
+                                         * ::danceFloorGradient));
+                details[item].green = (::danceFloorOnColorB[color][1] + 
+                                        ((::danceFloorOnColorA[color][1] - ::danceFloorOnColorB[color][1]) 
+                                         * ::danceFloorGradient));
+                details[item].blue  = (::danceFloorOnColorB[color][2] + 
+                                        ((::danceFloorOnColorA[color][2] - ::danceFloorOnColorB[color][2]) 
+                                         * ::danceFloorGradient));
+            }
+            
+            if (item == DANCE_FLOOR_VOXELS_PER_PACKET - 1) {
+                if (createVoxelEditMessage(message, 0, DANCE_FLOOR_VOXELS_PER_PACKET, 
+                                            (VoxelDetail*)&details, bufferOut, sizeOut)){
+                    ::packetsSent++;
+                    ::bytesSent += sizeOut;
+                    if (::shouldShowPacketsPerSecond) {
+                        printf("sending packet of size=%d\n", sizeOut);
+                    }
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    delete[] bufferOut;
+                }
+            }
+        }
+    }
+}
+
 bool billboardInitialized = false;
 const int BILLBOARD_HEIGHT = 9;
 const int BILLBOARD_WIDTH  = 45;
@@ -405,7 +531,7 @@ float billboardGradientIncrement = 0.01f;
 const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
-const int VOXELS_PER_PACKET = 135;
+const int VOXELS_PER_PACKET = 100;
 const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
 
 
@@ -514,6 +640,9 @@ void* animateVoxels(void* args) {
         if (::includeBlinkingVoxel) {
             sendVoxelBlinkMessage();
         }
+        if (::includeDanceFloor) {
+            sendDanceFloor();
+        }
         
         double end = usecTimestampNow();
         double elapsedSeconds = (end - ::start) / 1000000.0;
@@ -554,6 +683,9 @@ int main(int argc, const char * argv[])
 
     const char* INCLUDE_BLINKING_VOXEL = "--includeBlinkingVoxel";
     ::includeBlinkingVoxel = cmdOptionExists(argc, argv, INCLUDE_BLINKING_VOXEL);
+
+    const char* NO_DANCE_FLOOR = "--NoDanceFloor";
+    ::includeDanceFloor = !cmdOptionExists(argc, argv, NO_DANCE_FLOOR);
 
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";

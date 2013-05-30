@@ -7,6 +7,7 @@
 //
 
 #include <cstring>
+#include <math.h>
 
 #include "PacketHeaders.h"
 
@@ -56,7 +57,12 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         memcpy(&_bearing, dataBuffer, sizeof(float));
         dataBuffer += sizeof(_bearing);
         
-        if (_bearing > 180 || _bearing < -180) {
+        // if this agent sent us a NaN bearing then don't consider this good audio and bail
+        if (std::isnan(_bearing)) {
+            _endOfLastWrite = _nextOutput = _buffer;
+            _started = false;
+            return 0;
+        } else if (_bearing > 180 || _bearing < -180) {
             // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
             _shouldLoopbackForAgent = true;
             
@@ -66,7 +72,7 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
                 : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
             _shouldLoopbackForAgent = false;
-        }        
+        }
     }
     
     // make sure we have enough bytes left for this to be the right amount of audio

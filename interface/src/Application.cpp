@@ -954,11 +954,7 @@ void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setHead(bool head) {
-    #ifndef _WIN32
-    _audio.setMixerLoopbackFlag(head);
-    #endif
-    
+void Application::setHead(bool head) {    
     if (head) {
         _myCamera.setMode(CAMERA_MODE_MIRROR);
         _myCamera.setModeShiftRate(100.0f);
@@ -1115,13 +1111,15 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::Key_Q);
+    fileMenu->addAction("Quit", this, SLOT(quit()), (Qt::Key_Q || Qt::Key_Control));
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
+    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
+    
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
