@@ -1250,7 +1250,7 @@ void Avatar::writeAvatarDataToFile() {
     FILE* avatarFile = fopen(AVATAR_DATA_FILENAME, "w");
     
     if (avatarFile) {
-        fprintf(avatarFile, "%f,%f,%f %f", _position.x, _position.y, _position.z, _bodyYaw);
+        fprintf(avatarFile, "%f,%f,%f %f,%f,%f", _position.x, _position.y, _position.z, _bodyYaw, _bodyPitch, _bodyRoll);
         fclose(avatarFile);
     }
 }
@@ -1260,13 +1260,17 @@ void Avatar::readAvatarDataFromFile() {
     
     if (avatarFile) {
         glm::vec3 readPosition;
-        float readYaw;
-        fscanf(avatarFile, "%f,%f,%f %f", &readPosition.x, &readPosition.y, &readPosition.z, &readYaw);
+        float readYaw, readPitch, readRoll;
+        fscanf(avatarFile, "%f,%f,%f %f,%f,%f", &readPosition.x, &readPosition.y, &readPosition.z,
+            &readYaw, &readPitch, &readRoll);
 
         // make sure these values are sane
-        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) && !isnan(readYaw)) {
+        if (!isnan(readPosition.x) && !isnan(readPosition.y) && !isnan(readPosition.z) &&
+                !isnan(readYaw) && !isnan(readPitch) && !isnan(readRoll)) {
             _position = readPosition;
             _bodyYaw = readYaw;
+            _bodyPitch = readPitch;
+            _bodyRoll = readRoll;
         }
         fclose(avatarFile);
     }
