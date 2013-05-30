@@ -278,6 +278,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
         //  Add thrusts from Transmitter 
         if (transmitter) {
+            transmitter->checkForLostTransmitter();
             glm::vec3 rotation = transmitter->getEstimatedRotation();
             const float TRANSMITTER_MIN_RATE = 1.f;
             const float TRANSMITTER_MIN_YAW_RATE = 4.f;

@@ -877,6 +877,8 @@ void Application::idle() {
             _serialPort.readData(deltaTime);
         }
         
+        //  Update transmitter
+        
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
         updateAvatar(deltaTime);
 
