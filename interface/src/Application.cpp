@@ -774,9 +774,9 @@ void Application::readSettingsFile() {
                 }
             }
         }
-    }
     
-    fclose(settingsFile);
+        fclose(settingsFile);
+    }
 }
 
 void Application::saveSettingsFile() {
