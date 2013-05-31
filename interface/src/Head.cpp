@@ -250,9 +250,9 @@ void Head::createMohawk() {
         
     for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
         _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
-                                           height * cosf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           height * cosf(i * RAD_PER_TRIANGLE - PIf / 2.f)
                                            + (randFloat()  - 0.5f) * variance,
-                                           height * sinf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           height * sinf(i * RAD_PER_TRIANGLE - PIf / 2.f)
                                            + (randFloat() - 0.5f) * variance);
         _mohawkColors[i] = randFloat() * basicColor;
 

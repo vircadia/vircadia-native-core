@@ -162,11 +162,10 @@ int main(int argc, const char* argv[]) {
                             int numSamplesDelay = 0;
                             float weakChannelAmplitudeRatio = 1.f;
                             
-                            // setup the FreeVerb object for this client and source
-                            stk::FreeVerb freeVerb;
-                            freeVerb.setEffectMix(0.0f);
+                            stk::FreeVerb* otherAgentFreeVerb = NULL;
                             
                             if (otherAgent != agent) {
+                                
                                 glm::vec3 agentPosition = agentRingBuffer->getPosition();
                                 glm::vec3 otherAgentPosition = otherAgentBuffer->getPosition();
                                 
@@ -243,19 +242,28 @@ int main(int argc, const char* argv[]) {
                                     * otherAgentBuffer->getAttenuationRatio()
                                     * offAxisCoefficient;
                                 
-                                // setup the freeVerb effect for this source for this client
-                                freeVerb.setDamping(DISTANCE_REVERB_DAMPING);
-                                freeVerb.setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
-                                freeVerb.setWidth(DISTANCE_REVERB_WIDTH);
-                                
-                                printf("EM set to %f\n", audioFactors[lowAgentIndex][highAgentIndex].effectMix);
-                                freeVerb.setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
-                                
                                 bearingRelativeAngleToSource *= (M_PI / 180);
                                 
                                 float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                                
+                                std::map<uint16_t, stk::FreeVerb*>& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
+                                
+                                if (agentFreeVerbs.count(otherAgent->getAgentID()) == 0) {
+                                    // setup the freeVerb effect for this source for this client
+                                    
+                                    otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()] = new stk::FreeVerb;
+                                    
+                                    otherAgentFreeVerb->setDamping(DISTANCE_REVERB_DAMPING);
+                                    otherAgentFreeVerb->setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
+                                    otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
+                                    
+                                } else {
+                                    otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()];
+                                }
+                                
+                                otherAgentFreeVerb->setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
@@ -278,7 +286,9 @@ int main(int argc, const char* argv[]) {
                                                         * weakChannelAmplitudeRatio;
                                     
                                     // apply the STK FreeVerb effect
-                                    earlierSample = freeVerb.tick(earlierSample);
+                                    if (otherAgentFreeVerb) {
+                                        earlierSample = otherAgentFreeVerb->tick(earlierSample);
+                                    }
                                     
                                     plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                                 }
@@ -286,7 +296,9 @@ int main(int argc, const char* argv[]) {
                                 int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
                                 
                                 // apply the STK FreeVerb effect
-                                currentSample = freeVerb.tick(currentSample);
+                                if (otherAgentFreeVerb) {
+                                    currentSample = otherAgentFreeVerb->tick(currentSample);
+                                }
                                 
                                 plateauAdditionOfSamples(goodChannel[s], currentSample);
                                 

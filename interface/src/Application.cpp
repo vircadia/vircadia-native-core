@@ -380,7 +380,7 @@ void Application::resizeGL(int width, int height) {
     if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PI));
+        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
         
         // resize the render texture
         if (_oculusTextureID != 0) {
