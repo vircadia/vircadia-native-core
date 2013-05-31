@@ -33,13 +33,9 @@ const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE             = 300.0f;
 const float BODY_SPRING_DECAY             = 16.0f;
-
 const float COLLISION_RADIUS_SCALAR       = 1.2;   //pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FORCE          = 200.0; //pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE          = 30.0;  //pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FRICTION       = 60.0;  //pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FRICTION       = 0.5;   //pertains to avatar-to-avatar collisions
-
 const float HEAD_ROTATION_SCALE           = 0.70;
 const float HEAD_ROLL_SCALE               = 0.40;
 const float HEAD_MAX_PITCH                = 45;
