@@ -892,7 +892,7 @@ void Avatar::render(bool lookingInMirror) {
     }
 }
 
-void Avatar::initializeBodySprings() {
+void Avatar::resetBodySprings() {
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         _ball[b].position = _skeleton.joint[b].position;
         _ball[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -903,7 +903,7 @@ void Avatar::updateBodySprings(float deltaTime) {
     //  Check for a large repositioning, and re-initialize body springs if this has happened
     const float BEYOND_BODY_SPRING_RANGE = 2.f;
     if (glm::length(_position - _ball[AVATAR_JOINT_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
-        initializeBodySprings();
+        resetBodySprings();
     }
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         glm::vec3 springVector(_ball[b].position);
