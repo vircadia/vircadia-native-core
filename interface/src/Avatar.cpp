@@ -25,13 +25,9 @@ using namespace std;
 
 const bool  BALLS_ON                      = false;
 const bool  USING_AVATAR_GRAVITY          = true;
-const float GRAVITY_SCALE                 = 10.0f;
-const float BOUNCE                        = 0.3f;
-const float THRUST_MAG                    = 1200.0;
+const glm::vec3 DEFAULT_UP_DIRECTION        (0.0f, 1.0f, 0.0f);
 const float YAW_MAG                       = 500.0;
 const float BODY_SPIN_FRICTION            = 5.0;
-const float BODY_UPRIGHT_FORCE            = 10.0;
-const float VELOCITY_DECAY                = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
@@ -90,7 +86,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _pelvisFloatingHeight(0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _gravity(0.0f, -1.0f, 0.0f),
-    _worldUpDirection(0.0f, 1.0f, 0.0),
+    _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
@@ -247,8 +243,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // apply gravity and collision with the ground/floor
     if (!_owningAgent && USING_AVATAR_GRAVITY) {
-        _velocity += _gravity * (GRAVITY_SCALE * deltaTime);
-        
+        _velocity += _gravity * (GRAVITY_EARTH * deltaTime);
         updateCollisionWithEnvironment();
     }
     
@@ -271,6 +266,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 up = orientation * AVATAR_UP;
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
+    const float THRUST_MAG = 600.0f;
+
     if (!_owningAgent) {
         
         _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -339,7 +336,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
             BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
         
-        // these forces keep the body upright...     
+        // these forces keep the body upright...
+        const float BODY_UPRIGHT_FORCE = 10.0;
         float tiltDecay = BODY_UPRIGHT_FORCE * deltaTime;
         if  (tiltDecay > 1.0f) {tiltDecay = 1.0f;}     
 
@@ -353,6 +351,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _position += _velocity * deltaTime;
 
         // decay velocity
+        const float VELOCITY_DECAY = 0.9;
         float decay = 1.0 - VELOCITY_DECAY * deltaTime;
         if ( decay < 0.0 ) {
             _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
@@ -656,12 +655,21 @@ void Avatar::updateCollisionWithVoxels() {
 
 void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     _position -= penetration;
-        
+    static float STATIC_FRICTION_VELOCITY = 0.15f;
+    static float STATIC_FRICTION_DAMPING = 0.0f;
+    static float KINETIC_FRICTION_DAMPING = 0.95f;
+    const float BOUNCE = 0.3f;
+
     // reflect the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
         _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+        _velocity *= KINETIC_FRICTION_DAMPING;
+        //  If velocity is quite low, apply static friction that takes away energy 
+        if (glm::length(_velocity) < STATIC_FRICTION_VELOCITY) {
+            _velocity *= STATIC_FRICTION_DAMPING;
+        }
     }
 }
 
@@ -764,6 +772,8 @@ void Avatar::setGravity(glm::vec3 gravity) {
     float gravityLength = glm::length(gravity);
     if (gravityLength > EPSILON) {
         _worldUpDirection = _gravity / -gravityLength;
+    } else {
+        _worldUpDirection = DEFAULT_UP_DIRECTION;
     }
 }
 
