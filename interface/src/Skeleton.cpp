@@ -112,11 +112,13 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_RIGHT_HEEL		 ].radius = 0.025;
     joint[ AVATAR_JOINT_RIGHT_TOES		 ].radius = 0.025;
     
+    /*
     // to aid in hand-shaking and hand-holding, the right hand is not collidable
     joint[ AVATAR_JOINT_RIGHT_ELBOW	    ].isCollidable = false;
     joint[ AVATAR_JOINT_RIGHT_WRIST	    ].isCollidable = false;
     joint[ AVATAR_JOINT_RIGHT_FINGERTIPS].isCollidable = false; 
-       
+    */
+    
     // calculate bone length
     calculateBoneLengths();
     

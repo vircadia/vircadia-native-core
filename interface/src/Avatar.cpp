@@ -107,6 +107,7 @@ Avatar::Avatar(Agent* owningAgent) :
 
     _skeleton.initialize();
 
+    _height               = _skeleton.getHeight();
     _maxArmLength         = _skeleton.getArmLength();
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight();
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
@@ -485,13 +486,13 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
     // reset hand and arm positions according to hand movement
     glm::vec3 right = orientation * AVATAR_RIGHT;
-    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 up    = orientation * AVATAR_UP;
     glm::vec3 front = orientation * AVATAR_FRONT;
 
     glm::vec3 transformedHandMovement
     = right *  _movedHandOffset.x * 2.0f
-    + up	  * -_movedHandOffset.y * 2.0f
-    + front * -_movedHandOffset.z * 2.0f;
+    + up	* -_movedHandOffset.y * 2.0f
+    + front * -_movedHandOffset.y * 2.0f;
     
     _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
             
@@ -677,13 +678,13 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
-
+                        
             // check if the bounding spheres of the two avatars are colliding
             glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
 
             if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
-                //apply forces from collision
-                applyCollisionWithOtherAvatar(otherAvatar, deltaTime);
+                //apply forces from collision                        
+               applyCollisionWithOtherAvatar(otherAvatar, deltaTime);
             }            
 
             // test other avatar hand position for proximity
@@ -701,7 +702,6 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
 //detect collisions with other avatars and respond
 void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
                 
-    //float bodyMomentum = 1.0f;
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
     // loop through the joints of each avatar to check for every possible collision
@@ -727,33 +727,8 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * penetration * deltaTime;
                             bodyPushForce +=          directionVector * COLLISION_BODY_FORCE * penetration * deltaTime;                                
 
-                            /*                                                            
-                            float ballMomentum = 1.0 - COLLISION_BALL_FRICTION * deltaTime;
-                            if (ballMomentum < 0.0) { ballMomentum = 0.0;}
-                            */
-                            
                                          _skeleton.joint[b].springyVelocity += ballPushForce;
                             otherAvatar->_skeleton.joint[o].springyVelocity -= ballPushForce;
-                            
-
-                            /*
-                            float shift = distanceBetweenJoints - combinedRadius * COLLISION_RADIUS_SCALAR;
-                            
-                                         _skeleton.joint[b].springyPosition += directionVector * 2.0f * deltaTime;
-                            otherAvatar->_skeleton.joint[o].springyPosition -= directionVector * 2.0f * deltaTime;
-                            */
-                            
-                            
-                            /*
-                                         _skeleton.joint[b].springyVelocity *= ballMomentum;
-                            otherAvatar->_skeleton.joint[o].springyVelocity *= ballMomentum;
-                            */
-                            
-                            // accumulate forces and frictions to apply to the velocities of avatar bodies
-                            //bodyPushForce += directionVector * COLLISION_BODY_FORCE * deltaTime;                                
-                            //bodyMomentum -= COLLISION_BODY_FRICTION * deltaTime;
-                            //if (bodyMomentum < 0.0) { bodyMomentum = 0.0;}
-                            
                                                             
                         }// check for collision
                     }   // to avoid divide by zero
@@ -762,13 +737,8 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
         }            // b loop
     }               // collidable
     
-    //apply forces and frictions on the bodies of both avatars 
-
-//                   _velocity += bodyPushForce;
-
-    //otherAvatar->_velocity -= bodyPushForce;
-    //             _velocity *= bodyMomentum;
-    //otherAvatar->_velocity *= bodyMomentum;        
+    //apply force on the whole body 
+    _velocity += bodyPushForce;        
 }
 
 
@@ -948,7 +918,7 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
     // set elbow position
     glm::vec3 newElbowPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position + armVector * ONE_HALF;
 
-    glm::vec3 perpendicular = glm::cross(getBodyFrontDirection(),  armVector);
+    glm::vec3 perpendicular = glm::cross(getBodyRightDirection(),  armVector);
     
     newElbowPosition += perpendicular * (1.0f - (_maxArmLength / distance)) * ONE_HALF;
     _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position = newElbowPosition;
