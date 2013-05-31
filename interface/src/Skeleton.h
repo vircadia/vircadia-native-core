@@ -48,7 +48,6 @@ public:
     Skeleton();
 
     void initialize();
-    void initializeBodySprings();
     void update(float deltaTime, const glm::quat&, glm::vec3 position);
     void render();
     
@@ -57,27 +56,16 @@ public:
     float getPelvisStandingHeight();
     float getPelvisFloatingHeight();
     
-   struct AvatarJoint
+    struct AvatarJoint
     {
         AvatarJointID parent;               // which joint is this joint connected to?
         glm::vec3	  position;				// the position at the "end" of the joint - in global space
         glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-        glm::vec3	  springyPosition;		// used for special effects (a 'flexible' variant of position)
-        glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
-        float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
         glm::quat     rotation;             // the parent-relative rotation (orientation) of the joint as a quaternion
         float		  length;				// the length of vector connecting the joint and its parent
-        float		  radius;               // used for detecting collisions for certain physical effects
-        bool		  isCollidable;         // when false, the joint position will not register a collision
-        float         touchForce;           // if being touched, what's the degree of influence? (0 to 1)
     };
 
-    AvatarJoint	joint[ NUM_AVATAR_JOINTS ];    
-    
-private:
-
-    void calculateBoneLengths();
-
+    AvatarJoint	joint[ NUM_AVATAR_JOINTS ];        
  };
 
 #endif
