@@ -8,6 +8,10 @@
 #ifndef hifi_Skeleton_h
 #define hifi_Skeleton_h
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <Orientation.h>
+
 enum AvatarJointID
 {
 	AVATAR_JOINT_NULL = -1,
@@ -45,10 +49,40 @@ public:
     Skeleton();
 
     void initialize();
-    void simulate(float deltaTime);
+    void initializeBodySprings();
+    void update(float deltaTime, Orientation orientation, glm::vec3 position);
     void render();
     
+    float getArmLength();
+    float getHeight();
+    float getPelvisStandingHeight();
+    float getPelvisFloatingHeight();
+    
+   struct AvatarJoint
+    {
+        AvatarJointID parent;               // which joint is this joint connected to?
+        glm::vec3	  position;				// the position at the "end" of the joint - in global space
+        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+        glm::vec3	  springyPosition;		// used for special effects (a 'flexible' variant of position)
+        glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
+        float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
+        glm::quat     rotation;             // this will eventually replace yaw, pitch and roll (and maybe orientation)
+        float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
+        float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
+        float		  roll;					// the roll Euler angle of the joint rotation off the parent
+        Orientation	  orientation;			// three orthogonal normals determined by yaw, pitch, roll
+        float		  length;				// the length of vector connecting the joint and its parent
+        float		  radius;               // used for detecting collisions for certain physical effects
+        bool		  isCollidable;         // when false, the joint position will not register a collision
+        float         touchForce;           // if being touched, what's the degree of influence? (0 to 1)
+    };
+
+    AvatarJoint	joint[ NUM_AVATAR_JOINTS ];    
+    
 private:
-};
+
+    void calculateBoneLengths();
+
+ };
 
 #endif

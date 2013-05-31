@@ -67,9 +67,9 @@ public:
     float            getHeadYawRate           ()                const { return _head.yawRate;}
     float            getBodyYaw               ()                const { return _bodyYaw;}
     bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
-    const glm::vec3& getHeadPosition          ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getSpringyHeadPosition   ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;}
-    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _joint[j].springyPosition;} 
+    const glm::vec3& getHeadPosition          ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getSpringyHeadPosition   ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;}
+    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _skeleton.joint[j].springyPosition;} 
     const glm::vec3& getBodyUpDirection       ()                const { return _orientation.getUp();}
     const glm::vec3& getVelocity              ()                const { return _velocity;}
     float            getSpeed                 ()                const { return _speed;}
@@ -96,6 +96,7 @@ private:
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
 
+/*
     struct AvatarJoint
     {
         AvatarJointID parent;               // which joint is this joint connected to?
@@ -114,6 +115,7 @@ private:
         bool		  isCollidable;         // when false, the joint position will not register a collision
         float         touchForce;           // if being touched, what's the degree of influence? (0 to 1)
     };
+*/
 
     Head        _head;
     Skeleton    _skeleton;
@@ -125,7 +127,7 @@ private:
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
+    //AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
@@ -153,7 +155,6 @@ private:
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     void renderBody(bool lookingInMirror);
     void initializeSkeleton();
-    void updateSkeleton();
     void initializeBodySprings();
     void updateBodySprings( float deltaTime );
     void calculateBoneLengths();
