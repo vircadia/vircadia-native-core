@@ -10,7 +10,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <Orientation.h>
 
 enum AvatarJointID
 {
@@ -50,7 +49,7 @@ public:
 
     void initialize();
     void initializeBodySprings();
-    void update(float deltaTime, Orientation orientation, glm::vec3 position);
+    void update(float deltaTime, const glm::quat&, glm::vec3 position);
     void render();
     
     float getArmLength();
@@ -67,10 +66,10 @@ public:
         glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
         float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
         glm::quat     rotation;             // this will eventually replace yaw, pitch and roll (and maybe orientation)
-        float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
-        float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
-        float		  roll;					// the roll Euler angle of the joint rotation off the parent
-        Orientation	  orientation;			// three orthogonal normals determined by yaw, pitch, roll
+        //float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
+        //float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
+        //float		  roll;					// the roll Euler angle of the joint rotation off the parent
+        //Orientation orientation;			// three orthogonal normals determined by yaw, pitch, roll
         float		  length;				// the length of vector connecting the joint and its parent
         float		  radius;               // used for detecting collisions for certain physical effects
         bool		  isCollidable;         // when false, the joint position will not register a collision

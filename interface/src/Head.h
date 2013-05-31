@@ -14,7 +14,6 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
-#include "Orientation.h"
 #include <SharedUtil.h>
 
 enum eyeContactTargets 
@@ -35,7 +34,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha);
-    void renderMohawk(bool lookingInMirror, glm::vec3 cameraPosition);
+    void renderMohawk(glm::vec3 cameraPosition);
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -46,7 +45,14 @@ public:
     void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
-        
+    
+    glm::quat getOrientation() const;
+    glm::quat getWorldAlignedOrientation () const;
+    
+    glm::vec3 getRightDirection() const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3 getUpDirection   () const { return getOrientation() * AVATAR_UP;    }
+    glm::vec3 getFrontDirection() const { return getOrientation() * AVATAR_FRONT; }
+    
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
     glm::vec3 caclulateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
@@ -91,8 +97,8 @@ private:
     float       _averageLoudness;
     float       _audioAttack;
     float       _returnSpringScale; //strength of return springs
-    Orientation _orientation;
     glm::vec3   _bodyRotation;
+    bool        _lookingInMirror;
     bool        _renderLookatVectors;
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
@@ -106,7 +112,7 @@ private:
     void renderEars();
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
-    void calculateGeometry( bool lookingInMirror);
+    void calculateGeometry();
     void determineIfLookingAtSomething();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);

@@ -10,6 +10,7 @@
 #define __hifi__SharedUtil__
 
 #include <stdint.h>
+#include <unistd.h>
 #include <math.h>
 
 #ifdef _WIN32
