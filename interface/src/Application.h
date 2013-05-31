@@ -65,6 +65,7 @@ public:
     
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
+    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }

@@ -156,8 +156,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
-    _voxels.setViewFrustum(&_viewFrustum);
-    
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -1417,8 +1415,6 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
-    _voxels.setViewerAvatar(&_myAvatar);
-    _voxels.setCamera(&_myCamera);
     
     _environment.init();
     
@@ -1429,6 +1425,7 @@ void Application::init() {
 
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
+    _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
     _myCamera.setModeShiftRate(1.0f);
@@ -2298,7 +2295,9 @@ QAction* Application::checkedVoxelModeAction() const {
 
 void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(newAgent));
+        Avatar* newAvatar = new Avatar(newAgent);
+        newAvatar->init();
+        newAgent->setLinkedData(newAvatar);
     }
 }
 

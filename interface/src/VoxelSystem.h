@@ -16,7 +16,6 @@
 #include <AgentData.h>
 #include <VoxelTree.h>
 #include <ViewFrustum.h>
-#include "Avatar.h"
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
@@ -27,7 +26,7 @@ const int NUM_CHILDREN = 8;
 
 class VoxelSystem : public AgentData {
 public:
-    VoxelSystem();
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -41,8 +40,6 @@ public:
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
-    void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
-    void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
 
     long int getVoxelsCreated();
@@ -114,8 +111,8 @@ private:
     static float _maxDistance;
     static float _minDistance;
 
-    Avatar* _viewerAvatar;
-    Camera* _camera;
+    float _treeScale;
+    int _maxVoxels;   
     VoxelTree* _tree;
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
@@ -143,9 +140,6 @@ private:
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
-    ProgramObject* _perlinModulateProgram;
-    GLuint _permutationNormalTextureID;
-
     ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
@@ -158,6 +152,9 @@ private:
 
     bool _voxelsDirty;
     
+    static ProgramObject* _perlinModulateProgram;
+    static GLuint _permutationNormalTextureID;
+
 public:
     void updateVBOs();
     void updateFullVBOs(); // all voxels in the VBO

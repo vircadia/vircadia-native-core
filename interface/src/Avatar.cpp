@@ -61,6 +61,8 @@ const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES           = 9;
 
+const float AVATAR_TREE_SCALE = 1.0f;
+const int MAX_VOXELS_PER_AVATAR = 2000;
 
 bool usingBigSphereCollisionTest = true;
 
@@ -93,7 +95,8 @@ Avatar::Avatar(Agent* owningAgent) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
     _cumulativeMouseYaw(0.0f),
-    _isMouseTurningRight(false)
+    _isMouseTurningRight(false),
+    _voxels(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR)
 {
     
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -117,6 +120,12 @@ Avatar::Avatar(Agent* owningAgent) :
 Avatar::~Avatar() {
     _headData = NULL;
     delete _balls;
+}
+
+void Avatar::init() {
+    _voxels.init();
+
+    _voxels.createVoxel(0.0f, 0.0f, 0.0f, 1.0f, 255, 0, 255);
 }
 
 void Avatar::reset() {
@@ -1131,6 +1140,15 @@ void Avatar::renderBody(bool lookingInMirror) {
     
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
+    
+    //  Render the body's voxels
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    glm::quat rotation = getOrientation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    _voxels.render(false);
+    glPopMatrix();
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {

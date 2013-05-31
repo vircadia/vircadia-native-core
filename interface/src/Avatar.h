@@ -19,6 +19,7 @@
 #include "Head.h"
 #include "Skeleton.h"
 #include "Transmitter.h"
+#include "VoxelSystem.h"
 
 enum DriveKeys
 {
@@ -46,6 +47,7 @@ public:
     Avatar(Agent* owningAgent = NULL);
     ~Avatar();
     
+    void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
@@ -147,6 +149,7 @@ private:
     Avatar*     _interactingOther;
     float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
+    VoxelSystem _voxels;
     
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
