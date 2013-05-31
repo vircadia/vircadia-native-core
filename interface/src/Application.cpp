@@ -50,7 +50,7 @@
 
 using namespace std;
 
-const bool TESTING_AVATAR_TOUCH = false;
+const bool TESTING_AVATAR_TOUCH = true;
 
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";

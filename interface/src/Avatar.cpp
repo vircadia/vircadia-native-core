@@ -677,9 +677,10 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
-            
+
             // check if the bounding spheres of the two avatars are colliding
             glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
+
             if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
                 //apply forces from collision
                 applyCollisionWithOtherAvatar(otherAvatar, deltaTime);
@@ -699,8 +700,8 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
 
 //detect collisions with other avatars and respond
 void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
-        
-    float bodyMomentum = 1.0f;
+                
+    //float bodyMomentum = 1.0f;
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
     // loop through the joints of each avatar to check for every possible collision
@@ -721,7 +722,6 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             glm::vec3 directionVector = vectorBetweenJoints / distanceBetweenJoints;
 
                             // push balls away from each other and apply friction
-                            
                             float penetration = 1.0f - (distanceBetweenJoints / (combinedRadius * COLLISION_RADIUS_SCALAR));
                             
                             glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * penetration * deltaTime;
@@ -763,8 +763,10 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
     }               // collidable
     
     //apply forces and frictions on the bodies of both avatars 
-                 _velocity += bodyPushForce;
-//otherAvatar->_velocity -= bodyPushForce;
+
+//                   _velocity += bodyPushForce;
+
+    //otherAvatar->_velocity -= bodyPushForce;
     //             _velocity *= bodyMomentum;
     //otherAvatar->_velocity *= bodyMomentum;        
 }
