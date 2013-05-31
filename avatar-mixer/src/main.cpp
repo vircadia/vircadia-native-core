@@ -52,8 +52,17 @@ void attachAvatarDataToAgent(Agent* newAgent) {
 }
 
 int main(int argc, const char* argv[]) {
+
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
+    
+    // Handle Local Domain testing with the --local command line
+    const char* local = "--local";
+    if (cmdOptionExists(argc, argv, local)) {
+        printf("Local Domain MODE!\n");
+        int ip = getLocalAddress();
+        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
     
     agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
     
@@ -84,7 +93,7 @@ int main(int argc, const char* argv[]) {
                     
                     // parse positional data from an agent
                     agentList->updateAgentWithData(avatarAgent, packetData, receivedBytes);
-                
+                case PACKET_HEADER_INJECT_AUDIO:
                     currentBufferPosition = broadcastPacket + 1;
                     
                     // send back a packet with other active agent data to this agent

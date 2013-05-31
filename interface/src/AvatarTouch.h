@@ -9,7 +9,9 @@
 #define __interface__AvatarTouch__
 
 #include <glm/glm.hpp>
-#include "Orientation.h"
+#include <glm/gtc/quaternion.hpp>
+
+#include <AvatarData.h>
 
 enum AvatarHandState
 {
@@ -31,8 +33,8 @@ public:
     void setHasInteractingOther(bool hasInteractingOther) { _hasInteractingOther = hasInteractingOther;}
     void setMyHandPosition     (glm::vec3   position    ) { _myHandPosition      = position;}
     void setYourHandPosition   (glm::vec3   position    ) { _yourHandPosition    = position;}
-    void setMyOrientation      (Orientation orientation ) { _myOrientation       = orientation;}
-    void setYourOrientation    (Orientation orientation ) { _yourOrientation     = orientation;}
+    void setMyOrientation      (glm::quat   orientation ) { _myOrientation       = orientation;}
+    void setYourOrientation    (glm::quat   orientation ) { _yourOrientation     = orientation;}
     void setMyBodyPosition     (glm::vec3   position    ) { _myBodyPosition      = position;}
     void setYourBodyPosition   (glm::vec3   position    ) { _yourBodyPosition    = position;}
     void setMyHandState        (int         state       ) { _myHandState         = state;}
@@ -46,17 +48,17 @@ public:
 
 private:
 
-    static const int NUM_POINTS = 100;
+    static const int NUM_PARTICLE_POINTS = 100;
     
     bool        _hasInteractingOther;
     bool        _weAreHoldingHands;
-    glm::vec3   _point [NUM_POINTS];
+    glm::vec3   _point [NUM_PARTICLE_POINTS];
     glm::vec3   _myBodyPosition;
     glm::vec3   _yourBodyPosition;
     glm::vec3   _myHandPosition;
     glm::vec3   _yourHandPosition;
-    Orientation _myOrientation;
-    Orientation _yourOrientation;
+    glm::quat   _myOrientation;
+    glm::quat   _yourOrientation;
     glm::vec3   _vectorBetweenHands;
     int         _myHandState;
     int         _yourHandState;
