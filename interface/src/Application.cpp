@@ -40,6 +40,7 @@
 #include <PerfStat.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
+#include <OctalCode.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -1319,8 +1320,19 @@ void Application::copyVoxels() {
     if (selectedNode) {
         selectedNode->printDebugDetails("selected voxel");
         _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
+        
+        // debug tree
+        _clipboardTree.printTreeForDebugging(_clipboardTree.rootNode);
     }
 }
+
+const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
+struct SendVoxelsOperataionArgs {
+    unsigned char* newBaseOctCode;
+    unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
+    int bufferInUse;
+
+};
 
 void Application::pasteVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -1328,17 +1340,56 @@ void Application::pasteVoxels() {
     if (selectedNode) {
         //selectedNode->printDebugDetails("selected voxel");
         
-        // First, create a temporary Paste Tree
-        VoxelTree _temporaryPasteTree;
+        // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
+        // the server as an set voxel message, this will also rebase the voxels to the new location
+        SendVoxelsOperataionArgs args;
+        args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+        *sequenceAt = 0;
+        args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+        args.newBaseOctCode = selectedNode->getOctalCode();
+        _clipboardTree.recurseTreeWithOperation(sendVoxelsOperataion, &args);
         
-        // Create a destination node to paste into
-        _temporaryPasteTree.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s, 0, 0, 0);
-        
-        // Paste into the temporary tree
-        destinationNode = _temporaryPasteTree.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        _temporaryPasteTree.copyFromTreeIntoSubTree(&_clipboardTree, destinationNode);
+        // If we have voxels left in the packet, then send the packet
+        if (args.bufferInUse > 1) {
+            AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+        }
     }
 }
+
+bool Application::sendVoxelsOperataion(VoxelNode* node, void* extraData) {
+    SendVoxelsOperataionArgs* args = (SendVoxelsOperataionArgs*)extraData;
+    if (node->isColored()) {
+        const int SIZE_OF_COLOR_DATA = 3;
+        const int RED_INDEX   = 0;
+        const int GREEN_INDEX = 1;
+        const int BLUE_INDEX  = 2;
+        unsigned char* nodeOctalCode = node->getOctalCode();
+        printOctalCode(nodeOctalCode);
+        unsigned char* rebasedCodeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
+        printOctalCode(rebasedCodeColorBuffer);
+        int rebasedCodeLength  = numberOfThreeBitSectionsInCode(rebasedCodeColorBuffer);
+        int bytesInRebasedCode = bytesRequiredForCodeLength(rebasedCodeLength);
+        int codeAndColorLength = bytesInRebasedCode + SIZE_OF_COLOR_DATA;
+
+        // copy the colors over
+        rebasedCodeColorBuffer[bytesInRebasedCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
+        rebasedCodeColorBuffer[bytesInRebasedCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
+        rebasedCodeColorBuffer[bytesInRebasedCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
+
+        // if we have room don't have room in the buffer, then send the previously generated message first
+        if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL, 1);
+            args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(int); // reset to command + sequence
+        }
+        
+        // copy this node's code color details into our buffer.
+        memcpy(&args->messageBuffer[args->bufferInUse], rebasedCodeColorBuffer, codeAndColorLength);
+        args->bufferInUse += codeAndColorLength;
+    }
+    return true; // keep going
+}
+
     
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();

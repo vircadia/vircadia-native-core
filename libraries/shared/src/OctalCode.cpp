@@ -224,6 +224,25 @@ unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels) {
     return newCode;
 }
 
-unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode) {
+unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, bool includeColorSpace) {
+    int oldCodeLength       = numberOfThreeBitSectionsInCode(originalOctalCode);
+    int newParentCodeLength = numberOfThreeBitSectionsInCode(newParentOctalCode);
+    int newCodeLength       = newParentCodeLength + oldCodeLength;
+    const int COLOR_SPACE   = 3;
+    int bufferLength        = newCodeLength + (includeColorSpace ? COLOR_SPACE : 0);
+    unsigned char* newCode  = new unsigned char[bufferLength];
+    *newCode = newCodeLength; // set the length byte
+
+    // copy parent code section first
+    for (int sectionFromParent = 0; sectionFromParent < newParentCodeLength; sectionFromParent++) {
+        char sectionValue = getOctalCodeSectionValue(newParentOctalCode, sectionFromParent);
+        setOctalCodeSectionValue(newCode, sectionFromParent, sectionValue);
+    }
+    // copy original code section next
+    for (int sectionFromOriginal = 0; sectionFromOriginal < oldCodeLength; sectionFromOriginal++) {
+        char sectionValue = getOctalCodeSectionValue(originalOctalCode, sectionFromOriginal);
+        setOctalCodeSectionValue(newCode, sectionFromOriginal + newParentCodeLength, sectionValue);
+    }
+    return newCode;
 }
 

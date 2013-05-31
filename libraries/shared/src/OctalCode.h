@@ -16,11 +16,10 @@ int bytesRequiredForCodeLength(unsigned char threeBitCodes);
 bool isDirectParentOfChild(unsigned char *parentOctalCode, unsigned char * childOctalCode);
 int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode);
 unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber);
-
-unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
-unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode);
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode);
-
+unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
+unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, 
+                               bool includeColorSpace = false);
 
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
 // but other than that these do the same thing.

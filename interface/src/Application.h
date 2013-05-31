@@ -160,6 +160,8 @@ private slots:
     void pasteVoxels();
    
 private:
+
+    static bool sendVoxelsOperataion(VoxelNode* node, void* extraData);
     
     void initMenu();
     void updateFrustumRenderModeAction();

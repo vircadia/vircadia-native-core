@@ -878,9 +878,22 @@ int VoxelTree::encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned
     }
 
     // write the octal code
-    int codeLength = bytesRequiredForCodeLength(*node->getOctalCode());
-    memcpy(outputBuffer,node->getOctalCode(),codeLength);
-
+    int codeLength;
+    if (chopLevels) {
+        unsigned char* newCode = chopOctalCode(node->getOctalCode(), chopLevels);
+        if (newCode) {
+            codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(newCode));
+            memcpy(outputBuffer, newCode, codeLength);
+            delete newCode;
+        } else {
+            codeLength = 1; // chopped to root!
+            *outputBuffer = 0; // root
+        }
+    } else {
+        codeLength = bytesRequiredForCodeLength(*node->getOctalCode());
+        memcpy(outputBuffer, node->getOctalCode(), codeLength);
+    }
+    
     outputBuffer += codeLength; // move the pointer
     bytesWritten += codeLength; // keep track of byte count
     availableBytes -= codeLength; // keep track or remaining space 
@@ -1183,6 +1196,7 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
     
     if (rebaseToRoot) {
         chopLevels = numberOfThreeBitSectionsInCode(startNode->getOctalCode());
+        printLog("copySubTreeIntoNewTree()...rebaseToRoot=true, chopLevels=%d\n", chopLevels);
     }
 
     static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
@@ -1218,7 +1232,7 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
                 MAX_VOXEL_PACKET_SIZE - 1, nodeBag, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
 
         // ask destination tree to read the bitstream
-        readBitstreamToTree(&outputBuffer[0], bytesWritten, WANT_COLOR, NO_EXISTS_BITS);
+        readBitstreamToTree(&outputBuffer[0], bytesWritten, WANT_COLOR, NO_EXISTS_BITS,destinationNode);
     }
 }
 
