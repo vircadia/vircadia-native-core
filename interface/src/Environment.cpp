@@ -58,11 +58,17 @@ void Environment::renderAtmospheres(Camera& camera) {
 }
 
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
-    // the "original gravity"
-    glm::vec3 gravity;
-    if (position.x > 0.0f && position.x < EDGE_SIZE_GROUND_PLANE && position.y > 0.0f &&
-            position.y < 3.0f && position.z > 0.0f && position.z < EDGE_SIZE_GROUND_PLANE) {
-        gravity = glm::vec3(0.0f, -1.0f, 0.0f);
+    //
+    // 'Default' gravity pulls you downward in Y when you are near the X/Z plane
+    const glm::vec3 DEFAULT_GRAVITY(0.f, -1.f, 0.f);
+    glm::vec3 gravity(DEFAULT_GRAVITY);
+    float DEFAULT_SURFACE_RADIUS = 30.f;
+    float gravityStrength;
+    
+    //  Weaken gravity with height
+    if (position.y > 0.f) {
+        gravityStrength = 1.f / powf((DEFAULT_SURFACE_RADIUS + position.y) / DEFAULT_SURFACE_RADIUS, 2.f);
+        gravity *= gravityStrength;
     }
     
     // get the lock for the duration of the call
@@ -71,12 +77,18 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
-            const float GRAVITY_RADIUS_MULTIPLIER = 1.5f;
-            if (glm::length(vector) < environmentData.getAtmosphereOuterRadius() * GRAVITY_RADIUS_MULTIPLIER) {
+            float surfaceRadius = environmentData.getAtmosphereInnerRadius();
+            if (glm::length(vector) <= surfaceRadius) {
+                //  At or inside a planet, gravity is as set for the planet
                 gravity += glm::normalize(vector) * environmentData.getGravity();
+            } else {
+                //  Outside a planet, the gravity falls off with distance 
+                gravityStrength = 1.f / powf(glm::length(vector) / surfaceRadius, 2.f);
+                gravity += glm::normalize(vector) * environmentData.getGravity() * gravityStrength;
             }
         }
     }
+    
     return gravity;
 }
 
