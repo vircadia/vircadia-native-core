@@ -111,52 +111,61 @@ void SerialInterface::renderLevels(int width, int height) {
         const int LEVEL_CORNER_Y = 200;
         
         // Draw the numeric degree/sec values from the gyros
-        sprintf(val, "Yaw   %4.1f", getLastYawRate());
+        sprintf(val, "Yaw    %4.1f", _estimatedRotation.y);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Pitch %4.1f", getLastPitchRate());
+        sprintf(val, "Pitch %4.1f", _estimatedRotation.x);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Roll  %4.1f", getLastRollRate());
+        sprintf(val, "Roll  %4.1f", _estimatedRotation.z);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "X     %4.3f", _lastAccelX);
+        sprintf(val, "X     %4.3f", _lastAcceleration.x - _gravity.x);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Y     %4.3f", _lastAccelY);
+        sprintf(val, "Y     %4.3f", _lastAcceleration.y - _gravity.y);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
-        sprintf(val, "Z     %4.3f", _lastAccelZ);
+        sprintf(val, "Z     %4.3f", _lastAcceleration.z - _gravity.z);
         drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
         
         //  Draw the levels as horizontal lines        
         const int LEVEL_CENTER = 150;
-        const float ACCEL_VIEW_SCALING = 50.f;
+        const float ACCEL_VIEW_SCALING = 10.f;
+        const float POSITION_SCALING = 400.f;
+
         glLineWidth(2.0);
-        glColor4f(1, 1, 1, 1);
         glBegin(GL_LINES);
-        // Gyro rates
+        // Rotation rates
+        glColor4f(1, 1, 1, 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastYawRate(), LEVEL_CORNER_Y - 3);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastPitchRate(), LEVEL_CORNER_Y + 12);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 27);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + getLastRollRate(), LEVEL_CORNER_Y + 27);
-        // Gyro Estimated Rotation
+        // Estimated Rotation
         glColor4f(0, 1, 1, 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.y, LEVEL_CORNER_Y - 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 14);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.z, LEVEL_CORNER_Y + 14);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.x, LEVEL_CORNER_Y + 14);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 29);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.x, LEVEL_CORNER_Y + 29);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + _estimatedRotation.z, LEVEL_CORNER_Y + 29);
 
-        
-        // Acceleration
+        // Acceleration rates
+        glColor4f(1, 1, 1, 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelX - _gravity.x)* ACCEL_VIEW_SCALING),
-                   LEVEL_CORNER_Y + 42);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.x - _gravity.x) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 42);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelY - _gravity.y) * ACCEL_VIEW_SCALING),
-                   LEVEL_CORNER_Y + 57);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.y - _gravity.y) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 57);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAccelZ - _gravity.z) * ACCEL_VIEW_SCALING),
-                   LEVEL_CORNER_Y + 72);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.z - _gravity.z) * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 72);
+        
+        // Estimated Position
+        glColor4f(0, 1, 1, 1);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 44);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedPosition.x * POSITION_SCALING), LEVEL_CORNER_Y + 44);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 59);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedPosition.y * POSITION_SCALING), LEVEL_CORNER_Y + 59);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 74);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedPosition.z * POSITION_SCALING), LEVEL_CORNER_Y + 74);
+
 
         glEnd();
         //  Draw green vertical centerline
@@ -202,10 +211,8 @@ void SerialInterface::readData(float deltaTime) {
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         
-        _lastAccelX = ((float) accelXRate) * LSB_TO_METERS_PER_SECOND2;
-        _lastAccelY = ((float) accelYRate) * LSB_TO_METERS_PER_SECOND2;
-        _lastAccelZ = ((float) -accelZRate) * LSB_TO_METERS_PER_SECOND2;
-        
+        _lastAcceleration = glm::vec3(accelXRate, accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
+                
         int rollRate, yawRate, pitchRate;
         
         convertHexToInt(sensorBuffer + 22, rollRate);
@@ -213,38 +220,41 @@ void SerialInterface::readData(float deltaTime) {
         convertHexToInt(sensorBuffer + 30, pitchRate);
         
         //  Convert the integer rates to floats
-        const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.        
-        _lastRollRate = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastYawRate = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastPitchRate = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        
+        const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
+        _lastRotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+
         //  Update raw rotation estimates
-        _estimatedRotation += deltaTime * glm::vec3(_lastRollRate - _averageGyroRates[0],
-                                                    _lastYawRate - _averageGyroRates[1],
-                                                    _lastPitchRate - _averageGyroRates[2]);
+        _estimatedRotation += deltaTime * (_lastRotationRates - _averageRotationRates);
+        
+        //  Update estimated position and velocity
+        float const DECAY_VELOCITY = 0.95f;
+        float const DECAY_POSITION = 0.95f;
+        _estimatedVelocity += deltaTime * (_lastAcceleration - _averageAcceleration);
+        _estimatedPosition += deltaTime * _estimatedVelocity;
+        _estimatedVelocity *= DECAY_VELOCITY;
+        _estimatedPosition *= DECAY_POSITION;
+        
+        //glm::vec3 baseline = glm::normalize(_gravity);
+        //glm::vec3 current = glm::normalize(_lastAcceleration);
         
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
-            _averageGyroRates[0] = _lastRollRate;
-            _averageGyroRates[1] = _lastYawRate;
-            _averageGyroRates[2] = _lastPitchRate;
-            _gravity.x = _lastAccelX;
-            _gravity.y = _lastAccelY;
-            _gravity.z = _lastAccelZ;
-
+            _averageRotationRates = _lastRotationRates;
+            _averageAcceleration = _lastAcceleration;
+            _gravity = _lastAcceleration;
         } 
         else {
             //  Cumulate long term average to (hopefully) take DC bias out of rotation rates
-            _averageGyroRates[0] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[0] +
-            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastRollRate;
-            _averageGyroRates[1] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[1] +
-            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastYawRate;
-            _averageGyroRates[2] =  (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageGyroRates[2] +
-            1.f/(float)LONG_TERM_RATE_SAMPLES * _lastPitchRate;
-
+            _averageRotationRates = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates
+                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastRotationRates;
+            _averageAcceleration = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration
+                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastAcceleration;
+            
             if (totalSamples < GRAVITY_SAMPLES) {
                 _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
-                1.f/(float)GRAVITY_SAMPLES * glm::vec3(_lastAccelX, _lastAccelY, _lastAccelZ);
+                1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
             }
         }
         
@@ -268,7 +278,12 @@ void SerialInterface::readData(float deltaTime) {
 void SerialInterface::resetAverages() {
     totalSamples = 0;
     _gravity = glm::vec3(0, 0, 0);
-    _averageGyroRates = glm::vec3(0, 0, 0);
+    _averageRotationRates = glm::vec3(0, 0, 0);
+    _averageAcceleration = glm::vec3(0, 0, 0);
+    _lastRotationRates = glm::vec3(0, 0, 0);
+    _estimatedRotation = glm::vec3(0, 0, 0);
+    _estimatedPosition = glm::vec3(0, 0, 0);
+    _estimatedVelocity = glm::vec3(0, 0, 0);
 }
 
 void SerialInterface::resetSerial() {
