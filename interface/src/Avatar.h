@@ -69,8 +69,8 @@ public:
     float            getBodyYaw               ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadPosition          ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getSpringyHeadPosition   ()                const { return _ball[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _ball[j].position;} 
+    const glm::vec3& getSpringyHeadPosition   ()                const { return _bodyBall[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _bodyBall[j].position;} 
 
     glm::vec3        getBodyRightDirection      ()                const { return getOrientation() * AVATAR_RIGHT; }
     glm::vec3        getBodyUpDirection         ()                const { return getOrientation() * AVATAR_UP; }
@@ -124,7 +124,7 @@ private:
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBall	_ball[ NUM_AVATAR_JOINTS ];
+    AvatarBall	_bodyBall[ NUM_AVATAR_JOINTS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
@@ -152,9 +152,9 @@ private:
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void renderBody(bool lookingInMirror);
-    void initializeBalls();
-    void resetBodySprings();
-    void updateBodySprings( float deltaTime );
+    void initializeBodyBalls();
+    void resetBodyBalls();
+    void updateBodyBalls( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
     void updateHandMovementAndTouching(float deltaTime);

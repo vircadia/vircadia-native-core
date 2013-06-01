@@ -83,10 +83,9 @@ void Skeleton::initialize() {
     }
 }
 
-
+// calculate positions and rotations of all bones by traversing the skeleton tree:
 void Skeleton::update(float deltaTime, const glm::quat& orientation, glm::vec3 position) {
 
-    // calculate positions of all bones by traversing the skeleton tree:
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         if (joint[b].parent == AVATAR_JOINT_NULL) {
             joint[b].rotation = orientation;
@@ -97,9 +96,7 @@ void Skeleton::update(float deltaTime, const glm::quat& orientation, glm::vec3 p
             joint[b].position = joint[ joint[b].parent ].position;
         }
 
-        // the following will be replaced by a proper rotation...close
         glm::vec3 rotatedJointVector = joint[b].rotation * joint[b].defaultPosePosition;
-
         joint[b].position += rotatedJointVector;
     }    
 }

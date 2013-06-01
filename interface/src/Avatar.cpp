@@ -99,12 +99,12 @@ Avatar::Avatar(Agent* owningAgent) :
 
     _skeleton.initialize();
     
-    initializeBalls();
+    initializeBodyBalls();
     
-    _height               = _skeleton.getHeight() + _ball[ AVATAR_JOINT_LEFT_HEEL ].radius + _ball[ AVATAR_JOINT_HEAD_BASE ].radius;
+    _height               = _skeleton.getHeight() + _bodyBall[ AVATAR_JOINT_LEFT_HEEL ].radius + _bodyBall[ AVATAR_JOINT_HEAD_BASE ].radius;
     _maxArmLength         = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _ball[ AVATAR_JOINT_LEFT_HEEL ].radius;
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _ball[ AVATAR_JOINT_LEFT_HEEL ].radius;
+    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ AVATAR_JOINT_LEFT_HEEL ].radius;
+    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ AVATAR_JOINT_LEFT_HEEL ].radius;
         
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
         
@@ -116,51 +116,51 @@ Avatar::Avatar(Agent* owningAgent) :
 }
 
 
-void Avatar::initializeBalls() {
+void Avatar::initializeBodyBalls() {
     
     for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
-        _ball[b].isCollidable   = true;
-        _ball[b].position       = glm::vec3(0.0, 0.0, 0.0);
-        _ball[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
-        _ball[b].radius         = 0.0;
-        _ball[b].touchForce     = 0.0;
-        _ball[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
+        _bodyBall[b].isCollidable   = true;
+        _bodyBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
+        _bodyBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
+        _bodyBall[b].radius         = 0.0;
+        _bodyBall[b].touchForce     = 0.0;
+        _bodyBall[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
     }
     
     // specify the radii of the joints
-    _ball[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
-    _ball[ AVATAR_JOINT_TORSO            ].radius = 0.065;
-    _ball[ AVATAR_JOINT_CHEST            ].radius = 0.08;
-    _ball[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
-    _ball[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
+    _bodyBall[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
+    _bodyBall[ AVATAR_JOINT_TORSO            ].radius = 0.065;
+    _bodyBall[ AVATAR_JOINT_CHEST            ].radius = 0.08;
+    _bodyBall[ AVATAR_JOINT_NECK_BASE        ].radius = 0.03;
+    _bodyBall[ AVATAR_JOINT_HEAD_BASE        ].radius = 0.07;
     
-    _ball[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.04;
-    _ball[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.03;
-    _ball[ AVATAR_JOINT_LEFT_ELBOW	     ].radius = 0.02;
-    _ball[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.02;
-    _ball[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
+    _bodyBall[ AVATAR_JOINT_LEFT_COLLAR      ].radius = 0.04;
+    _bodyBall[ AVATAR_JOINT_LEFT_SHOULDER    ].radius = 0.03;
+    _bodyBall[ AVATAR_JOINT_LEFT_ELBOW	     ].radius = 0.02;
+    _bodyBall[ AVATAR_JOINT_LEFT_WRIST       ].radius = 0.02;
+    _bodyBall[ AVATAR_JOINT_LEFT_FINGERTIPS  ].radius = 0.01;
     
-    _ball[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.04;
-    _ball[ AVATAR_JOINT_RIGHT_SHOULDER	 ].radius = 0.03;
-    _ball[ AVATAR_JOINT_RIGHT_ELBOW	     ].radius = 0.02;
-    _ball[ AVATAR_JOINT_RIGHT_WRIST	     ].radius = 0.02;
-    _ball[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
+    _bodyBall[ AVATAR_JOINT_RIGHT_COLLAR     ].radius = 0.04;
+    _bodyBall[ AVATAR_JOINT_RIGHT_SHOULDER	 ].radius = 0.03;
+    _bodyBall[ AVATAR_JOINT_RIGHT_ELBOW	     ].radius = 0.02;
+    _bodyBall[ AVATAR_JOINT_RIGHT_WRIST	     ].radius = 0.02;
+    _bodyBall[ AVATAR_JOINT_RIGHT_FINGERTIPS ].radius = 0.01;
     
-    _ball[ AVATAR_JOINT_LEFT_HIP		 ].radius = 0.04;
-    _ball[ AVATAR_JOINT_LEFT_KNEE		 ].radius = 0.025;
-    _ball[ AVATAR_JOINT_LEFT_HEEL		 ].radius = 0.025;
-    _ball[ AVATAR_JOINT_LEFT_TOES		 ].radius = 0.025;
+    _bodyBall[ AVATAR_JOINT_LEFT_HIP		 ].radius = 0.04;
+    _bodyBall[ AVATAR_JOINT_LEFT_KNEE		 ].radius = 0.025;
+    _bodyBall[ AVATAR_JOINT_LEFT_HEEL		 ].radius = 0.025;
+    _bodyBall[ AVATAR_JOINT_LEFT_TOES		 ].radius = 0.025;
     
-    _ball[ AVATAR_JOINT_RIGHT_HIP		 ].radius = 0.04;
-    _ball[ AVATAR_JOINT_RIGHT_KNEE		 ].radius = 0.025;
-    _ball[ AVATAR_JOINT_RIGHT_HEEL		 ].radius = 0.025;
-    _ball[ AVATAR_JOINT_RIGHT_TOES		 ].radius = 0.025;   
+    _bodyBall[ AVATAR_JOINT_RIGHT_HIP		 ].radius = 0.04;
+    _bodyBall[ AVATAR_JOINT_RIGHT_KNEE		 ].radius = 0.025;
+    _bodyBall[ AVATAR_JOINT_RIGHT_HEEL		 ].radius = 0.025;
+    _bodyBall[ AVATAR_JOINT_RIGHT_TOES		 ].radius = 0.025;   
     
     /*
     // to aid in hand-shaking and hand-holding, the right hand is not collidable
-    _ball[ AVATAR_JOINT_RIGHT_ELBOW	    ].isCollidable = false;
-    _ball[ AVATAR_JOINT_RIGHT_WRIST	    ].isCollidable = false;
-    _ball[ AVATAR_JOINT_RIGHT_FINGERTIPS].isCollidable = false; 
+    _bodyBall[ AVATAR_JOINT_RIGHT_ELBOW	    ].isCollidable = false;
+    _bodyBall[ AVATAR_JOINT_RIGHT_WRIST	    ].isCollidable = false;
+    _bodyBall[ AVATAR_JOINT_RIGHT_FINGERTIPS].isCollidable = false; 
     */
 }
 
@@ -296,8 +296,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         updateCollisionWithEnvironment();
     }
     
-    // update body springs
-    updateBodySprings(deltaTime);
+    // update body balls
+    updateBodyBalls(deltaTime);
     
     // test for avatar collision response with the big sphere
     if (usingBigSphereCollisionTest) {
@@ -449,29 +449,29 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
-    //apply the head lean values to the springy position...
+    //apply the head lean values to the ball positions...
     if (USING_HEAD_LEAN) {
         if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
             glm::vec3 headLean = 
                 right * _head.getLeanSideways() +
                 front * _head.getLeanForward();
                         
-            _ball[ AVATAR_JOINT_TORSO            ].position += headLean * 0.1f;
-            _ball[ AVATAR_JOINT_CHEST            ].position += headLean * 0.4f;
-            _ball[ AVATAR_JOINT_NECK_BASE        ].position += headLean * 0.7f;
-            _ball[ AVATAR_JOINT_HEAD_BASE        ].position += headLean * 1.0f;
+            _bodyBall[ AVATAR_JOINT_TORSO            ].position += headLean * 0.1f;
+            _bodyBall[ AVATAR_JOINT_CHEST            ].position += headLean * 0.4f;
+            _bodyBall[ AVATAR_JOINT_NECK_BASE        ].position += headLean * 0.7f;
+            _bodyBall[ AVATAR_JOINT_HEAD_BASE        ].position += headLean * 1.0f;
             
-            _ball[ AVATAR_JOINT_LEFT_COLLAR      ].position += headLean * 0.6f;
-            _ball[ AVATAR_JOINT_LEFT_SHOULDER    ].position += headLean * 0.6f;
-            _ball[ AVATAR_JOINT_LEFT_ELBOW       ].position += headLean * 0.2f;
-            _ball[ AVATAR_JOINT_LEFT_WRIST       ].position += headLean * 0.1f;
-            _ball[ AVATAR_JOINT_LEFT_FINGERTIPS  ].position += headLean * 0.0f;
+            _bodyBall[ AVATAR_JOINT_LEFT_COLLAR      ].position += headLean * 0.6f;
+            _bodyBall[ AVATAR_JOINT_LEFT_SHOULDER    ].position += headLean * 0.6f;
+            _bodyBall[ AVATAR_JOINT_LEFT_ELBOW       ].position += headLean * 0.2f;
+            _bodyBall[ AVATAR_JOINT_LEFT_WRIST       ].position += headLean * 0.1f;
+            _bodyBall[ AVATAR_JOINT_LEFT_FINGERTIPS  ].position += headLean * 0.0f;
             
-            _ball[ AVATAR_JOINT_RIGHT_COLLAR     ].position += headLean * 0.6f;
-            _ball[ AVATAR_JOINT_RIGHT_SHOULDER   ].position += headLean * 0.6f;
-            _ball[ AVATAR_JOINT_RIGHT_ELBOW      ].position += headLean * 0.2f;
-            _ball[ AVATAR_JOINT_RIGHT_WRIST      ].position += headLean * 0.1f;
-            _ball[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += headLean * 0.0f;
+            _bodyBall[ AVATAR_JOINT_RIGHT_COLLAR     ].position += headLean * 0.6f;
+            _bodyBall[ AVATAR_JOINT_RIGHT_SHOULDER   ].position += headLean * 0.6f;
+            _bodyBall[ AVATAR_JOINT_RIGHT_ELBOW      ].position += headLean * 0.2f;
+            _bodyBall[ AVATAR_JOINT_RIGHT_WRIST      ].position += headLean * 0.1f;
+            _bodyBall[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += headLean * 0.0f;
         }
      }
 
@@ -485,8 +485,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }    
 
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
-    _head.setPosition(_ball[ AVATAR_JOINT_HEAD_BASE ].position);
-    _head.setScale   (_ball[ AVATAR_JOINT_HEAD_BASE ].radius);
+    _head.setPosition(_bodyBall[ AVATAR_JOINT_HEAD_BASE ].position);
+    _head.setScale   (_bodyBall[ AVATAR_JOINT_HEAD_BASE ].radius);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, !_owningAgent);
     
@@ -502,15 +502,15 @@ void Avatar::checkForMouseRayTouching() {
 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
     
-        glm::vec3 directionToBodySphere = glm::normalize(_ball[b].position - _mouseRayOrigin);
+        glm::vec3 directionToBodySphere = glm::normalize(_bodyBall[b].position - _mouseRayOrigin);
         float dot = glm::dot(directionToBodySphere, _mouseRayDirection);
 
-        float range = _ball[b].radius * JOINT_TOUCH_RANGE;
+        float range = _bodyBall[b].radius * JOINT_TOUCH_RANGE;
 
         if (dot > (1.0f - range)) {
-            _ball[b].touchForce = (dot - (1.0f - range)) / range;
+            _bodyBall[b].touchForce = (dot - (1.0f - range)) / range;
         } else {
-            _ball[b].touchForce = 0.0;
+            _bodyBall[b].touchForce = 0.0;
         }
     }
 }
@@ -579,7 +579,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 
             _avatarTouch.setHasInteractingOther(true);
             _avatarTouch.setYourBodyPosition(_interactingOther->_position);   
-            _avatarTouch.setYourHandPosition(_interactingOther->_ball[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);   
+            _avatarTouch.setYourHandPosition(_interactingOther->_bodyBall[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);   
             _avatarTouch.setYourOrientation (_interactingOther->getOrientation());
             _avatarTouch.setYourHandState   (_interactingOther->_handState);   
             
@@ -650,7 +650,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         }
         
         _avatarTouch.setMyHandState(_handState);
-        _avatarTouch.setMyHandPosition(_ball[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
+        _avatarTouch.setMyHandPosition(_bodyBall[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
     }
 }
 
@@ -662,9 +662,9 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
     if (distanceToBigSphere < myBodyApproximateBoundingRadius + radius) {
         for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-            glm::vec3 vectorFromJointToBigSphereCenter(_ball[b].position - position);
+            glm::vec3 vectorFromJointToBigSphereCenter(_bodyBall[b].position - position);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
-            float combinedRadius = _ball[b].radius + radius;
+            float combinedRadius = _bodyBall[b].radius + radius;
             
             if (distanceToBigSphereCenter < combinedRadius)  {
                 jointCollision = true;
@@ -674,9 +674,9 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
                     glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
                     
-                    _ball[b].velocity += collisionForce * 0.0f * deltaTime;
+                    _bodyBall[b].velocity += collisionForce * 0.0f * deltaTime;
                     _velocity                 += collisionForce * 40.0f * deltaTime;
-                    _ball[b].position  = position + directionVector * combinedRadius;
+                    _bodyBall[b].position  = position + directionVector * combinedRadius;
                 }
             }
         }
@@ -762,16 +762,16 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
         
     // loop through the joints of each avatar to check for every possible collision
     for (int b=1; b<NUM_AVATAR_JOINTS; b++) {
-        if (_ball[b].isCollidable) {
+        if (_bodyBall[b].isCollidable) {
 
             for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
-                if (otherAvatar->_ball[o].isCollidable) {
+                if (otherAvatar->_bodyBall[o].isCollidable) {
                 
-                    glm::vec3 vectorBetweenJoints(_ball[b].position - otherAvatar->_ball[o].position);
+                    glm::vec3 vectorBetweenJoints(_bodyBall[b].position - otherAvatar->_bodyBall[o].position);
                     float distanceBetweenJoints = glm::length(vectorBetweenJoints);
                     
                     if (distanceBetweenJoints > 0.0) { // to avoid divide by zero
-                        float combinedRadius = _ball[b].radius + otherAvatar->_ball[o].radius;
+                        float combinedRadius = _bodyBall[b].radius + otherAvatar->_bodyBall[o].radius;
 
                         // check for collision
                         if (distanceBetweenJoints < combinedRadius * COLLISION_RADIUS_SCALAR)  {
@@ -783,8 +783,8 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                             glm::vec3 ballPushForce = directionVector * COLLISION_BALL_FORCE * penetration * deltaTime;
                             bodyPushForce +=          directionVector * COLLISION_BODY_FORCE * penetration * deltaTime;                                
 
-                                         _ball[b].velocity += ballPushForce;
-                            otherAvatar->_ball[o].velocity -= ballPushForce;
+                                         _bodyBall[b].velocity += ballPushForce;
+                            otherAvatar->_bodyBall[o].velocity -= ballPushForce;
                                                             
                         }// check for collision
                     }   // to avoid divide by zero
@@ -857,7 +857,7 @@ void Avatar::render(bool lookingInMirror) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = _ball[AVATAR_JOINT_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight;
+        glm::vec3 chatPosition = _bodyBall[AVATAR_JOINT_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -892,27 +892,27 @@ void Avatar::render(bool lookingInMirror) {
     }
 }
 
-void Avatar::resetBodySprings() {
+void Avatar::resetBodyBalls() {
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        _ball[b].position = _skeleton.joint[b].position;
-        _ball[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+        _bodyBall[b].position = _skeleton.joint[b].position;
+        _bodyBall[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 }
 
-void Avatar::updateBodySprings(float deltaTime) {
-    //  Check for a large repositioning, and re-initialize body springs if this has happened
+void Avatar::updateBodyBalls(float deltaTime) {
+    //  Check for a large repositioning, and re-initialize balls if this has happened
     const float BEYOND_BODY_SPRING_RANGE = 2.f;
-    if (glm::length(_position - _ball[AVATAR_JOINT_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
-        resetBodySprings();
+    if (glm::length(_position - _bodyBall[AVATAR_JOINT_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
+        resetBodyBalls();
     }
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        glm::vec3 springVector(_ball[b].position);
+        glm::vec3 springVector(_bodyBall[b].position);
         
         if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL) {
             springVector -= _position;
         }
         else {
-            springVector -= _ball[ _skeleton.joint[b].parent ].position;
+            springVector -= _bodyBall[ _skeleton.joint[b].parent ].position;
         }
         
         float length = glm::length(springVector);
@@ -921,23 +921,23 @@ void Avatar::updateBodySprings(float deltaTime) {
             glm::vec3 springDirection = springVector / length;
 			
             float force = (length - _skeleton.joint[b].length) * BODY_SPRING_FORCE * deltaTime;			
-            _ball[b].velocity -= springDirection * force;
+            _bodyBall[b].velocity -= springDirection * force;
             
             if (_skeleton.joint[b].parent != AVATAR_JOINT_NULL) {
-                _ball[_skeleton.joint[b].parent].velocity += springDirection * force;
+                _bodyBall[_skeleton.joint[b].parent].velocity += springDirection * force;
             }
         }
         
-        // apply tightness force - (causing springy position to be close to rigid body position)
-		_ball[b].velocity += (_skeleton.joint[b].position - _ball[b].position) * _ball[b].jointTightness * deltaTime;
+        // apply tightness force - (causing ball position to be close to skeleton joint position)
+		_bodyBall[b].velocity += (_skeleton.joint[b].position - _bodyBall[b].position) * _bodyBall[b].jointTightness * deltaTime;
         
         // apply decay
         float decay = 1.0 - BODY_SPRING_DECAY * deltaTime;
         if (decay > 0.0) {
-            _ball[b].velocity *= decay;
+            _bodyBall[b].velocity *= decay;
         }
         else {
-            _ball[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+            _bodyBall[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         
         /*
@@ -948,7 +948,7 @@ void Avatar::updateBodySprings(float deltaTime) {
         */
         
         //update position by velocity...
-        _ball[b].position += _ball[b].velocity * deltaTime;
+        _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
     }
 }
 
@@ -1033,21 +1033,21 @@ void Avatar::renderBody(bool lookingInMirror) {
             if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
                              || b == AVATAR_JOINT_RIGHT_WRIST
                              || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
-                glColor3f(SKIN_COLOR[0] + _ball[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _ball[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _ball[b].touchForce * 0.1f);
+                glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
             } else {
-                glColor4f(SKIN_COLOR[0] + _ball[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _ball[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _ball[b].touchForce * 0.1f,
+                glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
                           alpha);
             }
             
             if ((b != AVATAR_JOINT_HEAD_TOP  )
             &&  (b != AVATAR_JOINT_HEAD_BASE )) {
                 glPushMatrix();
-                glTranslatef(_ball[b].position.x, _ball[b].position.y, _ball[b].position.z);
-                glutSolidSphere(_ball[b].radius, 20.0f, 20.0f);
+                glTranslatef(_bodyBall[b].position.x, _bodyBall[b].position.y, _bodyBall[b].position.z);
+                glutSolidSphere(_bodyBall[b].radius, 20.0f, 20.0f);
                 glPopMatrix();
             }
             
@@ -1064,15 +1064,15 @@ void Avatar::renderBody(bool lookingInMirror) {
                 &&  (b != AVATAR_JOINT_RIGHT_SHOULDER)) {
                     glColor3fv(DARK_SKIN_COLOR);
                     
-                    float r1 = _ball[_skeleton.joint[b].parent ].radius * 0.8;
-                    float r2 = _ball[b                ].radius * 0.8;
+                    float r1 = _bodyBall[_skeleton.joint[b].parent ].radius * 0.8;
+                    float r2 = _bodyBall[b                ].radius * 0.8;
                     if (b == AVATAR_JOINT_HEAD_BASE) {
                         r1 *= 0.5f;
                     }
                     renderJointConnectingCone
                     (
-                     _ball[_skeleton.joint[b].parent ].position,
-                     _ball[b                         ].position, r2, r2
+                     _bodyBall[_skeleton.joint[b].parent ].position,
+                     _bodyBall[b                         ].position, r2, r2
                      );
                 }
             } 
