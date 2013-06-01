@@ -1098,7 +1098,7 @@ void Application::idle() {
                 }
             }
         }
-
+        
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
         _audio.setLastAcceleration(_myAvatar.getThrust());
