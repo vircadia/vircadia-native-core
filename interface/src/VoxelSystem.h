@@ -87,6 +87,8 @@ protected:
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    virtual void bindProgram(bool texture);
+    virtual void releaseProgram(bool texture);
     
 private:
     // disallow copying of VoxelSystem objects

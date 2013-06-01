@@ -88,7 +88,8 @@ Avatar::Avatar(Agent* owningAgent) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
     _cumulativeMouseYaw(0.0f),
-    _isMouseTurningRight(false)
+    _isMouseTurningRight(false),
+    _voxels(this)
 {
     
     // give the pointer to our head to inherited _headData variable from AvatarData

@@ -625,10 +625,7 @@ void VoxelSystem::render(bool texture) {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    if (texture) {
-        _perlinModulateProgram->bind();
-        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-    }
+    bindProgram(texture);
     
     // for performance, disable blending and enable backface culling
     glDisable(GL_BLEND);
@@ -643,10 +640,7 @@ void VoxelSystem::render(bool texture) {
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
-    if (texture) {
-        _perlinModulateProgram->release();
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
+    releaseProgram(texture);
     
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -661,6 +655,20 @@ void VoxelSystem::render(bool texture) {
     glPopMatrix();
     
     pthread_mutex_unlock(&_bufferWriteLock);
+}
+
+void VoxelSystem::bindProgram(bool texture) {
+    if (texture) {
+        _perlinModulateProgram->bind();
+        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+    }
+}
+
+void VoxelSystem::releaseProgram(bool texture) {
+    if (texture) {
+        _perlinModulateProgram->release();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 int VoxelSystem::_nodeCount = 0;

@@ -11,10 +11,12 @@
 
 #include "VoxelSystem.h"
 
+class Avatar;
+
 class AvatarVoxelSystem : public VoxelSystem {
 public:
     
-    AvatarVoxelSystem();
+    AvatarVoxelSystem(Avatar* avatar);
     virtual ~AvatarVoxelSystem();
     
     virtual void init();
@@ -26,8 +28,12 @@ protected:
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    virtual void bindProgram(bool texture);
+    virtual void releaseProgram(bool texture);
     
 private:
+    
+    Avatar* _avatar;
     
     GLubyte* _readBoneIndicesArray;
     GLfloat* _readBoneWeightsArray;
@@ -37,7 +43,10 @@ private:
     GLuint _vboBoneIndicesID;
     GLuint _vboBoneWeightsID;
     
-    ProgramObject* _skinProgram;
+    static ProgramObject* _skinProgram;
+    static int _boneMatricesLocation;
+    static int _boneIndicesLocation;
+    static int _boneWeightsLocation;
 };
 
 #endif /* defined(__interface__AvatarVoxelSystem__) */
