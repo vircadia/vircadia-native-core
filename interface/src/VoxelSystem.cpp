@@ -231,10 +231,8 @@ void VoxelSystem::cleanupRemovedVoxels() {
 }
 
 void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
-    int bytesOfVertices = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLfloat);
-    int bytesOfColors   = (_voxelsInWriteArrays * VERTEX_POINTS_PER_VOXEL) * sizeof(GLubyte);
-    memcpy(_readVerticesArray, _writeVerticesArray, bytesOfVertices);
-    memcpy(_readColorsArray,   _writeColorsArray,   bytesOfColors  );
+    copyWrittenDataSegmentToReadArrays(0, _voxelsInWriteArrays - 1);
+
     _voxelsInReadArrays = _voxelsInWriteArrays;
     
     // clear our dirty flags
@@ -261,45 +259,35 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
             if (!thisVoxelDirty) {
                 // If we got here because because this voxel is NOT dirty, so the last dirty voxel was the one before
                 // this one and so that's where the "segment" ends
-                segmentEnd = i - 1; 
+                copyWrittenDataSegmentToReadArrays(segmentStart, i - 1);
                 inSegment = false;
-                int segmentLength = (segmentEnd - segmentStart) + 1;
-
-                GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-                GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-                GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
-
-                segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-                segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-                GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
             }
         }
     }
     
     // if we got to the end of the array, and we're in an active dirty segment...
     if (inSegment) {
-        segmentEnd = _voxelsInWriteArrays - 1; 
-        int segmentLength = (segmentEnd - segmentStart) + 1;
-
-        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
-
-        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
+        copyWrittenDataSegmentToReadArrays(segmentStart, _voxelsInWriteArrays - 1);
     }
 
     // update our length
     _voxelsInReadArrays = _voxelsInWriteArrays;
+}
+
+void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
+    int segmentLength = (segmentEnd - segmentStart) + 1;
+
+    GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+    GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+    GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
+
+    segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+    segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+    GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
@@ -364,12 +352,7 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
 
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
-        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-            GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-            *(writeColorsAt  +j) = node->getColor()[j % 3];
-        }
+        updateNodeInArrays(nodeIndex, startVertex, voxelScale, node->getColor());
         node->setBufferIndex(nodeIndex);
         _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
@@ -415,15 +398,21 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
 
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
-        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-            GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-            *(writeColorsAt  +j) = node->getColor()[j % 3];
-        }
+        updateNodeInArrays(nodeIndex, startVertex, voxelScale, node->getColor());
+        
         return 1; // updated!
     }
     return 0; // not-updated
+}
+
+void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+                                     float voxelScale, const nodeColor& color) {
+    for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
+        GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+        GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+        *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
+        *(writeColorsAt  +j) = color[j % 3];
+    }
 }
 
 ProgramObject* VoxelSystem::_perlinModulateProgram = 0;
@@ -546,20 +535,7 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::updateFullVBOs() {
-    glBufferIndex segmentStart = 0;
-    glBufferIndex segmentEnd = _voxelsInReadArrays;
-
-    int segmentLength = (segmentEnd - segmentStart) + 1;
-    GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-    segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
+    updateVBOSegment(0, _voxelsInReadArrays);
     
     // consider the _readVoxelDirtyArray[] clean!
     memset(_readVoxelDirtyArray, false, _voxelsInReadArrays * sizeof(bool));
@@ -581,39 +557,17 @@ void VoxelSystem::updatePartialVBOs() {
             if (!thisVoxelDirty) {
                 // If we got here because because this voxel is NOT dirty, so the last dirty voxel was the one before
                 // this one and so that's where the "segment" ends
-                segmentEnd = i - 1; 
+                updateVBOSegment(segmentStart, i - 1);
                 inSegment = false;
-                int segmentLength = (segmentEnd - segmentStart) + 1;
-                GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-                GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-                GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-                glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-                segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-                segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-                GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-                glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-                glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
             }
             _readVoxelDirtyArray[i] = false; // consider us clean!
         }
     }
     
     // if we got to the end of the array, and we're in an active dirty segment...
-    if (inSegment) {
-        segmentEnd = _voxelsInReadArrays - 1; 
+    if (inSegment) {    
+        updateVBOSegment(segmentStart, _voxelsInReadArrays - 1);
         inSegment = false;
-        int segmentLength = (segmentEnd - segmentStart) + 1;
-        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
     }
 }
 
@@ -633,6 +587,20 @@ void VoxelSystem::updateVBOs() {
         _readRenderFullVBO = false;
     }
     _callsToTreesToArrays = 0; // clear it
+}
+
+void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
+    int segmentLength = (segmentEnd - segmentStart) + 1;
+    GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+    GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+    GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
+    segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+    segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+    GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
 }
 
 void VoxelSystem::render(bool texture) {

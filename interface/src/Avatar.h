@@ -13,13 +13,13 @@
 #include <AvatarData.h>
 #include "world.h"
 #include "AvatarTouch.h"
+#include "AvatarVoxelSystem.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
 #include "Head.h"
 #include "Skeleton.h"
 #include "Transmitter.h"
-#include "VoxelSystem.h"
 
 enum DriveKeys
 {
@@ -149,7 +149,8 @@ private:
     Avatar*     _interactingOther;
     float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
-    VoxelSystem _voxels;
+    
+    AvatarVoxelSystem _voxels;
     
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)

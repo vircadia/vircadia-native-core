@@ -57,9 +57,6 @@ const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES           = 9;
 
-const float AVATAR_TREE_SCALE = 1.0f;
-const int MAX_VOXELS_PER_AVATAR = 2000;
-
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
@@ -91,8 +88,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
     _cumulativeMouseYaw(0.0f),
-    _isMouseTurningRight(false),
-    _voxels(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR)
+    _isMouseTurningRight(false)
 {
     
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -1153,7 +1149,8 @@ void Avatar::renderBody(bool lookingInMirror) {
     
     //  Render the body's voxels
     glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
+    const glm::vec3& voxelPosition = _joint[AVATAR_JOINT_PELVIS].springyPosition;
+    glTranslatef(voxelPosition.x, voxelPosition.y, voxelPosition.z);
     glm::quat rotation = getOrientation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);

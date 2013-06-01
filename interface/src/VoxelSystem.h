@@ -31,11 +31,9 @@ public:
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
-    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; };
-
-    void init();
+    virtual void init();
     void simulate(float deltaTime) { };
-    void render(bool texture);
+    virtual void render(bool texture);
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
@@ -80,6 +78,16 @@ public:
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
+
+protected:
+
+    int _maxVoxels;
+    
+    virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+                                    float voxelScale, const nodeColor& color);
+    virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    
 private:
     // disallow copying of VoxelSystem objects
     VoxelSystem(const VoxelSystem&);
@@ -107,12 +115,13 @@ private:
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();
 
+    void updateVBOs();
+
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
 
-    float _treeScale;
-    int _maxVoxels;   
+    float _treeScale;   
     VoxelTree* _tree;
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
@@ -121,8 +130,8 @@ private:
     bool* _writeVoxelDirtyArray;
     bool* _readVoxelDirtyArray;
     unsigned long _voxelsUpdated;
-    unsigned long _voxelsInWriteArrays;
     unsigned long _voxelsInReadArrays;
+    unsigned long _voxelsInWriteArrays;
     unsigned long _unusedArraySpace;
     
     bool _writeRenderFullVBO;
@@ -140,7 +149,6 @@ private:
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
-    ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
 
@@ -149,17 +157,14 @@ private:
 
     void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays(bool fullVBOs);
+    
+    void updateFullVBOs(); // all voxels in the VBO
+    void updatePartialVBOs(); // multiple segments, only dirty voxels
 
     bool _voxelsDirty;
     
     static ProgramObject* _perlinModulateProgram;
     static GLuint _permutationNormalTextureID;
-
-public:
-    void updateVBOs();
-    void updateFullVBOs(); // all voxels in the VBO
-    void updatePartialVBOs(); // multiple segments, only dirty voxels
-    
 };
 
 #endif
