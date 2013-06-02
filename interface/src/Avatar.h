@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <AvatarData.h>
+#include <QSettings>
 #include "world.h"
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
@@ -95,9 +96,9 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     
-    //read/write avatar data
-    void writeAvatarDataToFile();
-    void readAvatarDataFromFile();
+    // get/set avatar data
+    void setData(QSettings *set);
+    void getData(QSettings *set);
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
