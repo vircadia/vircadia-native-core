@@ -1185,18 +1185,11 @@ bool VoxelTree::countVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
-
-    printLog("copySubTreeIntoNewTree()...\n");
-
     VoxelNodeBag nodeBag;
-    // If we were given a specific node, start from there, otherwise start from root
     nodeBag.insert(startNode);
-    
     int chopLevels = 0;
-    
     if (rebaseToRoot) {
         chopLevels = numberOfThreeBitSectionsInCode(startNode->getOctalCode());
-        printLog("copySubTreeIntoNewTree()...rebaseToRoot=true, chopLevels=%d\n", chopLevels);
     }
 
     static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
@@ -1215,8 +1208,6 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
 }
 
 void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
-    printLog("copyFromTreeIntoSubTree()...\n");
-
     VoxelNodeBag nodeBag;
     // If we were given a specific node, start from there, otherwise start from root
     nodeBag.insert(sourceTree->rootNode);

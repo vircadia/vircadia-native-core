@@ -1297,7 +1297,6 @@ bool Application::sendVoxelsOperataion(VoxelNode* node, void* extraData) {
     SendVoxelsOperataionArgs* args = (SendVoxelsOperataionArgs*)extraData;
     if (node->isColored()) {
         unsigned char* nodeOctalCode = node->getOctalCode();
-        printOctalCode(nodeOctalCode);
         
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
@@ -1307,7 +1306,6 @@ bool Application::sendVoxelsOperataion(VoxelNode* node, void* extraData) {
         // If the newBase is NULL, then don't rebase
         if (args->newBaseOctCode) {
             codeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
-            printOctalCode(codeColorBuffer);
             codeLength  = numberOfThreeBitSectionsInCode(codeColorBuffer);
             bytesInCode = bytesRequiredForCodeLength(codeLength);
             codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
@@ -1327,7 +1325,7 @@ bool Application::sendVoxelsOperataion(VoxelNode* node, void* extraData) {
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL, 1);
-            args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(int); // reset to command + sequence
+            args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
         // copy this node's code color details into our buffer.
@@ -1359,6 +1357,8 @@ void Application::exportVoxels() {
         exportTree.writeToFileV2(fileName);
     }
 
+    // restore the main window's active state
+    _window->activateWindow();
 }
 
 void Application::importVoxels() {
@@ -1394,9 +1394,9 @@ void Application::importVoxels() {
     }
 
     importVoxels.recurseTreeWithOperation(sendVoxelsOperataion, &args);
-    
+
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > 1) {
+    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
         AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
     }
     
@@ -1404,29 +1404,24 @@ void Application::importVoxels() {
         delete calculatedOctCode;
     }
 
+    // restore the main window's active state
+    _window->activateWindow();
 }
 
 void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    printf("copyVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
-        //selectedNode->printDebugDetails("selected voxel");
-        
         // clear the clipboard first...
         _clipboardTree.eraseAllVoxels();
 
         // then copy onto it
         _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
-        
-        // debug tree
-        //_clipboardTree.printTreeForDebugging(_clipboardTree.rootNode);
     }
 }
 
 void Application::pasteVoxels() {
     unsigned char* calculatedOctCode = NULL;
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    printf("pasteVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
 
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
@@ -1437,19 +1432,18 @@ void Application::pasteVoxels() {
     args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details.
+    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+    // target octalCode for where the user is pointing.
     if (selectedNode) {
-        //selectedNode->printDebugDetails("selected voxel");
         args.newBaseOctCode = selectedNode->getOctalCode();
     } else {
-        printf("pasteVoxels() no voxel at current location, calculate octCode... \n");
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
     _clipboardTree.recurseTreeWithOperation(sendVoxelsOperataion, &args);
     
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > 1) {
+    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
         AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
     }
     
