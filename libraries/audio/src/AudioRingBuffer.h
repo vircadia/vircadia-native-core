@@ -19,6 +19,7 @@
 #include "AgentData.h"
 
 const int STREAM_IDENTIFIER_NUM_BYTES = 8;
+typedef std::map<uint16_t, stk::FreeVerb*> FreeVerbAgentMap;
 
 class AudioRingBuffer : public AgentData {
 public:
@@ -35,7 +36,7 @@ public:
     
     int16_t* getBuffer() const { return _buffer; }
     
-    std::map<uint16_t, stk::FreeVerb*>& getFreeVerbs() { return _freeVerbs; }
+    FreeVerbAgentMap& getFreeVerbs() { return _freeVerbs; }
     
     bool isStarted() const { return _started; }
     void setStarted(bool started) { _started = started; }
@@ -67,7 +68,7 @@ private:
     bool _shouldBeAddedToMix;
     bool _shouldLoopbackForAgent;
     unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
-    std::map<uint16_t, stk::FreeVerb*> _freeVerbs;
+    FreeVerbAgentMap _freeVerbs;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

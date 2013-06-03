@@ -248,7 +248,6 @@ int main(int argc, const char* argv[]) {
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 
-                                typedef std::map<uint16_t, stk::FreeVerb*> FreeVerbAgentMap;
                                 FreeVerbAgentMap& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
                                 FreeVerbAgentMap::iterator freeVerbIterator = agentFreeVerbs.find(otherAgent->getAgentID());
                                 
