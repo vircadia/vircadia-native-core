@@ -17,6 +17,9 @@
 
 const int STREAM_IDENTIFIER_NUM_BYTES = 8;
 
+const char INJECT_AUDIO_AT_POINT_COMMAND = 'P';
+const char INJECT_AUDIO_AT_CUBE_COMMAND = 'C';
+
 class AudioRingBuffer : public AgentData {
 public:
     AudioRingBuffer(int ringSamples, int bufferSamples);
@@ -53,6 +56,7 @@ private:
     int _ringBufferLengthSamples;
     int _bufferLengthSamples;
     glm::vec3 _position;
+    float _cubeSideLength;
     float _attenuationRatio;
     float _bearing;
     int16_t* _nextOutput;

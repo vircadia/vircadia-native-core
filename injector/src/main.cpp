@@ -32,10 +32,11 @@ bool loopAudio = true;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
-const char *allowedParameters = ":rb::t::c::a::f::d:";
+const char *allowedParameters = ":rb::t::c::a::f::d::s:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
-float triggerDistance = 0;
+float triggerDistance = 0.0f;
+float cubeSideLength = 0.0f;
 
 void usage(void) {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
@@ -46,6 +47,7 @@ void usage(void) {
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
     std::cout << "   -d FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
+    std::cout << "   -s FLOAT                       Length of side of cube audio source. If not specified injected audio is point source" << std::endl;
 }
 
 bool processParameters(int parameterCount, char* parameterData[]) {
@@ -91,6 +93,10 @@ bool processParameters(int parameterCount, char* parameterData[]) {
             case 'd':
                 ::triggerDistance = atof(optarg);
                 std::cout << "[DEBUG] Trigger distance: " << optarg << std::endl;
+                break;
+            case 's':
+                ::cubeSideLength = atof(optarg);
+                std::cout << "[DEBUG] Cube side length: " << optarg << std::endl;
                 break;
             default:
                 usage();
@@ -163,6 +169,11 @@ int main(int argc, char* argv[]) {
             injector.setPosition(glm::vec3(::floatArguments[0], ::floatArguments[1], ::floatArguments[2]));
             injector.setBearing(*(::floatArguments + 3));
             injector.setVolume(::volume);
+            
+            if (::cubeSideLength > 0) {
+                // if we were passed a cube side length, give that to the injector
+                injector.setCubeSideLength(::cubeSideLength);
+            }
 
             // register the callback for agent data creation
             agentList->linkedDataCreateCallback = createAvatarDataForAgent;

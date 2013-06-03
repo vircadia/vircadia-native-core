@@ -19,6 +19,7 @@ const int MAX_INJECTOR_VOLUME = 0xFF;
 
 AudioInjector::AudioInjector(const char* filename) :
     _position(),
+    _cubeSideLength(0.0f),
     _bearing(0),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
@@ -48,6 +49,7 @@ AudioInjector::AudioInjector(const char* filename) :
 AudioInjector::AudioInjector(int maxNumSamples) :
     _numTotalSamples(maxNumSamples),
     _position(),
+    _cubeSideLength(0.0f),
     _bearing(0),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
@@ -75,7 +77,9 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-        unsigned char *currentPacketPtr = dataPacket + 1;
+        // add the correct command for point source or cube of sound
+        dataPacket[1] = (_cubeSideLength > 0) ? INJECT_AUDIO_AT_CUBE_COMMAND : INJECT_AUDIO_AT_POINT_COMMAND;
+        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_HEADER) + sizeof(INJECT_AUDIO_AT_POINT_COMMAND);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
@@ -83,6 +87,13 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);
+        
+        if (_cubeSideLength > 0) {
+            // if we have a cube half height we need to send it here
+            // this tells the mixer how much volume the injected audio will occupy
+            memcpy(currentPacketPtr, &_cubeSideLength, sizeof(_cubeSideLength));
+            currentPacketPtr += sizeof(_cubeSideLength);
+        }
         
         *currentPacketPtr = _volume;
         currentPacketPtr++;
