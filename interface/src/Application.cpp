@@ -288,7 +288,7 @@ void Application::paintGL() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
