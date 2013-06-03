@@ -18,7 +18,7 @@ void Skeleton::initialize() {
         joint[b].parent              = AVATAR_JOINT_NULL;
         joint[b].position            = glm::vec3(0.0, 0.0, 0.0);
         joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0);
-        joint[b].rotation            = glm::quat(0.0f, 0.0f, 0.0f, 0.0f);
+        joint[b].rotation            = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
         joint[b].length              = 0.0;
     }
     
@@ -77,9 +77,18 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_RIGHT_HEEL       ].defaultPosePosition = glm::vec3( -0.01, -0.22,   0.08 );
     joint[ AVATAR_JOINT_RIGHT_TOES       ].defaultPosePosition = glm::vec3(  0.00, -0.03,  -0.05 );
              
-    // calculate bone length
+    // calculate bone length, absolute positions
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         joint[b].length = glm::length(joint[b].defaultPosePosition);
+        
+        if (joint[b].parent == AVATAR_JOINT_NULL) {
+            joint[b].absoluteDefaultPosePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+        } else {
+            joint[b].absoluteDefaultPosePosition = joint[ joint[b].parent ].absoluteDefaultPosePosition;
+        }
+        
+        glm::vec3 rotatedJointVector = joint[b].defaultPosePosition;
+        joint[b].absoluteDefaultPosePosition += rotatedJointVector;
     }
 }
 

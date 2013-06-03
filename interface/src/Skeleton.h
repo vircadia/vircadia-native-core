@@ -58,11 +58,12 @@ public:
     
     struct AvatarJoint
     {
-        AvatarJointID parent;               // which joint is this joint connected to?
-        glm::vec3	  position;				// the position at the "end" of the joint - in global space
-        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-        glm::quat     rotation;             // the parent-relative rotation (orientation) of the joint as a quaternion
-        float		  length;				// the length of vector connecting the joint and its parent
+        AvatarJointID parent;                       // which joint is this joint connected to?
+        glm::vec3	  position;				        // the position at the "end" of the joint - in global space
+        glm::vec3	  defaultPosePosition;	        // the parent relative position when the avatar is in the "T-pose"
+        glm::vec3     absoluteDefaultPosePosition;  // the absolute position when the avatar is in the "T-pose"
+        glm::quat     rotation;                     // the parent-relative rotation (orientation) of the joint as a quaternion
+        float		  length;				        // the length of vector connecting the joint and its parent
     };
 
     AvatarJoint	joint[ NUM_AVATAR_JOINTS ];        

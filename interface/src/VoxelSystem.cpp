@@ -415,6 +415,11 @@ void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& s
     }
 }
 
+glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const {
+    const float* identityVertex = identityVertices + index * 3;
+    return startVertex + glm::vec3(identityVertex[0], identityVertex[1], identityVertex[2]) * voxelScale;
+}
+
 ProgramObject* VoxelSystem::_perlinModulateProgram = 0;
 GLuint VoxelSystem::_permutationNormalTextureID = 0;
 
@@ -609,8 +614,8 @@ void VoxelSystem::render(bool texture) {
     // get the lock so that the update thread won't change anything
     pthread_mutex_lock(&_bufferWriteLock);
     
-    glPushMatrix();
     updateVBOs();
+    
     // tell OpenGL where to find vertex and color information
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
@@ -625,7 +630,7 @@ void VoxelSystem::render(bool texture) {
     glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    bindProgram(texture);
+    applyScaleAndBindProgram(texture);
     
     // for performance, disable blending and enable backface culling
     glDisable(GL_BLEND);
@@ -633,14 +638,13 @@ void VoxelSystem::render(bool texture) {
 
     // draw the number of voxels we have
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-    glScalef(_treeScale, _treeScale, _treeScale);
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
         36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
-    releaseProgram(texture);
+    removeScaleAndReleaseProgram(texture);
     
     // deactivate vertex and color arrays after drawing
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -650,21 +654,24 @@ void VoxelSystem::render(bool texture) {
     // bind with 0 to switch back to normal operation
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // scale back down to 1 so heads aren't massive
-    glPopMatrix();
     
     pthread_mutex_unlock(&_bufferWriteLock);
 }
 
-void VoxelSystem::bindProgram(bool texture) {
+void VoxelSystem::applyScaleAndBindProgram(bool texture) {
+    glPushMatrix();
+    glScalef(_treeScale, _treeScale, _treeScale);
+
     if (texture) {
         _perlinModulateProgram->bind();
         glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
     }
 }
 
-void VoxelSystem::releaseProgram(bool texture) {
+void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
+    // scale back down to 1 so heads aren't massive
+    glPopMatrix();
+    
     if (texture) {
         _perlinModulateProgram->release();
         glBindTexture(GL_TEXTURE_2D, 0);

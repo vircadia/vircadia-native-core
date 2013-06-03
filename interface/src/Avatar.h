@@ -66,7 +66,7 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
-    
+    const Skeleton&  getSkeleton              ()                const { return _skeleton;}
     float            getHeadYawRate           ()                const { return _head.yawRate;}
     float            getBodyYaw               ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
@@ -97,6 +97,9 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     
+    //  Get the position/rotation of a single body ball
+    void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
+    
     //read/write avatar data
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
@@ -108,7 +111,8 @@ private:
 
     struct AvatarBall
     {
-        glm::vec3 position;      
+        glm::vec3 position;
+        glm::quat rotation;      
         glm::vec3 velocity;      
         float     jointTightness;  
         float     radius;               

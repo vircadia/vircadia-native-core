@@ -81,14 +81,20 @@ public:
 
 protected:
 
-    int _maxVoxels;
+    float _treeScale; 
+    int _maxVoxels;      
+    VoxelTree* _tree;
+    
+    glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
+    
+    void setupNewVoxelsForDrawing();
     
     virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
-    virtual void bindProgram(bool texture);
-    virtual void releaseProgram(bool texture);
+    virtual void applyScaleAndBindProgram(bool texture);
+    virtual void removeScaleAndReleaseProgram(bool texture);
     
 private:
     // disallow copying of VoxelSystem objects
@@ -123,8 +129,6 @@ private:
     static float _maxDistance;
     static float _minDistance;
 
-    float _treeScale;   
-    VoxelTree* _tree;
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
     GLfloat* _writeVerticesArray;
@@ -157,7 +161,6 @@ private:
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();
 
-    void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays(bool fullVBOs);
     
     void updateFullVBOs(); // all voxels in the VBO

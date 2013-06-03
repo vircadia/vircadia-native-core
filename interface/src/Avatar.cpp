@@ -172,8 +172,6 @@ Avatar::~Avatar() {
 
 void Avatar::init() {
     _voxels.init();
-
-    _voxels.createVoxel(0.0f, 0.0f, 0.0f, 1.0f, 255, 0, 255);
 }
 
 void Avatar::reset() {
@@ -953,8 +951,11 @@ void Avatar::updateBodyBalls(float deltaTime) {
         }
         */
         
-        //update position by velocity...
+        // update position by velocity...
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
+        
+        // update rotation
+        _bodyBall[b].rotation = _skeleton.joint[b].rotation;
     }
 }
 
@@ -1016,14 +1017,7 @@ void Avatar::renderBody(bool lookingInMirror) {
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body's voxels
-    glPushMatrix();
-    const glm::vec3& voxelPosition = _joint[AVATAR_JOINT_PELVIS].springyPosition;
-    glTranslatef(voxelPosition.x, voxelPosition.y, voxelPosition.z);
-    glm::quat rotation = getOrientation();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     _voxels.render(false);
-    glPopMatrix();
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
@@ -1128,6 +1122,11 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         _head.setRoll (angles.z);
         //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
+}
+
+void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
+    position = _bodyBall[jointID].position;
+    rotation = _bodyBall[jointID].rotation;
 }
 
 void Avatar::writeAvatarDataToFile() {

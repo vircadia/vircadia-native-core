@@ -11,6 +11,9 @@
 
 #include "VoxelSystem.h"
 
+const int BONE_ELEMENTS_PER_VERTEX = 4;
+typedef GLubyte BoneIndices[BONE_ELEMENTS_PER_VERTEX];
+
 class Avatar;
 
 class AvatarVoxelSystem : public VoxelSystem {
@@ -28,10 +31,12 @@ protected:
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
-    virtual void bindProgram(bool texture);
-    virtual void releaseProgram(bool texture);
+    virtual void applyScaleAndBindProgram(bool texture);
+    virtual void removeScaleAndReleaseProgram(bool texture);
     
 private:
+    
+    void computeBoneIndicesAndWeights(const glm::vec3& vertex, BoneIndices& indices, glm::vec4& weights) const;
     
     Avatar* _avatar;
     
