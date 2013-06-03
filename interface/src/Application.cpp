@@ -1341,19 +1341,9 @@ void Application::exportVoxels() {
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
-    printf("exportVoxels() fileName: %s  _mouseVoxel: %f,%f,%f-%f \n", fileName,
-        _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
-
     if (selectedNode) {
-        //selectedNode->printDebugDetails("selected voxel");
-        
         VoxelTree exportTree;
-
-        // then copy onto it
         _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
-        
         exportTree.writeToFileV2(fileName);
     }
 
@@ -1371,8 +1361,6 @@ void Application::importVoxels() {
     importVoxels.readFromFileV2(fileName);
 
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    printf("importVoxels() fileName: %s  _mouseVoxel: %f,%f,%f-%f \n", fileName,
-        _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     
     // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
@@ -1386,10 +1374,8 @@ void Application::importVoxels() {
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details.
     if (selectedNode) {
-        //selectedNode->printDebugDetails("selected voxel");
         args.newBaseOctCode = selectedNode->getOctalCode();
     } else {
-        printf("importVoxels() no voxel at current location, calculate octCode... \n");
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
@@ -1744,17 +1730,6 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     glm::vec3 up = rotation * AVATAR_UP;
     glm::vec3 right = rotation * AVATAR_RIGHT;
 
-    /*
-    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
-    printf("yaw=%f, pitch=%f, roll=%f\n", yaw,pitch,roll);
-    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
-    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
-    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
-    printf("fov=%f\n", fov);
-    printf("nearClip=%f\n", nearClip);
-    printf("farClip=%f\n", farClip);
-    */
-    
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
     viewFrustum.setOrientation(direction,up,right);
@@ -2355,7 +2330,6 @@ void Application::maybeEditVoxelUnderCursor() {
             //_myAvatar.getPosition()
             voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
             voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
-            // printf("mousevoxelscale is %f\n", _mouseVoxel.s);
             
             /* for (int i = 0; i
              < 22050; i++) {
