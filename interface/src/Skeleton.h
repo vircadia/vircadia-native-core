@@ -8,6 +8,9 @@
 #ifndef hifi_Skeleton_h
 #define hifi_Skeleton_h
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 enum AvatarJointID
 {
 	AVATAR_JOINT_NULL = -1,
@@ -45,10 +48,24 @@ public:
     Skeleton();
 
     void initialize();
-    void simulate(float deltaTime);
+    void update(float deltaTime, const glm::quat&, glm::vec3 position);
     void render();
     
-private:
-};
+    float getArmLength();
+    float getHeight();
+    float getPelvisStandingHeight();
+    float getPelvisFloatingHeight();
+    
+    struct AvatarJoint
+    {
+        AvatarJointID parent;               // which joint is this joint connected to?
+        glm::vec3	  position;				// the position at the "end" of the joint - in global space
+        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
+        glm::quat     rotation;             // the parent-relative rotation (orientation) of the joint as a quaternion
+        float		  length;				// the length of vector connecting the joint and its parent
+    };
+
+    AvatarJoint	joint[ NUM_AVATAR_JOINTS ];        
+ };
 
 #endif
