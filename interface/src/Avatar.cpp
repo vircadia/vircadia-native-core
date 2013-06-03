@@ -43,7 +43,10 @@ const float HEAD_MIN_PITCH                = -45;
 const float HEAD_MAX_YAW                  = 85;
 const float HEAD_MIN_YAW                  = -85;
 const float PERIPERSONAL_RADIUS           = 1.0f;
-const float AVATAR_BRAKING_STRENGTH       = 40.0f;
+
+//const float AVATAR_BRAKING_STRENGTH       = 40.0f;
+const float AVATAR_BRAKING_STRENGTH       = 0.0f;
+
 const float MOUSE_RAY_TOUCH_RANGE         = 0.01f;
 const float FLOATING_HEIGHT               = 0.13f;
 const bool  USING_HEAD_LEAN               = false;
