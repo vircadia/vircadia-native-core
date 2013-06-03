@@ -182,7 +182,7 @@ private:
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
-    
+    void eyedropperVoxelUnderCursor();
     void goHome();
     void resetSensors();
     
@@ -225,6 +225,7 @@ private:
     QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
     QAction* _colorVoxelMode;        // Whether color voxel mode is enabled
     QAction* _selectVoxelMode;       // Whether select voxel mode is enabled
+    QAction* _eyedropperMode;        // Whether voxel color eyedropper mode is enabled
     QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
