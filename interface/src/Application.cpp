@@ -1343,12 +1343,22 @@ void Application::exportVoxels() {
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
     printf("exportVoxels() fileName: %s  _mouseVoxel: %f,%f,%f-%f \n", fileName,
         _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+
     if (selectedNode) {
-        selectedNode->printDebugDetails("selected voxel");
+        //selectedNode->printDebugDetails("selected voxel");
+        
+        VoxelTree exportTree;
+
+        // then copy onto it
+        _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+        
+        exportTree.writeToFileV2(fileName);
     }
-    _voxels.writeToFileV2(fileName,selectedNode);
+
 }
 
 void Application::importVoxels() {
@@ -1377,10 +1387,10 @@ void Application::importVoxels() {
     // voxel size/position details.
     if (selectedNode) {
         //selectedNode->printDebugDetails("selected voxel");
-        args.newBaseOctCode = NULL; // selectedNode->getOctalCode();
+        args.newBaseOctCode = selectedNode->getOctalCode();
     } else {
         printf("importVoxels() no voxel at current location, calculate octCode... \n");
-        args.newBaseOctCode = NULL; //  = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
     importVoxels.recurseTreeWithOperation(sendVoxelsOperataion, &args);
@@ -1520,7 +1530,7 @@ void Application::initMenu() {
         "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_S))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     (_eyedropperMode = voxelMenu->addAction(
-        "Eyedropper Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_E))->setCheckable(true);
+        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
     
     voxelMenu->addAction("Place New Voxel",     this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::Key_N);
@@ -1529,7 +1539,6 @@ void Application::initMenu() {
     
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
                                                       SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
-    voxelMenu->addAction("Use Voxel Color", this,     SLOT(useVoxelPaintColor()),      Qt::CTRL | Qt::Key_U);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
