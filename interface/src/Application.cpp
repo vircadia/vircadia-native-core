@@ -1002,7 +1002,7 @@ void Application::idle() {
                         _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
                     }
                 }
-            } else if (_addVoxelMode->isChecked()) {
+            } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
                 // place the voxel a fixed distance away
                 float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
                 glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -1318,11 +1318,16 @@ void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     printf("copyVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
-        selectedNode->printDebugDetails("selected voxel");
+        //selectedNode->printDebugDetails("selected voxel");
+        
+        // clear the clipboard first...
+        _clipboardTree.eraseAllVoxels();
+
+        // then copy onto it
         _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
         
         // debug tree
-        _clipboardTree.printTreeForDebugging(_clipboardTree.rootNode);
+        //_clipboardTree.printTreeForDebugging(_clipboardTree.rootNode);
     }
 }
 
@@ -1335,25 +1340,37 @@ struct SendVoxelsOperataionArgs {
 };
 
 void Application::pasteVoxels() {
+    unsigned char* calculatedOctCode = NULL;
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     printf("pasteVoxels() _mouseVoxel: %f,%f,%f-%f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+    // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    SendVoxelsOperataionArgs args;
+    args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+    *sequenceAt = 0;
+    args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details.
     if (selectedNode) {
         //selectedNode->printDebugDetails("selected voxel");
-        
-        // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
-        // the server as an set voxel message, this will also rebase the voxels to the new location
-        SendVoxelsOperataionArgs args;
-        args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
-        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
-        *sequenceAt = 0;
-        args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
         args.newBaseOctCode = selectedNode->getOctalCode();
-        _clipboardTree.recurseTreeWithOperation(sendVoxelsOperataion, &args);
-        
-        // If we have voxels left in the packet, then send the packet
-        if (args.bufferInUse > 1) {
-            AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
-        }
+    } else {
+        printf("pasteVoxels() no voxel at current location, calculate octCode... \n");
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperataion, &args);
+    
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > 1) {
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete calculatedOctCode;
     }
 }
 
@@ -1449,33 +1466,35 @@ void Application::initMenu() {
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
+
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_A))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_A))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_D))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_D))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_C))->setCheckable(true);
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::CTRL | Qt::Key_B))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     (_selectVoxelMode = voxelMenu->addAction(
-        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::SHIFT | Qt::Key_S))->setCheckable(true);
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_S))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     
-    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::SHIFT | Qt::Key_P);
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::CTRL | Qt::SHIFT | Qt::Key_Minus);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::CTRL | Qt::SHIFT | Qt::Key_Plus);
+    voxelMenu->addAction("Place New Voxel",     this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::Key_N);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
     
-    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), 
-                                            Qt::CTRL | Qt::SHIFT | Qt::Key_C);
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
+                                                      SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
-    voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
-    voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
-    voxelMenu->addAction("Copy Voxels", this, SLOT(copyVoxels()), Qt::CTRL | Qt::Key_C);
-    voxelMenu->addAction("Paste Voxels", this, SLOT(pasteVoxels()), Qt::CTRL | Qt::Key_V);
+    
+    voxelMenu->addAction("Export Voxels",  this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
+    voxelMenu->addAction("Import Voxels",  this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
+    voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
