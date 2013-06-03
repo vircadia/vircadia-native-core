@@ -119,7 +119,7 @@ Avatar::Avatar(Agent* owningAgent) :
 void Avatar::initializeBodyBalls() {
     
     for (int b=0; b<NUM_AVATAR_BODY_BALLS; b++) {
-        _bodyBall[b].parent         = AVATAR_JOINT_NULL;
+        _bodyBall[b].parentJoint    = AVATAR_JOINT_NULL;
         _bodyBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);

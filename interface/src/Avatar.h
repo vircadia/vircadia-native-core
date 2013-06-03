@@ -132,7 +132,7 @@ private:
 
     struct AvatarBall
     {
-        AvatarJointID parent;
+        AvatarJointID parentJoint;
         glm::vec3     parentOffset;
         glm::vec3     position;      
         glm::vec3     velocity;      
