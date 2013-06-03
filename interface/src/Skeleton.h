@@ -55,6 +55,7 @@ public:
     float getHeight();
     float getPelvisStandingHeight();
     float getPelvisFloatingHeight();
+    //glm::vec3 getJointVectorFromParent(AvatarJointID jointID) {return joint[jointID].position - joint[joint[jointID].parent].position; }
     
     struct AvatarJoint
     {

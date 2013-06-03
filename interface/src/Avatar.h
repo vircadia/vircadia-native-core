@@ -48,6 +48,9 @@ enum AvatarBodyBallID
 	BODY_BALL_RIGHT_KNEE,	
 	BODY_BALL_RIGHT_HEEL,	
 	BODY_BALL_RIGHT_TOES,	
+    
+//TEST!     
+//BODY_BALL_LEFT_MID_THIGH,	
 	NUM_AVATAR_BODY_BALLS
 };
 
@@ -132,18 +135,21 @@ private:
 
     struct AvatarBall
     {
-        AvatarJointID parentJoint;
-        glm::vec3     parentOffset;
-        glm::vec3     position;      
-        glm::vec3     velocity;      
-        float         jointTightness;  
-        float         radius;               
-        bool          isCollidable;         
-        float         touchForce;           
+        AvatarJointID    parentJoint;    // the skeletal joint that serves as a reference for determining the position
+        glm::vec3        parentOffset;   // a 3D vector in the frame of reference of the parent skeletal joint
+        AvatarBodyBallID parentBall;     // the ball to which this ball is constrained for spring forces 
+        glm::vec3        position;       // the actual dynamic position of the ball at any given time
+        glm::vec3        velocity;       // the velocity of the ball
+        float            springLength;   // the ideal length of the spring between this ball and its parentBall 
+        float            jointTightness; // how tightly the ball position attempts to stay at its ideal position (determined by parentOffset)
+        float            radius;         // the radius of the ball
+        bool             isCollidable;   // whether or not the ball responds to collisions 
+        float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
     Head        _head;
     Skeleton    _skeleton;
+    bool        _ballSpringsInitialized;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;
@@ -151,7 +157,6 @@ private:
     float       _bodyYawDelta;
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
-    glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
     AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;

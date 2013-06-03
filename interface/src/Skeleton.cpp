@@ -101,6 +101,7 @@ void Skeleton::update(float deltaTime, const glm::quat& orientation, glm::vec3 p
     }    
 }
 
+
 float Skeleton::getArmLength() {
     return joint[ AVATAR_JOINT_RIGHT_ELBOW      ].length
          + joint[ AVATAR_JOINT_RIGHT_WRIST	    ].length
