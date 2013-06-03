@@ -289,22 +289,22 @@ void Application::paintGL() {
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
@@ -1556,7 +1556,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     if (_cameraFrustum->isChecked()) {
         position = camera.getPosition();
     } else {
-        position = _myAvatar.getHeadPosition();
+        position = _myAvatar.getHeadJointPosition();
     }
     
     float fov         = camera.getFieldOfView();

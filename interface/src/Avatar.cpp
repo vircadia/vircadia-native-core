@@ -118,16 +118,18 @@ Avatar::Avatar(Agent* owningAgent) :
 
 void Avatar::initializeBodyBalls() {
     
-    for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
-        _bodyBall[b].isCollidable   = true;
+    for (int b=0; b<NUM_AVATAR_BODY_BALLS; b++) {
+        _bodyBall[b].parent         = AVATAR_JOINT_NULL;
+        _bodyBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].radius         = 0.0;
         _bodyBall[b].touchForce     = 0.0;
+        _bodyBall[b].isCollidable   = true;
         _bodyBall[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
     }
     
-    // specify the radii of the joints
+    // specify the radii of the balls
     _bodyBall[ AVATAR_JOINT_PELVIS           ].radius = 0.07;
     _bodyBall[ AVATAR_JOINT_TORSO            ].radius = 0.065;
     _bodyBall[ AVATAR_JOINT_CHEST            ].radius = 0.08;
@@ -500,7 +502,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
 void Avatar::checkForMouseRayTouching() {
 
-    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
+    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
     
         glm::vec3 directionToBodySphere = glm::normalize(_bodyBall[b].position - _mouseRayOrigin);
         float dot = glm::dot(directionToBodySphere, _mouseRayDirection);
@@ -657,25 +659,22 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
 void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
     float myBodyApproximateBoundingRadius = 1.0f;
     glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
-    bool jointCollision = false;
     
     float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
     if (distanceToBigSphere < myBodyApproximateBoundingRadius + radius) {
-        for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
+        for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             glm::vec3 vectorFromJointToBigSphereCenter(_bodyBall[b].position - position);
             float distanceToBigSphereCenter = glm::length(vectorFromJointToBigSphereCenter);
             float combinedRadius = _bodyBall[b].radius + radius;
             
             if (distanceToBigSphereCenter < combinedRadius)  {
-                jointCollision = true;
                 if (distanceToBigSphereCenter > 0.0) {
                     glm::vec3 directionVector = vectorFromJointToBigSphereCenter / distanceToBigSphereCenter;
                     
                     float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
                     glm::vec3 collisionForce = vectorFromJointToBigSphereCenter * penetration;
-                    
-                    _bodyBall[b].velocity += collisionForce * 0.0f * deltaTime;
-                    _velocity                 += collisionForce * 40.0f * deltaTime;
+
+                    _velocity += collisionForce * 40.0f * deltaTime;
                     _bodyBall[b].position  = position + directionVector * combinedRadius;
                 }
             }
@@ -760,11 +759,11 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
                 
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
-    // loop through the joints of each avatar to check for every possible collision
-    for (int b=1; b<NUM_AVATAR_JOINTS; b++) {
+    // loop through the body balls of each avatar to check for every possible collision
+    for (int b=1; b<NUM_AVATAR_BODY_BALLS; b++) {
         if (_bodyBall[b].isCollidable) {
 
-            for (int o=b+1; o<NUM_AVATAR_JOINTS; o++) {
+            for (int o=b+1; o<NUM_AVATAR_BODY_BALLS; o++) {
                 if (otherAvatar->_bodyBall[o].isCollidable) {
                 
                     glm::vec3 vectorBetweenJoints(_bodyBall[b].position - otherAvatar->_bodyBall[o].position);
@@ -893,8 +892,8 @@ void Avatar::render(bool lookingInMirror) {
 }
 
 void Avatar::resetBodyBalls() {
-    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        _bodyBall[b].position = _skeleton.joint[b].position;
+    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
+        _bodyBall[b].position = _skeleton.joint[b].position; // put balls on joints
         _bodyBall[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 }
@@ -905,7 +904,7 @@ void Avatar::updateBodyBalls(float deltaTime) {
     if (glm::length(_position - _bodyBall[AVATAR_JOINT_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
         resetBodyBalls();
     }
-    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
+    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         glm::vec3 springVector(_bodyBall[b].position);
         
         if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL) {
@@ -942,8 +941,8 @@ void Avatar::updateBodyBalls(float deltaTime) {
         
         /*
         //apply forces from touch...
-        if (_skeleton.joint[b].touchForce > 0.0) {
-            _skeleton.joint[b].springyVelocity += _mouseRayDirection * _skeleton.joint[b].touchForce * 0.7f;
+        if (_bodyBall[b].touchForce > 0.0) {
+            _bodyBall[b].velocity += _mouseRayDirection * _bodyBall[b].touchForce * 0.7f;
         }
         */
         
@@ -1010,8 +1009,8 @@ void Avatar::renderBody(bool lookingInMirror) {
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones 
-    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
-        float distanceToCamera = glm::length(_cameraPosition - _skeleton.joint[b].position);
+    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
+        float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
         
         float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
             (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
@@ -1029,7 +1028,7 @@ void Avatar::renderBody(bool lookingInMirror) {
                    || b == AVATAR_JOINT_RIGHT_ELBOW
                    || b == AVATAR_JOINT_RIGHT_WRIST
                    || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
-            //  Render the sphere at the joint
+            //  Render the body ball sphere
             if (_owningAgent || b == AVATAR_JOINT_RIGHT_ELBOW
                              || b == AVATAR_JOINT_RIGHT_WRIST
                              || b == AVATAR_JOINT_RIGHT_FINGERTIPS ) {
@@ -1051,7 +1050,7 @@ void Avatar::renderBody(bool lookingInMirror) {
                 glPopMatrix();
             }
             
-            //  Render the cone connecting this joint to its parent
+            //  Render the cone connecting this ball to its parent
             if (_skeleton.joint[b].parent != AVATAR_JOINT_NULL) {
                 if ((b != AVATAR_JOINT_HEAD_TOP      )
                 &&  (b != AVATAR_JOINT_HEAD_BASE     )

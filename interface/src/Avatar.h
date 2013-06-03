@@ -20,6 +20,37 @@
 #include "Skeleton.h"
 #include "Transmitter.h"
 
+
+enum AvatarBodyBallID
+{
+	BODY_BALL_NULL = -1,
+	BODY_BALL_PELVIS,	
+	BODY_BALL_TORSO,	
+	BODY_BALL_CHEST,	
+	BODY_BALL_NECK_BASE,	
+	BODY_BALL_HEAD_BASE,	
+	BODY_BALL_HEAD_TOP,	
+	BODY_BALL_LEFT_COLLAR,
+	BODY_BALL_LEFT_SHOULDER,
+	BODY_BALL_LEFT_ELBOW,
+	BODY_BALL_LEFT_WRIST,
+	BODY_BALL_LEFT_FINGERTIPS,
+	BODY_BALL_RIGHT_COLLAR,
+	BODY_BALL_RIGHT_SHOULDER,
+	BODY_BALL_RIGHT_ELBOW,
+	BODY_BALL_RIGHT_WRIST,
+	BODY_BALL_RIGHT_FINGERTIPS,
+	BODY_BALL_LEFT_HIP,
+	BODY_BALL_LEFT_KNEE,
+	BODY_BALL_LEFT_HEEL,		
+	BODY_BALL_LEFT_TOES,		
+	BODY_BALL_RIGHT_HIP,	
+	BODY_BALL_RIGHT_KNEE,	
+	BODY_BALL_RIGHT_HEEL,	
+	BODY_BALL_RIGHT_TOES,	
+	NUM_AVATAR_BODY_BALLS
+};
+
 enum DriveKeys
 {
     FWD = 0,
@@ -64,19 +95,14 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
-    
-    float            getHeadYawRate           ()                const { return _head.yawRate;}
-    float            getBodyYaw               ()                const { return _bodyYaw;}    
-    bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
-    const glm::vec3& getHeadPosition          ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getSpringyHeadPosition   ()                const { return _bodyBall[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _bodyBall[j].position;} 
-
-    glm::vec3        getBodyRightDirection      ()                const { return getOrientation() * AVATAR_RIGHT; }
-    glm::vec3        getBodyUpDirection         ()                const { return getOrientation() * AVATAR_UP; }
-    glm::vec3        getBodyFrontDirection      ()                const { return getOrientation() * AVATAR_FRONT; }
-
-
+    float            getHeadYawRate            ()                const { return _head.yawRate;}
+    float            getBodyYaw                ()                const { return _bodyYaw;}    
+    bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
+    const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
+    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * AVATAR_UP; }
+    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * AVATAR_FRONT; }
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -106,12 +132,14 @@ private:
 
     struct AvatarBall
     {
-        glm::vec3 position;      
-        glm::vec3 velocity;      
-        float     jointTightness;  
-        float     radius;               
-        bool      isCollidable;         
-        float     touchForce;           
+        AvatarJointID parent;
+        glm::vec3     parentOffset;
+        glm::vec3     position;      
+        glm::vec3     velocity;      
+        float         jointTightness;  
+        float         radius;               
+        bool          isCollidable;         
+        float         touchForce;           
     };
 
     Head        _head;
@@ -124,7 +152,7 @@ private:
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBall	_bodyBall[ NUM_AVATAR_JOINTS ];
+    AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
