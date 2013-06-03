@@ -7,8 +7,6 @@
 
 #include <cstring>
 
-#include <QtDebug>
-
 #include "Avatar.h"
 #include "AvatarVoxelSystem.h"
 #include "renderer/ProgramObject.h"
@@ -201,7 +199,7 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     float totalWeight = 0.0f;
     for (int i = 0; i < BONE_ELEMENTS_PER_VERTEX; i++) {
         indices[i] = nearest[i].index;
-        weights[i] = (i == 0) ? 1.0f : 0.0f; // 1.0f / glm::max(nearest[i].distance, EPSILON);
+        weights[i] = 1.0f / glm::max(nearest[i].distance, EPSILON);
         totalWeight += weights[i];
     }
     
