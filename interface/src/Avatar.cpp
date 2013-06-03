@@ -909,6 +909,8 @@ void Avatar::updateBodyBalls(float deltaTime) {
     if (glm::length(_position - _bodyBall[AVATAR_JOINT_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
         resetBodyBalls();
     }
+    glm::quat orientation = getOrientation();
+    glm::vec3 jointDirection = orientation * JOINT_DIRECTION;
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         glm::vec3 springVector(_bodyBall[b].position);
         
@@ -955,7 +957,11 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
         
         // update rotation
-        _bodyBall[b].rotation = _skeleton.joint[b].rotation;
+        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < 0.1f) {
+            _bodyBall[b].rotation = orientation * _skeleton.joint[b].absoluteBindPoseRotation;
+        } else {
+            _bodyBall[b].rotation = rotationBetween(jointDirection, springVector) * orientation;
+        }
     }
 }
 

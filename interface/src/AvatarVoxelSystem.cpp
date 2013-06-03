@@ -144,10 +144,11 @@ void AvatarVoxelSystem::applyScaleAndBindProgram(bool texture) {
         glm::vec3 position;
         glm::quat orientation;
         _avatar->getBodyBallTransform((AvatarJointID)i, position, orientation);
-        boneMatrices[i].translate(position.x, position.y, position.z);
+        boneMatrices[i].translate(position.x, position.y, position.z);  
+        orientation = orientation * glm::inverse(_avatar->getSkeleton().joint[i].absoluteBindPoseRotation);
         boneMatrices[i].rotate(QQuaternion(orientation.w, orientation.x, orientation.y, orientation.z));
-        const glm::vec3& defaultPosition = _avatar->getSkeleton().joint[i].absoluteDefaultPosePosition;
-        boneMatrices[i].translate(-defaultPosition.x, -defaultPosition.y, -defaultPosition.z);
+        const glm::vec3& bindPosition = _avatar->getSkeleton().joint[i].absoluteBindPosePosition;
+        boneMatrices[i].translate(-bindPosition.x, -bindPosition.y, -bindPosition.z);
         boneMatrices[i] *= baseMatrix;
     } 
     _skinProgram->setUniformValueArray(_boneMatricesLocation, boneMatrices, NUM_AVATAR_JOINTS);
@@ -182,7 +183,7 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     // find the nearest four joints (TODO: use a better data structure for the pose positions to speed this up)
     IndexDistance nearest[BONE_ELEMENTS_PER_VERTEX];
     for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-        float distance = glm::distance(jointVertex, _avatar->getSkeleton().joint[i].absoluteDefaultPosePosition);
+        float distance = glm::distance(jointVertex, _avatar->getSkeleton().joint[i].absoluteBindPosePosition);
         for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
             if (distance < nearest[j].distance) {
                 // move the rest of the indices down
