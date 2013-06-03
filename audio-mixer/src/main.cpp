@@ -248,10 +248,14 @@ int main(int argc, const char* argv[]) {
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 
-                                std::map<uint16_t, stk::FreeVerb*>& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
+                                typedef std::map<uint16_t, stk::FreeVerb*> FreeVerbAgentMap;
+                                FreeVerbAgentMap& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
+                                FreeVerbAgentMap::iterator freeVerbIterator = agentFreeVerbs.find(otherAgent->getAgentID());
                                 
-                                if (agentFreeVerbs.count(otherAgent->getAgentID()) == 0) {
+                                if (freeVerbIterator == agentFreeVerbs.end()) {
                                     // setup the freeVerb effect for this source for this client
+                                    
+                                    printf("Creating a new FV object\n");
                                     
                                     otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()] = new stk::FreeVerb;
                                     
@@ -260,7 +264,7 @@ int main(int argc, const char* argv[]) {
                                     otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
                                     
                                 } else {
-                                    otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()];
+                                    otherAgentFreeVerb = freeVerbIterator->second;
                                 }
                                 
                                 otherAgentFreeVerb->setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
