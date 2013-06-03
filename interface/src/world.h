@@ -14,8 +14,8 @@
 
 const float WORLD_SIZE = 10.0;
 #define PIf 3.14159265f
-#define GRAVITY_EARTH 9.80665f;
 
+const float GRAVITY_EARTH = 9.80665f;
 const float EDGE_SIZE_GROUND_PLANE = 20.f;
 
 #endif

@@ -4,12 +4,14 @@
 //
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <glm/gtx/quaternion.hpp>
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
 #include <OculusManager.h>
-// #include "Log.h"
+#include "Log.h"
 
 #include "Camera.h"
+#include "Util.h"
 
 const float CAMERA_MINIMUM_MODE_SHIFT_RATE     = 0.5f;
 
@@ -30,7 +32,7 @@ Camera::Camera() {
     _needsToInitialize   = true;
     _frustumNeedsReshape = true;
     
-    _modeShift         = 0.0f;
+    _modeShift         = 1.0f;
     _modeShiftRate     = 1.0f;
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
@@ -38,9 +40,6 @@ Camera::Camera() {
     _fieldOfView       = 60.0f; // default
     _nearClip          = 0.08f; // default
     _farClip           = 50.0f * TREE_SCALE; // default
-    _yaw               = 0.0f;
-    _pitch             = 0.0f;
-    _roll              = 0.0f;
     _upShift           = 0.0f;
     _distance          = 0.0f;
     _previousUpShift   = 0.0f;
@@ -49,13 +48,9 @@ Camera::Camera() {
     _newUpShift        = 0.0f;
     _newDistance       = 0.0f;
     _newTightness      = 0.0f;
-    _idealYaw          = 0.0f;
-    _idealPitch        = 0.0f;
-    _idealRoll         = 0.0f;
     _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
     _position          = glm::vec3(0.0f, 0.0f, 0.0f);
     _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _orientation.setToIdentity();
 }
 
 void Camera::update(float deltaTime)  {
@@ -64,17 +59,6 @@ void Camera::update(float deltaTime)  {
         // use iterative forces to push the camera towards the target position and angle
         updateFollowMode(deltaTime);
      }
-    
-    // do this AFTER making any changes to yaw pitch and roll....
-    generateOrientation();    
-}
-
-// generate the ortho-normals for the orientation based on the three Euler angles
-void Camera::generateOrientation() {
-    _orientation.setToIdentity();
-    _orientation.pitch(_pitch);
-    _orientation.yaw  (_yaw  );
-    _orientation.roll (_roll );    
 }
 
 // use iterative forces to keep the camera at the desired position and angle
@@ -104,26 +88,15 @@ void Camera::updateFollowMode(float deltaTime) {
         t = 1.0;
     }
     
-    // update Euler angles (before position!)
+    // update rotation (before position!)
     if (_needsToInitialize || OculusManager::isConnected()) {
-        _yaw   = _idealYaw;
-        _pitch = _idealPitch;
-        _roll  = _idealRoll;
+        _rotation = _targetRotation;
     } else {
-        // pull Euler angles towards ideal Euler angles
-        _yaw   += (_idealYaw   - _yaw  ) * t;
-        _pitch += (_idealPitch - _pitch) * t;
-        _roll  += (_idealRoll  - _roll ) * t;
+        // pull rotation towards ideal
+        _rotation = safeMix(_rotation, _targetRotation, t);
     }
             
-    float radian = (_yaw / 180.0) * PIE;
-
-    // update _position
-    double x = -_distance * sin(radian);
-    double z = -_distance * cos(radian);
-    double y = _upShift; 
-        
-    _idealPosition = _targetPosition + glm::vec3(x, y, z);
+    _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
     
     if (_needsToInitialize) {
         _position = _idealPosition; 
@@ -171,10 +144,8 @@ void Camera::setMode(CameraMode m) {
 }
 
 
-void Camera::setTargetRotation( float yaw, float pitch, float roll ) {
-    _idealYaw   = yaw;
-    _idealPitch = pitch;
-    _idealRoll  = roll;
+void Camera::setTargetRotation( const glm::quat& targetRotation ) {
+    _targetRotation = targetRotation;
 }
 
 void Camera::setFieldOfView(float f) { 

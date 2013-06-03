@@ -29,8 +29,6 @@ AvatarTouch::AvatarTouch() {
     _canReachToOtherAvatar   = false;
     _handsCloseEnoughToGrasp = false;
     _hasInteractingOther     = false;
-    _myOrientation.setToIdentity();
-    _yourOrientation.setToIdentity();
 
     for (int p=0; p<NUM_PARTICLE_POINTS; p++) {
         _point[p] = glm::vec3(0.0, 0.0, 0.0);
@@ -45,16 +43,25 @@ void AvatarTouch::simulate (float deltaTime) {
 
         glm::vec3 vectorBetweenBodies = _yourBodyPosition - _myBodyPosition;
         float distanceBetweenBodies = glm::length(vectorBetweenBodies);
+        
+        //KEEP THIS - it is another variation that we are considering getting rid of 
+        //the following code take into account of the two avatars are facing each other
+        /*
         glm::vec3 directionBetweenBodies = vectorBetweenBodies / distanceBetweenBodies;
         
         bool facingEachOther = false;
         
-        if (( glm::dot(_myOrientation.getFront(), _yourOrientation.getFront()) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
-        &&  ( glm::dot(_myOrientation.getFront(), directionBetweenBodies     ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
+        glm::vec3 myFront = _myOrientation * AVATAR_FRONT;
+        glm::vec3 yourFront = _yourOrientation * AVATAR_FRONT;
+        
+        if (( glm::dot(myFront, yourFront              ) < -AVATAR_FACING_THRESHOLD)      // we're facing each other
+        &&  ( glm::dot(myFront, directionBetweenBodies ) >  AVATAR_FACING_THRESHOLD)) {   // I'm facing you
             facingEachOther = true;
         }
-
-        if (distanceBetweenBodies < _reachableRadius) {
+        */
+        
+        if (distanceBetweenBodies < _reachableRadius)
+        {
             _canReachToOtherAvatar = true;
 
             _vectorBetweenHands = _yourHandPosition - _myHandPosition;

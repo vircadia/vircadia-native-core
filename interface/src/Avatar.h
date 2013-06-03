@@ -11,7 +11,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <AvatarData.h>
-#include <Orientation.h>
 #include "world.h"
 #include "AvatarTouch.h"
 #include "InterfaceConfig.h"
@@ -31,15 +30,15 @@ enum DriveKeys
     DOWN,
     ROT_LEFT, 
     ROT_RIGHT, 
-	MAX_DRIVE_KEYS
+    MAX_DRIVE_KEYS
 };
 
 enum AvatarMode
 {
-	AVATAR_MODE_STANDING = 0,
-	AVATAR_MODE_WALKING,
-	AVATAR_MODE_INTERACTING,
-	NUM_AVATAR_MODES
+    AVATAR_MODE_STANDING = 0,
+    AVATAR_MODE_WALKING,
+    AVATAR_MODE_INTERACTING,
+    NUM_AVATAR_MODES
 };
 
 class Avatar : public AvatarData {
@@ -49,10 +48,10 @@ public:
     
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface, glm::vec3 * gravity);
+    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
-    void render(bool lookingInMirror, glm::vec3 cameraPosition);
+    void render(bool lookingInMirror);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
@@ -62,22 +61,31 @@ public:
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
+    void setOrientation            (const glm::quat& orientation);
 
     //getters
+    
     float            getHeadYawRate           ()                const { return _head.yawRate;}
-    float            getBodyYaw               ()                const { return _bodyYaw;}
+    float            getBodyYaw               ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
-    const glm::vec3& getHeadPosition          ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getSpringyHeadPosition   ()                const { return _joint[ AVATAR_JOINT_HEAD_BASE ].springyPosition;}
-    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _joint[j].springyPosition;} 
-    const glm::vec3& getBodyUpDirection       ()                const { return _orientation.getUp();}
-    const glm::vec3& getVelocity              ()                const { return _velocity;}
-    float            getSpeed                 ()                const { return _speed;}
-    float            getHeight                ()                const { return _height;}
-    AvatarMode       getMode                  ()                const { return _mode;}
-    float            getAbsoluteHeadYaw       () const;
-    float            getAbsoluteHeadPitch     () const;
-    Head&            getHead                  () {return _head; }
+    const glm::vec3& getHeadPosition          ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getSpringyHeadPosition   ()                const { return _bodyBall[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _bodyBall[j].position;} 
+
+    glm::vec3        getBodyRightDirection      ()                const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3        getBodyUpDirection         ()                const { return getOrientation() * AVATAR_UP; }
+    glm::vec3        getBodyFrontDirection      ()                const { return getOrientation() * AVATAR_FRONT; }
+
+
+    const glm::vec3& getVelocity               ()                const { return _velocity;}
+    float            getSpeed                  ()                const { return _speed;}
+    float            getHeight                 ()                const { return _height;}
+    AvatarMode       getMode                   ()                const { return _mode;}
+    float            getAbsoluteHeadYaw        () const;
+    float            getAbsoluteHeadPitch      () const;
+    Head&            getHead                   () {return _head; }
+    glm::quat        getOrientation            () const;
+    glm::quat        getWorldAlignedOrientation() const;
     
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
@@ -96,23 +104,14 @@ private:
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
 
-    struct AvatarJoint
+    struct AvatarBall
     {
-        AvatarJointID parent;               // which joint is this joint connected to?
-        glm::vec3	  position;				// the position at the "end" of the joint - in global space
-        glm::vec3	  defaultPosePosition;	// the parent relative position when the avatar is in the "T-pose"
-        glm::vec3	  springyPosition;		// used for special effects (a 'flexible' variant of position)
-        glm::vec3	  springyVelocity;		// used for special effects ( the velocity of the springy position)
-        float		  springBodyTightness;	// how tightly the springy position tries to stay on the position
-        glm::quat     rotation;             // this will eventually replace yaw, pitch and roll (and maybe orientation)
-        float		  yaw;					// the yaw Euler angle of the joint rotation off the parent
-        float		  pitch;				// the pitch Euler angle of the joint rotation off the parent
-        float		  roll;					// the roll Euler angle of the joint rotation off the parent
-        Orientation	  orientation;			// three orthogonal normals determined by yaw, pitch, roll
-        float		  length;				// the length of vector connecting the joint and its parent
-        float		  radius;               // used for detecting collisions for certain physical effects
-        bool		  isCollidable;         // when false, the joint position will not register a collision
-        float         touchForce;           // if being touched, what's the degree of influence? (0 to 1)
+        glm::vec3 position;      
+        glm::vec3 velocity;      
+        float     jointTightness;  
+        float     radius;               
+        bool      isCollidable;         
+        float     touchForce;           
     };
 
     Head        _head;
@@ -125,15 +124,14 @@ private:
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
     glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarJoint	_joint[ NUM_AVATAR_JOINTS ];
+    AvatarBall	_bodyBall[ NUM_AVATAR_JOINTS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
-    glm::vec3	_thrust;
+    glm::vec3   _thrust;
     float       _speed;
-    float		_maxArmLength;
-    Orientation	_orientation;
+    float       _maxArmLength;
     glm::quat   _righting;
     int         _driveKeys[MAX_DRIVE_KEYS];
     float       _pelvisStandingHeight;
@@ -143,6 +141,7 @@ private:
     AvatarTouch _avatarTouch;
     float       _distanceToNearestAvatar; //  How close is the nearest avatar?
     glm::vec3   _gravity;
+    glm::vec3   _worldUpDirection;
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     Avatar*     _interactingOther;
@@ -151,11 +150,11 @@ private:
     
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
+    glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void renderBody(bool lookingInMirror);
-    void initializeSkeleton();
-    void updateSkeleton();
-    void initializeBodySprings();
-    void updateBodySprings( float deltaTime );
+    void initializeBodyBalls();
+    void resetBodyBalls();
+    void updateBodyBalls( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
     void updateHandMovementAndTouching(float deltaTime);
