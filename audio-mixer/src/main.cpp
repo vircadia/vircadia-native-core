@@ -196,6 +196,11 @@ int main(int argc, const char* argv[]) {
                                     // not performed if listener is inside spherical injector
                                     
                                     // calculate the angle from the source to the listener
+                                    
+                                    // project the rotated source position vector onto the XZ plane
+                                    rotatedSourcePosition.y = 0.0f;
+                                    
+                                    // produce an oriented angle about the y-axis
                                     bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
                                                                                       glm::normalize(rotatedSourcePosition),
                                                                                       glm::vec3(0.0f, 1.0f, 0.0f));
@@ -203,6 +208,7 @@ int main(int argc, const char* argv[]) {
                                     // calculate the angle delivery
                                     glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
                                         * relativePosition;
+                                    
                                     float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, 1.0f),
                                                                        glm::normalize(rotatedListenerPosition));
                                     
