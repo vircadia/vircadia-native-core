@@ -33,6 +33,7 @@
 #include <QTimer>
 #include <QtDebug>
 #include <QFileDialog>
+#include <QDesktopServices>
 #include <PairingHandler.h>
 
 #include <AgentTypes.h>
@@ -2201,38 +2202,38 @@ void* Application::networkReceive(void* args) {
     return NULL; 
 }
 
-void Application::scanMenuBar(settingsAction f, QSettings *set) {
-    if (NULL == _window->menuBar())  {
+void Application::scanMenuBar(settingsAction modifySetting, QSettings* set) {
+  if (!_window->menuBar())  {
         return;
     }
 
-    QList<QMenu *> menus = _window->menuBar()->findChildren<QMenu *>();
+    QList<QMenu*> menus = _window->menuBar()->findChildren<QMenu *>();
 
     for (QList<QMenu *>::const_iterator it = menus.begin(); menus.end() != it; ++it) {
-        scanMenu(*it, f, set);
+        scanMenu(*it, modifySetting, set);
     }
 }
 
-void Application::scanMenu(QMenu *menu, settingsAction f, QSettings *set) {
-    QList<QAction *> actions = menu->actions();
+void Application::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
+    QList<QAction*> actions = menu->actions();
 
     set->beginGroup(menu->title());
     for (QList<QAction *>::const_iterator it = actions.begin(); actions.end() != it; ++it) {
         if ((*it)->menu()) {
-            scanMenu((*it)->menu(), f, set);
+            scanMenu((*it)->menu(), modifySetting, set);
         }
         if ((*it)->isCheckable()) {
-            f(set, *it);
+            modifySetting(set, *it);
         }
     }
     set->endGroup();
 }
 
-void Application::loadAction(QSettings *set, QAction *action) {
+void Application::loadAction(QSettings* set, QAction* action) {
     action->setChecked(set->value(action->text(),  action->isChecked()).toBool());
-    }
+}
 
-void Application::saveAction(QSettings *set, QAction *action) {
+void Application::saveAction(QSettings* set, QAction* action) {
     set->setValue(action->text(),  action->isChecked());
 }
 
@@ -2240,44 +2241,41 @@ void Application::setAutosave(bool wantsAutosave) {
     _autosave = wantsAutosave;
 }
 
-void Application::loadSettings(QSettings *set) {
-    if (!set) set = this->getSettings();
+void Application::loadSettings(QSettings* set) {
+    if (!set) set = getSettings();
 
     scanMenuBar(&Application::loadAction, set);
-    getAvatar()->getData(set);
+    getAvatar()->loadData(set);
 }
 
-void Application::saveSettings(QSettings *set) {
-    if (!set) set = this->getSettings();
+void Application::saveSettings(QSettings* set) {
+    if (!set) set = getSettings();
 
     scanMenuBar(&Application::saveAction, set);
-    getAvatar()->setData(set);
+    getAvatar()->saveData(set);
 }
 
 void Application::importSettings() {
-    QString fileName = QFileDialog::getOpenFileName(this->_window,
+    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString fileName = QFileDialog::getOpenFileName(_window,
                                                     tr("Open .ini config file"),
-                                                    "",
+                                                    locationDir,
                                                     tr("Text files (*.ini)"));
-
     if (fileName != "") {
         QSettings tmp(fileName, QSettings::IniFormat);
-
         loadSettings(&tmp);
     }
 }
 
 void Application::exportSettings() {
-    QString fileName = QFileDialog::getSaveFileName(this->_window,
+    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString fileName = QFileDialog::getSaveFileName(_window,
                                                    tr("Save .ini config file"),
-                                                   "",
+						    locationDir,
                                                    tr("Text files (*.ini)"));
-
     if (fileName != "") {
         QSettings tmp(fileName, QSettings::IniFormat);
-
         saveSettings(&tmp);
-
         tmp.sync();
     }
 }

@@ -1114,10 +1114,10 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-void Avatar::getData(QSettings *set) {
+void Avatar::loadData(QSettings* set) {
     set->beginGroup("Avatar");
 
-    _bodyYaw   = set->value("bodyYawn",  _bodyYaw).toFloat();
+    _bodyYaw   = set->value("bodyYaw",  _bodyYaw).toFloat();
     _bodyPitch = set->value("bodyPitch", _bodyPitch).toFloat();
     _bodyRoll  = set->value("bodyRoll",  _bodyRoll).toFloat();
 
@@ -1128,10 +1128,10 @@ void Avatar::getData(QSettings *set) {
     set->endGroup();
 }
 
-void Avatar::setData(QSettings *set) {
+void Avatar::saveData(QSettings* set) {
     set->beginGroup("Avatar");
 
-    set->setValue("bodyYawn",  _bodyYaw);
+    set->setValue("bodyYaw",  _bodyYaw);
     set->setValue("bodyPitch", _bodyPitch);
     set->setValue("bodyRoll",  _bodyRoll);
 

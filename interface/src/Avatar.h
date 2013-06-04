@@ -97,8 +97,8 @@ public:
     glm::vec3 getThrust() { return _thrust; };
     
     // get/set avatar data
-    void setData(QSettings *set);
-    void getData(QSettings *set);
+    void saveData(QSettings* set);
+    void loadData(QSettings* set);
 
 private:
     // privatize copy constructor and assignment operator to avoid copying

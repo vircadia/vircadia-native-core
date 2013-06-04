@@ -108,8 +108,8 @@ private slots:
     void chooseVoxelPaintColor();
 
     void setAutosave(bool wantsAutosave);
-    void loadSettings(QSettings *set = NULL);
-    void saveSettings(QSettings *set = NULL);
+    void loadSettings(QSettings* set = NULL);
+    void saveSettings(QSettings* set = NULL);
     void importSettings();
     void exportSettings();
     
@@ -148,11 +148,11 @@ private:
     static void* networkReceive(void* args);
     
     // methodes handling menu settings
-    typedef void(*settingsAction)(QSettings *, QAction *);
-    static void loadAction(QSettings *set, QAction *action);
-    static void saveAction(QSettings *set, QAction *action);
-    void scanMenuBar(settingsAction, QSettings *set);
-    void scanMenu(QMenu *menu, settingsAction f, QSettings *set);
+    typedef void(*settingsAction)(QSettings*, QAction*);
+    static void loadAction(QSettings* set, QAction* action);
+    static void saveAction(QSettings* set, QAction* action);
+    void scanMenuBar(settingsAction modifySetting, QSettings* set);
+    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
