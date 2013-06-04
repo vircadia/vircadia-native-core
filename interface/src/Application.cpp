@@ -33,6 +33,7 @@
 #include <QTimer>
 #include <QtDebug>
 #include <QFileDialog>
+#include <QDesktopServices>
 #include <PairingHandler.h>
 
 #include <AgentTypes.h>
@@ -1343,8 +1344,11 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void Application::exportVoxels() {
-    QString    fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), "~/voxels.svo", 
-                                                             tr("Sparse Voxel Octree Files (*.svo)"));
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/voxels.svo");
+
+    QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName, 
+                                                          tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -1359,7 +1363,8 @@ void Application::exportVoxels() {
 }
 
 void Application::importVoxels() {
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), "~", 
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
