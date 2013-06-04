@@ -55,7 +55,7 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float DISTANCE_RATIO = 3.0f / 0.3f;
+const float DISTANCE_SCALE = 2.5f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
@@ -166,8 +166,8 @@ int main(int argc, const char* argv[]) {
                                                                   powf(agentPosition.z - otherAgentPosition.z, 2));
                                     
                                     float minCoefficient = std::min(1.0f,
-                                                                    powf(0.5,
-                                                                         (logf(DISTANCE_RATIO * distanceToAgent) / logf(2.5))
+                                                                    powf(0.3,
+                                                                         (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
                                                                          - 1));
                                     distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
                                 }
@@ -214,8 +214,8 @@ int main(int argc, const char* argv[]) {
                                 (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                                 
                                 attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
-                                * otherAgentBuffer->getAttenuationRatio()
-                                * offAxisCoefficient;
+                                    * otherAgentBuffer->getAttenuationRatio()
+                                    * offAxisCoefficient;
                                 
                                 bearingRelativeAngleToSource *= (M_PI / 180);
                                 
@@ -225,15 +225,15 @@ int main(int argc, const char* argv[]) {
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                            : clientSamples;
+                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                                : clientSamples;
                             int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                            ? clientSamples
-                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                                ? clientSamples
+                                : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                             
                             int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
-                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                                ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
+                                : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                             
                             for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                                 
@@ -246,7 +246,7 @@ int main(int argc, const char* argv[]) {
                                 int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
                                 plateauAdditionOfSamples(goodChannel[s], currentSample);
                                 
-                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {                                    
                                     plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
                                                              currentSample * weakChannelAmplitudeRatio);
                                 }
@@ -287,6 +287,11 @@ int main(int argc, const char* argv[]) {
                 }
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+                
+                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getBearing())) {
+                    // kill off this agent - temporary solution to mixer crash on mac sleep
+                    avatarAgent->setAlive(false);
+                }
             } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
                 Agent* matchingInjector = NULL;
                 

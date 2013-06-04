@@ -8,7 +8,6 @@
 #ifndef __interface__camera__
 #define __interface__camera__
 
-#include "Orientation.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -21,69 +20,45 @@ enum CameraMode
     NUM_CAMERA_MODES
 };
 
-
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
-const float CAMERA_DEFAULT_FIRST_PERSON_MODE_TIGHTNESS = 100.0f;
-
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_UP_SHIFT  = -0.2f;
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
-const float CAMERA_DEFAULT_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
-
-const float CAMERA_DEFAULT_MIRROR_MODE_UP_SHIFT        = 0.0f;
-const float CAMERA_DEFAULT_MIRROR_MODE_DISTANCE        = 0.2f;
-const float CAMERA_DEFAULT_MIRROR_MODE_TIGHTNESS       = 100.0f;
-
 class Camera
 {
 public:
     Camera();
 
-    struct CameraFollowingAttributes
-    {
-        float upShift;
-        float distance;
-        float tightness;
-    };
-
     void initialize(); // instantly put the camera at the ideal position and rotation. 
 
     void update( float deltaTime );
     
-    void setYaw           ( float       y ) { _yaw            = y; }
-    void setPitch         ( float       p ) { _pitch          = p; }
-    void setRoll          ( float       r ) { _roll           = r; }
-    void setUpShift       ( float       u ) { _upShift        = u; }
-    void setDistance      ( float       d ) { _distance       = d; }
-    void setTargetPosition( glm::vec3   t ) { _targetPosition = t; }
-    void setTargetYaw     ( float       y ) { _idealYaw       = y; }
-    void setPosition      ( glm::vec3   p ) { _position       = p; }
-    void setTightness     ( float       t ) { _tightness      = t; }
-    void setTargetRotation( float yaw, float pitch, float roll );
+    void setUpShift       ( float            u ) { _upShift        = u; }
+    void setDistance      ( float            d ) { _distance       = d; }
+    void setTargetPosition( const glm::vec3& t ) { _targetPosition = t; }
+    void setPosition      ( const glm::vec3& p ) { _position       = p; }
+    void setTightness     ( float            t ) { _tightness      = t; }
+    void setTargetRotation( const glm::quat& rotation );
     
-    void setMode          ( CameraMode  m );
-    void setMode          ( CameraMode  m, CameraFollowingAttributes attributes );
-    void setFieldOfView   ( float       f );
-    void setAspectRatio   ( float       a );
-    void setNearClip      ( float       n );
-    void setFarClip       ( float       f );
-    void setEyeOffsetPosition     ( const glm::vec3& p);
-    void setEyeOffsetOrientation  ( const glm::quat& o);
-
-    float       getYaw        () { return _yaw;         }
-    float       getPitch      () { return _pitch;       }
-    float       getRoll       () { return _roll;        }
-    glm::vec3   getPosition   () { return _position;    }
-    Orientation getOrientation() { return _orientation; }
-    CameraMode  getMode       () { return _mode;        }
-    float       getFieldOfView() { return _fieldOfView; }
-    float       getAspectRatio() { return _aspectRatio; }
-    float       getNearClip   () { return _nearClip;    }
-    float       getFarClip    () { return _farClip;     }
-    glm::vec3   getEyeOffsetPosition  () { return _eyeOffsetPosition;   }
-    glm::quat   getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
-    bool        getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
-    void        setFrustumWasReshaped();  // call this after reshaping the view frustum.
+    void setMode                ( CameraMode  m      );
+    void setModeShiftRate       ( float       r      );
+    void setFieldOfView         ( float       f      );
+    void setAspectRatio         ( float       a      );
+    void setNearClip            ( float       n      );
+    void setFarClip             ( float       f      );
+    void setEyeOffsetPosition   ( const glm::vec3& p );
+    void setEyeOffsetOrientation( const glm::quat& o );
+    
+    const glm::vec3& getTargetPosition       () { return _targetPosition; }
+    const glm::vec3& getPosition             () { return _position;    }
+    const glm::quat& getTargetRotation       () { return _targetRotation; }
+    const glm::quat& getRotation             () { return _rotation;    }
+    CameraMode       getMode                 () { return _mode;        }
+    float            getFieldOfView          () { return _fieldOfView; }
+    float            getAspectRatio          () { return _aspectRatio; }
+    float            getNearClip             () { return _nearClip;    }
+    float            getFarClip              () { return _farClip;     }
+    const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
+    const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
+    
+    bool getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
+    void setFrustumWasReshaped();  // call this after reshaping the view frustum.
 
 private:
 
@@ -99,22 +74,21 @@ private:
     float       _farClip;
     glm::vec3   _eyeOffsetPosition;
     glm::quat   _eyeOffsetOrientation;
-    float       _yaw;
-    float       _pitch;
-    float       _roll;
+    glm::quat   _rotation;
+    glm::quat   _targetRotation;
     float       _upShift;
-    float       _idealYaw;
-    float       _idealPitch;
-    float       _idealRoll;
     float       _distance;
     float       _tightness;
-    Orientation _orientation;
+    float       _previousUpShift;
+    float       _previousDistance;
+    float       _previousTightness;
+    float       _newUpShift;
+    float       _newDistance;
+    float       _newTightness;
     float       _modeShift;
+    float       _linearModeShift;
+    float       _modeShiftRate;
 
-    CameraFollowingAttributes _attributes[NUM_CAMERA_MODES];
-    CameraFollowingAttributes _previousAttributes[NUM_CAMERA_MODES];
-    
-    void generateOrientation();
     void updateFollowMode( float deltaTime );
 };
 

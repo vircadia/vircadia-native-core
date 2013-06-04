@@ -11,8 +11,10 @@
 
 #include <pthread.h> 
 #include <time.h>
+#include <map>
 
 #include <QApplication>
+#include <QAction>
 
 #include <AgentList.h>
 
@@ -62,8 +64,61 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     Avatar* getAvatar() { return &_myAvatar; }
+    Camera* getCamera() { return &_myCamera; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
+    bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
+    
+    /*!
+     @fn getSettingBool
+     @brief A function for getting boolean settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param boolSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to false.
+    */
+    bool getSetting(const char* setting, bool &value, const bool defaultSetting = false) const;
+    
+    /*!
+     @fn getSettingFloat
+     @brief A function for getting float settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param floatSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to 0.0f.
+     */
+    bool getSetting(const char* setting, float &value, const float defaultSetting = 0.0f) const;
+    
+    /*!
+     @fn getSettingVec3
+     @brief A function for getting boolean settings from the settings file.
+     @param settingName The desired setting to get the value for.
+     @param vecSetting The referenced variable where the setting will be stored.
+     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to <0.0f, 0.0f, 0.0f>
+     */
+    bool getSetting(const char* setting, glm::vec3 &value, const glm::vec3& defaultSetting = glm::vec3(0.0f, 0.0f, 0.0f)) const;
+    
+    /*!
+     @fn setSettingBool
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param boolSetting The value to set.
+     */
+    void setSetting(const char* setting, const bool value);
+    
+    /*!
+     @fn setSettingFloat
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param floatSetting The value to set.
+     */
+    void setSetting(const char* setting, const float value);
+    
+    /*!
+     @fn setSettingVec3
+     @brief A function for setting boolean setting values when saving the settings file.
+     @param settingName The desired setting to populate a value for.
+     @param vecSetting The value to set.
+     */
+    void setSetting(const char* setting, const glm::vec3& value);
 
 private slots:
     
@@ -134,10 +189,18 @@ private:
     static void attachNewHeadToAgent(Agent *newAgent);
     static void* networkReceive(void* args);
     
+    // These two functions are technically not necessary, but they help keep things in one place.
+    void readSettings(); //! This function is largely to help consolidate getting settings in one place.
+    void saveSettings(); //! This function is to consolidate any settings setting in one place.
+    
+    void readSettingsFile(); //! This function reads data from the settings file, splitting data into key value pairs using '=' as a delimiter.
+    void saveSettingsFile(); //! This function writes all changes in the settings table to the settings file, serializing all settings added through the setSetting functions.
+    
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
-    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror? 
+    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
+    QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
@@ -251,6 +314,12 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+    
+    /*!
+     * Store settings in a map, storing keys and values as strings.
+     * Interpret values as needed on demand. through the appropriate getters and setters.
+     */
+    std::map<std::string, std::string> _settingsTable; 
 };
 
 #endif /* defined(__interface__Application__) */

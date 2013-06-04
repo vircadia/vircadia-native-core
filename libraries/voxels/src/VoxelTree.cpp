@@ -716,20 +716,20 @@ public:
 bool findSpherePenetrationOp(VoxelNode* node, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
     
-    // currently, we treat each node as a sphere enveloping the box
-    const glm::vec3& nodeCenter = node->getCenter();
-    glm::vec3 vector = args->center - nodeCenter;
-    float vectorLength = glm::length(vector);
-    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
-    if (distance >= 0.0f) {
+    // coarse check against bounds
+    const AABox& box = node->getAABox();
+    if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->isColored()) {
-        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
-        args->found = true;
+        glm::vec3 nodePenetration;
+        if (box.findSpherePenetration(args->center, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->found = true;
+        }        
     }
     return false;
 }
@@ -753,20 +753,20 @@ public:
 bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
     
-    // currently, we treat each node as a sphere enveloping the box
-    const glm::vec3& nodeCenter = node->getCenter();
-    glm::vec3 vector = computeVectorFromPointToSegment(nodeCenter, args->start, args->end);
-    float vectorLength = glm::length(vector);
-    float distance = vectorLength - node->getEnclosingRadius() - args->radius;
-    if (distance >= 0.0f) {
+    // coarse check against bounds
+    const AABox& box = node->getAABox();
+    if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->isColored()) {
-        args->penetration += vector * (-distance * TREE_SCALE / vectorLength);
-        args->found = true;
+        glm::vec3 nodePenetration;
+        if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->found = true;
+        }        
     }
     return false;
 }
