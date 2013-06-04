@@ -28,6 +28,7 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define ACTUALLY_DELETE     false
 #define COLLAPSE_EMPTY_TREE true
 #define DONT_COLLAPSE       false
+#define DONT_CHOP_LEVELS    0
 
 class VoxelTree {
 public:
@@ -71,7 +72,8 @@ public:
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
                             VoxelNodeBag& bag, const ViewFrustum* viewFrustum, 
-                            bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, int chopLevels = 0,
+                            bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
+                            int chopLevels = DONT_CHOP_LEVELS, 
                             bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL, 
                             double lastViewFrustumSent = 0) const;
 

@@ -313,7 +313,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
                 bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), WANT_EXISTS_BITS,
+                                                              agentData->getWantColor(), WANT_EXISTS_BITS, DONT_CHOP_LEVELS, 
                                                               wantDelta, lastViewFrustum, agentData->getLastViewSent());
 
                 if (agentData->getAvailable() >= bytesWritten) {

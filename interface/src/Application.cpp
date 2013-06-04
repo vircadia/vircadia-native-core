@@ -1749,13 +1749,10 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float farClip     = camera.getFarClip();
 
     glm::quat rotation = camera.getRotation();
-    glm::vec3 direction = rotation * AVATAR_FRONT;
-    glm::vec3 up = rotation * AVATAR_UP;
-    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(o.getQuat());
+    viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
