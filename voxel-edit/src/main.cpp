@@ -92,7 +92,7 @@ int main(int argc, const char * argv[])
         unsigned long nodeCount = myTree.getVoxelCount();
         printf("Nodes after adding scenes: %ld nodes\n", nodeCount);
 
-        myTree.writeToFileV2("voxels.hio2");
+        myTree.writeToFileV2("voxels.svo");
 
     }    
     return 0;

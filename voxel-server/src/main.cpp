@@ -30,8 +30,8 @@
 #include <ifaddrs.h>
 #endif
 
-const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.hio2";
-const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.hio2";
+const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
+const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
 const double VOXEL_PERSIST_INTERVAL = 1000.0 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;

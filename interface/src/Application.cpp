@@ -1343,8 +1343,8 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void Application::exportVoxels() {
-    QString    fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), "~/voxels.hio2", 
-                                                    tr("High Fidelity Voxel Files (*.hio2)"));
+    QString    fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), "~/voxels.svo", 
+                                                             tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -1359,7 +1359,8 @@ void Application::exportVoxels() {
 }
 
 void Application::importVoxels() {
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), "~", tr("High Fidelity Voxel Files (*.hio2)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), "~", 
+                                                          tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
 
