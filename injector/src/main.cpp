@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
             agentList->startSilentAgentRemovalThread();
             
             injector.setPosition(glm::vec3(::floatArguments[0], ::floatArguments[1], ::floatArguments[2]));
-            injector.setBearing(*(::floatArguments + 3));
+            injector.setOrientation(glm::quat(glm::vec3(0.0f, *(::floatArguments + 3), 0.0f)));
             injector.setVolume(::volume);
             
             if (::radius > 0) {
