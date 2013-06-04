@@ -1158,6 +1158,7 @@ void Application::editPreferences() {
     layout->addLayout(form, 1);
     
     QLineEdit* avatarURL = new QLineEdit(_settings->value("avatarURL").toString());
+    avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
