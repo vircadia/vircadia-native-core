@@ -168,3 +168,88 @@ OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB
     return result;
 }
 
+
+char getOctalCodeSectionValue(unsigned char* octalCode, int section) {
+    int startAtByte = 1 + (BITS_IN_OCTAL * section / BITS_IN_BYTE);
+    char startIndexInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
+    unsigned char* startByte = octalCode + startAtByte;
+    
+    return sectionValue(startByte, startIndexInByte);
+}
+
+void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectionValue) {
+    int byteForSection = (BITS_IN_OCTAL * section / BITS_IN_BYTE);
+    unsigned char* byteAt = octalCode + 1 + byteForSection;
+    char bitInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
+    char shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
+    const unsigned char UNSHIFTED_MASK = 0x07;
+    unsigned char shiftedMask;
+    unsigned char shiftedValue;
+    if (shiftBy >=0) {
+        shiftedMask  = UNSHIFTED_MASK << shiftBy;
+        shiftedValue = sectionValue << shiftBy;
+    } else {
+        shiftedMask  = UNSHIFTED_MASK >> -shiftBy;
+        shiftedValue = sectionValue >> -shiftBy;
+    }
+    unsigned char oldValue = *byteAt & ~shiftedMask;
+    unsigned char newValue = oldValue | shiftedValue;
+    *byteAt = newValue;
+    
+    // If the requested section is partially in the byte, then we
+    // need to also set the portion of the section value in the next byte
+    // there's only two cases where this happens, if the bit in byte is
+    // 6, then it means that 1 extra bit lives in the next byte. If the
+    // bit in this byte is 7 then 2 extra bits live in the next byte.
+    const int FIRST_PARTIAL_BIT = 6;
+    if (bitInByte >= FIRST_PARTIAL_BIT) {
+        int bitsInFirstByte  = BITS_IN_BYTE  - bitInByte;
+        int bitsInSecondByte = BITS_IN_OCTAL - bitsInFirstByte;
+        shiftBy = BITS_IN_BYTE - bitsInSecondByte;
+
+        shiftedMask  = UNSHIFTED_MASK << shiftBy;
+        shiftedValue = sectionValue << shiftBy;
+
+        oldValue = byteAt[1] & ~shiftedMask;
+        newValue = oldValue | shiftedValue;
+        byteAt[1] = newValue;
+    }
+}
+
+unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels) {
+    int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
+    unsigned char* newCode = NULL;
+    if (codeLength > chopLevels) {
+        int newLength = codeLength - chopLevels;
+        newCode = new unsigned char[newLength+1];
+        *newCode = newLength; // set the length byte
+    
+        for (int section = chopLevels; section < codeLength; section++) {
+            char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
+            setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
+        }
+    }
+    return newCode;
+}
+
+unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, bool includeColorSpace) {
+    int oldCodeLength       = numberOfThreeBitSectionsInCode(originalOctalCode);
+    int newParentCodeLength = numberOfThreeBitSectionsInCode(newParentOctalCode);
+    int newCodeLength       = newParentCodeLength + oldCodeLength;
+    int bufferLength        = newCodeLength + (includeColorSpace ? SIZE_OF_COLOR_DATA : 0);
+    unsigned char* newCode  = new unsigned char[bufferLength];
+    *newCode = newCodeLength; // set the length byte
+
+    // copy parent code section first
+    for (int sectionFromParent = 0; sectionFromParent < newParentCodeLength; sectionFromParent++) {
+        char sectionValue = getOctalCodeSectionValue(newParentOctalCode, sectionFromParent);
+        setOctalCodeSectionValue(newCode, sectionFromParent, sectionValue);
+    }
+    // copy original code section next
+    for (int sectionFromOriginal = 0; sectionFromOriginal < oldCodeLength; sectionFromOriginal++) {
+        char sectionValue = getOctalCodeSectionValue(originalOctalCode, sectionFromOriginal);
+        setOctalCodeSectionValue(newCode, sectionFromOriginal + newParentCodeLength, sectionValue);
+    }
+    return newCode;
+}
+
