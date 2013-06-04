@@ -212,8 +212,6 @@ int main(int argc, const char* argv[]) {
                                         }
                                     }
                                     
-                                    printf("AAS: %f, AB: %f\n", absoluteAngleToSource, agentRingBuffer->getBearing());
-                                    
                                     bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
                                     
                                     if (bearingRelativeAngleToSource > 180) {
