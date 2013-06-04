@@ -18,8 +18,9 @@
 #include "Application.h"
 #include "Log.h"
 
+#include <OctalCode.h>
+
 int main(int argc, const char * argv[]) {
-    
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
     
