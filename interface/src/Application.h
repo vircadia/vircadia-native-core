@@ -161,7 +161,7 @@ private slots:
    
 private:
 
-    static bool sendVoxelsOperataion(VoxelNode* node, void* extraData);
+    static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     
     void initMenu();
     void updateFrustumRenderModeAction();

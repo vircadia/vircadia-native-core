@@ -1293,15 +1293,15 @@ void Application::chooseVoxelPaintColor() {
 }
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
-struct SendVoxelsOperataionArgs {
+struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
     unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
     int bufferInUse;
 
 };
 
-bool Application::sendVoxelsOperataion(VoxelNode* node, void* extraData) {
-    SendVoxelsOperataionArgs* args = (SendVoxelsOperataionArgs*)extraData;
+bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
+    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
         unsigned char* nodeOctalCode = node->getOctalCode();
         
@@ -1372,7 +1372,7 @@ void Application::importVoxels() {
     // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     unsigned char* calculatedOctCode = NULL;
-    SendVoxelsOperataionArgs args;
+    SendVoxelsOperationArgs args;
     args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
     unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
     *sequenceAt = 0;
@@ -1386,7 +1386,7 @@ void Application::importVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    importVoxels.recurseTreeWithOperation(sendVoxelsOperataion, &args);
+    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
@@ -1418,7 +1418,7 @@ void Application::pasteVoxels() {
 
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
-    SendVoxelsOperataionArgs args;
+    SendVoxelsOperationArgs args;
     args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
     unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
     *sequenceAt = 0;
@@ -1433,7 +1433,7 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperataion, &args);
+    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
