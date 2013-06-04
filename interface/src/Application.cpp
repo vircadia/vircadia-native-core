@@ -50,7 +50,7 @@
 
 using namespace std;
 
-const bool TESTING_AVATAR_TOUCH = true;
+const bool TESTING_AVATAR_TOUCH = false;
 
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -1093,14 +1093,12 @@ void Application::idle() {
                         _myCamera.setModeShiftRate(1.0f);
                     }
                 } else {
-            
                     if (_myAvatar.getIsNearInteractingOther()) {
                         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
                             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                             _myCamera.setModeShiftRate(1.0f);
                         }
-                    } 
-                    else {
+                    } else {
                         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
                             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
                             _myCamera.setModeShiftRate(1.0f);

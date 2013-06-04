@@ -14,7 +14,7 @@ Skeleton::Skeleton() {
 
 void Skeleton::initialize() {    
     
-    for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
+    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         joint[b].parent              = AVATAR_JOINT_NULL;
         joint[b].position            = glm::vec3(0.0, 0.0, 0.0);
         joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0);

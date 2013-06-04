@@ -121,7 +121,7 @@ void Avatar::initializeBodyBalls() {
     
     _ballSpringsInitialized = false; //this gets set to true on the first update pass...
     
-    for (int b=0; b<NUM_AVATAR_BODY_BALLS; b++) {
+    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         _bodyBall[b].parentJoint    = AVATAR_JOINT_NULL;
         _bodyBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
         _bodyBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
@@ -834,7 +834,7 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
 
-    //loop through all the other avatars for potential interactions...
+    // loop through all the other avatars for potential interactions...
     AgentList* agentList = AgentList::getInstance();
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
         if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
@@ -844,7 +844,7 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
             glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);
 
             if (glm::length(vectorBetweenBoundingSpheres) < _height * ONE_HALF + otherAvatar->_height * ONE_HALF) {
-                //apply forces from collision                        
+                // apply forces from collision                        
                applyCollisionWithOtherAvatar(otherAvatar, deltaTime);
             }            
 
@@ -860,16 +860,16 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     }
 }
 
-//detect collisions with other avatars and respond
+// detect collisions with other avatars and respond
 void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
                 
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
         
     // loop through the body balls of each avatar to check for every possible collision
-    for (int b=1; b<NUM_AVATAR_BODY_BALLS; b++) {
+    for (int b = 1; b < NUM_AVATAR_BODY_BALLS; b++) {
         if (_bodyBall[b].isCollidable) {
 
-            for (int o=b+1; o<NUM_AVATAR_BODY_BALLS; o++) {
+            for (int o = b+1; o < NUM_AVATAR_BODY_BALLS; o++) {
                 if (otherAvatar->_bodyBall[o].isCollidable) {
                 
                     glm::vec3 vectorBetweenBalls(_bodyBall[b].position - otherAvatar->_bodyBall[o].position);
@@ -898,7 +898,7 @@ void Avatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime
         }            // b loop
     }               // collidable
     
-    //apply force on the whole body 
+    // apply force on the whole body 
     _velocity += bodyPushForce;        
 }
 
@@ -938,7 +938,7 @@ void Avatar::render(bool lookingInMirror) {
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
 
-    //render body
+    // render body
     renderBody(lookingInMirror);
     
     // if this is my avatar, then render my interactions with the other avatar
@@ -1010,7 +1010,7 @@ void Avatar::resetBodyBalls() {
 }
 
 void Avatar::updateBodyBalls(float deltaTime) {
-    //  Check for a large repositioning, and re-initialize balls if this has happened
+    // Check for a large repositioning, and re-initialize balls if this has happened
     const float BEYOND_BODY_SPRING_RANGE = 2.f;
     if (glm::length(_position - _bodyBall[BODY_BALL_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
         resetBodyBalls();
@@ -1019,13 +1019,12 @@ void Avatar::updateBodyBalls(float deltaTime) {
 
         if (_ballSpringsInitialized) {
                     
-            //apply spring forces
+            // apply spring forces
             glm::vec3 springVector(_bodyBall[b].position);
             
             if (b == BODY_BALL_PELVIS) {
                 springVector -= _position;
-            }
-            else {
+            } else {
                 springVector -= _bodyBall[_bodyBall[b].parentBall].position;
             }
             
@@ -1054,19 +1053,18 @@ void Avatar::updateBodyBalls(float deltaTime) {
         float decay = 1.0 - BODY_SPRING_DECAY * deltaTime;
         if (decay > 0.0) {
             _bodyBall[b].velocity *= decay;
-        }
-        else {
+        } else {
             _bodyBall[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         
         /*
-        //apply forces from touch...
+        // apply forces from touch...
         if (_bodyBall[b].touchForce > 0.0) {
             _bodyBall[b].velocity += _mouseRayDirection * _bodyBall[b].touchForce * 0.7f;
         }
         */
         
-        //update position by velocity...
+        // update position by velocity...
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
     }
 }
@@ -1229,7 +1227,7 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         _head.setYaw  (angles.x);
         _head.setPitch(angles.y);
         _head.setRoll (angles.z);
-        //printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
+        // printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
 }
 
