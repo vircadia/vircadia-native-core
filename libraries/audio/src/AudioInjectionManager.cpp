@@ -59,7 +59,6 @@ void* AudioInjectionManager::injectAudioViaThread(void* args) {
     // if we don't have an explicit destination socket then pull active socket for current audio mixer from agent list
     if (!_isDestinationSocketExplicit) {
         Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-        
         if (audioMixer) {
             _destinationSocket = *audioMixer->getActiveSocket();
         }
