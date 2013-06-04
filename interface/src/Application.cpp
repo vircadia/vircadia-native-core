@@ -1413,6 +1413,11 @@ void Application::importVoxels() {
     _window->activateWindow();
 }
 
+void Application::cutVoxels() {
+    copyVoxels();
+    deleteVoxelUnderCursor();
+}
+
 void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
@@ -1545,6 +1550,7 @@ void Application::initMenu() {
     
     voxelMenu->addAction("Export Voxels",  this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
     voxelMenu->addAction("Import Voxels",  this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Cut Voxels",     this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
