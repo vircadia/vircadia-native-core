@@ -202,7 +202,7 @@ void AvatarVoxelSystem::handleVoxelReplyError() {
 
 class IndexDistance {
 public:
-    IndexDistance(GLubyte index = 0, float distance = FLT_MAX) : index(index), distance(distance) { }
+    IndexDistance(GLubyte index = AVATAR_JOINT_PELVIS, float distance = FLT_MAX) : index(index), distance(distance) { }
 
     GLubyte index;
     float distance;
@@ -214,11 +214,15 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     
     // find the nearest four joints (TODO: use a better data structure for the pose positions to speed this up)
     IndexDistance nearest[BONE_ELEMENTS_PER_VERTEX];
+    const Skeleton& skeleton = _avatar->getSkeleton();
     for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-        AvatarJointID parent = _avatar->getSkeleton().joint[i].parent;
+        AvatarJointID parent = skeleton.joint[i].parent;
         float distance = glm::length(computeVectorFromPointToSegment(jointVertex,
-            _avatar->getSkeleton().joint[parent == AVATAR_JOINT_NULL ? i : parent].absoluteBindPosePosition,
-            _avatar->getSkeleton().joint[i].absoluteBindPosePosition));
+            skeleton.joint[parent == AVATAR_JOINT_NULL ? i : parent].absoluteBindPosePosition,
+            skeleton.joint[i].absoluteBindPosePosition));
+        if (distance > skeleton.joint[i].bindRadius) {
+            continue;
+        }
         for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
             if (distance < nearest[j].distance) {
                 // move the rest of the indices down
@@ -235,11 +239,22 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     float totalWeight = 0.0f;
     for (int i = 0; i < BONE_ELEMENTS_PER_VERTEX; i++) {
         indices[i] = nearest[i].index;
-        weights[i] = 1.0f / glm::max(nearest[i].distance, EPSILON);
-        totalWeight += weights[i];
+        if (nearest[i].distance != FLT_MAX) {
+            weights[i] = 1.0f / glm::max(nearest[i].distance, EPSILON);
+            totalWeight += weights[i];
+        
+        } else {
+            weights[i] = 0.0f;
+        }
     }
     
-    // normalize the weights
+    // if it's not attached to anything, consider it attached to the hip
+    if (totalWeight == 0.0f) {
+        weights[0] = 1.0f;
+        return;
+    }
+    
+    // ortherwise, normalize the weights
     for (int i = 0; i < BONE_ELEMENTS_PER_VERTEX; i++) {
         weights[i] /= totalWeight;
     }

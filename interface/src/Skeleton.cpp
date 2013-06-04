@@ -18,9 +18,10 @@ void Skeleton::initialize() {
     for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
         joint[b].parent              = AVATAR_JOINT_NULL;
         joint[b].position            = glm::vec3(0.0, 0.0, 0.0);
-        joint[b].bindPosePosition = glm::vec3(0.0, 0.0, 0.0);
+        joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0);
         joint[b].rotation            = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
         joint[b].length              = 0.0;
+        joint[b].bindRadius          = 1.0f / 16;
     }
     
     // specify the parental hierarchy

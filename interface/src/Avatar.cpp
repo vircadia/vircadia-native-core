@@ -957,7 +957,7 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
         
         // update rotation
-        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < 0.1f) {
+        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < EPSILON) {
             _bodyBall[b].rotation = orientation * _skeleton.joint[b].absoluteBindPoseRotation;
         } else {
             _bodyBall[b].rotation = rotationBetween(jointDirection, springVector) * orientation;

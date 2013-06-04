@@ -65,6 +65,7 @@ public:
         glm::vec3     bindPosePosition;          // the parent relative position when the avatar is in the "T-pose"
         glm::vec3     absoluteBindPosePosition;  // the absolute position when the avatar is in the "T-pose"
         glm::quat     absoluteBindPoseRotation;  // the absolute rotation when the avatar is in the "T-pose"
+        float         bindRadius;                // the radius of the bone capsule that envelops the vertices to bind
         glm::quat     rotation;                  // the parent-relative rotation (orientation) of the joint as a quaternion
         float         length;                    // the length of vector connecting the joint and its parent
     };
