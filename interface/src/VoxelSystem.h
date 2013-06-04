@@ -39,6 +39,8 @@ public:
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
+    void writeToSVOFile(const char* filename, VoxelNode* node) const;
+    bool readFromSVOFile(const char* filename);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();
@@ -79,8 +81,10 @@ public:
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
 
+    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
+    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+    
 protected:
-
     float _treeScale; 
     int _maxVoxels;      
     VoxelTree* _tree;
@@ -95,7 +99,7 @@ protected:
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void applyScaleAndBindProgram(bool texture);
     virtual void removeScaleAndReleaseProgram(bool texture);
-    
+
 private:
     // disallow copying of VoxelSystem objects
     VoxelSystem(const VoxelSystem&);

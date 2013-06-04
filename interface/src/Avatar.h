@@ -21,6 +21,40 @@
 #include "Skeleton.h"
 #include "Transmitter.h"
 
+
+enum AvatarBodyBallID
+{
+	BODY_BALL_NULL = -1,
+	BODY_BALL_PELVIS,	
+	BODY_BALL_TORSO,	
+	BODY_BALL_CHEST,	
+	BODY_BALL_NECK_BASE,	
+	BODY_BALL_HEAD_BASE,	
+	BODY_BALL_HEAD_TOP,	
+	BODY_BALL_LEFT_COLLAR,
+	BODY_BALL_LEFT_SHOULDER,
+	BODY_BALL_LEFT_ELBOW,
+	BODY_BALL_LEFT_WRIST,
+	BODY_BALL_LEFT_FINGERTIPS,
+	BODY_BALL_RIGHT_COLLAR,
+	BODY_BALL_RIGHT_SHOULDER,
+	BODY_BALL_RIGHT_ELBOW,
+	BODY_BALL_RIGHT_WRIST,
+	BODY_BALL_RIGHT_FINGERTIPS,
+	BODY_BALL_LEFT_HIP,
+	BODY_BALL_LEFT_KNEE,
+	BODY_BALL_LEFT_HEEL,		
+	BODY_BALL_LEFT_TOES,		
+	BODY_BALL_RIGHT_HIP,	
+	BODY_BALL_RIGHT_KNEE,	
+	BODY_BALL_RIGHT_HEEL,	
+	BODY_BALL_RIGHT_TOES,	
+    
+//TEST!     
+//BODY_BALL_LEFT_MID_THIGH,	
+	NUM_AVATAR_BODY_BALLS
+};
+
 enum DriveKeys
 {
     FWD = 0,
@@ -66,19 +100,15 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
-    const Skeleton&  getSkeleton              ()                const { return _skeleton;}
-    float            getHeadYawRate           ()                const { return _head.yawRate;}
-    float            getBodyYaw               ()                const { return _bodyYaw;}    
-    bool             getIsNearInteractingOther()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
-    const glm::vec3& getHeadPosition          ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getSpringyHeadPosition   ()                const { return _bodyBall[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getJointPosition         (AvatarJointID j) const { return _bodyBall[j].position;} 
-
-    glm::vec3        getBodyRightDirection      ()                const { return getOrientation() * AVATAR_RIGHT; }
-    glm::vec3        getBodyUpDirection         ()                const { return getOrientation() * AVATAR_UP; }
-    glm::vec3        getBodyFrontDirection      ()                const { return getOrientation() * AVATAR_FRONT; }
-
-
+    const Skeleton&  getSkeleton               ()                const { return _skeleton;}
+    float            getHeadYawRate            ()                const { return _head.yawRate;}
+    float            getBodyYaw                ()                const { return _bodyYaw;}    
+    bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
+    const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
+    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * AVATAR_RIGHT; }
+    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * AVATAR_UP; }
+    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * AVATAR_FRONT; }
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -113,17 +143,22 @@ private:
 
     struct AvatarBall
     {
-        glm::vec3 position;
-        glm::quat rotation;      
-        glm::vec3 velocity;      
-        float     jointTightness;  
-        float     radius;               
-        bool      isCollidable;         
-        float     touchForce;           
+        AvatarJointID    parentJoint;    // the skeletal joint that serves as a reference for determining the position
+        glm::vec3        parentOffset;   // a 3D vector in the frame of reference of the parent skeletal joint
+        AvatarBodyBallID parentBall;     // the ball to which this ball is constrained for spring forces 
+        glm::vec3        position;       // the actual dynamic position of the ball at any given time
+        glm::quat        rotation;       // the rotation of the ball           
+        glm::vec3        velocity;       // the velocity of the ball
+        float            springLength;   // the ideal length of the spring between this ball and its parentBall 
+        float            jointTightness; // how tightly the ball position attempts to stay at its ideal position (determined by parentOffset)
+        float            radius;         // the radius of the ball
+        bool             isCollidable;   // whether or not the ball responds to collisions 
+        float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
     Head        _head;
     Skeleton    _skeleton;
+    bool        _ballSpringsInitialized;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
     bool        _mousePressed;
@@ -131,8 +166,7 @@ private:
     float       _bodyYawDelta;
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
-    glm::quat   _rotation; // the rotation of the avatar body as a whole expressed as a quaternion
-    AvatarBall	_bodyBall[ NUM_AVATAR_JOINTS ];
+    AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode  _mode;
     glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;

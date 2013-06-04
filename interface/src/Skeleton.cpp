@@ -15,7 +15,7 @@ Skeleton::Skeleton() {
 
 void Skeleton::initialize() {    
     
-    for (int b=0; b<NUM_AVATAR_JOINTS; b++) {
+    for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         joint[b].parent              = AVATAR_JOINT_NULL;
         joint[b].position            = glm::vec3(0.0, 0.0, 0.0);
         joint[b].defaultPosePosition = glm::vec3(0.0, 0.0, 0.0);
@@ -140,6 +140,7 @@ void Skeleton::update(float deltaTime, const glm::quat& orientation, glm::vec3 p
         joint[b].position += rotatedJointVector;
     }    
 }
+
 
 float Skeleton::getArmLength() {
     return joint[ AVATAR_JOINT_RIGHT_ELBOW      ].length

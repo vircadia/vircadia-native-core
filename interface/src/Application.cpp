@@ -39,6 +39,8 @@
 #include <QTimer>
 #include <QUrl>
 #include <QtDebug>
+#include <QFileDialog>
+#include <QDesktopServices>
 #include <PairingHandler.h>
 
 #include <AgentTypes.h>
@@ -46,6 +48,7 @@
 #include <PerfStat.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
+#include <OctalCode.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -56,6 +59,8 @@
 #include "ui/TextRenderer.h"
 
 using namespace std;
+
+const bool TESTING_AVATAR_TOUCH = false;
 
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
@@ -292,22 +297,22 @@ void Application::paintGL() {
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
@@ -616,6 +621,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
             }
             resizeGL(_glWidget->width(), _glWidget->height());
+            break;
+        case Qt::Key_Backspace:
+        case Qt::Key_Delete:
+            if (_selectVoxelMode->isChecked()) {
+                deleteVoxelUnderCursor();
+            }
             break;
             
         default:
@@ -1005,7 +1016,7 @@ void Application::idle() {
                         _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
                     }
                 }
-            } else if (_addVoxelMode->isChecked()) {
+            } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
                 // place the voxel a fixed distance away
                 float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
                 glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -1019,7 +1030,10 @@ void Application::idle() {
                 // red indicates deletion
                 _mouseVoxel.red = 255;
                 _mouseVoxel.green = _mouseVoxel.blue = 0;
-            
+            } else if (_selectVoxelMode->isChecked()) {
+                // yellow indicates deletion
+                _mouseVoxel.red = _mouseVoxel.green = 255;
+                _mouseVoxel.blue = 0;
             } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
                 QColor paintColor = _voxelPaintColor->data().value<QColor>();
                 _mouseVoxel.red = paintColor.red();
@@ -1083,24 +1097,29 @@ void Application::idle() {
             _myAvatar.simulate(deltaTime, NULL);
         }
         
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-            if (_manualFirstPerson) {
-                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
-            } else {
-        
-                if (_myAvatar.getIsNearInteractingOther()) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+        if (TESTING_AVATAR_TOUCH) {
+            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
+        } else {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
+                if (_manualFirstPerson) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                         _myCamera.setModeShiftRate(1.0f);
                     }
-                } 
-                else {
-                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
+                } else {
+                    if (_myAvatar.getIsNearInteractingOther()) {
+                        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
+                    } else {
+                        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
                     }
                 }
             }
@@ -1309,7 +1328,170 @@ void Application::chooseVoxelPaintColor() {
     // restore the main window's active state
     _window->activateWindow();
 }
+
+const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
+struct SendVoxelsOperationArgs {
+    unsigned char* newBaseOctCode;
+    unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
+    int bufferInUse;
+
+};
+
+bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
+    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
+    if (node->isColored()) {
+        unsigned char* nodeOctalCode = node->getOctalCode();
+        
+        unsigned char* codeColorBuffer = NULL;
+        int codeLength  = 0;
+        int bytesInCode = 0;
+        int codeAndColorLength;
+
+        // If the newBase is NULL, then don't rebase
+        if (args->newBaseOctCode) {
+            codeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
+            codeLength  = numberOfThreeBitSectionsInCode(codeColorBuffer);
+            bytesInCode = bytesRequiredForCodeLength(codeLength);
+            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
+        } else {
+            codeLength  = numberOfThreeBitSectionsInCode(nodeOctalCode);
+            bytesInCode = bytesRequiredForCodeLength(codeLength);
+            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
+            codeColorBuffer = new unsigned char[codeAndColorLength];
+            memcpy(codeColorBuffer, nodeOctalCode, bytesInCode);
+        }
+
+        // copy the colors over
+        codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
+        codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
+        codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
+
+        // if we have room don't have room in the buffer, then send the previously generated message first
+        if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL, 1);
+            args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
+        }
+        
+        // copy this node's code color details into our buffer.
+        memcpy(&args->messageBuffer[args->bufferInUse], codeColorBuffer, codeAndColorLength);
+        args->bufferInUse += codeAndColorLength;
+    }
+    return true; // keep going
+}
+
+void Application::exportVoxels() {
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/voxels.svo");
+
+    QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName, 
+                                                          tr("Sparse Voxel Octree Files (*.svo)"));
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        VoxelTree exportTree;
+        _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+        exportTree.writeToSVOFile(fileName);
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
+void Application::importVoxels() {
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
+                                                          tr("Sparse Voxel Octree Files (*.svo)"));
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+
+    // Read the file into a tree
+    VoxelTree importVoxels;
+    importVoxels.readFromSVOFile(fileName);
+
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     
+    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    unsigned char* calculatedOctCode = NULL;
+    SendVoxelsOperationArgs args;
+    args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+    *sequenceAt = 0;
+    args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details.
+    if (selectedNode) {
+        args.newBaseOctCode = selectedNode->getOctalCode();
+    } else {
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete calculatedOctCode;
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
+void Application::cutVoxels() {
+    copyVoxels();
+    deleteVoxelUnderCursor();
+}
+
+void Application::copyVoxels() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode) {
+        // clear the clipboard first...
+        _clipboardTree.eraseAllVoxels();
+
+        // then copy onto it
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
+    }
+}
+
+void Application::pasteVoxels() {
+    unsigned char* calculatedOctCode = NULL;
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+    // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    SendVoxelsOperationArgs args;
+    args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+    *sequenceAt = 0;
+    args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+    // target octalCode for where the user is pointing.
+    if (selectedNode) {
+        args.newBaseOctCode = selectedNode->getOctalCode();
+    } else {
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete calculatedOctCode;
+    }
+}
+
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
     _window->setMenuBar(menuBar);
@@ -1369,25 +1551,39 @@ void Application::initMenu() {
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
+
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_1))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_A))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_2))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_D))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_3))->setCheckable(true);
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::CTRL | Qt::Key_B))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
+    (_selectVoxelMode = voxelMenu->addAction(
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_S))->setCheckable(true);
+    _voxelModeActions->addAction(_selectVoxelMode);
+    (_eyedropperMode = voxelMenu->addAction(
+        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
+    _voxelModeActions->addAction(_eyedropperMode);
     
-    voxelMenu->addAction("Place Voxel", this, SLOT(addVoxelInFrontOfAvatar()), Qt::Key_4);
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), Qt::Key_5);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), Qt::Key_6);
+    voxelMenu->addAction("Place New Voxel",     this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::Key_N);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
     
-    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, SLOT(chooseVoxelPaintColor()), Qt::Key_7);
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
+                                                      SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
+    
+    voxelMenu->addAction("Export Voxels",  this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
+    voxelMenu->addAction("Import Voxels",  this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Cut Voxels",     this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
+    voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
+    voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
     QMenu* frustumMenu = menuBar->addMenu("Frustum");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
@@ -1582,7 +1778,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     if (_cameraFrustum->isChecked()) {
         position = camera.getPosition();
     } else {
-        position = _myAvatar.getHeadPosition();
+        position = _myAvatar.getHeadJointPosition();
     }
     
     float fov         = camera.getFieldOfView();
@@ -1594,17 +1790,6 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     glm::vec3 up = rotation * AVATAR_UP;
     glm::vec3 right = rotation * AVATAR_RIGHT;
 
-    /*
-    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
-    printf("yaw=%f, pitch=%f, roll=%f\n", yaw,pitch,roll);
-    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
-    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
-    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
-    printf("fov=%f\n", fov);
-    printf("nearClip=%f\n", nearClip);
-    printf("farClip=%f\n", farClip);
-    */
-    
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
     viewFrustum.setOrientation(direction,up,right);
@@ -2205,7 +2390,6 @@ void Application::maybeEditVoxelUnderCursor() {
             //_myAvatar.getPosition()
             voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
             voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
-            // printf("mousevoxelscale is %f\n", _mouseVoxel.s);
             
             /* for (int i = 0; i
              < 22050; i++) {
@@ -2256,6 +2440,8 @@ void Application::maybeEditVoxelUnderCursor() {
         }
     } else if (_deleteVoxelMode->isChecked()) {
         deleteVoxelUnderCursor();
+    } else if (_eyedropperMode->isChecked()) {
+        eyedropperVoxelUnderCursor();
     }
 }
 
@@ -2271,13 +2457,27 @@ void Application::deleteVoxelUnderCursor() {
         
         for (int i = 0; i < 5000; i++) {
             voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
-            //            voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+            //voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
         }
         
         AudioInjectionManager::threadInjector(voxelInjector);
     }
     // remember the position for drag detection
     _justEditedVoxel = true;
+}
+
+void Application::eyedropperVoxelUnderCursor() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (selectedNode && selectedNode->isColored()) {
+        QColor selectedColor(selectedNode->getColor()[RED_INDEX], 
+                             selectedNode->getColor()[GREEN_INDEX], 
+                             selectedNode->getColor()[BLUE_INDEX]);
+
+        if (selectedColor.isValid()) {
+            _voxelPaintColor->setData(selectedColor);
+            _voxelPaintColor->setIcon(createSwatchIcon(selectedColor));
+        }
+    }
 }
 
 void Application::goHome() {
