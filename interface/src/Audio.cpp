@@ -116,7 +116,7 @@ int audioCallback (const void* inputBuffer,
         printLog("got output\n");
     }
     
-    if (inputLeft) {
+    if (agentList && inputLeft) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
@@ -143,7 +143,7 @@ int audioCallback (const void* inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &interfaceAvatar->getHeadPosition(), sizeof(float) * 3);
+            memcpy(currentPacketPtr, &interfaceAvatar->getHeadJointPosition(), sizeof(float) * 3);
             currentPacketPtr += (sizeof(float) * 3);
             
             // tell the mixer not to add additional attenuation to our source

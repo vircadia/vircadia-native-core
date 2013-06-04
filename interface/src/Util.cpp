@@ -72,6 +72,27 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PI;
 }
 
+//  Helper function return the rotation from the first vector onto the second
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    float angle = angleBetween(v1, v2);
+    if (isnan(angle) || angle < EPSILON) {
+        return glm::quat();
+    }
+    glm::vec3 axis = glm::cross(v1, v2);
+    if (angle > 179.99f) { // 180 degree rotation; must use another axis
+        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
+        float axisLength = glm::length(axis);
+        if (axisLength < EPSILON) { // parallel to x; y will work
+            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
+        } else {
+            axis /= axisLength;
+        }        
+    } else {
+        axis = glm::normalize(glm::cross(v1, v2));
+    }
+    return glm::angleAxis(angle, axis);
+}
+
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
 // https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
