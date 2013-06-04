@@ -1448,13 +1448,17 @@ void Application::init() {
 void Application::updateAvatar(float deltaTime) {
 
     if (_serialHeadSensor.active) {
-        glm::vec3 headPosition = _serialHeadSensor.getEstimatedPosition();
-        const float HEAD_OFFSET_SCALING = 3.f;
-        headPosition *= HEAD_OFFSET_SCALING;
-        _myCamera.setEyeOffsetPosition(headPosition);
+      
+        // Update avatar head translation
+        if (_gyroLook->isChecked()) {
+            glm::vec3 headPosition = _serialHeadSensor.getEstimatedPosition();
+            const float HEAD_OFFSET_SCALING = 3.f;
+            headPosition *= HEAD_OFFSET_SCALING;
+            _myCamera.setEyeOffsetPosition(headPosition);
+        }
         
         // Update my avatar's head position from gyros
-        //_myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
+        _myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
         
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
