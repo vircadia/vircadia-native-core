@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "AgentData.h"
 
@@ -44,8 +45,9 @@ public:
     void setShouldBeAddedToMix(bool shouldBeAddedToMix) { _shouldBeAddedToMix = shouldBeAddedToMix; }
     
     const glm::vec3& getPosition() const { return _position; }
+    const glm::quat& getOrientation() const { return _orientation; }
     float getAttenuationRatio() const { return _attenuationRatio; }
-    float getBearing() const { return _bearing; }
+    
     bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
     const unsigned char* getStreamIdentifier() const { return _streamIdentifier; }
 
@@ -58,9 +60,9 @@ private:
     int _ringBufferLengthSamples;
     int _bufferLengthSamples;
     glm::vec3 _position;
+    glm::quat _orientation;
     float _radius;
     float _attenuationRatio;
-    float _bearing;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;

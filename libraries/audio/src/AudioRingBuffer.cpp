@@ -65,23 +65,16 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
         unsigned int attenuationByte = *(dataBuffer++);
         _attenuationRatio = attenuationByte / 255.0f;
         
-        memcpy(&_bearing, dataBuffer, sizeof(float));
-        dataBuffer += sizeof(_bearing);
+        memcpy(&_orientation, dataBuffer, sizeof(_orientation));
+        dataBuffer += sizeof(_orientation);
         
-        // if this agent sent us a NaN bearing then don't consider this good audio and bail
-        if (std::isnan(_bearing)) {
+        // if this agent sent us a NaN for first float in orientation then don't consider this good audio and bail
+        if (std::isnan(_orientation.x)) {
             _endOfLastWrite = _nextOutput = _buffer;
             _started = false;
             return 0;
-        } else if (_bearing > 180 || _bearing < -180) {
-            // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
-            _shouldLoopbackForAgent = true;
-            
-            // correct the bearing
-            _bearing = _bearing  > 0
-                ? _bearing - AGENT_LOOPBACK_MODIFIER
-                : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
+            // currently no possiblity for loopback, need to add once quaternion audio is working again
             _shouldLoopbackForAgent = false;
         }
     }
