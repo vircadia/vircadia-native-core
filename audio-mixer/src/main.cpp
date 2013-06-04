@@ -17,6 +17,7 @@
 #include <limits>
 #include <signal.h>
 
+#include <glm/gtx/norm.hpp>
 #include <AgentList.h>
 #include <Agent.h>
 #include <AgentTypes.h>
@@ -55,7 +56,6 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float DISTANCE_SCALE = 2.5f;
 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
 const int PHASE_DELAY_AT_90 = 20;
 
@@ -128,10 +128,6 @@ int main(int argc, const char* argv[]) {
             }
         }
         
-        int numAgents = agentList->size();
-        float distanceCoefficients[numAgents][numAgents];
-        memset(distanceCoefficients, 0, sizeof(distanceCoefficients));
-        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getType() == AGENT_TYPE_AVATAR) {
                 AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
@@ -146,69 +142,60 @@ int main(int argc, const char* argv[]) {
                         if (otherAgentBuffer->shouldBeAddedToMix()) {
                             
                             float bearingRelativeAngleToSource = 0.f;
-                            float attenuationCoefficient = 1.f;
+                            float attenuationCoefficient = 1.0f;
                             int numSamplesDelay = 0;
-                            float weakChannelAmplitudeRatio = 1.f;
+                            float weakChannelAmplitudeRatio = 1.0f;
                             
                             if (otherAgent != agent) {
                                 glm::vec3 agentPosition = agentRingBuffer->getPosition();
                                 glm::vec3 otherAgentPosition = otherAgentBuffer->getPosition();
                                 
-                                // calculate the distance to the other agent
+                                float distanceSquareToSource = glm::distance2(agentPosition, otherAgentPosition);
                                 
-                                // use the distance to the other agent to calculate the change in volume for this frame
-                                int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                                int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
+                                float distanceCoefficient = 1.0f;
+                                float offAxisCoefficient = 1.0f;
                                 
-                                bool insideSphericalInjector = false;
-                                
-                                if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
-                                    float distanceToAgent = glm::distance(agentPosition, otherAgentPosition);
+                                if (otherAgentBuffer->getRadius() == 0
+                                    || (distanceSquareToSource > (otherAgentBuffer->getRadius()
+                                                                 * otherAgentBuffer->getRadius()))) {
+                                    // this is either not a spherical source, or the listener is outside the sphere
                                     
-                                    float minCoefficient = 1.0f;
-                                    
-                                    if (otherAgentBuffer->getRadius() == 0 || distanceToAgent > otherAgentBuffer->getRadius()) {
-                                        // this is either not a spherical source, or the listener is outside the sphere
+                                    if (otherAgentBuffer->getRadius() > 0) {
+                                        // this is a spherical source - the distance used for the coefficient
+                                        // needs to be the closest point on the boundary to the source
                                         
-                                        if (otherAgentBuffer->getRadius() > 0) {
-                                            // this is a spherical source - the distance used for the coefficient
-                                            // needs to be the closest point on the boundary to the source
-                                            
-                                            // multiply the normalized vector between the center of the sphere
-                                            // and the position of the source by the radius to get the
-                                            // closest point on the boundary of the sphere to the source
-                                            glm::vec3 difference = agentPosition - otherAgentPosition;
-                                            glm::vec3 closestPoint = glm::normalize(difference) * otherAgentBuffer->getRadius();
-                                            
-                                            // for the other calculations the agent position is the closest point on the sphere
-                                            otherAgentPosition = closestPoint;
-                                            
-                                            // ovveride the distance to the agent with the distance to the point on the
-                                            // boundary of the sphere
-                                            distanceToAgent = glm::distance(agentPosition, closestPoint);
-                                        }
+                                        // multiply the normalized vector between the center of the sphere
+                                        // and the position of the source by the radius to get the
+                                        // closest point on the boundary of the sphere to the source
+                                        glm::vec3 difference = agentPosition - otherAgentPosition;
+                                        glm::vec3 closestPoint = glm::normalize(difference) * otherAgentBuffer->getRadius();
                                         
-                                        // calculate the distance coefficient using the distance to this agent
-                                        minCoefficient = std::min(1.0f,
-                                                                  powf(0.3, (logf(DISTANCE_SCALE * distanceToAgent) /
-                                                                             logf(2.5)) - 1));
-                                    } else {
-                                        insideSphericalInjector = true;
+                                        // for the other calculations the agent position is the closest point on the sphere
+                                        otherAgentPosition = closestPoint;
+                                        
+                                        // ovveride the distance to the agent with the distance to the point on the
+                                        // boundary of the sphere
+                                        distanceSquareToSource = glm::distance2(agentPosition, closestPoint);
                                     }
+                                        
+                                    const float DISTANCE_SCALE = 2.5f;
+                                    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                                    const float DISTANCE_LOG_BASE = 2.5f;
+                                    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
                                     
-                                    
-                                    distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
-                                }
-                                
-                                if (!insideSphericalInjector) {
-                                    // off-axis attenuation and spatialization of audio is not performed
-                                    // if the listener is inside a spherical injector
+                                    // calculate the distance coefficient using the distance to this agent
+                                    distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                               DISTANCE_SCALE_LOG +
+                                                               (logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                                    distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                                        
+                                    // off-axis attenuation and spatialization of audio
+                                    // not performed if listener is inside spherical injector
                                     
                                     // get the angle from the right-angle triangle
                                     float triangleAngle = atan2f(fabsf(agentPosition.z - otherAgentPosition.z),
                                                                  fabsf(agentPosition.x - otherAgentPosition.x)) * (180 / M_PI);
                                     float absoluteAngleToSource = 0;
-                                    bearingRelativeAngleToSource = 0;
                                     
                                     // find the angle we need for calculation based on the orientation of the triangle
                                     if (otherAgentPosition.x > agentPosition.x) {
@@ -224,6 +211,8 @@ int main(int argc, const char* argv[]) {
                                             absoluteAngleToSource = 90 + triangleAngle;
                                         }
                                     }
+                                    
+                                    printf("AAS: %f, AB: %f\n", absoluteAngleToSource, agentRingBuffer->getBearing());
                                     
                                     bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
                                     
@@ -241,19 +230,19 @@ int main(int argc, const char* argv[]) {
                                         angleOfDelivery += 360;
                                     }
                                     
-                                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
-                                    
-                                    attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
-                                        * otherAgentBuffer->getAttenuationRatio()
-                                        * offAxisCoefficient;
+                                    offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION
+                                        + (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
                                     
                                     bearingRelativeAngleToSource *= (M_PI / 180);
-                                    
-                                    float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 }
+                                
+                                attenuationCoefficient = distanceCoefficient
+                                    * otherAgentBuffer->getAttenuationRatio()
+                                    * offAxisCoefficient;
+
+                                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
