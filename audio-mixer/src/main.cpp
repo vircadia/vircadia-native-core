@@ -207,7 +207,7 @@ int main(int argc, const char* argv[]) {
                                                                        glm::normalize(rotatedListenerPosition));
                                     
                                     offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION
-                                        + (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
+                                        + (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
                                     
                                     float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
                                     numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;

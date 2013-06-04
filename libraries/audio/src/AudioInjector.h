@@ -36,8 +36,8 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position) { _position = position; }
     
-    float getBearing() const { return _bearing; }
-    void setBearing(float bearing) { _bearing = bearing; }
+    const glm::quat& getOrientation() const { return _orientation; }
+    void setOperation(const glm::quat& orientation) { _orientation = orientation; }
     
     float getRadius() const { return _radius; }
     void setRadius(float radius) { _radius = radius; }
@@ -49,8 +49,8 @@ private:
     int16_t* _audioSampleArray;
     int _numTotalSamples;
     glm::vec3 _position;
+    glm::quat _orientation;
     float _radius;
-    float _bearing;
     unsigned char _volume;
     int _indexOfNextSlot;
     bool _isInjectingAudio;
