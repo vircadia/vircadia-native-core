@@ -286,7 +286,7 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, b
                 }
             }
 
-            // If we're in collpaseEmptryTrees mode, and we're the last child of this parent, then delete the parent.
+            // If we're in collapseEmptyTrees mode, and we're the last child of this parent, then delete the parent.
             // This will collapse the empty tree above us. 
             if (collapseEmptyTrees && parentNode->getChildCount() == 0) {
                 // Can't delete the root this way.
