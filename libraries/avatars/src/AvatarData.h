@@ -164,8 +164,4 @@ int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
 int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 
-int unpackVec3FromBytes(unsigned char* buffer, glm::vec3& vec, float min, float max, int bytes);
-int packVec3ToBytes(unsigned char* buffer, const glm::vec3& vec, float min, float max, int bytes);
-
-
 #endif /* defined(__hifi__AvatarData__) */

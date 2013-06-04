@@ -72,7 +72,6 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyYawDelta(0.0f),
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
-    _rotation(0.0f, 0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
     _cameraPosition(0.0f, 0.0f, 0.0f),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),

@@ -78,13 +78,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // Hand Position - is relative to body position
     glm::vec3 handPositionRelative = _handPosition - _position;
     memcpy(destinationBuffer, &handPositionRelative, sizeof(float) * 3);
-
-    printf("handPositionRelative=%f,%f,%f\n",handPositionRelative.x, handPositionRelative.y, handPositionRelative.z);
-    printf("_handPosition=%f,%f,%f\n",_handPosition.x, _handPosition.y, _handPosition.z);
-    printf("_position=%f,%f,%f\n",_position.x, _position.y, _position.z);
-
-packVec3ToBytes(NULL, handPositionRelative, -1.0f , 1.0f, 4);
-
     destinationBuffer += sizeof(float) * 3;
 
     // Lookat Position
@@ -92,12 +85,9 @@ packVec3ToBytes(NULL, handPositionRelative, -1.0f , 1.0f, 4);
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
     // Instantaneous audio loudness (used to drive facial animation)
-<<<<<<< HEAD
-    destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
-=======
+    //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float); 
->>>>>>> c7921c4be90dc45a82793845a9a55b77a3fb5a3f
 
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -174,9 +164,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
     _handPosition = _position + handPositionRelative;
     sourceBuffer += sizeof(float) * 3;
-    printf("handPositionRelative=%f,%f,%f\n",handPositionRelative.x, handPositionRelative.y, handPositionRelative.z);
-    printf("_handPosition=%f,%f,%f\n",_handPosition.x, _handPosition.y, _handPosition.z);
-    printf("_position=%f,%f,%f\n",_position.x, _position.y, _position.z);
     
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
@@ -341,88 +328,3 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
     return sizeof(holder);
 }
 
-int packVec3ToBytes(unsigned char* buffer, const glm::vec3& vec, float min, float max, int bytes) {
-    const int ITEMS_IN_VEC3 = 3;
-    const int BITS_IN_BYTE  = 8;
-    const int BYTE_MASK     = 0xff;
-    assert(bytes < sizeof(double) * ITEMS_IN_VEC3);
-    unsigned char holder[bytes];
-    memset(&holder, 0, bytes);
-    
-    int bitsTotal          = bytes * BITS_IN_BYTE;
-    int bitsPerItem        = floor(bitsTotal / ITEMS_IN_VEC3);
-    long maxEncodedPerItem = powf(2, bitsPerItem) - 1; // must be a better way to get this
-    float scaleBy          = (max - min);
-    float conversionRatio  = (maxEncodedPerItem / scaleBy);
-
-printf("bitsTotal=%d\n", bitsTotal);    
-printf("bitsPerItem=%d\n", bitsPerItem);    
-printf("maxEncodedPerItem=%ld\n", maxEncodedPerItem);    
-printf("scaleBy=%f\n", scaleBy);    
-printf("conversionRatio=%f\n", conversionRatio);
-
-    int bitInByte = 0;
-    int byteInHolder = 0;
-    long encodedItem = 0;
-    int leftShiftThisByte = 0;
-    
-    for (int i = 0; i < ITEMS_IN_VEC3; i++) {
-    
-printf(">>> item=%d\n", i);
-printf("vec[item]=%f\n", vec[i]);
-
-        long encodedItemMask = maxEncodedPerItem;
-        encodedItem = floorf((vec[i] - min) * conversionRatio);
-        
-printf("encodedItem=%ld\n", encodedItem);
-printf("encodedItemMask=%ld\n", encodedItemMask);
-printf("leftShiftThisByte=%d\n", leftShiftThisByte);
-
-        for (int bitsInThisItem = 0; bitsInThisItem < bitsPerItem; ) {
-        
-printf(">>> bitsInThisItem=%d\n", bitsInThisItem);
-
-            unsigned char thisBytePortion = (encodedItemMask << leftShiftThisByte) & BYTE_MASK;
-            
-printf("thisBytePortion=%d\n", (int)thisBytePortion);
-
-            unsigned char thisByteValue = (encodedItem << leftShiftThisByte) & thisBytePortion;
-            
-printf("thisByteValue=%d\n", (int)thisByteValue);
-
-            holder[byteInHolder] |= thisByteValue;
-
-printf("after byte %d: ", byteInHolder);
-outputBufferBits((unsigned char*)&holder, bytes);
-
-
-///////not handling this correctly... second portion of second item is not moving to 3rd byte...
-
-            leftShiftThisByte = 0; // reset after first time;
-            int numberOfBitsInThisByte = numberOfOnes(thisBytePortion);
-            bitsInThisItem += numberOfBitsInThisByte;
-            if (numberOfBitsInThisByte == 8) {
-                byteInHolder++;
-                encodedItemMask = encodedItemMask >> numberOfBitsInThisByte;
-                encodedItem = encodedItem >> numberOfBitsInThisByte;
-            } else {
-                leftShiftThisByte = numberOfBitsInThisByte;
-            }
-printf("numberOfBitsInThisByte=%d\n", numberOfBitsInThisByte);
-printf("AFTER bitsInThisItem=%d\n", bitsInThisItem);
-printf("AFTER encodedItem=%ld\n", encodedItem);
-printf("AFTER encodedItemMask=%ld\n", encodedItemMask);
-        }
-    }
-
-    printf("done: ");
-    outputBufferBits((unsigned char*)&holder, bytes);
-
-    //memcpy(buffer, &holder, sizeof(holder));
-    return sizeof(holder);
-}
-
-int unpackVec3FromBytes(unsigned char* buffer, glm::vec3& vec, float min, float max, int bytes) {
-    unsigned char holder[bytes];
-    return sizeof(holder);
-}

@@ -1560,24 +1560,10 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float farClip     = camera.getFarClip();
 
     glm::quat rotation = camera.getRotation();
-    glm::vec3 direction = rotation * AVATAR_FRONT;
-    glm::vec3 up = rotation * AVATAR_UP;
-    glm::vec3 right = rotation * AVATAR_RIGHT;
 
-    /*
-    printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
-    printf("yaw=%f, pitch=%f, roll=%f\n", yaw,pitch,roll);
-    printf("direction.x=%f, direction.y=%f, direction.z=%f\n", direction.x, direction.y, direction.z);
-    printf("up.x=%f, up.y=%f, up.z=%f\n", up.x, up.y, up.z);
-    printf("right.x=%f, right.y=%f, right.z=%f\n", right.x, right.y, right.z);
-    printf("fov=%f\n", fov);
-    printf("nearClip=%f\n", nearClip);
-    printf("farClip=%f\n", farClip);
-    */
-    
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(o.getQuat());
+    viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
