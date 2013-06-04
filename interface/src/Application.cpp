@@ -21,16 +21,23 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <QActionGroup>
+#include <QBoxLayout>
 #include <QColorDialog>
+#include <QDialogButtonBox>
 #include <QDesktopWidget>
+#include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QNetworkAccessManager>
 #include <QWheelEvent>
+#include <QSettings>
 #include <QShortcut>
 #include <QTimer>
+#include <QUrl>
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
@@ -160,8 +167,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
-    
-    _voxels.setViewFrustum(&_viewFrustum);
     
     unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
     const char** constArgv = const_cast<const char**>(argv);
@@ -1143,6 +1148,32 @@ void Application::terminate() {
     }
 }
 
+void Application::editPreferences() {
+    QDialog dialog(_glWidget);
+    dialog.setWindowTitle("Interface Preferences");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* avatarURL = new QLineEdit(_settings->value("avatarURL").toString());
+    avatarURL->setMinimumWidth(400);
+    form->addRow("Avatar URL:", avatarURL);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    QUrl url(avatarURL->text());
+    _settings->setValue("avatarURL", url);
+    _myAvatar.getVoxels()->loadVoxelsFromURL(url);
+}
+
 void Application::pair() {
     PairingHandler::sendPairRequest();
 }
@@ -1469,6 +1500,9 @@ void Application::initMenu() {
     QMenu* fileMenu = menuBar->addMenu("File");
     fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
 
+    QMenu* editMenu = menuBar->addMenu("Edit");
+    editMenu->addAction("Preferences...", this, SLOT(editPreferences()));
+
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
@@ -1509,9 +1543,7 @@ void Application::initMenu() {
     renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
-    
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
-    
     _renderStatsOn->setShortcut(Qt::Key_Slash);
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
@@ -1579,6 +1611,9 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+    
+    _networkAccessManager = new QNetworkAccessManager(this);
+    _settings = new QSettings("High Fidelity", "Interface", this);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -1613,8 +1648,6 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
-    _voxels.setViewerAvatar(&_myAvatar);
-    _voxels.setCamera(&_myCamera);
     
     _environment.init();
     
@@ -1625,10 +1658,13 @@ void Application::init() {
 
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
+    _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
     _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
+    
+    _myAvatar.getVoxels()->loadVoxelsFromURL(_settings->value("avatarURL").toUrl());
     
     QCursor::setPos(_headMouseX, _headMouseY);
     
@@ -1915,7 +1951,7 @@ void Application::displayOculus(Camera& whichCamera) {
     
     glPopMatrix();
 }
-
+        
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
@@ -2498,7 +2534,9 @@ QAction* Application::checkedVoxelModeAction() const {
 
 void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(newAgent));
+        Avatar* newAvatar = new Avatar(newAgent);
+        newAvatar->init();
+        newAgent->setLinkedData(newAvatar);
     }
 }
 

@@ -13,6 +13,7 @@
 #include <AvatarData.h>
 #include "world.h"
 #include "AvatarTouch.h"
+#include "AvatarVoxelSystem.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
@@ -80,6 +81,7 @@ public:
     Avatar(Agent* owningAgent = NULL);
     ~Avatar();
     
+    void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
@@ -98,6 +100,7 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
+    const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
@@ -116,6 +119,8 @@ public:
     glm::quat        getOrientation            () const;
     glm::quat        getWorldAlignedOrientation() const;
     
+    AvatarVoxelSystem* getVoxels() { return &_voxels; }
+    
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
@@ -123,6 +128,9 @@ public:
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
+    
+    //  Get the position/rotation of a single body ball
+    void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
     
     //read/write avatar data
     void writeAvatarDataToFile();
@@ -139,6 +147,7 @@ private:
         glm::vec3        parentOffset;   // a 3D vector in the frame of reference of the parent skeletal joint
         AvatarBodyBallID parentBall;     // the ball to which this ball is constrained for spring forces 
         glm::vec3        position;       // the actual dynamic position of the ball at any given time
+        glm::quat        rotation;       // the rotation of the ball           
         glm::vec3        velocity;       // the velocity of the ball
         float            springLength;   // the ideal length of the spring between this ball and its parentBall 
         float            jointTightness; // how tightly the ball position attempts to stay at its ideal position (determined by parentOffset)
@@ -180,6 +189,8 @@ private:
     Avatar*     _interactingOther;
     float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
+    
+    AvatarVoxelSystem _voxels;
     
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
