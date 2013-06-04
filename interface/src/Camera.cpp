@@ -32,7 +32,7 @@ Camera::Camera() {
     _needsToInitialize   = true;
     _frustumNeedsReshape = true;
     
-    _modeShift         = 0.0f;
+    _modeShift         = 1.0f;
     _modeShiftRate     = 1.0f;
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;

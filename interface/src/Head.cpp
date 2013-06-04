@@ -20,7 +20,6 @@ const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
 const float EAR_RIGHT_OFFSET         =  1.0;
-//const float MOUTH_FRONT_OFFSET       =  0.9f;
 const float MOUTH_UP_OFFSET          = -0.3f;
 const float HEAD_MOTION_DECAY        =  0.1;
 const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
@@ -276,7 +275,7 @@ void Head::renderMohawk(glm::vec3 cameraPosition) {
             glm::vec3 mid2  = _hairTuft[t].midPosition  + midPerpendicular  * _hairTuft[t].thickness * ONE_HALF * ONE_HALF;
             
             glColor3f(_mohawkColors[t].x, _mohawkColors[t].y, _mohawkColors[t].z);
-            
+
             glBegin(GL_TRIANGLES);             
             glVertex3f(base1.x,  base1.y,  base1.z ); 
             glVertex3f(base2.x,  base2.y,  base2.z ); 
@@ -374,7 +373,7 @@ void Head::renderMouth() {
     rightTop    = _position + glm::normalize(rightTop    - _position) * constrainedRadius;
     leftBottom  = _position + glm::normalize(leftBottom  - _position) * constrainedRadius;
     rightBottom = _position + glm::normalize(rightBottom - _position) * constrainedRadius;
-        
+
     glColor3f(0.2f, 0.0f, 0.0f);
     
     glBegin(GL_TRIANGLES);             
