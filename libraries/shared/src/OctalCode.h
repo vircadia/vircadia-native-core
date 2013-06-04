@@ -11,6 +11,14 @@
 
 #include <string.h>
 
+const int BITS_IN_BYTE  = 8;
+const int BITS_IN_OCTAL = 3;
+const int NUMBER_OF_COLORS = 3; // RGB!
+const int SIZE_OF_COLOR_DATA = NUMBER_OF_COLORS * sizeof(unsigned char); // size in bytes
+const int RED_INDEX   = 0;
+const int GREEN_INDEX = 1;
+const int BLUE_INDEX  = 2;
+
 void printOctalCode(unsigned char * octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
 bool isDirectParentOfChild(unsigned char *parentOctalCode, unsigned char * childOctalCode);

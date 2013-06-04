@@ -2397,7 +2397,7 @@ void Application::deleteVoxelUnderCursor() {
         
         for (int i = 0; i < 5000; i++) {
             voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
-            //            voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+            //voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
         }
         
         AudioInjectionManager::threadInjector(voxelInjector);
