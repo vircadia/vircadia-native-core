@@ -160,68 +160,100 @@ int main(int argc, const char* argv[]) {
                                 int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
                                 int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
                                 
+                                bool insideSphericalInjector = false;
+                                
                                 if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
-                                    float distanceToAgent = sqrtf(powf(agentPosition.x - otherAgentPosition.x, 2) +
-                                                                  powf(agentPosition.y - otherAgentPosition.y, 2) +
-                                                                  powf(agentPosition.z - otherAgentPosition.z, 2));
+                                    float distanceToAgent = glm::distance(agentPosition, otherAgentPosition);
                                     
-                                    float minCoefficient = std::min(1.0f,
-                                                                    powf(0.3,
-                                                                         (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
-                                                                         - 1));
+                                    float minCoefficient = 1.0f;
+                                    
+                                    if (otherAgentBuffer->getRadius() == 0 || distanceToAgent > otherAgentBuffer->getRadius()) {
+                                        // this is either not a spherical source, or the listener is outside the sphere
+                                        
+                                        if (otherAgentBuffer->getRadius() > 0) {
+                                            // this is a spherical source - the distance used for the coefficient
+                                            // needs to be the closest point on the boundary to the source
+                                            
+                                            // multiply the normalized vector between the center of the sphere
+                                            // and the position of the source by the radius to get the
+                                            // closest point on the boundary of the sphere to the source
+                                            glm::vec3 difference = agentPosition - otherAgentPosition;
+                                            glm::vec3 closestPoint = glm::normalize(difference) * otherAgentBuffer->getRadius();
+                                            
+                                            // for the other calculations the agent position is the closest point on the sphere
+                                            otherAgentPosition = closestPoint;
+                                            
+                                            // ovveride the distance to the agent with the distance to the point on the
+                                            // boundary of the sphere
+                                            distanceToAgent = glm::distance(agentPosition, closestPoint);
+                                        }
+                                        
+                                        // calculate the distance coefficient using the distance to this agent
+                                        minCoefficient = std::min(1.0f,
+                                                                  powf(0.3, (logf(DISTANCE_SCALE * distanceToAgent) /
+                                                                             logf(2.5)) - 1));
+                                    } else {
+                                        insideSphericalInjector = true;
+                                    }
+                                    
+                                    
                                     distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
                                 }
                                 
-                                
-                                // get the angle from the right-angle triangle
-                                float triangleAngle = atan2f(fabsf(agentPosition.z - otherAgentPosition.z),
-                                                             fabsf(agentPosition.x - otherAgentPosition.x)) * (180 / M_PI);
-                                float absoluteAngleToSource = 0;
-                                bearingRelativeAngleToSource = 0;
-                                
-                                // find the angle we need for calculation based on the orientation of the triangle
-                                if (otherAgentPosition.x > agentPosition.x) {
-                                    if (otherAgentPosition.z > agentPosition.z) {
-                                        absoluteAngleToSource = -90 + triangleAngle;
+                                if (!insideSphericalInjector) {
+                                    // off-axis attenuation and spatialization of audio is not performed
+                                    // if the listener is inside a spherical injector
+                                    
+                                    // get the angle from the right-angle triangle
+                                    float triangleAngle = atan2f(fabsf(agentPosition.z - otherAgentPosition.z),
+                                                                 fabsf(agentPosition.x - otherAgentPosition.x)) * (180 / M_PI);
+                                    float absoluteAngleToSource = 0;
+                                    bearingRelativeAngleToSource = 0;
+                                    
+                                    // find the angle we need for calculation based on the orientation of the triangle
+                                    if (otherAgentPosition.x > agentPosition.x) {
+                                        if (otherAgentPosition.z > agentPosition.z) {
+                                            absoluteAngleToSource = -90 + triangleAngle;
+                                        } else {
+                                            absoluteAngleToSource = -90 - triangleAngle;
+                                        }
                                     } else {
-                                        absoluteAngleToSource = -90 - triangleAngle;
+                                        if (otherAgentPosition.z > agentPosition.z) {
+                                            absoluteAngleToSource = 90 - triangleAngle;
+                                        } else {
+                                            absoluteAngleToSource = 90 + triangleAngle;
+                                        }
                                     }
-                                } else {
-                                    if (otherAgentPosition.z > agentPosition.z) {
-                                        absoluteAngleToSource = 90 - triangleAngle;
-                                    } else {
-                                        absoluteAngleToSource = 90 + triangleAngle;
+                                    
+                                    bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
+                                    
+                                    if (bearingRelativeAngleToSource > 180) {
+                                        bearingRelativeAngleToSource -= 360;
+                                    } else if (bearingRelativeAngleToSource < -180) {
+                                        bearingRelativeAngleToSource += 360;
                                     }
+                                    
+                                    float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
+                                    
+                                    if (angleOfDelivery > 180) {
+                                        angleOfDelivery -= 360;
+                                    } else if (angleOfDelivery < -180) {
+                                        angleOfDelivery += 360;
+                                    }
+                                    
+                                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
+                                    
+                                    attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
+                                        * otherAgentBuffer->getAttenuationRatio()
+                                        * offAxisCoefficient;
+                                    
+                                    bearingRelativeAngleToSource *= (M_PI / 180);
+                                    
+                                    float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 }
-                                
-                                bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
-                                
-                                if (bearingRelativeAngleToSource > 180) {
-                                    bearingRelativeAngleToSource -= 360;
-                                } else if (bearingRelativeAngleToSource < -180) {
-                                    bearingRelativeAngleToSource += 360;
-                                }
-                                
-                                float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
-                                
-                                if (angleOfDelivery > 180) {
-                                    angleOfDelivery -= 360;
-                                } else if (angleOfDelivery < -180) {
-                                    angleOfDelivery += 360;
-                                }
-                                
-                                float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                                (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
-                                
-                                attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
-                                    * otherAgentBuffer->getAttenuationRatio()
-                                    * offAxisCoefficient;
-                                
-                                bearingRelativeAngleToSource *= (M_PI / 180);
-                                
-                                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f

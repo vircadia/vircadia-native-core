@@ -36,25 +36,25 @@ const char *allowedParameters = ":rb::t::c::a::f::d::s:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 float triggerDistance = 0.0f;
-float cubeSideLength = 0.0f;
+float radius = 0.0f;
 
 void usage(void) {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
-    std::cout << "   -r                             Random sleep mode. If not specified will default to constant loop." << std::endl;
+    std::cout << "   -s                             Random sleep mode. If not specified will default to constant loop." << std::endl;
     std::cout << "   -b FLOAT                       Min. number of seconds to sleep. Only valid in random sleep mode. Default 1.0" << std::endl;
     std::cout << "   -t FLOAT                       Max. number of seconds to sleep. Only valid in random sleep mode. Default 2.0" << std::endl;
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
     std::cout << "   -d FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
-    std::cout << "   -s FLOAT                       Length of side of cube audio source. If not specified injected audio is point source" << std::endl;
+    std::cout << "   -r FLOAT                       Radius for spherical source. If not specified injected audio is point source" << std::endl;
 }
 
 bool processParameters(int parameterCount, char* parameterData[]) {
     int p;
     while ((p = getopt(parameterCount, parameterData, allowedParameters)) != -1) {
         switch (p) {
-            case 'r':
+            case 's':
                 ::loopAudio = false;
                 std::cout << "[DEBUG] Random sleep mode enabled" << std::endl;
                 break;
@@ -94,9 +94,9 @@ bool processParameters(int parameterCount, char* parameterData[]) {
                 ::triggerDistance = atof(optarg);
                 std::cout << "[DEBUG] Trigger distance: " << optarg << std::endl;
                 break;
-            case 's':
-                ::cubeSideLength = atof(optarg);
-                std::cout << "[DEBUG] Cube side length: " << optarg << std::endl;
+            case 'r':
+                ::radius = atof(optarg);
+                std::cout << "[DEBUG] Injector radius: " << optarg << std::endl;
                 break;
             default:
                 usage();
@@ -170,9 +170,9 @@ int main(int argc, char* argv[]) {
             injector.setBearing(*(::floatArguments + 3));
             injector.setVolume(::volume);
             
-            if (::cubeSideLength > 0) {
+            if (::radius > 0) {
                 // if we were passed a cube side length, give that to the injector
-                injector.setCubeSideLength(::cubeSideLength);
+                injector.setRadius(::radius);
             }
 
             // register the callback for agent data creation

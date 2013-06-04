@@ -39,8 +39,8 @@ public:
     float getBearing() const { return _bearing; }
     void setBearing(float bearing) { _bearing = bearing; }
     
-    float getCubeSideLength() const { return _cubeSideLength; }
-    void setCubeSideLength(float cubeSideLength) { _cubeSideLength = cubeSideLength; }
+    float getRadius() const { return _radius; }
+    void setRadius(float radius) { _radius = radius; }
     
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
@@ -49,7 +49,7 @@ private:
     int16_t* _audioSampleArray;
     int _numTotalSamples;
     glm::vec3 _position;
-    float _cubeSideLength;
+    float _radius;
     float _bearing;
     unsigned char _volume;
     int _indexOfNextSlot;

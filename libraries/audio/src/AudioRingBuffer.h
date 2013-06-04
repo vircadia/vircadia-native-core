@@ -26,6 +26,8 @@ public:
     ~AudioRingBuffer();
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
+    
+    float getRadius() const { return _radius; }
 
     int16_t* getNextOutput() const { return _nextOutput; }
     void setNextOutput(int16_t* nextOutput) { _nextOutput = nextOutput; }
@@ -56,7 +58,7 @@ private:
     int _ringBufferLengthSamples;
     int _bufferLengthSamples;
     glm::vec3 _position;
-    float _cubeSideLength;
+    float _radius;
     float _attenuationRatio;
     float _bearing;
     int16_t* _nextOutput;
