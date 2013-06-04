@@ -37,7 +37,7 @@ public:
     void setPosition(const glm::vec3& position) { _position = position; }
     
     const glm::quat& getOrientation() const { return _orientation; }
-    void setOperation(const glm::quat& orientation) { _orientation = orientation; }
+    void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
     
     float getRadius() const { return _radius; }
     void setRadius(float radius) { _radius = radius; }
