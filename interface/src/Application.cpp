@@ -908,8 +908,8 @@ void Application::timer() {
     gettimeofday(&_timerStart, NULL);
     
     // if we haven't detected gyros, check for them now
-    if (!_serialPort.active) {
-        _serialPort.pair();
+    if (!_serialHeadSensor.active) {
+        _serialHeadSensor.pair();
     }
 }
 
@@ -1044,8 +1044,8 @@ void Application::idle() {
         }
        
         //  Read serial port interface devices
-        if (_serialPort.active) {
-            _serialPort.readData(deltaTime);
+        if (_serialHeadSensor.active) {
+            _serialHeadSensor.readData(deltaTime);
         }
         
         //  Update transmitter
@@ -1446,26 +1446,36 @@ void Application::init() {
 }
 
 void Application::updateAvatar(float deltaTime) {
-    // Update my avatar's head position from gyros
-    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort);
 
-    //  Grab latest readings from the gyros
-    float measuredPitchRate = _serialPort.getLastPitchRate();
-    float measuredYawRate = _serialPort.getLastYawRate();
-    
-    //  Update gyro-based mouse (X,Y on screen)
-    const float MIN_MOUSE_RATE = 3.0;
-    const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
-    const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
-    if (powf(measuredYawRate * measuredYawRate +
-             measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
-        _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
-        _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
+    if (_serialHeadSensor.active) {
+        glm::vec3 headPosition = _serialHeadSensor.getEstimatedPosition();
+        const float HEAD_OFFSET_SCALING = 3.f;
+        headPosition *= HEAD_OFFSET_SCALING;
+        _myCamera.setEyeOffsetPosition(headPosition);
+        
+        // Update my avatar's head position from gyros
+        //_myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
+        
+        //  Grab latest readings from the gyros
+        float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
+        float measuredYawRate = _serialHeadSensor.getLastYawRate();
+        
+        //  Update gyro-based mouse (X,Y on screen)
+        const float MIN_MOUSE_RATE = 3.0;
+        const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
+        const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
+        if (powf(measuredYawRate * measuredYawRate +
+                 measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
+            _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
+            _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
+        }
+        _headMouseX = max(_headMouseX, 0);
+        _headMouseX = min(_headMouseX, _glWidget->width());
+        _headMouseY = max(_headMouseY, 0);
+        _headMouseY = min(_headMouseY, _glWidget->height());
+
     }
-    _headMouseX = max(_headMouseX, 0);
-    _headMouseX = min(_headMouseX, _glWidget->width());
-    _headMouseY = max(_headMouseY, 0);
-    _headMouseY = min(_headMouseY, _glWidget->height());
+
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -1890,7 +1900,7 @@ void Application::displayOverlay() {
         }
         
     //  Show detected levels from the serial I/O ADC channel sensors
-    if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
+    if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());
     
     //  Show hand transmitter data if detected
     if (_myTransmitter.isConnected()) {
@@ -2253,8 +2263,8 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
-    if (_serialPort.active) {
-        _serialPort.resetAverages();
+    if (_serialHeadSensor.active) {
+        _serialHeadSensor.resetAverages();
     }
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();

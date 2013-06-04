@@ -226,7 +226,7 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     
-    SerialInterface _serialPort;
+    SerialInterface _serialHeadSensor;
     bool _displayLevels;
     
     glm::vec3 _gravity;
