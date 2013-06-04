@@ -617,6 +617,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
             resizeGL(_glWidget->width(), _glWidget->height());
             break;
+        case Qt::Key_Backspace:
+        case Qt::Key_Delete:
+            if (_selectVoxelMode->isChecked()) {
+                deleteVoxelUnderCursor();
+            }
+            break;
             
         default:
             event->ignore();
