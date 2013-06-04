@@ -106,7 +106,7 @@ int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
 }
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
-    assert(value <= 3 && value >= 0);
+    //assert(value <= 3 && value >= 0);
     byte += ((value & 3) << (7 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
