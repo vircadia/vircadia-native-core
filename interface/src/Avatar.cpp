@@ -1076,7 +1076,8 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
         
         // update rotation
-        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < EPSILON) {
+        const float SMALL_SPRING_LENGTH = 0.001f; // too-small springs can change direction rapidly
+        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < SMALL_SPRING_LENGTH) {
             _bodyBall[b].rotation = orientation * _skeleton.joint[_bodyBall[b].parentJoint].absoluteBindPoseRotation;
         } else {
             _bodyBall[b].rotation = rotationBetween(jointDirection, springVector) * orientation;
