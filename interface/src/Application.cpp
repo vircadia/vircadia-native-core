@@ -1351,7 +1351,7 @@ void Application::exportVoxels() {
     if (selectedNode) {
         VoxelTree exportTree;
         _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
-        exportTree.writeToFileV2(fileName);
+        exportTree.writeToSVOFile(fileName);
     }
 
     // restore the main window's active state
@@ -1366,7 +1366,7 @@ void Application::importVoxels() {
 
     // Read the file into a tree
     VoxelTree importVoxels;
-    importVoxels.readFromFileV2(fileName);
+    importVoxels.readFromSVOFile(fileName);
 
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     

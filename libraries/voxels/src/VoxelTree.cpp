@@ -1123,7 +1123,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEnco
     return bytesAtThisLevel;
 }
 
-bool VoxelTree::readFromFileV2(const char* fileName, VoxelNode* node) {
+bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
 		printLog("loading file %s...\n", fileName);
@@ -1144,7 +1144,7 @@ bool VoxelTree::readFromFileV2(const char* fileName, VoxelNode* node) {
     return false;
 }
 
-void VoxelTree::writeToFileV2(const char* fileName, VoxelNode* node) const {
+void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) const {
 
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 

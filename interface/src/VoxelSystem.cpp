@@ -70,12 +70,12 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::writeToFileV2(const char* filename, VoxelNode* node) const {
-    _tree->writeToFileV2(filename, node);
+void VoxelSystem::writeToSVOFile(const char* filename, VoxelNode* node) const {
+    _tree->writeToSVOFile(filename, node);
 }
 
-bool VoxelSystem::readFromFileV2(const char* filename, VoxelNode* node) {
-    bool result = _tree->readFromFileV2(filename, node);
+bool VoxelSystem::readFromSVOFile(const char* filename) {
+    bool result = _tree->readFromSVOFile(filename);
     if (result) {
         setupNewVoxelsForDrawing();
     }
