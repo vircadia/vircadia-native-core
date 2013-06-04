@@ -89,6 +89,8 @@ public:
     glm::quat        getOrientation            () const;
     glm::quat        getWorldAlignedOrientation() const;
     
+    AvatarVoxelSystem* getVoxels() { return &_voxels; }
+    
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };

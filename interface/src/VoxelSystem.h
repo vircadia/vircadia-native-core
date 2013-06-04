@@ -33,7 +33,7 @@ public:
     
     virtual void init();
     void simulate(float deltaTime) { };
-    virtual void render(bool texture);
+    void render(bool texture);
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
@@ -59,7 +59,7 @@ public:
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
     bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
 
-    void removeOutOfView();
+    virtual void removeOutOfView();
     bool hasViewChanged();
     bool isViewChanging();
     

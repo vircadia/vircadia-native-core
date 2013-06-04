@@ -61,6 +61,7 @@ public:
     {
         AvatarJointID parent;                    // which joint is this joint connected to?
         glm::vec3     position;                  // the position at the "end" of the joint - in global space
+        glm::vec3     defaultPosePosition;       // the parent relative position when the avatar is in the default pose
         glm::vec3     bindPosePosition;          // the parent relative position when the avatar is in the "T-pose"
         glm::vec3     absoluteBindPosePosition;  // the absolute position when the avatar is in the "T-pose"
         glm::quat     absoluteBindPoseRotation;  // the absolute rotation when the avatar is in the "T-pose"

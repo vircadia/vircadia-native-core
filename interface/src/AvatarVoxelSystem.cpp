@@ -7,6 +7,12 @@
 
 #include <cstring>
 
+#include <QNetworkReply>
+#include <QUrl>
+
+#include <GeometryUtil.h>
+
+#include "Application.h"
 #include "Avatar.h"
 #include "AvatarVoxelSystem.h"
 #include "renderer/ProgramObject.h"
@@ -17,7 +23,7 @@ const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXE
 
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :
     VoxelSystem(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR),
-    _avatar(avatar) {
+    _avatar(avatar), _voxelReply(0) {
 }
 
 AvatarVoxelSystem::~AvatarVoxelSystem() {   
@@ -52,16 +58,6 @@ void AvatarVoxelSystem::init() {
     glBindBuffer(GL_ARRAY_BUFFER, _vboBoneWeightsID);
     glBufferData(GL_ARRAY_BUFFER, BONE_ELEMENTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
     
-    for (int i = 0; i < 150; i++) {
-        int power = pow(2, randIntInRange(6, 8));
-        float size = 1.0f / power;
-        _tree->createVoxel(
-            randIntInRange(0, power - 1) * size,
-            randIntInRange(0, power - 1) * size,
-            randIntInRange(0, power - 1) * size, size, 255, 0, 255, true);
-    }
-    setupNewVoxelsForDrawing();
-    
     // load our skin program if this is the first avatar system to initialize
     if (_skinProgram != 0) {
         return;
@@ -75,8 +71,25 @@ void AvatarVoxelSystem::init() {
     _boneWeightsLocation = _skinProgram->attributeLocation("boneWeights");
 }
 
-void AvatarVoxelSystem::render(bool texture) {
-    VoxelSystem::render(texture);
+void AvatarVoxelSystem::removeOutOfView() {
+    // no-op for now
+}
+
+void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
+    // cancel any current download
+    if (_voxelReply != 0) {
+        delete _voxelReply;
+    }
+    
+    killLocalVoxels();
+    
+    // load the URL data asynchronously
+    if (!url.isValid()) {
+        return;
+    }
+    _voxelReply = Application::getInstance()->getNetworkAccessManager()->get(QNetworkRequest(url));
+    connect(_voxelReply, SIGNAL(readyRead()), SLOT(readVoxelDataFromReply()));
+    connect(_voxelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleVoxelReplyError()));
 }
 
 void AvatarVoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
@@ -168,6 +181,25 @@ void AvatarVoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     _skinProgram->disableAttributeArray(_boneWeightsLocation);
 }
 
+void AvatarVoxelSystem::readVoxelDataFromReply() {
+    // for now, just wait until we have the full business
+    if (!_voxelReply->isFinished()) {
+        return;
+    }
+    QByteArray entirety = _voxelReply->readAll();
+    _voxelReply->deleteLater();
+    _voxelReply = 0;
+    _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), WANT_COLOR, NO_EXISTS_BITS);
+    setupNewVoxelsForDrawing();
+}
+
+void AvatarVoxelSystem::handleVoxelReplyError() {
+    printLog("%s\n", _voxelReply->errorString().toAscii().constData());
+    
+    _voxelReply->deleteLater();
+    _voxelReply = 0;
+}
+
 class IndexDistance {
 public:
     IndexDistance(GLubyte index = 0, float distance = FLT_MAX) : index(index), distance(distance) { }
@@ -183,7 +215,10 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     // find the nearest four joints (TODO: use a better data structure for the pose positions to speed this up)
     IndexDistance nearest[BONE_ELEMENTS_PER_VERTEX];
     for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-        float distance = glm::distance(jointVertex, _avatar->getSkeleton().joint[i].absoluteBindPosePosition);
+        AvatarJointID parent = _avatar->getSkeleton().joint[i].parent;
+        float distance = glm::length(computeVectorFromPointToSegment(jointVertex,
+            _avatar->getSkeleton().joint[parent == AVATAR_JOINT_NULL ? i : parent].absoluteBindPosePosition,
+            _avatar->getSkeleton().joint[i].absoluteBindPosePosition));
         for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
             if (distance < nearest[j].distance) {
                 // move the rest of the indices down

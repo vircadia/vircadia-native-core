@@ -37,6 +37,8 @@ class QGLWidget;
 class QKeyEvent;
 class QMainWindow;
 class QMouseEvent;
+class QNetworkAccessManager;
+class QSettings;
 class QWheelEvent;
 
 class Agent;
@@ -69,6 +71,8 @@ public:
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
+    
+    QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
     /*!
      @fn getSettingBool
@@ -126,6 +130,8 @@ private slots:
     void timer();
     void idle();
     void terminate();
+    
+    void editPreferences();
     
     void pair();
     
@@ -226,6 +232,9 @@ private:
     QAction* _cameraFrustum;         // which frustum to look at
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
+    
+    QNetworkAccessManager* _networkAccessManager;
+    QSettings* _settings;
     
     SerialInterface _serialPort;
     bool _displayLevels;

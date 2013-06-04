@@ -9,22 +9,32 @@
 #ifndef __interface__AvatarVoxelSystem__
 #define __interface__AvatarVoxelSystem__
 
+#include <QObject>
+
 #include "VoxelSystem.h"
 
 const int BONE_ELEMENTS_PER_VERTEX = 4;
 typedef GLubyte BoneIndices[BONE_ELEMENTS_PER_VERTEX];
 
+class QNetworkReply;
+class QUrl;
+
 class Avatar;
 
-class AvatarVoxelSystem : public VoxelSystem {
+class AvatarVoxelSystem : public QObject, public VoxelSystem {
+    Q_OBJECT
+
 public:
-    
+        
     AvatarVoxelSystem(Avatar* avatar);
     virtual ~AvatarVoxelSystem();
     
     virtual void init();
-    virtual void render(bool texture);
 
+    virtual void removeOutOfView();
+    
+    void loadVoxelsFromURL(const QUrl& url);
+    
 protected:
     
     virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
@@ -33,6 +43,11 @@ protected:
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void applyScaleAndBindProgram(bool texture);
     virtual void removeScaleAndReleaseProgram(bool texture);
+
+private slots:
+    
+    void readVoxelDataFromReply();
+    void handleVoxelReplyError();    
     
 private:
     
@@ -47,6 +62,8 @@ private:
     
     GLuint _vboBoneIndicesID;
     GLuint _vboBoneWeightsID;
+    
+    QNetworkReply* _voxelReply;
     
     static ProgramObject* _skinProgram;
     static int _boneMatricesLocation;
