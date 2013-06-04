@@ -595,7 +595,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
 void Head::updateHairPhysics(float deltaTime) {
 
     glm::quat orientation = getOrientation();
-    glm::vec3 right = orientation * AVATAR_RIGHT;
+    //glm::vec3 right = orientation * AVATAR_RIGHT;  // not used for now
     glm::vec3 up = orientation * AVATAR_UP;
     glm::vec3 front = orientation * AVATAR_FRONT;
 
