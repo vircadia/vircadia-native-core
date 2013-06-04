@@ -286,9 +286,9 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, b
                 }
             }
 
-            // If we're not a colored leaf, and we have no children, then delete ourselves
-            // This will collapse the empty tree above us.
-            if (collapseEmptyTrees && parentNode->getChildCount() == 0 && !parentNode->isColored()) {
+            // If we're in collpaseEmptryTrees mode, and we're the last child of this parent, then delete the parent.
+            // This will collapse the empty tree above us. 
+            if (collapseEmptyTrees && parentNode->getChildCount() == 0) {
                 // Can't delete the root this way.
                 if (parentNode != rootNode) {
                     deleteVoxelCodeFromTree(parentNode->getOctalCode(), stage, collapseEmptyTrees);
