@@ -370,7 +370,6 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all 
         // the voxels from the current view frustum
         if (agentData->nodeBag.isEmpty()) {
-printf("agentData->nodeBag.isEmpty()...\n");        
             agentData->updateLastKnownViewFrustum();
             agentData->setViewSent(true);
         }
