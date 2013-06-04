@@ -50,6 +50,8 @@
 
 using namespace std;
 
+const bool TESTING_AVATAR_TOUCH = false;
+
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
@@ -287,22 +289,22 @@ void Application::paintGL() {
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
@@ -1078,24 +1080,29 @@ void Application::idle() {
             _myAvatar.simulate(deltaTime, NULL);
         }
         
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-            if (_manualFirstPerson) {
-                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
-            } else {
-        
-                if (_myAvatar.getIsNearInteractingOther()) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+        if (TESTING_AVATAR_TOUCH) {
+            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
+        } else {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
+                if (_manualFirstPerson) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                         _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                         _myCamera.setModeShiftRate(1.0f);
                     }
-                } 
-                else {
-                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
+                } else {
+                    if (_myAvatar.getIsNearInteractingOther()) {
+                        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
+                    } else {
+                        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
                     }
                 }
             }
@@ -1547,7 +1554,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     if (_cameraFrustum->isChecked()) {
         position = camera.getPosition();
     } else {
-        position = _myAvatar.getHeadPosition();
+        position = _myAvatar.getHeadJointPosition();
     }
     
     float fov         = camera.getFieldOfView();
