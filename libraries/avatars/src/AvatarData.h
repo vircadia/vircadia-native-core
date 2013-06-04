@@ -26,6 +26,11 @@ const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
 
+// this is where the coordinate system is represented
+const glm::vec3 AVATAR_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+const glm::vec3 AVATAR_UP    = glm::vec3(0.0f, 1.0f, 0.0f);
+const glm::vec3 AVATAR_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
+
 enum KeyState
 {
     NO_KEY_DOWN = 0,
@@ -57,11 +62,7 @@ public:
     //  Hand State
     void setHandState(char s) { _handState = s; };
     char getHandState() const {return _handState; };
-
-    //  Instantaneous audio loudness to drive mouth/facial animation
-    void setLoudness(float l) { _audioLoudness = l; };
-    float getLoudness() const {return _audioLoudness; };
-
+    
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
@@ -107,9 +108,6 @@ protected:
     float _bodyPitch;
     float _bodyRoll;
 
-    //  Audio loudness (used to drive facial animation)
-    float _audioLoudness;
-    
     //  Hand state (are we grabbing something or not)
     char _handState;
     

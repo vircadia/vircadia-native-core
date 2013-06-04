@@ -20,11 +20,25 @@ Transmitter::Transmitter() :
     _isConnected(false),
     _lastRotationRate(0,0,0),
     _lastAcceleration(0,0,0),
-    _estimatedRotation(0,0,0)
+    _estimatedRotation(0,0,0),
+    _lastReceivedPacket(NULL)
 {
     
 }
 
+void Transmitter::checkForLostTransmitter() {
+    //  If we are in motion, check for loss of transmitter packets
+    if (glm::length(_estimatedRotation) > 0.f) {
+        timeval now;
+        gettimeofday(&now, NULL);
+        const int TIME_TO_ASSUME_LOST_MSECS = 2000;
+        int msecsSinceLast = diffclock(_lastReceivedPacket, &now);
+        if (msecsSinceLast > TIME_TO_ASSUME_LOST_MSECS) {
+            resetLevels();
+            printLog("Transmitter signal lost.\n");
+        }
+    }
+}
 void Transmitter::resetLevels() {
     _lastRotationRate *= 0.f;
     _estimatedRotation *= 0.f; 
@@ -34,6 +48,11 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     const int PACKET_HEADER_SIZE = 1;                   //  Packet's first byte is 'T'
     const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
     const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)
+    if (!_lastReceivedPacket) {
+        _lastReceivedPacket = new timeval;
+    }
+    gettimeofday(_lastReceivedPacket, NULL);
+    
     if (numBytes == PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE + ACCELERATION_MARKER_SIZE
             + sizeof(_lastRotationRate) + sizeof(_lastAcceleration)
             + sizeof(_touchState.x) + sizeof(_touchState.y) + sizeof(_touchState.state)) {
@@ -69,12 +88,12 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
         _estimatedRotation.y *= (1.f - DECAY_RATE * DELTA_TIME);
 
         if (!_isConnected) {
-            printf("Transmitter V2 Connected.\n");
+            printLog("Transmitter Connected.\n");
             _isConnected = true;
             _estimatedRotation *= 0.0;
         }
     } else {
-        printf("Transmitter V2 packet read error, %d bytes.\n", numBytes);
+        printLog("Transmitter packet read error, %d bytes.\n", numBytes);
     }
 }
 

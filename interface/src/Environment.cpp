@@ -58,11 +58,17 @@ void Environment::renderAtmospheres(Camera& camera) {
 }
 
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
-    // the "original gravity"
-    glm::vec3 gravity;
-    if (position.x > 0.0f && position.x < 10.0f && position.y > 0.0f &&
-            position.y < 3.0f && position.z > 0.0f && position.z < 10.0f) {
-        gravity = glm::vec3(0.0f, -1.0f, 0.0f);
+    //
+    // 'Default' gravity pulls you downward in Y when you are near the X/Z plane
+    const glm::vec3 DEFAULT_GRAVITY(0.f, -1.f, 0.f);
+    glm::vec3 gravity(DEFAULT_GRAVITY);
+    float DEFAULT_SURFACE_RADIUS = 30.f;
+    float gravityStrength;
+    
+    //  Weaken gravity with height
+    if (position.y > 0.f) {
+        gravityStrength = 1.f / powf((DEFAULT_SURFACE_RADIUS + position.y) / DEFAULT_SURFACE_RADIUS, 2.f);
+        gravity *= gravityStrength;
     }
     
     // get the lock for the duration of the call
@@ -71,11 +77,18 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
             glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
-            if (glm::length(vector) < environmentData.getAtmosphereOuterRadius()) {
+            float surfaceRadius = environmentData.getAtmosphereInnerRadius();
+            if (glm::length(vector) <= surfaceRadius) {
+                //  At or inside a planet, gravity is as set for the planet
                 gravity += glm::normalize(vector) * environmentData.getGravity();
+            } else {
+                //  Outside a planet, the gravity falls off with distance 
+                gravityStrength = 1.f / powf(glm::length(vector) / surfaceRadius, 2.f);
+                gravity += glm::normalize(vector) * environmentData.getGravity() * gravityStrength;
             }
         }
     }
+    
     return gravity;
 }
 
@@ -101,13 +114,7 @@ const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
 bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
                                          float radius, glm::vec3& penetration) {
     // collide with the "floor"
-    bool found = false;
-    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
-    float floorDist = qMin(start.y, end.y) - radius;
-    if (floorDist < 0.0f) {
-        penetration.y = -floorDist;
-        found = true;
-    }
+    bool found = findCapsulePlanePenetration(start, end, radius, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), penetration);
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
@@ -117,11 +124,10 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
             if (environmentData.getGravity() == 0.0f) {
                 continue; // don't bother colliding with gravity-less environments
             }
-            glm::vec3 vector = computeVectorFromPointToSegment(environmentData.getAtmosphereCenter(), start, end);
-            float vectorLength = glm::length(vector);
-            float distance = vectorLength - environmentData.getAtmosphereInnerRadius() - radius;
-            if (distance < 0.0f) {
-                penetration += vector * (-distance / vectorLength);
+            glm::vec3 environmentPenetration;
+            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(),
+                    environmentData.getAtmosphereInnerRadius(), environmentPenetration)) {
+                penetration = addPenetrations(penetration, environmentPenetration);
                 found = true;
             }
         }

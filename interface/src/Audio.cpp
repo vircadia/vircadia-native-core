@@ -116,7 +116,7 @@ int audioCallback (const void* inputBuffer,
         printLog("got output\n");
     }
     
-    if (inputLeft != NULL) {
+    if (agentList && inputLeft) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
@@ -143,7 +143,7 @@ int audioCallback (const void* inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &interfaceAvatar->getHeadPosition(), sizeof(float) * 3);
+            memcpy(currentPacketPtr, &interfaceAvatar->getHeadJointPosition(), sizeof(float) * 3);
             currentPacketPtr += (sizeof(float) * 3);
             
             // tell the mixer not to add additional attenuation to our source
@@ -158,10 +158,10 @@ int audioCallback (const void* inputBuffer,
                 correctedYaw += 360;
             }
             
-            if (parentAudio->_mixerLoopbackFlag) {
+            if (Application::getInstance()->shouldEchoAudio()) {
                 correctedYaw = correctedYaw > 0
-                ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                : correctedYaw - AGENT_LOOPBACK_MODIFIER;
+                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
+                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
             }
             
             memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
@@ -208,7 +208,7 @@ int audioCallback (const void* inputBuffer,
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
-            int lastYawMeasured = fabsf(interfaceAvatar->getLastMeasuredHeadYaw());
+            int lastYawMeasured = fabsf(interfaceAvatar->getHeadYawRate());
             
             if (!::samplesLeftForFlange && lastYawMeasured > MIN_FLANGE_EFFECT_THRESHOLD) {
                 // we should flange for one second
@@ -310,7 +310,6 @@ Audio::Audio(Oscilloscope* scope) :
                      NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
     _wasStarved(0),
     _lastInputLoudness(0),
-    _mixerLoopbackFlag(false),
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),
@@ -457,7 +456,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         gettimeofday(&_firstPlaybackTime, NULL);
     }
     
-    _ringBuffer.parseData((unsigned char *)receivedData, PACKET_LENGTH_BYTES);
+    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;
 }

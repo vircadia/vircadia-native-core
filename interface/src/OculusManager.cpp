@@ -38,9 +38,11 @@ void OculusManager::connect() {
 }
 
 void OculusManager::updateYawOffset() {
+#ifdef __APPLE__
     float yaw, pitch, roll;
    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     _yawOffset = yaw;
+#endif
 }
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {

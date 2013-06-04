@@ -23,7 +23,6 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _audioLoudness(0),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -37,6 +36,7 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _wantDelta(false),
     _headData(NULL)
 {
+    
 }
 
 AvatarData::~AvatarData() {
@@ -84,7 +84,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
     // Instantaneous audio loudness (used to drive facial animation)
-    destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
+    //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
+    memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
+    destinationBuffer += sizeof(float); 
 
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -165,7 +167,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += sizeof(_headData->_lookAtPosition);
 
     // Instantaneous audio loudness (used to drive facial animation)
-    sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
+    //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
+    memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
+    sourceBuffer += sizeof(float);
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));

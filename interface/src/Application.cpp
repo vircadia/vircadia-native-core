@@ -50,6 +50,8 @@
 
 using namespace std;
 
+const bool TESTING_AVATAR_TOUCH = false;
+
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
@@ -254,8 +256,6 @@ void Application::initializeGL() {
         printLog("Network receive thread created.\n"); 
     }
     
-    _myAvatar.readAvatarDataFromFile();
-    
     // call terminate before exiting
     connect(this, SIGNAL(aboutToQuit()), SLOT(terminate()));
     
@@ -268,6 +268,8 @@ void Application::initializeGL() {
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
+    
+    readSettings();
     
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
@@ -287,34 +289,23 @@ void Application::paintGL() {
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getBodyYaw() - 180.0f,
-                                    0.0f,
-                                    0.0f);
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
+        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (100.0f);
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getHead().getPitch(),
-                                    -_myAvatar.getHead().getRoll());
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
+    
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getSpringyHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getAbsoluteHeadPitch(),
-                                    0.0f);
-        //  Take a look at whether we are inside head, don't render it if so.
-        const float HEAD_RENDER_DISTANCE = 0.5;
-        glm::vec3 distanceToHead(_myCamera.getPosition() - _myAvatar.getSpringyHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
-        if (glm::length(distanceToHead) < HEAD_RENDER_DISTANCE) {
-        }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTargetPosition(_myAvatar.getHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getAbsoluteHeadYaw(),
-                                    _myAvatar.getAbsoluteHeadPitch(),
-                                    0.0f);
+        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
     // important...
@@ -344,11 +335,12 @@ void Application::paintGL() {
     if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
-        _viewFrustumOffsetCamera.setTargetYaw(_viewFrustumOffsetYaw + _myAvatar.getBodyYaw());
-        _viewFrustumOffsetCamera.setPitch    (_viewFrustumOffsetPitch   );
-        _viewFrustumOffsetCamera.setRoll     (_viewFrustumOffsetRoll    ); 
+        _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
+        _viewFrustumOffsetCamera.setTargetRotation(_myCamera.getTargetRotation() * glm::quat(glm::radians(glm::vec3(
+            _viewFrustumOffsetPitch, _viewFrustumOffsetYaw, _viewFrustumOffsetRoll))));
         _viewFrustumOffsetCamera.setUpShift  (_viewFrustumOffsetUp      );
         _viewFrustumOffsetCamera.setDistance (_viewFrustumOffsetDistance);
+        _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
         whichCamera = _viewFrustumOffsetCamera;
     }        
@@ -733,7 +725,178 @@ void Application::wheelEvent(QWheelEvent* event) {
         decreaseVoxelSize();
     }
 }
+
+const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
+
+void Application::readSettingsFile() {
+    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "rt");
     
+    if (settingsFile) {
+        char line[LINE_MAX];
+        
+        while (fgets(line, LINE_MAX, settingsFile) != NULL)
+        {
+            if (strcmp(line, " \n") > 0) {
+                char* token = NULL;
+                char* settingLine = NULL;
+                char* toFree = NULL;
+                
+                settingLine = strdup(line);
+                
+                if (settingLine != NULL) {
+                    toFree = settingLine;
+                    
+                    int i = 0;
+                    
+                    char key[128];
+                    char value[128];
+                    
+                    
+                    while ((token = strsep(&settingLine, "=")) != NULL)
+                    {
+                        switch (i) {
+                            case 0:
+                                strcpy(key, token);
+                                _settingsTable[key] = "";
+                                break;
+                                
+                            case 1:
+                                strcpy(value, token);
+                                _settingsTable[key] = token;
+                                break;
+                                
+                            default:
+                                break;
+                        }
+                        
+                        i++;
+                    }
+                    
+                    free(toFree);
+                }
+            }
+        }
+    
+        fclose(settingsFile);
+    }
+}
+
+void Application::saveSettingsFile() {
+    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "wt");
+    
+    if (settingsFile) {
+        for (std::map<std::string, std::string>::iterator i = _settingsTable.begin(); i != _settingsTable.end(); i++)
+        {
+            fprintf(settingsFile, "\n%s=%s", i->first.data(), i->second.data());
+        }
+    }
+    
+    fclose(settingsFile);
+}
+
+bool Application::getSetting(const char* setting, bool& value, const bool defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
+        int readBool;
+        
+        int res = sscanf(iter->second.data(), "%d", &readBool);
+        
+        const char EXPECTED_ITEMS = 1;
+        
+        if (res == EXPECTED_ITEMS) {
+            if (readBool == 1) {
+                value = true;
+            } else if (readBool == 0) {
+                value = false;
+            }
+        }
+    } else {
+        value = defaultSetting;
+        return false;
+    }
+    
+    return true;
+}
+
+bool Application::getSetting(const char* setting, float& value, const float defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
+        float readFloat;
+        
+        int res = sscanf(iter->second.data(), "%f", &readFloat);
+        
+        const char EXPECTED_ITEMS = 1;
+        
+        if (res == EXPECTED_ITEMS) {
+            if (!isnan(readFloat)) {
+                value = readFloat;
+            } else {
+                value = defaultSetting;
+                return false;
+            }
+        } else {
+            value = defaultSetting;
+            return false;
+        }
+    } else {
+        value = defaultSetting;
+        return false;
+    }
+    
+    return true;
+}
+
+bool Application::getSetting(const char* setting, glm::vec3& value, const glm::vec3& defaultSetting) const {
+    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
+    
+    if (iter != _settingsTable.end()) {
+        glm::vec3 readVec;
+        
+        int res = sscanf(iter->second.data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
+        
+        const char EXPECTED_ITEMS = 3;
+        
+        if (res == EXPECTED_ITEMS) {
+            if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
+                value = readVec;
+            } else {
+                value = defaultSetting;
+                return false;
+            }
+        } else {
+            value = defaultSetting;
+            return false;
+        }
+    } else {
+        value = defaultSetting;
+        return false;
+    }
+    
+    return true;
+}
+
+const short MAX_SETTINGS_LENGTH = 128;
+
+void Application::setSetting(const char* setting, const bool value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%d", value);
+    _settingsTable[setting] = settingValues;
+}
+
+void Application::setSetting(const char* setting, const float value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%f", value);
+    _settingsTable[setting] = settingValues;
+}
+
+void Application::setSetting(const char* setting, const glm::vec3& value) {
+    char settingValues[MAX_SETTINGS_LENGTH];
+    sprintf(settingValues, "%f,%f,%f", value.x, value.y, value.z);
+    _settingsTable[setting] = settingValues;
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -887,6 +1050,8 @@ void Application::idle() {
             _serialPort.readData(deltaTime);
         }
         
+        //  Update transmitter
+        
         //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
         updateAvatar(deltaTime);
 
@@ -901,7 +1066,7 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->simulate(deltaTime, false);
+                avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
         }
@@ -915,39 +1080,34 @@ void Application::idle() {
             _myAvatar.simulate(deltaTime, NULL);
         }
         
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {        
-            if (_manualFirstPerson) {
-                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                   Camera::CameraFollowingAttributes a;
-                    a.upShift   = 0.0f;
-                    a.distance  = 0.0f;
-                    a.tightness = 100.0f;
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
-                }
-            } else {
-        
-                if (_myAvatar.getIsNearInteractingOther()) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                    
-                        Camera::CameraFollowingAttributes a;
-                        a.upShift   = 0.0f;
-                        a.distance  = 0.0f;
-                        a.tightness = 100.0f;
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON, a);
+        if (TESTING_AVATAR_TOUCH) {
+            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
+        } else {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
+                if (_manualFirstPerson) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
                     }
-                } 
-                else {
-                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        Camera::CameraFollowingAttributes a;            
-                        a.upShift   = -0.2f;
-                        a.distance  = 1.5f;
-                        a.tightness = 8.0f;
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+                } else {
+                    if (_myAvatar.getIsNearInteractingOther()) {
+                        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
+                    } else {
+                        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                            _myCamera.setModeShiftRate(1.0f);
+                        }
                     }
                 }
             }
         }
-                
+        
         //  Update audio stats for procedural sounds
         #ifndef _WIN32
         _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -963,7 +1123,7 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    _myAvatar.writeAvatarDataToFile();
+    saveSettings();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -975,23 +1135,13 @@ void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setHead(bool head) {
-    #ifndef _WIN32
-    _audio.setMixerLoopbackFlag(head);
-    #endif
-    
+void Application::setHead(bool head) {    
     if (head) {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = 0.0f;
-        a.distance  = 0.2f;
-        a.tightness = 100.0f;
-        _myCamera.setMode(CAMERA_MODE_MIRROR, a);
+        _myCamera.setMode(CAMERA_MODE_MIRROR);
+        _myCamera.setModeShiftRate(100.0f);
     } else {
-        Camera::CameraFollowingAttributes a;
-        a.upShift   = -0.2f;
-        a.distance  = 1.5f;
-        a.tightness = 8.0f;
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+        _myCamera.setModeShiftRate(1.0f);
     }
 }
 
@@ -1142,13 +1292,15 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::Key_Q);
+    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
+    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
+    
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
@@ -1285,11 +1437,8 @@ void Application::init() {
     _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
     _myAvatar.setPosition(START_LOCATION);
-    Camera::CameraFollowingAttributes a;            
-    a.upShift   = -0.2f;
-    a.distance  = 1.5f;
-    a.tightness = 8.0f;
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON, a);
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
+    _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
     QCursor::setPos(_headMouseX, _headMouseY);
@@ -1305,7 +1454,7 @@ void Application::init() {
 
 void Application::updateAvatar(float deltaTime) {
     // Update my avatar's head position from gyros
-    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort, &_gravity);
+    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort);
 
     //  Grab latest readings from the gyros
     float measuredPitchRate = _serialPort.getLastPitchRate();
@@ -1336,7 +1485,7 @@ void Application::updateAvatar(float deltaTime) {
     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
-        _myAvatar.setLoudness(_audio.getLastInputLoudness());
+        _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
     #endif
 
     // Update Avatar with latest camera and view frustum data...
@@ -1398,27 +1547,22 @@ void Application::updateAvatar(float deltaTime) {
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
     glm::vec3 position;
-    glm::vec3 direction;
-    glm::vec3 up;
-    glm::vec3 right;
-    float fov, nearClip, farClip;
     
     // Camera or Head?
     if (_cameraFrustum->isChecked()) {
         position = camera.getPosition();
     } else {
-        position = _myAvatar.getHeadPosition();
+        position = _myAvatar.getHeadJointPosition();
     }
     
-    fov         = camera.getFieldOfView();
-    nearClip    = camera.getNearClip();
-    farClip     = camera.getFarClip();
+    float fov         = camera.getFieldOfView();
+    float nearClip    = camera.getNearClip();
+    float farClip     = camera.getFarClip();
 
-    Orientation o = camera.getOrientation();
-
-    direction   = o.getFront();
-    up          = o.getUp();
-    right       = o.getRight();
+    glm::quat rotation = camera.getRotation();
+    glm::vec3 direction = rotation * AVATAR_FRONT;
+    glm::vec3 up = rotation * AVATAR_UP;
+    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     /*
     printf("position.x=%f, position.y=%f, position.z=%f\n", position.x, position.y, position.z);
@@ -1604,11 +1748,10 @@ void Application::displaySide(Camera& whichCamera) {
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
-    // I changed the ordering here - roll is FIRST (JJV) 
 
-    glRotatef   (        whichCamera.getRoll(),  IDENTITY_FRONT.x, IDENTITY_FRONT.y, IDENTITY_FRONT.z);
-    glRotatef   (        whichCamera.getPitch(), IDENTITY_RIGHT.x, IDENTITY_RIGHT.y, IDENTITY_RIGHT.z);
-    glRotatef   (180.0 - whichCamera.getYaw(),     IDENTITY_UP.x,    IDENTITY_UP.y,    IDENTITY_UP.z   );
+    glm::quat rotation = whichCamera.getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
     
@@ -1667,7 +1810,6 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    const float EDGE_SIZE_GROUND_PLANE = 20.f;
     drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
     
     //  Draw voxels
@@ -1703,13 +1845,13 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
-                avatar->render(false, _myCamera.getPosition());
+                avatar->render(false);
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked(), _myCamera.getPosition());
+        _myAvatar.render(_lookingInMirror->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     
@@ -2218,5 +2360,97 @@ void* Application::networkReceive(void* args) {
         pthread_exit(0); 
     }
     return NULL; 
+}
+
+void Application::saveSettings()
+{
+    // Handle any persistent settings saving here when we get a call to terminate.
+    // This should probably be moved to a map stored in memory at some point to cache settings.
+    _myAvatar.writeAvatarDataToFile();
+    
+    setSetting("_gyroLook", _gyroLook->isChecked());
+    
+    setSetting("_mouseLook", _mouseLook->isChecked());
+    
+    setSetting("_transmitterDrives", _transmitterDrives->isChecked());
+    
+    setSetting("_renderVoxels", _renderVoxels->isChecked());
+    
+    setSetting("_renderVoxelTextures", _renderVoxelTextures->isChecked());
+    
+    setSetting("_renderStarsOn", _renderStarsOn->isChecked());
+    
+    setSetting("_renderAtmosphereOn", _renderAtmosphereOn->isChecked());
+    
+    setSetting("_renderAvatarsOn", _renderAvatarsOn->isChecked());
+    
+    setSetting("_renderStatsOn", _renderStatsOn->isChecked());
+    
+    setSetting("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
+    
+    setSetting("_renderLookatOn", _renderLookatOn->isChecked());
+    
+    setSetting("_logOn", _logOn->isChecked());
+    
+    setSetting("_frustumOn", _frustumOn->isChecked());
+    
+    setSetting("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
+    
+    setSetting("_cameraFrustum", _cameraFrustum->isChecked());
+    
+    saveSettingsFile();
+}
+
+void Application::readSettings()
+{
+    readSettingsFile();
+    _myAvatar.readAvatarDataFromFile();
+    
+    bool settingState;
+    getSetting("_gyroLook", settingState, _gyroLook->isChecked());
+    _gyroLook->setChecked(settingState);
+    
+    getSetting("_mouseLook", settingState, _mouseLook->isChecked());
+    _mouseLook->setChecked(settingState);
+    
+    getSetting("_transmitterDrives", settingState, _transmitterDrives->isChecked());
+    _transmitterDrives->setChecked(settingState);
+    
+    getSetting("_renderVoxels", settingState, _renderVoxels->isChecked());
+    _renderVoxels->setChecked(settingState);
+    
+    getSetting("_renderVoxelTextures", settingState, _renderVoxelTextures->isChecked());
+    _renderVoxelTextures->setChecked(settingState);
+    
+    getSetting("_renderStarsOn", settingState, _renderStarsOn->isChecked());
+    _renderStarsOn->setChecked(settingState);
+    
+    getSetting("_renderAtmosphereOn", settingState, _renderAtmosphereOn->isChecked());
+    _renderAtmosphereOn->setChecked(settingState);
+    
+    getSetting("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
+    _renderAvatarsOn->setChecked(settingState);
+    
+    getSetting("_renderStatsOn", settingState, _renderStatsOn->isChecked());
+    _renderStatsOn->setChecked(settingState);
+    
+    getSetting("_renderFrameTimerOn", settingState, _renderFrameTimerOn->isChecked());
+    _renderFrameTimerOn->setChecked(settingState);
+    
+    getSetting("_renderLookatOn", settingState, _renderLookatOn->isChecked());
+    _renderLookatOn->setChecked(settingState);
+    
+    getSetting("_logOn", settingState, _logOn->isChecked());
+    _logOn->setChecked(settingState);
+    
+    getSetting("_frustumOn", settingState, _frustumOn->isChecked());
+    _frustumOn->setChecked(settingState);
+    
+    getSetting("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
+    _viewFrustumFromOffset->setChecked(settingState);
+    
+    getSetting("_cameraFrustum", settingState, _cameraFrustum->isChecked());
+    _cameraFrustum->setChecked(settingState);
+    
 }
 
