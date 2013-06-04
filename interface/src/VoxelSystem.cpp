@@ -70,6 +70,18 @@ void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer)
     setupNewVoxelsForDrawing();
 }
 
+void VoxelSystem::writeToSVOFile(const char* filename, VoxelNode* node) const {
+    _tree->writeToSVOFile(filename, node);
+}
+
+bool VoxelSystem::readFromSVOFile(const char* filename) {
+    bool result = _tree->readFromSVOFile(filename);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }
@@ -1147,3 +1159,12 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     _tree->createSphere(r, xc, yc, zc, s, solid, mode, destructive, debug); 
     setupNewVoxelsForDrawing(); 
 };
+
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destinationTree, rebaseToRoot);
+}
+
+void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
+    _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
+}
+

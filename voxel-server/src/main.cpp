@@ -30,8 +30,8 @@
 #include <ifaddrs.h>
 #endif
 
-const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.hio2";
-const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.hio2";
+const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
+const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
 const double VOXEL_PERSIST_INTERVAL = 1000.0 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
@@ -399,10 +399,10 @@ void persistVoxelsWhenDirty() {
 
         {
             PerformanceWarning warn(::shouldShowAnimationDebug, 
-                                    "persistVoxelsWhenDirty() - writeToFileV2()", ::shouldShowAnimationDebug);
+                                    "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
-            randomTree.writeToFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            randomTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
             randomTree.clearDirtyBit(); // tree is clean after saving
             printf("DONE saving voxels to file...\n");
         }
@@ -505,7 +505,7 @@ int main(int argc, const char * argv[]) {
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        persistantFileRead = ::randomTree.readFromFileV2(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        persistantFileRead = ::randomTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
         ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         unsigned long nodeCount = ::randomTree.getVoxelCount();
@@ -517,7 +517,7 @@ int main(int argc, const char * argv[]) {
     const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
-        randomTree.loadVoxelsFile(voxelsFilename,wantColorRandomizer);
+        randomTree.readFromSVOFile(voxelsFilename);
     }
 
     // Check to see if the user passed in a command line option for setting packet send rate
