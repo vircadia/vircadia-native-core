@@ -1252,7 +1252,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-<<<<<<< HEAD
 void Avatar::loadData(QSettings* set) {
     set->beginGroup("Avatar");
 
@@ -1265,16 +1264,11 @@ void Avatar::loadData(QSettings* set) {
     _position.z = set->value("position_z", _position.z).toFloat();
 
     set->endGroup();
-=======
+}
+
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
     position = _bodyBall[jointID].position;
     rotation = _bodyBall[jointID].rotation;
-}
-
-void Avatar::writeAvatarDataToFile() {
-    Application::getInstance()->setSetting("avatarPos", _position);
-    Application::getInstance()->setSetting("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 }
 
 void Avatar::saveData(QSettings* set) {

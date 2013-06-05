@@ -71,66 +71,12 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
-    QSettings* getSettings() { return &_settings; }
+    QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
-<<<<<<< HEAD
-=======
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
-    /*!
-     @fn getSettingBool
-     @brief A function for getting boolean settings from the settings file.
-     @param settingName The desired setting to get the value for.
-     @param boolSetting The referenced variable where the setting will be stored.
-     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to false.
-    */
-    bool getSetting(const char* setting, bool &value, const bool defaultSetting = false) const;
-    
-    /*!
-     @fn getSettingFloat
-     @brief A function for getting float settings from the settings file.
-     @param settingName The desired setting to get the value for.
-     @param floatSetting The referenced variable where the setting will be stored.
-     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to 0.0f.
-     */
-    bool getSetting(const char* setting, float &value, const float defaultSetting = 0.0f) const;
-    
-    /*!
-     @fn getSettingVec3
-     @brief A function for getting boolean settings from the settings file.
-     @param settingName The desired setting to get the value for.
-     @param vecSetting The referenced variable where the setting will be stored.
-     @param defaultSetting The default setting to assign to boolSetting if this function fails to find the appropriate setting.  Defaults to <0.0f, 0.0f, 0.0f>
-     */
-    bool getSetting(const char* setting, glm::vec3 &value, const glm::vec3& defaultSetting = glm::vec3(0.0f, 0.0f, 0.0f)) const;
-    
-    /*!
-     @fn setSettingBool
-     @brief A function for setting boolean setting values when saving the settings file.
-     @param settingName The desired setting to populate a value for.
-     @param boolSetting The value to set.
-     */
-    void setSetting(const char* setting, const bool value);
-    
-    /*!
-     @fn setSettingFloat
-     @brief A function for setting boolean setting values when saving the settings file.
-     @param settingName The desired setting to populate a value for.
-     @param floatSetting The value to set.
-     */
-    void setSetting(const char* setting, const float value);
-    
-    /*!
-     @fn setSettingVec3
-     @brief A function for setting boolean setting values when saving the settings file.
-     @param settingName The desired setting to populate a value for.
-     @param vecSetting The value to set.
-     */
-    void setSetting(const char* setting, const glm::vec3& value);
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
-
 private slots:
     
     void timer();
@@ -167,22 +113,16 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
-<<<<<<< HEAD
-
     void setAutosave(bool wantsAutosave);
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
     void importSettings();
     void exportSettings();
-    
-=======
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
-   
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 private:
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
@@ -260,7 +200,6 @@ private:
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     
     QNetworkAccessManager* _networkAccessManager;
-    QSettings* _settings;
     
     SerialInterface _serialPort;
     bool _displayLevels;
@@ -353,7 +292,7 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    QSettings _settings;   // Contain Menu settings and Avatar data
+    QSettings* _settings;   // Contain Menu settings and Avatar data
     bool _autosave;        // True if the autosave is on.
 };
 
