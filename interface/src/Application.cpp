@@ -983,6 +983,44 @@ void Application::terminate() {
     }
 }
 
+static void sendAvatarVoxelURLMessage(const QUrl& url) {
+    uint16_t ownerID = AgentList::getInstance()->getOwnerID();
+    if (ownerID == UNKNOWN_AGENT_ID) {
+        return; // we don't yet know who we are
+    }
+    QByteArray message;
+    message.append(PACKET_HEADER_AVATAR_VOXEL_URL);
+    message.append((const char*)&ownerID, sizeof(ownerID));
+    message.append(url.toEncoded());
+
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)message.data(), message.size(), &AGENT_TYPE_AVATAR_MIXER, 1);
+}
+
+static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+    // skip the header
+    packetData++;
+    dataBytes--;
+    
+    // read the agent id
+    uint16_t agentID = *(uint16_t*)packetData;
+    packetData += sizeof(agentID);
+    dataBytes -= sizeof(agentID);
+    
+    // make sure the agent exists
+    Agent* agent = AgentList::getInstance()->agentWithID(agentID);
+    if (!agent || !agent->getLinkedData()) {
+        return;
+    }
+    Avatar* avatar = static_cast<Avatar*>(agent->getLinkedData());
+    if (!avatar->isInitialized()) {
+        return; // wait until initialized
+    }
+    QUrl url = QUrl::fromEncoded(QByteArray::fromRawData((char*)packetData, dataBytes));
+    
+    // invoke the set URL function on the simulate/render thread
+    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -1006,7 +1044,8 @@ void Application::editPreferences() {
     }
     QUrl url(avatarURL->text());
     _settings->setValue("avatarURL", url);
-    _myAvatar.getVoxels()->loadVoxelsFromURL(url);
+    _myAvatar.getVoxels()->setVoxelURL(url);
+    sendAvatarVoxelURLMessage(url);
 }
 
 void Application::pair() {
@@ -1507,7 +1546,9 @@ void Application::init() {
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
-    _myAvatar.getVoxels()->loadVoxelsFromURL(_settings->value("avatarURL").toUrl());
+    QUrl avatarURL = _settings->value("avatarURL").toUrl();
+    _myAvatar.getVoxels()->setVoxelURL(avatarURL);
+    sendAvatarVoxelURLMessage(avatarURL);
     
     QCursor::setPos(_headMouseX, _headMouseY);
     
@@ -1599,6 +1640,12 @@ void Application::updateAvatar(float deltaTime) {
         
         const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
         AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
+        
+        // once in a while, send my voxel url
+        const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
+        if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
+            sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+        }
     }
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
@@ -2434,6 +2481,9 @@ void* Application::networkReceive(void* args) {
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
+                    break;
+                case PACKET_HEADER_AVATAR_VOXEL_URL:
+                    processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, app->_incomingPacket, bytesReceived);

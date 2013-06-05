@@ -8,7 +8,6 @@
 #include <cstring>
 
 #include <QNetworkReply>
-#include <QUrl>
 
 #include <GeometryUtil.h>
 
@@ -24,6 +23,9 @@ const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXE
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :
     VoxelSystem(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR),
     _avatar(avatar), _voxelReply(0) {
+
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
 }
 
 AvatarVoxelSystem::~AvatarVoxelSystem() {   
@@ -75,7 +77,7 @@ void AvatarVoxelSystem::removeOutOfView() {
     // no-op for now
 }
 
-void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
+void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
     // cancel any current download
     if (_voxelReply != 0) {
         delete _voxelReply;
@@ -83,6 +85,9 @@ void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
     }
     
     killLocalVoxels();
+    
+    // remember the URL
+    _voxelURL = url;
     
     // handle "file://" urls...
     if (url.isLocalFile()) {
