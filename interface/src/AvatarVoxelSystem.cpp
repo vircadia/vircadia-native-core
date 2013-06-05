@@ -83,6 +83,15 @@ void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
     
     killLocalVoxels();
     
+    // handle "file://" urls...
+    if (url.isLocalFile()) {
+        QString pathString = url.path();
+        QByteArray pathAsAscii = pathString.toAscii();
+        const char* path = pathAsAscii.data();
+        readFromSVOFile(path);
+        return;        
+    }
+    
     // load the URL data asynchronously
     if (!url.isValid()) {
         return;
@@ -186,6 +195,15 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
     if (bytesReceived < bytesTotal) {
         return;
     }
+
+    // XXXBHG - I don't know why this can happen, but when I was testing this, I used a dropbox URL
+    // and it resulted in a case where the bytesTotal == bytesReceived, but the _voxelReply was NULL
+    // which needless to say caused crashes below. I've added this quick guard to protect against
+    // this case, but it probably should be investigated.
+    if (!_voxelReply) {
+        return;
+    }
+
     QByteArray entirety = _voxelReply->readAll();
     _voxelReply->deleteLater();
     _voxelReply = 0;
