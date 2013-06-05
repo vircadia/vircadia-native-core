@@ -46,7 +46,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _isDirty = true;
     _shouldRender = false;
     _isStagedForDeletion = false;
-    
+    markWithChangedTime();
     calculateAABox();
 }
 
@@ -66,6 +66,7 @@ void VoxelNode::setShouldRender(bool shouldRender) {
     if (shouldRender != _shouldRender) {
         _shouldRender = shouldRender;
         _isDirty = true;
+        markWithChangedTime();
     }
 }
 
@@ -89,6 +90,7 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
         delete _children[childIndex];
         _children[childIndex] = NULL;
         _isDirty = true;
+        markWithChangedTime();
         _childCount--;
     }
 }
@@ -99,6 +101,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     if (_children[childIndex]) {
         _children[childIndex] = NULL;
         _isDirty = true;
+        markWithChangedTime();
         _childCount--;
     }
     return returnedChild;
@@ -108,6 +111,7 @@ void VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
         _isDirty = true;
+        markWithChangedTime();
         _childCount++;
     }
 }
@@ -135,6 +139,7 @@ void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeleti
             deleteChildAtIndex(childIndex);
             _isDirty = true;
         } 
+        markWithChangedTime();
     }
 }
 
@@ -178,6 +183,7 @@ void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
         _currentColor[2] = blue;
         _currentColor[3] = 1; // XXXBHG - False colors are always considered set
         _isDirty = true;
+        markWithChangedTime();
     }
 }
 
@@ -189,6 +195,7 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
         }
         _falseColored = isFalseColored; 
         _isDirty = true;
+        markWithChangedTime();
     }
 };
 
@@ -202,6 +209,7 @@ void VoxelNode::setColor(const nodeColor& color) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
         _isDirty = true;
+        markWithChangedTime();
     }
 }
 #endif
