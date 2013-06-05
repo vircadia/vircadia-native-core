@@ -111,7 +111,17 @@ int main(int argc, const char* argv[]) {
     
     gettimeofday(&startTime, NULL);
     
-    while (true) {        
+    while (true) {
+        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
+            
+            if (positionalRingBuffer && positionalRingBuffer->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES)) {
+                // this is a ring buffer that is ready to go
+                // set its flag so we know to push its buffer when all is said and done
+                positionalRingBuffer->setWillBeAddedToMix(true);
+            }
+        }
+        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getType() == AGENT_TYPE_AVATAR) {
                 AvatarAudioRingBuffer* agentRingBuffer = (AvatarAudioRingBuffer*) agent->getLinkedData();
@@ -120,12 +130,10 @@ int main(int argc, const char* argv[]) {
                 memset(clientSamples, 0, sizeof(clientSamples));
                 
                 for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                    if ((otherAgent != agent
-                        && ((PositionalAudioRingBuffer*)otherAgent->getLinkedData())->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES))
-                        || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
+                    if (((PositionalAudioRingBuffer*) otherAgent->getLinkedData())->willBeAddedToMix()
+                        && (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent()))) {
                         
                         PositionalAudioRingBuffer* otherAgentBuffer = (PositionalAudioRingBuffer*) otherAgent->getLinkedData();
-                        otherAgentBuffer->setWasAddedToMix(true);
                         
                         float bearingRelativeAngleToSource = 0.0f;
                         float attenuationCoefficient = 1.0f;
@@ -294,14 +302,14 @@ int main(int argc, const char* argv[]) {
         // push forward the next output pointers for any audio buffers we used
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             PositionalAudioRingBuffer* agentBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
-            if (agentBuffer && agentBuffer->wasAddedToMix()) {
+            if (agentBuffer && agentBuffer->willBeAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
                 if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
                     agentBuffer->setNextOutput(agentBuffer->getBuffer());
                 }
                 
-                agentBuffer->setWasAddedToMix(false);
+                agentBuffer->setWillBeAddedToMix(false);
             }
         }
         

@@ -22,8 +22,8 @@ public:
     
     bool shouldBeAddedToMix(int numJitterBufferSamples);
     
-    bool wasAddedToMix() const { return _wasAddedToMix; }
-    void setWasAddedToMix(bool wasAddedToMix) { _wasAddedToMix = wasAddedToMix; }
+    bool willBeAddedToMix() const { return _willBeAddedToMix; }
+    void setWillBeAddedToMix(bool willBeAddedToMix) { _willBeAddedToMix = willBeAddedToMix; }
     
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
@@ -38,7 +38,7 @@ protected:
     glm::vec3 _position;
     glm::quat _orientation;
     bool _shouldLoopbackForAgent;
-    bool _wasAddedToMix;
+    bool _willBeAddedToMix;
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */
