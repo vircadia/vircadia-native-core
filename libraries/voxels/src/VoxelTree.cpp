@@ -264,61 +264,123 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     reaverageVoxelColors(rootNode); 
 }
 
+class DeleteVoxelCodeFromTreeArgs {
+public:
+    bool            stage;
+    bool            collapseEmptyTrees;
+    unsigned char*  codeBuffer;
+    int             lengthOfCode;
+    bool            deleteLastChild;
+    bool            pathChanged;
+};
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, bool collapseEmptyTrees) {
-    VoxelNode* parentNode = NULL;
-    VoxelNode* nodeToDelete = nodeForOctalCode(rootNode, codeBuffer, &parentNode);
-    // If the node exists...
-    int lengthInBytes = bytesRequiredForCodeLength(*codeBuffer); // includes octet count, not color!
 
-    // if the code we got back matches our target, then we know we can actually delete it
-    if (memcmp(nodeToDelete->getOctalCode(), codeBuffer, lengthInBytes) == 0) {
-        if (parentNode) {
-            int childIndex = branchIndexWithDescendant(parentNode->getOctalCode(), codeBuffer);
-            if (stage) {
-                nodeToDelete->stageForDeletion();
-            } else {
-                parentNode->deleteChildAtIndex(childIndex);
-                if (_shouldReaverage) {
-                    parentNode->setColorFromAverageOfChildren();
-                }
-            }
+    // recurse the tree while decoding the codeBuffer, once you find the node in question, recurse
+    // back and implement color reaveraging, and marking of lastChanged
+    DeleteVoxelCodeFromTreeArgs args;
+    args.stage              = stage;
+    args.collapseEmptyTrees = collapseEmptyTrees;
+    args.codeBuffer         = codeBuffer;
+    args.lengthOfCode       = numberOfThreeBitSectionsInCode(codeBuffer);
+    args.deleteLastChild    = false;
+    args.pathChanged        = false;
+    
+    VoxelNode* node = rootNode;
+    deleteVoxelCodeFromTreeRecursion(node, &args);
+}
 
-            // If we're in collapseEmptyTrees mode, and we're the last child of this parent, then delete the parent.
-            // This will collapse the empty tree above us. 
-            if (collapseEmptyTrees && parentNode->getChildCount() == 0) {
-                // Can't delete the root this way.
-                if (parentNode != rootNode) {
-                    deleteVoxelCodeFromTree(parentNode->getOctalCode(), stage, collapseEmptyTrees);
-                }
-            }
-            _isDirty = true;
-        }
-    } else if (nodeToDelete->isLeaf()) {
+void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData) {
+    DeleteVoxelCodeFromTreeArgs* args = (DeleteVoxelCodeFromTreeArgs*)extraData;
+
+    int lengthOfNodeCode = numberOfThreeBitSectionsInCode(node->getOctalCode());
+
+    // Since we traverse the tree in code order, we know that if our code 
+    // matches, then we've reached  our target node.
+    if (lengthOfNodeCode == args->lengthOfCode) {
+        // we've reached our target, depending on how we're called we may be able to operate on it
+        // if we're in "stage" mode, then we can could have the node staged, otherwise we can't really delete 
+        // it here, we need to recurse up, and delete it there. So we handle these cases the same to keep
+        // the logic consistent.
+        args->deleteLastChild = true;
+        return;
+    }
+
+    // Ok, we know we haven't reached our target node yet, so keep looking
+    int childIndex = branchIndexWithDescendant(node->getOctalCode(), args->codeBuffer);
+    VoxelNode* childNode = node->getChildAtIndex(childIndex);
+    
+    // If there is no child at the target location, then it likely means we were asked to delete a child out
+    // of a larger leaf voxel. We support this by breaking up the parent voxel into smaller pieces.
+    if (!childNode) {
         // we need to break up ancestors until we get to the right level
-        VoxelNode* ancestorNode = nodeToDelete;
+        VoxelNode* ancestorNode = node;
         while (true) {
-            int index = branchIndexWithDescendant(ancestorNode->getOctalCode(), codeBuffer);
-            for (int i = 0; i < 8; i++) {
+            int index = branchIndexWithDescendant(ancestorNode->getOctalCode(), args->codeBuffer);
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
                 if (i != index) {
                     ancestorNode->addChildAtIndex(i);
-                    if (nodeToDelete->isColored()) {
-                        ancestorNode->getChildAtIndex(i)->setColor(nodeToDelete->getColor());
+                    if (node->isColored()) {
+                        ancestorNode->getChildAtIndex(i)->setColor(node->getColor());
                     }
                 }
             }
-            if (*ancestorNode->getOctalCode() == *codeBuffer - 1) {
+            int lengthOfancestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
+            
+            // If we've reached the parent of the target, then stop breaking up children
+            if (lengthOfancestorNode == (args->lengthOfCode - 1)) {
                 break;
             }
             ancestorNode->addChildAtIndex(index);
             ancestorNode = ancestorNode->getChildAtIndex(index);
-            if (nodeToDelete->isColored()) {
-                ancestorNode->setColor(nodeToDelete->getColor());
+            if (node->isColored()) {
+                ancestorNode->setColor(node->getColor());
             }
         }
         _isDirty = true;
+        args->pathChanged = true;
+        
+        // ends recursion, unwinds up stack
+        return;
+    }
+
+    // recurse...
+    deleteVoxelCodeFromTreeRecursion(childNode, args);
+
+    // If the lower level determined it needs to be deleted, then we should delete now.
+    if (args->deleteLastChild) {
+        if (args->stage) {
+            childNode->stageForDeletion();
+        } else {
+            node->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this node
+            if (_shouldReaverage) {
+                node->setColorFromAverageOfChildren();
+            }
+        }
+
+        // track our tree dirtiness
+        _isDirty = true;
+        
+        // track that path has changed
+        args->pathChanged = true;
+
+        // If we're in collapseEmptyTrees mode, and this was the last child of this node, then we also want
+        // to delete this node.  This will collapse the empty tree above us. 
+        if (args->collapseEmptyTrees && node->getChildCount() == 0) {
+            // Can't delete the root this way.
+            if (node == rootNode) {
+                args->deleteLastChild = false; // reset so that further up the unwinding chain we don't do anything
+            }
+        } else {
+            args->deleteLastChild = false; // reset so that further up the unwinding chain we don't do anything
+        }
+    }
+    
+    // If the lower level did some work, then we need to track our lastChanged status.
+    if (args->pathChanged) {
+        node->markWithChangedTime();
     }
 }
 
