@@ -10,7 +10,6 @@
 #define __hifi__VoxelTree__
 
 #include "SimpleMovingAverage.h"
-
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
@@ -101,6 +100,8 @@ public:
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
     
 private:
+    void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
+
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                                      const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits, 
