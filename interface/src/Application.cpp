@@ -225,6 +225,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
+
+    QCoreApplication::setOrganizationDomain("highfidelity.io"); // Used by QSettings on OS X
 }
 
 void Application::initializeGL() {
@@ -276,8 +278,6 @@ void Application::initializeGL() {
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
-    
-    readSettings();
     
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
@@ -740,177 +740,6 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
-const char AVATAR_DATA_FILENAME[] = "avatar.ifd";
-
-void Application::readSettingsFile() {
-    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "rt");
-    
-    if (settingsFile) {
-        char line[LINE_MAX];
-        
-        while (fgets(line, LINE_MAX, settingsFile) != NULL)
-        {
-            if (strcmp(line, " \n") > 0) {
-                char* token = NULL;
-                char* settingLine = NULL;
-                char* toFree = NULL;
-                
-                settingLine = strdup(line);
-                
-                if (settingLine != NULL) {
-                    toFree = settingLine;
-                    
-                    int i = 0;
-                    
-                    char key[128];
-                    char value[128];
-                    
-                    
-                    while ((token = strsep(&settingLine, "=")) != NULL)
-                    {
-                        switch (i) {
-                            case 0:
-                                strcpy(key, token);
-                                _settingsTable[key] = "";
-                                break;
-                                
-                            case 1:
-                                strcpy(value, token);
-                                _settingsTable[key] = token;
-                                break;
-                                
-                            default:
-                                break;
-                        }
-                        
-                        i++;
-                    }
-                    
-                    free(toFree);
-                }
-            }
-        }
-    
-        fclose(settingsFile);
-    }
-}
-
-void Application::saveSettingsFile() {
-    FILE* settingsFile = fopen(AVATAR_DATA_FILENAME, "wt");
-    
-    if (settingsFile) {
-        for (std::map<std::string, std::string>::iterator i = _settingsTable.begin(); i != _settingsTable.end(); i++)
-        {
-            fprintf(settingsFile, "\n%s=%s", i->first.data(), i->second.data());
-        }
-    }
-    
-    fclose(settingsFile);
-}
-
-bool Application::getSetting(const char* setting, bool& value, const bool defaultSetting) const {
-    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
-    
-    if (iter != _settingsTable.end()) {
-        int readBool;
-        
-        int res = sscanf(iter->second.data(), "%d", &readBool);
-        
-        const char EXPECTED_ITEMS = 1;
-        
-        if (res == EXPECTED_ITEMS) {
-            if (readBool == 1) {
-                value = true;
-            } else if (readBool == 0) {
-                value = false;
-            }
-        }
-    } else {
-        value = defaultSetting;
-        return false;
-    }
-    
-    return true;
-}
-
-bool Application::getSetting(const char* setting, float& value, const float defaultSetting) const {
-    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
-    
-    if (iter != _settingsTable.end()) {
-        float readFloat;
-        
-        int res = sscanf(iter->second.data(), "%f", &readFloat);
-        
-        const char EXPECTED_ITEMS = 1;
-        
-        if (res == EXPECTED_ITEMS) {
-            if (!isnan(readFloat)) {
-                value = readFloat;
-            } else {
-                value = defaultSetting;
-                return false;
-            }
-        } else {
-            value = defaultSetting;
-            return false;
-        }
-    } else {
-        value = defaultSetting;
-        return false;
-    }
-    
-    return true;
-}
-
-bool Application::getSetting(const char* setting, glm::vec3& value, const glm::vec3& defaultSetting) const {
-    std::map<std::string, std::string>::const_iterator iter = _settingsTable.find(setting);
-    
-    if (iter != _settingsTable.end()) {
-        glm::vec3 readVec;
-        
-        int res = sscanf(iter->second.data(), "%f,%f,%f", &readVec.x, &readVec.y, &readVec.z);
-        
-        const char EXPECTED_ITEMS = 3;
-        
-        if (res == EXPECTED_ITEMS) {
-            if (!isnan(readVec.x) && !isnan(readVec.y) && !isnan(readVec.z)) {
-                value = readVec;
-            } else {
-                value = defaultSetting;
-                return false;
-            }
-        } else {
-            value = defaultSetting;
-            return false;
-        }
-    } else {
-        value = defaultSetting;
-        return false;
-    }
-    
-    return true;
-}
-
-const short MAX_SETTINGS_LENGTH = 128;
-
-void Application::setSetting(const char* setting, const bool value) {
-    char settingValues[MAX_SETTINGS_LENGTH];
-    sprintf(settingValues, "%d", value);
-    _settingsTable[setting] = settingValues;
-}
-
-void Application::setSetting(const char* setting, const float value) {
-    char settingValues[MAX_SETTINGS_LENGTH];
-    sprintf(settingValues, "%f", value);
-    _settingsTable[setting] = settingValues;
-}
-
-void Application::setSetting(const char* setting, const glm::vec3& value) {
-    char settingValues[MAX_SETTINGS_LENGTH];
-    sprintf(settingValues, "%f,%f,%f", value.x, value.y, value.z);
-    _settingsTable[setting] = settingValues;
-}
-
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -1083,6 +912,9 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
                 avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
@@ -1140,7 +972,10 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    saveSettings();
+    if (_autosave) {
+        saveSettings();
+        _settings->sync();
+    }
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -1285,7 +1120,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 void Application::addVoxelInFrontOfAvatar() {
     VoxelDetail detail;
     
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
+    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.calculateCameraDirection()) * (1.0f / TREE_SCALE);
     detail.s = _mouseVoxelScale;
     
     detail.x = detail.s * floor(position.x / detail.s);
@@ -1611,6 +1446,14 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+
+    QMenu* settingsMenu = menuBar->addMenu("Settings");
+    (_settingsAutosave = settingsMenu->addAction("Autosave", this, SLOT(setAutosave(bool))))->setCheckable(true);
+    _settingsAutosave->setChecked(true);
+    settingsMenu->addAction("Load settings", this, SLOT(loadSettings()));
+    settingsMenu->addAction("Save settings", this, SLOT(saveSettings()));
+    settingsMenu->addAction("Import settings", this, SLOT(importSettings()));
+    settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
     _settings = new QSettings("High Fidelity", "Interface", this);
@@ -1675,6 +1518,8 @@ void Application::init() {
     
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
+
+    loadSettings();
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -1735,9 +1580,7 @@ void Application::updateAvatar(float deltaTime) {
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
     _myAvatar.setCameraPosition(_viewFrustum.getPosition());
-    _myAvatar.setCameraDirection(_viewFrustum.getDirection());
-    _myAvatar.setCameraUp(_viewFrustum.getUp());
-    _myAvatar.setCameraRight(_viewFrustum.getRight());
+    _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
@@ -1801,13 +1644,10 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float farClip     = camera.getFarClip();
 
     glm::quat rotation = camera.getRotation();
-    glm::vec3 direction = rotation * AVATAR_FRONT;
-    glm::vec3 up = rotation * AVATAR_UP;
-    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(direction,up,right);
+    viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
@@ -2075,6 +1915,9 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
                 avatar->render(false);
             }
         }
@@ -2548,9 +2391,7 @@ QAction* Application::checkedVoxelModeAction() const {
 
 void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        Avatar* newAvatar = new Avatar(newAgent);
-        newAvatar->init();
-        newAgent->setLinkedData(newAvatar);
+        newAgent->setLinkedData(new Avatar(newAgent));
     }
 }
 
@@ -2609,95 +2450,82 @@ void* Application::networkReceive(void* args) {
     return NULL; 
 }
 
-void Application::saveSettings()
-{
-    // Handle any persistent settings saving here when we get a call to terminate.
-    // This should probably be moved to a map stored in memory at some point to cache settings.
-    _myAvatar.writeAvatarDataToFile();
-    
-    setSetting("_gyroLook", _gyroLook->isChecked());
-    
-    setSetting("_mouseLook", _mouseLook->isChecked());
-    
-    setSetting("_transmitterDrives", _transmitterDrives->isChecked());
-    
-    setSetting("_renderVoxels", _renderVoxels->isChecked());
-    
-    setSetting("_renderVoxelTextures", _renderVoxelTextures->isChecked());
-    
-    setSetting("_renderStarsOn", _renderStarsOn->isChecked());
-    
-    setSetting("_renderAtmosphereOn", _renderAtmosphereOn->isChecked());
-    
-    setSetting("_renderAvatarsOn", _renderAvatarsOn->isChecked());
-    
-    setSetting("_renderStatsOn", _renderStatsOn->isChecked());
-    
-    setSetting("_renderFrameTimerOn", _renderFrameTimerOn->isChecked());
-    
-    setSetting("_renderLookatOn", _renderLookatOn->isChecked());
-    
-    setSetting("_logOn", _logOn->isChecked());
-    
-    setSetting("_frustumOn", _frustumOn->isChecked());
-    
-    setSetting("_viewFrustumFromOffset", _viewFrustumFromOffset->isChecked());
-    
-    setSetting("_cameraFrustum", _cameraFrustum->isChecked());
-    
-    saveSettingsFile();
+void Application::scanMenuBar(settingsAction modifySetting, QSettings* set) {
+  if (!_window->menuBar())  {
+        return;
+    }
+
+    QList<QMenu*> menus = _window->menuBar()->findChildren<QMenu *>();
+
+    for (QList<QMenu *>::const_iterator it = menus.begin(); menus.end() != it; ++it) {
+        scanMenu(*it, modifySetting, set);
+    }
 }
 
-void Application::readSettings()
-{
-    readSettingsFile();
-    _myAvatar.readAvatarDataFromFile();
-    
-    bool settingState;
-    getSetting("_gyroLook", settingState, _gyroLook->isChecked());
-    _gyroLook->setChecked(settingState);
-    
-    getSetting("_mouseLook", settingState, _mouseLook->isChecked());
-    _mouseLook->setChecked(settingState);
-    
-    getSetting("_transmitterDrives", settingState, _transmitterDrives->isChecked());
-    _transmitterDrives->setChecked(settingState);
-    
-    getSetting("_renderVoxels", settingState, _renderVoxels->isChecked());
-    _renderVoxels->setChecked(settingState);
-    
-    getSetting("_renderVoxelTextures", settingState, _renderVoxelTextures->isChecked());
-    _renderVoxelTextures->setChecked(settingState);
-    
-    getSetting("_renderStarsOn", settingState, _renderStarsOn->isChecked());
-    _renderStarsOn->setChecked(settingState);
-    
-    getSetting("_renderAtmosphereOn", settingState, _renderAtmosphereOn->isChecked());
-    _renderAtmosphereOn->setChecked(settingState);
-    
-    getSetting("_renderAvatarsOn", settingState, _renderAvatarsOn->isChecked());
-    _renderAvatarsOn->setChecked(settingState);
-    
-    getSetting("_renderStatsOn", settingState, _renderStatsOn->isChecked());
-    _renderStatsOn->setChecked(settingState);
-    
-    getSetting("_renderFrameTimerOn", settingState, _renderFrameTimerOn->isChecked());
-    _renderFrameTimerOn->setChecked(settingState);
-    
-    getSetting("_renderLookatOn", settingState, _renderLookatOn->isChecked());
-    _renderLookatOn->setChecked(settingState);
-    
-    getSetting("_logOn", settingState, _logOn->isChecked());
-    _logOn->setChecked(settingState);
-    
-    getSetting("_frustumOn", settingState, _frustumOn->isChecked());
-    _frustumOn->setChecked(settingState);
-    
-    getSetting("_viewFrustumFromOffset", settingState, _viewFrustumFromOffset->isChecked());
-    _viewFrustumFromOffset->setChecked(settingState);
-    
-    getSetting("_cameraFrustum", settingState, _cameraFrustum->isChecked());
-    _cameraFrustum->setChecked(settingState);
-    
+void Application::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
+    QList<QAction*> actions = menu->actions();
+
+    set->beginGroup(menu->title());
+    for (QList<QAction *>::const_iterator it = actions.begin(); actions.end() != it; ++it) {
+        if ((*it)->menu()) {
+            scanMenu((*it)->menu(), modifySetting, set);
+        }
+        if ((*it)->isCheckable()) {
+            modifySetting(set, *it);
+        }
+    }
+    set->endGroup();
 }
+
+void Application::loadAction(QSettings* set, QAction* action) {
+    action->setChecked(set->value(action->text(),  action->isChecked()).toBool());
+}
+
+void Application::saveAction(QSettings* set, QAction* action) {
+    set->setValue(action->text(),  action->isChecked());
+}
+
+void Application::setAutosave(bool wantsAutosave) {
+    _autosave = wantsAutosave;
+}
+
+void Application::loadSettings(QSettings* set) {
+    if (!set) set = getSettings();
+
+    scanMenuBar(&Application::loadAction, set);
+    getAvatar()->loadData(set);
+}
+
+void Application::saveSettings(QSettings* set) {
+    if (!set) set = getSettings();
+
+    scanMenuBar(&Application::saveAction, set);
+    getAvatar()->saveData(set);
+}
+
+void Application::importSettings() {
+    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString fileName = QFileDialog::getOpenFileName(_window,
+                                                    tr("Open .ini config file"),
+                                                    locationDir,
+                                                    tr("Text files (*.ini)"));
+    if (fileName != "") {
+        QSettings tmp(fileName, QSettings::IniFormat);
+        loadSettings(&tmp);
+    }
+}
+
+void Application::exportSettings() {
+    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString fileName = QFileDialog::getSaveFileName(_window,
+                                                   tr("Save .ini config file"),
+						    locationDir,
+                                                   tr("Text files (*.ini)"));
+    if (fileName != "") {
+        QSettings tmp(fileName, QSettings::IniFormat);
+        saveSettings(&tmp);
+        tmp.sync();
+    }
+}
+
 

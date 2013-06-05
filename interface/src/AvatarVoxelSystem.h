@@ -46,7 +46,7 @@ protected:
 
 private slots:
     
-    void readVoxelDataFromReply();
+    void handleVoxelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleVoxelReplyError();    
     
 private:
