@@ -1309,7 +1309,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
             // the rectangles that comprise the sides of the cone section are
             // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
             anglea = angleb;
-            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PI * 2.0f;
+            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PIf * 2.0f;
             
             float sa = sinf(anglea);
             float sb = sinf(angleb);
