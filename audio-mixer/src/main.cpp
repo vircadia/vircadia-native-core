@@ -17,6 +17,8 @@
 #include <limits>
 #include <signal.h>
 
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <AgentList.h>
 #include <Agent.h>
 #include <AgentTypes.h>
@@ -54,13 +56,6 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
-
-const float DISTANCE_SCALE = 2.5f;
-const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-const int PHASE_DELAY_AT_90 = 20;
-
-const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
@@ -128,10 +123,6 @@ int main(int argc, const char* argv[]) {
             }
         }
         
-        int numAgents = agentList->size();
-        float distanceCoefficients[numAgents][numAgents];
-        memset(distanceCoefficients, 0, sizeof(distanceCoefficients));
-        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getType() == AGENT_TYPE_AVATAR) {
                 AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
@@ -146,90 +137,101 @@ int main(int argc, const char* argv[]) {
                         if (otherAgentBuffer->shouldBeAddedToMix()) {
                             
                             float bearingRelativeAngleToSource = 0.f;
-                            float attenuationCoefficient = 1.f;
+                            float attenuationCoefficient = 1.0f;
                             int numSamplesDelay = 0;
-                            float weakChannelAmplitudeRatio = 1.f;
+                            float weakChannelAmplitudeRatio = 1.0f;
                             
                             if (otherAgent != agent) {
-                                glm::vec3 agentPosition = agentRingBuffer->getPosition();
-                                glm::vec3 otherAgentPosition = otherAgentBuffer->getPosition();
-                                
-                                // calculate the distance to the other agent
-                                
-                                // use the distance to the other agent to calculate the change in volume for this frame
-                                int lowAgentIndex = std::min(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                                int highAgentIndex = std::max(agent.getAgentIndex(), otherAgent.getAgentIndex());
-                                
-                                if (distanceCoefficients[lowAgentIndex][highAgentIndex] == 0) {
-                                    float distanceToAgent = sqrtf(powf(agentPosition.x - otherAgentPosition.x, 2) +
-                                                                  powf(agentPosition.y - otherAgentPosition.y, 2) +
-                                                                  powf(agentPosition.z - otherAgentPosition.z, 2));
+                                glm::vec3 listenerPosition = agentRingBuffer->getPosition();
+                                glm::vec3 relativePosition = otherAgentBuffer->getPosition() - agentRingBuffer->getPosition();
+                                glm::quat inverseOrientation = glm::inverse(agentRingBuffer->getOrientation());
+                                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+                            
+                                float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
+                            
+                                float distanceCoefficient = 1.0f;
+                                float offAxisCoefficient = 1.0f;
+
+                                if (otherAgentBuffer->getRadius() == 0
+                                    || (distanceSquareToSource > (otherAgentBuffer->getRadius()
+                                                                 * otherAgentBuffer->getRadius()))) {
+                                    // this is either not a spherical source, or the listener is outside the sphere
                                     
-                                    float minCoefficient = std::min(1.0f,
-                                                                    powf(0.3,
-                                                                         (logf(DISTANCE_SCALE * distanceToAgent) / logf(2.5))
-                                                                         - 1));
-                                    distanceCoefficients[lowAgentIndex][highAgentIndex] = minCoefficient;
-                                }
-                                
-                                
-                                // get the angle from the right-angle triangle
-                                float triangleAngle = atan2f(fabsf(agentPosition.z - otherAgentPosition.z),
-                                                             fabsf(agentPosition.x - otherAgentPosition.x)) * (180 / M_PI);
-                                float absoluteAngleToSource = 0;
-                                bearingRelativeAngleToSource = 0;
-                                
-                                // find the angle we need for calculation based on the orientation of the triangle
-                                if (otherAgentPosition.x > agentPosition.x) {
-                                    if (otherAgentPosition.z > agentPosition.z) {
-                                        absoluteAngleToSource = -90 + triangleAngle;
+                                    if (otherAgentBuffer->getRadius() > 0) {
+                                        // this is a spherical source - the distance used for the coefficient
+                                        // needs to be the closest point on the boundary to the source
+                                        
+                                        // multiply the normalized vector between the center of the sphere
+                                        // and the position of the source by the radius to get the
+                                        // closest point on the boundary of the sphere to the source
+                                        
+                                        glm::vec3 closestPoint = glm::normalize(relativePosition) * otherAgentBuffer->getRadius();
+
+                                        // for the other calculations the agent position is the closest point on the sphere
+                                        rotatedSourcePosition = inverseOrientation * closestPoint;
+
+                                        // ovveride the distance to the agent with the distance to the point on the
+                                        // boundary of the sphere
+                                        distanceSquareToSource = glm::distance2(listenerPosition, -closestPoint);
+                                        
                                     } else {
-                                        absoluteAngleToSource = -90 - triangleAngle;
+                                        // calculate the angle delivery
+                                        glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
+                                            * relativePosition;
+                                        
+                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                           glm::normalize(rotatedListenerPosition));
+                                        
+                                        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                                        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                                        
+                                        offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                            (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
                                     }
-                                } else {
-                                    if (otherAgentPosition.z > agentPosition.z) {
-                                        absoluteAngleToSource = 90 - triangleAngle;
-                                    } else {
-                                        absoluteAngleToSource = 90 + triangleAngle;
-                                    }
+                                    
+                                    const float DISTANCE_SCALE = 2.5f;
+                                    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                                    const float DISTANCE_LOG_BASE = 2.5f;
+                                    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+                                    
+                                    // calculate the distance coefficient using the distance to this agent
+                                    distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                               DISTANCE_SCALE_LOG +
+                                                               (logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                                    distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                                    
+                                    // off-axis attenuation and spatialization of audio
+                                    // not performed if listener is inside spherical injector
+                                    
+                                    // calculate the angle from the source to the listener
+                                    
+                                    // project the rotated source position vector onto the XZ plane
+                                    rotatedSourcePosition.y = 0.0f;
+                                    
+                                    // produce an oriented angle about the y-axis
+                                    bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                                      glm::normalize(rotatedSourcePosition),
+                                                                                      glm::vec3(0.0f, 1.0f, 0.0f));
+                                    
+                                    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                                    const int PHASE_DELAY_AT_90 = 20;
+                                    
+                                    float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
+                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 }
                                 
-                                bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
-                                
-                                if (bearingRelativeAngleToSource > 180) {
-                                    bearingRelativeAngleToSource -= 360;
-                                } else if (bearingRelativeAngleToSource < -180) {
-                                    bearingRelativeAngleToSource += 360;
-                                }
-                                
-                                float angleOfDelivery = absoluteAngleToSource - otherAgentBuffer->getBearing();
-                                
-                                if (angleOfDelivery > 180) {
-                                    angleOfDelivery -= 360;
-                                } else if (angleOfDelivery < -180) {
-                                    angleOfDelivery += 360;
-                                }
-                                
-                                float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                                (OFF_AXIS_ATTENUATION_FORMULA_STEP * (fabsf(angleOfDelivery) / 90.0f));
-                                
-                                attenuationCoefficient = distanceCoefficients[lowAgentIndex][highAgentIndex]
+                                attenuationCoefficient = distanceCoefficient
                                     * otherAgentBuffer->getAttenuationRatio()
                                     * offAxisCoefficient;
-                                
-                                bearingRelativeAngleToSource *= (M_PI / 180);
-                                
-                                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                                : clientSamples;
-                            int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
                                 ? clientSamples
                                 : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
+                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                                : clientSamples;
                             
                             int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                                 ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
@@ -288,7 +290,7 @@ int main(int argc, const char* argv[]) {
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                 
-                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getBearing())) {
+                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getOrientation().x)) {
                     // kill off this agent - temporary solution to mixer crash on mac sleep
                     avatarAgent->setAlive(false);
                 }

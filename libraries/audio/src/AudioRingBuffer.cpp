@@ -17,6 +17,7 @@ AudioRingBuffer::AudioRingBuffer(int ringSamples, int bufferSamples) :
     AgentData(NULL),
     _ringBufferLengthSamples(ringSamples),
     _bufferLengthSamples(bufferSamples),
+    _radius(0.0f),
     _endOfLastWrite(NULL),
     _started(false),
     _shouldBeAddedToMix(false),
@@ -46,31 +47,34 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
             // we've got a stream identifier to pull from the packet
             memcpy(&_streamIdentifier, dataBuffer, sizeof(_streamIdentifier));
             dataBuffer += sizeof(_streamIdentifier);
+            
+            // push past the injection command
+            dataBuffer += sizeof(INJECT_AUDIO_AT_POINT_COMMAND);
         }
         
         memcpy(&_position, dataBuffer, sizeof(_position));
-        dataBuffer += (sizeof(_position));
+        dataBuffer += sizeof(_position);
+        
+        if (sourceBuffer[0] == PACKET_HEADER_INJECT_AUDIO && sourceBuffer[1] == INJECT_AUDIO_AT_CUBE_COMMAND) {
+            // this is audio that needs to be injected as a volume (cube)
+            // parse out the cubeHalfHeight sent by the client
+            memcpy(&_radius, dataBuffer, sizeof(_radius));
+            dataBuffer += sizeof(_radius);
+        }
         
         unsigned int attenuationByte = *(dataBuffer++);
         _attenuationRatio = attenuationByte / 255.0f;
         
-        memcpy(&_bearing, dataBuffer, sizeof(float));
-        dataBuffer += sizeof(_bearing);
+        memcpy(&_orientation, dataBuffer, sizeof(_orientation));
+        dataBuffer += sizeof(_orientation);
         
-        // if this agent sent us a NaN bearing then don't consider this good audio and bail
-        if (std::isnan(_bearing)) {
+        // if this agent sent us a NaN for first float in orientation then don't consider this good audio and bail
+        if (std::isnan(_orientation.x)) {
             _endOfLastWrite = _nextOutput = _buffer;
             _started = false;
             return 0;
-        } else if (_bearing > 180 || _bearing < -180) {
-            // we were passed an invalid bearing because this agent wants loopback (pressed the H key)
-            _shouldLoopbackForAgent = true;
-            
-            // correct the bearing
-            _bearing = _bearing  > 0
-                ? _bearing - AGENT_LOOPBACK_MODIFIER
-                : _bearing + AGENT_LOOPBACK_MODIFIER;
         } else {
+            // currently no possiblity for loopback, need to add once quaternion audio is working again
             _shouldLoopbackForAgent = false;
         }
     }

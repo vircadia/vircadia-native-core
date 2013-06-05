@@ -2246,7 +2246,7 @@ void Application::maybeEditVoxelUnderCursor() {
             AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
             voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
             //_myAvatar.getPosition()
-            voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
+//            voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
             voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
             
             /* for (int i = 0; i
@@ -2309,7 +2309,7 @@ void Application::deleteVoxelUnderCursor() {
         sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
-        voxelInjector->setBearing(0); //straight down the z axis
+//        voxelInjector->setBearing(0); //straight down the z axis
         voxelInjector->setVolume (255); //255 is max, and also default value
         
         

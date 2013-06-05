@@ -27,32 +27,41 @@ const int AVATAR_MIXER_DATA_SEND_INTERVAL_MSECS = 15;
 
 const int DEFAULT_INJECTOR_VOLUME = 0xFF;
 
+enum {
+    INJECTOR_POSITION_X,
+    INJECTOR_POSITION_Y,
+    INJECTOR_POSITION_Z,
+    INJECTOR_YAW
+};
+
 // Command line parameter defaults
 bool loopAudio = true;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
-const char *allowedParameters = ":rb::t::c::a::f::d:";
+const char *allowedParameters = ":sb::t::c::a::f::d::r:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
-float triggerDistance = 0;
+float triggerDistance = 0.0f;
+float radius = 0.0f;
 
 void usage(void) {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
-    std::cout << "   -r                             Random sleep mode. If not specified will default to constant loop." << std::endl;
+    std::cout << "   -s                             Random sleep mode. If not specified will default to constant loop." << std::endl;
     std::cout << "   -b FLOAT                       Min. number of seconds to sleep. Only valid in random sleep mode. Default 1.0" << std::endl;
     std::cout << "   -t FLOAT                       Max. number of seconds to sleep. Only valid in random sleep mode. Default 2.0" << std::endl;
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
     std::cout << "   -d FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
+    std::cout << "   -r FLOAT                       Radius for spherical source. If not specified injected audio is point source" << std::endl;
 }
 
 bool processParameters(int parameterCount, char* parameterData[]) {
     int p;
     while ((p = getopt(parameterCount, parameterData, allowedParameters)) != -1) {
         switch (p) {
-            case 'r':
+            case 's':
                 ::loopAudio = false;
                 std::cout << "[DEBUG] Random sleep mode enabled" << std::endl;
                 break;
@@ -91,6 +100,10 @@ bool processParameters(int parameterCount, char* parameterData[]) {
             case 'd':
                 ::triggerDistance = atof(optarg);
                 std::cout << "[DEBUG] Trigger distance: " << optarg << std::endl;
+                break;
+            case 'r':
+                ::radius = atof(optarg);
+                std::cout << "[DEBUG] Injector radius: " << optarg << std::endl;
                 break;
             default:
                 usage();
@@ -160,9 +173,16 @@ int main(int argc, char* argv[]) {
             // start the agent list thread that will kill off agents when they stop talking
             agentList->startSilentAgentRemovalThread();
             
-            injector.setPosition(glm::vec3(::floatArguments[0], ::floatArguments[1], ::floatArguments[2]));
-            injector.setBearing(*(::floatArguments + 3));
+            injector.setPosition(glm::vec3(::floatArguments[INJECTOR_POSITION_X],
+                                           ::floatArguments[INJECTOR_POSITION_Y],
+                                           ::floatArguments[INJECTOR_POSITION_Z]));
+            injector.setOrientation(glm::quat(glm::vec3(0.0f, ::floatArguments[INJECTOR_YAW], 0.0f)));
             injector.setVolume(::volume);
+            
+            if (::radius > 0) {
+                // if we were passed a cube side length, give that to the injector
+                injector.setRadius(::radius);
+            }
 
             // register the callback for agent data creation
             agentList->linkedDataCreateCallback = createAvatarDataForAgent;
