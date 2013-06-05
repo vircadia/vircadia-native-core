@@ -15,6 +15,8 @@
 
 #include <QApplication>
 #include <QAction>
+#include <QSettings>
+#include <QList>
 
 #include <AgentList.h>
 
@@ -69,8 +71,11 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    QSettings* getSettings() { return &_settings; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
+<<<<<<< HEAD
+=======
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
@@ -124,6 +129,7 @@ public:
      @param vecSetting The value to set.
      */
     void setSetting(const char* setting, const glm::vec3& value);
+>>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 
 private slots:
     
@@ -161,12 +167,22 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
+<<<<<<< HEAD
+
+    void setAutosave(bool wantsAutosave);
+    void loadSettings(QSettings* set = NULL);
+    void saveSettings(QSettings* set = NULL);
+    void importSettings();
+    void exportSettings();
+    
+=======
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
    
+>>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 private:
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
@@ -203,13 +219,13 @@ private:
     static void attachNewHeadToAgent(Agent *newAgent);
     static void* networkReceive(void* args);
     
-    // These two functions are technically not necessary, but they help keep things in one place.
-    void readSettings(); //! This function is largely to help consolidate getting settings in one place.
-    void saveSettings(); //! This function is to consolidate any settings setting in one place.
-    
-    void readSettingsFile(); //! This function reads data from the settings file, splitting data into key value pairs using '=' as a delimiter.
-    void saveSettingsFile(); //! This function writes all changes in the settings table to the settings file, serializing all settings added through the setSetting functions.
-    
+    // methodes handling menu settings
+    typedef void(*settingsAction)(QSettings*, QAction*);
+    static void loadAction(QSettings* set, QAction* action);
+    static void saveAction(QSettings* set, QAction* action);
+    void scanMenuBar(settingsAction modifySetting, QSettings* set);
+    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
+
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
@@ -241,6 +257,7 @@ private:
     QAction* _cameraFrustum;         // which frustum to look at
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
+    QAction* _settingsAutosave;      // Whether settings are saved automatically
     
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -336,11 +353,8 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    /*!
-     * Store settings in a map, storing keys and values as strings.
-     * Interpret values as needed on demand. through the appropriate getters and setters.
-     */
-    std::map<std::string, std::string> _settingsTable; 
+    QSettings _settings;   // Contain Menu settings and Avatar data
+    bool _autosave;        // True if the autosave is on.
 };
 
 #endif /* defined(__interface__Application__) */
