@@ -55,7 +55,6 @@ const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES           = 9;
 
-
 bool usingBigSphereCollisionTest = true;
 
 float chatMessageScale = 0.0015;
@@ -88,7 +87,8 @@ Avatar::Avatar(Agent* owningAgent) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
     _cumulativeMouseYaw(0.0f),
-    _isMouseTurningRight(false)
+    _isMouseTurningRight(false),
+    _voxels(this)
 {
     
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -262,6 +262,10 @@ _bodyBall[ BODY_BALL_LEFT_KNEE		  ].parentBall = BODY_BALL_LEFT_HIP;
 Avatar::~Avatar() {
     _headData = NULL;
     delete _balls;
+}
+
+void Avatar::init() {
+    _voxels.init();
 }
 
 void Avatar::reset() {
@@ -1015,20 +1019,24 @@ void Avatar::updateBodyBalls(float deltaTime) {
     if (glm::length(_position - _bodyBall[BODY_BALL_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
         resetBodyBalls();
     }
+    glm::quat orientation = getOrientation();
+    glm::vec3 jointDirection = orientation * JOINT_DIRECTION;
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
 
+        glm::vec3 springVector;
+        float length = 0.0f;
         if (_ballSpringsInitialized) {
                     
             // apply spring forces
-            glm::vec3 springVector(_bodyBall[b].position);
-            
+            springVector = _bodyBall[b].position;
+
             if (b == BODY_BALL_PELVIS) {
                 springVector -= _position;
             } else {
                 springVector -= _bodyBall[_bodyBall[b].parentBall].position;
             }
             
-            float length = glm::length(springVector);
+            length = glm::length(springVector);
             
             if (length > 0.0f) { // to avoid divide by zero
                 glm::vec3 springDirection = springVector / length;
@@ -1066,6 +1074,14 @@ void Avatar::updateBodyBalls(float deltaTime) {
         
         // update position by velocity...
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
+        
+        // update rotation
+        const float SMALL_SPRING_LENGTH = 0.001f; // too-small springs can change direction rapidly
+        if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < SMALL_SPRING_LENGTH) {
+            _bodyBall[b].rotation = orientation * _skeleton.joint[_bodyBall[b].parentJoint].absoluteBindPoseRotation;
+        } else {
+            _bodyBall[b].rotation = rotationBetween(jointDirection, springVector) * orientation;
+        }
     }
 }
 
@@ -1125,6 +1141,9 @@ void Avatar::renderBody(bool lookingInMirror) {
     
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
+    
+    //  Render the body's voxels
+    _voxels.render(false);
     
     //  Render the body as balls and cones 
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
@@ -1229,6 +1248,11 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
         _head.setRoll (angles.z);
         // printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
     }
+}
+
+void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
+    position = _bodyBall[jointID].position;
+    rotation = _bodyBall[jointID].rotation;
 }
 
 void Avatar::writeAvatarDataToFile() {

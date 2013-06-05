@@ -292,13 +292,16 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
         glm::vec4 diagonals[] = { secondAxisMinPlane + thirdAxisMaxPlane + offset,
             secondAxisMaxPlane + thirdAxisMaxPlane + offset };
         
+        float minDistance = FLT_MAX;
         for (int i = 0; i < sizeof(diagonals) / sizeof(diagonals[0]); i++) {
             float divisor = glm::dot(direction, diagonals[i]);
             if (fabs(divisor) < EPSILON) {
                 continue; // segment is parallel to diagonal plane
             }
-            float directionalDistance = -glm::dot(origin, diagonals[i]) / divisor;
-            return getClosestPointOnFace(glm::vec3(origin + direction * directionalDistance), face);
+            minDistance = glm::min(-glm::dot(origin, diagonals[i]) / divisor, minDistance);
+        }
+        if (minDistance != FLT_MAX) {
+            return getClosestPointOnFace(glm::vec3(origin + direction * minDistance), face);
         }
     }
     

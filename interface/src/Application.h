@@ -37,6 +37,8 @@ class QGLWidget;
 class QKeyEvent;
 class QMainWindow;
 class QMouseEvent;
+class QNetworkAccessManager;
+class QSettings;
 class QWheelEvent;
 
 class Agent;
@@ -65,9 +67,12 @@ public:
     
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
+    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
+    
+    QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
     /*!
      @fn getSettingBool
@@ -125,6 +130,8 @@ private slots:
     void timer();
     void idle();
     void terminate();
+    
+    void editPreferences();
     
     void pair();
     
@@ -236,6 +243,8 @@ private:
     QAction* _frustumRenderModeAction;
     
     SerialInterface _serialHeadSensor;
+    QNetworkAccessManager* _networkAccessManager;
+    QSettings* _settings;
     bool _displayLevels;
     
     glm::vec3 _gravity;
