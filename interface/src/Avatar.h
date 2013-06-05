@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <AvatarData.h>
+#include <QSettings>
 #include "world.h"
 #include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
@@ -100,6 +101,7 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
+    bool             isInitialized             ()                const { return _initialized;}
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    
@@ -129,12 +131,18 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     
+<<<<<<< HEAD
+    // get/set avatar data
+    void saveData(QSettings* set);
+    void loadData(QSettings* set);
+=======
     //  Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
     
     //read/write avatar data
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
+>>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
@@ -156,6 +164,7 @@ private:
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
+    bool        _initialized;
     Head        _head;
     Skeleton    _skeleton;
     bool        _ballSpringsInitialized;

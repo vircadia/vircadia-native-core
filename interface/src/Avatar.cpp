@@ -62,6 +62,7 @@ float chatMessageHeight = 0.20;
 
 Avatar::Avatar(Agent* owningAgent) :
     AvatarData(owningAgent),
+    _initialized(false),
     _head(this),
     _ballSpringsInitialized(false),
     _TEST_bigSphereRadius(0.5f),
@@ -266,6 +267,7 @@ Avatar::~Avatar() {
 
 void Avatar::init() {
     _voxels.init();
+    _initialized = true;
 }
 
 void Avatar::reset() {
@@ -1250,6 +1252,20 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
+<<<<<<< HEAD
+void Avatar::loadData(QSettings* set) {
+    set->beginGroup("Avatar");
+
+    _bodyYaw   = set->value("bodyYaw",  _bodyYaw).toFloat();
+    _bodyPitch = set->value("bodyPitch", _bodyPitch).toFloat();
+    _bodyRoll  = set->value("bodyRoll",  _bodyRoll).toFloat();
+
+    _position.x = set->value("position_x", _position.x).toFloat();
+    _position.y = set->value("position_y", _position.y).toFloat();
+    _position.z = set->value("position_z", _position.z).toFloat();
+
+    set->endGroup();
+=======
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
     position = _bodyBall[jointID].position;
     rotation = _bodyBall[jointID].rotation;
@@ -1258,25 +1274,27 @@ void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, gl
 void Avatar::writeAvatarDataToFile() {
     Application::getInstance()->setSetting("avatarPos", _position);
     Application::getInstance()->setSetting("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
+>>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 }
 
-void Avatar::readAvatarDataFromFile() {
-    glm::vec3 readPosition;
-    glm::vec3 readRotation;
-    
-    Application::getInstance()->getSetting("avatarPos", readPosition, glm::vec3(6.1f, 0, 1.4f));
-    Application::getInstance()->getSetting("avatarRotation", readRotation, glm::vec3(0, 0, 0));
-    
-    _bodyYaw = readRotation.x;
-    _bodyPitch = readRotation.y;
-    _bodyRoll = readRotation.z;
-    _position = readPosition;
+void Avatar::saveData(QSettings* set) {
+    set->beginGroup("Avatar");
+
+    set->setValue("bodyYaw",  _bodyYaw);
+    set->setValue("bodyPitch", _bodyPitch);
+    set->setValue("bodyRoll",  _bodyRoll);
+
+    set->setValue("position_x", _position.x);
+    set->setValue("position_y", _position.y);
+    set->setValue("position_z", _position.z);
+
+    set->endGroup();
 }
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
 
-    glBegin(GL_TRIANGLES);   
+    glBegin(GL_TRIANGLES);
         
     glm::vec3 axis = position2 - position1;
     float length = glm::length(axis);
