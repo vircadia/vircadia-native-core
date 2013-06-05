@@ -178,7 +178,7 @@ int main(int argc, const char* argv[]) {
                                 } else {
                                     // calculate the angle delivery for off-axis attenuation
                                     glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
-                                    * relativePosition;
+                                        * relativePosition;
                                     
                                     float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                                                        glm::normalize(rotatedListenerPosition));
@@ -294,7 +294,7 @@ int main(int argc, const char* argv[]) {
                     }
                 }
                 
-                memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
+                memcpy(clientPacket + sizeof(PACKET_HEADER_MIXED_AUDIO), clientSamples, sizeof(clientSamples));
                 agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, sizeof(clientPacket));
             }
         }
