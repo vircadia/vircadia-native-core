@@ -9,6 +9,7 @@
 #ifndef __hifi__VoxelNode__
 #define __hifi__VoxelNode__
 
+#include <SharedUtil.h>
 #include "AABox.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
@@ -78,6 +79,7 @@ public:
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
     bool hasChangedSince(double time) const { return (_lastChanged > time);  };
+    void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
