@@ -79,6 +79,7 @@ void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
     // cancel any current download
     if (_voxelReply != 0) {
         delete _voxelReply;
+        _voxelReply = 0;
     }
     
     killLocalVoxels();
@@ -196,17 +197,11 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
         return;
     }
 
-    // XXXBHG - I don't know why this can happen, but when I was testing this, I used a dropbox URL
-    // and it resulted in a case where the bytesTotal == bytesReceived, but the _voxelReply was NULL
-    // which needless to say caused crashes below. I've added this quick guard to protect against
-    // this case, but it probably should be investigated.
-    if (!_voxelReply) {
-        return;
-    }
-
     QByteArray entirety = _voxelReply->readAll();
+    _voxelReply->disconnect(this);
     _voxelReply->deleteLater();
     _voxelReply = 0;
+    
     _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), WANT_COLOR, NO_EXISTS_BITS);
     setupNewVoxelsForDrawing();
 }
@@ -214,6 +209,7 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
 void AvatarVoxelSystem::handleVoxelReplyError() {
     printLog("%s\n", _voxelReply->errorString().toAscii().constData());
     
+    _voxelReply->disconnect(this);
     _voxelReply->deleteLater();
     _voxelReply = 0;
 }
