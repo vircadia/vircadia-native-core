@@ -177,9 +177,9 @@ int main(int argc, const char* argv[]) {
                                     } else {
                                         // calculate the angle delivery
                                         glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
-                                        * relativePosition;
+                                            * relativePosition;
                                         
-                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, 1.0f),
+                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                                                            glm::normalize(rotatedListenerPosition));
                                         
                                         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
