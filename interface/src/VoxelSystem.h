@@ -16,7 +16,6 @@
 #include <AgentData.h>
 #include <VoxelTree.h>
 #include <ViewFrustum.h>
-#include "Avatar.h"
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
@@ -27,23 +26,21 @@ const int NUM_CHILDREN = 8;
 
 class VoxelSystem : public AgentData {
 public:
-    VoxelSystem();
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
-    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; };
-
-    void init();
+    virtual void init();
     void simulate(float deltaTime) { };
     void render(bool texture);
 
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
-    void setViewerAvatar(Avatar *newViewerAvatar) { _viewerAvatar = newViewerAvatar; };
-    void setCamera(Camera* newCamera) { _camera = newCamera; };
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
+    void writeToSVOFile(const char* filename, VoxelNode* node) const;
+    bool readFromSVOFile(const char* filename);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();
@@ -64,7 +61,7 @@ public:
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
     bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
 
-    void removeOutOfView();
+    virtual void removeOutOfView();
     bool hasViewChanged();
     bool isViewChanging();
     
@@ -83,6 +80,26 @@ public:
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
+
+    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
+    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+    
+protected:
+    float _treeScale; 
+    int _maxVoxels;      
+    VoxelTree* _tree;
+    
+    glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
+    
+    void setupNewVoxelsForDrawing();
+    
+    virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+                                    float voxelScale, const nodeColor& color);
+    virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
+    virtual void applyScaleAndBindProgram(bool texture);
+    virtual void removeScaleAndReleaseProgram(bool texture);
+
 private:
     // disallow copying of VoxelSystem objects
     VoxelSystem(const VoxelSystem&);
@@ -110,13 +127,12 @@ private:
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();
 
+    void updateVBOs();
+
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
 
-    Avatar* _viewerAvatar;
-    Camera* _camera;
-    VoxelTree* _tree;
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
     GLfloat* _writeVerticesArray;
@@ -124,8 +140,8 @@ private:
     bool* _writeVoxelDirtyArray;
     bool* _readVoxelDirtyArray;
     unsigned long _voxelsUpdated;
-    unsigned long _voxelsInWriteArrays;
     unsigned long _voxelsInReadArrays;
+    unsigned long _voxelsInWriteArrays;
     unsigned long _unusedArraySpace;
     
     bool _writeRenderFullVBO;
@@ -143,26 +159,21 @@ private:
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
-    ProgramObject* _perlinModulateProgram;
-    GLuint _permutationNormalTextureID;
-
-    ViewFrustum* _viewFrustum;
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();
 
-    void setupNewVoxelsForDrawing();
     void copyWrittenDataToReadArrays(bool fullVBOs);
+    
+    void updateFullVBOs(); // all voxels in the VBO
+    void updatePartialVBOs(); // multiple segments, only dirty voxels
 
     bool _voxelsDirty;
     
-public:
-    void updateVBOs();
-    void updateFullVBOs(); // all voxels in the VBO
-    void updatePartialVBOs(); // multiple segments, only dirty voxels
-    
+    static ProgramObject* _perlinModulateProgram;
+    static GLuint _permutationNormalTextureID;
 };
 
 #endif

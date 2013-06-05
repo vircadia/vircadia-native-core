@@ -17,6 +17,8 @@
 #include <limits>
 #include <signal.h>
 
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <AgentList.h>
 #include <Agent.h>
 #include <AgentTypes.h>
@@ -56,13 +58,6 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
-
-const float DISTANCE_SCALE = 2.5f;
-const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-const int PHASE_DELAY_AT_90 = 20;
-
-const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
@@ -158,9 +153,9 @@ int main(int argc, const char* argv[]) {
                         if (otherAgentBuffer->shouldBeAddedToMix()) {
                             
                             float bearingRelativeAngleToSource = 0.f;
-                            float attenuationCoefficient = 1.f;
+                            float attenuationCoefficient = 1.0f;
                             int numSamplesDelay = 0;
-                            float weakChannelAmplitudeRatio = 1.f;
+                            float weakChannelAmplitudeRatio = 1.0f;
                             
                             stk::FreeVerb* otherAgentFreeVerb = NULL;
                             
@@ -215,8 +210,50 @@ int main(int argc, const char* argv[]) {
                                     if (otherAgentPosition.z > agentPosition.z) {
                                         absoluteAngleToSource = 90 - triangleAngle;
                                     } else {
-                                        absoluteAngleToSource = 90 + triangleAngle;
+                                        // calculate the angle delivery
+                                        glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
+                                            * relativePosition;
+                                        
+                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                           glm::normalize(rotatedListenerPosition));
+                                        
+                                        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                                        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                                        
+                                        offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                            (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
                                     }
+                                    
+                                    const float DISTANCE_SCALE = 2.5f;
+                                    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                                    const float DISTANCE_LOG_BASE = 2.5f;
+                                    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+                                    
+                                    // calculate the distance coefficient using the distance to this agent
+                                    distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                               DISTANCE_SCALE_LOG +
+                                                               (logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                                    distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                                    
+                                    // off-axis attenuation and spatialization of audio
+                                    // not performed if listener is inside spherical injector
+                                    
+                                    // calculate the angle from the source to the listener
+                                    
+                                    // project the rotated source position vector onto the XZ plane
+                                    rotatedSourcePosition.y = 0.0f;
+                                    
+                                    // produce an oriented angle about the y-axis
+                                    bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                                      glm::normalize(rotatedSourcePosition),
+                                                                                      glm::vec3(0.0f, 1.0f, 0.0f));
+                                    
+                                    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                                    const int PHASE_DELAY_AT_90 = 20;
+                                    
+                                    float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
+                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 }
                                 
                                 bearingRelativeAngleToSource = absoluteAngleToSource - agentRingBuffer->getBearing();
@@ -270,11 +307,11 @@ int main(int argc, const char* argv[]) {
                             }
                             
                             int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                                : clientSamples;
-                            int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
                                 ? clientSamples
                                 : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
+                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                                : clientSamples;
                             
                             int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
                                 ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
@@ -347,7 +384,7 @@ int main(int argc, const char* argv[]) {
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                 
-                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getBearing())) {
+                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getOrientation().x)) {
                     // kill off this agent - temporary solution to mixer crash on mac sleep
                     avatarAgent->setAlive(false);
                 }

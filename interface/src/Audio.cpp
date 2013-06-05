@@ -116,7 +116,7 @@ int audioCallback (const void* inputBuffer,
         printLog("got output\n");
     }
     
-    if (inputLeft) {
+    if (agentList && inputLeft) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
@@ -133,7 +133,10 @@ int audioCallback (const void* inputBuffer,
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
-            int leadingBytes = 2 + (sizeof(float) * 4);
+            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+            
+            int leadingBytes = 1 + sizeof(headPosition) + sizeof(headOrientation) + sizeof(unsigned char);
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
@@ -143,29 +146,15 @@ int audioCallback (const void* inputBuffer,
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &interfaceAvatar->getHeadPosition(), sizeof(float) * 3);
-            currentPacketPtr += (sizeof(float) * 3);
+            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+            currentPacketPtr += (sizeof(headPosition));
             
             // tell the mixer not to add additional attenuation to our source
             *(currentPacketPtr++) = 255;
             
-            // memcpy the corrected render yaw
-            float correctedYaw = fmodf(-1 * interfaceAvatar->getAbsoluteHeadYaw(), 360);
-            
-            if (correctedYaw > 180) {
-                correctedYaw -= 360;
-            } else if (correctedYaw < -180) {
-                correctedYaw += 360;
-            }
-            
-            if (Application::getInstance()->shouldEchoAudio()) {
-                correctedYaw = correctedYaw > 0
-                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
-            }
-            
-            memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
-            currentPacketPtr += sizeof(float);
+            // memcpy our orientation
+            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+            currentPacketPtr += sizeof(headOrientation);
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);

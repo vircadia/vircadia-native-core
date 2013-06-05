@@ -40,7 +40,7 @@ bool pingUnknownAgentThreadStopFlag = false;
 AgentList* AgentList::_sharedInstance = NULL;
 
 AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPort) {
-    if (_sharedInstance == NULL) {
+    if (!_sharedInstance) {
         _sharedInstance = new AgentList(ownerType, socketListenPort);
     } else {
         printLog("AgentList createInstance called with existing instance.\n");
@@ -50,7 +50,7 @@ AgentList* AgentList::createInstance(char ownerType, unsigned int socketListenPo
 }
 
 AgentList* AgentList::getInstance() {
-    if (_sharedInstance == NULL) {
+    if (!_sharedInstance) {
         printLog("AgentList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
@@ -150,14 +150,12 @@ int AgentList::updateAgentWithData(sockaddr *senderAddress, unsigned char *packe
 int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes) {
     agent->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (agent->getActiveSocket() != NULL) {
+    if (agent->getActiveSocket()) {
         agent->recordBytesReceived(dataBytes);
     }
     
-    if (agent->getLinkedData() == NULL) {
-        if (linkedDataCreateCallback != NULL) {
-            linkedDataCreateCallback(agent);
-        }
+    if (!agent->getLinkedData() && linkedDataCreateCallback) {
+        linkedDataCreateCallback(agent);
     }
     
     return agent->getLinkedData()->parseData(packetData, dataBytes);
@@ -165,7 +163,7 @@ int AgentList::updateAgentWithData(Agent *agent, unsigned char *packetData, int 
 
 Agent* AgentList::agentWithAddress(sockaddr *senderAddress) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
-        if (agent->getActiveSocket() != NULL && socketMatch(agent->getActiveSocket(), senderAddress)) {
+        if (agent->getActiveSocket() && socketMatch(agent->getActiveSocket(), senderAddress)) {
             return &(*agent);
         }
     }
@@ -216,7 +214,7 @@ int AgentList::processDomainServerList(unsigned char *packetData, size_t dataByt
 Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket, char agentType, uint16_t agentId) {
     AgentList::iterator agent = end();
     
-    if (publicSocket != NULL) {
+    if (publicSocket) {
         for (agent = begin(); agent != end(); agent++) {
             if (agent->matches(publicSocket, localSocket, agentType)) {
                 // we already have this agent, stop checking
@@ -327,8 +325,7 @@ void *pingUnknownAgents(void *args) {
         for(AgentList::iterator agent = agentList->begin();
             agent != agentList->end();
             agent++) {
-            if (agent->getActiveSocket() == NULL
-                && (agent->getPublicSocket() != NULL && agent->getLocalSocket() != NULL)) {
+            if (!agent->getActiveSocket() && agent->getPublicSocket() && agent->getLocalSocket()) {
                 // ping both of the sockets for the agent so we can figure out
                 // which socket we can use
                 agentList->getAgentSocket()->send(agent->getPublicSocket(), &PACKET_HEADER_PING, 1);

@@ -54,6 +54,10 @@ int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
 
+int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
+void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
+
+
 void switchToResourcesParentIfRequired();
 
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
@@ -71,7 +75,7 @@ struct VoxelDetail {
 	unsigned char blue;
 };
 
-unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b );
+unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
 
@@ -88,4 +92,5 @@ class debug {
 public:                           
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; };
 };
+
 #endif /* defined(__hifi__SharedUtil__) */
