@@ -32,12 +32,6 @@ const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
 const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
-const int BUFFER_LENGTH_BYTES = 512;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-
-const int RING_BUFFER_FRAMES = 10;
-const int RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
-
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
@@ -47,12 +41,11 @@ const float FLANGE_BASE_RATE = 4;
 const float MAX_FLANGE_SAMPLE_WEIGHT = 0.50;
 const float MIN_FLANGE_INTENSITY = 0.25;
 
-const int SAMPLE_RATE = 22050;
 const float JITTER_BUFFER_LENGTH_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
                                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
-const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_RATE * 1000.0;
+const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
@@ -92,7 +85,7 @@ int audioCallback (const void* inputBuffer,
     int16_t* outputRight = ((int16_t**) outputBuffer)[1];
 
     // Add Procedural effects to input samples
-    parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
+    parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     // add output (@speakers) data to the scope
     parentAudio->_scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
@@ -120,15 +113,15 @@ int audioCallback (const void* inputBuffer,
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
             loudness += abs(inputLeft[i]);
         }
         
-        loudness /= BUFFER_LENGTH_SAMPLES;
+        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
         parentAudio->_lastInputLoudness = loudness;
         
         // add input (@microphone) data to the scope
-        parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
+        parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
@@ -172,11 +165,11 @@ int audioCallback (const void* inputBuffer,
     // if we've been reset, and there isn't any new packets yet
     // just play some silence
     
-    if (ringBuffer->getEndOfLastWrite() != NULL) {
+    if (ringBuffer->getEndOfLastWrite()) {
         
         if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            //printLog("Held back, buffer has %d of %d samples required.\n",
-            //         ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
+//            printLog("Held back, buffer has %d of %d samples required.\n",
+//                     ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
@@ -236,7 +229,7 @@ int audioCallback (const void* inputBuffer,
                             // we need to grab the flange sample from earlier in the buffer
                             flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
                             ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
-                            : ringBuffer->getNextOutput() + RING_BUFFER_SAMPLES - PACKET_LENGTH_SAMPLES;
+                            : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
                             
                             flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
                         }
@@ -260,7 +253,7 @@ int audioCallback (const void* inputBuffer,
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
-            if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
+            if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
                 ringBuffer->setNextOutput(ringBuffer->getBuffer());
             }
         }
@@ -290,7 +283,7 @@ void outputPortAudioError(PaError error) {
 
 Audio::Audio(Oscilloscope* scope) :
     _stream(NULL),
-    _ringBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES),
+    _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -315,7 +308,7 @@ Audio::Audio(Oscilloscope* scope) :
                                               2,
                                               (paInt16 | paNonInterleaved),
                                               SAMPLE_RATE,
-                                              BUFFER_LENGTH_SAMPLES,
+                                              BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                                               audioCallback,
                                               (void*) this));
     
@@ -324,8 +317,8 @@ Audio::Audio(Oscilloscope* scope) :
     
     _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES];
     _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES];
-    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
-    memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
+    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
+    memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
     
     gettimeofday(&_lastReceiveTime, NULL);
 }
@@ -347,13 +340,13 @@ void Audio::renderEchoCompare() {
     glDisable(GL_LINE_SMOOTH);
     glColor3f(1,1,1);
     glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
         glVertex2f(XPOS + i * XSCALE, YPOS + _echoInputSamples[i]/YSCALE);
     }
     glEnd();
     glColor3f(0,1,1);
     glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
         glVertex2f(XPOS + i * XSCALE, YPOS + _echoOutputSamples[i]/YSCALE);
     }
     glEnd();
@@ -468,7 +461,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < RING_BUFFER_FRAMES; i++) {
+        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;

@@ -27,7 +27,9 @@
 #include <Stk.h>
 #include <FreeVerb.h>
 
-#include "AudioRingBuffer.h"
+#include "InjectedAudioRingBuffer.h"
+#include "AvatarAudioRingBuffer.h"
+#include <AudioRingBuffer.h>
 #include "PacketHeaders.h"
 
 #ifdef _WIN32
@@ -43,16 +45,8 @@
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
-const float SAMPLE_RATE = 22050.0;
-
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
-
-const int BUFFER_LENGTH_BYTES = 1024;
-const int BUFFER_LENGTH_SAMPLES_PER_CHANNEL = (BUFFER_LENGTH_BYTES / 2) / sizeof(int16_t);
-
-const short RING_BUFFER_FRAMES = 10;
-const short RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
 
 const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
 
@@ -70,7 +64,11 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
 
 void attachNewBufferToAgent(Agent *newAgent) {
     if (!newAgent->getLinkedData()) {
-        newAgent->setLinkedData(new AudioRingBuffer(RING_BUFFER_SAMPLES, BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
+        if (newAgent->getType() == AGENT_TYPE_AVATAR) {
+            newAgent->setLinkedData(new AvatarAudioRingBuffer());
+        } else {
+            newAgent->setLinkedData(new InjectedAudioRingBuffer());
+        }
     }
 }
 
@@ -113,203 +111,176 @@ int main(int argc, const char* argv[]) {
     
     gettimeofday(&startTime, NULL);
     
-    while (true) {
-        // enumerate the agents, check if we can add audio from the agent to current mix
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
-            
-            if (agentBuffer->getEndOfLastWrite()) {
-                if (!agentBuffer->isStarted()
-                    && agentBuffer->diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + JITTER_BUFFER_SAMPLES) {
-                    printf("Held back buffer for agent with ID %d.\n", agent->getAgentID());
-                    agentBuffer->setShouldBeAddedToMix(false);
-                } else if (agentBuffer->diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    printf("Buffer from agent with ID %d starved.\n", agent->getAgentID());
-                    agentBuffer->setStarted(false);
-                    agentBuffer->setShouldBeAddedToMix(false);
-                } else {
-                    // good buffer, add this to the mix
-                    agentBuffer->setStarted(true);
-                    agentBuffer->setShouldBeAddedToMix(true);
-                }
-            }
-        }
-        
-        int numAgents = agentList->size();
-        SharedAudioFactors audioFactors[numAgents][numAgents];
-        memset(audioFactors, 0, sizeof(audioFactors));
-        
+    while (true) {        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getType() == AGENT_TYPE_AVATAR) {
-                AudioRingBuffer* agentRingBuffer = (AudioRingBuffer*) agent->getLinkedData();
+                AvatarAudioRingBuffer* agentRingBuffer = (AvatarAudioRingBuffer*) agent->getLinkedData();
                 
                 // zero out the client mix for this agent
                 memset(clientSamples, 0, sizeof(clientSamples));
                 
                 for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                    if (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
-                        AudioRingBuffer* otherAgentBuffer = (AudioRingBuffer*) otherAgent->getLinkedData();
+                    if ((otherAgent != agent
+                        && ((PositionalAudioRingBuffer*)otherAgent->getLinkedData())->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES))
+                        || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent())) {
                         
-                        if (otherAgentBuffer->shouldBeAddedToMix()) {
+                        PositionalAudioRingBuffer* otherAgentBuffer = (PositionalAudioRingBuffer*) otherAgent->getLinkedData();
+                        otherAgentBuffer->setWasAddedToMix(true);
+                        
+                        float bearingRelativeAngleToSource = 0.0f;
+                        float attenuationCoefficient = 1.0f;
+                        int numSamplesDelay = 0;
+                        float weakChannelAmplitudeRatio = 1.0f;
+                        
+                        stk::FreeVerb* otherAgentFreeVerb = NULL;
+                        
+                        if (otherAgent != agent) {
+                            glm::vec3 listenerPosition = agentRingBuffer->getPosition();
+                            glm::vec3 relativePosition = otherAgentBuffer->getPosition() - agentRingBuffer->getPosition();
+                            glm::quat inverseOrientation = glm::inverse(agentRingBuffer->getOrientation());
+                            glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                             
-                            float bearingRelativeAngleToSource = 0.f;
-                            float attenuationCoefficient = 1.0f;
-                            int numSamplesDelay = 0;
-                            float weakChannelAmplitudeRatio = 1.0f;
+                            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
+                            float radius = 0.0f;
                             
-                            stk::FreeVerb* otherAgentFreeVerb = NULL;
-                            
-                            if (otherAgent != agent) {
-                                glm::vec3 listenerPosition = agentRingBuffer->getPosition();
-                                glm::vec3 relativePosition = otherAgentBuffer->getPosition() - agentRingBuffer->getPosition();
-                                glm::quat inverseOrientation = glm::inverse(agentRingBuffer->getOrientation());
-                                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-                            
-                                float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-                            
-                                float distanceCoefficient = 1.0f;
-                                float offAxisCoefficient = 1.0f;
-
-                                if (otherAgentBuffer->getRadius() == 0
-                                    || (distanceSquareToSource > (otherAgentBuffer->getRadius()
-                                                                 * otherAgentBuffer->getRadius()))) {
-                                    // this is either not a spherical source, or the listener is outside the sphere
-                                    
-                                    if (otherAgentBuffer->getRadius() > 0) {
-                                        // this is a spherical source - the distance used for the coefficient
-                                        // needs to be the closest point on the boundary to the source
-                                        
-                                        // multiply the normalized vector between the center of the sphere
-                                        // and the position of the source by the radius to get the
-                                        // closest point on the boundary of the sphere to the source
-                                        
-                                        glm::vec3 closestPoint = glm::normalize(relativePosition) * otherAgentBuffer->getRadius();
-
-                                        // for the other calculations the agent position is the closest point on the sphere
-                                        rotatedSourcePosition = inverseOrientation * closestPoint;
-
-                                        // ovveride the distance to the agent with the distance to the point on the
-                                        // boundary of the sphere
-                                        distanceSquareToSource = glm::distance2(listenerPosition, -closestPoint);
-                                        
-                                    } else {
-                                        // calculate the angle delivery
-                                        glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
-                                            * relativePosition;
-                                        
-                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                           glm::normalize(rotatedListenerPosition));
-                                        
-                                        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                                        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-                                        
-                                        offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                                            (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
-                                    }
-                                    
-                                    const float DISTANCE_SCALE = 2.5f;
-                                    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-                                    const float DISTANCE_LOG_BASE = 2.5f;
-                                    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
-                                    
-                                    // calculate the distance coefficient using the distance to this agent
-                                    distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                                               DISTANCE_SCALE_LOG +
-                                                               (logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-                                    distanceCoefficient = std::min(1.0f, distanceCoefficient);
-                                    
-                                    // off-axis attenuation and spatialization of audio
-                                    // not performed if listener is inside spherical injector
-                                    
-                                    // calculate the angle from the source to the listener
-                                    
-                                    // project the rotated source position vector onto the XZ plane
-                                    rotatedSourcePosition.y = 0.0f;
-                                    
-                                    // produce an oriented angle about the y-axis
-                                    bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                                      glm::normalize(rotatedSourcePosition),
-                                                                                      glm::vec3(0.0f, 1.0f, 0.0f));
-                                    
-                                    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-                                    const int PHASE_DELAY_AT_90 = 20;
-                                    
-                                    float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
-                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-                                }
-                                
-                                attenuationCoefficient = distanceCoefficient
-                                    * otherAgentBuffer->getAttenuationRatio()
-                                    * offAxisCoefficient;
-                                
-                                bearingRelativeAngleToSource *= (M_PI / 180);
-                                
-                                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-                                
-                                FreeVerbAgentMap& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
-                                FreeVerbAgentMap::iterator freeVerbIterator = agentFreeVerbs.find(otherAgent->getAgentID());
-                                
-                                if (freeVerbIterator == agentFreeVerbs.end()) {
-                                    // setup the freeVerb effect for this source for this client
-                                    
-                                    printf("Creating a new FV object\n");
-                                    
-                                    otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()] = new stk::FreeVerb;
-                                    
-                                    otherAgentFreeVerb->setDamping(DISTANCE_REVERB_DAMPING);
-                                    otherAgentFreeVerb->setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
-                                    otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
-                                    
-                                } else {
-                                    otherAgentFreeVerb = freeVerbIterator->second;
-                                }
-                                
-                                otherAgentFreeVerb->setEffectMix(audioFactors[lowAgentIndex][highAgentIndex].effectMix);
+                            if (otherAgent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
+                                radius = ((InjectedAudioRingBuffer*) otherAgentBuffer)->getRadius();
                             }
                             
-                            int16_t* goodChannel = bearingRelativeAngleToSource > 0.0f
-                                ? clientSamples
-                                : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                            int16_t* delayedChannel = bearingRelativeAngleToSource > 0.0f
-                                ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                                : clientSamples;
-                            
-                            int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                                ? otherAgentBuffer->getBuffer() + RING_BUFFER_SAMPLES - numSamplesDelay
-                                : otherAgentBuffer->getNextOutput() - numSamplesDelay;
-                            
-                            
-                            for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                                if (s < numSamplesDelay) {
-                                    // pull the earlier sample for the delayed channel
-                                    int earlierSample = delaySamplePointer[s]
-                                                        * attenuationCoefficient
-                                                        * weakChannelAmplitudeRatio;
+                            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
+                                // this is either not a spherical source, or the listener is outside the sphere
+                                
+                                if (radius > 0) {
+                                    // this is a spherical source - the distance used for the coefficient
+                                    // needs to be the closest point on the boundary to the source
                                     
-                                    // apply the STK FreeVerb effect
-                                    if (otherAgentFreeVerb) {
-                                        earlierSample = otherAgentFreeVerb->tick(earlierSample);
-                                    }
+                                    // multiply the normalized vector between the center of the sphere
+                                    // and the position of the source by the radius to get the
+                                    // closest point on the boundary of the sphere to the source
                                     
-                                    plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                                    glm::vec3 closestPoint = glm::normalize(relativePosition) * radius;
+                                    
+                                    // for the other calculations the agent position is the closest point on the sphere
+                                    rotatedSourcePosition = inverseOrientation * closestPoint;
+                                    
+                                    // ovveride the distance to the agent with the distance to the point on the
+                                    // boundary of the sphere
+                                    distanceSquareToSource = glm::distance2(listenerPosition, -closestPoint);
+                                    
+                                } else {
+                                    // calculate the angle delivery for off-axis attenuation
+                                    glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
+                                    * relativePosition;
+                                    
+                                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                       glm::normalize(rotatedListenerPosition));
+                                    
+                                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                                    
+                                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
+                                    
+                                    // multiply the current attenuation coefficient by the calculated off axis coefficient
+                                    attenuationCoefficient *= offAxisCoefficient;
                                 }
                                 
-                                int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
+                                const float DISTANCE_SCALE = 2.5f;
+                                const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                                const float DISTANCE_LOG_BASE = 2.5f;
+                                const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+                                
+                                // calculate the distance coefficient using the distance to this agent
+                                float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                           DISTANCE_SCALE_LOG +
+                                                           (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                                distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                                
+                                // multiply the current attenuation coefficient by the distance coefficient
+                                attenuationCoefficient *= distanceCoefficient;
+                                
+                                // project the rotated source position vector onto the XZ plane
+                                rotatedSourcePosition.y = 0.0f;
+                                
+                                // produce an oriented angle about the y-axis
+                                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                                  glm::normalize(rotatedSourcePosition),
+                                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                                
+                                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                                const int PHASE_DELAY_AT_90 = 20;
+                                
+                                // figure out the number of samples of delay and the ratio of the amplitude
+                                // in the weak channel for audio spatialization
+                                float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
+                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                            }
+                            
+                            FreeVerbAgentMap& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
+                            FreeVerbAgentMap::iterator freeVerbIterator = agentFreeVerbs.find(otherAgent->getAgentID());
+                            
+                            if (freeVerbIterator == agentFreeVerbs.end()) {
+                                // setup the freeVerb effect for this source for this client
+                                otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()] = new stk::FreeVerb;
+                                
+                                otherAgentFreeVerb->setDamping(DISTANCE_REVERB_DAMPING);
+                                otherAgentFreeVerb->setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
+                                otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
+                                
+                            } else {
+                                otherAgentFreeVerb = freeVerbIterator->second;
+                            }
+                            
+                            const float DISTANCE_REVERB_LOG_REMAINDER = 0.32f;
+                            const float DISTANCE_REVERB_MAX_WETNESS = 1.0f;
+                            
+                            float effectMix = powf(2.0f, (0.5f * logf(distanceSquareToSource)
+                                                          / logf(2.0f)) - DISTANCE_REVERB_LOG_REMAINDER)
+                                                   * DISTANCE_REVERB_MAX_WETNESS / 64.0f;;
+                            
+                            otherAgentFreeVerb->setEffectMix(effectMix);
+                        }
+                        
+                        int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
+                            ? clientSamples
+                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                        int16_t* delayedChannel = (bearingRelativeAngleToSource > 0.0f)
+                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                            : clientSamples;
+                        
+                        int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
+                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
+                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                        
+                        
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                            if (s < numSamplesDelay) {
+                                // pull the earlier sample for the delayed channel
+                                int earlierSample = delaySamplePointer[s]
+                                * attenuationCoefficient
+                                * weakChannelAmplitudeRatio;
                                 
                                 // apply the STK FreeVerb effect
                                 if (otherAgentFreeVerb) {
-                                    currentSample = otherAgentFreeVerb->tick(currentSample);
+                                    earlierSample = otherAgentFreeVerb->tick(earlierSample);
                                 }
                                 
-                                plateauAdditionOfSamples(goodChannel[s], currentSample);
-                                
-                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {                                    
-                                    plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
-                                                             currentSample * weakChannelAmplitudeRatio);
-                                }
+                                plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                            }
+                            
+                            int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
+                            
+                            // apply the STK FreeVerb effect
+                            if (otherAgentFreeVerb) {
+                                currentSample = otherAgentFreeVerb->tick(currentSample);
+                            }
+                            
+                            plateauAdditionOfSamples(goodChannel[s], currentSample);
+                            
+                            if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                                plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
+                                                         currentSample * weakChannelAmplitudeRatio);
                             }
                         }
                     }
@@ -322,15 +293,15 @@ int main(int argc, const char* argv[]) {
         
         // push forward the next output pointers for any audio buffers we used
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            AudioRingBuffer* agentBuffer = (AudioRingBuffer*) agent->getLinkedData();
-            if (agentBuffer && agentBuffer->shouldBeAddedToMix()) {
+            PositionalAudioRingBuffer* agentBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
+            if (agentBuffer && agentBuffer->wasAddedToMix()) {
                 agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
-                if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
+                if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
                     agentBuffer->setNextOutput(agentBuffer->getBuffer());
                 }
                 
-                agentBuffer->setShouldBeAddedToMix(false);
+                agentBuffer->setWasAddedToMix(false);
             }
         }
         
@@ -348,7 +319,7 @@ int main(int argc, const char* argv[]) {
                 
                 agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
                 
-                if (std::isnan(((AudioRingBuffer *)avatarAgent->getLinkedData())->getOrientation().x)) {
+                if (std::isnan(((PositionalAudioRingBuffer *)avatarAgent->getLinkedData())->getOrientation().x)) {
                     // kill off this agent - temporary solution to mixer crash on mac sleep
                     avatarAgent->setAlive(false);
                 }
@@ -358,7 +329,7 @@ int main(int argc, const char* argv[]) {
                 for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                     if (agent->getLinkedData()) {
                        
-                        AudioRingBuffer* ringBuffer = (AudioRingBuffer*) agent->getLinkedData();
+                        InjectedAudioRingBuffer* ringBuffer = (InjectedAudioRingBuffer*) agent->getLinkedData();
                         if (memcmp(ringBuffer->getStreamIdentifier(),
                                    packetData + 1,
                                    STREAM_IDENTIFIER_NUM_BYTES) == 0) {
