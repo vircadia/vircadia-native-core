@@ -142,9 +142,6 @@ int audioCallback (const void* inputBuffer,
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
             currentPacketPtr += (sizeof(headPosition));
             
-            // tell the mixer not to add additional attenuation to our source
-            *(currentPacketPtr++) = 255;
-            
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);

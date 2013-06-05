@@ -17,6 +17,9 @@ class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     PositionalAudioRingBuffer();
     
+    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parsePositionalData(unsigned char* sourceBuffer, int numBytes);
+    
     bool shouldBeAddedToMix(int numJitterBufferSamples);
     
     bool wasAddedToMix() const { return _wasAddedToMix; }

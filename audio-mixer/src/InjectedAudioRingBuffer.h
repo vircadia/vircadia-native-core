@@ -17,6 +17,8 @@ class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     InjectedAudioRingBuffer();
     
+    int parseData(unsigned char* sourceBuffer, int numBytes);
+    
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
     const unsigned char* getStreamIdentifier() const { return _streamIdentifier; }
