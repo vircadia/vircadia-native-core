@@ -88,7 +88,7 @@ void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
         return;
     }
     _voxelReply = Application::getInstance()->getNetworkAccessManager()->get(QNetworkRequest(url));
-    connect(_voxelReply, SIGNAL(readyRead()), SLOT(readVoxelDataFromReply()));
+    connect(_voxelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleVoxelDownloadProgress(qint64,qint64)));
     connect(_voxelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleVoxelReplyError()));
 }
 
@@ -181,9 +181,9 @@ void AvatarVoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     _skinProgram->disableAttributeArray(_boneWeightsLocation);
 }
 
-void AvatarVoxelSystem::readVoxelDataFromReply() {
+void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     // for now, just wait until we have the full business
-    if (!_voxelReply->isFinished()) {
+    if (bytesReceived < bytesTotal) {
         return;
     }
     QByteArray entirety = _voxelReply->readAll();
