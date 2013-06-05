@@ -10,6 +10,7 @@
 #define __interface__AvatarVoxelSystem__
 
 #include <QObject>
+#include <QUrl>
 
 #include "VoxelSystem.h"
 
@@ -17,7 +18,6 @@ const int BONE_ELEMENTS_PER_VERTEX = 4;
 typedef GLubyte BoneIndices[BONE_ELEMENTS_PER_VERTEX];
 
 class QNetworkReply;
-class QUrl;
 
 class Avatar;
 
@@ -33,7 +33,8 @@ public:
 
     virtual void removeOutOfView();
     
-    void loadVoxelsFromURL(const QUrl& url);
+    Q_INVOKABLE void setVoxelURL(const QUrl& url);
+    const QUrl& getVoxelURL() const { return _voxelURL; }
     
 protected:
     
@@ -54,6 +55,8 @@ private:
     void computeBoneIndicesAndWeights(const glm::vec3& vertex, BoneIndices& indices, glm::vec4& weights) const;
     
     Avatar* _avatar;
+    
+    QUrl _voxelURL;
     
     GLubyte* _readBoneIndicesArray;
     GLfloat* _readBoneWeightsArray;

@@ -106,6 +106,17 @@ int main(int argc, const char* argv[]) {
                     agentList->getAgentSocket()->send(agentAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                     
                     break;
+                case PACKET_HEADER_AVATAR_VOXEL_URL:
+                    // grab the agent ID from the packet
+                    unpackAgentId(packetData + 1, &agentID);
+                    
+                    // let everyone else know about the update
+                    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+                        if (agent->getActiveSocket() && agent->getAgentID() != agentID) {
+                            agentList->getAgentSocket()->send(agent->getActiveSocket(), packetData, receivedBytes);
+                        }
+                    }
+                    break;
                 case PACKET_HEADER_DOMAIN:
                     // ignore the DS packet, for now agents are added only when they communicate directly with us
                     break;
