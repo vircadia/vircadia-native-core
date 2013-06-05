@@ -129,7 +129,7 @@ int audioCallback (const void* inputBuffer,
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
             
-            int leadingBytes = 1 + sizeof(headPosition) + sizeof(headOrientation) + sizeof(unsigned char);
+            int leadingBytes = 1 + sizeof(headPosition) + sizeof(headOrientation);
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
