@@ -292,7 +292,6 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    QSettings* _settings;   // Contain Menu settings and Avatar data
     bool _autosave;        // True if the autosave is on.
 };
 
