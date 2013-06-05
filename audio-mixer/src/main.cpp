@@ -129,6 +129,8 @@ int main(int argc, const char* argv[]) {
                 // zero out the client mix for this agent
                 memset(clientSamples, 0, sizeof(clientSamples));
                 
+                const int PHASE_DELAY_AT_90 = 20;
+                
                 for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
                     if (((PositionalAudioRingBuffer*) otherAgent->getLinkedData())->willBeAddedToMix()
                         && (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent()))) {
@@ -143,10 +145,10 @@ int main(int argc, const char* argv[]) {
                         stk::FreeVerb* otherAgentFreeVerb = NULL;
                         
                         if (otherAgent != agent) {
+                            
                             glm::vec3 listenerPosition = agentRingBuffer->getPosition();
                             glm::vec3 relativePosition = otherAgentBuffer->getPosition() - agentRingBuffer->getPosition();
                             glm::quat inverseOrientation = glm::inverse(agentRingBuffer->getOrientation());
-                            glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                             
                             float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
                             float radius = 0.0f;
@@ -161,19 +163,10 @@ int main(int argc, const char* argv[]) {
                                 if (radius > 0) {
                                     // this is a spherical source - the distance used for the coefficient
                                     // needs to be the closest point on the boundary to the source
-                                    
-                                    // multiply the normalized vector between the center of the sphere
-                                    // and the position of the source by the radius to get the
-                                    // closest point on the boundary of the sphere to the source
-                                    
-                                    glm::vec3 closestPoint = glm::normalize(relativePosition) * radius;
-                                    
-                                    // for the other calculations the agent position is the closest point on the sphere
-                                    rotatedSourcePosition = inverseOrientation * closestPoint;
-                                    
+                                                             
                                     // ovveride the distance to the agent with the distance to the point on the
                                     // boundary of the sphere
-                                    distanceSquareToSource = glm::distance2(listenerPosition, -closestPoint);
+                                    distanceSquareToSource -= (radius * radius);
                                     
                                 } else {
                                     // calculate the angle delivery for off-axis attenuation
@@ -192,6 +185,8 @@ int main(int argc, const char* argv[]) {
                                     // multiply the current attenuation coefficient by the calculated off axis coefficient
                                     attenuationCoefficient *= offAxisCoefficient;
                                 }
+                                
+                                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                                 
                                 const float DISTANCE_SCALE = 2.5f;
                                 const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
@@ -216,7 +211,6 @@ int main(int argc, const char* argv[]) {
                                                                                   glm::vec3(0.0f, 1.0f, 0.0f));
                                 
                                 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-                                const int PHASE_DELAY_AT_90 = 20;
                                 
                                 // figure out the number of samples of delay and the ratio of the amplitude
                                 // in the weak channel for audio spatialization
@@ -245,7 +239,7 @@ int main(int argc, const char* argv[]) {
                             
                             float effectMix = powf(2.0f, (0.5f * logf(distanceSquareToSource)
                                                           / logf(2.0f)) - DISTANCE_REVERB_LOG_REMAINDER)
-                                                   * DISTANCE_REVERB_MAX_WETNESS / 64.0f;;
+                                                   * DISTANCE_REVERB_MAX_WETNESS / 64.0f;
                             
                             otherAgentFreeVerb->setEffectMix(effectMix);
                         }
@@ -266,23 +260,27 @@ int main(int argc, const char* argv[]) {
                             if (s < numSamplesDelay) {
                                 // pull the earlier sample for the delayed channel
                                 int earlierSample = delaySamplePointer[s]
-                                * attenuationCoefficient
-                                * weakChannelAmplitudeRatio;
+                                    * attenuationCoefficient
+                                    * weakChannelAmplitudeRatio;
                                 
-                                // apply the STK FreeVerb effect
-                                if (otherAgentFreeVerb) {
-                                    earlierSample = otherAgentFreeVerb->tick(earlierSample);
-                                }
                                 
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                             }
                             
-                            int16_t currentSample = (otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient);
+                            int16_t currentSample = otherAgentBuffer->getNextOutput()[s];
                             
                             // apply the STK FreeVerb effect
                             if (otherAgentFreeVerb) {
                                 currentSample = otherAgentFreeVerb->tick(currentSample);
+                                
+                                if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
+                                    // there is the possiblity this will be re-used as a delayed sample
+                                    // so store the reverbed sample so that is what will be pulled
+                                    otherAgentBuffer->getNextOutput()[s] = currentSample;
+                                }
                             }
+                            
+                            currentSample *= attenuationCoefficient;
                             
                             plateauAdditionOfSamples(goodChannel[s], currentSample);
                             
