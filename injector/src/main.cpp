@@ -27,6 +27,13 @@ const int AVATAR_MIXER_DATA_SEND_INTERVAL_MSECS = 15;
 
 const int DEFAULT_INJECTOR_VOLUME = 0xFF;
 
+enum {
+    INJECTOR_POSITION_X,
+    INJECTOR_POSITION_Y,
+    INJECTOR_POSITION_Z,
+    INJECTOR_YAW
+};
+
 // Command line parameter defaults
 bool loopAudio = true;
 float sleepIntervalMin = 1.00;
@@ -166,8 +173,10 @@ int main(int argc, char* argv[]) {
             // start the agent list thread that will kill off agents when they stop talking
             agentList->startSilentAgentRemovalThread();
             
-            injector.setPosition(glm::vec3(::floatArguments[0], ::floatArguments[1], ::floatArguments[2]));
-            injector.setOrientation(glm::quat(glm::vec3(0.0f, *(::floatArguments + 3), 0.0f)));
+            injector.setPosition(glm::vec3(::floatArguments[INJECTOR_POSITION_X],
+                                           ::floatArguments[INJECTOR_POSITION_Y],
+                                           ::floatArguments[INJECTOR_POSITION_Z]));
+            injector.setOrientation(glm::quat(glm::vec3(0.0f, ::floatArguments[INJECTOR_YAW], 0.0f)));
             injector.setVolume(::volume);
             
             if (::radius > 0) {
