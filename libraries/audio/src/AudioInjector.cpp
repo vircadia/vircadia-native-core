@@ -18,8 +18,9 @@
 const int MAX_INJECTOR_VOLUME = 0xFF;
 
 AudioInjector::AudioInjector(const char* filename) :
-    _position(),
-    _bearing(0),
+    _position(0.0f, 0.0f, 0.0f),
+    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
@@ -47,8 +48,9 @@ AudioInjector::AudioInjector(const char* filename) :
 
 AudioInjector::AudioInjector(int maxNumSamples) :
     _numTotalSamples(maxNumSamples),
-    _position(),
-    _bearing(0),
+    _position(0.0f, 0.0f, 0.0f),
+    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
@@ -70,12 +72,20 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         timeval startTime;
         
         // calculate the number of bytes required for additional data
-        int leadingBytes = sizeof(PACKET_HEADER) + sizeof(_streamIdentifier)
-            + sizeof(_position) + sizeof(_bearing) + sizeof(_volume);
+        int leadingBytes = sizeof(PACKET_HEADER) + sizeof(INJECT_AUDIO_AT_POINT_COMMAND) + sizeof(_streamIdentifier)
+            + sizeof(_position) + sizeof(_orientation) + sizeof(_volume);
+        
+        if (_radius > 0) {
+            // we'll need 4 extra bytes if the cube side length is being sent as well
+            leadingBytes += sizeof(_radius);
+        }
+        
         unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-        unsigned char *currentPacketPtr = dataPacket + 1;
+        // add the correct command for point source or cube of sound
+        dataPacket[1] = (_radius > 0) ? INJECT_AUDIO_AT_CUBE_COMMAND : INJECT_AUDIO_AT_POINT_COMMAND;
+        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_HEADER) + sizeof(INJECT_AUDIO_AT_POINT_COMMAND);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
@@ -84,11 +94,18 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);
         
+        if (_radius > 0) {
+            // if we have a cube half height we need to send it here
+            // this tells the mixer how much volume the injected audio will occupy
+            memcpy(currentPacketPtr, &_radius, sizeof(_radius));
+            currentPacketPtr += sizeof(_radius);
+        }
+        
         *currentPacketPtr = _volume;
         currentPacketPtr++;
         
-        memcpy(currentPacketPtr, &_bearing, sizeof(_bearing));
-        currentPacketPtr += sizeof(_bearing);
+        memcpy(currentPacketPtr, &_orientation, sizeof(_orientation));
+        currentPacketPtr += sizeof(_orientation);
         
         gettimeofday(&startTime, NULL);
         int nextFrame = 0;
