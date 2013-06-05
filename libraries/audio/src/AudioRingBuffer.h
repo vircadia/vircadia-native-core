@@ -13,6 +13,7 @@
 #include <map>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <Stk.h>
 #include <FreeVerb.h>
 
