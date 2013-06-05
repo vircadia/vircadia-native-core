@@ -154,7 +154,9 @@ int main(int argc, const char* argv[]) {
                             float radius = 0.0f;
                             
                             if (otherAgent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
-                                radius = ((InjectedAudioRingBuffer*) otherAgentBuffer)->getRadius();
+                                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) otherAgentBuffer;
+                                radius = injectedBuffer->getRadius();
+                                attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
                             }
                             
                             if (radius == 0 || (distanceSquareToSource > radius * radius)) {
@@ -255,10 +257,6 @@ int main(int argc, const char* argv[]) {
                             otherAgentFreeVerb->setEffectMix(effectMix);
                         }
                         
-                        if (otherAgent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
-                            attenuationCoefficient *= ((InjectedAudioRingBuffer*) otherAgentBuffer)->getAttenuationRatio();
-                        }
-                        
                         int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
                             ? clientSamples
                             : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
@@ -277,7 +275,6 @@ int main(int argc, const char* argv[]) {
                                 int earlierSample = delaySamplePointer[s]
                                     * attenuationCoefficient
                                     * weakChannelAmplitudeRatio;
-                                
                                 
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                             }
