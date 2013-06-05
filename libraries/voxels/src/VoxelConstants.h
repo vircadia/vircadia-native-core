@@ -15,6 +15,11 @@
 #include <limits.h>
 #include <OctalCode.h>
 
+// this is where the coordinate system is represented
+const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);
+const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
+const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
+
 const int TREE_SCALE = 128;
 
 const int NUMBER_OF_CHILDREN = 8;

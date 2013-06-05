@@ -205,9 +205,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 glm::vec3 AvatarData::calculateCameraDirection() const {
-    const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f, 1.0f);
-    glm::mat4 rotationMatrix = glm::mat4_cast(_cameraOrientation);
-    glm::vec3 direction   = glm::vec3(glm::vec4(IDENTITY_FRONT, 0.0f) * rotationMatrix);
+    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
     return direction;
 }
 

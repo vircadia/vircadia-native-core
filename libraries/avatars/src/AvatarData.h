@@ -27,11 +27,6 @@ const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
 
-// this is where the coordinate system is represented
-const glm::vec3 AVATAR_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-const glm::vec3 AVATAR_UP    = glm::vec3(0.0f, 1.0f, 0.0f);
-const glm::vec3 AVATAR_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
-
 enum KeyState
 {
     NO_KEY_DOWN = 0,

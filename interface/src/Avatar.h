@@ -106,9 +106,9 @@ public:
     bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
     const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
-    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * AVATAR_RIGHT; }
-    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * AVATAR_UP; }
-    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * AVATAR_FRONT; }
+    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
+    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
