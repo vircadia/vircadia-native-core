@@ -13,28 +13,37 @@
 #include <glm/gtx/transform.hpp>
 
 #include "ViewFrustum.h"
+#include "VoxelConstants.h"
 #include "SharedUtil.h"
 #include "Log.h"
 
 using namespace std;
 
 ViewFrustum::ViewFrustum() :
-    _position(glm::vec3(0,0,0)),
-    _direction(glm::vec3(0,0,0)),
-    _up(glm::vec3(0,0,0)),
-    _right(glm::vec3(0,0,0)),
+    _position(0,0,0),
+    _orientation(),
+    _direction(0,0,0),
+    _up(0,0,0),
+    _right(0,0,0),
     _fieldOfView(0.0),
     _aspectRatio(1.0),
     _nearClip(0.1),
     _farClip(500.0),
-    _farTopLeft(glm::vec3(0,0,0)),
-    _farTopRight(glm::vec3(0,0,0)),
-    _farBottomLeft(glm::vec3(0,0,0)),
-    _farBottomRight(glm::vec3(0,0,0)),
-    _nearTopLeft(glm::vec3(0,0,0)),
-    _nearTopRight(glm::vec3(0,0,0)),
-    _nearBottomLeft(glm::vec3(0,0,0)),
-    _nearBottomRight(glm::vec3(0,0,0)) { }
+    _farTopLeft(0,0,0),
+    _farTopRight(0,0,0),
+    _farBottomLeft(0,0,0),
+    _farBottomRight(0,0,0),
+    _nearTopLeft(0,0,0),
+    _nearTopRight(0,0,0),
+    _nearBottomLeft(0,0,0),
+    _nearBottomRight(0,0,0) { }
+    
+void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
+    _orientation = orientationAsQuaternion;
+    _right       = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
+    _up          = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
+    _direction   = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
+}
 
 /////////////////////////////////////////////////////////////////////////////////////
 // ViewFrustum::calculateViewFrustum()

@@ -108,9 +108,9 @@ public:
     bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
     const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
-    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * AVATAR_RIGHT; }
-    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * AVATAR_UP; }
-    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * AVATAR_FRONT; }
+    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
+    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -131,18 +131,16 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     
-<<<<<<< HEAD
     // get/set avatar data
     void saveData(QSettings* set);
     void loadData(QSettings* set);
-=======
+
     //  Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
     
     //read/write avatar data
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 
 private:
     // privatize copy constructor and assignment operator to avoid copying

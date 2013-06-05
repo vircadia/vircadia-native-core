@@ -162,8 +162,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0),
-        _settings("HighFidelity", "Interface")
+        _bytesCount(0)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -975,7 +974,7 @@ void Application::terminate() {
     
     if (_autosave) {
         saveSettings();
-        _settings.sync();
+        _settings->sync();
     }
 
     if (_enableNetworkThread) {
@@ -1121,7 +1120,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 void Application::addVoxelInFrontOfAvatar() {
     VoxelDetail detail;
     
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.getCameraDirection()) * (1.0f / TREE_SCALE);
+    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.calculateCameraDirection()) * (1.0f / TREE_SCALE);
     detail.s = _mouseVoxelScale;
     
     detail.x = detail.s * floor(position.x / detail.s);
@@ -1166,8 +1165,6 @@ void Application::chooseVoxelPaintColor() {
     _window->activateWindow();
 }
 
-<<<<<<< HEAD
-=======
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
@@ -1331,7 +1328,6 @@ void Application::pasteVoxels() {
     }
 }
 
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 void Application::initMenu() {
     QMenuBar* menuBar = new QMenuBar();
     _window->setMenuBar(menuBar);
@@ -1450,7 +1446,6 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
-<<<<<<< HEAD
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave", this, SLOT(setAutosave(bool))))->setCheckable(true);
@@ -1459,11 +1454,9 @@ void Application::initMenu() {
     settingsMenu->addAction("Save settings", this, SLOT(saveSettings()));
     settingsMenu->addAction("Import settings", this, SLOT(importSettings()));
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
-=======
     
     _networkAccessManager = new QNetworkAccessManager(this);
     _settings = new QSettings("High Fidelity", "Interface", this);
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -1573,9 +1566,7 @@ void Application::updateAvatar(float deltaTime) {
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
     _myAvatar.setCameraPosition(_viewFrustum.getPosition());
-    _myAvatar.setCameraDirection(_viewFrustum.getDirection());
-    _myAvatar.setCameraUp(_viewFrustum.getUp());
-    _myAvatar.setCameraRight(_viewFrustum.getRight());
+    _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
@@ -1639,13 +1630,10 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float farClip     = camera.getFarClip();
 
     glm::quat rotation = camera.getRotation();
-    glm::vec3 direction = rotation * AVATAR_FRONT;
-    glm::vec3 up = rotation * AVATAR_UP;
-    glm::vec3 right = rotation * AVATAR_RIGHT;
 
     // Set the viewFrustum up with the correct position and orientation of the camera    
     viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(direction,up,right);
+    viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setFieldOfView(fov);
