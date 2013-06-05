@@ -100,6 +100,7 @@ public:
     void setOrientation            (const glm::quat& orientation);
 
     //getters
+    bool             isInitialized             ()                const { return _initialized;}
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    
@@ -156,6 +157,7 @@ private:
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
+    bool        _initialized;
     Head        _head;
     Skeleton    _skeleton;
     bool        _ballSpringsInitialized;

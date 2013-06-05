@@ -62,6 +62,7 @@ float chatMessageHeight = 0.20;
 
 Avatar::Avatar(Agent* owningAgent) :
     AvatarData(owningAgent),
+    _initialized(false),
     _head(this),
     _ballSpringsInitialized(false),
     _TEST_bigSphereRadius(0.5f),
@@ -266,6 +267,7 @@ Avatar::~Avatar() {
 
 void Avatar::init() {
     _voxels.init();
+    _initialized = true;
 }
 
 void Avatar::reset() {

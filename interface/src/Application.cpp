@@ -1083,6 +1083,9 @@ void Application::idle() {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
                 avatar->simulate(deltaTime, NULL);
                 avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
             }
@@ -2061,6 +2064,9 @@ void Application::displaySide(Camera& whichCamera) {
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *avatar = (Avatar *)agent->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
                 avatar->render(false);
             }
         }
@@ -2534,9 +2540,7 @@ QAction* Application::checkedVoxelModeAction() const {
 
 void Application::attachNewHeadToAgent(Agent* newAgent) {
     if (newAgent->getLinkedData() == NULL) {
-        Avatar* newAvatar = new Avatar(newAgent);
-        newAvatar->init();
-        newAgent->setLinkedData(newAvatar);
+        newAgent->setLinkedData(new Avatar(newAgent));
     }
 }
 
