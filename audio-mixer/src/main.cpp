@@ -99,7 +99,7 @@ int main(int argc, const char* argv[]) {
     int nextFrame = 0;
     timeval startTime;
     
-    unsigned char clientPacket[BUFFER_LENGTH_BYTES + 1];
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + sizeof(PACKET_HEADER_MIXED_AUDIO)];
     clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
@@ -295,7 +295,7 @@ int main(int argc, const char* argv[]) {
                 }
                 
                 memcpy(clientPacket + 1, clientSamples, sizeof(clientSamples));
-                agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, BUFFER_LENGTH_BYTES + 1);
+                agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, sizeof(clientPacket));
             }
         }
         

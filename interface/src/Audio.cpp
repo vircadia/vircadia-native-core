@@ -133,7 +133,7 @@ int audioCallback (const void* inputBuffer,
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-            unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+            unsigned char dataPacket[BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes];
             
             dataPacket[0] = PACKET_HEADER_MICROPHONE_AUDIO;
             unsigned char *currentPacketPtr = dataPacket + 1;
@@ -147,9 +147,11 @@ int audioCallback (const void* inputBuffer,
             currentPacketPtr += sizeof(headOrientation);
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
+            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
             
-            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(),
+                                              dataPacket,
+                                              BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
         
     }
@@ -312,8 +314,8 @@ Audio::Audio(Oscilloscope* scope) :
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
     
-    _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES];
-    _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES];
+    _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
+    _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
     memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
     memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
     
