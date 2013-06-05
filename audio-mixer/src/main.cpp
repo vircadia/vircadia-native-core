@@ -57,12 +57,6 @@ const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SA
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
-const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-const int PHASE_DELAY_AT_90 = 20;
-
-const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-
 void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long sumSample = sampleToAdd + mixSample;
     
@@ -171,14 +165,14 @@ int main(int argc, const char* argv[]) {
                                         // and the position of the source by the radius to get the
                                         // closest point on the boundary of the sphere to the source
                                         
-                                        glm::vec3 closestPoint = glm::normalize(-relativePosition) * otherAgentBuffer->getRadius();
+                                        glm::vec3 closestPoint = glm::normalize(relativePosition) * otherAgentBuffer->getRadius();
 
                                         // for the other calculations the agent position is the closest point on the sphere
-                                        rotatedSourcePosition = inverseOrientation * -closestPoint;
+                                        rotatedSourcePosition = inverseOrientation * closestPoint;
 
                                         // ovveride the distance to the agent with the distance to the point on the
                                         // boundary of the sphere
-                                        distanceSquareToSource = glm::distance2(listenerPosition, closestPoint);
+                                        distanceSquareToSource = glm::distance2(listenerPosition, -closestPoint);
                                         
                                     } else {
                                         // calculate the angle delivery
@@ -187,6 +181,9 @@ int main(int argc, const char* argv[]) {
                                         
                                         float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, 1.0f),
                                                                            glm::normalize(rotatedListenerPosition));
+                                        
+                                        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                                        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
                                         
                                         offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
                                             (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
@@ -216,6 +213,8 @@ int main(int argc, const char* argv[]) {
                                                                                       glm::normalize(rotatedSourcePosition),
                                                                                       glm::vec3(0.0f, 1.0f, 0.0f));
                                     
+                                    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                                    const int PHASE_DELAY_AT_90 = 20;
                                     
                                     float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
                                     numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
