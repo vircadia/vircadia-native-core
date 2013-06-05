@@ -21,6 +21,9 @@ private:
 
     // camera location/orientation attributes
     glm::vec3   _position;
+    glm::quat   _orientation;
+    
+    // calculated for orientation
     glm::vec3   _direction;
     glm::vec3   _up;
     glm::vec3   _right;
@@ -53,23 +56,23 @@ private:
     
 public:
     // setters for camera attributes
-    void setPosition        (const glm::vec3& p) { _position = p; }
-    void setOrientation     (const glm::vec3& d, const glm::vec3& u, const glm::vec3& r ) 
-        { _direction = d; _up = u; _right = r; }
+    void setPosition        (const glm::vec3& p) { _position = p; };
+    void setOrientation     (const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
-    const glm::vec3& getPosition()  const { return _position;  };
-    const glm::vec3& getDirection() const { return _direction; };
-    const glm::vec3& getUp()        const { return _up;        };
-    const glm::vec3& getRight()     const { return _right;     };
+    const glm::vec3& getPosition()    const { return _position;    };
+    const glm::quat& getOrientation() const { return _orientation; };
+    const glm::vec3& getDirection()   const { return _direction;   };
+    const glm::vec3& getUp()          const { return _up;          };
+    const glm::vec3& getRight()       const { return _right;       };
 
     // setters for lens attributes
-    void setFieldOfView          ( float f )          { _fieldOfView          = f; }
-    void setAspectRatio          ( float a )          { _aspectRatio          = a; }
-    void setNearClip             ( float n )          { _nearClip             = n; }
-    void setFarClip              ( float f )          { _farClip              = f; }
-    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition    = p; }
-    void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; }
+    void setFieldOfView          ( float f )          { _fieldOfView          = f; };
+    void setAspectRatio          ( float a )          { _aspectRatio          = a; };
+    void setNearClip             ( float n )          { _nearClip             = n; };
+    void setFarClip              ( float f )          { _farClip              = f; };
+    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition    = p; };
+    void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; };
 
 
     // getters for lens attributes

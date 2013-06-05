@@ -10,8 +10,10 @@
 #define __hifi__AvatarData__
 
 #include <string>
+#include <inttypes.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <AgentData.h>
 #include "HeadData.h"
@@ -19,15 +21,15 @@
 const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
+const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
+const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
 
-// this is where the coordinate system is represented
-const glm::vec3 AVATAR_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-const glm::vec3 AVATAR_UP    = glm::vec3(0.0f, 1.0f, 0.0f);
-const glm::vec3 AVATAR_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
+const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
+
 
 enum KeyState
 {
-    NO_KEY_DOWN,
+    NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
 };
@@ -59,23 +61,21 @@ public:
     
     // getters for camera details
     const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
-    const glm::vec3& getCameraDirection()   const { return _cameraDirection; }
-    const glm::vec3& getCameraUp()          const { return _cameraUp; }
-    const glm::vec3& getCameraRight()       const { return _cameraRight; }
+    const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
     float getCameraFov()                    const { return _cameraFov; }
     float getCameraAspectRatio()            const { return _cameraAspectRatio; }
     float getCameraNearClip()               const { return _cameraNearClip; }
     float getCameraFarClip()                const { return _cameraFarClip; }
 
+    glm::vec3 calculateCameraDirection() const;
+
     // setters for camera details    
-    void setCameraPosition(const glm::vec3& position)   { _cameraPosition    = position; };
-    void setCameraDirection(const glm::vec3& direction) { _cameraDirection   = direction; }
-    void setCameraUp(const glm::vec3& up)               { _cameraUp          = up; }
-    void setCameraRight(const glm::vec3& right)         { _cameraRight       = right; }
-    void setCameraFov(float fov)                        { _cameraFov         = fov; }
-    void setCameraAspectRatio(float aspectRatio)        { _cameraAspectRatio = aspectRatio; }
-    void setCameraNearClip(float nearClip)              { _cameraNearClip    = nearClip; }
-    void setCameraFarClip(float farClip)                { _cameraFarClip     = farClip; }
+    void setCameraPosition(const glm::vec3& position)       { _cameraPosition    = position;    }
+    void setCameraOrientation(const glm::quat& orientation) { _cameraOrientation = orientation; }
+    void setCameraFov(float fov)                            { _cameraFov         = fov;         }
+    void setCameraAspectRatio(float aspectRatio)            { _cameraAspectRatio = aspectRatio; }
+    void setCameraNearClip(float nearClip)                  { _cameraNearClip    = nearClip;    }
+    void setCameraFarClip(float farClip)                    { _cameraFarClip     = farClip;     }
     
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -109,11 +109,7 @@ protected:
     
     // camera details for the avatar
     glm::vec3 _cameraPosition;
-
-    // can we describe this in less space? For example, a Quaternion? or Euler angles?
-    glm::vec3 _cameraDirection;
-    glm::vec3 _cameraUp;
-    glm::vec3 _cameraRight;
+    glm::quat _cameraOrientation;
     float _cameraFov;
     float _cameraAspectRatio;
     float _cameraNearClip;
@@ -136,5 +132,32 @@ private:
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
 };
+
+
+// These pack/unpack functions are designed to start specific known types in as efficient a manner
+// as possible. Taking advantage of the known characteristics of the semantic types.
+
+// Angles are known to be between 0 and 360deg, this allows us to encode in 16bits with great accuracy
+int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer);
+
+// Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0 
+// this allows us to encode each component in 16bits with great accuracy
+int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
+int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput);
+
+// Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
+// are never greater than 1000 to 1, this allows us to encode each component in 16bits
+int packFloatRatioToTwoByte(unsigned char* buffer, float ratio);
+int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio);
+
+// Near/Far Clip values need the be highly accurate when less than 10, but only integer accuracy above 10 and
+// they are never greater than 16,000, this allows us to encode each component in 16bits
+int packClipValueToTwoByte(unsigned char* buffer, float clipValue);
+int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
+
+// Positive floats that don't need to be very precise
+int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
+int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 
 #endif /* defined(__hifi__AvatarData__) */

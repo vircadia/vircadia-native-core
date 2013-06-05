@@ -21,6 +21,8 @@
 #include "world.h"
 #include "Util.h"
 
+#include "VoxelConstants.h"
+
 using namespace std;
 
 // no clue which versions are affected...
@@ -415,9 +417,9 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
 
 
 void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
-	glm::vec3 pRight	= position + orientation * AVATAR_RIGHT * size;
-	glm::vec3 pUp		= position + orientation * AVATAR_UP * size;
-	glm::vec3 pFront	= position + orientation * AVATAR_FRONT * size;
+	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
+	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
+	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 		
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINE_STRIP);

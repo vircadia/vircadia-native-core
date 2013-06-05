@@ -429,9 +429,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     glm::quat orientation = getOrientation();
-    glm::vec3 front = orientation * AVATAR_FRONT;
-    glm::vec3 right = orientation * AVATAR_RIGHT;
-    glm::vec3 up = orientation * AVATAR_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up = orientation * IDENTITY_UP;
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
     const float THRUST_MAG = 600.0f;
@@ -651,9 +651,9 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     glm::quat orientation = getOrientation();
 
     // reset hand and arm positions according to hand movement
-    glm::vec3 right = orientation * AVATAR_RIGHT;
-    glm::vec3 up    = orientation * AVATAR_UP;
-    glm::vec3 front = orientation * AVATAR_FRONT;
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    glm::vec3 up    = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
 
     glm::vec3 transformedHandMovement
     = right *  _movedHandOffset.x * 2.0f
@@ -1125,14 +1125,14 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     glm::quat orientation = getOrientation();
-    glm::vec3 currentUp = orientation * AVATAR_UP;
+    glm::vec3 currentUp = orientation * IDENTITY_UP;
     float angle = glm::degrees(acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f)));
     if (angle < EPSILON) {
         return glm::quat();
     }
     glm::vec3 axis;
     if (angle > 179.99f) { // 180 degree rotation; must use another axis
-        axis = orientation * AVATAR_RIGHT;
+        axis = orientation * IDENTITY_RIGHT;
     } else {
         axis = glm::normalize(glm::cross(currentUp, _worldUpDirection));
     }
@@ -1252,7 +1252,6 @@ void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity
     }
 }
 
-<<<<<<< HEAD
 void Avatar::loadData(QSettings* set) {
     set->beginGroup("Avatar");
 
@@ -1265,16 +1264,11 @@ void Avatar::loadData(QSettings* set) {
     _position.z = set->value("position_z", _position.z).toFloat();
 
     set->endGroup();
-=======
+}
+
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
     position = _bodyBall[jointID].position;
     rotation = _bodyBall[jointID].rotation;
-}
-
-void Avatar::writeAvatarDataToFile() {
-    Application::getInstance()->setSetting("avatarPos", _position);
-    Application::getInstance()->setSetting("avatarRotation", glm::vec3(_bodyYaw, _bodyPitch, _bodyRoll));
->>>>>>> 82c1ee2062577f614cfde096f08adfc9e83e4f0f
 }
 
 void Avatar::saveData(QSettings* set) {
