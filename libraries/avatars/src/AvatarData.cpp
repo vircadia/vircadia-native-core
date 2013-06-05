@@ -14,6 +14,7 @@
 #include <PacketHeaders.h>
 
 #include "AvatarData.h"
+#include <VoxelConstants.h>
 
 using namespace std;
 
@@ -75,8 +76,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
     destinationBuffer += sizeof(_headData->_leanForward);
 
-    // Hand Position
-    memcpy(destinationBuffer, &_handPosition, sizeof(float) * 3);
+    // Hand Position - is relative to body position
+    glm::vec3 handPositionRelative = _handPosition - _position;
+    memcpy(destinationBuffer, &handPositionRelative, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
 
     // Lookat Position
@@ -158,8 +160,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
     sourceBuffer += sizeof(_headData->_leanForward);
 
-    // Hand Position
-    memcpy(&_handPosition, sourceBuffer, sizeof(float) * 3);
+    // Hand Position - is relative to body position
+    glm::vec3 handPositionRelative;
+    memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
+    _handPosition = _position + handPositionRelative;
     sourceBuffer += sizeof(float) * 3;
 
     // Lookat Position
@@ -202,9 +206,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 glm::vec3 AvatarData::calculateCameraDirection() const {
-    const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f, 1.0f);
-    glm::mat4 rotationMatrix = glm::mat4_cast(_cameraOrientation);
-    glm::vec3 direction   = glm::vec3(glm::vec4(IDENTITY_FRONT, 0.0f) * rotationMatrix);
+    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
     return direction;
 }
 

@@ -45,6 +45,8 @@ void drawVector(glm::vec3* vector);
 
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
 
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
+
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);

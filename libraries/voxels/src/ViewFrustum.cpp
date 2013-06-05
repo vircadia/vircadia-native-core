@@ -13,6 +13,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "ViewFrustum.h"
+#include "VoxelConstants.h"
 #include "SharedUtil.h"
 #include "Log.h"
 
@@ -38,20 +39,10 @@ ViewFrustum::ViewFrustum() :
     _nearBottomRight(0,0,0) { }
     
 void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
-    glm::quat quat;
-    quat = quat * orientationAsQuaternion;
-
-    // this is where the coordinate system is represented
-    const glm::vec3 IDENTITY_RIGHT = glm::vec3(-1.0f, 0.0f, 0.0f);
-    const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
-    const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f, 1.0f);
-    
-    glm::mat4 rotationMatrix = glm::mat4_cast(quat);
-    
     _orientation = orientationAsQuaternion;
-    _right       = glm::vec3(glm::vec4(IDENTITY_RIGHT, 0.0f) * rotationMatrix);
-    _up          = glm::vec3(glm::vec4(IDENTITY_UP,    0.0f) * rotationMatrix);
-    _direction   = glm::vec3(glm::vec4(IDENTITY_FRONT, 0.0f) * rotationMatrix);
+    _right       = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
+    _up          = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
+    _direction   = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -21,6 +21,8 @@
 #include "world.h"
 #include "Util.h"
 
+#include "VoxelConstants.h"
+
 using namespace std;
 
 // no clue which versions are affected...
@@ -70,6 +72,27 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 //  Helper function returns the positive angle in degrees between two 3D vectors 
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PI;
+}
+
+//  Helper function return the rotation from the first vector onto the second
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    float angle = angleBetween(v1, v2);
+    if (isnan(angle) || angle < EPSILON) {
+        return glm::quat();
+    }
+    glm::vec3 axis = glm::cross(v1, v2);
+    if (angle > 179.99f) { // 180 degree rotation; must use another axis
+        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
+        float axisLength = glm::length(axis);
+        if (axisLength < EPSILON) { // parallel to x; y will work
+            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
+        } else {
+            axis /= axisLength;
+        }        
+    } else {
+        axis = glm::normalize(glm::cross(v1, v2));
+    }
+    return glm::angleAxis(angle, axis);
 }
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
@@ -394,9 +417,9 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
 
 
 void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
-	glm::vec3 pRight	= position + orientation * AVATAR_RIGHT * size;
-	glm::vec3 pUp		= position + orientation * AVATAR_UP * size;
-	glm::vec3 pFront	= position + orientation * AVATAR_FRONT * size;
+	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
+	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
+	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 		
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINE_STRIP);

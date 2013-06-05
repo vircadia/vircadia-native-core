@@ -10,6 +10,7 @@
 #define __hifi__AvatarData__
 
 #include <string>
+#include <inttypes.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -22,14 +23,7 @@ const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
 const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
 const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
-
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
-
-
-// this is where the coordinate system is represented
-const glm::vec3 AVATAR_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-const glm::vec3 AVATAR_UP    = glm::vec3(0.0f, 1.0f, 0.0f);
-const glm::vec3 AVATAR_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
 
 enum KeyState
 {
@@ -163,6 +157,5 @@ int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
 // Positive floats that don't need to be very precise
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
 int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
-
 
 #endif /* defined(__hifi__AvatarData__) */
