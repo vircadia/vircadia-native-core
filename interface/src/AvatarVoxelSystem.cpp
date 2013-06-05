@@ -78,6 +78,11 @@ void AvatarVoxelSystem::removeOutOfView() {
 }
 
 void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
+    // don't restart the download if it's the same URL
+    if (_voxelURL == url) {
+        return;
+    }
+
     // cancel any current download
     if (_voxelReply != 0) {
         delete _voxelReply;
