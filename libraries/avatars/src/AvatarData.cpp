@@ -14,6 +14,7 @@
 #include <PacketHeaders.h>
 
 #include "AvatarData.h"
+#include <VoxelConstants.h>
 
 using namespace std;
 
