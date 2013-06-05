@@ -231,7 +231,6 @@ int main(int argc, const char* argv[]) {
                                 otherAgentFreeVerb->setDamping(DISTANCE_REVERB_DAMPING);
                                 otherAgentFreeVerb->setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
                                 otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
-                                
                             } else {
                                 otherAgentFreeVerb = freeVerbIterator->second;
                             }
