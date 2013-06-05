@@ -1220,37 +1220,6 @@ void Avatar::renderBody(bool lookingInMirror) {
 
 
 
-void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
-    //
-    //  Given absolute position and angular velocity information, update the avatar's head angles
-    //  with the goal of fast instantaneous updates that gradually follow the absolute data.
-    //
-    //  Euler Angle format is (Yaw, Pitch, Roll) in degrees
-    //
-    //  Angular Velocity is (Yaw, Pitch, Roll) in degrees per second
-    //
-    //  SMOOTHING_TIME is the time is seconds over which the head should average to the
-    //  absolute eulerAngles passed.
-    //  
-    //
-    
-    if (deltaTime == 0.f) {
-        //  On first sample, set head to absolute position
-        _head.setYaw  (eulerAngles->x);
-        _head.setPitch(eulerAngles->y);
-        _head.setRoll (eulerAngles->z);
-    } else { 
-        glm::vec3 angles(_head.getYaw(), _head.getPitch(), _head.getRoll());
-        //  Increment by detected velocity 
-        angles += (*angularVelocity) * deltaTime;
-        //  Smooth to slowly follow absolute values
-        angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        _head.setYaw  (angles.x);
-        _head.setPitch(angles.y);
-        _head.setRoll (angles.z);
-        // printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
-    }
-}
 
 void Avatar::loadData(QSettings* set) {
     set->beginGroup("Avatar");
