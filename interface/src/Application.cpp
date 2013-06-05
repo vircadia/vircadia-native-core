@@ -1015,7 +1015,7 @@ static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataB
     if (!avatar->isInitialized()) {
         return; // wait until initialized
     }
-    QUrl url = QUrl::fromEncoded(QByteArray::fromRawData((char*)packetData, dataBytes));
+    QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
     
     // invoke the set URL function on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
