@@ -34,7 +34,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     memcpy(&_position, currentBuffer, sizeof(_position));
     currentBuffer += sizeof(_position);
     
-    memcpy(&_orientation, sourceBuffer, sizeof(_orientation));
+    memcpy(&_orientation, currentBuffer, sizeof(_orientation));
     currentBuffer += sizeof(_orientation);
     
     // if this agent sent us a NaN for first float in orientation then don't consider this good audio and bail
