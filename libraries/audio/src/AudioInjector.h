@@ -9,16 +9,18 @@
 #ifndef __hifi__AudioInjector__
 #define __hifi__AudioInjector__
 
-#include <iostream>
-
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <UDPSocket.h>
 
 #include "AudioRingBuffer.h"
 
-const int BUFFER_LENGTH_BYTES = 512;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-const float SAMPLE_RATE = 22050.0f;
-const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES / SAMPLE_RATE) * 1000000;
+const int STREAM_IDENTIFIER_NUM_BYTES = 8;
+
+const int MAX_INJECTOR_VOLUME = 0xFF;
+
+const float INJECT_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
 
 class AudioInjector {
 public:

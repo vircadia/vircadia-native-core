@@ -20,3 +20,9 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 # link the threads library
 find_package(Threads REQUIRED)
 target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
+
+# link the stk library
+set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
+find_package(STK REQUIRED)
+target_link_libraries(${TARGET_NAME} ${STK_LIBRARIES})
+include_directories(${STK_INCLUDE_DIRS})

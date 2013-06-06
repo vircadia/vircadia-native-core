@@ -15,8 +15,6 @@
 
 #include "AudioInjector.h"
 
-const int MAX_INJECTOR_VOLUME = 0xFF;
-
 AudioInjector::AudioInjector(const char* filename) :
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -72,20 +70,17 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         timeval startTime;
         
         // calculate the number of bytes required for additional data
-        int leadingBytes = sizeof(PACKET_HEADER) + sizeof(INJECT_AUDIO_AT_POINT_COMMAND) + sizeof(_streamIdentifier)
-            + sizeof(_position) + sizeof(_orientation) + sizeof(_volume);
+        int leadingBytes = sizeof(PACKET_HEADER)
+            + sizeof(_streamIdentifier)
+            + sizeof(_position)
+            + sizeof(_orientation)
+            + sizeof(_radius)
+            + sizeof(_volume);
         
-        if (_radius > 0) {
-            // we'll need 4 extra bytes if the cube side length is being sent as well
-            leadingBytes += sizeof(_radius);
-        }
-        
-        unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+        unsigned char dataPacket[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t)) + leadingBytes];
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-        // add the correct command for point source or cube of sound
-        dataPacket[1] = (_radius > 0) ? INJECT_AUDIO_AT_CUBE_COMMAND : INJECT_AUDIO_AT_POINT_COMMAND;
-        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_HEADER) + sizeof(INJECT_AUDIO_AT_POINT_COMMAND);
+        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_HEADER_INJECT_AUDIO);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
@@ -94,35 +89,33 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);
         
-        if (_radius > 0) {
-            // if we have a cube half height we need to send it here
-            // this tells the mixer how much volume the injected audio will occupy
-            memcpy(currentPacketPtr, &_radius, sizeof(_radius));
-            currentPacketPtr += sizeof(_radius);
-        }
-        
-        *currentPacketPtr = _volume;
-        currentPacketPtr++;
-        
         memcpy(currentPacketPtr, &_orientation, sizeof(_orientation));
         currentPacketPtr += sizeof(_orientation);
+        
+        memcpy(currentPacketPtr, &_radius, sizeof(_radius));
+        currentPacketPtr += sizeof(_radius);
+        
+        *currentPacketPtr = _volume;
+        currentPacketPtr++;        
         
         gettimeofday(&startTime, NULL);
         int nextFrame = 0;
         
-        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
-            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES;
+        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
             
-            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES) {
+            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                 numSamplesToCopy = _numTotalSamples - i;
-                memset(currentPacketPtr + numSamplesToCopy, 0, BUFFER_LENGTH_BYTES - (numSamplesToCopy * sizeof(int16_t)));
+                memset(currentPacketPtr + numSamplesToCopy,
+                       0,
+                       BUFFER_LENGTH_BYTES_PER_CHANNEL - (numSamplesToCopy * sizeof(int16_t)));
             }
             
             memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
             
-            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }
