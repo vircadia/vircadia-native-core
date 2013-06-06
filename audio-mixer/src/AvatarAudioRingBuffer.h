@@ -21,13 +21,17 @@ public:
     AvatarAudioRingBuffer();
     ~AvatarAudioRingBuffer();
     
+    int parseData(unsigned char* sourceBuffer, int numBytes);
+    
     FreeVerbAgentMap& getFreeVerbs() { return _freeVerbs; }
+    bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
     
     FreeVerbAgentMap _freeVerbs;
+    bool _shouldLoopbackForAgent;
 };
 
 #endif /* defined(__hifi__AvatarAudioRingBuffer__) */
