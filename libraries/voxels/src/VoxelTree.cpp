@@ -401,50 +401,104 @@ void VoxelTree::eraseAllVoxels() {
     _isDirty = true;
 }
 
-void VoxelTree::readCodeColorBufferToTree(unsigned char *codeColorBuffer, bool destructive) {
-    VoxelNode* lastCreatedNode = nodeForOctalCode(rootNode, codeColorBuffer, NULL);
-    // create the node if it does not exist
-    if (*lastCreatedNode->getOctalCode() != *codeColorBuffer) {
-        lastCreatedNode = createMissingNode(lastCreatedNode, codeColorBuffer);
-        _isDirty = true;
-    } else {
-        // if it does exist, make sure it has no children
-        for (int i = 0; i < 8; i++) {
-            if (lastCreatedNode->getChildAtIndex(i)) {
-                if (destructive) {
-                    lastCreatedNode->deleteChildAtIndex(i);
-                } else {
-                    printLog("WARNING! operation would require deleting child at index %d, add Voxel ignored!\n ", i);
-                }
+class ReadCodeColorBufferToTreeArgs {
+public:
+    unsigned char*  codeColorBuffer;
+    int             lengthOfCode;
+    bool            destructive;
+    bool            pathChanged;
+};
+
+void VoxelTree::readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive) {
+    ReadCodeColorBufferToTreeArgs args;
+    args.codeColorBuffer = codeColorBuffer;
+    args.lengthOfCode    = numberOfThreeBitSectionsInCode(codeColorBuffer);
+    args.destructive     = destructive;
+    args.pathChanged     = false;
+
+    
+    VoxelNode* node = rootNode;
+    
+    readCodeColorBufferToTreeRecursion(node, &args);
+}
+
+
+void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData) {
+    ReadCodeColorBufferToTreeArgs* args = (ReadCodeColorBufferToTreeArgs*)extraData;
+
+    int lengthOfNodeCode = numberOfThreeBitSectionsInCode(node->getOctalCode());
+
+    // Since we traverse the tree in code order, we know that if our code 
+    // matches, then we've reached  our target node.
+    if (lengthOfNodeCode == args->lengthOfCode) {
+        // we've reached our target -- we might have found our node, but that node might have children.
+        // in this case, we only allow you to set the color if you explicitly asked for a destructive
+        // write.
+        if (!node->isLeaf() && args->destructive) {
+            // if it does exist, make sure it has no children
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                node->deleteChildAtIndex(i);
+            }
+        } else {
+            if (!node->isLeaf()) {
+                printLog("WARNING! operation would require deleting children, add Voxel ignored!\n ");
             }
         }
+        
+        // If we get here, then it means, we either had a true leaf to begin with, or we were in
+        // destructive mode and we deleted all the child trees. So we can color.
+        if (node->isLeaf()) {
+            // give this node its color
+            int octalCodeBytes = bytesRequiredForCodeLength(args->lengthOfCode);
+
+            nodeColor newColor;
+            memcpy(newColor, args->codeColorBuffer + octalCodeBytes, SIZE_OF_COLOR_DATA);
+            newColor[SIZE_OF_COLOR_DATA] = 1;
+            node->setColor(newColor);
+            
+            // It's possible we just reset the node to it's exact same color, in
+            // which case we don't consider this to be dirty...
+            if (node->isDirty()) {
+                // track our tree dirtiness
+                _isDirty = true;
+                // track that path has changed
+                args->pathChanged = true;
+            }
+        }
+        return;
     }
 
-    if (lastCreatedNode->isLeaf()) {
-        // give this node its color
-        int octalCodeBytes = bytesRequiredForCodeLength(*codeColorBuffer);
+    // Ok, we know we haven't reached our target node yet, so keep looking
+    int childIndex = branchIndexWithDescendant(node->getOctalCode(), args->codeColorBuffer);
+    VoxelNode* childNode = node->getChildAtIndex(childIndex);
+    
+    // If the branch we need to traverse does not exist, then create it on the way down...
+    if (!childNode) {
+        childNode = node->addChildAtIndex(childIndex);
+    }
 
-        nodeColor newColor;
-        memcpy(newColor, codeColorBuffer + octalCodeBytes, 3);
-        newColor[3] = 1;
-        lastCreatedNode->setColor(newColor);
-        if (lastCreatedNode->isDirty()) {
-            _isDirty = true;
-        }
+    // recurse...
+    readCodeColorBufferToTreeRecursion(childNode, args);
+
+    // Unwinding...
+    
+    // If the lower level did some work, then we need to track our lastChanged status.
+    if (args->pathChanged) {
+        node->markWithChangedTime();
     }
 }
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
 	//unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
 	int atByte = sizeof(short int) + sizeof(PACKET_HEADER);
-	unsigned char* pVoxelData = (unsigned char*)&bitstream[atByte];
+	unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
 	while (atByte < bufferSizeBytes) {
-		unsigned char octets = (unsigned char)*pVoxelData;
-		int voxelDataSize = bytesRequiredForCodeLength(octets)+3; // 3 for color!
+		int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
+		int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
 
-		deleteVoxelCodeFromTree(pVoxelData, ACTUALLY_DELETE, COLLAPSE_EMPTY_TREE);
+		deleteVoxelCodeFromTree(voxelCode, ACTUALLY_DELETE, COLLAPSE_EMPTY_TREE);
 
-		pVoxelData+=voxelDataSize;
+		voxelCode+=voxelDataSize;
 		atByte+=voxelDataSize;
 	}
     reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode

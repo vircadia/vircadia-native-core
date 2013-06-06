@@ -101,6 +101,7 @@ public:
     
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
+    void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
 
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 

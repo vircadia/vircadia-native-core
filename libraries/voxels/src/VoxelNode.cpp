@@ -107,13 +107,14 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     return returnedChild;
 }
 
-void VoxelNode::addChildAtIndex(int childIndex) {
+VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
         _isDirty = true;
         markWithChangedTime();
         _childCount++;
     }
+    return _children[childIndex];
 }
 
 // handles staging or deletion of all deep children

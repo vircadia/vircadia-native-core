@@ -48,7 +48,7 @@ public:
     VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; };
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
-    void addChildAtIndex(int childIndex);
+    VoxelNode* addChildAtIndex(int childIndex);
     void safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion); // handles staging or deletion of all descendents
 
     void setColorFromAverageOfChildren();
