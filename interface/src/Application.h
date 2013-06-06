@@ -172,6 +172,7 @@ private:
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
     QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
+    QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar

@@ -88,7 +88,7 @@ public:
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
-    void render(bool lookingInMirror);
+    void render(bool lookingInMirror, bool renderAvatarBalls);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
@@ -202,7 +202,7 @@ private:
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void renderBody(bool lookingInMirror);
+    void renderBody(bool lookingInMirror, bool renderAvatarBalls);
     void initializeBodyBalls();
     void resetBodyBalls();
     void updateBodyBalls( float deltaTime );
@@ -216,7 +216,6 @@ private:
     void updateCollisionWithVoxels();
     void applyCollisionWithScene(const glm::vec3& penetration);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
-    void setHeadFromGyros(glm::vec3 * eulerAngles, glm::vec3 * angularVelocity, float deltaTime, float smoothingTime);
     void checkForMouseRayTouching();
     void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 };
