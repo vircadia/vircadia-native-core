@@ -806,13 +806,12 @@ void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     static float STATIC_FRICTION_VELOCITY = 0.15f;
     static float STATIC_FRICTION_DAMPING = 0.0f;
     static float KINETIC_FRICTION_DAMPING = 0.95f;
-    const float BOUNCE = 0.3f;
     
-    // reflect the velocity component in the direction of penetration
+    // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+        _velocity -= glm::dot(_velocity, direction) * direction;
         _velocity *= KINETIC_FRICTION_DAMPING;
         //  If velocity is quite low, apply static friction that takes away energy
         if (glm::length(_velocity) < STATIC_FRICTION_VELOCITY) {
@@ -1008,7 +1007,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         resetBodyBalls();
     }
     glm::quat orientation = getOrientation();
-    glm::vec3 jointDirection = orientation * JOINT_DIRECTION;
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         
         glm::vec3 springVector;
@@ -1068,11 +1066,18 @@ void Avatar::updateBodyBalls(float deltaTime) {
         if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < SMALL_SPRING_LENGTH) {
             _bodyBall[b].rotation = orientation * _skeleton.joint[_bodyBall[b].parentJoint].absoluteBindPoseRotation;
         } else {
-            glm::vec3 parentDirection = _bodyBall[ _skeleton.joint[b].parent ].rotation * JOINT_DIRECTION;
+            glm::vec3 parentDirection = _bodyBall[ _bodyBall[b].parentBall ].rotation * JOINT_DIRECTION;
             _bodyBall[b].rotation = rotationBetween(parentDirection, springVector) *
-            _bodyBall[ _skeleton.joint[b].parent ].rotation;
+                _bodyBall[ _bodyBall[b].parentBall ].rotation;
         }
     }
+    
+    // copy the head's rotation
+    _bodyBall[BODY_BALL_HEAD_BASE].rotation = _bodyBall[BODY_BALL_HEAD_TOP].rotation = _head.getOrientation();
+    _bodyBall[BODY_BALL_HEAD_BASE].position = _bodyBall[BODY_BALL_NECK_BASE].position +
+        _bodyBall[BODY_BALL_HEAD_BASE].rotation * _skeleton.joint[BODY_BALL_HEAD_BASE].bindPosePosition;
+    _bodyBall[BODY_BALL_HEAD_TOP].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
+        _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
@@ -1133,7 +1138,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones
-    if (renderAvatarBalls) {
+    if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
             
