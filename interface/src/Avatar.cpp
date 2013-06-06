@@ -1082,9 +1082,9 @@ void Avatar::updateBodyBalls(float deltaTime) {
         if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < SMALL_SPRING_LENGTH) {
             _bodyBall[b].rotation = orientation * _skeleton.joint[_bodyBall[b].parentJoint].absoluteBindPoseRotation;
         } else {
-            glm::vec3 parentDirection = _bodyBall[ _skeleton.joint[b].parent ].rotation * JOINT_DIRECTION;
+            glm::vec3 parentDirection = _bodyBall[ _bodyBall[b].parentBall ].rotation * JOINT_DIRECTION;
             _bodyBall[b].rotation = rotationBetween(parentDirection, springVector) *
-                _bodyBall[ _skeleton.joint[b].parent ].rotation;
+                _bodyBall[ _bodyBall[b].parentBall ].rotation;
         }
     }
 }
