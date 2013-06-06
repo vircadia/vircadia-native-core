@@ -1558,6 +1558,7 @@ void Application::init() {
 
 void Application::updateAvatar(float deltaTime) {
 
+    
     if (_serialHeadSensor.active) {
       
         // Update avatar head translation
@@ -1591,7 +1592,6 @@ void Application::updateAvatar(float deltaTime) {
 
     }
 
-    
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
@@ -1600,7 +1600,7 @@ void Application::updateAvatar(float deltaTime) {
         _myAvatar.getHead().setPitch(pitch);
         _myAvatar.getHead().setRoll(roll);
     }
-    
+     
     //  Get audio loudness data from audio input device
     #ifndef _WIN32
         _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());

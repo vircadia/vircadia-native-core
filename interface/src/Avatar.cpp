@@ -87,7 +87,6 @@ Avatar::Avatar(Agent* owningAgent) :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
-    _cumulativeMouseYaw(0.0f),
     _isMouseTurningRight(false),
     _voxels(this)
 {
@@ -288,6 +287,13 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.addPitch(measuredPitchRate * AMPLIFY_PITCH * deltaTime);
     _head.addYaw(measuredYawRate * AMPLIFY_YAW * deltaTime);
     _head.addRoll(measuredRollRate * AMPLIFY_ROLL * deltaTime);
+     
+    /*
+    glm::vec3 estimatedRotation = serialInterface->getEstimatedRotation();
+    _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
+    _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
+    _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
+    */
     
     //  Update head lean distance based on accelerometer data
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
@@ -321,11 +327,10 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-    //  Update yaw based on mouse behavior
+    //  Update head yaw and pitch based on mouse input
     const float MOUSE_MOVE_RADIUS = 0.15f;
-    const float MOUSE_ROTATE_SPEED = 3.0f;
+    const float MOUSE_ROTATE_SPEED = 4.0f;
     const float MOUSE_PITCH_SPEED = 1.5f;
-    const float MAX_YAW_TO_ADD = 180.f;
     const int TITLE_BAR_HEIGHT = 46;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
     float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
@@ -334,30 +339,18 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
         //
         //  Mouse must be inside screen (not at edge) and not on title bar for movement to happen
         //
-        if (fabs(mouseLocationX) > MOUSE_MOVE_RADIUS) {
-            //  Add Yaw
-            float mouseYawAdd = (fabs(mouseLocationX) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED;
-            bool rightTurning = (mouseLocationX > 0.f);
-            if (_isMouseTurningRight == rightTurning) {
-                _cumulativeMouseYaw += mouseYawAdd;
-            } else {
-                _cumulativeMouseYaw = 0;
-                _isMouseTurningRight = rightTurning;
-            }
-            if (_cumulativeMouseYaw < MAX_YAW_TO_ADD) {
-                setBodyYaw(getBodyYaw() - (rightTurning ? mouseYawAdd : -mouseYawAdd));
-            }
-        } else {
-            _cumulativeMouseYaw = 0;
-        }
-        if (fabs(mouseLocationY) > MOUSE_MOVE_RADIUS) {
-            float mousePitchAdd = (fabs(mouseLocationY) - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED;
-            bool downPitching = (mouseLocationY > 0.f);
-            _head.setPitch(_head.getPitch() + (downPitching ? -mousePitchAdd : mousePitchAdd));
+        if (mouseLocationX > MOUSE_MOVE_RADIUS) {
+            _head.addYaw(-(mouseLocationX - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED);
+        } else if (mouseLocationX < -MOUSE_MOVE_RADIUS) {
+            _head.addYaw(-(mouseLocationX + MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED);
         }
         
+        if (mouseLocationY > MOUSE_MOVE_RADIUS) {
+            _head.addPitch(-(mouseLocationY - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED);
+        } else if (mouseLocationY < -MOUSE_MOVE_RADIUS) {
+            _head.addPitch(-(mouseLocationY + MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED);
+        }
     }
-    
     return;
 }
 
@@ -538,20 +531,23 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             }
         }
         
-        //  Compute instantaneous acceleration 
-        float acceleration = glm::distance(getVelocity(), oldVelocity) / deltaTime;
+        //  Compute instantaneous acceleration
+        ;
+        float fwdAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
         const float ACCELERATION_PITCH_DECAY = 0.4f;
         const float ACCELERATION_YAW_DECAY = 0.4f;
-        
+        const float ACCELERATION_PULL_THRESHOLD = 0.2f;
         const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
         const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
         
-        // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
+        // Decay HeadPitch as a function of acceleration, so that you are pulled to look straight ahead when
         // you start moving, but don't do this with an HMD like the Oculus. 
         if (!OculusManager::isConnected()) {
-            _head.setPitch(_head.getPitch() * (1.f - acceleration * ACCELERATION_PITCH_DECAY * deltaTime));
-            _head.setYaw(_head.getYaw() * (1.f - acceleration * ACCELERATION_YAW_DECAY * deltaTime));
-        } else if (fabsf(acceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
+            if (fwdAcceleration > ACCELERATION_PULL_THRESHOLD) {
+                _head.setPitch(_head.getPitch() * (1.f - fwdAcceleration * ACCELERATION_PITCH_DECAY * deltaTime));
+                _head.setYaw(_head.getYaw() * (1.f - fwdAcceleration * ACCELERATION_YAW_DECAY * deltaTime));
+            }
+        } else if (fabsf(fwdAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
                    && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
             // if we're wearing the oculus
             // and this acceleration is above the pull threshold
