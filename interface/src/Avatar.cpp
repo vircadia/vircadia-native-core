@@ -1133,7 +1133,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones
-    if (renderAvatarBalls) {
+    if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
             
