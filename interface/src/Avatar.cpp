@@ -1075,6 +1075,8 @@ void Avatar::updateBodyBalls(float deltaTime) {
     
     // copy the head's rotation
     _bodyBall[BODY_BALL_HEAD_TOP].rotation = _head.getOrientation();
+    _bodyBall[BODY_BALL_HEAD_TOP].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
+        _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
