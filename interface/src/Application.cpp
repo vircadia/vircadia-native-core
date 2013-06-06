@@ -104,39 +104,27 @@ void GLCanvas::resizeGL(int width, int height) {
 }
 
 void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->keyPressEvent(event);
-    }
+    Application::getInstance()->keyPressEvent(event);
 }
 
 void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->keyReleaseEvent(event);
-    }
+    Application::getInstance()->keyReleaseEvent(event);
 }
 
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->mouseMoveEvent(event);
-    }
+    Application::getInstance()->mouseMoveEvent(event);
 }
 
 void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->mousePressEvent(event);
-    }
+    Application::getInstance()->mousePressEvent(event);
 }
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->mouseReleaseEvent(event);
-    }
+    Application::getInstance()->mouseReleaseEvent(event);
 }
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
-    if (Application::activeWindow() != 0) {
-        Application::getInstance()->wheelEvent(event);
-    }
+    Application::getInstance()->wheelEvent(event);
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -433,314 +421,326 @@ static void sendVoxelServerAddScene() {
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
-    if (_chatEntryOn) {
-        if (_chatEntry.keyPressEvent(event)) {
-            _myAvatar.setKeyState(event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete ?
-                DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
-            _myAvatar.setChatMessage(string(_chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
-            
-        } else {
-            _myAvatar.setChatMessage(_chatEntry.getContents());
-            _chatEntry.clear();
-            _chatEntryOn = false;
-            setMenuShortcutsEnabled(true);
+    if (activeWindow() == _window) {
+        if (_chatEntryOn) {
+            if (_chatEntry.keyPressEvent(event)) {
+                _myAvatar.setKeyState(event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete ?
+                                      DELETE_KEY_DOWN : INSERT_KEY_DOWN);
+                _myAvatar.setChatMessage(string(_chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
+                
+            } else {
+                _myAvatar.setChatMessage(_chatEntry.getContents());
+                _chatEntry.clear();
+                _chatEntryOn = false;
+                setMenuShortcutsEnabled(true);
+            }
+            return;
         }
-        return;
-    }
-    
-    bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
-    switch (event->key()) {
-        case Qt::Key_BracketLeft:
-            _viewFrustumOffsetYaw -= 0.5;
-            break;
-            
-        case Qt::Key_BracketRight:
-            _viewFrustumOffsetYaw += 0.5;
-            break;
         
-        case Qt::Key_BraceLeft:
-            _viewFrustumOffsetPitch -= 0.5;
-            break;
-        
-        case Qt::Key_BraceRight:
-            _viewFrustumOffsetPitch += 0.5;
-            break;
-            
-        case Qt::Key_ParenLeft:
-            _viewFrustumOffsetRoll -= 0.5;
-            break;
-            
-        case Qt::Key_ParenRight:
-            _viewFrustumOffsetRoll += 0.5;
-            break;
-            
-        case Qt::Key_Less:
-            _viewFrustumOffsetDistance -= 0.5;
-            break;
-            
-        case Qt::Key_Greater:
-            _viewFrustumOffsetDistance += 0.5;
-            break;
-            
-        case Qt::Key_Comma:
-            _viewFrustumOffsetUp -= 0.05;
-            break;
-        
-        case Qt::Key_Period:
-            _viewFrustumOffsetUp += 0.05;
-            break;
-        
-        case Qt::Key_Ampersand:
-            _paintOn = !_paintOn;
-            setupPaintingVoxel();
-            break;
-    
-        case Qt::Key_AsciiCircum:
-            shiftPaintingColor();
-            break;
-    
-        case Qt::Key_Percent:
-            sendVoxelServerAddScene();
-            break;
-        
-        case Qt::Key_Semicolon:
-            _audio.startEchoTest();
-            break;
-            
-        case Qt::Key_L:
-            _displayLevels = !_displayLevels;
-            break;
-        
-        case Qt::Key_E:
-            _myAvatar.setDriveKeys(UP, 1);
-            break;
-            
-        case Qt::Key_C:
-            _myAvatar.setDriveKeys(DOWN, 1);
-            break;
-            
-        case Qt::Key_W:
-            _myAvatar.setDriveKeys(FWD, 1);
-            break;
-            
-        case Qt::Key_S:
-            _myAvatar.setDriveKeys(BACK, 1);
-            break;
-            
-        case Qt::Key_Space:
-            resetSensors();
-            break;
-            
-        case Qt::Key_G:
-            goHome();
-            break;
-        
-        case Qt::Key_A:
-            _myAvatar.setDriveKeys(ROT_LEFT, 1);
-            break;
-            
-        case Qt::Key_D:
-            _myAvatar.setDriveKeys(ROT_RIGHT, 1);
-            break;
-        
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-            _chatEntryOn = true;
-            _myAvatar.setKeyState(NO_KEY_DOWN);
-            _myAvatar.setChatMessage(string());
-            setMenuShortcutsEnabled(false);
-            break;
-            
-        case Qt::Key_Up:
-            _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
-            break;
-            
-        case Qt::Key_Down:
-            _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
-            break;
-            
-        case Qt::Key_Left:
-            _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
-            break;
-            
-        case Qt::Key_Right:
-            _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
-            break;
-        
-        case Qt::Key_I:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_K:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_J:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_M:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-            
-        case Qt::Key_U:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-            
-        case Qt::Key_Y:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        case Qt::Key_Backspace:
-        case Qt::Key_Delete:
-            if (_selectVoxelMode->isChecked()) {
-                deleteVoxelUnderCursor();
-            }
-            break;
-            
-        default:
-            event->ignore();
-            break;
+        bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
+        switch (event->key()) {
+            case Qt::Key_BracketLeft:
+                _viewFrustumOffsetYaw -= 0.5;
+                break;
+                
+            case Qt::Key_BracketRight:
+                _viewFrustumOffsetYaw += 0.5;
+                break;
+                
+            case Qt::Key_BraceLeft:
+                _viewFrustumOffsetPitch -= 0.5;
+                break;
+                
+            case Qt::Key_BraceRight:
+                _viewFrustumOffsetPitch += 0.5;
+                break;
+                
+            case Qt::Key_ParenLeft:
+                _viewFrustumOffsetRoll -= 0.5;
+                break;
+                
+            case Qt::Key_ParenRight:
+                _viewFrustumOffsetRoll += 0.5;
+                break;
+                
+            case Qt::Key_Less:
+                _viewFrustumOffsetDistance -= 0.5;
+                break;
+                
+            case Qt::Key_Greater:
+                _viewFrustumOffsetDistance += 0.5;
+                break;
+                
+            case Qt::Key_Comma:
+                _viewFrustumOffsetUp -= 0.05;
+                break;
+                
+            case Qt::Key_Period:
+                _viewFrustumOffsetUp += 0.05;
+                break;
+                
+            case Qt::Key_Ampersand:
+                _paintOn = !_paintOn;
+                setupPaintingVoxel();
+                break;
+                
+            case Qt::Key_AsciiCircum:
+                shiftPaintingColor();
+                break;
+                
+            case Qt::Key_Percent:
+                sendVoxelServerAddScene();
+                break;
+                
+            case Qt::Key_Semicolon:
+                _audio.startEchoTest();
+                break;
+                
+            case Qt::Key_L:
+                _displayLevels = !_displayLevels;
+                break;
+                
+            case Qt::Key_E:
+                _myAvatar.setDriveKeys(UP, 1);
+                break;
+                
+            case Qt::Key_C:
+                _myAvatar.setDriveKeys(DOWN, 1);
+                break;
+                
+            case Qt::Key_W:
+                _myAvatar.setDriveKeys(FWD, 1);
+                break;
+                
+            case Qt::Key_S:
+                _myAvatar.setDriveKeys(BACK, 1);
+                break;
+                
+            case Qt::Key_Space:
+                resetSensors();
+                break;
+                
+            case Qt::Key_G:
+                goHome();
+                break;
+                
+            case Qt::Key_A:
+                _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                break;
+                
+            case Qt::Key_D:
+                _myAvatar.setDriveKeys(ROT_RIGHT, 1);
+                break;
+                
+            case Qt::Key_Return:
+            case Qt::Key_Enter:
+                _chatEntryOn = true;
+                _myAvatar.setKeyState(NO_KEY_DOWN);
+                _myAvatar.setChatMessage(string());
+                setMenuShortcutsEnabled(false);
+                break;
+                
+            case Qt::Key_Up:
+                _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
+                break;
+                
+            case Qt::Key_Down:
+                _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
+                break;
+                
+            case Qt::Key_Left:
+                _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
+                break;
+                
+            case Qt::Key_Right:
+                _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
+                break;
+                
+            case Qt::Key_I:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_K:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_J:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_M:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_U:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_Y:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+            case Qt::Key_Backspace:
+            case Qt::Key_Delete:
+                if (_selectVoxelMode->isChecked()) {
+                    deleteVoxelUnderCursor();
+                }
+                break;
+                
+            default:
+                event->ignore();
+                break;
+        }
     }
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (_chatEntryOn) {
-        _myAvatar.setKeyState(NO_KEY_DOWN);
-        return;
-    }
-
-    switch (event->key()) {
-        case Qt::Key_E:
-            _myAvatar.setDriveKeys(UP, 0);
-            break;
+    if (activeWindow() == _window) {
+        if (_chatEntryOn) {
+            _myAvatar.setKeyState(NO_KEY_DOWN);
+            return;
+        }
         
-        case Qt::Key_C:
-            _myAvatar.setDriveKeys(DOWN, 0);
-            break;
-        
-        case Qt::Key_W:
-            _myAvatar.setDriveKeys(FWD, 0);
-            break;
-            
-        case Qt::Key_S:
-            _myAvatar.setDriveKeys(BACK, 0);
-            break;
-            
-        case Qt::Key_A:
-            _myAvatar.setDriveKeys(ROT_LEFT, 0);
-            break;
+        switch (event->key()) {
+            case Qt::Key_E:
+                _myAvatar.setDriveKeys(UP, 0);
+                break;
                 
-        case Qt::Key_D:
-            _myAvatar.setDriveKeys(ROT_RIGHT, 0);
-            break;
-            
-        case Qt::Key_Up:
-            _myAvatar.setDriveKeys(FWD, 0);
-            _myAvatar.setDriveKeys(UP, 0);
-            break;
-            
-        case Qt::Key_Down:
-            _myAvatar.setDriveKeys(BACK, 0);
-            _myAvatar.setDriveKeys(DOWN, 0);
-            break;
-            
-        case Qt::Key_Left:
-            _myAvatar.setDriveKeys(LEFT, 0);
-            _myAvatar.setDriveKeys(ROT_LEFT, 0);
-            break;
-            
-        case Qt::Key_Right:
-            _myAvatar.setDriveKeys(RIGHT, 0);
-            _myAvatar.setDriveKeys(ROT_RIGHT, 0);
-            break;
-    
-        default:
-            event->ignore();
-            break;
+            case Qt::Key_C:
+                _myAvatar.setDriveKeys(DOWN, 0);
+                break;
+                
+            case Qt::Key_W:
+                _myAvatar.setDriveKeys(FWD, 0);
+                break;
+                
+            case Qt::Key_S:
+                _myAvatar.setDriveKeys(BACK, 0);
+                break;
+                
+            case Qt::Key_A:
+                _myAvatar.setDriveKeys(ROT_LEFT, 0);
+                break;
+                
+            case Qt::Key_D:
+                _myAvatar.setDriveKeys(ROT_RIGHT, 0);
+                break;
+                
+            case Qt::Key_Up:
+                _myAvatar.setDriveKeys(FWD, 0);
+                _myAvatar.setDriveKeys(UP, 0);
+                break;
+                
+            case Qt::Key_Down:
+                _myAvatar.setDriveKeys(BACK, 0);
+                _myAvatar.setDriveKeys(DOWN, 0);
+                break;
+                
+            case Qt::Key_Left:
+                _myAvatar.setDriveKeys(LEFT, 0);
+                _myAvatar.setDriveKeys(ROT_LEFT, 0);
+                break;
+                
+            case Qt::Key_Right:
+                _myAvatar.setDriveKeys(RIGHT, 0);
+                _myAvatar.setDriveKeys(ROT_RIGHT, 0);
+                break;
+                
+            default:
+                event->ignore();
+                break;
+        }
     }
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
-    _mouseX = event->x();
-    _mouseY = event->y();
-    
-    // detect drag
-    glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-    if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
-        if (event->buttons().testFlag(Qt::LeftButton)) {
-            maybeEditVoxelUnderCursor();
+    if (activeWindow() == _window) {
+        _mouseX = event->x();
+        _mouseY = event->y();
+        
+        // detect drag
+        glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+        if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
+            if (event->buttons().testFlag(Qt::LeftButton)) {
+                maybeEditVoxelUnderCursor();
                 
-        } else if (event->buttons().testFlag(Qt::RightButton) && checkedVoxelModeAction() != 0) {
-            deleteVoxelUnderCursor();
+            } else if (event->buttons().testFlag(Qt::RightButton) && checkedVoxelModeAction() != 0) {
+                deleteVoxelUnderCursor();
+            }
         }
     }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        _mouseX = event->x();
-        _mouseY = event->y();
-        _mousePressed = true;
-        maybeEditVoxelUnderCursor();
-        
-    } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
-        deleteVoxelUnderCursor();
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            _mouseX = event->x();
+            _mouseY = event->y();
+            _mousePressed = true;
+            maybeEditVoxelUnderCursor();
+            
+        } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
+            deleteVoxelUnderCursor();
+        }
     }
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        _mouseX = event->x();
-        _mouseY = event->y();
-        _mousePressed = false;
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            _mouseX = event->x();
+            _mouseY = event->y();
+            _mousePressed = false;
+        }
     }
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (checkedVoxelModeAction() == 0) {
-        event->ignore();
-        return;
-    }
-    if (event->delta() > 0) {
-        increaseVoxelSize();
-    } else {
-        decreaseVoxelSize();
+    if (activeWindow() == _window) {
+        if (checkedVoxelModeAction() == 0) {
+            event->ignore();
+            return;
+        }
+        if (event->delta() > 0) {
+            increaseVoxelSize();
+        } else {
+            decreaseVoxelSize();
+        }
     }
 }
 
@@ -888,7 +888,7 @@ void Application::idle() {
         
         //  Update from Mouse
         if (_mouseLook->isChecked()) {
-            QPoint mouse = QPoint(_mouseX, _mouseY);
+            QPoint mouse(_mouseX, _mouseY);
             _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
                                       _glWidget->mapFromGlobal(mouse).y(),
                                       _glWidget->width(),
