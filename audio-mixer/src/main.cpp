@@ -104,11 +104,6 @@ int main(int argc, const char* argv[]) {
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
-    // setup STK for the reverb effect
-    const float DISTANCE_REVERB_DAMPING = 0.6f;
-    const float DISTANCE_REVERB_ROOM_SIZE = 0.75f;
-    const float DISTANCE_REVERB_WIDTH = 0.5f;
-    
     gettimeofday(&startTime, NULL);
     
     while (true) {
@@ -141,8 +136,6 @@ int main(int argc, const char* argv[]) {
                         float attenuationCoefficient = 1.0f;
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.0f;
-                        
-                        stk::FreeVerb* otherAgentFreeVerb = NULL;
                         
                         if (otherAgent != agent) {
                             
@@ -220,40 +213,6 @@ int main(int argc, const char* argv[]) {
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                             }
-//                            
-//                            FreeVerbAgentMap& agentFreeVerbs = agentRingBuffer->getFreeVerbs();
-//                            FreeVerbAgentMap::iterator freeVerbIterator = agentFreeVerbs.find(otherAgent->getAgentID());
-//                            
-//                            if (freeVerbIterator == agentFreeVerbs.end()) {
-//                                // setup the freeVerb effect for this source for this client
-//                                otherAgentFreeVerb = agentFreeVerbs[otherAgent->getAgentID()] = new stk::FreeVerb;
-//                                
-//                                otherAgentFreeVerb->setDamping(DISTANCE_REVERB_DAMPING);
-//                                otherAgentFreeVerb->setRoomSize(DISTANCE_REVERB_ROOM_SIZE);
-//                                otherAgentFreeVerb->setWidth(DISTANCE_REVERB_WIDTH);
-//                            } else {
-//                                otherAgentFreeVerb = freeVerbIterator->second;
-//                            }
-//                            
-//                            const float WETNESS_DOUBLING_DISTANCE_FACTOR = 2.0f;
-//                            const float MAX_REVERB_DISTANCE = 160.0f;
-//                            
-//                            // higher value increases wetness more quickly with distance
-//                            const float WETNESS_CALC_EXPONENT_BASE = 2.0f; 
-//                            
-//                            const float MAX_EXPONENT = logf(MAX_REVERB_DISTANCE) / logf(WETNESS_DOUBLING_DISTANCE_FACTOR);
-//                            const int MAX_EXPONENT_INT = floorf(MAX_EXPONENT);
-//                            const float DISTANCE_REVERB_LOG_REMAINDER = fmodf(MAX_EXPONENT, MAX_EXPONENT_INT);
-//                            const float DISTANCE_REVERB_MAX_WETNESS = 1.0f;
-//                            const float EFFECT_MIX_RHS = DISTANCE_REVERB_MAX_WETNESS / powf(WETNESS_DOUBLING_DISTANCE_FACTOR,
-//                                                                                            MAX_EXPONENT_INT);
-//                            
-//                            float effectMix = powf(WETNESS_CALC_EXPONENT_BASE,
-//                                                   (0.5f * logf(distanceSquareToSource) / logf(WETNESS_CALC_EXPONENT_BASE))
-//                                                   - DISTANCE_REVERB_LOG_REMAINDER);
-//                            effectMix *= EFFECT_MIX_RHS;
-//                            
-//                            otherAgentFreeVerb->setEffectMix(effectMix);
                         }
                         
                         int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
@@ -279,17 +238,6 @@ int main(int argc, const char* argv[]) {
                             }
                             
                             int16_t currentSample = otherAgentBuffer->getNextOutput()[s];
-                            
-                            // apply the STK FreeVerb effect
-                            if (otherAgentFreeVerb) {
-                                currentSample = otherAgentFreeVerb->tick(currentSample);
-                                
-                                if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
-                                    // there is the possiblity this will be re-used as a delayed sample
-                                    // so store the reverbed sample so that is what will be pulled
-                                    otherAgentBuffer->getNextOutput()[s] = currentSample;
-                                }
-                            }
                             
                             currentSample *= attenuationCoefficient;
                             
