@@ -215,7 +215,7 @@ void SerialInterface::readData(float deltaTime) {
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         
-        _lastAcceleration = glm::vec3(accelXRate, accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
+        _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
                 
         int rollRate, yawRate, pitchRate;
         
@@ -266,8 +266,8 @@ void SerialInterface::readData(float deltaTime) {
                 //  Without a compass heading, always decay estimated Yaw slightly
                 const float YAW_DECAY = 0.995;
                 glm::vec3 forward = estimatedRotation * glm::vec3(0.0f, 0.0f, -1.0f);
-                safeMix(glm::angleAxis(glm::degrees(atan2f(forward.x, -forward.z)), glm::vec3(0.0f, 1.0f, 0.0f)) *
-                    estimatedRotation, estimatedRotation, YAW_DECAY);
+                esimatedRotation = safeMix(glm::angleAxis(glm::degrees(atan2f(forward.x, -forward.z)),
+                    glm::vec3(0.0f, 1.0f, 0.0f)) * estimatedRotation, estimatedRotation, YAW_DECAY);
             }
         }
         
