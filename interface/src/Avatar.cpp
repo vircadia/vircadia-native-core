@@ -806,13 +806,12 @@ void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     static float STATIC_FRICTION_VELOCITY = 0.15f;
     static float STATIC_FRICTION_DAMPING = 0.0f;
     static float KINETIC_FRICTION_DAMPING = 0.95f;
-    const float BOUNCE = 0.3f;
     
-    // reflect the velocity component in the direction of penetration
+    // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+        _velocity -= glm::dot(_velocity, direction) * direction;
         _velocity *= KINETIC_FRICTION_DAMPING;
         //  If velocity is quite low, apply static friction that takes away energy
         if (glm::length(_velocity) < STATIC_FRICTION_VELOCITY) {
