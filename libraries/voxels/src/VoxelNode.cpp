@@ -12,6 +12,7 @@
 #include "SharedUtil.h"
 #include "Log.h"
 #include "VoxelNode.h"
+#include "VoxelTree.h"
 #include "VoxelConstants.h"
 #include "OctalCode.h"
 #include "AABox.h"
@@ -60,6 +61,22 @@ VoxelNode::~VoxelNode() {
         }
     }
 }
+
+// This method is called by VoxelTree when the subtree below this node
+// is known to have changed. It's intended to be used as a place to do
+// bookkeeping that a node may need to do when the subtree below it has
+// changed. However, you should hopefully make your bookkeeping relatively
+// localized, because this method will get called for every node in an
+// recursive unwinding case like delete or add voxel
+void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
+    markWithChangedTime();
+    
+    // here's a good place to do color re-averaging...
+    if (myTree->getShouldReaverage()) {
+        setColorFromAverageOfChildren();
+    }
+}
+
 
 void VoxelNode::setShouldRender(bool shouldRender) {
     // if shouldRender is changing, then consider ourselves dirty

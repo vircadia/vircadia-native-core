@@ -388,9 +388,10 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
         }
     }
     
-    // If the lower level did some work, then we need to track our lastChanged status.
+    // If the lower level did some work, then we need to let this node know, so it can
+    // do any bookkeeping it wants to, like color re-averaging, time stamp marking, etc
     if (args->pathChanged) {
-        node->markWithChangedTime();
+        node->handleSubtreeChanged(this);
     }
 }
 
@@ -482,9 +483,10 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
 
     // Unwinding...
     
-    // If the lower level did some work, then we need to track our lastChanged status.
+    // If the lower level did some work, then we need to let this node know, so it can
+    // do any bookkeeping it wants to, like color re-averaging, time stamp marking, etc
     if (args->pathChanged) {
-        node->markWithChangedTime();
+        node->handleSubtreeChanged(this);
     }
 }
 

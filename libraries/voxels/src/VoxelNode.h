@@ -14,6 +14,8 @@
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
 
+class VoxelTree; // forward delclaration
+
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
 typedef unsigned char rgbColor[3];
@@ -79,6 +81,7 @@ public:
     void clearDirtyBit() { _isDirty = false; };
     bool hasChangedSince(double time) const { return (_lastChanged > time);  };
     void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
+    void handleSubtreeChanged(VoxelTree* myTree);
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
