@@ -256,7 +256,6 @@ void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
 
 void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
     glBufferIndex segmentStart = 0;
-    glBufferIndex segmentEnd = 0;
     bool inSegment = false;
     for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
         bool thisVoxelDirty = _writeVoxelDirtyArray[i];
@@ -560,7 +559,6 @@ void VoxelSystem::updateFullVBOs() {
 
 void VoxelSystem::updatePartialVBOs() {
     glBufferIndex segmentStart = 0;
-    glBufferIndex segmentEnd = 0;
     bool inSegment = false;
     for (glBufferIndex i = 0; i < _voxelsInReadArrays; i++) {
         bool thisVoxelDirty = _readVoxelDirtyArray[i];

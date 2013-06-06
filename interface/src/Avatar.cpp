@@ -1008,7 +1008,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         resetBodyBalls();
     }
     glm::quat orientation = getOrientation();
-    glm::vec3 jointDirection = orientation * JOINT_DIRECTION;
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         
         glm::vec3 springVector;
