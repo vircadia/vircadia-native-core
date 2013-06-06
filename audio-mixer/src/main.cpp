@@ -237,9 +237,7 @@ int main(int argc, const char* argv[]) {
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                             }
                             
-                            int16_t currentSample = otherAgentBuffer->getNextOutput()[s];
-                            
-                            currentSample *= attenuationCoefficient;
+                            int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
                             
                             plateauAdditionOfSamples(goodChannel[s], currentSample);
                             
