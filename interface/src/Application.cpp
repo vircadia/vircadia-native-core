@@ -303,11 +303,12 @@ void Application::paintGL() {
     } else if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
-        _myCamera.setTightness     (100.0f);
+        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
         
@@ -316,18 +317,8 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
     }
     
-    // important...
+    // Update camera position
     _myCamera.update( 1.f/_fps );
-    
-    // Render anything (like HUD items) that we want to be in 3D but not in worldspace
-    /*
-    const float HUD_Z_OFFSET = -5.f;
-    glPushMatrix();
-    glm::vec3 test(0.5, 0.5, 0.5);
-    glTranslatef(1, 1, HUD_Z_OFFSET);
-    drawVector(&test);
-    glPopMatrix();
-     */
     
     
     // Note: whichCamera is used to pick between the normal camera myCamera for our 
@@ -1971,7 +1962,7 @@ void Application::displaySide(Camera& whichCamera) {
             }
         }
         agentList->unlock();
-            
+        
         // Render my own Avatar 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
