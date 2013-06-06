@@ -1084,7 +1084,7 @@ void Avatar::updateBodyBalls(float deltaTime) {
         } else {
             glm::vec3 parentDirection = _bodyBall[ _skeleton.joint[b].parent ].rotation * JOINT_DIRECTION;
             _bodyBall[b].rotation = rotationBetween(parentDirection, springVector) *
-                _bodyBall[ _skeleton.joint[b].parent ].rotation;
+            _bodyBall[ _skeleton.joint[b].parent ].rotation;
         }
     }
 }
@@ -1146,74 +1146,73 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
-    //  Render the body's voxels
-    _voxels.render(false);
-    
     //  Render the body as balls and cones
-    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-        float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
-        
-        float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
-                                                          (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
-        
-        if (lookingInMirror || _owningAgent) {
-            alpha = 1.0f;
-        }
-        
-        //  Always render other people, and render myself when beyond threshold distance
-        if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
-            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
-                _head.render(lookingInMirror, _cameraPosition, alpha);
-            }
-        } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
-                   || b == BODY_BALL_RIGHT_ELBOW
-                   || b == BODY_BALL_RIGHT_WRIST
-                   || b == BODY_BALL_RIGHT_FINGERTIPS ) {
-            //  Render the body ball sphere
-            if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
-                || b == BODY_BALL_RIGHT_WRIST
-                || b == BODY_BALL_RIGHT_FINGERTIPS ) {
-                glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
-            } else {
-                glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
-                          alpha);
+    if (renderAvatarBalls) {
+        for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
+            float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
+            
+            float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
+                                                              (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+            
+            if (lookingInMirror || _owningAgent) {
+                alpha = 1.0f;
             }
             
-            if ((b != BODY_BALL_HEAD_TOP  )
-                &&  (b != BODY_BALL_HEAD_BASE )) {
-                glPushMatrix();
-                glTranslatef(_bodyBall[b].position.x, _bodyBall[b].position.y, _bodyBall[b].position.z);
-                glutSolidSphere(_bodyBall[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
-            
-            //  Render the cone connecting this ball to its parent
-            if (_bodyBall[b].parentBall != BODY_BALL_NULL) {
-                if ((b != BODY_BALL_HEAD_TOP      )
-                    &&  (b != BODY_BALL_HEAD_BASE     )
-                    &&  (b != BODY_BALL_PELVIS        )
-                    &&  (b != BODY_BALL_TORSO         )
-                    &&  (b != BODY_BALL_CHEST         )
-                    &&  (b != BODY_BALL_LEFT_COLLAR   )
-                    &&  (b != BODY_BALL_LEFT_SHOULDER )
-                    &&  (b != BODY_BALL_RIGHT_COLLAR  )
-                    &&  (b != BODY_BALL_RIGHT_SHOULDER)) {
-                    glColor3fv(DARK_SKIN_COLOR);
-                    
-                    float r1 = _bodyBall[_bodyBall[b].parentBall ].radius * 0.8;
-                    float r2 = _bodyBall[b].radius * 0.8;
-                    if (b == BODY_BALL_HEAD_BASE) {
-                        r1 *= 0.5f;
+            //  Always render other people, and render myself when beyond threshold distance
+            if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
+                if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                    _head.render(lookingInMirror, _cameraPosition, alpha);
+                }
+            } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
+                       || b == BODY_BALL_RIGHT_ELBOW
+                       || b == BODY_BALL_RIGHT_WRIST
+                       || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+                //  Render the body ball sphere
+                if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
+                    || b == BODY_BALL_RIGHT_WRIST
+                    || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+                    glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
+                } else {
+                    glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
+                              alpha);
+                }
+                
+                if ((b != BODY_BALL_HEAD_TOP  )
+                    &&  (b != BODY_BALL_HEAD_BASE )) {
+                    glPushMatrix();
+                    glTranslatef(_bodyBall[b].position.x, _bodyBall[b].position.y, _bodyBall[b].position.z);
+                    glutSolidSphere(_bodyBall[b].radius, 20.0f, 20.0f);
+                    glPopMatrix();
+                }
+                
+                //  Render the cone connecting this ball to its parent
+                if (_bodyBall[b].parentBall != BODY_BALL_NULL) {
+                    if ((b != BODY_BALL_HEAD_TOP      )
+                        &&  (b != BODY_BALL_HEAD_BASE     )
+                        &&  (b != BODY_BALL_PELVIS        )
+                        &&  (b != BODY_BALL_TORSO         )
+                        &&  (b != BODY_BALL_CHEST         )
+                        &&  (b != BODY_BALL_LEFT_COLLAR   )
+                        &&  (b != BODY_BALL_LEFT_SHOULDER )
+                        &&  (b != BODY_BALL_RIGHT_COLLAR  )
+                        &&  (b != BODY_BALL_RIGHT_SHOULDER)) {
+                        glColor3fv(DARK_SKIN_COLOR);
+                        
+                        float r1 = _bodyBall[_bodyBall[b].parentBall ].radius * 0.8;
+                        float r2 = _bodyBall[b].radius * 0.8;
+                        if (b == BODY_BALL_HEAD_BASE) {
+                            r1 *= 0.5f;
+                        }
+                        renderJointConnectingCone
+                        (
+                         _bodyBall[_bodyBall[b].parentBall].position,
+                         _bodyBall[b].position, r2, r2
+                         );
                     }
-                    renderJointConnectingCone
-                    (
-                     _bodyBall[_bodyBall[b].parentBall].position,
-                     _bodyBall[b].position, r2, r2
-                     );
                 }
             }
         }
@@ -1225,37 +1224,6 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
 
 
-void Avatar::setHeadFromGyros(glm::vec3* eulerAngles, glm::vec3* angularVelocity, float deltaTime, float smoothingTime) {
-    //
-    //  Given absolute position and angular velocity information, update the avatar's head angles
-    //  with the goal of fast instantaneous updates that gradually follow the absolute data.
-    //
-    //  Euler Angle format is (Yaw, Pitch, Roll) in degrees
-    //
-    //  Angular Velocity is (Yaw, Pitch, Roll) in degrees per second
-    //
-    //  SMOOTHING_TIME is the time is seconds over which the head should average to the
-    //  absolute eulerAngles passed.
-    //
-    //
-    
-    if (deltaTime == 0.f) {
-        //  On first sample, set head to absolute position
-        _head.setYaw  (eulerAngles->x);
-        _head.setPitch(eulerAngles->y);
-        _head.setRoll (eulerAngles->z);
-    } else {
-        glm::vec3 angles(_head.getYaw(), _head.getPitch(), _head.getRoll());
-        //  Increment by detected velocity
-        angles += (*angularVelocity) * deltaTime;
-        //  Smooth to slowly follow absolute values
-        angles = ((1.f - deltaTime / smoothingTime) * angles) + (deltaTime / smoothingTime) * (*eulerAngles);
-        _head.setYaw  (angles.x);
-        _head.setPitch(angles.y);
-        _head.setRoll (angles.z);
-        // printLog("Y/P/R: %3.1f, %3.1f, %3.1f\n", angles.x, angles.y, angles.z);
-    }
-}
 
 void Avatar::loadData(QSettings* set) {
     set->beginGroup("Avatar");
