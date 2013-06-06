@@ -124,8 +124,6 @@ int main(int argc, const char* argv[]) {
                 // zero out the client mix for this agent
                 memset(clientSamples, 0, sizeof(clientSamples));
                 
-                const int PHASE_DELAY_AT_90 = 20;
-                
                 for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
                     if (((PositionalAudioRingBuffer*) otherAgent->getLinkedData())->willBeAddedToMix()
                         && (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent()))) {
@@ -205,6 +203,7 @@ int main(int argc, const char* argv[]) {
                                                                                   glm::normalize(rotatedSourcePosition),
                                                                                   glm::vec3(0.0f, 1.0f, 0.0f));
                                 
+                                const int PHASE_DELAY_AT_90 = 20;
                                 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
                                 
                                 // figure out the number of samples of delay and the ratio of the amplitude
