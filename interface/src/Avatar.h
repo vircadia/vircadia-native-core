@@ -194,7 +194,6 @@ private:
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     Avatar*     _interactingOther;
-    float       _cumulativeMouseYaw;
     bool        _isMouseTurningRight;
     
     AvatarVoxelSystem _voxels;
