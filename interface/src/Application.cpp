@@ -753,8 +753,8 @@ void Application::timer() {
     gettimeofday(&_timerStart, NULL);
     
     // if we haven't detected gyros, check for them now
-    if (!_serialPort.active) {
-        _serialPort.pair();
+    if (!_serialHeadSensor.active) {
+        _serialHeadSensor.pair();
     }
 }
 
@@ -892,8 +892,8 @@ void Application::idle() {
         }
        
         //  Read serial port interface devices
-        if (_serialPort.active) {
-            _serialPort.readData(deltaTime);
+        if (_serialHeadSensor.active) {
+            _serialHeadSensor.readData(deltaTime);
         }
         
         //  Update transmitter
@@ -983,6 +983,44 @@ void Application::terminate() {
     }
 }
 
+static void sendAvatarVoxelURLMessage(const QUrl& url) {
+    uint16_t ownerID = AgentList::getInstance()->getOwnerID();
+    if (ownerID == UNKNOWN_AGENT_ID) {
+        return; // we don't yet know who we are
+    }
+    QByteArray message;
+    message.append(PACKET_HEADER_AVATAR_VOXEL_URL);
+    message.append((const char*)&ownerID, sizeof(ownerID));
+    message.append(url.toEncoded());
+
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)message.data(), message.size(), &AGENT_TYPE_AVATAR_MIXER, 1);
+}
+
+static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+    // skip the header
+    packetData++;
+    dataBytes--;
+    
+    // read the agent id
+    uint16_t agentID = *(uint16_t*)packetData;
+    packetData += sizeof(agentID);
+    dataBytes -= sizeof(agentID);
+    
+    // make sure the agent exists
+    Agent* agent = AgentList::getInstance()->agentWithID(agentID);
+    if (!agent || !agent->getLinkedData()) {
+        return;
+    }
+    Avatar* avatar = static_cast<Avatar*>(agent->getLinkedData());
+    if (!avatar->isInitialized()) {
+        return; // wait until initialized
+    }
+    QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
+    
+    // invoke the set URL function on the simulate/render thread
+    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -1006,7 +1044,8 @@ void Application::editPreferences() {
     }
     QUrl url(avatarURL->text());
     _settings->setValue("avatarURL", url);
-    _myAvatar.getVoxels()->loadVoxelsFromURL(url);
+    _myAvatar.getVoxels()->setVoxelURL(url);
+    sendAvatarVoxelURLMessage(url);
 }
 
 void Application::pair() {
@@ -1507,7 +1546,9 @@ void Application::init() {
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
-    _myAvatar.getVoxels()->loadVoxelsFromURL(_settings->value("avatarURL").toUrl());
+    QUrl avatarURL = _settings->value("avatarURL").toUrl();
+    _myAvatar.getVoxels()->setVoxelURL(avatarURL);
+    sendAvatarVoxelURLMessage(avatarURL);
     
     QCursor::setPos(_headMouseX, _headMouseY);
     
@@ -1523,26 +1564,40 @@ void Application::init() {
 }
 
 void Application::updateAvatar(float deltaTime) {
-    // Update my avatar's head position from gyros
-    _myAvatar.updateHeadFromGyros(deltaTime, &_serialPort);
 
-    //  Grab latest readings from the gyros
-    float measuredPitchRate = _serialPort.getLastPitchRate();
-    float measuredYawRate = _serialPort.getLastYawRate();
-    
-    //  Update gyro-based mouse (X,Y on screen)
-    const float MIN_MOUSE_RATE = 3.0;
-    const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
-    const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
-    if (powf(measuredYawRate * measuredYawRate +
-             measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
-        _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
-        _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
+    if (_serialHeadSensor.active) {
+      
+        // Update avatar head translation
+        if (_gyroLook->isChecked()) {
+            glm::vec3 headPosition = _serialHeadSensor.getEstimatedPosition();
+            const float HEAD_OFFSET_SCALING = 3.f;
+            headPosition *= HEAD_OFFSET_SCALING;
+            _myCamera.setEyeOffsetPosition(headPosition);
+        }
+        
+        // Update my avatar's head position from gyros
+        _myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
+        
+        //  Grab latest readings from the gyros
+        float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
+        float measuredYawRate = _serialHeadSensor.getLastYawRate();
+        
+        //  Update gyro-based mouse (X,Y on screen)
+        const float MIN_MOUSE_RATE = 3.0;
+        const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
+        const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
+        if (powf(measuredYawRate * measuredYawRate +
+                 measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
+            _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
+            _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
+        }
+        _headMouseX = max(_headMouseX, 0);
+        _headMouseX = min(_headMouseX, _glWidget->width());
+        _headMouseY = max(_headMouseY, 0);
+        _headMouseY = min(_headMouseY, _glWidget->height());
+
     }
-    _headMouseX = max(_headMouseX, 0);
-    _headMouseX = min(_headMouseX, _glWidget->width());
-    _headMouseY = max(_headMouseY, 0);
-    _headMouseY = min(_headMouseY, _glWidget->height());
+
     
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -1585,6 +1640,12 @@ void Application::updateAvatar(float deltaTime) {
         
         const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
         AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
+        
+        // once in a while, send my voxel url
+        const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
+        if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
+            sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+        }
     }
 
     // If I'm in paint mode, send a voxel out to VOXEL server agents.
@@ -1954,7 +2015,7 @@ void Application::displayOverlay() {
         }
         
     //  Show detected levels from the serial I/O ADC channel sensors
-    if (_displayLevels) _serialPort.renderLevels(_glWidget->width(), _glWidget->height());
+    if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());
     
     //  Show hand transmitter data if detected
     if (_myTransmitter.isConnected()) {
@@ -2332,8 +2393,8 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
-    if (_serialPort.active) {
-        _serialPort.resetAverages();
+    if (_serialHeadSensor.active) {
+        _serialHeadSensor.resetAverages();
     }
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
@@ -2420,6 +2481,9 @@ void* Application::networkReceive(void* args) {
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
+                    break;
+                case PACKET_HEADER_AVATAR_VOXEL_URL:
+                    processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
                     break;
                 default:
                     AgentList::getInstance()->processAgentData(&senderAddress, app->_incomingPacket, bytesReceived);

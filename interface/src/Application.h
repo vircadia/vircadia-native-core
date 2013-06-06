@@ -199,9 +199,9 @@ private:
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     
+    SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
-    
-    SerialInterface _serialPort;
+    QSettings* _settings;
     bool _displayLevels;
     
     glm::vec3 _gravity;
@@ -292,7 +292,6 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    QSettings* _settings;   // Contain Menu settings and Avatar data
     bool _autosave;        // True if the autosave is on.
 };
 
