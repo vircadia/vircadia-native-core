@@ -10,7 +10,6 @@
 #define __hifi__VoxelTree__
 
 #include "SimpleMovingAverage.h"
-
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
@@ -100,7 +99,12 @@ public:
     void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
     
+    bool getShouldReaverage() const { return _shouldReaverage; }
+    
 private:
+    void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
+    void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
+
     int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
                                      VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                                      const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits, 

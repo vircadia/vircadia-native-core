@@ -188,10 +188,6 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
 //
 // HACK ATTACK: Well, what if this is larger than the MTU? That's the caller's problem, we
 //              just truncate the message
-// Usage:       
-//                  unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-//                  tree->readCodeColorBufferToTree(voxelData);
-//                  delete voxelData;
 //
 // Complaints:  Brad :)
 #define GUESS_OF_VOXELCODE_SIZE 10
