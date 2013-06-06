@@ -243,15 +243,15 @@ int main(int argc, const char* argv[]) {
                             
                             const float MAX_EXPONENT = logf(MAX_REVERB_DISTANCE) / logf(WETNESS_DOUBLING_DISTANCE_FACTOR);
                             const int MAX_EXPONENT_INT = floorf(MAX_EXPONENT);
-                            float DISTANCE_REVERB_LOG_REMAINDER = fmodf(MAX_EXPONENT, MAX_EXPONENT_INT);
-                            
+                            const float DISTANCE_REVERB_LOG_REMAINDER = fmodf(MAX_EXPONENT, MAX_EXPONENT_INT);
                             const float DISTANCE_REVERB_MAX_WETNESS = 1.0f;
+                            const float EFFECT_MIX_RHS = DISTANCE_REVERB_MAX_WETNESS / powf(WETNESS_DOUBLING_DISTANCE_FACTOR,
+                                                                                            MAX_EXPONENT_INT);
                             
                             float effectMix = powf(WETNESS_CALC_EXPONENT_BASE,
                                                    (0.5f * logf(distanceSquareToSource) / logf(WETNESS_CALC_EXPONENT_BASE))
                                                    - DISTANCE_REVERB_LOG_REMAINDER);
-                            effectMix *= DISTANCE_REVERB_MAX_WETNESS / (powf(WETNESS_DOUBLING_DISTANCE_FACTOR,
-                                                                             MAX_EXPONENT_INT));
+                            effectMix *= EFFECT_MIX_RHS;
                             
                             otherAgentFreeVerb->setEffectMix(effectMix);
                         }
