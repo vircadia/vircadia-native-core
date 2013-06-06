@@ -6,6 +6,7 @@
 //
 
 #include "SerialInterface.h"
+#include "Util.h"
 #include <glm/gtx/vector_angle.hpp>
 #include <math.h>
 
@@ -258,8 +259,8 @@ void SerialInterface::readData(float deltaTime) {
                 1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
             } else {
                 //  Use gravity reading to do sensor fusion on the pitch and roll estimation
-                _estimatedRotation = safeMix(_estimatedRotation,
-                    rotationBetween(_gravity, _lastAcceleration) * _estimatedRotation, 1.0f / SENSOR_FUSION_SAMPLES);
+                estimatedRotation = safeMix(estimatedRotation,
+                    rotationBetween(_gravity, _lastAcceleration) * estimatedRotation, 1.0f / SENSOR_FUSION_SAMPLES);
             }
         }
         
