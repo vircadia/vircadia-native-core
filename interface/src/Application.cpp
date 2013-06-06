@@ -104,37 +104,37 @@ void GLCanvas::resizeGL(int width, int height) {
 }
 
 void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->keyPressEvent(event);
     }
 }
 
 void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->keyReleaseEvent(event);
     }
 }
 
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->mouseMoveEvent(event);
     }
 }
 
 void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->mousePressEvent(event);
     }
 }
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->mouseReleaseEvent(event);
     }
 }
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
-    if (hasFocus()) {
+    if (Application::activeWindow() != 0) {
         Application::getInstance()->wheelEvent(event);
     }
 }
@@ -888,7 +888,7 @@ void Application::idle() {
         
         //  Update from Mouse
         if (_mouseLook->isChecked()) {
-            QPoint mouse = QCursor::pos();
+            QPoint mouse = QPoint(_mouseX, _mouseY);
             _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
                                       _glWidget->mapFromGlobal(mouse).y(),
                                       _glWidget->width(),
