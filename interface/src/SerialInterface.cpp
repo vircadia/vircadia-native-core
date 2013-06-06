@@ -6,6 +6,8 @@
 //
 
 #include "SerialInterface.h"
+#include <glm/gtx/vector_angle.hpp>
+#include <math.h>
 
 #ifdef __APPLE__
 #include <regex.h>
@@ -15,6 +17,7 @@
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
+const int SENSOR_FUSION_SAMPLES = 200;
 const int LONG_TERM_RATE_SAMPLES = 1000;            
 
 const bool USING_INVENSENSE_MPU9150 = 1;
@@ -227,6 +230,7 @@ void SerialInterface::readData(float deltaTime) {
 
         //  Update raw rotation estimates
         _estimatedRotation += deltaTime * (_lastRotationRates - _averageRotationRates);
+
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
@@ -235,10 +239,7 @@ void SerialInterface::readData(float deltaTime) {
         _estimatedPosition += deltaTime * _estimatedVelocity;
         _estimatedVelocity *= DECAY_VELOCITY;
         _estimatedPosition *= DECAY_POSITION;
-        
-        //glm::vec3 baseline = glm::normalize(_gravity);
-        //glm::vec3 current = glm::normalize(_lastAcceleration);
-        
+                
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
             _averageRotationRates = _lastRotationRates;
@@ -255,8 +256,31 @@ void SerialInterface::readData(float deltaTime) {
             if (totalSamples < GRAVITY_SAMPLES) {
                 _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
                 1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
+            } else {
+                //  Use gravity reading to do sensor fusion on the pitch and roll estimation
+                float truePitchAngle = glm::angle(glm::normalize(glm::vec3(0, _gravity.y, _gravity.z)),
+                                                  glm::normalize(glm::vec3(0, _lastAcceleration.y, _lastAcceleration.z))) *
+                ((_lastAcceleration.z > _gravity.z) ? -1.0 : 1.0);
+                
+                float trueRollAngle = glm::angle(glm::normalize(glm::vec3(_gravity.x, _gravity.y, 0)),
+                                                 glm::normalize(glm::vec3(_lastAcceleration.x, _lastAcceleration.y, 0))) *
+                ((_lastAcceleration.x > _gravity.x) ? -1.0 : 1.0);
+                
+                //  PER:  BUG:   This is bizarre, because glm::angle() SOMETIMES returns NaN for what seem to
+                //               be perfectly valid inputs.  So I added these NaN tests,  gotta fix.  
+                if (!glm::isnan(truePitchAngle) && !glm::isnan(trueRollAngle)) {
+                    _estimatedRotation.x = (1.f - 1.f/(float)SENSOR_FUSION_SAMPLES) * _estimatedRotation.x +
+                    1.f/(float)SENSOR_FUSION_SAMPLES * truePitchAngle;
+                    _estimatedRotation.z = (1.f - 1.f/(float)SENSOR_FUSION_SAMPLES) * _estimatedRotation.z +
+                    1.f/(float)SENSOR_FUSION_SAMPLES * trueRollAngle;
+                    //  Without a compass heading, always decay estimated Yaw slightly
+                    const float YAW_DECAY = 0.995;
+                    _estimatedRotation.y *= YAW_DECAY;
+                }
+                
             }
         }
+         
         
         totalSamples++;
     } 

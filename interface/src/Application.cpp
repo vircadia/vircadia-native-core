@@ -19,6 +19,7 @@
 #endif
 
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 #include <QActionGroup>
 #include <QBoxLayout>

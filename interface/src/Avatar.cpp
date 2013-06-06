@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <vector>
 #include <lodepng.h>
 #include <SharedUtil.h>
@@ -278,22 +279,13 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     const float AMPLIFY_PITCH = 2.f;
     const float AMPLIFY_YAW = 2.f;
     const float AMPLIFY_ROLL = 2.f;
+         
     
-    float measuredPitchRate = serialInterface->getLastPitchRate();
-    float measuredYawRate = serialInterface->getLastYawRate();
-    float measuredRollRate = serialInterface->getLastRollRate();
-   
-    //  Update avatar head position based on measured gyro rates
-    _head.addPitch(measuredPitchRate * AMPLIFY_PITCH * deltaTime);
-    _head.addYaw(measuredYawRate * AMPLIFY_YAW * deltaTime);
-    _head.addRoll(measuredRollRate * AMPLIFY_ROLL * deltaTime);
-     
-    /*
     glm::vec3 estimatedRotation = serialInterface->getEstimatedRotation();
     _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
     _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
-    */
+        
     
     //  Update head lean distance based on accelerometer data
     glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());

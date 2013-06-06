@@ -57,7 +57,9 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
     front->x = frontNew.x;  front->y = frontNew.y;  front->z = frontNew.z;
 }
 
-
+void printVector(glm::vec3 vec) {
+    printf("%4.2f, %4.2f, %4.2f\n", vec.x, vec.y, vec.z);
+}
 
 //  Return the azimuth angle in degrees between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {

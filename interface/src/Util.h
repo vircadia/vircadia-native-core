@@ -43,6 +43,8 @@ void noiseTest(int w, int h);
 
 void drawVector(glm::vec3* vector);
 
+void printVector(glm::vec3 vec);
+
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
 
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
