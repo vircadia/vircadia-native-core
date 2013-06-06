@@ -86,6 +86,7 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_CHEST            ].defaultPosePosition = glm::vec3(  0.0,   0.09,  -0.01 );
     joint[ AVATAR_JOINT_NECK_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.14,   0.01 );
     joint[ AVATAR_JOINT_HEAD_BASE        ].defaultPosePosition = glm::vec3(  0.0,   0.04,   0.00 );
+    joint[ AVATAR_JOINT_HEAD_TOP         ].defaultPosePosition = glm::vec3(  0.0,   0.04,   0.00 );
     
     joint[ AVATAR_JOINT_LEFT_COLLAR      ].defaultPosePosition = glm::vec3( -0.06,  0.04,   0.01 );
     joint[ AVATAR_JOINT_LEFT_SHOULDER    ].defaultPosePosition = glm::vec3( -0.05,  0.0,    0.01 );
