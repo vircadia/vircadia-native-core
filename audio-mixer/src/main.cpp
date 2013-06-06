@@ -324,7 +324,8 @@ int main(int argc, const char* argv[]) {
         
         // pull any new audio data from agents off of the network stack
         while (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO) {
+            if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO ||
+                packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO) {
                 Agent* avatarAgent = agentList->addOrUpdateAgent(agentAddress,
                                                                  agentAddress,
                                                                  AGENT_TYPE_AVATAR,

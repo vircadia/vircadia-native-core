@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/8/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 //  The packet headers below refer to the first byte of a received UDP packet transmitted between
 //  any two Hifi components.  For example, a packet whose first byte is 'P' is always a ping packet.
@@ -20,7 +20,8 @@ const PACKET_HEADER PACKET_HEADER_HEAD_DATA = 'H';
 const PACKET_HEADER PACKET_HEADER_Z_COMMAND = 'Z';
 const PACKET_HEADER PACKET_HEADER_INJECT_AUDIO = 'I';
 const PACKET_HEADER PACKET_HEADER_MIXED_AUDIO = 'A';
-const PACKET_HEADER PACKET_HEADER_MICROPHONE_AUDIO = 'M';
+const PACKET_HEADER PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO = 'M';
+const PACKET_HEADER PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO = 'm';
 const PACKET_HEADER PACKET_HEADER_SET_VOXEL = 'S';
 const PACKET_HEADER PACKET_HEADER_SET_VOXEL_DESTRUCTIVE = 'O';
 const PACKET_HEADER PACKET_HEADER_ERASE_VOXEL = 'E';

@@ -28,8 +28,6 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
     
-    bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
-    
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
@@ -37,7 +35,6 @@ protected:
     
     glm::vec3 _position;
     glm::quat _orientation;
-    bool _shouldLoopbackForAgent;
     bool _willBeAddedToMix;
 };
 
