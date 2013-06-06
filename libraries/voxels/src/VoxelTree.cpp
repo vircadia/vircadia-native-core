@@ -264,6 +264,7 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     reaverageVoxelColors(rootNode); 
 }
 
+
 class DeleteVoxelCodeFromTreeArgs {
 public:
     bool            stage;
@@ -277,7 +278,6 @@ public:
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, bool collapseEmptyTrees) {
-
     // recurse the tree while decoding the codeBuffer, once you find the node in question, recurse
     // back and implement color reaveraging, and marking of lastChanged
     DeleteVoxelCodeFromTreeArgs args;
@@ -312,9 +312,10 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
     int childIndex = branchIndexWithDescendant(node->getOctalCode(), args->codeBuffer);
     VoxelNode* childNode = node->getChildAtIndex(childIndex);
     
-    // If there is no child at the target location, then it likely means we were asked to delete a child out
-    // of a larger leaf voxel. We support this by breaking up the parent voxel into smaller pieces.
-    if (!childNode) {
+    // If there is no child at the target location, and the current parent node is a colored leaf,
+    // then it means we were asked to delete a child out of a larger leaf voxel. 
+    // We support this by breaking up the parent voxel into smaller pieces.
+    if (!childNode && node->isLeaf() && node->isColored()) {
         // we need to break up ancestors until we get to the right level
         VoxelNode* ancestorNode = node;
         while (true) {
@@ -345,8 +346,17 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
         // ends recursion, unwinds up stack
         return;
     }
+    
+    // if we don't have a child and we reach this point, then we actually know that the parent
+    // isn't a colored leaf, and the child branch doesn't exist, so there's nothing to do below and
+    // we can safely return, ending the recursion and unwinding
+    if (!childNode) {
+        //printLog("new___deleteVoxelCodeFromTree() child branch doesn't exist, but parent is not a leaf, just unwind\n");
+        return;
+    }
 
-    // recurse...
+    // If we got this far then we have a child for the branch we're looking for, but we're not there yet
+    // recurse till we get there
     deleteVoxelCodeFromTreeRecursion(childNode, args);
 
     // If the lower level determined it needs to be deleted, then we should delete now.
