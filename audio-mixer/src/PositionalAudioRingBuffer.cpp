@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <cstring>
+
 #include <PacketHeaders.h>
 
 #include "PositionalAudioRingBuffer.h"
@@ -14,7 +16,6 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
     AudioRingBuffer(false),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
-    _shouldLoopbackForAgent(false),
     _willBeAddedToMix(false)
 {
     
