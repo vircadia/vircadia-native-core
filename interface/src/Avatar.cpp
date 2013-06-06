@@ -927,7 +927,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
     }
 }
 
-void Avatar::render(bool lookingInMirror) {
+void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     
     _cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
@@ -945,7 +945,7 @@ void Avatar::render(bool lookingInMirror) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
 
     // render body
-    renderBody(lookingInMirror);
+    renderBody(lookingInMirror, renderAvatarBalls);
     
     // if this is my avatar, then render my interactions with the other avatar
     if (!_owningAgent) {
@@ -1141,82 +1141,84 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool lookingInMirror) {
+void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
-    
-    //  Render the body's voxels
-    _voxels.render(false);
-    
-    //  Render the body as balls and cones 
-    for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-        float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
         
-        float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
-            (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+    //  Render the body as balls and cones
+    if (renderAvatarBalls) {
+        for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
+            float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
+            
+            float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
+                (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+            
+            if (lookingInMirror || _owningAgent) {
+                alpha = 1.0f;
+            }
         
-        if (lookingInMirror || _owningAgent) {
-            alpha = 1.0f;
-        }
-    
-        //  Always render other people, and render myself when beyond threshold distance
-        if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
-            if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
-                _head.render(lookingInMirror, _cameraPosition, alpha);
-            }
-        } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
-                   || b == BODY_BALL_RIGHT_ELBOW
-                   || b == BODY_BALL_RIGHT_WRIST
-                   || b == BODY_BALL_RIGHT_FINGERTIPS ) {
-            //  Render the body ball sphere
-            if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
-                             || b == BODY_BALL_RIGHT_WRIST
-                             || b == BODY_BALL_RIGHT_FINGERTIPS ) {
-                glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
-            } else {
-                glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
-                          alpha);
-            }
-            
-            if ((b != BODY_BALL_HEAD_TOP  )
-            &&  (b != BODY_BALL_HEAD_BASE )) {
-                glPushMatrix();
-                glTranslatef(_bodyBall[b].position.x, _bodyBall[b].position.y, _bodyBall[b].position.z);
-                glutSolidSphere(_bodyBall[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
-            
-            //  Render the cone connecting this ball to its parent
-            if (_bodyBall[b].parentBall != BODY_BALL_NULL) {
-                if ((b != BODY_BALL_HEAD_TOP      )
-                &&  (b != BODY_BALL_HEAD_BASE     )
-                &&  (b != BODY_BALL_PELVIS        )
-                &&  (b != BODY_BALL_TORSO         )
-                &&  (b != BODY_BALL_CHEST         )
-                &&  (b != BODY_BALL_LEFT_COLLAR   )
-                &&  (b != BODY_BALL_LEFT_SHOULDER )
-                &&  (b != BODY_BALL_RIGHT_COLLAR  )
-                &&  (b != BODY_BALL_RIGHT_SHOULDER)) {
-                    glColor3fv(DARK_SKIN_COLOR);
-                    
-                    float r1 = _bodyBall[_bodyBall[b].parentBall ].radius * 0.8;
-                    float r2 = _bodyBall[b].radius * 0.8;
-                    if (b == BODY_BALL_HEAD_BASE) {
-                        r1 *= 0.5f;
-                    }
-                    renderJointConnectingCone
-                    (
-                     _bodyBall[_bodyBall[b].parentBall].position,
-                     _bodyBall[b].position, r2, r2
-                     );
+            //  Always render other people, and render myself when beyond threshold distance
+            if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
+                if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                    _head.render(lookingInMirror, _cameraPosition, alpha);
                 }
-            } 
+            } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
+                       || b == BODY_BALL_RIGHT_ELBOW
+                       || b == BODY_BALL_RIGHT_WRIST
+                       || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+                //  Render the body ball sphere
+                if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
+                                 || b == BODY_BALL_RIGHT_WRIST
+                                 || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+                    glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
+                } else {
+                    glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
+                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
+                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
+                              alpha);
+                }
+                
+                if ((b != BODY_BALL_HEAD_TOP  )
+                &&  (b != BODY_BALL_HEAD_BASE )) {
+                    glPushMatrix();
+                    glTranslatef(_bodyBall[b].position.x, _bodyBall[b].position.y, _bodyBall[b].position.z);
+                    glutSolidSphere(_bodyBall[b].radius, 20.0f, 20.0f);
+                    glPopMatrix();
+                }
+                
+                //  Render the cone connecting this ball to its parent
+                if (_bodyBall[b].parentBall != BODY_BALL_NULL) {
+                    if ((b != BODY_BALL_HEAD_TOP      )
+                    &&  (b != BODY_BALL_HEAD_BASE     )
+                    &&  (b != BODY_BALL_PELVIS        )
+                    &&  (b != BODY_BALL_TORSO         )
+                    &&  (b != BODY_BALL_CHEST         )
+                    &&  (b != BODY_BALL_LEFT_COLLAR   )
+                    &&  (b != BODY_BALL_LEFT_SHOULDER )
+                    &&  (b != BODY_BALL_RIGHT_COLLAR  )
+                    &&  (b != BODY_BALL_RIGHT_SHOULDER)) {
+                        glColor3fv(DARK_SKIN_COLOR);
+                        
+                        float r1 = _bodyBall[_bodyBall[b].parentBall ].radius * 0.8;
+                        float r2 = _bodyBall[b].radius * 0.8;
+                        if (b == BODY_BALL_HEAD_BASE) {
+                            r1 *= 0.5f;
+                        }
+                        renderJointConnectingCone
+                        (
+                         _bodyBall[_bodyBall[b].parentBall].position,
+                         _bodyBall[b].position, r2, r2
+                         );
+                    }
+                } 
+            }
         }
+    } else {
+        //  Render the body's voxels
+        _voxels.render(false);
     }
 }
 
