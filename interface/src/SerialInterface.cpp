@@ -18,7 +18,7 @@
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
-const int SENSOR_FUSION_SAMPLES = 200;
+const int SENSOR_FUSION_SAMPLES = 20;
 const int LONG_TERM_RATE_SAMPLES = 1000;            
 
 const bool USING_INVENSENSE_MPU9150 = 1;
