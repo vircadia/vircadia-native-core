@@ -1386,7 +1386,7 @@ void Application::initMenu() {
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
-    _gyroLook->setChecked(true);
+    _gyroLook->setChecked(false);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(false);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
@@ -1409,6 +1409,8 @@ void Application::initMenu() {
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
+    (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
+    _renderAvatarBalls->setChecked(false);
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
@@ -1965,13 +1967,13 @@ void Application::displaySide(Camera& whichCamera) {
                 if (!avatar->isInitialized()) {
                     avatar->init();
                 }
-                avatar->render(false);
+                avatar->render(false, _renderAvatarBalls->isChecked());
             }
         }
         agentList->unlock();
             
         // Render my own Avatar 
-        _myAvatar.render(_lookingInMirror->isChecked());
+        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
     

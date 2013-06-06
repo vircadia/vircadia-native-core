@@ -927,7 +927,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
     }
 }
 
-void Avatar::render(bool lookingInMirror) {
+void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     
     _cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
@@ -945,7 +945,7 @@ void Avatar::render(bool lookingInMirror) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
     
     // render body
-    renderBody(lookingInMirror);
+    renderBody(lookingInMirror, renderAvatarBalls);
     
     // if this is my avatar, then render my interactions with the other avatar
     if (!_owningAgent) {
@@ -1141,7 +1141,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool lookingInMirror) {
+void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
@@ -1217,6 +1217,9 @@ void Avatar::renderBody(bool lookingInMirror) {
                 }
             }
         }
+    } else {
+        //  Render the body's voxels
+        _voxels.render(false);
     }
 }
 
