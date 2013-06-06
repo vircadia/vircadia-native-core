@@ -229,8 +229,8 @@ void SerialInterface::readData(float deltaTime) {
         _lastRotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
 
         //  Update raw rotation estimates
-        glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
-            glm::quat(glm::radians(deltaTime * (_lastRotationRates - _averageRotationRates)));
+        _estimatedRotation += deltaTime * (_lastRotationRates - _averageRotationRates);
+
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
@@ -258,12 +258,29 @@ void SerialInterface::readData(float deltaTime) {
                 1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
             } else {
                 //  Use gravity reading to do sensor fusion on the pitch and roll estimation
-                _estimatedRotation = safeMix(_estimatedRotation,
-                    rotationBetween(_gravity, _lastAcceleration) * _estimatedRotation, 1.0f / SENSOR_FUSION_SAMPLES);
+                float truePitchAngle = glm::angle(glm::normalize(glm::vec3(0, _gravity.y, _gravity.z)),
+                                                  glm::normalize(glm::vec3(0, _lastAcceleration.y, _lastAcceleration.z))) 
+                                       * ((_lastAcceleration.z > _gravity.z) ? -1.0 : 1.0);
+                
+                float trueRollAngle = glm::angle(glm::normalize(glm::vec3(_gravity.x, _gravity.y, 0)),
+                                                 glm::normalize(glm::vec3(_lastAcceleration.x, _lastAcceleration.y, 0))) 
+                                      * ((_lastAcceleration.x > _gravity.x) ? -1.0 : 1.0);
+                
+                //  PER:  BUG:   This is bizarre, because glm::angle() SOMETIMES returns NaN for what seem to
+                //               be perfectly valid inputs.  So I added these NaN tests,  gotta fix.  
+                if (!glm::isnan(truePitchAngle) && !glm::isnan(trueRollAngle)) {
+                    _estimatedRotation.x = (1.f - 1.f/(float)SENSOR_FUSION_SAMPLES) * _estimatedRotation.x 
+                                           + 1.f/(float)SENSOR_FUSION_SAMPLES * truePitchAngle;
+                    _estimatedRotation.z = (1.f - 1.f/(float)SENSOR_FUSION_SAMPLES) * _estimatedRotation.z 
+                                           + 1.f/(float)SENSOR_FUSION_SAMPLES * trueRollAngle;
+                    //  Without a compass heading, always decay estimated Yaw slightly
+                    const float YAW_DECAY = 0.995;
+                    _estimatedRotation.y *= YAW_DECAY;
+                }
+                
             }
         }
-        
-        _estimatedRotation = safeEulerAngles(estimatedRotation); 
+         
         
         totalSamples++;
     } 
