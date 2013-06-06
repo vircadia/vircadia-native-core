@@ -11,16 +11,8 @@
 #include "AvatarAudioRingBuffer.h"
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
-    _freeVerbs(),
     _shouldLoopbackForAgent(false) {
     
-}
-
-AvatarAudioRingBuffer::~AvatarAudioRingBuffer() {
-    // enumerate the freeVerbs map and delete the FreeVerb objects
-    for (FreeVerbAgentMap::iterator verbIterator = _freeVerbs.begin(); verbIterator != _freeVerbs.end(); verbIterator++) {
-        delete verbIterator->second;
-    }
 }
 
 int AvatarAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
