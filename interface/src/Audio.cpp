@@ -32,12 +32,6 @@ const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
 const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
-const int BUFFER_LENGTH_BYTES = 512;
-const int BUFFER_LENGTH_SAMPLES = BUFFER_LENGTH_BYTES / sizeof(int16_t);
-
-const int RING_BUFFER_FRAMES = 10;
-const int RING_BUFFER_SAMPLES = RING_BUFFER_FRAMES * BUFFER_LENGTH_SAMPLES;
-
 const int PHASE_DELAY_AT_90 = 20;
 const float AMPLITUDE_RATIO_AT_90 = 0.5;
 
@@ -47,12 +41,11 @@ const float FLANGE_BASE_RATE = 4;
 const float MAX_FLANGE_SAMPLE_WEIGHT = 0.50;
 const float MIN_FLANGE_INTENSITY = 0.25;
 
-const int SAMPLE_RATE = 22050;
 const float JITTER_BUFFER_LENGTH_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
                                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
-const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES / (float)SAMPLE_RATE * 1000.0;
+const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
 
 const int AGENT_LOOPBACK_MODIFIER = 307;
@@ -92,7 +85,7 @@ int audioCallback (const void* inputBuffer,
     int16_t* outputRight = ((int16_t**) outputBuffer)[1];
 
     // Add Procedural effects to input samples
-    parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES);
+    parentAudio->addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     // add output (@speakers) data to the scope
     parentAudio->_scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
@@ -120,57 +113,47 @@ int audioCallback (const void* inputBuffer,
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
             loudness += abs(inputLeft[i]);
         }
         
-        loudness /= BUFFER_LENGTH_SAMPLES;
+        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
         parentAudio->_lastInputLoudness = loudness;
         
         // add input (@microphone) data to the scope
-        parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES);
+        parentAudio->_scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
-            int leadingBytes = 2 + (sizeof(float) * 4);
+            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+            
+            int leadingBytes = 1 + sizeof(headPosition) + sizeof(headOrientation);
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-            unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+            unsigned char dataPacket[BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes];
             
-            dataPacket[0] = PACKET_HEADER_MICROPHONE_AUDIO;
+            dataPacket[0] = (Application::getInstance()->shouldEchoAudio())
+                ? PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO
+                : PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO;
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
-            memcpy(currentPacketPtr, &interfaceAvatar->getHeadJointPosition(), sizeof(float) * 3);
-            currentPacketPtr += (sizeof(float) * 3);
+            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+            currentPacketPtr += (sizeof(headPosition));
             
-            // tell the mixer not to add additional attenuation to our source
-            *(currentPacketPtr++) = 255;
-            
-            // memcpy the corrected render yaw
-            float correctedYaw = fmodf(-1 * interfaceAvatar->getAbsoluteHeadYaw(), 360);
-            
-            if (correctedYaw > 180) {
-                correctedYaw -= 360;
-            } else if (correctedYaw < -180) {
-                correctedYaw += 360;
-            }
-            
-            if (Application::getInstance()->shouldEchoAudio()) {
-                correctedYaw = correctedYaw > 0
-                    ? correctedYaw + AGENT_LOOPBACK_MODIFIER
-                    : correctedYaw - AGENT_LOOPBACK_MODIFIER;
-            }
-            
-            memcpy(currentPacketPtr, &correctedYaw, sizeof(float));
-            currentPacketPtr += sizeof(float);
+            // memcpy our orientation
+            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+            currentPacketPtr += sizeof(headOrientation);
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES);
+            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
             
-            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(), dataPacket, BUFFER_LENGTH_BYTES + leadingBytes);
+            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(),
+                                              dataPacket,
+                                              BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
         
     }
@@ -183,11 +166,11 @@ int audioCallback (const void* inputBuffer,
     // if we've been reset, and there isn't any new packets yet
     // just play some silence
     
-    if (ringBuffer->getEndOfLastWrite() != NULL) {
+    if (ringBuffer->getEndOfLastWrite()) {
         
         if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-            //printLog("Held back, buffer has %d of %d samples required.\n",
-            //         ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
+//            printLog("Held back, buffer has %d of %d samples required.\n",
+//                     ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
             
@@ -247,7 +230,7 @@ int audioCallback (const void* inputBuffer,
                             // we need to grab the flange sample from earlier in the buffer
                             flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
                             ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
-                            : ringBuffer->getNextOutput() + RING_BUFFER_SAMPLES - PACKET_LENGTH_SAMPLES;
+                            : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
                             
                             flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
                         }
@@ -271,7 +254,7 @@ int audioCallback (const void* inputBuffer,
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
-            if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_SAMPLES) {
+            if (ringBuffer->getNextOutput() == ringBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
                 ringBuffer->setNextOutput(ringBuffer->getBuffer());
             }
         }
@@ -301,7 +284,7 @@ void outputPortAudioError(PaError error) {
 
 Audio::Audio(Oscilloscope* scope) :
     _stream(NULL),
-    _ringBuffer(RING_BUFFER_SAMPLES, PACKET_LENGTH_SAMPLES),
+    _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -326,17 +309,17 @@ Audio::Audio(Oscilloscope* scope) :
                                               2,
                                               (paInt16 | paNonInterleaved),
                                               SAMPLE_RATE,
-                                              BUFFER_LENGTH_SAMPLES,
+                                              BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                                               audioCallback,
                                               (void*) this));
     
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
     
-    _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES];
-    _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES];
-    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
-    memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES * sizeof(int));
+    _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
+    _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
+    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
+    memset(_echoOutputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
     
     gettimeofday(&_lastReceiveTime, NULL);
 }
@@ -358,13 +341,13 @@ void Audio::renderEchoCompare() {
     glDisable(GL_LINE_SMOOTH);
     glColor3f(1,1,1);
     glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
         glVertex2f(XPOS + i * XSCALE, YPOS + _echoInputSamples[i]/YSCALE);
     }
     glEnd();
     glColor3f(0,1,1);
     glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < BUFFER_LENGTH_SAMPLES; i++) {
+    for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
         glVertex2f(XPOS + i * XSCALE, YPOS + _echoOutputSamples[i]/YSCALE);
     }
     glEnd();
@@ -479,7 +462,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < RING_BUFFER_FRAMES; i++) {
+        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;

@@ -172,6 +172,7 @@ private:
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
     QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
+    QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
@@ -199,9 +200,9 @@ private:
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     
+    SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
-    
-    SerialInterface _serialPort;
+    QSettings* _settings;
     bool _displayLevels;
     
     glm::vec3 _gravity;
@@ -292,7 +293,6 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
-    QSettings* _settings;   // Contain Menu settings and Avatar data
     bool _autosave;        // True if the autosave is on.
 };
 

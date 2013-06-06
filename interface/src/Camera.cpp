@@ -7,9 +7,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
-#include <OculusManager.h>
 #include "Log.h"
-
 #include "Camera.h"
 #include "Util.h"
 
@@ -88,22 +86,19 @@ void Camera::updateFollowMode(float deltaTime) {
         t = 1.0;
     }
     
-    // update rotation (before position!)
-    if (_needsToInitialize || OculusManager::isConnected()) {
+    // Update position and rotation, setting directly if tightness is 0.0
+    
+    if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
+        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _position = _idealPosition;
+        _needsToInitialize = false;
+
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
-    }
-            
-    _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
-    
-    if (_needsToInitialize) {
-        _position = _idealPosition; 
-        _needsToInitialize = false;
-    } else {
-        // force position towards ideal position
-        _position += (_idealPosition - _position) * t; 
+        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _position += (_idealPosition - _position) * t;
     }
 }
 
