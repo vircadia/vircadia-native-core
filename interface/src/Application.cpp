@@ -104,27 +104,39 @@ void GLCanvas::resizeGL(int width, int height) {
 }
 
 void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    Application::getInstance()->keyPressEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->keyPressEvent(event);
+    }
 }
 
 void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    Application::getInstance()->keyReleaseEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->keyReleaseEvent(event);
+    }
 }
 
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    Application::getInstance()->mouseMoveEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->mouseMoveEvent(event);
+    }
 }
 
 void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    Application::getInstance()->mousePressEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->mousePressEvent(event);
+    }
 }
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    Application::getInstance()->mouseReleaseEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->mouseReleaseEvent(event);
+    }
 }
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
-    Application::getInstance()->wheelEvent(event);
+    if (hasFocus()) {
+        Application::getInstance()->wheelEvent(event);
+    }
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
