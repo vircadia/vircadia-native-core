@@ -260,7 +260,8 @@ void SerialInterface::readData(float deltaTime) {
             } else {
                 //  Use gravity reading to do sensor fusion on the pitch and roll estimation
                 estimatedRotation = safeMix(estimatedRotation,
-                    rotationBetween(_gravity, _lastAcceleration) * estimatedRotation, 1.0f / SENSOR_FUSION_SAMPLES);
+                    rotationBetween(estimatedRotation * _lastAcceleration, _gravity) * estimatedRotation,
+                    1.0f / SENSOR_FUSION_SAMPLES);
             }
         }
         
