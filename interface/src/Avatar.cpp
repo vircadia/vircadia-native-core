@@ -991,10 +991,10 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
             int lastIndex = _chatMessage.size() - 1;
             char lastChar = _chatMessage[lastIndex];
             _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
+            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
             glColor3f(0, 1, 0);
-            textRenderer()->draw(width/2 - lastWidth, 0, _chatMessage.c_str() + lastIndex);
+            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
         glDepthMask(true);
