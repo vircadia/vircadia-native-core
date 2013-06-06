@@ -19,3 +19,9 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
+
+# link the stk library
+set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
+find_package(STK REQUIRED)
+target_link_libraries(${TARGET_NAME} ${STK_LIBRARIES})
+include_directories(${STK_INCLUDE_DIRS})

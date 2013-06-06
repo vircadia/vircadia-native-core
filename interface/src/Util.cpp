@@ -73,7 +73,7 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 
 //  Helper function returns the positive angle in degrees between two 3D vectors 
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PI;
+    return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PIf;
 }
 
 //  Helper function return the rotation from the first vector onto the second
@@ -360,7 +360,7 @@ void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, f
     for (int i=1; i<num+1; i++) {
         x1 = x2;
         z1 = z2;
-        float r = ((float)i / (float)num) * PI * 2.0;
+        float r = ((float)i / (float)num) * PIf * 2.0;
         x2 = radius * sin(r);
         z2 = radius * cos(r);
     
@@ -381,7 +381,7 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
     
     glBegin(GL_LINE_STRIP);             
     for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float r = ((float)i / (float)numSides) * PIf * 2.0;
         float s = radius * sin(r);
         float c = radius * cos(r);
     
@@ -404,7 +404,7 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
     glBegin(GL_LINE_STRIP);             
 
     for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * PI * 2.0;
+        float r = ((float)i / (float)numSides) * PIf * 2.0;
         float s = radius * sin(r);
         float c = radius * cos(r);
         glVertex3f
