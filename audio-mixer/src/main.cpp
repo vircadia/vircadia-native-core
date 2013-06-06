@@ -24,8 +24,6 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
-#include <Stk.h>
-#include <FreeVerb.h>
 
 #include "InjectedAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
