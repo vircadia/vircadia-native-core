@@ -983,7 +983,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glDisable(GL_LIGHTING);
         glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width/2, 0, _chatMessage.c_str());
+            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
             
         } else {
             // rather than using substr and allocating a new string, just replace the last
