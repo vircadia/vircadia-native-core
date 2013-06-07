@@ -2546,7 +2546,7 @@ void Application::loadSettings(QSettings* set) {
 
     scanMenuBar(&Application::loadAction, set);
     getAvatar()->loadData(set);
-    _headCameraPitchYawScale = set->value("headCameraPitchYawScale").toFloat();
+    _headCameraPitchYawScale = set->value("headCameraPitchYawScale").toDouble();
 }
 
 void Application::saveSettings(QSettings* set) {
