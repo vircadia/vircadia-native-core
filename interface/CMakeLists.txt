@@ -146,12 +146,6 @@ else (WIN32)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARIES})
   
-  # link the stk library
-  set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
-  find_package(STK REQUIRED)
-  target_link_libraries(${TARGET_NAME} ${STK_LIBRARIES})
-  include_directories(${STK_INCLUDE_DIRS})
-  
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
       find_package(Threads REQUIRED)
