@@ -1225,6 +1225,8 @@ void Avatar::loadData(QSettings* set) {
     _position.y = set->value("position_y", _position.y).toFloat();
     _position.z = set->value("position_z", _position.z).toFloat();
     
+    _voxels.setVoxelURL(set->value("voxelURL").toUrl());
+    
     set->endGroup();
 }
 
@@ -1243,6 +1245,8 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("position_x", _position.x);
     set->setValue("position_y", _position.y);
     set->setValue("position_z", _position.z);
+    
+    set->setValue("voxelURL", _voxels.getVoxelURL());
     
     set->endGroup();
 }

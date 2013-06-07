@@ -1023,7 +1023,7 @@ void Application::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QLineEdit* avatarURL = new QLineEdit(_settings->value("avatarURL").toString());
+    QLineEdit* avatarURL = new QLineEdit(_myAvatar.getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
@@ -1040,7 +1040,6 @@ void Application::editPreferences() {
         return;
     }
     QUrl url(avatarURL->text());
-    _settings->setValue("avatarURL", url);
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
     
@@ -1532,10 +1531,6 @@ void Application::init() {
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
-    QUrl avatarURL = _settings->value("avatarURL").toUrl();
-    _myAvatar.getVoxels()->setVoxelURL(avatarURL);
-    sendAvatarVoxelURLMessage(avatarURL);
-    
     QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
@@ -1547,6 +1542,8 @@ void Application::init() {
     gettimeofday(&_lastTimeIdle, NULL);
 
     loadSettings();
+    
+    sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 }
 
 void Application::updateAvatar(float deltaTime) {
