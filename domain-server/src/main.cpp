@@ -98,7 +98,7 @@ int main(int argc, const char * argv[])
     
     while (true) {
         if (agentList->getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
-            (packetData[0] == PACKET_HEADER_DOMAIN_RFD || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
+            (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
@@ -153,10 +153,10 @@ int main(int argc, const char * argv[])
                     // grab the ID for this agent so we can send it back with the packet
                     packetAgentID = agent->getAgentID();
                     
-                    if (packetData[0] == PACKET_HEADER_DOMAIN_RFD
+                    if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
                         && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
                             agent->setWakeMicrostamp(timeNow);
-                    }                    
+                    }
                 }
             }
             

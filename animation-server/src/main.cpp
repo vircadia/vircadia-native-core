@@ -59,7 +59,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
             printf("sending packet of size=%d\n",sizeOut);
         }
 
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -168,7 +168,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 
@@ -238,7 +238,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -345,7 +345,7 @@ static void sendBlinkingStringOfLights() {
                 if (::shouldShowPacketsPerSecond) {
                     printf("sending packet of size=%d\n",sizeOut);
                 }
-                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                 delete[] bufferOut;
             }
 
@@ -387,7 +387,7 @@ static void sendBlinkingStringOfLights() {
             if (::shouldShowPacketsPerSecond) {
                 printf("sending packet of size=%d\n",sizeOut);
             }
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
             delete[] bufferOut;
         }
     }
@@ -510,7 +510,7 @@ void sendDanceFloor() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -607,7 +607,7 @@ static void sendBillboard() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }

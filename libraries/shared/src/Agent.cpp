@@ -62,7 +62,7 @@ Agent::~Agent() {
 
 // Names of Agent Types
 const char* AGENT_TYPE_NAME_DOMAIN = "Domain";
-const char* AGENT_TYPE_NAME_VOXEL = "Voxel Server";
+const char* AGENT_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
 const char* AGENT_TYPE_NAME_INTERFACE = "Client Interface";
 const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
@@ -74,8 +74,8 @@ const char* Agent::getTypeName() const {
 	switch (this->_type) {
 		case AGENT_TYPE_DOMAIN:
 			return AGENT_TYPE_NAME_DOMAIN;
-		case AGENT_TYPE_VOXEL:
-			return AGENT_TYPE_NAME_VOXEL;
+		case AGENT_TYPE_VOXEL_SERVER:
+			return AGENT_TYPE_NAME_VOXEL_SERVER;
 		case AGENT_TYPE_AVATAR:
 			return AGENT_TYPE_NAME_INTERFACE;
 		case AGENT_TYPE_AUDIO_MIXER:

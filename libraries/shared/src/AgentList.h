@@ -24,6 +24,7 @@ const int AGENTS_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
 const unsigned int AGENT_SOCKET_LISTEN_PORT = 40103;
+
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 extern const char SOLO_AGENT_TYPES[3];
 
@@ -48,8 +49,6 @@ public:
     void(*linkedDataCreateCallback)(Agent *);
     
     int size() { return _numAgents; }
-    
-    UDPSocket* getAgentSocket() { return &agentSocket; }
     
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
@@ -78,6 +77,10 @@ public:
     uint16_t getOwnerID() const { return _ownerID; }
     void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
     
+    UDPSocket* getAgentSocket() { return &_agentSocket; }
+    
+    unsigned int getSocketListenPort() const { return _socketListenPort; };
+    
     Agent* soloAgentOfType(char agentType);
     
     void startSilentAgentRemovalThread();
@@ -100,9 +103,9 @@ private:
     
     Agent** _agentBuckets[MAX_NUM_AGENTS / AGENTS_PER_BUCKET];
     int _numAgents;
-    UDPSocket agentSocket;
+    UDPSocket _agentSocket;
     char _ownerType;
-    unsigned int socketListenPort;
+    unsigned int _socketListenPort;
     uint16_t _ownerID;
     uint16_t _lastAgentID;
     pthread_t removeSilentAgentsThread;

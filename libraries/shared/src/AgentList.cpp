@@ -26,7 +26,7 @@
 const char SOLO_AGENT_TYPES[3] = {
     AGENT_TYPE_AVATAR_MIXER,
     AGENT_TYPE_AUDIO_MIXER,
-    AGENT_TYPE_VOXEL
+    AGENT_TYPE_VOXEL_SERVER
 };
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
@@ -60,9 +60,9 @@ AgentList* AgentList::getInstance() {
 AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentBuckets(),
     _numAgents(0),
-    agentSocket(newSocketListenPort),
+    _agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
-    socketListenPort(newSocketListenPort),
+    _socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
     _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
@@ -77,10 +77,6 @@ AgentList::~AgentList() {
     pthread_mutex_destroy(&mutex);
 }
 
-unsigned int AgentList::getSocketListenPort() {
-    return socketListenPort;
-}
-
 void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
@@ -88,7 +84,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
         case PACKET_HEADER_PING: {
-            agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
+            _agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
@@ -233,7 +229,7 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
             newAgent->activatePublicSocket();
         }
    
-        if (newAgent->getType() == AGENT_TYPE_VOXEL ||
+        if (newAgent->getType() == AGENT_TYPE_VOXEL_SERVER ||
             newAgent->getType() == AGENT_TYPE_AVATAR_MIXER ||
             newAgent->getType() == AGENT_TYPE_AUDIO_MIXER) {
             // this is currently the cheat we use to talk directly to our test servers on EC2
@@ -247,7 +243,7 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
     } else {
         
         if (agent->getType() == AGENT_TYPE_AUDIO_MIXER ||
-            agent->getType() == AGENT_TYPE_VOXEL ||
+            agent->getType() == AGENT_TYPE_VOXEL_SERVER ||
             agent->getType() == AGENT_TYPE_ANIMATION_SERVER ||
             agent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
             // until the Audio class also uses our agentList, we need to update
@@ -281,7 +277,7 @@ void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes
         // only send to the AgentTypes we are asked to send to.
         if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
-            agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
+            _agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
     }
 }
@@ -362,7 +358,7 @@ void *removeSilentAgents(void *args) {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
             if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
-            	&& agent->getType() != AGENT_TYPE_VOXEL) {
+            	&& agent->getType() != AGENT_TYPE_VOXEL_SERVER) {
                 
                 printLog("Killed ");
                 Agent::printLog(*agent);
