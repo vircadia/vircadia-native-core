@@ -130,49 +130,52 @@ int main(int argc, const char * argv[])
             char* agentTypesOfInterest = (char*) currentBufferPos + sizeof(AGENT_TYPE) + numBytesSocket;
             int numInterestTypes = strlen(agentTypesOfInterest);
             
-            for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)
-                    && (numInterestTypes > 0 && memchr(agentTypesOfInterest, agent->getType(), strlen(agentTypesOfInterest)))) {
-                    // this is not the agent themselves
-                    // and this is an agent of a type in the passed agent types of interest
-                    // or the agent did not pass us any specific types they are interested in
+            if (numInterestTypes > 0) {
+                // if the agent has sent no types of interest, assume they want nothing but their own ID back
+                for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+                    if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)
+                        && memchr(agentTypesOfInterest, agent->getType(), strlen(agentTypesOfInterest))) {
+                        // this is not the agent themselves
+                        // and this is an agent of a type in the passed agent types of interest
+                        // or the agent did not pass us any specific types they are interested in
                         
-                    if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
-                        // this is an agent of which there can be multiple, just add them to the packet
-                        // don't send avatar agents to other avatars, that will come from avatar mixer
-                        if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
-                            currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
+                        if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
+                            // this is an agent of which there can be multiple, just add them to the packet
+                            // don't send avatar agents to other avatars, that will come from avatar mixer
+                            if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
+                                currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
+                            }
+                            
+                        } else {
+                            // solo agent, we need to only send newest
+                            if (newestSoloAgents[agent->getType()] == NULL ||
+                                newestSoloAgents[agent->getType()]->getWakeMicrostamp() < agent->getWakeMicrostamp()) {
+                                // we have to set the newer solo agent to add it to the broadcast later
+                                newestSoloAgents[agent->getType()] = &(*agent);
+                            }
                         }
-                        
                     } else {
-                        // solo agent, we need to only send newest
-                        if (newestSoloAgents[agent->getType()] == NULL ||
-                            newestSoloAgents[agent->getType()]->getWakeMicrostamp() < agent->getWakeMicrostamp()) {
-                            // we have to set the newer solo agent to add it to the broadcast later
-                            newestSoloAgents[agent->getType()] = &(*agent);
-                        }
-                    }
-                } else {
-                    double timeNow = usecTimestampNow();
-                    
-                    // this is the agent, just update last receive to now
-                    agent->setLastHeardMicrostamp(timeNow);
-                    
-                    // grab the ID for this agent so we can send it back with the packet
-                    packetAgentID = agent->getAgentID();
-                    
-                    if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
-                        && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
+                        double timeNow = usecTimestampNow();
+                        
+                        // this is the agent, just update last receive to now
+                        agent->setLastHeardMicrostamp(timeNow);
+                        
+                        // grab the ID for this agent so we can send it back with the packet
+                        packetAgentID = agent->getAgentID();
+                        
+                        if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
+                            && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
                             agent->setWakeMicrostamp(timeNow);
+                        }
                     }
                 }
-            }
-            
-            for (std::map<char, Agent *>::iterator soloAgent = newestSoloAgents.begin();
-                 soloAgent != newestSoloAgents.end();
-                 soloAgent++) {
-                // this is the newest alive solo agent, add them to the packet
-                currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, soloAgent->second);
+                
+                for (std::map<char, Agent *>::iterator soloAgent = newestSoloAgents.begin();
+                     soloAgent != newestSoloAgents.end();
+                     soloAgent++) {
+                    // this is the newest alive solo agent, add them to the packet
+                    currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, soloAgent->second);
+                }
             }
             
             // add the agent ID to the end of the pointer
