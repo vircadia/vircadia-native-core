@@ -62,37 +62,35 @@ float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.20;
 
 Avatar::Avatar(Agent* owningAgent) :
-AvatarData(owningAgent),
-_initialized(false),
-_head(this),
-_ballSpringsInitialized(false),
-_TEST_bigSphereRadius(0.5f),
-_TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
-_mousePressed(false),
-_bodyPitchDelta(0.0f),
-_bodyYawDelta(0.0f),
-_bodyRollDelta(0.0f),
-_movedHandOffset(0.0f, 0.0f, 0.0f),
-_mode(AVATAR_MODE_STANDING),
-_cameraPosition(0.0f, 0.0f, 0.0f),
-_handHoldingPosition(0.0f, 0.0f, 0.0f),
-_velocity(0.0f, 0.0f, 0.0f),
-_thrust(0.0f, 0.0f, 0.0f),
-_speed(0.0f),
-_maxArmLength(0.0f),
-_pelvisStandingHeight(0.0f),
-_pelvisFloatingHeight(0.0f),
-_distanceToNearestAvatar(std::numeric_limits<float>::max()),
-_gravity(0.0f, -1.0f, 0.0f),
-_worldUpDirection(DEFAULT_UP_DIRECTION),
-_mouseRayOrigin(0.0f, 0.0f, 0.0f),
-_mouseRayDirection(0.0f, 0.0f, 0.0f),
-_interactingOther(NULL),
-_isMouseTurningRight(false),
-_voxels(this)
-
+    AvatarData(owningAgent),
+    _initialized(false),
+    _head(this),
+    _ballSpringsInitialized(false),
+    _TEST_bigSphereRadius(0.5f),
+    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
+    _mousePressed(false),
+    _bodyPitchDelta(0.0f),
+    _bodyYawDelta(0.0f),
+    _bodyRollDelta(0.0f),
+    _movedHandOffset(0.0f, 0.0f, 0.0f),
+    _mode(AVATAR_MODE_STANDING),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
+    _handHoldingPosition(0.0f, 0.0f, 0.0f),
+    _velocity(0.0f, 0.0f, 0.0f),
+    _thrust(0.0f, 0.0f, 0.0f),
+    _speed(0.0f),
+    _maxArmLength(0.0f),
+    _pelvisStandingHeight(0.0f),
+    _pelvisFloatingHeight(0.0f),
+    _distanceToNearestAvatar(std::numeric_limits<float>::max()),
+    _gravity(0.0f, -1.0f, 0.0f),
+    _worldUpDirection(DEFAULT_UP_DIRECTION),
+    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
+    _mouseRayDirection(0.0f, 0.0f, 0.0f),
+    _interactingOther(NULL),
+    _isMouseTurningRight(false),
+    _voxels(this)
 {
-    
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     
@@ -659,7 +657,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+            if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
@@ -806,13 +804,12 @@ void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     static float STATIC_FRICTION_VELOCITY = 0.15f;
     static float STATIC_FRICTION_DAMPING = 0.0f;
     static float KINETIC_FRICTION_DAMPING = 0.95f;
-    const float BOUNCE = 0.3f;
     
-    // reflect the velocity component in the direction of penetration
+    // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= 2.0f * glm::dot(_velocity, direction) * direction * BOUNCE;
+        _velocity -= glm::dot(_velocity, direction) * direction;
         _velocity *= KINETIC_FRICTION_DAMPING;
         //  If velocity is quite low, apply static friction that takes away energy
         if (glm::length(_velocity) < STATIC_FRICTION_VELOCITY) {
@@ -829,7 +826,7 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     // loop through all the other avatars for potential interactions...
     AgentList* agentList = AgentList::getInstance();
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+        if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
             
             // check if the bounding spheres of the two avatars are colliding
@@ -1008,7 +1005,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         resetBodyBalls();
     }
     glm::quat orientation = getOrientation();
-    glm::vec3 jointDirection = orientation * JOINT_DIRECTION;
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         
         glm::vec3 springVector;
@@ -1068,11 +1064,18 @@ void Avatar::updateBodyBalls(float deltaTime) {
         if (_skeleton.joint[b].parent == AVATAR_JOINT_NULL || length < SMALL_SPRING_LENGTH) {
             _bodyBall[b].rotation = orientation * _skeleton.joint[_bodyBall[b].parentJoint].absoluteBindPoseRotation;
         } else {
-            glm::vec3 parentDirection = _bodyBall[ _skeleton.joint[b].parent ].rotation * JOINT_DIRECTION;
+            glm::vec3 parentDirection = _bodyBall[ _bodyBall[b].parentBall ].rotation * JOINT_DIRECTION;
             _bodyBall[b].rotation = rotationBetween(parentDirection, springVector) *
-            _bodyBall[ _skeleton.joint[b].parent ].rotation;
+                _bodyBall[ _bodyBall[b].parentBall ].rotation;
         }
     }
+    
+    // copy the head's rotation
+    _bodyBall[BODY_BALL_HEAD_BASE].rotation = _bodyBall[BODY_BALL_HEAD_TOP].rotation = _head.getOrientation();
+    _bodyBall[BODY_BALL_HEAD_BASE].position = _bodyBall[BODY_BALL_NECK_BASE].position +
+        _bodyBall[BODY_BALL_HEAD_BASE].rotation * _skeleton.joint[BODY_BALL_HEAD_BASE].bindPosePosition;
+    _bodyBall[BODY_BALL_HEAD_TOP].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
+        _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
@@ -1133,7 +1136,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
     
     //  Render the body as balls and cones
-    if (renderAvatarBalls) {
+    if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
             

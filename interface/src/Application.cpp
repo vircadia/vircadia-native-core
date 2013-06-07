@@ -26,6 +26,7 @@
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QDesktopWidget>
+#include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -311,11 +312,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
     }
     
     // Update camera position
@@ -1026,6 +1027,10 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
+    headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
+    form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -1038,6 +1043,8 @@ void Application::editPreferences() {
     _settings->setValue("avatarURL", url);
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
+    
+    _headCameraPitchYawScale = headCameraPitchYawScale->value();
 }
 
 void Application::pair() {
@@ -1454,7 +1461,9 @@ void Application::initMenu() {
     voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
-    QMenu* frustumMenu = menuBar->addMenu("Frustum");
+    QMenu* debugMenu = menuBar->addMenu("Debug");
+
+    QMenu* frustumMenu = debugMenu->addMenu("View Frustum...");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
@@ -1466,7 +1475,6 @@ void Application::initMenu() {
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
     
-    QMenu* debugMenu = menuBar->addMenu("Debug");
     debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
     debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
     debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
@@ -2536,15 +2544,19 @@ void Application::setAutosave(bool wantsAutosave) {
 void Application::loadSettings(QSettings* set) {
     if (!set) set = getSettings();
 
+    _headCameraPitchYawScale = set->value("headCameraPitchYawScale", 0.0f).toFloat();
     scanMenuBar(&Application::loadAction, set);
-    getAvatar()->loadData(set);
+    getAvatar()->loadData(set);    
 }
 
 void Application::saveSettings(QSettings* set) {
     if (!set) set = getSettings();
 
+    set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     scanMenuBar(&Application::saveAction, set);
     getAvatar()->saveData(set);
+    
+    set->sync();
 }
 
 void Application::importSettings() {
