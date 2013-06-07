@@ -314,10 +314,10 @@ glm::quat Head::getOrientation() const {
         glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
 }
 
-glm::quat Head::getWorldAlignedOrientation () const {
+glm::quat Head::getCameraOrientation (float pitchYawScale) const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(_lookingInMirror ?
-        glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(
+        _pitch * pitchYawScale, _yaw * pitchYawScale, 0.0f)));
 }
 
 void Head::renderHeadSphere() {
