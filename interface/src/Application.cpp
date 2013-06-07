@@ -227,8 +227,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
-
-    QCoreApplication::setOrganizationDomain("highfidelity.io"); // Used by QSettings on OS X
+    
+    // these are used, for example, to identify the application's preferences
+    setApplicationName("Interface");
+    setOrganizationDomain("highfidelity.io");
+    setOrganizationName("High Fidelity");
 }
 
 void Application::initializeGL() {
@@ -1476,7 +1479,7 @@ void Application::initMenu() {
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
-    _settings = new QSettings("High Fidelity", "Interface", this);
+    _settings = new QSettings(this);
 }
 
 void Application::updateFrustumRenderModeAction() {
