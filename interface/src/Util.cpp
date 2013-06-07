@@ -9,6 +9,8 @@
 #include "InterfaceConfig.h"
 #include <iostream>
 #include <cstring>
+#include <time.h>
+#include <math.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
@@ -20,6 +22,7 @@
 #include "ui/TextRenderer.h"
 #include "world.h"
 #include "Util.h"
+
 
 #include "VoxelConstants.h"
 
@@ -447,6 +450,53 @@ bool closeEnoughForGovernmentWork(float a, float b) {
     //printLog("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
     return (distance < 0.00001f);
 }
+
+//  Do some basic timing tests and report the results
+void runTimingTests() {
+    //  How long does it take to make a call to get the time?
+    const int numTests = 1000000;
+    int iResults[numTests];
+    float fTest = 1.0;
+    float fResults[numTests];
+    timeval startTime, endTime;
+    float elapsedMsecs;
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        gettimeofday(&endTime, NULL);
+    }
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    
+    // Random number generation
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        iResults[i] = rand();
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
+    // Random number generation using randFloat()
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        fResults[i] = randFloat();
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
+    //  PowF function
+    fTest = 1145323.2342f;
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        fTest = powf(fTest, 0.5f);
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    
+}
+
 
 
 
