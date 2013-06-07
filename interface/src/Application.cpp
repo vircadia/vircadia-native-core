@@ -1151,7 +1151,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-        delete bufferOut;
+        delete[] bufferOut;
     }
 }
 
@@ -1287,7 +1287,7 @@ void Application::importVoxels() {
     }
     
     if (calculatedOctCode) {
-        delete calculatedOctCode;
+        delete[] calculatedOctCode;
     }
 
     // restore the main window's active state
@@ -1339,7 +1339,7 @@ void Application::pasteVoxels() {
     }
     
     if (calculatedOctCode) {
-        delete calculatedOctCode;
+        delete[] calculatedOctCode;
     }
 }
 
@@ -1456,7 +1456,7 @@ void Application::initMenu() {
 
     QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
     renderDebugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
-    renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
+    renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
     renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
     renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));

@@ -51,7 +51,7 @@ const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
 const int ENVIRONMENT_SEND_INTERVAL_USECS = 1000000;
 
-VoxelTree randomTree(false); // this is NOT a reaveraging tree 
+VoxelTree serverTree(true); // this IS a reaveraging tree 
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
 
@@ -98,7 +98,7 @@ void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
 void eraseVoxelTreeAndCleanupAgentVisitData() {
 
     // As our tree to erase all it's voxels
-    ::randomTree.eraseAllVoxels();
+    ::serverTree.eraseAllVoxels();
     // enumerate the agents clean up their marker nodes
     for (AgentList::iterator agent = AgentList::getInstance()->begin(); agent != AgentList::getInstance()->end(); agent++) {
         VoxelAgentData* agentData = (VoxelAgentData*) agent->getLinkedData();
@@ -123,7 +123,7 @@ void resInVoxelDistributor(AgentList* agentList,
         searchLoops++;
 
         searchLevelWas = agentData->getMaxSearchLevel();
-        int maxLevelReached = randomTree.searchForColoredNodes(agentData->getMaxSearchLevel(), randomTree.rootNode, 
+        int maxLevelReached = serverTree.searchForColoredNodes(agentData->getMaxSearchLevel(), serverTree.rootNode, 
                                                                viewFrustum, agentData->nodeBag);
         agentData->setMaxLevelReached(maxLevelReached);
         
@@ -167,7 +167,7 @@ void resInVoxelDistributor(AgentList* agentList,
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = randomTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
+                bytesWritten = serverTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &viewFrustum,
                                                               agentData->getWantColor(), WANT_EXISTS_BITS);
@@ -268,16 +268,16 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         // helps improve overall bitrate performance.
         if (::wantSearchForColoredNodes) {
             // If the bag was empty, then send everything in view, not just the delta
-            maxLevelReached = randomTree.searchForColoredNodes(INT_MAX, randomTree.rootNode, agentData->getCurrentViewFrustum(), 
+            maxLevelReached = serverTree.searchForColoredNodes(INT_MAX, serverTree.rootNode, agentData->getCurrentViewFrustum(), 
                                                                agentData->nodeBag, wantDelta, lastViewFrustum);
 
             // if nothing was found in view, send the root node.
             if (agentData->nodeBag.isEmpty()){
-                agentData->nodeBag.insert(randomTree.rootNode);
+                agentData->nodeBag.insert(serverTree.rootNode);
             }
             agentData->setViewSent(false);
         } else {
-            agentData->nodeBag.insert(randomTree.rootNode);
+            agentData->nodeBag.insert(serverTree.rootNode);
         }
 
     }
@@ -310,7 +310,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = randomTree.encodeTreeBitstream(INT_MAX, subTree,
+                bytesWritten = serverTree.encodeTreeBitstream(INT_MAX, subTree,
                                                               &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
                                                               agentData->nodeBag, &agentData->getCurrentViewFrustum(),
                                                               agentData->getWantColor(), WANT_EXISTS_BITS, DONT_CHOP_LEVELS, 
@@ -386,14 +386,14 @@ void persistVoxelsWhenDirty() {
     double sinceLastTime = (now - ::lastPersistVoxels) / 1000.0;
 
     // check the dirty bit and persist here...
-    if (::wantVoxelPersist && ::randomTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
+    if (::wantVoxelPersist && ::serverTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
 
         {
             PerformanceWarning warn(::shouldShowAnimationDebug, 
                                     "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
 
             // after done inserting all these voxels, then reaverage colors
-            randomTree.reaverageVoxelColors(randomTree.rootNode);
+            serverTree.reaverageVoxelColors(serverTree.rootNode);
         }
 
 
@@ -402,8 +402,8 @@ void persistVoxelsWhenDirty() {
                                     "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
-            randomTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
-            randomTree.clearDirtyBit(); // tree is clean after saving
+            serverTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            serverTree.clearDirtyBit(); // tree is clean after saving
             printf("DONE saving voxels to file...\n");
         }
         ::lastPersistVoxels = usecTimestampNow();
@@ -505,10 +505,10 @@ int main(int argc, const char * argv[]) {
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
-        persistantFileRead = ::randomTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
-        ::randomTree.clearDirtyBit(); // the tree is clean since we just loaded it
+        persistantFileRead = ::serverTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        ::serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount = ::randomTree.getVoxelCount();
+        unsigned long nodeCount = ::serverTree.getVoxelCount();
         printf("Nodes after loading scene %ld nodes\n", nodeCount);
     }
 
@@ -517,7 +517,7 @@ int main(int argc, const char * argv[]) {
     const char* INPUT_FILE = "-i";
     const char* voxelsFilename = getCmdOption(argc, argv, INPUT_FILE);
     if (voxelsFilename) {
-        randomTree.readFromSVOFile(voxelsFilename);
+        serverTree.readFromSVOFile(voxelsFilename);
     }
 
     // Check to see if the user passed in a command line option for setting packet send rate
@@ -535,7 +535,7 @@ int main(int argc, const char * argv[]) {
     if (cmdOptionExists(argc, argv, ADD_RANDOM_VOXELS)) {
         // create an octal code buffer and load it with 0 so that the recursive tree fill can give
         // octal codes to the tree nodes that it is creating
-        randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, randomTree.rootNode);
+        randomlyFillVoxelTree(MAX_VOXEL_TREE_DEPTH_LEVELS, serverTree.rootNode);
     }
 
     const char* ADD_SCENE = "--AddScene";
@@ -554,7 +554,7 @@ int main(int argc, const char * argv[]) {
     // TEMPORARILY DISABLED!!!
     bool actuallyAddScene = false; // !noAddScene && (addScene || (::wantVoxelPersist && !persistantFileRead));
     if (actuallyAddScene) {
-        addSphereScene(&randomTree);
+        addSphereScene(&serverTree);
     }
     
     // for now, initialize the environments with fixed values
@@ -633,7 +633,7 @@ int main(int argc, const char * argv[]) {
                         delete []vertices;
                     }
                 
-                    randomTree.readCodeColorBufferToTree(voxelData, destructive);
+                    serverTree.readCodeColorBufferToTree(voxelData, destructive);
                     // skip to next
                     voxelData += voxelDataSize;
                     atByte += voxelDataSize;
@@ -643,7 +643,7 @@ int main(int argc, const char * argv[]) {
 
                 // Send these bits off to the VoxelTree class to process them
                 pthread_mutex_lock(&::treeLock);
-                randomTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
+                serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
             }
             if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
@@ -664,7 +664,7 @@ int main(int argc, const char * argv[]) {
                     }
                     if (strcmp(command, ADD_SCENE_COMMAND) == 0) {
                         printf("got Z message == add scene\n");
-                        addSphereScene(&randomTree);
+                        addSphereScene(&serverTree);
                         rebroadcast = false;
                     }
                     if (strcmp(command, TEST_COMMAND) == 0) {
