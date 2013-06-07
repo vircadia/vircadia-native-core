@@ -1475,6 +1475,8 @@ void Application::initMenu() {
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
     
+    debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
+
     debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
     debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
     debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
@@ -1519,6 +1521,10 @@ void Application::updateFrustumRenderModeAction() {
             _frustumRenderModeAction->setText("Render Mode - Far");
             break; 
     }
+}
+
+void Application::runTests() {
+    runTimingTests();
 }
 
 void Application::initDisplay() {

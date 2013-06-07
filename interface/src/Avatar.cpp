@@ -317,9 +317,9 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
     //  Update head yaw and pitch based on mouse input
-    const float MOUSE_MOVE_RADIUS = 0.15f;
+    const float MOUSE_MOVE_RADIUS = 0.3f;
     const float MOUSE_ROTATE_SPEED = 4.0f;
-    const float MOUSE_PITCH_SPEED = 1.5f;
+    const float MOUSE_PITCH_SPEED = 2.0f;
     const int TITLE_BAR_HEIGHT = 46;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
     float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
