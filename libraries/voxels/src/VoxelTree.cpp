@@ -260,7 +260,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
 void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
     deleteVoxelCodeFromTree(octalCode, stage);
-    delete octalCode; // cleanup memory
+    delete[] octalCode; // cleanup memory
 }
 
 
@@ -627,7 +627,7 @@ VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
     if (*node->getOctalCode() != *octalCode) {
         node = NULL;
     }
-    delete octalCode; // cleanup memory
+    delete[] octalCode; // cleanup memory
     return node;
 }
 
@@ -635,7 +635,7 @@ void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
     this->readCodeColorBufferToTree(voxelData, destructive);
-    delete voxelData;
+    delete[] voxelData;
 }
 
 
