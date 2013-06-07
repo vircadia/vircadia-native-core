@@ -82,9 +82,6 @@ int main(int argc, const char* argv[]) {
     // create an AgentList instance to handle communication with other agents
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LISTEN_PORT);
     
-    // start telling the domain server that we are alive
-    agentList->startDomainServerCheckInThread();
-    
     // start the agent list thread that will kill off agents when they stop talking
     agentList->startSilentAgentRemovalThread();
     
@@ -134,8 +131,20 @@ int main(int argc, const char* argv[]) {
     double numMicrosecondsSleep = 0;
     
     int handStateTimer = 0;
+    
+    timeval lastDomainServerCheckIn = {};
+    
+    // eve wants to hear about an avatar mixer and an audio mixer from the domain server
+    const char EVE_AGENT_TYPES_OF_INTEREST[] = {AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_AUDIO_MIXER};
+    AgentList::getInstance()->setAgentTypesOfInterest(EVE_AGENT_TYPES_OF_INTEREST, sizeof(EVE_AGENT_TYPES_OF_INTEREST));
 
     while (true) {
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
         // update the thisSend timeval to the current time
         gettimeofday(&thisSend, NULL);
         
@@ -201,7 +210,6 @@ int main(int argc, const char* argv[]) {
     pthread_join(receiveAgentDataThread, NULL);
     
     // stop the agent list's threads
-    agentList->stopDomainServerCheckInThread();
     agentList->stopPingUnknownAgentsThread();
     agentList->stopSilentAgentRemovalThread();
 }
