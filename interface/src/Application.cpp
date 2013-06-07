@@ -695,7 +695,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _mouseY = event->y();
         
         // detect drag
-        printLog("Avatar velocity x, y, z: %f, %f, %f\n", _myAvatar.getVelocity().x, _myAvatar.getVelocity().y, _myAvatar.getVelocity().z);
         glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
         if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
             if (event->buttons().testFlag(Qt::LeftButton)) {
@@ -786,6 +785,8 @@ static glm::vec3 getFaceVector(BoxFace face) {
     }
 }
 
+const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
+
 void Application::idle() {
     timeval check;
     gettimeofday(&check, NULL);
@@ -821,7 +822,10 @@ void Application::idle() {
         _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
         _mouseVoxel.s = 0.0f;
-        if (checkedVoxelModeAction() != 0) {
+        if (checkedVoxelModeAction() != 0 &&
+            _myAvatar.getVelocity().x < MAX_AVATAR_EDIT_VELOCITY &&
+            _myAvatar.getVelocity().y < MAX_AVATAR_EDIT_VELOCITY &&
+            _myAvatar.getVelocity().z < MAX_AVATAR_EDIT_VELOCITY) {
             float distance;
             BoxFace face;
             if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
@@ -2276,9 +2280,6 @@ void Application::shiftPaintingColor() {
 
 
 void Application::maybeEditVoxelUnderCursor() {
-    if (_myAvatar.getVelocity().x > 0.5) {
-        printLog("We're going faster than 1 m/s!\n");
-    }
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
