@@ -26,6 +26,7 @@
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QDesktopWidget>
+#include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -144,6 +145,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
         _manualFirstPerson(false),
+        _headCameraPitchYawScale(0.0f),
         _mouseX(0),
         _mouseY(0),
         _mousePressed(false),
@@ -311,11 +313,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
     }
     
     // Update camera position
@@ -1026,6 +1028,10 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
+    headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
+    form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -1038,6 +1044,8 @@ void Application::editPreferences() {
     _settings->setValue("avatarURL", url);
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
+    
+    _headCameraPitchYawScale = headCameraPitchYawScale->value();
 }
 
 void Application::pair() {
@@ -2538,6 +2546,7 @@ void Application::loadSettings(QSettings* set) {
 
     scanMenuBar(&Application::loadAction, set);
     getAvatar()->loadData(set);
+    _headCameraPitchYawScale = set->value("headCameraPitchYawScale").toFloat();
 }
 
 void Application::saveSettings(QSettings* set) {
@@ -2545,6 +2554,7 @@ void Application::saveSettings(QSettings* set) {
 
     scanMenuBar(&Application::saveAction, set);
     getAvatar()->saveData(set);
+    set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
 }
 
 void Application::importSettings() {
