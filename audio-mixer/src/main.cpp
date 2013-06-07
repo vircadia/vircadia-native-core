@@ -80,7 +80,6 @@ int main(int argc, const char* argv[]) {
     agentList->linkedDataCreateCallback = attachNewBufferToAgent;
     
     agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
 
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
 
@@ -99,7 +98,16 @@ int main(int argc, const char* argv[]) {
     
     gettimeofday(&startTime, NULL);
     
+    timeval lastDomainServerCheckIn = {};
+    
     while (true) {
+        
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
             PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
             
