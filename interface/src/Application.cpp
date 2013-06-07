@@ -2536,8 +2536,6 @@ void Application::saveSettings(QSettings* set) {
     set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     scanMenuBar(&Application::saveAction, set);
     getAvatar()->saveData(set);
-    
-    set->sync();
 }
 
 void Application::importSettings() {
