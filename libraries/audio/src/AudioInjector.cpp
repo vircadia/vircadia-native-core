@@ -15,11 +15,10 @@
 
 #include "AudioInjector.h"
 
-const int MAX_INJECTOR_VOLUME = 0xFF;
-
 AudioInjector::AudioInjector(const char* filename) :
-    _position(),
-    _bearing(0),
+    _position(0.0f, 0.0f, 0.0f),
+    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
@@ -47,8 +46,9 @@ AudioInjector::AudioInjector(const char* filename) :
 
 AudioInjector::AudioInjector(int maxNumSamples) :
     _numTotalSamples(maxNumSamples),
-    _position(),
-    _bearing(0),
+    _position(0.0f, 0.0f, 0.0f),
+    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
@@ -70,12 +70,17 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         timeval startTime;
         
         // calculate the number of bytes required for additional data
-        int leadingBytes = sizeof(PACKET_HEADER) + sizeof(_streamIdentifier)
-            + sizeof(_position) + sizeof(_bearing) + sizeof(_volume);
-        unsigned char dataPacket[BUFFER_LENGTH_BYTES + leadingBytes];
+        int leadingBytes = sizeof(PACKET_HEADER)
+            + sizeof(_streamIdentifier)
+            + sizeof(_position)
+            + sizeof(_orientation)
+            + sizeof(_radius)
+            + sizeof(_volume);
+        
+        unsigned char dataPacket[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t)) + leadingBytes];
         
         dataPacket[0] = PACKET_HEADER_INJECT_AUDIO;
-        unsigned char *currentPacketPtr = dataPacket + 1;
+        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_HEADER_INJECT_AUDIO);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
@@ -84,28 +89,33 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);
         
-        *currentPacketPtr = _volume;
-        currentPacketPtr++;
+        memcpy(currentPacketPtr, &_orientation, sizeof(_orientation));
+        currentPacketPtr += sizeof(_orientation);
         
-        memcpy(currentPacketPtr, &_bearing, sizeof(_bearing));
-        currentPacketPtr += sizeof(_bearing);
+        memcpy(currentPacketPtr, &_radius, sizeof(_radius));
+        currentPacketPtr += sizeof(_radius);
+        
+        *currentPacketPtr = _volume;
+        currentPacketPtr++;        
         
         gettimeofday(&startTime, NULL);
         int nextFrame = 0;
         
-        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES) {
-            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES;
+        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
             
-            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES) {
+            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                 numSamplesToCopy = _numTotalSamples - i;
-                memset(currentPacketPtr + numSamplesToCopy, 0, BUFFER_LENGTH_BYTES - (numSamplesToCopy * sizeof(int16_t)));
+                memset(currentPacketPtr + numSamplesToCopy,
+                       0,
+                       BUFFER_LENGTH_BYTES_PER_CHANNEL - (numSamplesToCopy * sizeof(int16_t)));
             }
             
             memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
             
-            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }

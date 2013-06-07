@@ -104,6 +104,7 @@ void Head::simulate(float deltaTime, bool isMine) {
 
     const float HEAD_MOTION_DECAY = 0.00;
     
+    /*
     //  Decay head back to center if turned on
     if (isMine && _returnHeadToCenter) {
     
@@ -121,6 +122,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         if (fabs(_yaw  ) < RETURN_RANGE) { _yaw   *= (1.0f - RETURN_STRENGTH * deltaTime); }
         if (fabs(_roll ) < RETURN_RANGE) { _roll  *= (1.0f - RETURN_STRENGTH * deltaTime); }
     }
+     */
 
     // decay lean
     _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
@@ -151,6 +153,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
     }
+    
 }
 
 void Head::determineIfLookingAtSomething() { 
@@ -244,9 +247,9 @@ void Head::createMohawk() {
         
     for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
         _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
-                                           height * cosf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           height * cosf(i * RAD_PER_TRIANGLE - PIf / 2.f)
                                            + (randFloat()  - 0.5f) * variance,
-                                           height * sinf(i * RAD_PER_TRIANGLE - PI / 2.f)
+                                           height * sinf(i * RAD_PER_TRIANGLE - PIf / 2.f)
                                            + (randFloat() - 0.5f) * variance);
         _mohawkColors[i] = randFloat() * basicColor;
 

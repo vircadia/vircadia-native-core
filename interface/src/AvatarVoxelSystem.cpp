@@ -8,7 +8,6 @@
 #include <cstring>
 
 #include <QNetworkReply>
-#include <QUrl>
 
 #include <GeometryUtil.h>
 
@@ -24,6 +23,9 @@ const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXE
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :
     VoxelSystem(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR),
     _avatar(avatar), _voxelReply(0) {
+
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
 }
 
 AvatarVoxelSystem::~AvatarVoxelSystem() {   
@@ -75,13 +77,31 @@ void AvatarVoxelSystem::removeOutOfView() {
     // no-op for now
 }
 
-void AvatarVoxelSystem::loadVoxelsFromURL(const QUrl& url) {
+void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
+    // don't restart the download if it's the same URL
+    if (_voxelURL == url) {
+        return;
+    }
+
     // cancel any current download
     if (_voxelReply != 0) {
         delete _voxelReply;
+        _voxelReply = 0;
     }
     
     killLocalVoxels();
+    
+    // remember the URL
+    _voxelURL = url;
+    
+    // handle "file://" urls...
+    if (url.isLocalFile()) {
+        QString pathString = url.path();
+        QByteArray pathAsAscii = pathString.toAscii();
+        const char* path = pathAsAscii.data();
+        readFromSVOFile(path);
+        return;        
+    }
     
     // load the URL data asynchronously
     if (!url.isValid()) {
@@ -186,9 +206,12 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
     if (bytesReceived < bytesTotal) {
         return;
     }
+
     QByteArray entirety = _voxelReply->readAll();
+    _voxelReply->disconnect(this);
     _voxelReply->deleteLater();
     _voxelReply = 0;
+    
     _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), WANT_COLOR, NO_EXISTS_BITS);
     setupNewVoxelsForDrawing();
 }
@@ -196,6 +219,7 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
 void AvatarVoxelSystem::handleVoxelReplyError() {
     printLog("%s\n", _voxelReply->errorString().toAscii().constData());
     
+    _voxelReply->disconnect(this);
     _voxelReply->deleteLater();
     _voxelReply = 0;
 }

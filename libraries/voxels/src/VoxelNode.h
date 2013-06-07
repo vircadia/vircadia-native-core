@@ -14,6 +14,8 @@
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
 
+class VoxelTree; // forward delclaration
+
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
 typedef unsigned char rgbColor[3];
@@ -27,6 +29,7 @@ private:
 #endif
     glBufferIndex _glBufferIndex;
     bool _isDirty;
+    double _lastChanged;
     bool _shouldRender;
     bool _isStagedForDeletion;
     AABox _box;
@@ -49,7 +52,7 @@ public:
     VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; };
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
-    void addChildAtIndex(int childIndex);
+    VoxelNode* addChildAtIndex(int childIndex);
     void safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion); // handles staging or deletion of all descendents
 
     void setColorFromAverageOfChildren();
@@ -80,6 +83,7 @@ public:
     void clearDirtyBit() { _isDirty = false; };
     bool hasChangedSince(double time) const { return (_lastChanged > time);  };
     void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
+    void handleSubtreeChanged(VoxelTree* myTree);
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };

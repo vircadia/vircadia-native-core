@@ -119,7 +119,7 @@ void Agent::recordBytesReceived(int bytesReceived) {
 }
 
 float Agent::getAveragePacketsPerSecond() {
-    if (_bytesReceivedMovingAverage != NULL) {
+    if (_bytesReceivedMovingAverage) {
         return (1 / _bytesReceivedMovingAverage->getEventDeltaAverage());
     } else {
         return 0;
@@ -127,7 +127,7 @@ float Agent::getAveragePacketsPerSecond() {
 }
 
 float Agent::getAverageKilobitsPerSecond() {
-    if (_bytesReceivedMovingAverage != NULL) {
+    if (_bytesReceivedMovingAverage) {
         return (_bytesReceivedMovingAverage->getAverageSampleValuePerSecond() * (8.0f / 1000));
     } else {
         return 0;
