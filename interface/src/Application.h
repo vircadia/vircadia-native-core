@@ -131,6 +131,7 @@ private:
     void initDisplay();
     void init();
     
+    void update(float deltaTime);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     

@@ -292,6 +292,9 @@ void Application::initializeGL() {
         printLog("%s", title);
         _window->setWindowTitle(title);
     }
+    
+    // update before the first render
+    update(0.0f);
 }
 
 void Application::paintGL() {
@@ -783,181 +786,7 @@ void Application::idle() {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-        
-        float deltaTime = 1.f/_fps;
-        
-        //  Use Transmitter Hand to move hand if connected, else use mouse
-        if (_myTransmitter.isConnected()) {
-            const float HAND_FORCE_SCALING = 0.01f;
-            glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
-            glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
-            _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
-        } else {
-            // update behaviors for avatar hand movement: handControl takes mouse values as input,
-            // and gives back 3D values modulated for smooth transitioning between interaction modes.
-            _handControl.update(_mouseX, _mouseY);
-            _myAvatar.setMovedHandOffset(_handControl.getValues());
-        }
-        
-        // tell my avatar if the mouse is being pressed...
-        _myAvatar.setMousePressed(_mousePressed);
-        
-        // check what's under the mouse and update the mouse voxel
-        glm::vec3 mouseRayOrigin, mouseRayDirection;
-        _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
-            _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
-
-        // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
-        _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
-
-        _mouseVoxel.s = 0.0f;
-        if (checkedVoxelModeAction() != 0) {
-            float distance;
-            BoxFace face;
-            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
-                // find the nearest voxel with the desired scale
-                if (_mouseVoxelScale > _mouseVoxel.s) {
-                    // choose the larger voxel that encompasses the one selected
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                    _mouseVoxel.s = _mouseVoxelScale;
-                
-                } else {
-                    glm::vec3 faceVector = getFaceVector(face);
-                    if (_mouseVoxelScale < _mouseVoxel.s) {
-                        // find the closest contained voxel
-                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
-                            faceVector * (_mouseVoxelScale * 0.5f);
-                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
-                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
-                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
-                        _mouseVoxel.s = _mouseVoxelScale;
-                    }
-                    if (_addVoxelMode->isChecked()) {
-                        // use the face to determine the side on which to create a neighbor
-                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                    }
-                }
-            } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
-                // place the voxel a fixed distance away
-                float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
-                glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
-                _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
-                _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
-                _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
-                _mouseVoxel.s = _mouseVoxelScale;
-            }
-            
-            if (_deleteVoxelMode->isChecked()) {
-                // red indicates deletion
-                _mouseVoxel.red = 255;
-                _mouseVoxel.green = _mouseVoxel.blue = 0;
-            } else if (_selectVoxelMode->isChecked()) {
-                // yellow indicates deletion
-                _mouseVoxel.red = _mouseVoxel.green = 255;
-                _mouseVoxel.blue = 0;
-            } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
-                QColor paintColor = _voxelPaintColor->data().value<QColor>();
-                _mouseVoxel.red = paintColor.red();
-                _mouseVoxel.green = paintColor.green();
-                _mouseVoxel.blue = paintColor.blue();
-            }
-            
-            // if we just edited, use the currently selected voxel as the "last" for drag detection
-            if (_justEditedVoxel) {
-                _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-                _justEditedVoxel = false;
-            }
-        }
-        
-        // walking triggers the handControl to stop
-        if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
-            _handControl.stop();
-        }
-        
-        //  Update from Mouse
-        if (_mouseLook->isChecked()) {
-            QPoint mouse = QCursor::pos();
-            _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                      _glWidget->mapFromGlobal(mouse).y(),
-                                      _glWidget->width(),
-                                      _glWidget->height());
-        }
-       
-        //  Read serial port interface devices
-        if (_serialHeadSensor.active) {
-            _serialHeadSensor.readData(deltaTime);
-        }
-        
-        //  Update transmitter
-        
-        //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
-        updateAvatar(deltaTime);
-
-        // read incoming packets from network
-        if (!_enableNetworkThread) {
-            networkReceive(0);
-        }
-        
-        //loop through all the other avatars and simulate them...
-        AgentList* agentList = AgentList::getInstance();
-        agentList->lock();
-        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
-                Avatar *avatar = (Avatar *)agent->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
-                }
-                avatar->simulate(deltaTime, NULL);
-                avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
-            }
-        }
-        agentList->unlock();
-    
-        //  Simulate myself
-        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
-        if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
-            _myAvatar.simulate(deltaTime, &_myTransmitter);
-        } else {
-            _myAvatar.simulate(deltaTime, NULL);
-        }
-        
-        if (TESTING_AVATAR_TOUCH) {
-            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        } else {
-            if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-                if (_manualFirstPerson) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
-                } else {
-                    if (_myAvatar.getIsNearInteractingOther()) {
-                        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                            _myCamera.setModeShiftRate(1.0f);
-                        }
-                    } else {
-                        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                            _myCamera.setModeShiftRate(1.0f);
-                        }
-                    }
-                }
-            }
-        }
-        
-        //  Update audio stats for procedural sounds
-        #ifndef _WIN32
-        _audio.setLastAcceleration(_myAvatar.getThrust());
-        _audio.setLastVelocity(_myAvatar.getVelocity());
-        #endif
+        update(1.0f / _fps);
         
         _glWidget->updateGL();
         _lastTimeIdle = check;
@@ -1547,6 +1376,181 @@ void Application::init() {
     loadSettings();
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+}
+
+void Application::update(float deltaTime) {
+    //  Use Transmitter Hand to move hand if connected, else use mouse
+    if (_myTransmitter.isConnected()) {
+        const float HAND_FORCE_SCALING = 0.01f;
+        glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
+        glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
+        _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
+    } else {
+        // update behaviors for avatar hand movement: handControl takes mouse values as input,
+        // and gives back 3D values modulated for smooth transitioning between interaction modes.
+        _handControl.update(_mouseX, _mouseY);
+        _myAvatar.setMovedHandOffset(_handControl.getValues());
+    }
+    
+    // tell my avatar if the mouse is being pressed...
+    _myAvatar.setMousePressed(_mousePressed);
+    
+    // check what's under the mouse and update the mouse voxel
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
+        _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+
+    // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
+    _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
+
+    _mouseVoxel.s = 0.0f;
+    if (checkedVoxelModeAction() != 0) {
+        float distance;
+        BoxFace face;
+        if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
+            // find the nearest voxel with the desired scale
+            if (_mouseVoxelScale > _mouseVoxel.s) {
+                // choose the larger voxel that encompasses the one selected
+                _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
+                _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
+                _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
+                _mouseVoxel.s = _mouseVoxelScale;
+            
+            } else {
+                glm::vec3 faceVector = getFaceVector(face);
+                if (_mouseVoxelScale < _mouseVoxel.s) {
+                    // find the closest contained voxel
+                    glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                        faceVector * (_mouseVoxelScale * 0.5f);
+                    _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
+                    _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
+                    _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                    _mouseVoxel.s = _mouseVoxelScale;
+                }
+                if (_addVoxelMode->isChecked()) {
+                    // use the face to determine the side on which to create a neighbor
+                    _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
+                    _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
+                    _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
+                }
+            }
+        } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
+            // place the voxel a fixed distance away
+            float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
+            glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
+            _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
+            _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
+            _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
+            _mouseVoxel.s = _mouseVoxelScale;
+        }
+        
+        if (_deleteVoxelMode->isChecked()) {
+            // red indicates deletion
+            _mouseVoxel.red = 255;
+            _mouseVoxel.green = _mouseVoxel.blue = 0;
+        } else if (_selectVoxelMode->isChecked()) {
+            // yellow indicates deletion
+            _mouseVoxel.red = _mouseVoxel.green = 255;
+            _mouseVoxel.blue = 0;
+        } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
+            QColor paintColor = _voxelPaintColor->data().value<QColor>();
+            _mouseVoxel.red = paintColor.red();
+            _mouseVoxel.green = paintColor.green();
+            _mouseVoxel.blue = paintColor.blue();
+        }
+        
+        // if we just edited, use the currently selected voxel as the "last" for drag detection
+        if (_justEditedVoxel) {
+            _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+            _justEditedVoxel = false;
+        }
+    }
+    
+    // walking triggers the handControl to stop
+    if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
+        _handControl.stop();
+    }
+    
+    //  Update from Mouse
+    if (_mouseLook->isChecked()) {
+        QPoint mouse = QCursor::pos();
+        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
+                                  _glWidget->mapFromGlobal(mouse).y(),
+                                  _glWidget->width(),
+                                  _glWidget->height());
+    }
+   
+    //  Read serial port interface devices
+    if (_serialHeadSensor.active) {
+        _serialHeadSensor.readData(deltaTime);
+    }
+    
+    //  Update transmitter
+    
+    //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
+    updateAvatar(deltaTime);
+
+    // read incoming packets from network
+    if (!_enableNetworkThread) {
+        networkReceive(0);
+    }
+    
+    //loop through all the other avatars and simulate them...
+    AgentList* agentList = AgentList::getInstance();
+    agentList->lock();
+    for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        if (agent->getLinkedData() != NULL) {
+            Avatar *avatar = (Avatar *)agent->getLinkedData();
+            if (!avatar->isInitialized()) {
+                avatar->init();
+            }
+            avatar->simulate(deltaTime, NULL);
+            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
+        }
+    }
+    agentList->unlock();
+
+    //  Simulate myself
+    _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+    if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
+        _myAvatar.simulate(deltaTime, &_myTransmitter);
+    } else {
+        _myAvatar.simulate(deltaTime, NULL);
+    }
+    
+    if (TESTING_AVATAR_TOUCH) {
+        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    } else {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
+            if (_manualFirstPerson) {
+                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
+                }
+            } else {
+                if (_myAvatar.getIsNearInteractingOther()) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
+                    }
+                } else {
+                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
+                    }
+                }
+            }
+        }
+    }
+    
+    //  Update audio stats for procedural sounds
+    #ifndef _WIN32
+    _audio.setLastAcceleration(_myAvatar.getThrust());
+    _audio.setLastVelocity(_myAvatar.getVelocity());
+    #endif
 }
 
 void Application::updateAvatar(float deltaTime) {
