@@ -215,7 +215,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
-    // these are used, for example, to identify the application's preferences
+    // these are used, for example, to identify the application settings
     setApplicationName("Interface");
     setOrganizationDomain("highfidelity.io");
     setOrganizationName("High Fidelity");
@@ -968,7 +968,7 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    if (_autosave) {
+    if (_settingsAutosave->isChecked()) {
         saveSettings();
         _settings->sync();
     }
@@ -1471,7 +1471,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
-    (_settingsAutosave = settingsMenu->addAction("Autosave", this, SLOT(setAutosave(bool))))->setCheckable(true);
+    (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
     settingsMenu->addAction("Load settings", this, SLOT(loadSettings()));
     settingsMenu->addAction("Save settings", this, SLOT(saveSettings()));
@@ -2519,10 +2519,6 @@ void Application::loadAction(QSettings* set, QAction* action) {
 
 void Application::saveAction(QSettings* set, QAction* action) {
     set->setValue(action->text(),  action->isChecked());
-}
-
-void Application::setAutosave(bool wantsAutosave) {
-    _autosave = wantsAutosave;
 }
 
 void Application::loadSettings(QSettings* set) {
