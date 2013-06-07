@@ -249,6 +249,7 @@ private:
     
     int _headMouseX, _headMouseY;
     bool _manualFirstPerson;
+    float _headCameraPitchYawScale;
     
     HandControl _handControl;
     

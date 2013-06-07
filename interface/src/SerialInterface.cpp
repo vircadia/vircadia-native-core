@@ -264,7 +264,7 @@ void SerialInterface::readData(float deltaTime) {
                     1.0f / SENSOR_FUSION_SAMPLES);
                 
                 //  Without a compass heading, always decay estimated Yaw slightly
-                const float YAW_DECAY = 0.995;
+                const float YAW_DECAY = 0.999f;
                 glm::vec3 forward = estimatedRotation * glm::vec3(0.0f, 0.0f, -1.0f);
                 estimatedRotation = safeMix(glm::angleAxis(glm::degrees(atan2f(forward.x, -forward.z)),
                     glm::vec3(0.0f, 1.0f, 0.0f)) * estimatedRotation, estimatedRotation, YAW_DECAY);
