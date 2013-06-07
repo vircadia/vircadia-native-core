@@ -145,7 +145,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
         _manualFirstPerson(false),
-        _headCameraPitchYawScale(0.0f),
         _mouseX(0),
         _mouseY(0),
         _mousePressed(false),
@@ -2544,7 +2543,7 @@ void Application::setAutosave(bool wantsAutosave) {
 void Application::loadSettings(QSettings* set) {
     if (!set) set = getSettings();
 
-    _headCameraPitchYawScale = set->value("headCameraPitchYawScale").toDouble();
+    _headCameraPitchYawScale = set->value("headCameraPitchYawScale", 0.0f).toFloat();
     scanMenuBar(&Application::loadAction, set);
     getAvatar()->loadData(set);    
 }
