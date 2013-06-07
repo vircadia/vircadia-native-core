@@ -215,7 +215,7 @@ void SerialInterface::readData(float deltaTime) {
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         
-        _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
+        _lastAcceleration = glm::vec3(accelXRate, accelYRate, accelZRate) * LSB_TO_METERS_PER_SECOND2;
                 
         int rollRate, yawRate, pitchRate;
         
@@ -225,9 +225,9 @@ void SerialInterface::readData(float deltaTime) {
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
-        _lastRotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRotationRates[0] = ((float) pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRotationRates[1] = ((float) yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        _lastRotationRates[2] = ((float) rollRate) * LSB_TO_DEGREES_PER_SECOND;
 
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
@@ -264,7 +264,7 @@ void SerialInterface::readData(float deltaTime) {
                     1.0f / SENSOR_FUSION_SAMPLES);
                 
                 //  Without a compass heading, always decay estimated Yaw slightly
-                const float YAW_DECAY = 0.995;
+                const float YAW_DECAY = 0.999f;
                 glm::vec3 forward = estimatedRotation * glm::vec3(0.0f, 0.0f, -1.0f);
                 estimatedRotation = safeMix(glm::angleAxis(glm::degrees(atan2f(forward.x, -forward.z)),
                     glm::vec3(0.0f, 1.0f, 0.0f)) * estimatedRotation, estimatedRotation, YAW_DECAY);
