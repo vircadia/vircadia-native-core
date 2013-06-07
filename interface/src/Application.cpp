@@ -1155,29 +1155,6 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-void Application::addVoxelInFrontOfAvatar() {
-    VoxelDetail detail;
-    
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.calculateCameraDirection()) * (1.0f / TREE_SCALE);
-    detail.s = _mouseVoxelScale;
-    
-    detail.x = detail.s * floor(position.x / detail.s);
-    detail.y = detail.s * floor(position.y / detail.s);
-    detail.z = detail.s * floor(position.z / detail.s);
-    QColor paintColor = _voxelPaintColor->data().value<QColor>();
-    detail.red = paintColor.red();
-    detail.green = paintColor.green();
-    detail.blue = paintColor.blue();
-    
-    PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
-        PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
-    sendVoxelEditMessage(message, detail);
-    
-    // create the voxel locally so it appears immediately            
-    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s,
-        detail.red, detail.green, detail.blue, _destructiveAddVoxel->isChecked());
-}
-
 void Application::decreaseVoxelSize() {
     _mouseVoxelScale /= 2;
 }
@@ -1444,7 +1421,6 @@ void Application::initMenu() {
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
     
-    voxelMenu->addAction("Place New Voxel",     this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::Key_N);
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
     
@@ -1463,7 +1439,7 @@ void Application::initMenu() {
     
     QMenu* debugMenu = menuBar->addMenu("Debug");
 
-    QMenu* frustumMenu = debugMenu->addMenu("View Frustum...");
+    QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
@@ -1476,16 +1452,18 @@ void Application::initMenu() {
     updateFrustumRenderModeAction();
     
     debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
-
-    debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
-    debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
-    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
-    debugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
-    debugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
-    debugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
-    debugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
-    debugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
+
+    QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
+    renderDebugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
+    renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
+    renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
+    renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
+    renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
+    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
+
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
