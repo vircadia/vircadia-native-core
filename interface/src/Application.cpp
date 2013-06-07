@@ -820,12 +820,13 @@ void Application::idle() {
 
         // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
         _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
-
+        
         _mouseVoxel.s = 0.0f;
         if (checkedVoxelModeAction() != 0 &&
-            _myAvatar.getVelocity().x < MAX_AVATAR_EDIT_VELOCITY &&
-            _myAvatar.getVelocity().y < MAX_AVATAR_EDIT_VELOCITY &&
-            _myAvatar.getVelocity().z < MAX_AVATAR_EDIT_VELOCITY) {
+            (fabs(_myAvatar.getVelocity().x) +
+            fabs(_myAvatar.getVelocity().y) +
+            fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
+            
             float distance;
             BoxFace face;
             if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
