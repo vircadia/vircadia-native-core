@@ -67,7 +67,7 @@ public:
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
-    void setAgentTypesOfInterest(const unsigned char* agentTypesOfInterest, int numAgentTypesOfInterest);
+    void setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest);
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
@@ -106,7 +106,7 @@ private:
     int _numAgents;
     UDPSocket _agentSocket;
     char _ownerType;
-    unsigned char* _agentTypesOfInterest;
+    char* _agentTypesOfInterest;
     unsigned int _socketListenPort;
     uint16_t _ownerID;
     uint16_t _lastAgentID;

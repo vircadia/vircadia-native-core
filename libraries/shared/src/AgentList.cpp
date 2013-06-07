@@ -178,10 +178,10 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     return NULL;
 }
 
-void AgentList::setAgentTypesOfInterest(const unsigned char* agentTypesOfInterest, int numAgentTypesOfInterest) {
+void AgentList::setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest) {
     delete _agentTypesOfInterest;
     
-    _agentTypesOfInterest = new unsigned char[numAgentTypesOfInterest + sizeof(char)];
+    _agentTypesOfInterest = new char[numAgentTypesOfInterest + sizeof(char)];
     memcpy(_agentTypesOfInterest, agentTypesOfInterest, numAgentTypesOfInterest);
     _agentTypesOfInterest[numAgentTypesOfInterest] = '\0';
 }
@@ -209,11 +209,10 @@ void AgentList::sendDomainServerCheckIn() {
 
     if (!checkInPacket) {
         int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : NULL;
-        printf("There are %d AOI\n", numBytesAgentsOfInterest);
+        
         // check in packet has header, agent type, port, IP, agent types of interest, null termination
         int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
             numBytesAgentsOfInterest + sizeof(char);
-        printf("Packet as a whole will be %d\n", numPacketBytes);
         
         checkInPacket = new unsigned char[numPacketBytes];
         
