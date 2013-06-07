@@ -786,6 +786,7 @@ static glm::vec3 getFaceVector(BoxFace face) {
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
+const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 
 void Application::idle() {
     timeval check;
@@ -829,32 +830,38 @@ void Application::idle() {
             
             float distance;
             BoxFace face;
-            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
-                // find the nearest voxel with the desired scale
-                if (_mouseVoxelScale > _mouseVoxel.s) {
-                    // choose the larger voxel that encompasses the one selected
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                    _mouseVoxel.s = _mouseVoxelScale;
+            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
                 
-                } else {
-                    glm::vec3 faceVector = getFaceVector(face);
-                    if (_mouseVoxelScale < _mouseVoxel.s) {
-                        // find the closest contained voxel
-                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
-                            faceVector * (_mouseVoxelScale * 0.5f);
-                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
-                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
-                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                if (distance < MAX_VOXEL_EDIT_DISTANCE) {
+                    // find the nearest voxel with the desired scale
+                    if (_mouseVoxelScale > _mouseVoxel.s) {
+                        // choose the larger voxel that encompasses the one selected
+                        _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale);
+                        _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale);
+                        _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
                         _mouseVoxel.s = _mouseVoxelScale;
+                        
+                    } else {
+                        glm::vec3 faceVector = getFaceVector(face);
+                        if (_mouseVoxelScale < _mouseVoxel.s) {
+                            // find the closest contained voxel
+                            glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                            faceVector * (_mouseVoxelScale * 0.5f);
+                            _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale);
+                            _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale);
+                            _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                            _mouseVoxel.s = _mouseVoxelScale;
+                        }
+                        if (_addVoxelMode->isChecked()) {
+                            // use the face to determine the side on which to create a neighbor
+                            _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
+                            _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
+                            _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
+                        }
                     }
-                    if (_addVoxelMode->isChecked()) {
-                        // use the face to determine the side on which to create a neighbor
-                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                    }
+                } else {
+                    // We're not within range.  Don't render the selection.
+                    _mouseVoxel.s = 0;
                 }
             } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
                 // place the voxel a fixed distance away
