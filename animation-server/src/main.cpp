@@ -702,7 +702,6 @@ int main(int argc, const char * argv[])
 
     agentList->linkedDataCreateCallback = NULL; // do we need a callback?
     agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
 
@@ -713,16 +712,20 @@ int main(int argc, const char * argv[])
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
+    
+    timeval lastDomainServerCheckIn = {};
 
     // loop to send to agents requesting data
     while (true) {
-        // Agents sending messages to us...    
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
+        // Agents sending messages to us...
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-            switch (packetData[0]) {
-                default: {
-                    AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
-                } break;
-            }
+            AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
         }
     }
     
