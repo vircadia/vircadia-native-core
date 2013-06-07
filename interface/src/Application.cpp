@@ -2544,17 +2544,17 @@ void Application::setAutosave(bool wantsAutosave) {
 void Application::loadSettings(QSettings* set) {
     if (!set) set = getSettings();
 
-    scanMenuBar(&Application::loadAction, set);
-    getAvatar()->loadData(set);
     _headCameraPitchYawScale = set->value("headCameraPitchYawScale").toDouble();
+    scanMenuBar(&Application::loadAction, set);
+    getAvatar()->loadData(set);    
 }
 
 void Application::saveSettings(QSettings* set) {
     if (!set) set = getSettings();
 
-    scanMenuBar(&Application::saveAction, set);
-    getAvatar()->saveData(set);
     set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
+    scanMenuBar(&Application::saveAction, set);
+    getAvatar()->saveData(set);    
 }
 
 void Application::importSettings() {
