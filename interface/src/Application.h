@@ -123,6 +123,7 @@ private slots:
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
+    void runTests();
 private:
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
