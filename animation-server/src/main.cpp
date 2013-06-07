@@ -531,7 +531,7 @@ float billboardGradientIncrement = 0.01f;
 const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
-const int VOXELS_PER_PACKET = 100;
+const int VOXELS_PER_PACKET = 81;
 const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
 
 
