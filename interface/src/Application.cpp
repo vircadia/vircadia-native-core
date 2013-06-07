@@ -215,6 +215,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
+    // these are used, for example, to identify the application's preferences
+    setApplicationName("Interface");
+    setOrganizationDomain("highfidelity.io");
+    setOrganizationName("High Fidelity");
+    
     initMenu();
     
     QRect available = desktop()->availableGeometry();
@@ -227,11 +232,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
-    
-    // these are used, for example, to identify the application's preferences
-    setApplicationName("Interface");
-    setOrganizationDomain("highfidelity.io");
-    setOrganizationName("High Fidelity");
 }
 
 void Application::initializeGL() {
