@@ -902,9 +902,8 @@ void Application::idle() {
         
         //  Update from Mouse
         if (_mouseLook->isChecked()) {
-            QPoint mouse(_mouseX, _mouseY);
-            _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                      _glWidget->mapFromGlobal(mouse).y(),
+            _myAvatar.updateFromMouse(_mouseX,
+                                      _mouseY,
                                       _glWidget->width(),
                                       _glWidget->height());
         }
