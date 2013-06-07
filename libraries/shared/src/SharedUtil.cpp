@@ -223,7 +223,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
             actualMessageSize+=lengthOfVoxelData;
         }
         // cleanup
-        delete voxelData;
+        delete[] voxelData;
     }
 
     if (success) {    

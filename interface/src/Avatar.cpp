@@ -62,37 +62,35 @@ float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.20;
 
 Avatar::Avatar(Agent* owningAgent) :
-AvatarData(owningAgent),
-_initialized(false),
-_head(this),
-_ballSpringsInitialized(false),
-_TEST_bigSphereRadius(0.5f),
-_TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
-_mousePressed(false),
-_bodyPitchDelta(0.0f),
-_bodyYawDelta(0.0f),
-_bodyRollDelta(0.0f),
-_movedHandOffset(0.0f, 0.0f, 0.0f),
-_mode(AVATAR_MODE_STANDING),
-_cameraPosition(0.0f, 0.0f, 0.0f),
-_handHoldingPosition(0.0f, 0.0f, 0.0f),
-_velocity(0.0f, 0.0f, 0.0f),
-_thrust(0.0f, 0.0f, 0.0f),
-_speed(0.0f),
-_maxArmLength(0.0f),
-_pelvisStandingHeight(0.0f),
-_pelvisFloatingHeight(0.0f),
-_distanceToNearestAvatar(std::numeric_limits<float>::max()),
-_gravity(0.0f, -1.0f, 0.0f),
-_worldUpDirection(DEFAULT_UP_DIRECTION),
-_mouseRayOrigin(0.0f, 0.0f, 0.0f),
-_mouseRayDirection(0.0f, 0.0f, 0.0f),
-_interactingOther(NULL),
-_isMouseTurningRight(false),
-_voxels(this)
-
+    AvatarData(owningAgent),
+    _initialized(false),
+    _head(this),
+    _ballSpringsInitialized(false),
+    _TEST_bigSphereRadius(0.5f),
+    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
+    _mousePressed(false),
+    _bodyPitchDelta(0.0f),
+    _bodyYawDelta(0.0f),
+    _bodyRollDelta(0.0f),
+    _movedHandOffset(0.0f, 0.0f, 0.0f),
+    _mode(AVATAR_MODE_STANDING),
+    _cameraPosition(0.0f, 0.0f, 0.0f),
+    _handHoldingPosition(0.0f, 0.0f, 0.0f),
+    _velocity(0.0f, 0.0f, 0.0f),
+    _thrust(0.0f, 0.0f, 0.0f),
+    _speed(0.0f),
+    _maxArmLength(0.0f),
+    _pelvisStandingHeight(0.0f),
+    _pelvisFloatingHeight(0.0f),
+    _distanceToNearestAvatar(std::numeric_limits<float>::max()),
+    _gravity(0.0f, -1.0f, 0.0f),
+    _worldUpDirection(DEFAULT_UP_DIRECTION),
+    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
+    _mouseRayDirection(0.0f, 0.0f, 0.0f),
+    _interactingOther(NULL),
+    _isMouseTurningRight(false),
+    _voxels(this)
 {
-    
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     
@@ -319,9 +317,9 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
     //  Update head yaw and pitch based on mouse input
-    const float MOUSE_MOVE_RADIUS = 0.15f;
+    const float MOUSE_MOVE_RADIUS = 0.3f;
     const float MOUSE_ROTATE_SPEED = 4.0f;
-    const float MOUSE_PITCH_SPEED = 1.5f;
+    const float MOUSE_PITCH_SPEED = 2.0f;
     const int TITLE_BAR_HEIGHT = 46;
     float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
     float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
@@ -659,7 +657,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
         //loop through all the other avatars for potential interactions...
         AgentList* agentList = AgentList::getInstance();
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+            if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
                 Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
@@ -828,7 +826,7 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     // loop through all the other avatars for potential interactions...
     AgentList* agentList = AgentList::getInstance();
     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
+        if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
             Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
             
             // check if the bounding spheres of the two avatars are colliding

@@ -26,6 +26,7 @@
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QDesktopWidget>
+#include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -311,11 +312,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getBallPosition(AVATAR_JOINT_HEAD_BASE));
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getWorldAlignedOrientation());
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
     }
     
     // Update camera position
@@ -1039,6 +1040,10 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
+    headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
+    form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -1051,6 +1056,8 @@ void Application::editPreferences() {
     _settings->setValue("avatarURL", url);
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
+    
+    _headCameraPitchYawScale = headCameraPitchYawScale->value();
 }
 
 void Application::pair() {
@@ -1157,31 +1164,8 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
-        delete bufferOut;
+        delete[] bufferOut;
     }
-}
-
-void Application::addVoxelInFrontOfAvatar() {
-    VoxelDetail detail;
-    
-    glm::vec3 position = (_myAvatar.getPosition() + _myAvatar.calculateCameraDirection()) * (1.0f / TREE_SCALE);
-    detail.s = _mouseVoxelScale;
-    
-    detail.x = detail.s * floor(position.x / detail.s);
-    detail.y = detail.s * floor(position.y / detail.s);
-    detail.z = detail.s * floor(position.z / detail.s);
-    QColor paintColor = _voxelPaintColor->data().value<QColor>();
-    detail.red = paintColor.red();
-    detail.green = paintColor.green();
-    detail.blue = paintColor.blue();
-    
-    PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
-        PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
-    sendVoxelEditMessage(message, detail);
-    
-    // create the voxel locally so it appears immediately            
-    _voxels.createVoxel(detail.x, detail.y, detail.z, detail.s,
-        detail.red, detail.green, detail.blue, _destructiveAddVoxel->isChecked());
 }
 
 void Application::decreaseVoxelSize() {
@@ -1316,7 +1300,7 @@ void Application::importVoxels() {
     }
     
     if (calculatedOctCode) {
-        delete calculatedOctCode;
+        delete[] calculatedOctCode;
     }
 
     // restore the main window's active state
@@ -1368,7 +1352,7 @@ void Application::pasteVoxels() {
     }
     
     if (calculatedOctCode) {
-        delete calculatedOctCode;
+        delete[] calculatedOctCode;
     }
 }
 
@@ -1450,7 +1434,6 @@ void Application::initMenu() {
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
     
-    voxelMenu->addAction("Place New Voxel",     this, SLOT(addVoxelInFrontOfAvatar()), Qt::CTRL | Qt::Key_N);
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
     
@@ -1467,7 +1450,9 @@ void Application::initMenu() {
     voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
-    QMenu* frustumMenu = menuBar->addMenu("Frustum");
+    QMenu* debugMenu = menuBar->addMenu("Debug");
+
+    QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
@@ -1479,16 +1464,19 @@ void Application::initMenu() {
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
     
-    QMenu* debugMenu = menuBar->addMenu("Debug");
-    debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
-    debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
-    debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
-    debugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
-    debugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
-    debugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
-    debugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
-    debugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
+    debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
+
+    QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
+    renderDebugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
+    renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
+    renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
+    renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
+    renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
+    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
+
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
@@ -1524,6 +1512,10 @@ void Application::updateFrustumRenderModeAction() {
             _frustumRenderModeAction->setText("Render Mode - Far");
             break; 
     }
+}
+
+void Application::runTests() {
+    runTimingTests();
 }
 
 void Application::initDisplay() {
@@ -2552,15 +2544,19 @@ void Application::setAutosave(bool wantsAutosave) {
 void Application::loadSettings(QSettings* set) {
     if (!set) set = getSettings();
 
+    _headCameraPitchYawScale = set->value("headCameraPitchYawScale", 0.0f).toFloat();
     scanMenuBar(&Application::loadAction, set);
-    getAvatar()->loadData(set);
+    getAvatar()->loadData(set);    
 }
 
 void Application::saveSettings(QSettings* set) {
     if (!set) set = getSettings();
 
+    set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     scanMenuBar(&Application::saveAction, set);
     getAvatar()->saveData(set);
+    
+    set->sync();
 }
 
 void Application::importSettings() {
