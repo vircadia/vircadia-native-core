@@ -47,7 +47,7 @@ public:
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
     
     glm::quat getOrientation() const;
-    glm::quat getWorldAlignedOrientation () const;
+    glm::quat getCameraOrientation (float pitchYawScale) const;
     
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
