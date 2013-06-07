@@ -41,8 +41,6 @@ private:
 
     void init(unsigned char * octalCode);
     
-    double _lastChanged;
-
 public:
     VoxelNode(); // root node constructor
     VoxelNode(unsigned char * octalCode); // regular constructor

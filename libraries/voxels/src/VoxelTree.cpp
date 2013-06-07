@@ -274,16 +274,6 @@ public:
     bool            pathChanged;
 };
 
-class DeleteVoxelCodeFromTreeArgs {
-public:
-    bool            stage;
-    bool            collapseEmptyTrees;
-    unsigned char*  codeBuffer;
-    int             lengthOfCode;
-    bool            deleteLastChild;
-    bool            pathChanged;
-};
-
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
 void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, bool collapseEmptyTrees) {
