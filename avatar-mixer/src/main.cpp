@@ -66,7 +66,6 @@ int main(int argc, const char* argv[]) {
     
     agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
     
-    agentList->startDomainServerCheckInThread();
     agentList->startSilentAgentRemovalThread();
     
     sockaddr *agentAddress = new sockaddr;
@@ -80,8 +79,19 @@ int main(int argc, const char* argv[]) {
     
     uint16_t agentID = 0;
     Agent* avatarAgent = NULL;
-        
+    
+    timeval lastDomainServerCheckIn = {};
+    // we only need to hear back about avatar agents from the DS
+    AgentList::getInstance()->setAgentTypesOfInterest(&AGENT_TYPE_AVATAR, 1);
+    
     while (true) {
+        
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
         if (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
@@ -129,7 +139,6 @@ int main(int argc, const char* argv[]) {
     }
     
     agentList->stopSilentAgentRemovalThread();
-    agentList->stopDomainServerCheckInThread();
     
     return 0;
 }
