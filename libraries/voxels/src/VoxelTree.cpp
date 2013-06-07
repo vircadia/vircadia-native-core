@@ -261,7 +261,6 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
     deleteVoxelCodeFromTree(octalCode, stage);
     delete octalCode; // cleanup memory
-    reaverageVoxelColors(rootNode); 
 }
 
 
@@ -365,9 +364,6 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
             childNode->stageForDeletion();
         } else {
             node->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this node
-            if (_shouldReaverage) {
-                node->setColorFromAverageOfChildren();
-            }
         }
 
         // track our tree dirtiness
@@ -503,7 +499,6 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
 		voxelCode+=voxelDataSize;
 		atByte+=voxelDataSize;
 	}
-    reaverageVoxelColors(rootNode); // Fix our colors!! Need to call it on rootNode
 }
 
 void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
@@ -552,6 +547,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
     }   
 }
 
+// Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
@@ -785,7 +781,6 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
         thisRadius += thisVoxelSize;
         thisVoxelSize = std::max(voxelSize, thisVoxelSize / 2.0f);
     }
-    this->reaverageVoxelColors(this->rootNode);
 }
 
 int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
