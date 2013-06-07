@@ -714,6 +714,7 @@ int main(int argc, const char * argv[])
     ssize_t receivedBytes;
     
     timeval lastDomainServerCheckIn = {};
+    AgentList::getInstance()->setAgentTypesOfInterest(&AGENT_TYPE_VOXEL_SERVER, 1);
 
     // loop to send to agents requesting data
     while (true) {
