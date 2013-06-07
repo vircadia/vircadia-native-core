@@ -1454,7 +1454,9 @@ void Application::initMenu() {
     voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
-    QMenu* frustumMenu = menuBar->addMenu("Frustum");
+    QMenu* debugMenu = menuBar->addMenu("Debug");
+
+    QMenu* frustumMenu = debugMenu->addMenu("View Frustum...");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
@@ -1466,7 +1468,6 @@ void Application::initMenu() {
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
     
-    QMenu* debugMenu = menuBar->addMenu("Debug");
     debugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
     debugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()));
     debugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
