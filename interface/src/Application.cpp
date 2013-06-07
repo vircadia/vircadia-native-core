@@ -207,10 +207,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
     #endif
+    
+    // tell the AgentList instance who to tell the domain server we care about
+    const unsigned char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
+    AgentList::getInstance()->setAgentTypesOfInterest(agentTypesOfInterest, sizeof(agentTypesOfInterest));
 
     // start the agentList threads
     AgentList::getInstance()->startSilentAgentRemovalThread();
-    AgentList::getInstance()->startDomainServerCheckInThread();
     AgentList::getInstance()->startPingUnknownAgentsThread();
     
     _window->setCentralWidget(_glWidget);
@@ -749,6 +752,9 @@ void Application::timer() {
     if (!_serialHeadSensor.active) {
         _serialHeadSensor.pair();
     }
+    
+    // ask the agent list to check in with the domain server
+    AgentList::getInstance()->sendDomainServerCheckIn();
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {

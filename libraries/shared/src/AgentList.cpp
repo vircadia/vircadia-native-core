@@ -34,7 +34,6 @@ char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
-bool domainServerCheckinStopFlag = false;
 bool pingUnknownAgentThreadStopFlag = false;
 
 AgentList* AgentList::_sharedInstance = NULL;
@@ -62,6 +61,7 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _numAgents(0),
     _agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
+    _agentTypesOfInterest(NULL),
     _socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
     _lastAgentID(0) {
@@ -69,9 +69,10 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
 }
 
 AgentList::~AgentList() {
+    delete _agentTypesOfInterest;
+    
     // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
-    stopDomainServerCheckInThread();
     stopPingUnknownAgentsThread();
     
     pthread_mutex_destroy(&mutex);
@@ -175,6 +176,65 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     }
 
     return NULL;
+}
+
+void AgentList::setAgentTypesOfInterest(const unsigned char* agentTypesOfInterest, int numAgentTypesOfInterest) {
+    delete _agentTypesOfInterest;
+    
+    _agentTypesOfInterest = new unsigned char[numAgentTypesOfInterest + sizeof(char)];
+    memcpy(_agentTypesOfInterest, agentTypesOfInterest, numAgentTypesOfInterest);
+    _agentTypesOfInterest[numAgentTypesOfInterest] = '\0';
+}
+
+void AgentList::sendDomainServerCheckIn() {
+    static bool printedDomainServerIP = false;
+    //  Lookup the IP address of the domain server if we need to
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
+        } else {
+            printLog("Failed domain server lookup\n");
+        }
+    } else if (!printedDomainServerIP) {
+        printLog("Domain Server IP: %s\n", DOMAIN_IP);
+        printedDomainServerIP = true;
+    }
+    
+    // construct the DS check in packet if we need to
+    static unsigned char* checkInPacket = NULL;
+
+    if (!checkInPacket) {
+        int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : NULL;
+        printf("There are %d AOI\n", numBytesAgentsOfInterest);
+        // check in packet has header, agent type, port, IP, agent types of interest, null termination
+        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
+            numBytesAgentsOfInterest + sizeof(char);
+        printf("Packet as a whole will be %d\n", numPacketBytes);
+        
+        checkInPacket = new unsigned char[numPacketBytes];
+        
+        checkInPacket[0] = (memchr(SOLO_AGENT_TYPES, _ownerType, sizeof(SOLO_AGENT_TYPES)))
+                ? PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
+                : PACKET_HEADER_DOMAIN_LIST_REQUEST;
+        checkInPacket[1] = _ownerType;
+        
+        packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE), getLocalAddress(), htons(_socketListenPort));
+        
+        // copy over the bytes for agent types of interest, if required
+        if (numBytesAgentsOfInterest > 0) {
+            memcpy(checkInPacket + numPacketBytes - sizeof(char) - numBytesAgentsOfInterest,
+                   _agentTypesOfInterest,
+                   numBytesAgentsOfInterest);
+        }
+        
+        checkInPacket[numPacketBytes - 1] = '\0';
+    }
+    
+    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, strlen((char*) checkInPacket));
 }
 
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
@@ -386,62 +446,6 @@ void AgentList::startSilentAgentRemovalThread() {
 void AgentList::stopSilentAgentRemovalThread() {
     silentAgentThreadStopFlag = true;
     pthread_join(removeSilentAgentsThread, NULL);
-}
-
-void *checkInWithDomainServer(void *args) {
-    
-    const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
-    
-    //  Lookup the IP address of the domain server if we need to
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
-            
-        } else {
-            printLog("Failed lookup domainserver\n");
-        }
-    } else printLog("Domain Server IP: %s\n", DOMAIN_IP);
-    
-    AgentList* parentAgentList = (AgentList*) args;
-    
-    timeval lastSend;
-    in_addr_t localAddress = getLocalAddress();
-    unsigned char packet[8];
-    
-    packet[0] = PACKET_HEADER_DOMAIN_RFD;
-    packet[1] = parentAgentList->getOwnerType();    
-    
-    while (!domainServerCheckinStopFlag) {
-        gettimeofday(&lastSend, NULL);
-        
-        packSocket(packet + 2, localAddress, htons(parentAgentList->getSocketListenPort()));
-        
-        parentAgentList->getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, packet, sizeof(packet));
-        
-        packet[0] = PACKET_HEADER_DOMAIN_LIST_REQUEST;
-        
-        double usecToSleep = DOMAIN_SERVER_CHECK_IN_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-    }
-    
-    pthread_exit(0);
-    return NULL;
-}
-
-void AgentList::startDomainServerCheckInThread() {
-    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void*) this);
-}
-
-void AgentList::stopDomainServerCheckInThread() {
-    domainServerCheckinStopFlag = true;
-    pthread_join(checkInWithDomainServerThread, NULL);
 }
 
 AgentList::iterator AgentList::begin() const {

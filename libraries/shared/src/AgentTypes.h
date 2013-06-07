@@ -16,12 +16,13 @@
 //       If you don't then it will make things harder on your co-developers in debugging because the Agent
 //       class won't know the name and will report it as "Unknown".
 
-const char AGENT_TYPE_DOMAIN = 'D';
-const char AGENT_TYPE_VOXEL_SERVER = 'V';
-const char AGENT_TYPE_AVATAR = 'I';
-const char AGENT_TYPE_AUDIO_MIXER = 'M';
-const char AGENT_TYPE_AVATAR_MIXER = 'W';
-const char AGENT_TYPE_AUDIO_INJECTOR = 'A';
-const char AGENT_TYPE_ANIMATION_SERVER = 'a';
+typedef char AGENT_TYPE;
+const AGENT_TYPE AGENT_TYPE_DOMAIN = 'D';
+const AGENT_TYPE AGENT_TYPE_VOXEL_SERVER = 'V';
+const AGENT_TYPE AGENT_TYPE_AVATAR = 'I';
+const AGENT_TYPE AGENT_TYPE_AUDIO_MIXER = 'M';
+const AGENT_TYPE AGENT_TYPE_AVATAR_MIXER = 'W';
+const AGENT_TYPE AGENT_TYPE_AUDIO_INJECTOR = 'A';
+const AGENT_TYPE AGENT_TYPE_ANIMATION_SERVER = 'a';
 
 #endif

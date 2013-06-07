@@ -102,7 +102,7 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            unpackSocket(packetData + 2, (sockaddr*) &agentLocalAddress);
+            int numBytesSocket = unpackSocket(packetData + 2, (sockaddr*) &agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -124,11 +124,19 @@ int main(int argc, const char * argv[])
                 agentList->increaseAgentID();
             }
             
-            currentBufferPos = broadcastPacket + 1;
+            currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER);
             startPointer = currentBufferPos;
             
+            char* agentTypesOfInterest = (char*) currentBufferPos + sizeof(AGENT_TYPE) + numBytesSocket;
+            int numInterestTypes = strlen(agentTypesOfInterest);
+            
             for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)) {
+                if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)
+                    && (numInterestTypes > 0 && memchr(agentTypesOfInterest, agent->getType(), strlen(agentTypesOfInterest)))) {
+                    // this is not the agent themselves
+                    // and this is an agent of a type in the passed agent types of interest
+                    // or the agent did not pass us any specific types they are interested in
+                        
                     if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
                         // this is an agent of which there can be multiple, just add them to the packet
                         // don't send avatar agents to other avatars, that will come from avatar mixer
