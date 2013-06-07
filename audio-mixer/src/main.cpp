@@ -70,11 +70,6 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
-struct SharedAudioFactors {
-    float distanceCoefficient;
-    float effectMix;
-};
-
 int main(int argc, const char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
     
