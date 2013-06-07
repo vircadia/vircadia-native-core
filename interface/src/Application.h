@@ -109,7 +109,6 @@ private slots:
     void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
     void updateVoxelModeActions();
-    void addVoxelInFrontOfAvatar();
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
