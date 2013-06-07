@@ -694,6 +694,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _mouseY = event->y();
         
         // detect drag
+        printLog("Avatar velocity x, y, z: %f, %f, %f\n", _myAvatar.getVelocity().x, _myAvatar.getVelocity().y, _myAvatar.getVelocity().z);
         glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
         if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
             if (event->buttons().testFlag(Qt::LeftButton)) {
@@ -2283,6 +2284,9 @@ void Application::shiftPaintingColor() {
 
 
 void Application::maybeEditVoxelUnderCursor() {
+    if (_myAvatar.getVelocity().x > 0.5) {
+        printLog("We're going faster than 1 m/s!\n");
+    }
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
