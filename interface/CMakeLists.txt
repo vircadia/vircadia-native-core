@@ -87,13 +87,19 @@ find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 find_package(LibOVR)
 
-# include headers for external libraries and InterfaceConfig.
+# include headers for interface and InterfaceConfig.
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_BINARY_DIR}/includes
-    ${GLM_INCLUDE_DIRS} 
-    ${LODEPNG_INCLUDE_DIRS}
-    ${LIBOVR_INCLUDE_DIRS}
+)
+
+# include external library headers
+# use system flag so warnings are supressed
+include_directories(
+  SYSTEM
+  ${GLM_INCLUDE_DIRS} 
+  ${LODEPNG_INCLUDE_DIRS}
+  ${LIBOVR_INCLUDE_DIRS}
 )
 
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
