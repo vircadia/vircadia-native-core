@@ -1383,11 +1383,16 @@ void Application::initMenu() {
     (_renderAtmosphereOn = renderMenu->addAction("Atmosphere"))->setCheckable(true);
     _renderAtmosphereOn->setChecked(true);
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
+    (_renderGroundPlaneOn = renderMenu->addAction("Ground Plane"))->setCheckable(true);
+    _renderGroundPlaneOn->setChecked(true);
+    _renderGroundPlaneOn->setShortcut(Qt::SHIFT | Qt::Key_G);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
+
+
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
@@ -1913,8 +1918,9 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
-    
+    if (_renderGroundPlaneOn->isChecked()) {
+        drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
+    } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
         _voxels.render(_renderVoxelTextures->isChecked());
