@@ -1391,8 +1391,6 @@ void Application::initMenu() {
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
-
-
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
