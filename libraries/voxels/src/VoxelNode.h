@@ -36,6 +36,7 @@ private:
     unsigned char* _octalCode;
     VoxelNode* _children[8];
     int _childCount;
+    float _density;             // If leaf: density = 1, if internal node: 0-1 density of voxels inside
 
     void calculateAABox();
 
@@ -102,11 +103,14 @@ public:
     void setColor(const nodeColor& color);
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _currentColor; };
+    void setDensity(const float density) { _density = density; };
+    const float getDensity() const { return _density; };
 #else
     void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
     void setFalseColored(bool isFalseColored) { /* no op */ };
     bool getFalseColored() { return false; };
     void setColor(const nodeColor& color) { memcpy(_trueColor,color,sizeof(nodeColor)); };
+    void setDensity(const float density) { _density = density; };
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _trueColor; };
 #endif

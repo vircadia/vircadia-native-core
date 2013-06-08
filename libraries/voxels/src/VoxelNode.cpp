@@ -35,7 +35,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
 #endif
     _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
-
+    _density = 0.0f;
     
     // default pointers to child nodes to NULL
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -165,6 +165,7 @@ void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeleti
 // will average the child colors...
 void VoxelNode::setColorFromAverageOfChildren() {
     int colorArray[4] = {0,0,0,0};
+    float density = 0.0f;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (_children[i] && !_children[i]->isStagedForDeletion() && _children[i]->isColored()) {
             for (int j = 0; j < 3; j++) {
@@ -172,11 +173,27 @@ void VoxelNode::setColorFromAverageOfChildren() {
             }
             colorArray[3]++;
         }
+        if (_children[i]) {
+            density += _children[i]->getDensity();
+        }
     }
+    if (_childCount > 0) {
+        //  If there are children, density is sum of child densities
+        density /= (float) NUMBER_OF_CHILDREN;
+    } else {
+        //  If there are no children
+        density = 1.f;
+    }
+    
+    if (colorArray[3] > 0) {
+        printf("children: %d, density = %4.2f\n", colorArray[3], density);
+    }
+    
+    const float VISIBLE_ABOVE_DENSITY = 0.0f;
     nodeColor newColor = { 0, 0, 0, 0};
-    if (colorArray[3] > 4) {
-        // we need at least 4 colored children to have an average color value
-        // or if we have none we generate random values
+    //  if (density > VISIBLE_ABOVE_DENSITY) {
+    if (colorArray[3] > 0) {
+        // The density of material in the space of the voxel sets whether it is actually colored
         for (int c = 0; c < 3; c++) {
             // set the average color value
             newColor[c] = colorArray[c] / colorArray[3];
@@ -188,6 +205,7 @@ void VoxelNode::setColorFromAverageOfChildren() {
     // this will be the default value all zeros, and therefore be marked as
     // transparent with a 4th element of 0
     setColor(newColor);
+    setDensity(density);
 }
 
 // Note: !NO_FALSE_COLOR implementations of setFalseColor(), setFalseColored(), and setColor() here.
