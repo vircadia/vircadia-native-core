@@ -226,7 +226,7 @@ private:
     ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
     
     enum FrustumDrawMode { FRUSTUM_DRAW_MODE_ALL, FRUSTUM_DRAW_MODE_VECTORS, FRUSTUM_DRAW_MODE_PLANES,
-        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_COUNT };
+        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_KEYHOLE, FRUSTUM_DRAW_MODE_COUNT };
     FrustumDrawMode _frustumDrawingMode;
     
     float _viewFrustumOffsetYaw;      // the following variables control yaw, pitch, roll and distance form regular
