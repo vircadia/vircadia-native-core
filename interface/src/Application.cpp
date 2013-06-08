@@ -915,7 +915,12 @@ void Application::idle() {
         agentList->unlock();
     
         //  Simulate myself
-        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+        if (_gravityUse->isChecked()) {
+            _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+        }
+        else {
+            _myAvatar.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
         if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
             _myAvatar.simulate(deltaTime, &_myTransmitter);
         } else {
@@ -1369,6 +1374,8 @@ void Application::initMenu() {
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
+    (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
+    _gravityUse->setChecked(true);
 
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
