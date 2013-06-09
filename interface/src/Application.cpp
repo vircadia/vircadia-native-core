@@ -1376,6 +1376,7 @@ void Application::initMenu() {
     _transmitterDrives->setChecked(true);
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
+    _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
 
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
