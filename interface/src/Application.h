@@ -112,7 +112,6 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
-    void setAutosave(bool wantsAutosave);
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
     void importSettings();
@@ -132,6 +131,7 @@ private:
     void initDisplay();
     void init();
     
+    void update(float deltaTime);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -293,8 +293,6 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
-    
-    bool _autosave;        // True if the autosave is on.
 };
 
 #endif /* defined(__interface__Application__) */
