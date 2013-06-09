@@ -112,7 +112,6 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
-    void setAutosave(bool wantsAutosave);
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
     void importSettings();
@@ -132,6 +131,7 @@ private:
     void initDisplay();
     void init();
     
+    void update(float deltaTime);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -226,7 +226,7 @@ private:
     ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
     
     enum FrustumDrawMode { FRUSTUM_DRAW_MODE_ALL, FRUSTUM_DRAW_MODE_VECTORS, FRUSTUM_DRAW_MODE_PLANES,
-        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_COUNT };
+        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_KEYHOLE, FRUSTUM_DRAW_MODE_COUNT };
     FrustumDrawMode _frustumDrawingMode;
     
     float _viewFrustumOffsetYaw;      // the following variables control yaw, pitch, roll and distance form regular
@@ -293,8 +293,6 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
-    
-    bool _autosave;        // True if the autosave is on.
 };
 
 #endif /* defined(__interface__Application__) */
