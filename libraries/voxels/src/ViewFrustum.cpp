@@ -29,6 +29,7 @@ ViewFrustum::ViewFrustum() :
     _aspectRatio(1.0),
     _nearClip(0.1),
     _farClip(500.0),
+    _keyholeRadius(DEFAULT_KEYHOLE_RADIUS),
     _farTopLeft(0,0,0),
     _farTopRight(0,0,0),
     _farBottomLeft(0,0,0),
@@ -36,7 +37,9 @@ ViewFrustum::ViewFrustum() :
     _nearTopLeft(0,0,0),
     _nearTopRight(0,0,0),
     _nearBottomLeft(0,0,0),
-    _nearBottomRight(0,0,0) { }
+    _nearBottomRight(0,0,0)
+{
+}
     
 void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _orientation = orientationAsQuaternion;
@@ -114,42 +117,6 @@ void ViewFrustum::calculate() {
 
 }
 
-void ViewFrustum::dump() const {
-
-    printLog("position.x=%f, position.y=%f, position.z=%f\n", _position.x, _position.y, _position.z);
-    printLog("direction.x=%f, direction.y=%f, direction.z=%f\n", _direction.x, _direction.y, _direction.z);
-    printLog("up.x=%f, up.y=%f, up.z=%f\n", _up.x, _up.y, _up.z);
-    printLog("right.x=%f, right.y=%f, right.z=%f\n", _right.x, _right.y, _right.z);
-
-    printLog("farDist=%f\n", _farClip);
-
-    printLog("nearDist=%f\n", _nearClip);
-
-    printLog("eyeOffsetPosition=%f,%f,%f\n", _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
-    
-    printLog("eyeOffsetOrientation=%f,%f,%f,%f\n", _eyeOffsetOrientation.x, _eyeOffsetOrientation.y,
-        _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
-
-    printLog("farTopLeft.x=%f,     farTopLeft.y=%f,     farTopLeft.z=%f\n",
-        _farTopLeft.x, _farTopLeft.y, _farTopLeft.z);
-    printLog("farTopRight.x=%f,    farTopRight.y=%f,    farTopRight.z=%f\n",
-        _farTopRight.x, _farTopRight.y, _farTopRight.z);
-    printLog("farBottomLeft.x=%f,  farBottomLeft.y=%f,  farBottomLeft.z=%f\n",
-        _farBottomLeft.x, _farBottomLeft.y, _farBottomLeft.z);
-    printLog("farBottomRight.x=%f, farBottomRight.y=%f, farBottomRight.z=%f\n",
-        _farBottomRight.x, _farBottomRight.y, _farBottomRight.z);
-
-    printLog("nearTopLeft.x=%f,     nearTopLeft.y=%f,     nearTopLeft.z=%f\n",
-        _nearTopLeft.x, _nearTopLeft.y, _nearTopLeft.z);
-    printLog("nearTopRight.x=%f,    nearTopRight.y=%f,    nearTopRight.z=%f\n",
-        _nearTopRight.x, _nearTopRight.y, _nearTopRight.z);
-    printLog("nearBottomLeft.x=%f,  nearBottomLeft.y=%f,  nearBottomLeft.z=%f\n",
-        _nearBottomLeft.x, _nearBottomLeft.y, _nearBottomLeft.z);
-    printLog("nearBottomRight.x=%f, nearBottomRight.y=%f, nearBottomRight.z=%f\n",
-        _nearBottomRight.x, _nearBottomRight.y, _nearBottomRight.z);
-}
-
-
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
 const char* ViewFrustum::debugPlaneName (int plane) const {
     switch (plane) {
@@ -163,52 +130,147 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
+ViewFrustum::location ViewFrustum::pointInSphere(const glm::vec3& point, const glm::vec3& center, float radius ) const {
 
-ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const {
-
-    //printf("ViewFrustum::pointInFrustum() point=%f,%f,%f\n",point.x,point.y,point.z);
-    //dump();
-
-    ViewFrustum::location result = INSIDE;
-    for(int i=0; i < 6; i++) {
-        float distance = _planes[i].distance(point);
-
-        //printf("plane[%d] %s -- distance=%f \n",i,debugPlaneName(i),distance);
+    ViewFrustum::location result = INTERSECT;
     
-        if (distance < 0) {
-            return OUTSIDE;
+    float distance = glm::distance(point, center);
+    if (distance > radius) {
+        result = OUTSIDE;
+    } else if (distance < radius) {
+        result = INSIDE;
+    }
+    
+    return result;
+}
+
+// To determine if two spheres intersect, simply calculate the distance between the centers of the two spheres.
+// If the distance is greater than the sum of the two sphere radii, they don’t intersect. Otherwise they intersect.
+// If the distance plus the radius of sphere A is less than the radius of sphere B then, sphere A is inside of sphere B
+ViewFrustum::location ViewFrustum::sphereInSphere(const glm::vec3& centerA, float radiusA,
+                                                 const glm::vec3& centerB, float radiusB ) const {
+
+    ViewFrustum::location result = INTERSECT;
+    
+    float distanceFromAtoB = glm::distance(centerA, centerB);
+    if (distanceFromAtoB > (radiusA + radiusB)) {
+        result = OUTSIDE;
+    } else if ((distanceFromAtoB + radiusA) < radiusB) {
+        result = INSIDE;
+    }
+    
+    return result;
+}
+
+
+// A box is inside a sphere if all of its corners are inside the sphere
+// A box intersects a sphere if any of its edges (as rays) interesect the sphere
+// A box is outside a sphere if none of its edges (as rays) interesect the sphere
+ViewFrustum::location ViewFrustum::boxInSphere(const AABox& box, const glm::vec3& center, float radius) const {
+    glm::vec3 penetration;
+    bool intersects = box.findSpherePenetration(center, radius, penetration);
+
+    ViewFrustum::location result = OUTSIDE;
+    
+    // if the box intersects the sphere, then it may also be inside... calculate further
+    if (intersects) {
+        result = INTERSECT;
+
+        // test all the corners, if they are all inside the sphere, the entire box is in the sphere
+        glm::vec3 testPoint = box.getCorner();
+        glm::vec3 size = box.getSize();
+        if (pointInSphere(testPoint, center, radius)) {
+            testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, 0.0f);
+            if (pointInSphere(testPoint, center, radius)) {
+                testPoint = box.getCorner() + glm::vec3(0.0f, 0.0f, size.z);
+                if (pointInSphere(testPoint, center, radius)) {
+                    testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, size.z);
+                    if (pointInSphere(testPoint, center, radius)) {
+                        testPoint = box.getCorner() + glm::vec3(0.0f, size.y, 0.0f);
+                        if (pointInSphere(testPoint, center, radius)) {
+                            testPoint = box.getCorner() + glm::vec3(size.x, size.y, 0.0f);
+                            if (pointInSphere(testPoint, center, radius)) {
+                                testPoint = box.getCorner() + glm::vec3(0.0f, size.y, size.z);
+                                if (pointInSphere(testPoint, center, radius)) {
+                                    testPoint = box.getCorner() + glm::vec3(size.x, size.y, size.z);
+                                    if (pointInSphere(testPoint, center, radius)) {
+                                        result = INSIDE;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    return(result);
+    
+    return result;
+}
+
+ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const {
+    ViewFrustum::location regularResult = INSIDE;
+    ViewFrustum::location keyholeResult = OUTSIDE;
+
+    // If we have a keyholeRadius, check that first, since it's cheaper
+    if (_keyholeRadius >= 0.0f) {
+        keyholeResult = pointInSphere(point, _position, _keyholeRadius);
+    }
+    if (keyholeResult == INSIDE) {
+        return keyholeResult;
+    }
+
+    // If we're not known to be INSIDE the keyhole, then check the regular frustum
+    for(int i=0; i < 6; i++) {
+        float distance = _planes[i].distance(point);
+        if (distance < 0) {
+            return keyholeResult; // escape early will be the value from checking the keyhole
+        }
+    }
+
+    return regularResult;
 }
 
 ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
-    ViewFrustum::location result = INSIDE;
+    ViewFrustum::location regularResult = INSIDE;
+    ViewFrustum::location keyholeResult = OUTSIDE;
+
+    // If we have a keyholeRadius, check that first, since it's cheaper
+    if (_keyholeRadius >= 0.0f) {
+        keyholeResult = sphereInSphere(center, radius, _position, _keyholeRadius);
+    }
+    if (keyholeResult == INSIDE) {
+        return keyholeResult;
+    }
+
     float distance;
     for(int i=0; i < 6; i++) {
         distance = _planes[i].distance(center);
-        if (distance < -radius)
-            return OUTSIDE;
-        else if (distance < radius)
-            result =  INTERSECT;
+        if (distance < -radius) {
+            // This is outside the regular frustum, so just return the value from checking the keyhole
+            return keyholeResult;
+        } else if (distance < radius) {
+            regularResult =  INTERSECT;
+        }
     }
-    return(result);
+        
+    return regularResult;
 }
 
 
 ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+    ViewFrustum::location regularResult = INSIDE;
+    ViewFrustum::location keyholeResult = OUTSIDE;
 
-    //printf("ViewFrustum::boxInFrustum() box.corner=%f,%f,%f x=%f\n",
-    //    box.getCorner().x,box.getCorner().y,box.getCorner().z,box.getSize().x);
-    ViewFrustum::location result = INSIDE;
+    // If we have a keyholeRadius, check that first, since it's cheaper
+    if (_keyholeRadius >= 0.0f) {
+        keyholeResult = boxInSphere(box, _position, _keyholeRadius);
+    }
+    if (keyholeResult == INSIDE) {
+        return keyholeResult;
+    }
+
     for(int i=0; i < 6; i++) {
-
-        //printf("plane[%d] -- point(%f,%f,%f) normal(%f,%f,%f) d=%f \n",i,
-        //    _planes[i].getPoint().x, _planes[i].getPoint().y, _planes[i].getPoint().z,
-        //    _planes[i].getNormal().x, _planes[i].getNormal().y, _planes[i].getNormal().z,
-        //    _planes[i].getDCoefficient()
-        //);
-
         glm::vec3 normal = _planes[i].getNormal();
         glm::vec3 boxVertexP = box.getVertexP(normal);
         float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
@@ -216,19 +278,14 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         glm::vec3 boxVertexN = box.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
         
-        //printf("plane[%d] normal=(%f,%f,%f) bVertexP=(%f,%f,%f) planeToBoxVertexPDistance=%f  boxVertexN=(%f,%f,%f) planeToBoxVertexNDistance=%f\n",i, 
-        //    normal.x,normal.y,normal.z,
-        //    boxVertexP.x,boxVertexP.y,boxVertexP.z,planeToBoxVertexPDistance,
-        //    boxVertexN.x,boxVertexN.y,boxVertexN.z,planeToBoxVertexNDistance
-        //    );
-
         if (planeToBoxVertexPDistance < 0) {
-            return OUTSIDE;
+            // This is outside the regular frustum, so just return the value from checking the keyhole
+            return keyholeResult;
         } else if (planeToBoxVertexNDistance < 0) {
-            result =  INTERSECT;
+            regularResult =  INTERSECT;
         }
     }
-    return(result);
+    return regularResult;
 }
 
 bool testMatches(glm::quat lhs, glm::quat rhs) {

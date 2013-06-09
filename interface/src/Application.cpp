@@ -1498,6 +1498,9 @@ void Application::updateFrustumRenderModeAction() {
         case FRUSTUM_DRAW_MODE_FAR_PLANE: 
             _frustumRenderModeAction->setText("Render Mode - Far");
             break; 
+        case FRUSTUM_DRAW_MODE_KEYHOLE: 
+            _frustumRenderModeAction->setText("Render Mode - Keyhole");
+            break; 
     }
 }
 
@@ -2237,9 +2240,20 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
         glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
     }
-
     glEnd();
     glEnable(GL_LIGHTING);
+
+    if (_frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || _frustumDrawingMode == FRUSTUM_DRAW_MODE_KEYHOLE) {
+        // Draw the keyhole
+        float keyholeRadius = viewFrustum.getKeyholeRadius();
+        if (keyholeRadius > 0.0f) {
+            glPushMatrix();
+            glColor4f(1, 1, 0, 1);
+            glTranslatef(position.x, position.y, position.z); // where we actually want it!
+            glutWireSphere(keyholeRadius, 20, 20);
+            glPopMatrix();
+        }
+    }
 }
 
 void Application::setupPaintingVoxel() {

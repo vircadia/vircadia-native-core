@@ -27,7 +27,7 @@ public:
     static unsigned const TEXT_COLOR            = 0xb299ff; // text foreground color (bytes, RGB)
 
     static FILE*    const DEFAULT_STREAM; //    = stdout;   // stream to also log to (defined in .cpp)
-    static unsigned const DEFAULT_CHAR_WIDTH    = 7;        // width of a single character
+    static unsigned const DEFAULT_CHAR_WIDTH    = 5;        // width of a single character
     static unsigned const DEFAULT_CHAR_HEIGHT   = 16;       // height of a single character
     static unsigned const DEFAULT_CONSOLE_WIDTH = 400;      // width of the (right-aligned) log console
 
