@@ -2248,7 +2248,7 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         float keyholeRadius = viewFrustum.getKeyholeRadius();
         if (keyholeRadius > 0.0f) {
             glPushMatrix();
-            glColor4f(1,1,0,1);
+            glColor4f(1, 1, 0, 1);
             glTranslatef(position.x, position.y, position.z); // where we actually want it!
             glutWireSphere(keyholeRadius, 20, 20);
             glPopMatrix();
