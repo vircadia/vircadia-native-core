@@ -167,9 +167,6 @@ int main(int argc, char* argv[]) {
             pthread_t receiveAgentDataThread;
             pthread_create(&receiveAgentDataThread, NULL, receiveAgentData, NULL);
             
-            // start telling the domain server that we are alive
-            agentList->startDomainServerCheckInThread();
-            
             // start the agent list thread that will kill off agents when they stop talking
             agentList->startSilentAgentRemovalThread();
             
@@ -192,7 +189,20 @@ int main(int argc, char* argv[]) {
             timeval thisSend;
             double numMicrosecondsSleep = 0;
             
+            timeval lastDomainServerCheckIn = {};
+            
+            // the audio injector needs to know about the avatar mixer and the audio mixer
+            const char INJECTOR_AGENTS_OF_INTEREST[] = {AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_AUDIO_MIXER};
+            AgentList::getInstance()->setAgentTypesOfInterest(INJECTOR_AGENTS_OF_INTEREST, sizeof(INJECTOR_AGENTS_OF_INTEREST));
+            
             while (true) {
+                
+                // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+                if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+                    gettimeofday(&lastDomainServerCheckIn, NULL);
+                    AgentList::getInstance()->sendDomainServerCheckIn();
+                }
+                
                 if (::triggerDistance) {
                     
                     // update the thisSend timeval to the current time
@@ -260,7 +270,6 @@ int main(int argc, char* argv[]) {
             pthread_join(receiveAgentDataThread, NULL);
             
             // stop the agent list's threads
-            agentList->stopDomainServerCheckInThread();
             agentList->stopSilentAgentRemovalThread();
         }
     }
