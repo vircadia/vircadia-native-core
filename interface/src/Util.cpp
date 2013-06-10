@@ -497,7 +497,10 @@ void runTimingTests() {
     
 }
 
-
-
-
-
+float loadSetting(QSettings* settings, const char* name, float defaultValue) {
+    float value = settings->value(name, 0.0f).toFloat();
+    if (isnan(value)) {
+        value = defaultValue;
+    }
+    return value;
+}

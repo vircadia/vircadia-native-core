@@ -2573,20 +2573,43 @@ void Application::saveAction(QSettings* set, QAction* action) {
     set->setValue(action->text(),  action->isChecked());
 }
 
-void Application::loadSettings(QSettings* set) {
-    if (!set) set = getSettings();
+void Application::loadSettings(QSettings* settings) {
+    if (!settings) { 
+        settings = getSettings();
+    }
 
-    _headCameraPitchYawScale = set->value("headCameraPitchYawScale", 0.0f).toFloat();
-    scanMenuBar(&Application::loadAction, set);
-    getAvatar()->loadData(set);    
+    _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
+
+    settings->beginGroup("View Frustum Offset Camera");
+    // in case settings is corrupt or missing loadSetting() will check for NaN
+    _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
+    _viewFrustumOffsetPitch    = loadSetting(settings, "viewFrustumOffsetPitch"   , 0.0f);
+    _viewFrustumOffsetRoll     = loadSetting(settings, "viewFrustumOffsetRoll"    , 0.0f);
+    _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
+    _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
+    settings->endGroup();
+
+    scanMenuBar(&Application::loadAction, settings);
+    getAvatar()->loadData(settings);    
 }
 
-void Application::saveSettings(QSettings* set) {
-    if (!set) set = getSettings();
 
-    set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
-    scanMenuBar(&Application::saveAction, set);
-    getAvatar()->saveData(set);
+void Application::saveSettings(QSettings* settings) {
+    if (!settings) { 
+        settings = getSettings();
+    }
+
+    settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
+    settings->beginGroup("View Frustum Offset Camera");
+    settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
+    settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
+    settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
+    settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
+    settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
+    settings->endGroup();
+    
+    scanMenuBar(&Application::saveAction, settings);
+    getAvatar()->saveData(settings);
 }
 
 void Application::importSettings() {
