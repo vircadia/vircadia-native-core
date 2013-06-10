@@ -2574,9 +2574,11 @@ void Application::saveAction(QSettings* set, QAction* action) {
 }
 
 void Application::loadSettings(QSettings* settings) {
-    if (!settings) settings = getSettings();
+    if (!settings) { 
+        settings = getSettings();
+    }
 
-    _headCameraPitchYawScale = settings->value("headCameraPitchYawScale", 0.0f).toFloat();
+    _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -2593,10 +2595,11 @@ void Application::loadSettings(QSettings* settings) {
 
 
 void Application::saveSettings(QSettings* settings) {
-    if (!settings) settings = getSettings();
+    if (!settings) { 
+        settings = getSettings();
+    }
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
-
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
