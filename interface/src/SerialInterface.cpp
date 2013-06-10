@@ -155,11 +155,11 @@ void SerialInterface::renderLevels(int width, int height) {
         // Acceleration rates
         glColor4f(1, 1, 1, 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.x - _gravity.x) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 42);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.x * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 42);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.y - _gravity.y) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 57);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.y * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 57);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.z - _gravity.z) * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 72);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.z * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 72);
         
         // Estimated Position
         glColor4f(0, 1, 1, 1);
@@ -231,29 +231,24 @@ void SerialInterface::readData(float deltaTime) {
 
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
-            glm::quat(glm::radians(deltaTime * (_lastRotationRates - _averageRotationRates)));
+            glm::quat(glm::radians(deltaTime * _lastRotationRates));
+        
+        //  Update acceleration estimate
+        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
         float const DECAY_POSITION = 0.95f;
-        _estimatedVelocity += deltaTime * (_lastAcceleration - _averageAcceleration);
+        _estimatedVelocity += deltaTime * _estimatedAcceleration;
         _estimatedPosition += deltaTime * _estimatedVelocity;
         _estimatedVelocity *= DECAY_VELOCITY;
         _estimatedPosition *= DECAY_POSITION;
                 
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
-            _averageRotationRates = _lastRotationRates;
-            _averageAcceleration = _lastAcceleration;
             _gravity = _lastAcceleration;
         } 
         else {
-            //  Cumulate long term average to (hopefully) take DC bias out of rotation rates
-            _averageRotationRates = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates
-                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastRotationRates;
-            _averageAcceleration = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration
-                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastAcceleration;
-            
             if (totalSamples < GRAVITY_SAMPLES) {
                 _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
                 1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
@@ -293,8 +288,6 @@ void SerialInterface::readData(float deltaTime) {
 void SerialInterface::resetAverages() {
     totalSamples = 0;
     _gravity = glm::vec3(0, 0, 0);
-    _averageRotationRates = glm::vec3(0, 0, 0);
-    _averageAcceleration = glm::vec3(0, 0, 0);
     _lastRotationRates = glm::vec3(0, 0, 0);
     _estimatedRotation = glm::vec3(0, 0, 0);
     _estimatedPosition = glm::vec3(0, 0, 0);
