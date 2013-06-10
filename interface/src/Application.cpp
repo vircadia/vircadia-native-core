@@ -218,6 +218,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
+    // these are used, for example, to identify the application settings
+    setApplicationName("Interface");
+    setOrganizationDomain("highfidelity.io");
+    setOrganizationName("High Fidelity");
+    
     initMenu();
     
     QRect available = desktop()->availableGeometry();
@@ -230,8 +235,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
-
-    QCoreApplication::setOrganizationDomain("highfidelity.io"); // Used by QSettings on OS X
 }
 
 void Application::initializeGL() {
@@ -292,6 +295,9 @@ void Application::initializeGL() {
         printLog("%s", title);
         _window->setWindowTitle(title);
     }
+    
+    // update before the first render
+    update(0.0f);
 }
 
 void Application::paintGL() {
@@ -425,314 +431,326 @@ static void sendVoxelServerAddScene() {
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
-    if (_chatEntryOn) {
-        if (_chatEntry.keyPressEvent(event)) {
-            _myAvatar.setKeyState(event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete ?
-                DELETE_KEY_DOWN : INSERT_KEY_DOWN);            
-            _myAvatar.setChatMessage(string(_chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
-            
-        } else {
-            _myAvatar.setChatMessage(_chatEntry.getContents());
-            _chatEntry.clear();
-            _chatEntryOn = false;
-            setMenuShortcutsEnabled(true);
+    if (activeWindow() == _window) {
+        if (_chatEntryOn) {
+            if (_chatEntry.keyPressEvent(event)) {
+                _myAvatar.setKeyState(event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete ?
+                                      DELETE_KEY_DOWN : INSERT_KEY_DOWN);
+                _myAvatar.setChatMessage(string(_chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
+                
+            } else {
+                _myAvatar.setChatMessage(_chatEntry.getContents());
+                _chatEntry.clear();
+                _chatEntryOn = false;
+                setMenuShortcutsEnabled(true);
+            }
+            return;
         }
-        return;
-    }
-    
-    bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
-    switch (event->key()) {
-        case Qt::Key_BracketLeft:
-            _viewFrustumOffsetYaw -= 0.5;
-            break;
-            
-        case Qt::Key_BracketRight:
-            _viewFrustumOffsetYaw += 0.5;
-            break;
         
-        case Qt::Key_BraceLeft:
-            _viewFrustumOffsetPitch -= 0.5;
-            break;
-        
-        case Qt::Key_BraceRight:
-            _viewFrustumOffsetPitch += 0.5;
-            break;
-            
-        case Qt::Key_ParenLeft:
-            _viewFrustumOffsetRoll -= 0.5;
-            break;
-            
-        case Qt::Key_ParenRight:
-            _viewFrustumOffsetRoll += 0.5;
-            break;
-            
-        case Qt::Key_Less:
-            _viewFrustumOffsetDistance -= 0.5;
-            break;
-            
-        case Qt::Key_Greater:
-            _viewFrustumOffsetDistance += 0.5;
-            break;
-            
-        case Qt::Key_Comma:
-            _viewFrustumOffsetUp -= 0.05;
-            break;
-        
-        case Qt::Key_Period:
-            _viewFrustumOffsetUp += 0.05;
-            break;
-        
-        case Qt::Key_Ampersand:
-            _paintOn = !_paintOn;
-            setupPaintingVoxel();
-            break;
-    
-        case Qt::Key_AsciiCircum:
-            shiftPaintingColor();
-            break;
-    
-        case Qt::Key_Percent:
-            sendVoxelServerAddScene();
-            break;
-        
-        case Qt::Key_Semicolon:
-            _audio.startEchoTest();
-            break;
-            
-        case Qt::Key_L:
-            _displayLevels = !_displayLevels;
-            break;
-        
-        case Qt::Key_E:
-            _myAvatar.setDriveKeys(UP, 1);
-            break;
-            
-        case Qt::Key_C:
-            _myAvatar.setDriveKeys(DOWN, 1);
-            break;
-            
-        case Qt::Key_W:
-            _myAvatar.setDriveKeys(FWD, 1);
-            break;
-            
-        case Qt::Key_S:
-            _myAvatar.setDriveKeys(BACK, 1);
-            break;
-            
-        case Qt::Key_Space:
-            resetSensors();
-            break;
-            
-        case Qt::Key_G:
-            goHome();
-            break;
-        
-        case Qt::Key_A:
-            _myAvatar.setDriveKeys(ROT_LEFT, 1);
-            break;
-            
-        case Qt::Key_D:
-            _myAvatar.setDriveKeys(ROT_RIGHT, 1);
-            break;
-        
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-            _chatEntryOn = true;
-            _myAvatar.setKeyState(NO_KEY_DOWN);
-            _myAvatar.setChatMessage(string());
-            setMenuShortcutsEnabled(false);
-            break;
-            
-        case Qt::Key_Up:
-            _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
-            break;
-            
-        case Qt::Key_Down:
-            _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
-            break;
-            
-        case Qt::Key_Left:
-            _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
-            break;
-            
-        case Qt::Key_Right:
-            _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
-            break;
-        
-        case Qt::Key_I:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_K:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_J:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        
-        case Qt::Key_M:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-            
-        case Qt::Key_U:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-            
-        case Qt::Key_Y:
-            if (shifted) {
-                _myCamera.setEyeOffsetOrientation(glm::normalize(
-                    glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
-            } else {
-                _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
-            }
-            resizeGL(_glWidget->width(), _glWidget->height());
-            break;
-        case Qt::Key_Backspace:
-        case Qt::Key_Delete:
-            if (_selectVoxelMode->isChecked()) {
-                deleteVoxelUnderCursor();
-            }
-            break;
-            
-        default:
-            event->ignore();
-            break;
+        bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
+        switch (event->key()) {
+            case Qt::Key_BracketLeft:
+                _viewFrustumOffsetYaw -= 0.5;
+                break;
+                
+            case Qt::Key_BracketRight:
+                _viewFrustumOffsetYaw += 0.5;
+                break;
+                
+            case Qt::Key_BraceLeft:
+                _viewFrustumOffsetPitch -= 0.5;
+                break;
+                
+            case Qt::Key_BraceRight:
+                _viewFrustumOffsetPitch += 0.5;
+                break;
+                
+            case Qt::Key_ParenLeft:
+                _viewFrustumOffsetRoll -= 0.5;
+                break;
+                
+            case Qt::Key_ParenRight:
+                _viewFrustumOffsetRoll += 0.5;
+                break;
+                
+            case Qt::Key_Less:
+                _viewFrustumOffsetDistance -= 0.5;
+                break;
+                
+            case Qt::Key_Greater:
+                _viewFrustumOffsetDistance += 0.5;
+                break;
+                
+            case Qt::Key_Comma:
+                _viewFrustumOffsetUp -= 0.05;
+                break;
+                
+            case Qt::Key_Period:
+                _viewFrustumOffsetUp += 0.05;
+                break;
+                
+            case Qt::Key_Ampersand:
+                _paintOn = !_paintOn;
+                setupPaintingVoxel();
+                break;
+                
+            case Qt::Key_AsciiCircum:
+                shiftPaintingColor();
+                break;
+                
+            case Qt::Key_Percent:
+                sendVoxelServerAddScene();
+                break;
+                
+            case Qt::Key_Semicolon:
+                _audio.startEchoTest();
+                break;
+                
+            case Qt::Key_L:
+                _displayLevels = !_displayLevels;
+                break;
+                
+            case Qt::Key_E:
+                _myAvatar.setDriveKeys(UP, 1);
+                break;
+                
+            case Qt::Key_C:
+                _myAvatar.setDriveKeys(DOWN, 1);
+                break;
+                
+            case Qt::Key_W:
+                _myAvatar.setDriveKeys(FWD, 1);
+                break;
+                
+            case Qt::Key_S:
+                _myAvatar.setDriveKeys(BACK, 1);
+                break;
+                
+            case Qt::Key_Space:
+                resetSensors();
+                break;
+                
+            case Qt::Key_G:
+                goHome();
+                break;
+                
+            case Qt::Key_A:
+                _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                break;
+                
+            case Qt::Key_D:
+                _myAvatar.setDriveKeys(ROT_RIGHT, 1);
+                break;
+                
+            case Qt::Key_Return:
+            case Qt::Key_Enter:
+                _chatEntryOn = true;
+                _myAvatar.setKeyState(NO_KEY_DOWN);
+                _myAvatar.setChatMessage(string());
+                setMenuShortcutsEnabled(false);
+                break;
+                
+            case Qt::Key_Up:
+                _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
+                break;
+                
+            case Qt::Key_Down:
+                _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
+                break;
+                
+            case Qt::Key_Left:
+                _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
+                break;
+                
+            case Qt::Key_Right:
+                _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
+                break;
+                
+            case Qt::Key_I:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_K:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_J:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_M:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_U:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+                
+            case Qt::Key_Y:
+                if (shifted) {
+                    _myCamera.setEyeOffsetOrientation(glm::normalize(
+                                                                     glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
+                } else {
+                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
+                }
+                resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+            case Qt::Key_Backspace:
+            case Qt::Key_Delete:
+                if (_selectVoxelMode->isChecked()) {
+                    deleteVoxelUnderCursor();
+                }
+                break;
+                
+            default:
+                event->ignore();
+                break;
+        }
     }
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (_chatEntryOn) {
-        _myAvatar.setKeyState(NO_KEY_DOWN);
-        return;
-    }
-
-    switch (event->key()) {
-        case Qt::Key_E:
-            _myAvatar.setDriveKeys(UP, 0);
-            break;
+    if (activeWindow() == _window) {
+        if (_chatEntryOn) {
+            _myAvatar.setKeyState(NO_KEY_DOWN);
+            return;
+        }
         
-        case Qt::Key_C:
-            _myAvatar.setDriveKeys(DOWN, 0);
-            break;
-        
-        case Qt::Key_W:
-            _myAvatar.setDriveKeys(FWD, 0);
-            break;
-            
-        case Qt::Key_S:
-            _myAvatar.setDriveKeys(BACK, 0);
-            break;
-            
-        case Qt::Key_A:
-            _myAvatar.setDriveKeys(ROT_LEFT, 0);
-            break;
+        switch (event->key()) {
+            case Qt::Key_E:
+                _myAvatar.setDriveKeys(UP, 0);
+                break;
                 
-        case Qt::Key_D:
-            _myAvatar.setDriveKeys(ROT_RIGHT, 0);
-            break;
-            
-        case Qt::Key_Up:
-            _myAvatar.setDriveKeys(FWD, 0);
-            _myAvatar.setDriveKeys(UP, 0);
-            break;
-            
-        case Qt::Key_Down:
-            _myAvatar.setDriveKeys(BACK, 0);
-            _myAvatar.setDriveKeys(DOWN, 0);
-            break;
-            
-        case Qt::Key_Left:
-            _myAvatar.setDriveKeys(LEFT, 0);
-            _myAvatar.setDriveKeys(ROT_LEFT, 0);
-            break;
-            
-        case Qt::Key_Right:
-            _myAvatar.setDriveKeys(RIGHT, 0);
-            _myAvatar.setDriveKeys(ROT_RIGHT, 0);
-            break;
-    
-        default:
-            event->ignore();
-            break;
+            case Qt::Key_C:
+                _myAvatar.setDriveKeys(DOWN, 0);
+                break;
+                
+            case Qt::Key_W:
+                _myAvatar.setDriveKeys(FWD, 0);
+                break;
+                
+            case Qt::Key_S:
+                _myAvatar.setDriveKeys(BACK, 0);
+                break;
+                
+            case Qt::Key_A:
+                _myAvatar.setDriveKeys(ROT_LEFT, 0);
+                break;
+                
+            case Qt::Key_D:
+                _myAvatar.setDriveKeys(ROT_RIGHT, 0);
+                break;
+                
+            case Qt::Key_Up:
+                _myAvatar.setDriveKeys(FWD, 0);
+                _myAvatar.setDriveKeys(UP, 0);
+                break;
+                
+            case Qt::Key_Down:
+                _myAvatar.setDriveKeys(BACK, 0);
+                _myAvatar.setDriveKeys(DOWN, 0);
+                break;
+                
+            case Qt::Key_Left:
+                _myAvatar.setDriveKeys(LEFT, 0);
+                _myAvatar.setDriveKeys(ROT_LEFT, 0);
+                break;
+                
+            case Qt::Key_Right:
+                _myAvatar.setDriveKeys(RIGHT, 0);
+                _myAvatar.setDriveKeys(ROT_RIGHT, 0);
+                break;
+                
+            default:
+                event->ignore();
+                break;
+        }
     }
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
-    _mouseX = event->x();
-    _mouseY = event->y();
-    
-    // detect drag
-    glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-    if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
-        if (event->buttons().testFlag(Qt::LeftButton)) {
-            maybeEditVoxelUnderCursor();
+    if (activeWindow() == _window) {
+        _mouseX = event->x();
+        _mouseY = event->y();
+        
+        // detect drag
+        glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+        if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
+            if (event->buttons().testFlag(Qt::LeftButton)) {
+                maybeEditVoxelUnderCursor();
                 
-        } else if (event->buttons().testFlag(Qt::RightButton) && checkedVoxelModeAction() != 0) {
-            deleteVoxelUnderCursor();
+            } else if (event->buttons().testFlag(Qt::RightButton) && checkedVoxelModeAction() != 0) {
+                deleteVoxelUnderCursor();
+            }
         }
     }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        _mouseX = event->x();
-        _mouseY = event->y();
-        _mousePressed = true;
-        maybeEditVoxelUnderCursor();
-        
-    } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
-        deleteVoxelUnderCursor();
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            _mouseX = event->x();
+            _mouseY = event->y();
+            _mousePressed = true;
+            maybeEditVoxelUnderCursor();
+            
+        } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
+            deleteVoxelUnderCursor();
+        }
     }
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        _mouseX = event->x();
-        _mouseY = event->y();
-        _mousePressed = false;
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            _mouseX = event->x();
+            _mouseY = event->y();
+            _mousePressed = false;
+        }
     }
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (checkedVoxelModeAction() == 0) {
-        event->ignore();
-        return;
-    }
-    if (event->delta() > 0) {
-        increaseVoxelSize();
-    } else {
-        decreaseVoxelSize();
+    if (activeWindow() == _window) {
+        if (checkedVoxelModeAction() == 0) {
+            event->ignore();
+            return;
+        }
+        if (event->delta() > 0) {
+            increaseVoxelSize();
+        } else {
+            decreaseVoxelSize();
+        }
     }
 }
 
@@ -786,192 +804,17 @@ void Application::idle() {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-        
-        float deltaTime = 1.f/_fps;
-        
-        //  Use Transmitter Hand to move hand if connected, else use mouse
-        if (_myTransmitter.isConnected()) {
-            const float HAND_FORCE_SCALING = 0.01f;
-            glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
-            glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
-            _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
-        } else {
-            // update behaviors for avatar hand movement: handControl takes mouse values as input,
-            // and gives back 3D values modulated for smooth transitioning between interaction modes.
-            _handControl.update(_mouseX, _mouseY);
-            _myAvatar.setMovedHandOffset(_handControl.getValues());
-        }
-        
-        // tell my avatar if the mouse is being pressed...
-        _myAvatar.setMousePressed(_mousePressed);
-        
-        // check what's under the mouse and update the mouse voxel
-        glm::vec3 mouseRayOrigin, mouseRayDirection;
-        _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
-            _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
-
-        // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
-        _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
-
-        _mouseVoxel.s = 0.0f;
-        if (checkedVoxelModeAction() != 0) {
-            float distance;
-            BoxFace face;
-            if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {            
-                // find the nearest voxel with the desired scale
-                if (_mouseVoxelScale > _mouseVoxel.s) {
-                    // choose the larger voxel that encompasses the one selected
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale); 
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale); 
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                    _mouseVoxel.s = _mouseVoxelScale;
-                
-                } else {
-                    glm::vec3 faceVector = getFaceVector(face);
-                    if (_mouseVoxelScale < _mouseVoxel.s) {
-                        // find the closest contained voxel
-                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
-                            faceVector * (_mouseVoxelScale * 0.5f);
-                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale); 
-                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale); 
-                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
-                        _mouseVoxel.s = _mouseVoxelScale;
-                    }
-                    if (_addVoxelMode->isChecked()) {
-                        // use the face to determine the side on which to create a neighbor
-                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                    }
-                }
-            } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
-                // place the voxel a fixed distance away
-                float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
-                glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
-                _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
-                _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
-                _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
-                _mouseVoxel.s = _mouseVoxelScale;
-            }
-            
-            if (_deleteVoxelMode->isChecked()) {
-                // red indicates deletion
-                _mouseVoxel.red = 255;
-                _mouseVoxel.green = _mouseVoxel.blue = 0;
-            } else if (_selectVoxelMode->isChecked()) {
-                // yellow indicates deletion
-                _mouseVoxel.red = _mouseVoxel.green = 255;
-                _mouseVoxel.blue = 0;
-            } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
-                QColor paintColor = _voxelPaintColor->data().value<QColor>();
-                _mouseVoxel.red = paintColor.red();
-                _mouseVoxel.green = paintColor.green();
-                _mouseVoxel.blue = paintColor.blue();
-            }
-            
-            // if we just edited, use the currently selected voxel as the "last" for drag detection
-            if (_justEditedVoxel) {
-                _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-                _justEditedVoxel = false;
-            }
-        }
-        
-        // walking triggers the handControl to stop
-        if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
-            _handControl.stop();
-        }
-        
-        //  Update from Mouse
-        if (_mouseLook->isChecked()) {
-            QPoint mouse = QCursor::pos();
-            _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                      _glWidget->mapFromGlobal(mouse).y(),
-                                      _glWidget->width(),
-                                      _glWidget->height());
-        }
-       
-        //  Read serial port interface devices
-        if (_serialHeadSensor.active) {
-            _serialHeadSensor.readData(deltaTime);
-        }
-        
-        //  Update transmitter
-        
-        //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
-        updateAvatar(deltaTime);
-
-        // read incoming packets from network
-        if (!_enableNetworkThread) {
-            networkReceive(0);
-        }
-        
-        //loop through all the other avatars and simulate them...
-        AgentList* agentList = AgentList::getInstance();
-        agentList->lock();
-        for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL) {
-                Avatar *avatar = (Avatar *)agent->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
-                }
-                avatar->simulate(deltaTime, NULL);
-                avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
-            }
-        }
-        agentList->unlock();
-    
-        //  Simulate myself
-        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
-        if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
-            _myAvatar.simulate(deltaTime, &_myTransmitter);
-        } else {
-            _myAvatar.simulate(deltaTime, NULL);
-        }
-        
-        if (TESTING_AVATAR_TOUCH) {
-            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        } else {
-            if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-                if (_manualFirstPerson) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
-                } else {
-                    if (_myAvatar.getIsNearInteractingOther()) {
-                        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                            _myCamera.setModeShiftRate(1.0f);
-                        }
-                    } else {
-                        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                            _myCamera.setModeShiftRate(1.0f);
-                        }
-                    }
-                }
-            }
-        }
-        
-        //  Update audio stats for procedural sounds
-        #ifndef _WIN32
-        _audio.setLastAcceleration(_myAvatar.getThrust());
-        _audio.setLastVelocity(_myAvatar.getVelocity());
-        #endif
+        update(1.0f / _fps);
         
         _glWidget->updateGL();
         _lastTimeIdle = check;
     }
 }
-
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
-    if (_autosave) {
+    if (_settingsAutosave->isChecked()) {
         saveSettings();
         _settings->sync();
     }
@@ -1029,7 +872,7 @@ void Application::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QLineEdit* avatarURL = new QLineEdit(_settings->value("avatarURL").toString());
+    QLineEdit* avatarURL = new QLineEdit(_myAvatar.getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
@@ -1046,7 +889,6 @@ void Application::editPreferences() {
         return;
     }
     QUrl url(avatarURL->text());
-    _settings->setValue("avatarURL", url);
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
     
@@ -1375,6 +1217,9 @@ void Application::initMenu() {
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
+    (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
+    _gravityUse->setChecked(true);
+    _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
 
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
@@ -1389,6 +1234,9 @@ void Application::initMenu() {
     (_renderAtmosphereOn = renderMenu->addAction("Atmosphere"))->setCheckable(true);
     _renderAtmosphereOn->setChecked(true);
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
+    (_renderGroundPlaneOn = renderMenu->addAction("Ground Plane"))->setCheckable(true);
+    _renderGroundPlaneOn->setChecked(true);
+    _renderGroundPlaneOn->setShortcut(Qt::SHIFT | Qt::Key_G);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
@@ -1475,7 +1323,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
-    (_settingsAutosave = settingsMenu->addAction("Autosave", this, SLOT(setAutosave(bool))))->setCheckable(true);
+    (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
     settingsMenu->addAction("Load settings", this, SLOT(loadSettings()));
     settingsMenu->addAction("Save settings", this, SLOT(saveSettings()));
@@ -1483,7 +1331,7 @@ void Application::initMenu() {
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
-    _settings = new QSettings("High Fidelity", "Interface", this);
+    _settings = new QSettings(this);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -1503,6 +1351,9 @@ void Application::updateFrustumRenderModeAction() {
             break;
         case FRUSTUM_DRAW_MODE_FAR_PLANE: 
             _frustumRenderModeAction->setText("Render Mode - Far");
+            break; 
+        case FRUSTUM_DRAW_MODE_KEYHOLE: 
+            _frustumRenderModeAction->setText("Render Mode - Keyhole");
             break; 
     }
 }
@@ -1538,10 +1389,6 @@ void Application::init() {
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
-    QUrl avatarURL = _settings->value("avatarURL").toUrl();
-    _myAvatar.getVoxels()->setVoxelURL(avatarURL);
-    sendAvatarVoxelURLMessage(avatarURL);
-    
     QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
@@ -1553,6 +1400,199 @@ void Application::init() {
     gettimeofday(&_lastTimeIdle, NULL);
 
     loadSettings();
+    
+    sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+}
+
+const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
+const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
+
+void Application::update(float deltaTime) {
+    //  Use Transmitter Hand to move hand if connected, else use mouse
+    if (_myTransmitter.isConnected()) {
+        const float HAND_FORCE_SCALING = 0.01f;
+        glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
+        glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
+        _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
+    } else {
+        // update behaviors for avatar hand movement: handControl takes mouse values as input,
+        // and gives back 3D values modulated for smooth transitioning between interaction modes.
+        _handControl.update(_mouseX, _mouseY);
+        _myAvatar.setMovedHandOffset(_handControl.getValues());
+    }
+    
+    // tell my avatar if the mouse is being pressed...
+    _myAvatar.setMousePressed(_mousePressed);
+    
+    // check what's under the mouse and update the mouse voxel
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
+        _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+
+    // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
+    _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
+
+    _mouseVoxel.s = 0.0f;
+    if (checkedVoxelModeAction() != 0 &&
+        (fabs(_myAvatar.getVelocity().x) +
+         fabs(_myAvatar.getVelocity().y) +
+         fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
+        float distance;
+        BoxFace face;
+        if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
+            if (distance < MAX_VOXEL_EDIT_DISTANCE) {
+                // find the nearest voxel with the desired scale
+                if (_mouseVoxelScale > _mouseVoxel.s) {
+                    // choose the larger voxel that encompasses the one selected
+                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale);
+                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale);
+                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
+                    _mouseVoxel.s = _mouseVoxelScale;
+                    
+                } else {
+                    glm::vec3 faceVector = getFaceVector(face);
+                    if (_mouseVoxelScale < _mouseVoxel.s) {
+                        // find the closest contained voxel
+                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                        faceVector * (_mouseVoxelScale * 0.5f);
+                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale);
+                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale);
+                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
+                        _mouseVoxel.s = _mouseVoxelScale;
+                    }
+                    if (_addVoxelMode->isChecked()) {
+                        // use the face to determine the side on which to create a neighbor
+                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
+                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
+                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
+                    }
+                }
+            } else {
+                _mouseVoxel.s = 0.0f;
+            }
+        } else if (_addVoxelMode->isChecked() || _selectVoxelMode->isChecked()) {
+            // place the voxel a fixed distance away
+            float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
+            glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
+            _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
+            _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
+            _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
+            _mouseVoxel.s = _mouseVoxelScale;
+        }
+        
+        if (_deleteVoxelMode->isChecked()) {
+            // red indicates deletion
+            _mouseVoxel.red = 255;
+            _mouseVoxel.green = _mouseVoxel.blue = 0;
+        } else if (_selectVoxelMode->isChecked()) {
+            // yellow indicates deletion
+            _mouseVoxel.red = _mouseVoxel.green = 255;
+            _mouseVoxel.blue = 0;
+        } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
+            QColor paintColor = _voxelPaintColor->data().value<QColor>();
+            _mouseVoxel.red = paintColor.red();
+            _mouseVoxel.green = paintColor.green();
+            _mouseVoxel.blue = paintColor.blue();
+        }
+        
+        // if we just edited, use the currently selected voxel as the "last" for drag detection
+        if (_justEditedVoxel) {
+            _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+            _justEditedVoxel = false;
+        }
+    }
+    
+    // walking triggers the handControl to stop
+    if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
+        _handControl.stop();
+    }
+    
+    //  Update from Mouse
+    if (_mouseLook->isChecked()) {
+        QPoint mouse = QCursor::pos();
+        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
+                                  _glWidget->mapFromGlobal(mouse).y(),
+                                  _glWidget->width(),
+                                  _glWidget->height());
+    }
+   
+    //  Read serial port interface devices
+    if (_serialHeadSensor.active) {
+        _serialHeadSensor.readData(deltaTime);
+    }
+    
+    //  Update transmitter
+    
+    //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
+    updateAvatar(deltaTime);
+
+    // read incoming packets from network
+    if (!_enableNetworkThread) {
+        networkReceive(0);
+    }
+    
+    //loop through all the other avatars and simulate them...
+    AgentList* agentList = AgentList::getInstance();
+    agentList->lock();
+    for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        if (agent->getLinkedData() != NULL) {
+            Avatar *avatar = (Avatar *)agent->getLinkedData();
+            if (!avatar->isInitialized()) {
+                avatar->init();
+            }
+            avatar->simulate(deltaTime, NULL);
+            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
+        }
+    }
+    agentList->unlock();
+
+    //  Simulate myself
+    if (_gravityUse->isChecked()) {
+        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+    }
+    else {
+        _myAvatar.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+
+    if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
+        _myAvatar.simulate(deltaTime, &_myTransmitter);
+    } else {
+        _myAvatar.simulate(deltaTime, NULL);
+    }
+    
+    if (TESTING_AVATAR_TOUCH) {
+        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    } else {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
+            if (_manualFirstPerson) {
+                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
+                }
+            } else {
+                if (_myAvatar.getIsNearInteractingOther()) {
+                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
+                    }
+                } else {
+                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                        _myCamera.setModeShiftRate(1.0f);
+                    }
+                }
+            }
+        }
+    }
+    
+    //  Update audio stats for procedural sounds
+    #ifndef _WIN32
+    _audio.setLastAcceleration(_myAvatar.getThrust());
+    _audio.setLastVelocity(_myAvatar.getVelocity());
+    #endif
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -1919,8 +1959,9 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
-    
+    if (_renderGroundPlaneOn->isChecked()) {
+        drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
+    } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
         _voxels.render(_renderVoxelTextures->isChecked());
@@ -2243,9 +2284,20 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
         glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
     }
-
     glEnd();
     glEnable(GL_LIGHTING);
+
+    if (_frustumDrawingMode == FRUSTUM_DRAW_MODE_ALL || _frustumDrawingMode == FRUSTUM_DRAW_MODE_KEYHOLE) {
+        // Draw the keyhole
+        float keyholeRadius = viewFrustum.getKeyholeRadius();
+        if (keyholeRadius > 0.0f) {
+            glPushMatrix();
+            glColor4f(1, 1, 0, 1);
+            glTranslatef(position.x, position.y, position.z); // where we actually want it!
+            glutWireSphere(keyholeRadius, 20, 20);
+            glPopMatrix();
+        }
+    }
 }
 
 void Application::setupPaintingVoxel() {
@@ -2527,10 +2579,6 @@ void Application::saveAction(QSettings* set, QAction* action) {
     set->setValue(action->text(),  action->isChecked());
 }
 
-void Application::setAutosave(bool wantsAutosave) {
-    _autosave = wantsAutosave;
-}
-
 void Application::loadSettings(QSettings* set) {
     if (!set) set = getSettings();
 
@@ -2545,8 +2593,6 @@ void Application::saveSettings(QSettings* set) {
     set->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     scanMenuBar(&Application::saveAction, set);
     getAvatar()->saveData(set);
-    
-    set->sync();
 }
 
 void Application::importSettings() {

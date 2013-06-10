@@ -112,7 +112,6 @@ private slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void chooseVoxelPaintColor();
-    void setAutosave(bool wantsAutosave);
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
     void importSettings();
@@ -132,6 +131,7 @@ private:
     void initDisplay();
     void init();
     
+    void update(float deltaTime);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -176,10 +176,12 @@ private:
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
+    QAction* _gravityUse;            // Whether gravity is on or not
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
+    QAction* _renderGroundPlaneOn;   // Whether to display the ground plane
     QAction* _renderAvatarsOn;       // Whether to render avatars
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
@@ -226,7 +228,7 @@ private:
     ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
     
     enum FrustumDrawMode { FRUSTUM_DRAW_MODE_ALL, FRUSTUM_DRAW_MODE_VECTORS, FRUSTUM_DRAW_MODE_PLANES,
-        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_COUNT };
+        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_KEYHOLE, FRUSTUM_DRAW_MODE_COUNT };
     FrustumDrawMode _frustumDrawingMode;
     
     float _viewFrustumOffsetYaw;      // the following variables control yaw, pitch, roll and distance form regular
@@ -293,8 +295,6 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
-    
-    bool _autosave;        // True if the autosave is on.
 };
 
 #endif /* defined(__interface__Application__) */

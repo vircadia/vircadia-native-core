@@ -387,16 +387,6 @@ void persistVoxelsWhenDirty() {
 
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::serverTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
-
-        {
-            PerformanceWarning warn(::shouldShowAnimationDebug, 
-                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
-
-            // after done inserting all these voxels, then reaverage colors
-            serverTree.reaverageVoxelColors(serverTree.rootNode);
-        }
-
-
         {
             PerformanceWarning warn(::shouldShowAnimationDebug, 
                                     "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
@@ -505,6 +495,15 @@ int main(int argc, const char * argv[]) {
     if (::wantVoxelPersist) {
         printf("loading voxels from file...\n");
         persistantFileRead = ::serverTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        if (persistantFileRead) {
+            PerformanceWarning warn(::shouldShowAnimationDebug,
+                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
+            
+            // after done inserting all these voxels, then reaverage colors
+            serverTree.reaverageVoxelColors(serverTree.rootNode);
+            printf("Voxels reAveraged\n");
+        }
+        
         ::serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         unsigned long nodeCount = ::serverTree.getVoxelCount();

@@ -110,4 +110,5 @@ void main (void)
 	vec3 secondaryColor = v3FrontColor * fKmESun;
     gl_FragColor.rgb = color + fMiePhase * secondaryColor;
 	gl_FragColor.a = gl_FragColor.b;
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/2.2));
 }

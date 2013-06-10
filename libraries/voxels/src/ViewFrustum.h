@@ -16,44 +16,9 @@
 #include "Plane.h"
 #include "AABox.h"
 
+const float DEFAULT_KEYHOLE_RADIUS = 2.0f;
+
 class ViewFrustum {
-private:
-
-    // camera location/orientation attributes
-    glm::vec3   _position;
-    glm::quat   _orientation;
-    
-    // calculated for orientation
-    glm::vec3   _direction;
-    glm::vec3   _up;
-    glm::vec3   _right;
-
-    // Lens attributes
-    float       _fieldOfView;
-    float       _aspectRatio;
-    float       _nearClip; 
-    float       _farClip;
-    glm::vec3   _eyeOffsetPosition;
-    glm::quat   _eyeOffsetOrientation;
-
-    // Calculated values
-    glm::vec3   _offsetPosition;
-    glm::vec3   _offsetDirection;
-    glm::vec3   _offsetUp;
-    glm::vec3   _offsetRight;
-    glm::vec3   _farTopLeft;      
-    glm::vec3   _farTopRight;     
-    glm::vec3   _farBottomLeft;   
-    glm::vec3   _farBottomRight;  
-    glm::vec3   _nearTopLeft;     
-    glm::vec3   _nearTopRight;    
-    glm::vec3   _nearBottomLeft;  
-    glm::vec3   _nearBottomRight;
-    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
-    Plane _planes[6]; // How will this be used?
-    
-    const char* debugPlaneName (int plane) const;
-    
 public:
     // setters for camera attributes
     void setPosition        (const glm::vec3& p) { _position = p; };
@@ -73,7 +38,6 @@ public:
     void setFarClip              ( float f )          { _farClip              = f; };
     void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition    = p; };
     void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; };
-
 
     // getters for lens attributes
     float getFieldOfView()                     const { return _fieldOfView;         };
@@ -98,12 +62,14 @@ public:
     const glm::vec3& getNearBottomLeft()    const { return _nearBottomLeft; };
     const glm::vec3& getNearBottomRight()   const { return _nearBottomRight;};
 
+    // get/set for keyhole attribute
+    void  setKeyholeRadius(float keyholdRadius)       { _keyholeRadius = keyholdRadius; };
+    float getKeyholeRadius()                    const { return _keyholeRadius;          };
+
     void calculate();
 
     ViewFrustum();
 
-    void dump() const;
-    
     typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
     ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
@@ -120,6 +86,53 @@ public:
                                glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
     void printDebugDetails() const;
+    
+private:
+
+    // Used for keyhole calculations
+    ViewFrustum::location pointInSphere(const glm::vec3& point, const glm::vec3& center, float radius) const;
+    ViewFrustum::location sphereInSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB) const;
+    ViewFrustum::location boxInSphere(const AABox& box, const glm::vec3& center, float radius) const;
+    
+    // camera location/orientation attributes
+    glm::vec3   _position;
+    glm::quat   _orientation;
+    
+    // calculated for orientation
+    glm::vec3   _direction;
+    glm::vec3   _up;
+    glm::vec3   _right;
+    
+    // Lens attributes
+    float       _fieldOfView;
+    float       _aspectRatio;
+    float       _nearClip;
+    float       _farClip;
+    glm::vec3   _eyeOffsetPosition;
+    glm::quat   _eyeOffsetOrientation;
+    
+    // keyhole attributes
+    float       _keyholeRadius;
+
+    
+    // Calculated values
+    glm::vec3   _offsetPosition;
+    glm::vec3   _offsetDirection;
+    glm::vec3   _offsetUp;
+    glm::vec3   _offsetRight;
+    glm::vec3   _farTopLeft;
+    glm::vec3   _farTopRight;
+    glm::vec3   _farBottomLeft;
+    glm::vec3   _farBottomRight;
+    glm::vec3   _nearTopLeft;
+    glm::vec3   _nearTopRight;
+    glm::vec3   _nearBottomLeft;
+    glm::vec3   _nearBottomRight;
+    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
+    Plane _planes[6]; // How will this be used?
+    
+    const char* debugPlaneName (int plane) const;
+    
 };
 
 

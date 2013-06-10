@@ -35,7 +35,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
 #endif
     _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
-
+    _density = 0.0f;
     
     // default pointers to child nodes to NULL
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -161,10 +161,10 @@ void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeleti
     }
 }
 
-
 // will average the child colors...
 void VoxelNode::setColorFromAverageOfChildren() {
     int colorArray[4] = {0,0,0,0};
+    float density = 0.0f;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (_children[i] && !_children[i]->isStagedForDeletion() && _children[i]->isColored()) {
             for (int j = 0; j < 3; j++) {
@@ -172,11 +172,24 @@ void VoxelNode::setColorFromAverageOfChildren() {
             }
             colorArray[3]++;
         }
+        if (_children[i]) {
+            density += _children[i]->getDensity();
+        }
     }
+    density /= (float) NUMBER_OF_CHILDREN;    
+    //
+    //  The VISIBLE_ABOVE_DENSITY sets the density of matter above which an averaged color voxel will
+    //  be set.  It is an important physical constant in our universe.  A number below 0.5 will cause
+    //  things to get 'fatter' at a distance, because upward averaging will make larger voxels out of
+    //  less data, which is (probably) going to be preferable because it gives a sense that there is
+    //  something out there to go investigate.   A number above 0.5 would cause the world to become
+    //  more 'empty' at a distance.  Exactly 0.5 would match the physical world, at least for materials
+    //  that are not shiny and have equivalent ambient reflectance.  
+    //
+    const float VISIBLE_ABOVE_DENSITY = 0.10f;        
     nodeColor newColor = { 0, 0, 0, 0};
-    if (colorArray[3] > 4) {
-        // we need at least 4 colored children to have an average color value
-        // or if we have none we generate random values
+    if (density > VISIBLE_ABOVE_DENSITY) {
+        // The density of material in the space of the voxel sets whether it is actually colored
         for (int c = 0; c < 3; c++) {
             // set the average color value
             newColor[c] = colorArray[c] / colorArray[3];
@@ -184,10 +197,9 @@ void VoxelNode::setColorFromAverageOfChildren() {
         // set the alpha to 1 to indicate that this isn't transparent
         newColor[3] = 1;
     }
-    // actually set our color, note, if we didn't have enough children
-    // this will be the default value all zeros, and therefore be marked as
-    // transparent with a 4th element of 0
+    //  Set the color from the average of the child colors, and update the density 
     setColor(newColor);
+    setDensity(density);
 }
 
 // Note: !NO_FALSE_COLOR implementations of setFalseColor(), setFalseColored(), and setColor() here.
@@ -214,20 +226,21 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
         _falseColored = isFalseColored; 
         _isDirty = true;
         markWithChangedTime();
+        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
+
     }
 };
 
 
 void VoxelNode::setColor(const nodeColor& color) {
     if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
-        //printLog("VoxelNode::setColor() was: (%d,%d,%d) is: (%d,%d,%d)\n",
-        //    _trueColor[0],_trueColor[1],_trueColor[2],color[0],color[1],color[2]);
         memcpy(&_trueColor,&color,sizeof(nodeColor));
         if (!_falseColored) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
         _isDirty = true;
         markWithChangedTime();
+        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
     }
 }
 #endif
