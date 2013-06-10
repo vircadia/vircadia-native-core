@@ -225,9 +225,14 @@ void SerialInterface::readData(float deltaTime) {
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
-        _lastRotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+        glm::vec3 rotationRates;
+        rotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+
+        // compute the angular acceleration
+        glm::vec3 angularAcceleration = (deltaTime < EPSILON) ? glm::vec3() : (rotationRates - _lastRotationRates) / deltaTime;
+        _lastRotationRates = rotationRates;
 
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
@@ -235,6 +240,16 @@ void SerialInterface::readData(float deltaTime) {
         
         //  Update acceleration estimate
         _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
+        
+        static float ratioEstimate = 0.0f;
+        float angularAccelerationLength = glm::length(angularAcceleration);
+        float linearAccelerationLength = glm::length(estimatedAcceleration);
+        if (angularAccelerationLength > EPSILON && linearAccelerationLength > EPSILON) {
+            float ratio = linearAccelerationLength / angularAccelerationLength;
+            static float ratioEstimate = ratio;
+            ratioEstimate = ratioEstimate * 0.999 + ratio * 0.001;
+            printLog("%g %g\n", ratio, ratioEstimate);
+        }
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
