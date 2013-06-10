@@ -208,11 +208,11 @@ void AgentList::sendDomainServerCheckIn() {
     static unsigned char* checkInPacket = NULL;
 
     if (!checkInPacket) {
-        int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : NULL;
+        int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : 0;
         
         // check in packet has header, agent type, port, IP, agent types of interest, null termination
         int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
-            numBytesAgentsOfInterest + sizeof(char);
+            numBytesAgentsOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         
@@ -223,14 +223,15 @@ void AgentList::sendDomainServerCheckIn() {
         
         packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE), getLocalAddress(), htons(_socketListenPort));
         
+        // add the number of bytes for agent types of interest
+        checkInPacket[numPacketBytes] = numBytesAgentsOfInterest;
+                
         // copy over the bytes for agent types of interest, if required
         if (numBytesAgentsOfInterest > 0) {
-            memcpy(checkInPacket + numPacketBytes - sizeof(char) - numBytesAgentsOfInterest,
+            memcpy(checkInPacket + numPacketBytes + sizeof(unsigned char),
                    _agentTypesOfInterest,
                    numBytesAgentsOfInterest);
         }
-        
-        checkInPacket[numPacketBytes - 1] = '\0';
     }
     
     _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, strlen((char*) checkInPacket));

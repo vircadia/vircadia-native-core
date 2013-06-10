@@ -127,14 +127,14 @@ int main(int argc, const char * argv[])
             currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER);
             startPointer = currentBufferPos;
             
-            char* agentTypesOfInterest = (char*) currentBufferPos + sizeof(AGENT_TYPE) + numBytesSocket;
-            int numInterestTypes = strlen(agentTypesOfInterest);
+            char* agentTypesOfInterest = (char*) currentBufferPos + sizeof(AGENT_TYPE) + numBytesSocket + sizeof(unsigned char);
+            int numInterestTypes = *(agentTypesOfInterest - 1);
             
             if (numInterestTypes > 0) {
                 // if the agent has sent no types of interest, assume they want nothing but their own ID back
                 for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
                     if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)
-                        && memchr(agentTypesOfInterest, agent->getType(), strlen(agentTypesOfInterest))) {
+                        && memchr(agentTypesOfInterest, agent->getType(), numInterestTypes)) {
                         // this is not the agent themselves
                         // and this is an agent of a type in the passed agent types of interest
                         // or the agent did not pass us any specific types they are interested in
