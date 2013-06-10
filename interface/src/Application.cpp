@@ -1211,6 +1211,9 @@ void Application::initMenu() {
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
     _transmitterDrives->setChecked(true);
+    (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
+    _gravityUse->setChecked(true);
+    _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
 
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     
@@ -1225,6 +1228,9 @@ void Application::initMenu() {
     (_renderAtmosphereOn = renderMenu->addAction("Atmosphere"))->setCheckable(true);
     _renderAtmosphereOn->setChecked(true);
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
+    (_renderGroundPlaneOn = renderMenu->addAction("Ground Plane"))->setCheckable(true);
+    _renderGroundPlaneOn->setChecked(true);
+    _renderGroundPlaneOn->setShortcut(Qt::SHIFT | Qt::Key_G);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
@@ -1535,7 +1541,13 @@ void Application::update(float deltaTime) {
     agentList->unlock();
 
     //  Simulate myself
-    _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+    if (_gravityUse->isChecked()) {
+        _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
+    }
+    else {
+        _myAvatar.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+
     if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
         _myAvatar.simulate(deltaTime, &_myTransmitter);
     } else {
@@ -1941,8 +1953,9 @@ void Application::displaySide(Camera& whichCamera) {
     glPopMatrix();
 
     //draw a grid ground plane....
-    drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
-    
+    if (_renderGroundPlaneOn->isChecked()) {
+        drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
+    } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
         _voxels.render(_renderVoxelTextures->isChecked());

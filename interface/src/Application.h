@@ -176,10 +176,12 @@ private:
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
+    QAction* _gravityUse;            // Whether gravity is on or not
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
+    QAction* _renderGroundPlaneOn;   // Whether to display the ground plane
     QAction* _renderAvatarsOn;       // Whether to render avatars
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
