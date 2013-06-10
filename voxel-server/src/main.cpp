@@ -460,7 +460,7 @@ int main(int argc, const char * argv[]) {
 
     pthread_mutex_init(&::treeLock, NULL);
 
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -474,7 +474,6 @@ int main(int argc, const char * argv[]) {
 
     agentList->linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
 
@@ -577,10 +576,19 @@ int main(int argc, const char * argv[]) {
     
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
+    
+    timeval lastDomainServerCheckIn = {};
 
     // loop to send to agents requesting data
-    while (true) {
     
+    while (true) {
+
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
         // check to see if we need to persist our voxel state
         persistVoxelsWhenDirty();
     
