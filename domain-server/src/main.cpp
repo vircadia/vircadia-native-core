@@ -102,7 +102,8 @@ int main(int argc, const char * argv[])
             std::map<char, Agent *> newestSoloAgents;
             
             agentType = packetData[1];
-            int numBytesSocket = unpackSocket(packetData + 2, (sockaddr*) &agentLocalAddress);
+            int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
+                                              (sockaddr*) &agentLocalAddress);
             
             // check the agent public address
             // if it matches our local address we're on the same box
@@ -127,7 +128,8 @@ int main(int argc, const char * argv[])
             currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER);
             startPointer = currentBufferPos;
             
-            char* agentTypesOfInterest = (char*) currentBufferPos + sizeof(AGENT_TYPE) + numBytesSocket + sizeof(unsigned char);
+            unsigned char* agentTypesOfInterest = packetData + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE)
+                + numBytesSocket + sizeof(unsigned char);
             int numInterestTypes = *(agentTypesOfInterest - 1);
             
             if (numInterestTypes > 0) {

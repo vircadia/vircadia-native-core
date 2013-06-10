@@ -209,7 +209,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
     
     // tell the AgentList instance who to tell the domain server we care about
-    const unsigned char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
+    const char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
     AgentList::getInstance()->setAgentTypesOfInterest(agentTypesOfInterest, sizeof(agentTypesOfInterest));
 
     // start the agentList threads
