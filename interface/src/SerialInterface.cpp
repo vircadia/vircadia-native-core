@@ -239,19 +239,50 @@ void SerialInterface::readData(float deltaTime) {
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
         
-        //  The acceleration matrix transforms angular to linear accelerations
-        const glm::vec3 PIVOT_OFFSET(0.0f, -0.02f, -0.01f);
-        const glm::vec3 PIVOT_OFFSET_NORMALIZED = glm::normalize(PIVOT_OFFSET);
-        const glm::vec3 PIVOT_SINES = glm::max(glm::vec3(EPSILON, EPSILON, EPSILON),
-            glm::sqrt(glm::vec3(1.0f, 1.0f, 1.0f) - PIVOT_OFFSET_NORMALIZED * PIVOT_OFFSET_NORMALIZED));
-        const glm::mat3 ACCELERATION_MATRIX(
-            0.0f, PIVOT_OFFSET.z / PIVOT_SINES.x, -PIVOT_OFFSET.y / PIVOT_SINES.x,
-            -PIVOT_OFFSET.z / PIVOT_SINES.y, 0.0f, PIVOT_OFFSET.x / PIVOT_SINES.y,
-            PIVOT_OFFSET.y / PIVOT_SINES.z, -PIVOT_OFFSET.x / PIVOT_SINES.z, 0.0f);
+        //  Update acceleration estimate: first, subtract gravity as rotated into current frame
+        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
+        
+        //  Consider updating our angular velocity/acceleration to linear acceleration mapping
+        if (glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON) {
+            // compute predicted linear acceleration, find error between actual and predicted
+            glm::vec3 predictedAcceleration = _angularVelocityToLinearAccel * _lastRotationRates +
+                _angularAccelToLinearAccel * angularAcceleration;
+            glm::vec3 error = _estimatedAcceleration - predictedAcceleration;
             
-        //  Update acceleration estimate
-        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity -
-            ACCELERATION_MATRIX * angularAcceleration;
+            // adjust according to error in each dimension, in proportion to input magnitudes
+            for (int i = 0; i < 3; i++) {
+                if (fabsf(error[i]) < EPSILON) {
+                    continue;
+                }
+                const float LEARNING_RATE = 0.1f;
+                float rateSum = fabsf(_lastRotationRates.x) + fabsf(_lastRotationRates.y) + fabsf(_lastRotationRates.z);
+                if (rateSum > EPSILON) {
+                    for (int j = 0; j < 3; j++) {
+                        float proportion = LEARNING_RATE * fabsf(_lastRotationRates[j]) / rateSum;
+                        if (proportion > EPSILON) {
+                            _angularVelocityToLinearAccel[j][i] += error[i] * proportion / _lastRotationRates[j];
+                        }
+                    }
+                }
+                float accelSum = fabsf(angularAcceleration.x) + fabsf(angularAcceleration.y) + fabsf(angularAcceleration.z);
+                if (accelSum > EPSILON) {
+                    for (int j = 0; j < 3; j++) {
+                        float proportion = LEARNING_RATE * fabsf(angularAcceleration[j]) / accelSum;
+                        if (proportion > EPSILON) {
+                            _angularAccelToLinearAccel[j][i] += error[i] * proportion / angularAcceleration[j];
+                        }
+                    }                
+                }
+            }
+        }
+        
+        printLog("%g %g %g\n", _angularVelocityToLinearAccel[0][0], _angularVelocityToLinearAccel[1][0], _angularVelocityToLinearAccel[2][0]);
+        printLog("%g %g %g\n", _angularVelocityToLinearAccel[0][1], _angularVelocityToLinearAccel[1][1], _angularVelocityToLinearAccel[2][1]);
+        printLog("%g %g %g\n\n", _angularVelocityToLinearAccel[0][2], _angularVelocityToLinearAccel[1][2], _angularVelocityToLinearAccel[2][2]);
+        
+        printLog("%g %g %g\n", _angularAccelToLinearAccel[0][0], _angularAccelToLinearAccel[1][0], _angularAccelToLinearAccel[2][0]);
+        printLog("%g %g %g\n", _angularAccelToLinearAccel[0][1], _angularAccelToLinearAccel[1][1], _angularAccelToLinearAccel[2][1]);
+        printLog("%g %g %g\n\n", _angularAccelToLinearAccel[0][2], _angularAccelToLinearAccel[1][2], _angularAccelToLinearAccel[2][2]);
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;

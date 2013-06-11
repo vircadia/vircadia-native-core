@@ -30,7 +30,9 @@ public:
                         _estimatedPosition(0, 0, 0),
                         _estimatedVelocity(0, 0, 0),
                         _lastAcceleration(0, 0, 0),
-                        _lastRotationRates(0, 0, 0)
+                        _lastRotationRates(0, 0, 0),
+                        _angularVelocityToLinearAccel(0),
+                        _angularAccelToLinearAccel(0)
                     {}
     
     void pair();
@@ -64,6 +66,9 @@ private:
     glm::vec3 _estimatedAcceleration;
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
+    
+    glm::mat3 _angularVelocityToLinearAccel;
+    glm::mat3 _angularAccelToLinearAccel;
 };
 
 #endif
