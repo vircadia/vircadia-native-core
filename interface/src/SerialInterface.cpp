@@ -218,10 +218,6 @@ void SerialInterface::readData(float deltaTime) {
         
         _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
                 
-        _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
-                1.f/(float)LONG_TERM_RATE_SAMPLES * _lastAcceleration;
-        
-        printLog("%g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
         
         int rollRate, yawRate, pitchRate;
         
@@ -247,6 +243,11 @@ void SerialInterface::readData(float deltaTime) {
         //  Update acceleration estimate: first, subtract gravity as rotated into current frame
         _estimatedAcceleration = (totalSamples < GRAVITY_SAMPLES) ? glm::vec3() :
             _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
+        
+        _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * _estimatedAcceleration;
+        
+        printLog("%g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
         
         //  Consider updating our angular velocity/acceleration to linear acceleration mapping
         if (glm::length(_estimatedAcceleration) > EPSILON &&
