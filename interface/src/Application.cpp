@@ -964,6 +964,11 @@ void Application::doFalseColorizeInView() {
     _voxels.falseColorizeInView(&_viewFrustum);
 }
 
+void Application::doFalseColorizeOccluded() {
+    _debugShowVirtualOccluders->setChecked(true);
+    _voxels.falseColorizeOccluded();
+}
+
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
 }
@@ -1316,7 +1321,9 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
     renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
-    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
+    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
+    (_debugShowVirtualOccluders = renderDebugMenu->addAction("Show Virtual Occluders"))->setCheckable(true);
 
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
@@ -1902,59 +1909,62 @@ glm::vec2 Application::getScreenPoint(glm::vec3 voxelPoint) {
     return getScaledScreenPoint(projectedPoint);
 }
 
-void Application::render2DTests() {
-    glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor3f(1,0,0);
+void Application::renderVirtualOccluders() {
 
-    AABox boxA(glm::vec3(0,0,0), 0.0125);
-    boxA.scale(TREE_SCALE);
-    VoxelProjectedShadow shadowA = _viewFrustum.getProjectedShadow(boxA);
+    if (_debugShowVirtualOccluders->isChecked()) {
+        glLineWidth(2.0);
+        glBegin(GL_LINES);
+        glColor3f(0,0,1);
 
-    AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
-    boxB.scale(TREE_SCALE);
-    VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
+        AABox boxA(glm::vec3(0,0,0), 0.0125);
+        boxA.scale(TREE_SCALE);
+        VoxelProjectedShadow shadowA = _viewFrustum.getProjectedShadow(boxA);
 
-    bool shadowAoccludesB = shadowA.occludes(shadowB);
-    bool shadowBoccludesA = shadowB.occludes(shadowA);
+        AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
+        boxB.scale(TREE_SCALE);
+        VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
+
+        bool shadowAoccludesB = shadowA.occludes(shadowB);
+        bool shadowBoccludesA = shadowB.occludes(shadowA);
     
-    if (shadowA.getVertexCount()) {
-        if (shadowBoccludesA) {
-            glColor3f(0,1,1);
-        } else {
-            glColor3f(1,0,0);
-        }
-        glm::vec2 firstPoint = getScaledScreenPoint(shadowA.getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-        for (int i = 1; i < shadowA.getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(shadowA.getVertex(i));
+        if (shadowA.getVertexCount()) {
+            if (shadowBoccludesA) {
+                glColor3f(1,0,0);
+            } else {
+                glColor3f(0,0,1);
+            }
+            glm::vec2 firstPoint = getScaledScreenPoint(shadowA.getVertex(0));
+            glm::vec2 lastPoint(firstPoint);
+            for (int i = 1; i < shadowA.getVertexCount(); i++) {
+                glm::vec2 thisPoint = getScaledScreenPoint(shadowA.getVertex(i));
+                glVertex2f(lastPoint.x, lastPoint.y);
+                glVertex2f(thisPoint.x, thisPoint.y);
+                lastPoint = thisPoint;
+            }
             glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
+            glVertex2f(firstPoint.x, firstPoint.y);
         }
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    }
 
-    if (shadowB.getVertexCount()) {
-        if (shadowAoccludesB) {
-            glColor3f(0,1,0);
-        } else {
-            glColor3f(1,0,0);
-        }
-        glm::vec2 firstPoint = getScaledScreenPoint(shadowB.getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-        for (int i = 1; i < shadowB.getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(shadowB.getVertex(i));
+        if (shadowB.getVertexCount()) {
+            if (shadowAoccludesB) {
+                glColor3f(0,1,0);
+            } else {
+                glColor3f(1,0,0);
+            }
+            glm::vec2 firstPoint = getScaledScreenPoint(shadowB.getVertex(0));
+            glm::vec2 lastPoint(firstPoint);
+            for (int i = 1; i < shadowB.getVertexCount(); i++) {
+                glm::vec2 thisPoint = getScaledScreenPoint(shadowB.getVertex(i));
+                glVertex2f(lastPoint.x, lastPoint.y);
+                glVertex2f(thisPoint.x, thisPoint.y);
+                lastPoint = thisPoint;
+            }
             glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
+            glVertex2f(firstPoint.x, firstPoint.y);
         }
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    }
     
-    glEnd();
+        glEnd();
+    }
 }
         
 void Application::displaySide(Camera& whichCamera) {
@@ -2240,7 +2250,7 @@ void Application::displayStats() {
     }
 
     // testing....
-    render2DTests();
+    renderVirtualOccluders();
 
 }
 

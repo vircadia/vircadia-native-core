@@ -1156,3 +1156,33 @@ void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* dest
     _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
 }
 
+struct FalseColorizeOccludedArgs {
+    VoxelProjectedShadow occluder;
+    ViewFrustum* viewFrustum;
+};
+
+bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
+    FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
+    if (node->isColored()) {
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedShadow voxelShadow = args->viewFrustum->getProjectedShadow(voxelBox);
+        if (args->occluder.occludes(voxelShadow)) {
+            node->setFalseColor(255, 0, 0);
+        }
+    }
+    return true; // keep going!
+}
+
+void VoxelSystem::falseColorizeOccluded() {
+    FalseColorizeOccludedArgs args;
+    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    
+    AABox box(glm::vec3(0.0125,0,0.025), 0.0125);
+    box.scale(TREE_SCALE);
+    args.occluder = args.viewFrustum->getProjectedShadow(box);
+
+    _tree->recurseTreeWithOperation(falseColorizeOccludedOperation,(void*)&args);
+    setupNewVoxelsForDrawing();
+}
+

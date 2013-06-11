@@ -102,6 +102,7 @@ private slots:
     void doFalseRandomizeVoxelColors();
     void doFalseRandomizeEveryOtherVoxelColors();
     void doFalseColorizeByDistance();
+    void doFalseColorizeOccluded();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
@@ -141,7 +142,7 @@ private:
     void displayStats();
 
     // Couple of debug routines for use in debuggin/developing Occlusion Culling. Will be removed eventually
-    void render2DTests();
+    void renderVirtualOccluders();
     glm::vec2 getScreenPoint(glm::vec3 voxelPoint);
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     
@@ -206,6 +207,7 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+    QAction* _debugShowVirtualOccluders;
     
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
