@@ -249,14 +249,15 @@ void SerialInterface::readData(float deltaTime) {
                 _angularAccelToLinearAccel * angularAcceleration;
             glm::vec3 error = _estimatedAcceleration - predictedAcceleration;
             
-            printLog("error %g\n", glm::length(error));
+            // the "error" is actually what we want: the linear acceleration minus rotational influences
+            _estimatedAcceleration = error;
             
             // adjust according to error in each dimension, in proportion to input magnitudes
             for (int i = 0; i < 3; i++) {
                 if (fabsf(error[i]) < EPSILON) {
                     continue;
                 }
-                const float LEARNING_RATE = 0.1f;
+                const float LEARNING_RATE = 0.01f;
                 float rateSum = fabsf(_lastRotationRates.x) + fabsf(_lastRotationRates.y) + fabsf(_lastRotationRates.z);
                 if (rateSum > EPSILON) {
                     for (int j = 0; j < 3; j++) {
@@ -278,13 +279,8 @@ void SerialInterface::readData(float deltaTime) {
             }
         }
         
-        printLog("%g %g %g\n", _angularVelocityToLinearAccel[0][0], _angularVelocityToLinearAccel[1][0], _angularVelocityToLinearAccel[2][0]);
-        printLog("%g %g %g\n", _angularVelocityToLinearAccel[0][1], _angularVelocityToLinearAccel[1][1], _angularVelocityToLinearAccel[2][1]);
-        printLog("%g %g %g\n\n", _angularVelocityToLinearAccel[0][2], _angularVelocityToLinearAccel[1][2], _angularVelocityToLinearAccel[2][2]);
-        
-        printLog("%g %g %g\n", _angularAccelToLinearAccel[0][0], _angularAccelToLinearAccel[1][0], _angularAccelToLinearAccel[2][0]);
-        printLog("%g %g %g\n", _angularAccelToLinearAccel[0][1], _angularAccelToLinearAccel[1][1], _angularAccelToLinearAccel[2][1]);
-        printLog("%g %g %g\n\n", _angularAccelToLinearAccel[0][2], _angularAccelToLinearAccel[1][2], _angularAccelToLinearAccel[2][2]);
+        // rotate estimated acceleration into global rotation frame
+        _estimatedAcceleration = estimatedRotation * _estimatedAcceleration;
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
