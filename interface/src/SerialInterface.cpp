@@ -240,10 +240,12 @@ void SerialInterface::readData(float deltaTime) {
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
         
         //  Update acceleration estimate: first, subtract gravity as rotated into current frame
-        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
+        _estimatedAcceleration = (totalSamples < GRAVITY_SAMPLES) ? glm::vec3() :
+            _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
         
         //  Consider updating our angular velocity/acceleration to linear acceleration mapping
-        if (glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON) {
+        if (glm::length(_estimatedAcceleration) > EPSILON &&
+                glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON) {
             // compute predicted linear acceleration, find error between actual and predicted
             glm::vec3 predictedAcceleration = _angularVelocityToLinearAccel * _lastRotationRates +
                 _angularAccelToLinearAccel * angularAcceleration;
@@ -338,6 +340,7 @@ void SerialInterface::resetAverages() {
     _estimatedRotation = glm::vec3(0, 0, 0);
     _estimatedPosition = glm::vec3(0, 0, 0);
     _estimatedVelocity = glm::vec3(0, 0, 0);
+    _estimatedAcceleration = glm::vec3(0, 0, 0);
 }
 
 void SerialInterface::resetSerial() {
