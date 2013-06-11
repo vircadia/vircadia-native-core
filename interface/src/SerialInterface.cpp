@@ -6,6 +6,7 @@
 //
 
 #include "SerialInterface.h"
+#include "SharedUtil.h"
 #include "Util.h"
 #include <glm/gtx/vector_angle.hpp>
 #include <math.h>
