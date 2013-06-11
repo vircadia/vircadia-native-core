@@ -47,6 +47,5 @@ private:
     float _minY;
 };
 
-bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
 
 #endif // _VOXEL_PROJECTED_SHADOW_
