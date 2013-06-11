@@ -227,12 +227,13 @@ int main(int argc, const char* argv[]) {
                                 }
                                 
                                 // calculate the reasonance for this TwoPole based on angle to source
-                                float TWO_POLE_CUT_OFF_FREQUENCY = 1000.0f;
+                                float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
                                 float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
                                 
                                 otherAgentTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
                                                                 TWO_POLE_MAX_FILTER_STRENGTH
-                                                                * fabsf(bearingRelativeAngleToSource) / 180.0f);
+                                                                * fabsf(bearingRelativeAngleToSource) / 180.0f,
+                                                                true);
                             }
                         }
                         
