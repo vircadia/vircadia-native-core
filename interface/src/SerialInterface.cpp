@@ -216,9 +216,8 @@ void SerialInterface::readData(float deltaTime) {
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         
-        //_lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
-        _lastAcceleration = glm::vec3(-accelYRate, accelXRate, accelZRate) * LSB_TO_METERS_PER_SECOND2;
-        
+        _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
+                
         int rollRate, yawRate, pitchRate;
         
         convertHexToInt(sensorBuffer + 22, rollRate);
@@ -228,12 +227,8 @@ void SerialInterface::readData(float deltaTime) {
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
         glm::vec3 rotationRates;
-        //rotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        //rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        //rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
-
-        rotationRates[0] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        rotationRates[1] = ((float)  pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
         rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
 
         // compute the angular acceleration
