@@ -425,3 +425,93 @@ void ViewFrustum::printDebugDetails() const {
         _eyeOffsetOrientation.w );
 }
 
+
+glm::vec2 ViewFrustum::projectPoint(glm::vec3 point) const {
+
+    // Projection matrix : Field of View, ratio, display range : near to far
+    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
+    glm::vec3 lookAt     = _position + _direction;
+    glm::mat4 view       = glm::lookAt(_position, lookAt, _up);
+    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
+    glm::mat4 VP         = projection * view; // Remember, matrix multiplication is the other way around
+    
+    glm::vec4 pointVec4 = glm::vec4(point,1);
+    glm::vec4 projectedPointVec4 = VP * pointVec4;
+    glm::vec2 projectedPoint(projectedPointVec4.x / projectedPointVec4.w, projectedPointVec4.y / projectedPointVec4.w);
+    return projectedPoint;
+}
+
+
+const int MAX_POSSIBLE_COMBINATIONS = 43;
+
+const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_SHADOW_VERTEX_COUNT+1] = {
+    // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AABox
+    {0}, // inside
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
+    {4, BOTTOM_LEFT_NEAR,  BOTTOM_LEFT_FAR,  TOP_LEFT_FAR,  TOP_LEFT_NEAR},  // left 
+    {0}, // n/a
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // bottom
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR},//bottom, right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR},//bottom, left
+    {0}, // n/a
+    {4, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},         // top
+    {6, TOP_RIGHT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},   // top, right
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR},   // top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {4, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front or near
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, right
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // front, left
+    {0}, // n/a
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // front,bottom
+    {6, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR}, //front,bottom,right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, //front,bottom,left
+    {0}, // n/a
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, top
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, top, right
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // front, top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {4, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR}, // back
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR}, // back, right
+    {6, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR}, // back, left
+    {0}, // n/a
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // back, bottom
+    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR},//back, bottom, right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR},//back, bottom, left
+    {0}, // n/a
+    {6, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR}, // back, top
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // back, top, right
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
+};
+
+VoxelProjectedShadow ViewFrustum::getProjectedShadow(const AABox& box) const {
+    glm::vec3 bottomNearRight = box.getCorner();
+    glm::vec3 topFarLeft      = box.getCorner() + box.getSize();
+    int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
+               + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
+               + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
+               + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
+               + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
+               + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
+
+    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
+
+    VoxelProjectedShadow shadow(vertexCount);
+    
+    if (vertexCount) {
+        for(int i = 0; i < vertexCount; i++) {
+            int vertexNum = hullVertexLookup[lookUp][i+1];
+            glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
+            glm::vec2 projectedPoint = projectPoint(point);
+            shadow.setVertex(i, projectedPoint);
+        }
+    }
+    return shadow;
+}
