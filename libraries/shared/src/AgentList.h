@@ -24,7 +24,10 @@ const int AGENTS_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
 const unsigned int AGENT_SOCKET_LISTEN_PORT = 40103;
+
 const int AGENT_SILENCE_THRESHOLD_USECS = 2 * 1000000;
+const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+
 extern const char SOLO_AGENT_TYPES[3];
 
 extern char DOMAIN_HOSTNAME[];
@@ -45,15 +48,27 @@ public:
     AgentListIterator begin() const;
     AgentListIterator end() const;
     
+    char getOwnerType() const { return _ownerType; }
+    
+    uint16_t getLastAgentID() const { return _lastAgentID; }
+    void increaseAgentID() { ++_lastAgentID; }
+    
+    uint16_t getOwnerID() const { return _ownerID; }
+    void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
+    
+    UDPSocket* getAgentSocket() { return &_agentSocket; }
+    
+    unsigned int getSocketListenPort() const { return _socketListenPort; };
+    
     void(*linkedDataCreateCallback)(Agent *);
     
     int size() { return _numAgents; }
     
-    UDPSocket* getAgentSocket() { return &agentSocket; }
-    
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
+    void setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest);
+    void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     Agent* agentWithAddress(sockaddr *senderAddress);
@@ -68,22 +83,11 @@ public:
     int updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
     void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
-    unsigned int getSocketListenPort();
-    
-    char getOwnerType() const { return _ownerType; }
-    
-    uint16_t getLastAgentID() const { return _lastAgentID; }
-    void increaseAgentID() { ++_lastAgentID; }
-    
-    uint16_t getOwnerID() const { return _ownerID; }
-    void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
     
     Agent* soloAgentOfType(char agentType);
     
     void startSilentAgentRemovalThread();
     void stopSilentAgentRemovalThread();
-    void startDomainServerCheckInThread();
-    void stopDomainServerCheckInThread();
     void startPingUnknownAgentsThread();
     void stopPingUnknownAgentsThread();
     
@@ -100,9 +104,10 @@ private:
     
     Agent** _agentBuckets[MAX_NUM_AGENTS / AGENTS_PER_BUCKET];
     int _numAgents;
-    UDPSocket agentSocket;
+    UDPSocket _agentSocket;
     char _ownerType;
-    unsigned int socketListenPort;
+    char* _agentTypesOfInterest;
+    unsigned int _socketListenPort;
     uint16_t _ownerID;
     uint16_t _lastAgentID;
     pthread_t removeSilentAgentsThread;
