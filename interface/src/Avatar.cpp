@@ -317,30 +317,23 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
     //  Update head yaw and pitch based on mouse input
-    const float MOUSE_MOVE_RADIUS = 0.3f;
-    const float MOUSE_ROTATE_SPEED = 4.0f;
-    const float MOUSE_PITCH_SPEED = 2.0f;
+    const float MOUSE_ROTATE_SPEED = 0.01f;
+    const float MOUSE_PITCH_SPEED = 0.02f;
     const int TITLE_BAR_HEIGHT = 46;
-    float mouseLocationX = (float)mouseX / (float)screenWidth - 0.5f;
-    float mouseLocationY = (float)mouseY / (float)screenHeight - 0.5f;
     
     if ((mouseX > 1) && (mouseX < screenWidth) && (mouseY > TITLE_BAR_HEIGHT) && (mouseY < screenHeight)) {
         //
         //  Mouse must be inside screen (not at edge) and not on title bar for movement to happen
         //
-        if (mouseLocationX > MOUSE_MOVE_RADIUS) {
-            _head.addYaw(-(mouseLocationX - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED);
-        } else if (mouseLocationX < -MOUSE_MOVE_RADIUS) {
-            _head.addYaw(-(mouseLocationX + MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_ROTATE_SPEED);
-        }
         
-        if (mouseLocationY > MOUSE_MOVE_RADIUS) {
-            _head.addPitch(-(mouseLocationY - MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED);
-        } else if (mouseLocationY < -MOUSE_MOVE_RADIUS) {
-            _head.addPitch(-(mouseLocationY + MOUSE_MOVE_RADIUS) / (0.5f - MOUSE_MOVE_RADIUS) * MOUSE_PITCH_SPEED);
+        int pixelMoveThreshold = screenWidth / 6;
+        glm::vec2 mouseVector(mouseX - (screenWidth / 2), mouseY - (screenHeight / 2));
+        if (glm::length(mouseVector) > pixelMoveThreshold) {
+            mouseVector -= glm::normalize(mouseVector) * (float) pixelMoveThreshold;
+            _head.addYaw(-mouseVector.x * MOUSE_ROTATE_SPEED);
+            _head.addPitch(-mouseVector.y * MOUSE_PITCH_SPEED);
         }
     }
-    return;
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
