@@ -241,9 +241,9 @@ void SerialInterface::readData(float deltaTime) {
         
         //  The acceleration matrix transforms angular to linear accelerations
         const glm::vec3 PIVOT_OFFSET(0.0f, -0.02f, -0.01f);
-        const glm::vec3 PIVOT_VECTOR_NORMALIZED = glm::normalize(PIVOT_OFFSET);
+        const glm::vec3 PIVOT_OFFSET_NORMALIZED = glm::normalize(PIVOT_OFFSET);
         const glm::vec3 PIVOT_SINES = glm::max(glm::vec3(EPSILON, EPSILON, EPSILON),
-            glm::sqrt(glm::vec3(1.0f, 1.0f, 1.0f) - PIVOT_OFFSET * PIVOT_OFFSET));
+            glm::sqrt(glm::vec3(1.0f, 1.0f, 1.0f) - PIVOT_OFFSET_NORMALIZED * PIVOT_OFFSET_NORMALIZED));
         const glm::mat3 ACCELERATION_MATRIX(
             0.0f, PIVOT_OFFSET.z / PIVOT_SINES.x, -PIVOT_OFFSET.y / PIVOT_SINES.x,
             -PIVOT_OFFSET.z / PIVOT_SINES.y, 0.0f, PIVOT_OFFSET.x / PIVOT_SINES.y,
