@@ -207,10 +207,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
     #endif
+    
+    // tell the AgentList instance who to tell the domain server we care about
+    const char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
+    AgentList::getInstance()->setAgentTypesOfInterest(agentTypesOfInterest, sizeof(agentTypesOfInterest));
 
     // start the agentList threads
     AgentList::getInstance()->startSilentAgentRemovalThread();
-    AgentList::getInstance()->startDomainServerCheckInThread();
     AgentList::getInstance()->startPingUnknownAgentsThread();
     
     _window->setCentralWidget(_glWidget);
@@ -424,7 +427,7 @@ static void sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL, 1);
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -767,6 +770,9 @@ void Application::timer() {
     if (!_serialHeadSensor.active) {
         _serialHeadSensor.pair();
     }
+    
+    // ask the agent list to check in with the domain server
+    AgentList::getInstance()->sendDomainServerCheckIn();
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -992,7 +998,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -1061,7 +1067,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL, 1);
+            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1125,7 +1131,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1177,7 +1183,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1664,7 +1670,7 @@ void Application::updateAvatar(float deltaTime) {
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
-        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
+        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AVATAR_MIXER};
         AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
         
         // once in a while, send my voxel url
