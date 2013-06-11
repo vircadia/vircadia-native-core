@@ -21,8 +21,8 @@ void AABox::scale(float scale) {
 }
 
 
-glm::vec3 AABox::getVertice(BoxVertice vertice) const {
-    switch (vertice) {
+glm::vec3 AABox::getVertex(BoxVertex vertex) const {
+    switch (vertex) {
         case BOTTOM_LEFT_NEAR:
             return _corner + glm::vec3(_size.x, 0, 0);
         case BOTTOM_RIGHT_NEAR:
@@ -63,19 +63,16 @@ void AABox::setBox(const glm::vec3& corner,  const glm::vec3& size) {
 }
 
 glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
-    glm::vec3 res = _corner;
+    glm::vec3 result = _corner;
     if (normal.x > 0) {
         result.x += _size.x;
     }
-
     if (normal.y > 0) {
         result.y += _size.y;
-    }{
-
+    }
     if (normal.z > 0) {
         result.z += _size.z;
     }
-
     return result;
 }
 

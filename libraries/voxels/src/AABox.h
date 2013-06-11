@@ -23,7 +23,7 @@ enum BoxFace {
 };
 
 
-enum BoxVertice {
+enum BoxVertex {
     BOTTOM_LEFT_NEAR   = 0,
     BOTTOM_RIGHT_NEAR  = 1,
     TOP_RIGHT_NEAR     = 2,
@@ -60,7 +60,7 @@ public:
     const glm::vec3& getSize() const { return _size; };
     const glm::vec3& getCenter() const { return _center; };
 
-    glm::vec3 getVertice(BoxVertice vertice) const;
+    glm::vec3 getVertex(BoxVertex vertex) const;
 
     bool contains(const glm::vec3& point) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
