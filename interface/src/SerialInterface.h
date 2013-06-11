@@ -31,8 +31,14 @@ public:
                         _estimatedVelocity(0, 0, 0),
                         _lastAcceleration(0, 0, 0),
                         _lastRotationRates(0, 0, 0),
-                        _angularVelocityToLinearAccel(0),
-                        _angularAccelToLinearAccel(0)
+                        _angularVelocityToLinearAccel( // experimentally derived initial values
+                            0.001f, -0.008f, 0.020f, 
+                            0.003f, -0.003f, 0.025f,
+                            0.017f, 0.007f, 0.029f),
+                        _angularAccelToLinearAccel( // experimentally derived initial values
+                            0.0f, 0.0f, 0.002f,
+                            0.0f, 0.0f, 0.002f,
+                            -0.002f, -0.002f, 0.0f)
                     {}
     
     void pair();

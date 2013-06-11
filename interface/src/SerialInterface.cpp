@@ -249,6 +249,8 @@ void SerialInterface::readData(float deltaTime) {
                 _angularAccelToLinearAccel * angularAcceleration;
             glm::vec3 error = _estimatedAcceleration - predictedAcceleration;
             
+            printLog("error %g\n", glm::length(error));
+            
             // adjust according to error in each dimension, in proportion to input magnitudes
             for (int i = 0; i < 3; i++) {
                 if (fabsf(error[i]) < EPSILON) {
