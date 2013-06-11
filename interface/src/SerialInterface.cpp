@@ -232,15 +232,15 @@ void SerialInterface::readData(float deltaTime) {
         rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
         rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
 
+        // update and subtract the long term average
+        _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * rotationRates;
+        rotationRates -= _averageRotationRates;
+
         // compute the angular acceleration
         glm::vec3 angularAcceleration = (deltaTime < EPSILON) ? glm::vec3() : (rotationRates - _lastRotationRates) / deltaTime;
         _lastRotationRates = rotationRates;
-
-        _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
-                1.f/(float)LONG_TERM_RATE_SAMPLES * _lastRotationRates;
         
-        printLog("r: %g %g %g\n", _averageRotationRates.x, _averageRotationRates.y, _averageRotationRates.z);
-
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
@@ -249,10 +249,10 @@ void SerialInterface::readData(float deltaTime) {
         _estimatedAcceleration = (totalSamples < GRAVITY_SAMPLES) ? glm::vec3() :
             _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
         
+        // update and subtract the long term average
         _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
                 1.f/(float)LONG_TERM_RATE_SAMPLES * _estimatedAcceleration;
-        
-        printLog("a: %g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
+        _estimatedAcceleration -= _averageAcceleration;
         
         //  Consider updating our angular velocity/acceleration to linear acceleration mapping
         if (glm::length(_estimatedAcceleration) > EPSILON &&
@@ -347,6 +347,8 @@ void SerialInterface::readData(float deltaTime) {
 void SerialInterface::resetAverages() {
     totalSamples = 0;
     _gravity = glm::vec3(0, 0, 0);
+    _averageRotationRates = glm::vec3(0, 0, 0);
+    _averageAcceleration = glm::vec3(0, 0, 0);
     _lastRotationRates = glm::vec3(0, 0, 0);
     _estimatedRotation = glm::vec3(0, 0, 0);
     _estimatedPosition = glm::vec3(0, 0, 0);

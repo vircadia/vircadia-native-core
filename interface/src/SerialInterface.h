@@ -26,6 +26,8 @@ class SerialInterface {
 public:
     SerialInterface() : active(false),
                         _gravity(0, 0, 0),
+                        _averageRotationRates(0, 0, 0),
+                        _averageAcceleration(0, 0, 0),
                         _estimatedRotation(0, 0, 0),
                         _estimatedPosition(0, 0, 0),
                         _estimatedVelocity(0, 0, 0),
@@ -66,15 +68,14 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 _gravity;
+    glm::vec3 _averageRotationRates;
+    glm::vec3 _averageAcceleration;
     glm::vec3 _estimatedRotation;
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedVelocity;
     glm::vec3 _estimatedAcceleration;
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
-    
-    glm::vec3 _averageAcceleration;
-    glm::vec3 _averageRotationRates;
     
     glm::mat3 _angularVelocityToLinearAccel;
     glm::mat3 _angularAccelToLinearAccel;
