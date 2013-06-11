@@ -257,7 +257,7 @@ void SerialInterface::readData(float deltaTime) {
                 if (fabsf(error[i]) < EPSILON) {
                     continue;
                 }
-                const float LEARNING_RATE = 0.01f;
+                const float LEARNING_RATE = 0.001f;
                 float rateSum = fabsf(_lastRotationRates.x) + fabsf(_lastRotationRates.y) + fabsf(_lastRotationRates.z);
                 if (rateSum > EPSILON) {
                     for (int j = 0; j < 3; j++) {
