@@ -1884,6 +1884,78 @@ void Application::displayOculus(Camera& whichCamera) {
     
     glPopMatrix();
 }
+
+glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
+    float horizontalScale = _glWidget->width() / 2.0f;
+    float verticalScale   = _glWidget->height() / 2.0f;
+    
+    // -1,-1 is 0,windowHeight 
+    // 1,1 is windowWidth,0
+    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale, 
+        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
+        
+    return screenPoint;
+}
+
+glm::vec2 Application::getScreenPoint(glm::vec3 voxelPoint) {
+    glm::vec2 projectedPoint = _viewFrustum.projectPoint(voxelPoint * (float)TREE_SCALE);
+    return getScaledScreenPoint(projectedPoint);
+}
+
+void Application::render2DTests() {
+    glLineWidth(2.0);
+    glBegin(GL_LINES);
+    glColor3f(1,0,0);
+
+    AABox boxA(glm::vec3(0,0,0), 0.0125);
+    boxA.scale(TREE_SCALE);
+    VoxelProjectedShadow shadowA = _viewFrustum.getProjectedShadow(boxA);
+
+    AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
+    boxB.scale(TREE_SCALE);
+    VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
+
+    bool shadowAoccludesB = shadowA.occludes(shadowB);
+    bool shadowBoccludesA = shadowB.occludes(shadowA);
+    
+    if (shadowA.getVertexCount()) {
+        if (shadowBoccludesA) {
+            glColor3f(0,1,1);
+        } else {
+            glColor3f(1,0,0);
+        }
+        glm::vec2 firstPoint = getScaledScreenPoint(shadowA.getVertex(0));
+        glm::vec2 lastPoint(firstPoint);
+        for (int i = 1; i < shadowA.getVertexCount(); i++) {
+            glm::vec2 thisPoint = getScaledScreenPoint(shadowA.getVertex(i));
+            glVertex2f(lastPoint.x, lastPoint.y);
+            glVertex2f(thisPoint.x, thisPoint.y);
+            lastPoint = thisPoint;
+        }
+        glVertex2f(lastPoint.x, lastPoint.y);
+        glVertex2f(firstPoint.x, firstPoint.y);
+    }
+
+    if (shadowB.getVertexCount()) {
+        if (shadowAoccludesB) {
+            glColor3f(0,1,0);
+        } else {
+            glColor3f(1,0,0);
+        }
+        glm::vec2 firstPoint = getScaledScreenPoint(shadowB.getVertex(0));
+        glm::vec2 lastPoint(firstPoint);
+        for (int i = 1; i < shadowB.getVertexCount(); i++) {
+            glm::vec2 thisPoint = getScaledScreenPoint(shadowB.getVertex(i));
+            glVertex2f(lastPoint.x, lastPoint.y);
+            glVertex2f(thisPoint.x, thisPoint.y);
+            lastPoint = thisPoint;
+        }
+        glVertex2f(lastPoint.x, lastPoint.y);
+        glVertex2f(firstPoint.x, firstPoint.y);
+    }
+    
+    glEnd();
+}
         
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
@@ -2013,6 +2085,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
+    
 }
 
 void Application::displayOverlay() {
@@ -2165,6 +2238,10 @@ void Application::displayStats() {
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
     }
+
+    // testing....
+    render2DTests();
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

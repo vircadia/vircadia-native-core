@@ -139,6 +139,11 @@ private:
     void displaySide(Camera& whichCamera);
     void displayOverlay();
     void displayStats();
+
+    // Couple of debug routines for use in debuggin/developing Occlusion Culling. Will be removed eventually
+    void render2DTests();
+    glm::vec2 getScreenPoint(glm::vec3 voxelPoint);
+    glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     
     void renderViewFrustum(ViewFrustum& viewFrustum);
     
