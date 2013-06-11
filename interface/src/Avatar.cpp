@@ -1205,22 +1205,20 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 }
 
 
+void Avatar::loadData(QSettings* settings) {
+    settings->beginGroup("Avatar");
 
-
-void Avatar::loadData(QSettings* set) {
-    set->beginGroup("Avatar");
+    // in case settings is corrupt or missing loadSetting() will check for NaN
+    _bodyYaw    = loadSetting(settings, "bodyYaw"  , 0.0f);
+    _bodyPitch  = loadSetting(settings, "bodyPitch", 0.0f);
+    _bodyRoll   = loadSetting(settings, "bodyRoll" , 0.0f);
+    _position.x = loadSetting(settings, "position_x", 0.0f);
+    _position.y = loadSetting(settings, "position_y", 0.0f);
+    _position.z = loadSetting(settings, "position_z", 0.0f);
     
-    _bodyYaw   = set->value("bodyYaw",  _bodyYaw).toFloat();
-    _bodyPitch = set->value("bodyPitch", _bodyPitch).toFloat();
-    _bodyRoll  = set->value("bodyRoll",  _bodyRoll).toFloat();
+    _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     
-    _position.x = set->value("position_x", _position.x).toFloat();
-    _position.y = set->value("position_y", _position.y).toFloat();
-    _position.z = set->value("position_z", _position.z).toFloat();
-    
-    _voxels.setVoxelURL(set->value("voxelURL").toUrl());
-    
-    set->endGroup();
+    settings->endGroup();
 }
 
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {

@@ -17,6 +17,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <QSettings>
 
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
@@ -65,5 +66,8 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
 
 void runTimingTests();
+
+
+float loadSetting(QSettings* settings, const char* name, float defaultValue);
 
 #endif
