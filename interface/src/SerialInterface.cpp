@@ -218,6 +218,11 @@ void SerialInterface::readData(float deltaTime) {
         
         _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
                 
+        _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * _lastAcceleration;
+        
+        printLog("%g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
+        
         int rollRate, yawRate, pitchRate;
         
         convertHexToInt(sensorBuffer + 22, rollRate);
@@ -245,7 +250,7 @@ void SerialInterface::readData(float deltaTime) {
         
         //  Consider updating our angular velocity/acceleration to linear acceleration mapping
         if (glm::length(_estimatedAcceleration) > EPSILON &&
-                glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON) {
+                (glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON)) {
             // compute predicted linear acceleration, find error between actual and predicted
             glm::vec3 predictedAcceleration = _angularVelocityToLinearAccel * _lastRotationRates +
                 _angularAccelToLinearAccel * angularAcceleration;

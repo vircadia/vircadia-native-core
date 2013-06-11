@@ -73,6 +73,8 @@ private:
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
     
+    glm::vec3 _averageAcceleration;
+    
     glm::mat3 _angularVelocityToLinearAccel;
     glm::mat3 _angularAccelToLinearAccel;
 };
