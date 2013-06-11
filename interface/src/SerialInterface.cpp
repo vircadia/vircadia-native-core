@@ -238,18 +238,19 @@ void SerialInterface::readData(float deltaTime) {
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
         
+        //  The acceleration matrix transforms angular to linear accelerations
+        const glm::vec3 PIVOT_OFFSET(0.0f, -0.02f, -0.01f);
+        const glm::vec3 PIVOT_VECTOR_NORMALIZED = glm::normalize(PIVOT_OFFSET);
+        const glm::vec3 PIVOT_SINES = glm::max(glm::vec3(EPSILON, EPSILON, EPSILON),
+            glm::sqrt(glm::vec3(1.0f, 1.0f, 1.0f) - PIVOT_OFFSET * PIVOT_OFFSET));
+        const glm::mat3 ACCELERATION_MATRIX(
+            0.0f, PIVOT_OFFSET.z / PIVOT_SINES.x, -PIVOT_OFFSET.y / PIVOT_SINES.x,
+            -PIVOT_OFFSET.z / PIVOT_SINES.y, 0.0f, PIVOT_OFFSET.x / PIVOT_SINES.y,
+            PIVOT_OFFSET.y / PIVOT_SINES.z, -PIVOT_OFFSET.x / PIVOT_SINES.z, 0.0f);
+            
         //  Update acceleration estimate
-        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
-        
-        static float ratioEstimate = 0.0f;
-        float angularAccelerationLength = glm::length(angularAcceleration);
-        float linearAccelerationLength = glm::length(estimatedAcceleration);
-        if (angularAccelerationLength > EPSILON && linearAccelerationLength > EPSILON) {
-            float ratio = linearAccelerationLength / angularAccelerationLength;
-            static float ratioEstimate = ratio;
-            ratioEstimate = ratioEstimate * 0.999 + ratio * 0.001;
-            printLog("%g %g\n", ratio, ratioEstimate);
-        }
+        _estimatedAcceleration = _lastAcceleration - glm::inverse(estimatedRotation) * _gravity -
+            ACCELERATION_MATRIX * angularAcceleration;
         
         //  Update estimated position and velocity
         float const DECAY_VELOCITY = 0.95f;
