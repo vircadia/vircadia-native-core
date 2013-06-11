@@ -236,6 +236,11 @@ void SerialInterface::readData(float deltaTime) {
         glm::vec3 angularAcceleration = (deltaTime < EPSILON) ? glm::vec3() : (rotationRates - _lastRotationRates) / deltaTime;
         _lastRotationRates = rotationRates;
 
+        _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * _lastRotationRates;
+        
+        printLog("r: %g %g %g\n", _averageRotationRates.x, _averageRotationRates.y, _averageRotationRates.z);
+
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
@@ -247,7 +252,7 @@ void SerialInterface::readData(float deltaTime) {
         _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
                 1.f/(float)LONG_TERM_RATE_SAMPLES * _estimatedAcceleration;
         
-        printLog("%g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
+        printLog("a: %g %g %g\n", _averageAcceleration.x, _averageAcceleration.y, _averageAcceleration.z);
         
         //  Consider updating our angular velocity/acceleration to linear acceleration mapping
         if (glm::length(_estimatedAcceleration) > EPSILON &&
