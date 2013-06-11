@@ -136,6 +136,8 @@ int main(int argc, const char* argv[]) {
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.0f;
                         
+                        stk::TwoPole* otherAgentTwoPole = NULL;
+                        
                         if (otherAgent != agent) {
                             
                             glm::vec3 listenerPosition = agentRingBuffer->getPosition();
@@ -212,6 +214,25 @@ int main(int argc, const char* argv[]) {
                                 float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                                
+                                // grab the TwoPole object for this source, add it if it doesn't exist
+                                TwoPoleAgentMap& agentTwoPoles = agentRingBuffer->getTwoPoles();
+                                TwoPoleAgentMap::iterator twoPoleIterator = agentTwoPoles.find(otherAgent->getAgentID());
+                                
+                                if (twoPoleIterator == agentTwoPoles.end()) {
+                                    // setup the freeVerb effect for this source for this client
+                                    otherAgentTwoPole = agentTwoPoles[otherAgent->getAgentID()] = new stk::TwoPole;
+                                } else {
+                                    otherAgentTwoPole = twoPoleIterator->second;
+                                }
+                                
+                                // calculate the reasonance for this TwoPole based on angle to source
+                                float TWO_POLE_CUT_OFF_FREQUENCY = 1000.0f;
+                                float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
+                                
+                                otherAgentTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
+                                                                TWO_POLE_MAX_FILTER_STRENGTH
+                                                                * fabsf(bearingRelativeAngleToSource) / 180.0f);
                             }
                         }
                         
@@ -235,6 +256,10 @@ int main(int argc, const char* argv[]) {
                                     * weakChannelAmplitudeRatio;
                                 
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                            }
+                            
+                            if (otherAgentTwoPole) {
+                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
                             }
                             
                             int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
