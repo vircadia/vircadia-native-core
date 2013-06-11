@@ -285,18 +285,8 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
     //  Update head lean distance based on accelerometer data
-    glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
-    
-    glm::vec3 leaning = (serialInterface->getLastAcceleration() - serialInterface->getGravity())
-    * LEAN_SENSITIVITY
-    * (1.f - fminf(glm::length(headRotationRates), HEAD_RATE_MAX) / HEAD_RATE_MAX);
-    leaning.y = 0.f;
-    if (glm::length(leaning) < LEAN_MAX) {
-        _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
-                             (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY);
-        _head.setLeanSideways(_head.getLeanSideways() * (1.f - LEAN_AVERAGING * deltaTime) +
-                              (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY);
-    }
+    _bodyPitchDelta = serialInterface->getEstimatedVelocity().z * LEAN_SENSITIVITY;
+    _bodyRollDelta = -serialInterface->getEstimatedVelocity().x * LEAN_SENSITIVITY;
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
