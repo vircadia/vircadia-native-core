@@ -169,7 +169,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
-    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     if (portStr) {
@@ -829,6 +829,7 @@ void Application::terminate() {
 
 static void sendAvatarVoxelURLMessage(const QUrl& url) {
     uint16_t ownerID = AgentList::getInstance()->getOwnerID();
+    
     if (ownerID == UNKNOWN_AGENT_ID) {
         return; // we don't yet know who we are
     }

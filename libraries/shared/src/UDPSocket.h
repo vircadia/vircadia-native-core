@@ -23,14 +23,16 @@ public:
     UDPSocket(int listening_port);
     ~UDPSocket();
     bool init();
+    int getListeningPort() const { return listeningPort; }
     void setBlocking(bool blocking);
-    bool isBlocking() { return blocking; }
+    bool isBlocking() const { return blocking; }
     int send(sockaddr* destAddress, const void* data, size_t byteLength) const;
     int send(char* destAddress, int destPort, const void* data, size_t byteLength) const;
     bool receive(void* receivedData, ssize_t* receivedBytes) const;
     bool receive(sockaddr* recvAddress, void* receivedData, ssize_t* receivedBytes) const;
 private:
     int handle;
+    int listeningPort;
     bool blocking;
 };
 
