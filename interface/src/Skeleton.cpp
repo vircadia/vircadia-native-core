@@ -132,15 +132,15 @@ void Skeleton::update(float deltaTime, const glm::quat& orientation, glm::vec3 p
 
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         if (joint[b].parent == AVATAR_JOINT_NULL) {
-            joint[b].rotation = orientation;
+            joint[b].absoluteRotation = orientation * joint[b].rotation;
             joint[b].position = position;
         }
         else {
-            joint[b].rotation = joint[ joint[b].parent ].rotation;
+            joint[b].absoluteRotation = joint[ joint[b].parent ].absoluteRotation * joint[b].rotation;
             joint[b].position = joint[ joint[b].parent ].position;
         }
 
-        glm::vec3 rotatedJointVector = joint[b].rotation * joint[b].defaultPosePosition;
+        glm::vec3 rotatedJointVector = joint[b].absoluteRotation * joint[b].defaultPosePosition;
         joint[b].position += rotatedJointVector;
     }    
 }
@@ -174,6 +174,13 @@ float Skeleton::getPelvisFloatingHeight() {
            FLOATING_HEIGHT;
 }
 
+float Skeleton::getPelvisToHeadLength() {
+    return 
+        joint[ AVATAR_JOINT_TORSO     ].length +
+        joint[ AVATAR_JOINT_CHEST     ].length +
+        joint[ AVATAR_JOINT_NECK_BASE ].length +
+        joint[ AVATAR_JOINT_HEAD_BASE ].length; 
+}
 
 
 

@@ -6,6 +6,7 @@
 //
 
 #include "SerialInterface.h"
+#include "SharedUtil.h"
 #include "Util.h"
 #include <glm/gtx/vector_angle.hpp>
 #include <math.h>
@@ -155,11 +156,11 @@ void SerialInterface::renderLevels(int width, int height) {
         // Acceleration rates
         glColor4f(1, 1, 1, 1);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 42);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.x - _gravity.x) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 42);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.x * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 42);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 57);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.y - _gravity.y) *ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 57);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.y * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 57);
         glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 72);
-        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)((_lastAcceleration.z - _gravity.z) * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 72);
+        glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER + (int)(_estimatedAcceleration.z * ACCEL_VIEW_SCALING), LEVEL_CORNER_Y + 72);
         
         // Estimated Position
         glColor4f(0, 1, 1, 1);
@@ -217,6 +218,7 @@ void SerialInterface::readData(float deltaTime) {
         
         _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
                 
+        
         int rollRate, yawRate, pitchRate;
         
         convertHexToInt(sensorBuffer + 22, rollRate);
@@ -225,35 +227,87 @@ void SerialInterface::readData(float deltaTime) {
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
-        _lastRotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        _lastRotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
+        glm::vec3 rotationRates;
+        rotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
 
+        // update and subtract the long term average
+        _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * rotationRates;
+        rotationRates -= _averageRotationRates;
+
+        // compute the angular acceleration
+        glm::vec3 angularAcceleration = (deltaTime < EPSILON) ? glm::vec3() : (rotationRates - _lastRotationRates) / deltaTime;
+        _lastRotationRates = rotationRates;
+        
         //  Update raw rotation estimates
         glm::quat estimatedRotation = glm::quat(glm::radians(_estimatedRotation)) *
-            glm::quat(glm::radians(deltaTime * (_lastRotationRates - _averageRotationRates)));
+            glm::quat(glm::radians(deltaTime * _lastRotationRates));
+        
+        //  Update acceleration estimate: first, subtract gravity as rotated into current frame
+        _estimatedAcceleration = (totalSamples < GRAVITY_SAMPLES) ? glm::vec3() :
+            _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
+        
+        // update and subtract the long term average
+        _averageAcceleration = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration +
+                1.f/(float)LONG_TERM_RATE_SAMPLES * _estimatedAcceleration;
+        _estimatedAcceleration -= _averageAcceleration;
+        
+        //  Consider updating our angular velocity/acceleration to linear acceleration mapping
+        if (glm::length(_estimatedAcceleration) > EPSILON &&
+                (glm::length(_lastRotationRates) > EPSILON || glm::length(angularAcceleration) > EPSILON)) {
+            // compute predicted linear acceleration, find error between actual and predicted
+            glm::vec3 predictedAcceleration = _angularVelocityToLinearAccel * _lastRotationRates +
+                _angularAccelToLinearAccel * angularAcceleration;
+            glm::vec3 error = _estimatedAcceleration - predictedAcceleration;
+            
+            // the "error" is actually what we want: the linear acceleration minus rotational influences
+            _estimatedAcceleration = error;
+            
+            // adjust according to error in each dimension, in proportion to input magnitudes
+            for (int i = 0; i < 3; i++) {
+                if (fabsf(error[i]) < EPSILON) {
+                    continue;
+                }
+                const float LEARNING_RATE = 0.001f;
+                float rateSum = fabsf(_lastRotationRates.x) + fabsf(_lastRotationRates.y) + fabsf(_lastRotationRates.z);
+                if (rateSum > EPSILON) {
+                    for (int j = 0; j < 3; j++) {
+                        float proportion = LEARNING_RATE * fabsf(_lastRotationRates[j]) / rateSum;
+                        if (proportion > EPSILON) {
+                            _angularVelocityToLinearAccel[j][i] += error[i] * proportion / _lastRotationRates[j];
+                        }
+                    }
+                }
+                float accelSum = fabsf(angularAcceleration.x) + fabsf(angularAcceleration.y) + fabsf(angularAcceleration.z);
+                if (accelSum > EPSILON) {
+                    for (int j = 0; j < 3; j++) {
+                        float proportion = LEARNING_RATE * fabsf(angularAcceleration[j]) / accelSum;
+                        if (proportion > EPSILON) {
+                            _angularAccelToLinearAccel[j][i] += error[i] * proportion / angularAcceleration[j];
+                        }
+                    }                
+                }
+            }
+        }
+        
+        // rotate estimated acceleration into global rotation frame
+        _estimatedAcceleration = estimatedRotation * _estimatedAcceleration;
         
         //  Update estimated position and velocity
-        float const DECAY_VELOCITY = 0.95f;
-        float const DECAY_POSITION = 0.95f;
-        _estimatedVelocity += deltaTime * (_lastAcceleration - _averageAcceleration);
+        float const DECAY_VELOCITY = 0.975f;
+        float const DECAY_POSITION = 0.975f;
+        _estimatedVelocity += deltaTime * _estimatedAcceleration;
         _estimatedPosition += deltaTime * _estimatedVelocity;
         _estimatedVelocity *= DECAY_VELOCITY;
         _estimatedPosition *= DECAY_POSITION;
                 
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
-            _averageRotationRates = _lastRotationRates;
-            _averageAcceleration = _lastAcceleration;
             _gravity = _lastAcceleration;
         } 
         else {
-            //  Cumulate long term average to (hopefully) take DC bias out of rotation rates
-            _averageRotationRates = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates
-                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastRotationRates;
-            _averageAcceleration = (1.f - 1.f / (float)LONG_TERM_RATE_SAMPLES) * _averageAcceleration
-                                    + 1.f / (float)LONG_TERM_RATE_SAMPLES * _lastAcceleration;
-            
             if (totalSamples < GRAVITY_SAMPLES) {
                 _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
                 1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
@@ -299,6 +353,7 @@ void SerialInterface::resetAverages() {
     _estimatedRotation = glm::vec3(0, 0, 0);
     _estimatedPosition = glm::vec3(0, 0, 0);
     _estimatedVelocity = glm::vec3(0, 0, 0);
+    _estimatedAcceleration = glm::vec3(0, 0, 0);
 }
 
 void SerialInterface::resetSerial() {
