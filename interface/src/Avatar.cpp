@@ -412,9 +412,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float THRUST_MAG = 600.0f;
     
     if (!_owningAgent) {
-        
-        _thrust = glm::vec3(0.0f, 0.0f, 0.0f);
-        
+                
         //  Add Thrusts from keyboard
         if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * front;}
         if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * front;}
@@ -468,6 +466,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         // add thrust to velocity
         _velocity += _thrust * deltaTime;
         
+        // Zero thrust out now that we've added it to velocity in this frame  
+        _thrust = glm::vec3(0, 0, 0);
+
         // calculate speed
         _speed = glm::length(_velocity);
         

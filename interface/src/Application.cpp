@@ -721,6 +721,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (event->button() == Qt::LeftButton) {
             _mouseX = event->x();
             _mouseY = event->y();
+            _mouseDragStartedX = _mouseX;
+            _mouseDragStartedY = _mouseY;
+            _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
             maybeEditVoxelUnderCursor();
             
@@ -1001,6 +1004,12 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
         AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
+}
+
+const glm::vec3 Application::getMouseVoxelWorldCoordinates(VoxelDetail _mouseVoxel) {
+    return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
+                     (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
+                     (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
 void Application::decreaseVoxelSize() {
@@ -1432,6 +1441,26 @@ void Application::update(float deltaTime) {
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
+    //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
+    const float VOXEL_GRAB_THRUST = 10.0f;
+    if (_mousePressed && (_mouseVoxel.s != 0)) {
+        glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
+        glm::quat orientation = _myAvatar.getOrientation();
+        //glm::vec3 front = orientation * IDENTITY_FRONT;
+        //glm::vec3 right = orientation * IDENTITY_RIGHT;
+        glm::vec3 up = orientation * IDENTITY_UP;
+        glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
+                                - _myAvatar.getCameraPosition();
+        glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
+        _voxelThrust = glm::vec3(0, 0, 0);
+        _voxelThrust += towardVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.y;
+        _voxelThrust += lateralToVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.x;
+        
+        //  Add thrust from voxel grabbing to the avatar 
+        _myAvatar.addThrust(_voxelThrust);
+
+    }
+    
     _mouseVoxel.s = 0.0f;
     if (checkedVoxelModeAction() != 0 &&
         (fabs(_myAvatar.getVelocity().x) +
@@ -1951,6 +1980,10 @@ void Application::displaySide(Camera& whichCamera) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
+    //  Enable to show line from me to the voxel I am touching
+    //renderLineToTouchedVoxel();
+    renderThrustAtVoxel(_voxelThrust);
+    
     // draw a red sphere  
     float sphereRadius = 0.25f;
     glColor3f(1,0,0);
@@ -2164,6 +2197,32 @@ void Application::displayStats() {
             atZ+=20; // height of a line
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
+    }
+}
+
+void Application::renderThrustAtVoxel(glm::vec3 thrust) {
+    if (_mousePressed) {
+        glColor3f(1, 0, 0);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
+        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
+        glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
+        glEnd();
+    }
+    
+}
+void Application::renderLineToTouchedVoxel() {
+    //  Draw a teal line to the voxel I am currently dragging on
+    if (_mousePressed) {
+        glColor3f(0, 1, 1);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
+        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
+        glm::vec3 headPosition = _myAvatar.getHeadJointPosition();
+        glVertex3fv(&headPosition.x);
+        glEnd();
     }
 }
 
