@@ -132,8 +132,6 @@ int main(int argc, const char* argv[]) {
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
                 sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
-                sockaddr_in* printSocket = (sockaddr_in*)Logstash::socket();
-                
                 agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, MIXER_LOGSTASH_PACKET_BYTES);
                 
                 sumFrameTimePercentages = 0.0f;
