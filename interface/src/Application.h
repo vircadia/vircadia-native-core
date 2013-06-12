@@ -186,6 +186,7 @@ private:
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
+    QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -249,7 +250,6 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    bool _manualFirstPerson;
     float _headCameraPitchYawScale;
     
     HandControl _handControl;
