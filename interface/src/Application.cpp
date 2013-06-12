@@ -926,8 +926,8 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    if (firstPerson) {
-        _lookingInMirror->setChecked(false);
+    if (firstPerson && _lookingInMirror->isChecked()) {
+        _lookingInMirror->trigger();
     }
 }
 
