@@ -62,7 +62,6 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _agentTypesOfInterest(NULL),
-    _socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
     _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
@@ -224,7 +223,7 @@ void AgentList::sendDomainServerCheckIn() {
         
         packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
                                      getLocalAddress(),
-                                     htons(_socketListenPort));
+                                     htons(_agentSocket.getListeningPort()));
         
         // add the number of bytes for agent types of interest
         *(packetPosition++) = numBytesAgentsOfInterest;
