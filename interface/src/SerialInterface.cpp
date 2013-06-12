@@ -296,8 +296,8 @@ void SerialInterface::readData(float deltaTime) {
         _estimatedAcceleration = estimatedRotation * _estimatedAcceleration;
         
         //  Update estimated position and velocity
-        float const DECAY_VELOCITY = 0.95f;
-        float const DECAY_POSITION = 0.95f;
+        float const DECAY_VELOCITY = 0.975f;
+        float const DECAY_POSITION = 0.975f;
         _estimatedVelocity += deltaTime * _estimatedAcceleration;
         _estimatedPosition += deltaTime * _estimatedVelocity;
         _estimatedVelocity *= DECAY_VELOCITY;

@@ -174,6 +174,13 @@ float Skeleton::getPelvisFloatingHeight() {
            FLOATING_HEIGHT;
 }
 
+float Skeleton::getPelvisToHeadLength() {
+    return 
+        joint[ AVATAR_JOINT_TORSO     ].length +
+        joint[ AVATAR_JOINT_CHEST     ].length +
+        joint[ AVATAR_JOINT_NECK_BASE ].length +
+        joint[ AVATAR_JOINT_HEAD_BASE ].length; 
+}
 
 
 

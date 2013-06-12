@@ -103,9 +103,11 @@ Avatar::Avatar(Agent* owningAgent) :
     initializeBodyBalls();
     
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
+    
     _maxArmLength         = _skeleton.getArmLength();
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
+    _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
     
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
     
@@ -308,6 +310,10 @@ glm::quat Avatar::getOrientation() const {
 
 glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
+}
+
+glm::vec3 Avatar::getUprightHeadPosition() const {
+    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
