@@ -280,13 +280,18 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     const float AMPLIFY_ROLL = 2.f;
 
     glm::vec3 estimatedRotation = serialInterface->getEstimatedRotation();
-    //_head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
-    //_head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
-    //_head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
+    _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
+    _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
+    _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
-    //  Update head lean distance based on accelerometer data
+    //  Update torso lean distance based on accelerometer data
     glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition();
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(estimatedRotation));
+    const float TORSO_LENGTH = 0.5f;
+    const float MAX_LEAN_RADIANS = PIf / 4;
+    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::vec3(
+        glm::clamp(atanf(estimatedPosition.z / TORSO_LENGTH), -MAX_LEAN_RADIANS, MAX_LEAN_RADIANS),
+        0.0f,
+        glm::clamp(atanf(-estimatedPosition.x / TORSO_LENGTH), -MAX_LEAN_RADIANS, MAX_LEAN_RADIANS)));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
