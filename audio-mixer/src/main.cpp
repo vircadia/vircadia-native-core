@@ -102,6 +102,8 @@ int main(int argc, const char* argv[]) {
     timeval lastDomainServerCheckIn = {};
     
     timeval beginSendTime, endSendTime;
+    float sumFrameTimePercentages = 0.0f;
+    int numStatCollections = 0;
     
     // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
     if (Logstash::shouldSendStats()) {
@@ -117,6 +119,26 @@ int main(int argc, const char* argv[]) {
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
             AgentList::getInstance()->sendDomainServerCheckIn();
+            
+            if (Logstash::shouldSendStats()) {
+                // if we should be sending stats to Logstash send the appropriate average now
+                const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
+                
+                // we're sending a floating point percentage with two mandatory numbers after decimal point
+                // that could be up to 6 bytes
+                const int MIXER_LOGSTASH_PACKET_BYTES = strlen(MIXER_LOGSTASH_METRIC_NAME) + 7;
+                char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
+                
+                float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
+                sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                
+                sockaddr_in* printSocket = (sockaddr_in*)Logstash::socket();
+                
+                agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, MIXER_LOGSTASH_PACKET_BYTES);
+                
+                sumFrameTimePercentages = 0.0f;
+                numStatCollections = 0;
+            }
         }
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -364,21 +386,11 @@ int main(int argc, const char* argv[]) {
             float percentageOfMaxElapsed = (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
                 / BUFFER_SEND_INTERVAL_USECS * 100.0f;
             
-            if (percentageOfMaxElapsed < 0) {
-                percentageOfMaxElapsed = 0.0f;
+            if (percentageOfMaxElapsed > 0) {
+                sumFrameTimePercentages += percentageOfMaxElapsed;
             }
             
-            const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
-            
-            // we're sending a floating point percentage with two mandatory numbers after decimal point
-            // that could be up to 6 bytes
-            const int MIXER_LOGSTASH_PACKET_BYTES = strlen(MIXER_LOGSTASH_METRIC_NAME) + 7;
-            char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
-            
-            sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, percentageOfMaxElapsed);
-            
-//            agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, MIXER_LOGSTASH_PACKET_BYTES);
-            
+            numStatCollections++;
         }
         
         double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
