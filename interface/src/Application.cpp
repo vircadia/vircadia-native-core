@@ -1991,7 +1991,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     //  Enable to show line from me to the voxel I am touching
     //renderLineToTouchedVoxel();
-    renderThrustAtVoxel(_voxelThrust);
+    //renderThrustAtVoxel(_voxelThrust);
     
     // draw a red sphere  
     float sphereRadius = 0.25f;

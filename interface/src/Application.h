@@ -95,6 +95,9 @@ private slots:
     
     void setRenderFirstPerson(bool firstPerson);
     
+    void renderThrustAtVoxel(glm::vec3 thrust);
+    void renderLineToTouchedVoxel();
+    
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
@@ -143,10 +146,7 @@ private:
     void displayStats();
     
     void renderViewFrustum(ViewFrustum& viewFrustum);
-    
-    void renderLineToTouchedVoxel();
-    void renderThrustAtVoxel(glm::vec3 thrust);
-    
+        
     void setupPaintingVoxel();
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
