@@ -121,6 +121,8 @@ public:
     glm::quat        getOrientation            () const;
     glm::quat        getWorldAlignedOrientation() const;
     
+    glm::vec3 getUprightHeadPosition() const;
+    
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
     //  Set what driving keys are being pressed to control thrust levels
@@ -185,6 +187,7 @@ private:
     int         _driveKeys[MAX_DRIVE_KEYS];
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
+    float       _pelvisToHeadLength;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
@@ -201,6 +204,7 @@ private:
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
+    float getBallRenderAlpha(int ball, bool lookingInMirror) const;
     void renderBody(bool lookingInMirror, bool renderAvatarBalls);
     void initializeBodyBalls();
     void resetBodyBalls();
