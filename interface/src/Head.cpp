@@ -5,6 +5,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/gtx/quaternion.hpp>
+#include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
@@ -161,7 +162,7 @@ void Head::determineIfLookingAtSomething() {
     if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
         _lookingAtSomething = false;
     } else {
-        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - caclulateAverageEyePosition());
+        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - calculateAverageEyePosition());
         float dot = glm::dot(targetLookatAxis, getFrontDirection());
         if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
             _lookingAtSomething = false;
@@ -202,7 +203,7 @@ void Head::calculateGeometry() {
 }
 
 
-void Head::render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha) {
+void Head::render(bool lookingInMirror, float alpha) {
 
     _renderAlpha = alpha;
     _lookingInMirror = lookingInMirror;
@@ -212,7 +213,7 @@ void Head::render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderMohawk(cameraPosition);
+    renderMohawk();
     renderHeadSphere();
     renderEyeBalls();    
     renderEars();
@@ -256,7 +257,7 @@ void Head::createMohawk() {
     }
 }
 
-void Head::renderMohawk(glm::vec3 cameraPosition) {
+void Head::renderMohawk() {
     
     if (!_mohawkTriangleFan) {
         createMohawk();
@@ -267,7 +268,7 @@ void Head::renderMohawk(glm::vec3 cameraPosition) {
 
             glm::vec3 baseAxis   = _hairTuft[t].midPosition - _hairTuft[t].basePosition;
             glm::vec3 midAxis    = _hairTuft[t].endPosition - _hairTuft[t].midPosition;
-            glm::vec3 viewVector = _hairTuft[t].basePosition - cameraPosition;
+            glm::vec3 viewVector = _hairTuft[t].basePosition - Application::getInstance()->getCamera()->getPosition();
             
             glm::vec3 basePerpendicular = glm::normalize(glm::cross(baseAxis, viewVector));
             glm::vec3 midPerpendicular  = glm::normalize(glm::cross(midAxis,  viewVector));
