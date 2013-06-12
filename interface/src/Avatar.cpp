@@ -79,6 +79,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _thrust(0.0f, 0.0f, 0.0f),
     _speed(0.0f),
     _maxArmLength(0.0f),
+    _leanScale(0.5f),
     _pelvisStandingHeight(0.0f),
     _pelvisFloatingHeight(0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -286,7 +287,7 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
     //  Update torso lean distance based on accelerometer data
-    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition();
+    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition() * _leanScale;
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
     _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
@@ -1217,6 +1218,8 @@ void Avatar::loadData(QSettings* settings) {
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     
+    _leanScale = loadSetting(settings, "leanScale", 0.5f);
+    
     settings->endGroup();
 }
 
@@ -1237,6 +1240,8 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("position_z", _position.z);
     
     set->setValue("voxelURL", _voxels.getVoxelURL());
+    
+    set->setValue("leanScale", _leanScale);
     
     set->endGroup();
 }

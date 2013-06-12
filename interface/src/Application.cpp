@@ -883,6 +883,10 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
     
+    QDoubleSpinBox* leanScale = new QDoubleSpinBox();
+    leanScale->setValue(_myAvatar.getLeanScale());
+    form->addRow("Lean Scale:", leanScale);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -896,6 +900,7 @@ void Application::editPreferences() {
     sendAvatarVoxelURLMessage(url);
     
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
+    _myAvatar.setLeanScale(leanScale->value());
 }
 
 void Application::pair() {

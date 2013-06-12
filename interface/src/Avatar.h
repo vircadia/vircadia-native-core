@@ -97,6 +97,7 @@ public:
     void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
     void setVelocity               (const glm::vec3 velocity         ) { _velocity = velocity; };
+    void setLeanScale              (float     scale                  ) { _leanScale = scale;}
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
@@ -116,6 +117,7 @@ public:
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
     AvatarMode       getMode                   ()                const { return _mode;}
+    float            getLeanScale              ()                const { return _leanScale;}
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
@@ -183,7 +185,7 @@ private:
     glm::vec3   _thrust;
     float       _speed;
     float       _maxArmLength;
-    glm::quat   _righting;
+    float       _leanScale;
     int         _driveKeys[MAX_DRIVE_KEYS];
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
