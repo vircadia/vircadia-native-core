@@ -58,7 +58,7 @@ public:
     
     UDPSocket* getAgentSocket() { return &_agentSocket; }
     
-    unsigned int getSocketListenPort() const { return _socketListenPort; };
+    unsigned int getSocketListenPort() const { return _agentSocket.getListeningPort(); };
     
     void(*linkedDataCreateCallback)(Agent *);
     
