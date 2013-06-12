@@ -96,6 +96,7 @@ public:
     void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
     void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
+    void setVelocity               (const glm::vec3 velocity         ) { _velocity = velocity; };
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);

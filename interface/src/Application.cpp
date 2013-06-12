@@ -2502,6 +2502,8 @@ void Application::resetSensors() {
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
+    _myAvatar.setVelocity(glm::vec3(0,0,0));
+    _myAvatar.setThrust(glm::vec3(0,0,0));
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
