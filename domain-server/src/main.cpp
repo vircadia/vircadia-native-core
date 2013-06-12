@@ -94,8 +94,6 @@ int main(int argc, const char * argv[])
     
     agentList->startSilentAgentRemovalThread();
     
-    uint16_t packetAgentID = 0;
-    
     while (true) {
         if (agentList->getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
@@ -163,9 +161,6 @@ int main(int argc, const char * argv[])
                         // this is the agent, just update last receive to now
                         agent->setLastHeardMicrostamp(timeNow);
                         
-                        // grab the ID for this agent so we can send it back with the packet
-                        packetAgentID = agent->getAgentID();
-                        
                         if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
                             && memchr(SOLO_AGENT_TYPES, agentType, sizeof(SOLO_AGENT_TYPES))) {
                             agent->setWakeMicrostamp(timeNow);
@@ -182,7 +177,7 @@ int main(int argc, const char * argv[])
             }
             
             // add the agent ID to the end of the pointer
-            currentBufferPos += packAgentId(currentBufferPos, packetAgentID);
+            currentBufferPos += packAgentId(currentBufferPos, newAgent->getAgentID());
             
             // send the constructed list back to this agent
             agentList->getAgentSocket()->send((sockaddr*) &agentPublicAddress,
