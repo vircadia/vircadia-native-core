@@ -117,7 +117,7 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
-UDPSocket::UDPSocket(int listeningPort) : blocking(true), listeningPort(listeningPort) {
+UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking(true) {
     init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
