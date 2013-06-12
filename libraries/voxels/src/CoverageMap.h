@@ -46,7 +46,8 @@ class CoverageMap {
 public:
     static const int NUMBER_OF_CHILDREN = 4;
 
-    CoverageMap(BoundingBox boundingBox) : _myBoundingBox(boundingBox) { init(); };
+    CoverageMap(BoundingBox boundingBox, bool managePolygons = false) : 
+        _myBoundingBox(boundingBox), _managePolygons(managePolygons) { init(); };
     ~CoverageMap();
     
     typedef enum {STORED, OCCLUDED, DOESNT_FIT} StorageResult;
@@ -60,6 +61,7 @@ private:
     void storeInArray(VoxelProjectedShadow* polygon);
 
     BoundingBox             _myBoundingBox;
+    bool                    _managePolygons; // will the coverage map delete the polygons on destruct
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
     VoxelProjectedShadow**  _polygons;

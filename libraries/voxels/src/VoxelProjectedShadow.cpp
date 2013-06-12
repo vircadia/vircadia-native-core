@@ -18,6 +18,7 @@ bool BoundingBox::contains(const BoundingBox& box) const {
             );
 };
 
+
 void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) { 
     _vertices[vertex] = point;
     
@@ -90,6 +91,16 @@ bool VoxelProjectedShadow::pointInside(const glm::vec2& point) const {
 
     // If odd number of intersections, we're inside    
     return ((intersections & 1) == 1);
+}
+
+void VoxelProjectedShadow::printDebugDetails() const {
+    printf("VoxelProjectedShadow...");
+    printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
+    printf("    vertex count=%d \n", getVertexCount());
+    for (int i = 0; i < getVertexCount(); i++) {
+        glm::vec2 point = getVertex(i);
+        printf("    vertex[%d] = %f, %f \n", i, point.x, point.y);
+    }
 }
 
 

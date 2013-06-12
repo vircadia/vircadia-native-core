@@ -60,6 +60,8 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 
+#include <CoverageMap.h>
+
 using namespace std;
 
 const bool TESTING_AVATAR_TOUCH = false;
@@ -965,7 +967,6 @@ void Application::doFalseColorizeInView() {
 }
 
 void Application::doFalseColorizeOccluded() {
-    _debugShowVirtualOccluders->setChecked(true);
     _voxels.falseColorizeOccluded();
 }
 
@@ -1912,6 +1913,9 @@ glm::vec2 Application::getScreenPoint(glm::vec3 voxelPoint) {
 void Application::renderVirtualOccluders() {
 
     if (_debugShowVirtualOccluders->isChecked()) {
+        CoverageMap map(BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f))); // screen coverage
+        
+    
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(0,0,1);
@@ -1919,10 +1923,15 @@ void Application::renderVirtualOccluders() {
         AABox boxA(glm::vec3(0,0,0), 0.0125);
         boxA.scale(TREE_SCALE);
         VoxelProjectedShadow shadowA = _viewFrustum.getProjectedShadow(boxA);
+        
 
         AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
         boxB.scale(TREE_SCALE);
         VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
+
+        //CoverageMap::StorageResult result;
+        //result = map.storeInMap(&shadowB); // test this first since it's closer in Z-buffer
+        //result = map.storeInMap(&shadowA);
 
         bool shadowAoccludesB = shadowA.occludes(shadowB);
         bool shadowBoccludesA = shadowB.occludes(shadowA);

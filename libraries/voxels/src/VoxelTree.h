@@ -67,6 +67,8 @@ public:
                       creationMode mode, bool destructive = false, bool debug = false);
 
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
+                                                const glm::vec3& point, void* extraData=NULL);
 
     int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
                             VoxelNodeBag& bag, const ViewFrustum* viewFrustum, 
@@ -117,6 +119,9 @@ private:
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                const glm::vec3& point, void* extraData);
+
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 

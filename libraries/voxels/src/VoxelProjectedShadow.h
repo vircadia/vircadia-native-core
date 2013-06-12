@@ -25,7 +25,6 @@ public:
 class VoxelProjectedShadow {
 
 public:
-
     VoxelProjectedShadow(int vertexCount = 0) : 
         _vertexCount(vertexCount), _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX)
         { };
@@ -48,6 +47,8 @@ public:
     BoundingBox getBoundingBox() const { 
         return BoundingBox(glm::vec2(_minX,_minY), glm::vec2(_maxX - _minX, _maxY - _minY)); 
     };
+
+    void printDebugDetails() const;
 
 private:
     int _vertexCount;

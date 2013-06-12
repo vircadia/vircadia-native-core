@@ -22,6 +22,7 @@
 #include "Application.h"
 #include "Log.h"
 #include "VoxelConstants.h"
+#include "CoverageMap.h"
 #include "InterfaceConfig.h"
 #include "renderer/ProgramObject.h"
 
@@ -1159,9 +1160,10 @@ void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* dest
 struct FalseColorizeOccludedArgs {
     VoxelProjectedShadow occluder;
     ViewFrustum* viewFrustum;
+    CoverageMap* map;
 };
 
-bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
+bool VoxelSystem::falseColorizeTestOccludedOperation(VoxelNode* node, void* extraData) {
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
     if (node->isColored()) {
         AABox voxelBox = node->getAABox();
@@ -1174,7 +1176,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
     return true; // keep going!
 }
 
-void VoxelSystem::falseColorizeOccluded() {
+void VoxelSystem::falseColorizeTestOccluded() {
     FalseColorizeOccludedArgs args;
     args.viewFrustum = Application::getInstance()->getViewFrustum();
     
@@ -1182,7 +1184,36 @@ void VoxelSystem::falseColorizeOccluded() {
     box.scale(TREE_SCALE);
     args.occluder = args.viewFrustum->getProjectedShadow(box);
 
-    _tree->recurseTreeWithOperation(falseColorizeOccludedOperation,(void*)&args);
+    _tree->recurseTreeWithOperation(falseColorizeTestOccludedOperation,(void*)&args);
+    setupNewVoxelsForDrawing();
+}
+
+bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
+    FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
+    if (node->isColored() && node->isLeaf()) {
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(args->viewFrustum->getProjectedShadow(voxelBox));
+        CoverageMap::StorageResult result = args->map->storeInMap(voxelShadow);
+        if (result == CoverageMap::OCCLUDED) {
+            node->setFalseColor(255, 0, 0);
+        }
+    }
+    return true; // keep going!
+}
+
+void VoxelSystem::falseColorizeOccluded() {
+    CoverageMap map(BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f)), true);
+    FalseColorizeOccludedArgs args;
+    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    args.map = &map; 
+    
+    AABox box(glm::vec3(0.0125,0,0.025), 0.0125);
+    box.scale(TREE_SCALE);
+    args.occluder = args.viewFrustum->getProjectedShadow(box);
+
+    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, 
+                args.viewFrustum->getPosition(), (void*)&args);
     setupNewVoxelsForDrawing();
 }
 

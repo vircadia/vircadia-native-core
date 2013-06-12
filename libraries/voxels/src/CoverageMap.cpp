@@ -9,6 +9,11 @@
 #include <string>
 
 CoverageMap::~CoverageMap() {
+    if (_managePolygons) {
+        for (int i = 0; i < _polygonCount; i++) {
+            delete _polygons[i];
+        }
+    }
     if (_polygons) {
         delete[] _polygons;
     }
@@ -111,7 +116,7 @@ CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon
             if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
                 // if no child map exists yet, then create it
                 if (!_childMaps[i]) {
-                    _childMaps[i] = new CoverageMap(childMapBoundingBox);
+                    _childMaps[i] = new CoverageMap(childMapBoundingBox, _managePolygons);
                 }
                 return _childMaps[i]->storeInMap(polygon);
             }

@@ -68,7 +68,48 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
+// Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
+// stops recursion if operation function returns false.
+void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
+                                                       const glm::vec3& point, void* extraData) {
+    recurseNodeWithOperationDistanceSorted(rootNode, operation, point, extraData);
+}
+
+// Recurses voxel node with an operation function
+void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                                                       const glm::vec3& point, void* extraData) {
+    if (operation(node, extraData)) {
+        // determine the distance sorted order of our children
+        
+        VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
+        float       distancesToChildren[NUMBER_OF_CHILDREN];
+        int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
+        int         currentCount = 0;
+
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            VoxelNode* childNode = node->getChildAtIndex(i);
+            if (childNode) {
+                float distance = glm::distance(point, childNode->getCenter());
+                currentCount = insertIntoSortedArrays((void*)childNode, distance, i,
+                                                      (void**)&sortedChildren, (float*)&distancesToChildren, 
+                                                      (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+            }
+
+
+        }
+        
+        for (int i = 0; i < currentCount; i++) {
+            VoxelNode* childNode = sortedChildren[i];
+            if (childNode) {
+                recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
+            }
+        }
+    }
+}
+
+
+VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode, 
+                                       unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
