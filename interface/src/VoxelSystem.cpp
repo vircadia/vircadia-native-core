@@ -1189,21 +1189,29 @@ void VoxelSystem::falseColorizeTestOccluded() {
 }
 
 bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
+//node->printDebugDetails(">>>>>>>>>>>>>>> falseColorizeOccludedOperation() BEGIN >>>>>>>>>>>>>>");
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
-    if (node->isColored() && node->isLeaf()) {
+    if (node->isColored() && node->isLeaf() && !node->isStagedForDeletion() && node->getShouldRender()) {
+//printLog("***** falseColorizeOccludedOperation() NODE is colored, etc, so consider it *****\n");
         AABox voxelBox = node->getAABox();
         voxelBox.scale(TREE_SCALE);
         VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(args->viewFrustum->getProjectedShadow(voxelBox));
         CoverageMap::StorageResult result = args->map->storeInMap(voxelShadow);
         if (result == CoverageMap::OCCLUDED) {
+//printLog("***** falseColorizeOccludedOperation() NODE is OCCLUDED *****\n");
             node->setFalseColor(255, 0, 0);
+        } else if (result == CoverageMap::STORED) {
+//printLog("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
+        } else if (result == CoverageMap::DOESNT_FIT) {
+//printLog("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
         }
     }
+//printLog("<<<<<<<<<<<<<<<<< falseColorizeOccludedOperation() END <<<<<<<<<<<<<<<<<\n");
     return true; // keep going!
 }
 
 void VoxelSystem::falseColorizeOccluded() {
-    CoverageMap map(BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f)), true);
+    CoverageMap map(BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f)), true);
     FalseColorizeOccludedArgs args;
     args.viewFrustum = Application::getInstance()->getViewFrustum();
     args.map = &map; 

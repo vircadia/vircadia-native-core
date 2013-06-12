@@ -1899,6 +1899,20 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     
     // -1,-1 is 0,windowHeight 
     // 1,1 is windowWidth,0
+    
+    // -1,1                    1,1
+    // +-----------------------+ 
+    // |           |           |
+    // |           |           |
+    // | -1,0      |           |
+    // |-----------+-----------|
+    // |          0,0          |
+    // |           |           |
+    // |           |           |
+    // |           |           |
+    // +-----------------------+
+    // -1,-1                   1,-1
+    
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale, 
         ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
         
@@ -1928,10 +1942,6 @@ void Application::renderVirtualOccluders() {
         AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
         boxB.scale(TREE_SCALE);
         VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
-
-        //CoverageMap::StorageResult result;
-        //result = map.storeInMap(&shadowB); // test this first since it's closer in Z-buffer
-        //result = map.storeInMap(&shadowA);
 
         bool shadowAoccludesB = shadowA.occludes(shadowB);
         bool shadowBoccludesA = shadowB.occludes(shadowA);
