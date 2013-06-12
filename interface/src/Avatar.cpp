@@ -289,11 +289,9 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     //  Update torso lean distance based on accelerometer data
     glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition();
     const float TORSO_LENGTH = 0.5f;
-    const float MAX_LEAN_RADIANS = PIf / 4;
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::vec3(
-        glm::clamp(atanf(estimatedPosition.z / TORSO_LENGTH), -MAX_LEAN_RADIANS, MAX_LEAN_RADIANS),
-        0.0f,
-        glm::clamp(atanf(-estimatedPosition.x / TORSO_LENGTH), -MAX_LEAN_RADIANS, MAX_LEAN_RADIANS)));
+    const float MAX_LEAN = 45.0f;
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -354,6 +352,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
+    
+    // update torso rotation based on head lean
+    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
+        _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
     
 	// update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
