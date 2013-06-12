@@ -400,6 +400,7 @@ void printVoxelCode(unsigned char* voxelCode) {
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
+// originalIndexArray is optional
 int insertIntoSortedArrays(void* value, float key, int originalIndex, 
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount) {
@@ -415,13 +416,17 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             if (i < currentCount && i+1 < maxCount) {
                 memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
                 memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
-                memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                if (originalIndexArray) {
+                    memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                }
             }
         }
         // place new element at i
         valueArray[i] = value;
         keyArray[i] = key;
-        originalIndexArray[i] = originalIndex;
+        if (originalIndexArray) {
+            originalIndexArray[i] = originalIndex;
+        }
         return currentCount + 1;
     }
     return -1; // error case
