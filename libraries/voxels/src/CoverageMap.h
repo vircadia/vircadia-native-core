@@ -41,13 +41,15 @@
 //
 
 
+
 class CoverageMap {
 
 public:
     static const int NUMBER_OF_CHILDREN = 4;
+    static const bool NOT_ROOT=false;
+    static const bool IS_ROOT=true;
 
-    CoverageMap(BoundingBox boundingBox, bool managePolygons = false) : 
-        _myBoundingBox(boundingBox), _managePolygons(managePolygons) { init(); };
+    CoverageMap(BoundingBox boundingBox, bool isRoot = IS_ROOT, bool managePolygons = false);
     ~CoverageMap();
     
     typedef enum {STORED, OCCLUDED, DOESNT_FIT} StorageResult;
@@ -60,14 +62,19 @@ private:
     void growPolygonArray();
     void storeInArray(VoxelProjectedShadow* polygon);
 
+    bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
     BoundingBox             _myBoundingBox;
     bool                    _managePolygons; // will the coverage map delete the polygons on destruct
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
     VoxelProjectedShadow**  _polygons;
+    float*                  _polygonDistances;
     CoverageMap*            _childMaps[NUMBER_OF_CHILDREN];
 
-    static const int DEFAULT_GROW_SIZE = 500;
+    static const int DEFAULT_GROW_SIZE = 100;
+    static int _mapCount;
+    static int _maxPolygonsUsed;
+
 };
 
 

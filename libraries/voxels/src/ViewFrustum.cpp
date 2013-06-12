@@ -513,5 +513,8 @@ VoxelProjectedShadow ViewFrustum::getProjectedShadow(const AABox& box) const {
             shadow.setVertex(i, projectedPoint);
         }
     }
+    // set the distance from our camera position, to the closest vertex
+    float distance = glm::distance(getPosition(), box.getCenter());
+    shadow.setDistance(distance);
     return shadow;
 }

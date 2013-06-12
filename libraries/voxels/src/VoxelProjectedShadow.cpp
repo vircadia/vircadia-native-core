@@ -7,6 +7,7 @@
 
 #include "VoxelProjectedShadow.h"
 #include "GeometryUtil.h"
+#include "Log.h"
 
 
 bool BoundingBox::contains(const BoundingBox& box) const {
@@ -17,6 +18,15 @@ bool BoundingBox::contains(const BoundingBox& box) const {
                 (box.corner.y + box.size.y <= corner.y + size.y)
             );
 };
+
+void BoundingBox::printDebugDetails(const char* label) const {
+    if (label) {
+        printLog(label);
+    } else {
+        printLog("BoundingBox");
+    }
+    printLog("\n    corner=%f,%f size=%f,%f\n", corner.x, corner.y, size.x, size.y);
+}
 
 
 void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) { 
@@ -96,7 +106,7 @@ bool VoxelProjectedShadow::pointInside(const glm::vec2& point) const {
 void VoxelProjectedShadow::printDebugDetails() const {
     printf("VoxelProjectedShadow...");
     printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
-    printf("    vertex count=%d \n", getVertexCount());
+    printf("    vertex count=%d distance=%f\n", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
         printf("    vertex[%d] = %f, %f \n", i, point.x, point.y);

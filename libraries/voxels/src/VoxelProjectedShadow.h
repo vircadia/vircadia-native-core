@@ -20,13 +20,17 @@ public:
     glm::vec2 corner;
     glm::vec2 size;
     bool contains(const BoundingBox& box) const;
+    
+    void printDebugDetails(const char* label=NULL) const;
 };
 
 class VoxelProjectedShadow {
 
 public:
     VoxelProjectedShadow(int vertexCount = 0) : 
-        _vertexCount(vertexCount), _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX)
+        _vertexCount(vertexCount), 
+        _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
+        _distance(0)
         { };
         
     ~VoxelProjectedShadow() { };
@@ -35,6 +39,9 @@ public:
     void setVertex(int vertex, const glm::vec2& point);
     int getVertexCount() const { return _vertexCount; };
     void setVertexCount(int vertexCount) { _vertexCount = vertexCount; };
+
+    float getDistance() const { return _distance; }
+    void  setDistance(float distance) { _distance = distance; }
 
     bool occludes(const VoxelProjectedShadow& occludee) const;
     bool pointInside(const glm::vec2& point) const;
@@ -57,6 +64,7 @@ private:
     float _maxY;
     float _minX;
     float _minY;
+    float _distance;
 };
 
 
