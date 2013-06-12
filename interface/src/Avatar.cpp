@@ -103,9 +103,11 @@ Avatar::Avatar(Agent* owningAgent) :
     initializeBodyBalls();
     
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
+    
     _maxArmLength         = _skeleton.getArmLength();
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
+    _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
     
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
     
@@ -284,19 +286,12 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
-    //  Update head lean distance based on accelerometer data
-    glm::vec3 headRotationRates(_head.getPitch(), _head.getYaw(), _head.getRoll());
-    
-    glm::vec3 leaning = (serialInterface->getLastAcceleration() - serialInterface->getGravity())
-    * LEAN_SENSITIVITY
-    * (1.f - fminf(glm::length(headRotationRates), HEAD_RATE_MAX) / HEAD_RATE_MAX);
-    leaning.y = 0.f;
-    if (glm::length(leaning) < LEAN_MAX) {
-        _head.setLeanForward(_head.getLeanForward() * (1.f - LEAN_AVERAGING * deltaTime) +
-                             (LEAN_AVERAGING * deltaTime) * leaning.z * LEAN_SENSITIVITY);
-        _head.setLeanSideways(_head.getLeanSideways() * (1.f - LEAN_AVERAGING * deltaTime) +
-                              (LEAN_AVERAGING * deltaTime) * leaning.x * LEAN_SENSITIVITY);
-    }
+    //  Update torso lean distance based on accelerometer data
+    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition();
+    const float TORSO_LENGTH = 0.5f;
+    const float MAX_LEAN = 45.0f;
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -313,6 +308,10 @@ glm::quat Avatar::getOrientation() const {
 
 glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
+}
+
+glm::vec3 Avatar::getUprightHeadPosition() const {
+    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
 void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
@@ -353,6 +352,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // update balls
     if (_balls) { _balls->simulate(deltaTime); }
+    
+    // update torso rotation based on head lean
+    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
+        _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
     
 	// update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
@@ -1130,32 +1133,29 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
-    
+float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
+    float distanceToCamera = glm::length(_cameraPosition - _bodyBall[ball].position);
+    return (lookingInMirror || _owningAgent) ? 1.0f : glm::clamp(
+        (distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+}
+
+void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+    
+    
     
     //  Render the body as balls and cones
     if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
-            
-            float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
-                                                              (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
-            
-            if (lookingInMirror || _owningAgent) {
-                alpha = 1.0f;
-            }
+            float alpha = getBallRenderAlpha(b, lookingInMirror);
             
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
-                if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                if (alpha > 0.0f) {
                     _head.render(lookingInMirror, _cameraPosition, alpha);
                 }
-            } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
-                       || b == BODY_BALL_RIGHT_ELBOW
-                       || b == BODY_BALL_RIGHT_WRIST
-                       || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+            } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
                 if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
                     || b == BODY_BALL_RIGHT_WRIST
@@ -1207,7 +1207,10 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else {
         //  Render the body's voxels
-        _voxels.render(false);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        if (alpha > 0.0f) {
+            _voxels.render(false);
+        }
     }
 }
 
