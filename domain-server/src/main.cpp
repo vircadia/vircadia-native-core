@@ -135,25 +135,26 @@ int main(int argc, const char * argv[])
             if (numInterestTypes > 0) {
                 // if the agent has sent no types of interest, assume they want nothing but their own ID back
                 for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                    if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)
-                        && memchr(agentTypesOfInterest, agent->getType(), numInterestTypes)) {
-                        // this is not the agent themselves
-                        // and this is an agent of a type in the passed agent types of interest
-                        // or the agent did not pass us any specific types they are interested in
+                    if (!agent->matches((sockaddr*) &agentPublicAddress, (sockaddr*) &agentLocalAddress, agentType)) {
+                        if (memchr(agentTypesOfInterest, agent->getType(), numInterestTypes)) {
+                            // this is not the agent themselves
+                            // and this is an agent of a type in the passed agent types of interest
+                            // or the agent did not pass us any specific types they are interested in
                         
-                        if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
-                            // this is an agent of which there can be multiple, just add them to the packet
-                            // don't send avatar agents to other avatars, that will come from avatar mixer
-                            if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
-                                currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
-                            }
+                            if (memchr(SOLO_AGENT_TYPES, agent->getType(), sizeof(SOLO_AGENT_TYPES)) == NULL) {
+                                // this is an agent of which there can be multiple, just add them to the packet
+                                // don't send avatar agents to other avatars, that will come from avatar mixer
+                                if (agentType != AGENT_TYPE_AVATAR || agent->getType() != AGENT_TYPE_AVATAR) {
+                                    currentBufferPos = addAgentToBroadcastPacket(currentBufferPos, &(*agent));
+                                }
                             
-                        } else {
-                            // solo agent, we need to only send newest
-                            if (newestSoloAgents[agent->getType()] == NULL ||
-                                newestSoloAgents[agent->getType()]->getWakeMicrostamp() < agent->getWakeMicrostamp()) {
-                                // we have to set the newer solo agent to add it to the broadcast later
-                                newestSoloAgents[agent->getType()] = &(*agent);
+                            } else {
+                                // solo agent, we need to only send newest
+                                if (newestSoloAgents[agent->getType()] == NULL ||
+                                    newestSoloAgents[agent->getType()]->getWakeMicrostamp() < agent->getWakeMicrostamp()) {
+                                    // we have to set the newer solo agent to add it to the broadcast later
+                                    newestSoloAgents[agent->getType()] = &(*agent);
+                                }
                             }
                         }
                     } else {
