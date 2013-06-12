@@ -8,6 +8,16 @@
 #include "VoxelProjectedShadow.h"
 #include "GeometryUtil.h"
 
+
+bool BoundingBox::contains(const BoundingBox& box) const {
+    return (
+                (box.corner.x >= corner.x) &&
+                (box.corner.y >= corner.y) &&
+                (box.corner.x + box.size.x <= corner.x + size.x) &&
+                (box.corner.y + box.size.y <= corner.y + size.y)
+            );
+};
+
 void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) { 
     _vertices[vertex] = point;
     
@@ -50,8 +60,6 @@ bool VoxelProjectedShadow::occludes(const VoxelProjectedShadow& occludee) const 
 }
 
 bool VoxelProjectedShadow::pointInside(const glm::vec2& point) const {
-    bool pointInside = false; // assume the worst
-
     // first check the bounding boxes, the point mush be fully within the boounding box of this shadow
     if ((point.x > getMaxX()) ||
         (point.y > getMaxY()) ||

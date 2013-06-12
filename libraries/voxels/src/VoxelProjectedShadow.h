@@ -14,13 +14,20 @@ const int MAX_SHADOW_VERTEX_COUNT = 6;
 
 typedef glm::vec2 ShadowVertices[MAX_SHADOW_VERTEX_COUNT];
 
-class VoxelProjectedShadow 
-{
+class BoundingBox {
+public:
+    BoundingBox(glm::vec2 corner, glm::vec2 size) : corner(corner), size(size) {};
+    glm::vec2 corner;
+    glm::vec2 size;
+    bool contains(const BoundingBox& box) const;
+};
+
+class VoxelProjectedShadow {
 
 public:
 
-    VoxelProjectedShadow() : _vertexCount(0), _maxX(0.0f), _maxY(0.0f), _minX(FLT_MAX), _minY(FLT_MAX) { };
-    VoxelProjectedShadow(int vertexCount) : _vertexCount(vertexCount), _maxX(0.0f), _maxY(0.0f), _minX(FLT_MAX), _minY(FLT_MAX)
+    VoxelProjectedShadow(int vertexCount = 0) : 
+        _vertexCount(vertexCount), _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX)
         { };
         
     ~VoxelProjectedShadow() { };
@@ -37,6 +44,10 @@ public:
     float getMaxY() const { return _maxY; }
     float getMinX() const { return _minX; }
     float getMinY() const { return _minY; }
+    
+    BoundingBox getBoundingBox() const { 
+        return BoundingBox(glm::vec2(_minX,_minY), glm::vec2(_maxX - _minX, _maxY - _minY)); 
+    };
 
 private:
     int _vertexCount;
