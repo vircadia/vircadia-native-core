@@ -24,6 +24,7 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <Logstash.h>
 
 #include "InjectedAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
@@ -100,7 +101,17 @@ int main(int argc, const char* argv[]) {
     
     timeval lastDomainServerCheckIn = {};
     
+    timeval beginSendTime, endSendTime;
+    
+    // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
+    if (Logstash::shouldSendStats()) {
+        Logstash::socket();
+    }
+    
     while (true) {
+        if (Logstash::shouldSendStats()) {
+            gettimeofday(&beginSendTime, NULL);
+        }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
@@ -342,6 +353,32 @@ int main(int argc, const char* argv[]) {
                 // give the new audio data to the matching injector agent
                 agentList->updateAgentWithData(matchingInjector, packetData, receivedBytes);
             }
+        }
+        
+        if (Logstash::shouldSendStats()) {
+            // send a packet to our logstash instance
+            
+            // calculate the percentage value for time elapsed for this send (of the max allowable time)
+            gettimeofday(&endSendTime, NULL);
+            
+            float percentageOfMaxElapsed = (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
+                / BUFFER_SEND_INTERVAL_USECS * 100.0f;
+            
+            if (percentageOfMaxElapsed < 0) {
+                percentageOfMaxElapsed = 0.0f;
+            }
+            
+            const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
+            
+            // we're sending a floating point percentage with two mandatory numbers after decimal point
+            // that could be up to 6 bytes
+            const int MIXER_LOGSTASH_PACKET_BYTES = strlen(MIXER_LOGSTASH_METRIC_NAME) + 7;
+            char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
+            
+            sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, percentageOfMaxElapsed);
+            
+//            agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, MIXER_LOGSTASH_PACKET_BYTES);
+            
         }
         
         double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
