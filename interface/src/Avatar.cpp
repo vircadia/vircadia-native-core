@@ -1131,32 +1131,29 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
-    
+float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
     const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
     const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
+    float distanceToCamera = glm::length(_cameraPosition - _bodyBall[ball].position);
+    return (lookingInMirror || _owningAgent) ? 1.0f : glm::clamp(
+        (distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+}
+
+void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+    
+    
     
     //  Render the body as balls and cones
     if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float distanceToCamera = glm::length(_cameraPosition - _bodyBall[b].position);
-            
-            float alpha = lookingInMirror ? 1.0f : glm::clamp((distanceToCamera - RENDER_TRANSLUCENT_BEYOND) /
-                                                              (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
-            
-            if (lookingInMirror || _owningAgent) {
-                alpha = 1.0f;
-            }
+            float alpha = getBallRenderAlpha(b, lookingInMirror);
             
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
-                if (lookingInMirror || _owningAgent || distanceToCamera > RENDER_OPAQUE_BEYOND * 0.5) {
+                if (alpha > 0.0f) {
                     _head.render(lookingInMirror, _cameraPosition, alpha);
                 }
-            } else if (_owningAgent || distanceToCamera > RENDER_TRANSLUCENT_BEYOND
-                       || b == BODY_BALL_RIGHT_ELBOW
-                       || b == BODY_BALL_RIGHT_WRIST
-                       || b == BODY_BALL_RIGHT_FINGERTIPS ) {
+            } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
                 if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
                     || b == BODY_BALL_RIGHT_WRIST
@@ -1208,7 +1205,10 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else {
         //  Render the body's voxels
-        _voxels.render(false);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        if (alpha > 0.0f) {
+            _voxels.render(false);
+        }
     }
 }
 

@@ -204,6 +204,7 @@ private:
     // private methods...
     glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
+    float getBallRenderAlpha(int ball, bool lookingInMirror) const;
     void renderBody(bool lookingInMirror, bool renderAvatarBalls);
     void initializeBodyBalls();
     void resetBodyBalls();
