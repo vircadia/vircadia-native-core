@@ -8,13 +8,13 @@
 
 #include <QImage>
 
+#include <AgentList.h>
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
-#include <vector>
-#include <lodepng.h>
-#include <AgentList.h>
+#include "renderer/ProgramObject.h"
 
 using namespace std;
  
@@ -39,7 +39,8 @@ const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
-GLuint Head::_irisTextureID = 0;
+ProgramObject* Head::_irisProgram = 0;
+GLuint Head::_irisTextureID;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
@@ -76,8 +77,15 @@ Head::Head(Avatar* owningAvatar) :
 }
 
 void Head::init() {
-    if (_irisTextureID == 0) {
+    if (_irisProgram == 0) {
         switchToResourcesParentIfRequired();
+        _irisProgram = new ProgramObject();
+        _irisProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
+        _irisProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _irisProgram->link();
+    
+        _irisProgram->setUniformValue("texture", 0);
+        
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_RGB888);
         
         glGenTextures(1, &_irisTextureID);
@@ -483,12 +491,11 @@ void Head::renderEyeBrows() {
 
 void Head::renderEyeBalls() {                                 
     
-    // setup the texutre to be used on each iris
+    // setup the texture to be used on each iris
     GLUquadric* irisQuadric = gluNewQuadric();
     gluQuadricTexture(irisQuadric, GL_TRUE);
     
     gluQuadricOrientation(irisQuadric, GLU_OUTSIDE);
-    glBindTexture(GL_TEXTURE_2D, _irisTextureID);
 
     // render white ball of left eyeball
     glPushMatrix();
@@ -496,6 +503,17 @@ void Head::renderEyeBalls() {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
         gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
+    
+    //render white ball of right eyeball
+    glPushMatrix();
+        glColor3fv(EYEBALL_COLOR);
+        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
+        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
+    glPopMatrix();
+
+    _irisProgram->bind();
+    glBindTexture(GL_TEXTURE_2D, _irisTextureID);
+    glEnable(GL_TEXTURE_2D);
     
     glm::vec3 front = getFrontDirection();
     
@@ -529,18 +547,9 @@ void Head::renderEyeBalls() {
              
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
-            glEnable(GL_TEXTURE_2D);
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
-            glDisable(GL_TEXTURE_2D);
         glPopMatrix();
     }
-    glPopMatrix();
-
-    //render white ball of right eyeball
-    glPushMatrix();
-        glColor3fv(EYEBALL_COLOR);
-        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
-        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
     // render right iris
@@ -574,17 +583,17 @@ void Head::renderEyeBalls() {
             
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
-            glEnable(GL_TEXTURE_2D);
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
-            glDisable(GL_TEXTURE_2D);
         glPopMatrix();
     }
+    
+    _irisProgram->release();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
     
     // delete the iris quadric now that we're done with it
     gluDeleteQuadric(irisQuadric);
     glPopMatrix();
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {

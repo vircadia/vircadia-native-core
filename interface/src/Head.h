@@ -26,6 +26,7 @@ enum eyeContactTargets
 const int NUM_HAIR_TUFTS    = 4;
 
 class Avatar;
+class ProgramObject;
 
 class Head : public HeadData {
 public:
@@ -105,6 +106,7 @@ private:
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     
+    static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
     
     // private methods
