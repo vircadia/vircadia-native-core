@@ -203,7 +203,6 @@ private:
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
-    QAction* _cameraFrustum;         // which frustum to look at
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically

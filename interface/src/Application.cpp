@@ -1304,9 +1304,6 @@ void Application::initMenu() {
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
         "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
-    (_cameraFrustum = frustumMenu->addAction("Switch Camera"))->setCheckable(true);
-    _cameraFrustum->setChecked(true);
-    _cameraFrustum->setShortcut(Qt::SHIFT | Qt::Key_C);
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
@@ -1717,15 +1714,7 @@ void Application::updateAvatar(float deltaTime) {
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
-    glm::vec3 position;
-    
-    // Camera or Head?
-    if (_cameraFrustum->isChecked()) {
-        position = camera.getPosition();
-    } else {
-        position = _myAvatar.getHeadJointPosition();
-    }
-    
+    glm::vec3 position(camera.getPosition());
     float fov         = camera.getFieldOfView();
     float nearClip    = camera.getNearClip();
     float farClip     = camera.getFarClip();
