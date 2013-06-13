@@ -2042,7 +2042,12 @@ void Application::displaySide(Camera& whichCamera) {
         }
         agentList->unlock();
         
-        // Render my own Avatar 
+        // Render my own Avatar
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+        } else {
+            _myAvatar.getHead().setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }

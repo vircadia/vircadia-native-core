@@ -616,13 +616,14 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // set head lookat position
+    /*
     if (!_owningAgent) {
         if (_interactingOther) {
             _head.setLookAtPosition(_interactingOther->calculateAverageEyePosition());
         } else {
             _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
         }
-    }
+    }*/
     
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);

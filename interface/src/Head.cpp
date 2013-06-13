@@ -67,7 +67,9 @@ Head::Head(Avatar* owningAvatar) :
     _lookingInMirror(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-     _mohawkColors(NULL)
+     _mohawkColors(NULL),
+    _saccade(0.0f, 0.0f, 0.0f),
+    _saccadeTarget(0.0f, 0.0f, 0.0f)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -102,32 +104,19 @@ void Head::resetHairPhysics() {
 
 
 void Head::simulate(float deltaTime, bool isMine) {
-
-    const float HEAD_MOTION_DECAY = 0.00;
     
-    /*
-    //  Decay head back to center if turned on
-    if (isMine && _returnHeadToCenter) {
+    // Update eye saccades
+    const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
+    const float AVERAGE_SACCADE_INTERVAL = 4.0f;
+    const float MICROSACCADE_MAGNITUDE = 0.002f;
+    const float SACCADE_MAGNITUDE = 0.04;
     
-        //  Decay rotation back toward center
-        _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
-        _yaw   *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
-        _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
+    if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+        _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+    } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+        _saccadeTarget = SACCADE_MAGNITUDE * randVector();
     }
-    
-    //  For invensense gyro, decay only slightly when near center (until we add fusion)
-    if (isMine) {
-        const float RETURN_RANGE = 15.0;
-        const float RETURN_STRENGTH = 0.5;
-        if (fabs(_pitch) < RETURN_RANGE) { _pitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_yaw  ) < RETURN_RANGE) { _yaw   *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_roll ) < RETURN_RANGE) { _roll  *= (1.0f - RETURN_STRENGTH * deltaTime); }
-    }
-     */
-
-    // decay lean
-    _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
-    _leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _saccade += (_saccadeTarget - _saccade) * 0.50f;
                 
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05;
@@ -504,8 +493,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
 
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
                 glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
@@ -548,7 +536,7 @@ void Head::renderEyeBalls() {
             if (_lookingAtSomething) {
             
                 //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
+                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
                 float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
                 glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);

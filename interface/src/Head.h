@@ -103,6 +103,8 @@ private:
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
+    glm::vec3   _saccade;
+    glm::vec3   _saccadeTarget;
     
     // private methods
     void createMohawk();
