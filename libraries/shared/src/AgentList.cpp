@@ -205,6 +205,7 @@ void AgentList::sendDomainServerCheckIn() {
     
     // construct the DS check in packet if we need to
     static unsigned char* checkInPacket = NULL;
+    static int checkInPacketSize;
 
     if (!checkInPacket) {
         int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : 0;
@@ -236,10 +237,10 @@ void AgentList::sendDomainServerCheckIn() {
             packetPosition += numBytesAgentsOfInterest;
         }
         
-        *packetPosition = '\0';
+        checkInPacketSize = packetPosition - checkInPacket;
     }
     
-    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, strlen((char*) checkInPacket));
+    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
