@@ -102,6 +102,10 @@ public:
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
     
     bool getShouldReaverage() const { return _shouldReaverage; }
+
+    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                const glm::vec3& point, void* extraData);
     
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
@@ -117,10 +121,6 @@ private:
                                        bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
-
-    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
-    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
-                const glm::vec3& point, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);

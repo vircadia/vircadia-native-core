@@ -52,8 +52,8 @@ public:
     CoverageMap(BoundingBox boundingBox, bool isRoot = IS_ROOT, bool managePolygons = false);
     ~CoverageMap();
     
-    typedef enum {STORED, OCCLUDED, DOESNT_FIT} StorageResult;
-    StorageResult storeInMap(VoxelProjectedShadow* polygon);
+    typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} StorageResult;
+    StorageResult checkMap(VoxelProjectedShadow* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
 

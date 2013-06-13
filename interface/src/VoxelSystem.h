@@ -57,7 +57,6 @@ public:
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
     void falseColorizeRandomEveryOther();
     void falseColorizeOccluded();
-    void falseColorizeTestOccluded();
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -123,7 +122,7 @@ private:
     static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
     static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeTestOccludedOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);

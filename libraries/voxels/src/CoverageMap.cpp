@@ -145,7 +145,7 @@ void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 //          return STORED
 //      end
 //      return DOESNT_FIT
-CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon) {
+CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedShadow* polygon, bool storeIt) {
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
         // check to make sure this polygon isn't occluded by something at this level
         for (int i = 0; i < _polygonCount; i++) {
@@ -159,8 +159,12 @@ CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon
                 // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
                 // want to report our inserted one as occluded, but we do want to add our inserted one.
                 if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
-                    storeInArray(polygon);
-                    return STORED;
+                    if (storeIt) {
+                        storeInArray(polygon);
+                        return STORED;
+                    } else {
+                        return NOT_STORED;
+                    }
                 }
                 // this polygon is occluded by a closer polygon, so don't store it, and let the caller know
                 return OCCLUDED;
@@ -176,13 +180,17 @@ CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon
                 if (!_childMaps[i]) {
                     _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
                 }
-                return _childMaps[i]->storeInMap(polygon);
+                return _childMaps[i]->checkMap(polygon, storeIt);
             }
         }
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
         // any of our child bounding boxes, so we should add it here.
-        storeInArray(polygon);
-        return STORED;
+        if (storeIt) {
+            storeInArray(polygon);
+            return STORED;
+        } else {
+            return NOT_STORED;
+        }
     }
     return DOESNT_FIT;
 }
