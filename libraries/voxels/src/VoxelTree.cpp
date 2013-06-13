@@ -89,8 +89,11 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* childNode = node->getChildAtIndex(i);
             if (childNode) {
-                float distance = glm::distance(point, childNode->getCenter());
-                currentCount = insertIntoSortedArrays((void*)childNode, distance, i,
+                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
+                float distanceSquared = childNode->distanceSquareToPoint(point); 
+//printLog("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+//childNode->printDebugDetails("");
+                currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren, 
                                                       (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
             }
@@ -101,6 +104,8 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
         for (int i = 0; i < currentCount; i++) {
             VoxelNode* childNode = sortedChildren[i];
             if (childNode) {
+//printLog("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
+//childNode->printDebugDetails("");
                 recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
             }
         }

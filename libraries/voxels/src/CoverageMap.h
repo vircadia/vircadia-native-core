@@ -74,6 +74,7 @@ private:
     static const int DEFAULT_GROW_SIZE = 100;
     static int _mapCount;
     static int _maxPolygonsUsed;
+    static int _totalPolygons;
 
 };
 

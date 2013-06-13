@@ -33,6 +33,17 @@ CoverageMap::~CoverageMap() {
             delete _childMaps[i];
         }
     }
+    
+    if (_isRoot) {
+        printLog("CoverageMap last to be deleted...\n");
+         printLog("_mapCount=%d\n",_mapCount);
+         printLog("_maxPolygonsUsed=%d\n",_maxPolygonsUsed);
+         printLog("_totalPolygons=%d\n",_totalPolygons);
+
+        _maxPolygonsUsed = 0;
+        _totalPolygons = 0;
+        _mapCount = 0;
+    }
 };
 
 
@@ -78,15 +89,17 @@ void CoverageMap::growPolygonArray() {
     _polygons = newPolygons;
     _polygonDistances = newDistances;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
-printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
+//printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
 
 int CoverageMap::_maxPolygonsUsed = 0;
-
+int CoverageMap::_totalPolygons = 0;
 
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
 void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
+
+    _totalPolygons++;
 
 //printLog("CoverageMap::storeInArray()...");
 //polygon->printDebugDetails();
@@ -142,7 +155,7 @@ CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon
 
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
 
-/*
+/**
 if (_isRoot) {
     printLog("CoverageMap::storeInMap()... this map _isRoot, so all polygons are contained....\n");
 } else {
@@ -150,7 +163,7 @@ if (_isRoot) {
     _myBoundingBox.printDebugDetails("_myBoundingBox");
     polygon->getBoundingBox().printDebugDetails("polygon->getBoundingBox()");
 }
-*/
+**/
 
         // check to make sure this polygon isn't occluded by something at this level
         for (int i = 0; i < _polygonCount; i++) {
