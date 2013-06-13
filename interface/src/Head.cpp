@@ -57,7 +57,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
     _browAudioLift(0.0f),
-    _lookingAtSomething(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _averageLoudness(0.0f),
@@ -137,28 +136,11 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     _browAudioLift *= 0.7f;      
 
-    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.  
-    determineIfLookingAtSomething();   
-    
+    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
     }
     
-}
-
-void Head::determineIfLookingAtSomething() { 
-
-    if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
-        _lookingAtSomething = false;
-    } else {
-        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - calculateAverageEyePosition());
-        float dot = glm::dot(targetLookatAxis, getFrontDirection());
-        if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
-            _lookingAtSomething = false;
-        } else {
-            _lookingAtSomething = true;
-        }
-    }
 }
 
 void Head::calculateGeometry() {
@@ -207,9 +189,9 @@ void Head::render(bool lookingInMirror, float alpha) {
     renderEyeBalls();    
     renderEars();
     renderMouth();    
-    renderEyeBrows();    
+    renderEyeBrows();
         
-    if (_renderLookatVectors && _lookingAtSomething) {
+    if (_renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
@@ -490,7 +472,7 @@ void Head::renderEyeBalls() {
         
         glPushMatrix();
         
-            if (_lookingAtSomething) {
+            if (1) {
 
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
@@ -533,7 +515,7 @@ void Head::renderEyeBalls() {
 
         glPushMatrix();
         
-            if (_lookingAtSomething) {
+            if (1) {
             
                 //rotate the eyeball to aim towards the lookat position
                 glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
