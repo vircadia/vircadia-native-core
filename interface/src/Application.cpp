@@ -1451,7 +1451,7 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
     
     // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 myLookAtFromMouse(mouseRayOrigin - mouseRayDirection);
+    glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
     _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
@@ -2042,6 +2042,7 @@ void Application::displaySide(Camera& whichCamera) {
                     avatar->init();
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
+                avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
             }
         }
         agentList->unlock();
