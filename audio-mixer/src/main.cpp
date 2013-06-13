@@ -120,7 +120,7 @@ int main(int argc, const char* argv[]) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
             AgentList::getInstance()->sendDomainServerCheckIn();
             
-            if (Logstash::shouldSendStats()) {
+            if (Logstash::shouldSendStats() && numStatCollections > 0) {
                 // if we should be sending stats to Logstash send the appropriate average now
                 const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
                 
