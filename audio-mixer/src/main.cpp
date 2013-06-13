@@ -47,7 +47,7 @@ const unsigned short MIXER_LISTEN_PORT = 55443;
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
+const long long BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -58,7 +58,7 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long normalizedSample = std::min(MAX_SAMPLE_VALUE, sumSample);
     normalizedSample = std::max(MIN_SAMPLE_VALUE, sumSample);
     
-    mixSample = normalizedSample;    
+    mixSample = normalizedSample;
 }
 
 void attachNewBufferToAgent(Agent *newAgent) {
