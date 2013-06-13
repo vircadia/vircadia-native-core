@@ -303,6 +303,8 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    float headCameraScale = _serialHeadSensor.active ? _headCameraPitchYawScale : 1.0f;
+    
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -318,11 +320,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
     }
     
     // Update camera position
