@@ -392,7 +392,7 @@ void *pingUnknownAgents(void *args) {
             }
         }
         
-        double usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        long long usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -413,7 +413,7 @@ void AgentList::stopPingUnknownAgentsThread() {
 
 void *removeSilentAgents(void *args) {
     AgentList* agentList = (AgentList*) args;
-    double checkTimeUSecs, sleepTime;
+    long long checkTimeUSecs, sleepTime;
     
     while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
@@ -422,7 +422,7 @@ void *removeSilentAgents(void *args) {
             
             if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
             	&& agent->getType() != AGENT_TYPE_VOXEL_SERVER) {
-                
+            
                 printLog("Killed ");
                 Agent::printLog(*agent);
                 

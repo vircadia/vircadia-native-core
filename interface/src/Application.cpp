@@ -2078,9 +2078,8 @@ void Application::displayOverlay() {
     //  Show on-screen msec timer
     if (_renderFrameTimerOn->isChecked()) {
         char frameTimer[10];
-        double mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        mSecsNow = mSecsNow - floor(mSecsNow / 1000.0) * 1000.0;
-        sprintf(frameTimer, "%3.0f\n", mSecsNow);
+        long long mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
     }
