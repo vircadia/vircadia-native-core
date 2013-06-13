@@ -85,6 +85,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
+    void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
@@ -118,6 +119,9 @@ public:
     float            getHeight                 ()                const { return _height;}
     AvatarMode       getMode                   ()                const { return _mode;}
     float            getLeanScale              ()                const { return _leanScale;}
+    float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
+    float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
+    float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
@@ -195,13 +199,16 @@ private:
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
-    float       _distanceToNearestAvatar; //  How close is the nearest avatar?
+    float       _distanceToNearestAvatar;       //  How close is the nearest avatar?
     glm::vec3   _gravity;
     glm::vec3   _worldUpDirection;
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     Avatar*     _interactingOther;
     bool        _isMouseTurningRight;
+    float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
+    float       _elapsedTimeStopped;
+    float       _elapsedTimeSinceCollision;
     
     AvatarVoxelSystem _voxels;
     
@@ -221,7 +228,7 @@ private:
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithEnvironment();
     void updateCollisionWithVoxels();
-    void applyCollisionWithScene(const glm::vec3& penetration);
+    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
     void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);

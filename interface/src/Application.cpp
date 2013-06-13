@@ -62,8 +62,6 @@
 
 using namespace std;
 
-const bool TESTING_AVATAR_TOUCH = false;
-
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
@@ -1600,30 +1598,27 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
-    if (TESTING_AVATAR_TOUCH) {
-        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
-        }
-    } else {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
             if (_manualFirstPerson->isChecked()) {
                 if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                     _myCamera.setModeShiftRate(1.0f);
                 }
-            } else {
-                if (_myAvatar.getIsNearInteractingOther()) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
-                } else {
-                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
+        } else {
+            const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
+            const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
+            const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
+            
+            if ((_myAvatar.getElapsedTimeStopped() > TIME_BEFORE_SHIFT_INTO_FIRST_PERSON)
+                && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
                 }
+            if ((_myAvatar.getSpeed() > THIRD_PERSON_SHIFT_VELOCITY)
+                && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
+                && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1000.0f);
             }
         }
     }
