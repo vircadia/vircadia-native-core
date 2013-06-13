@@ -64,8 +64,6 @@
 
 using namespace std;
 
-const bool TESTING_AVATAR_TOUCH = false;
-
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
@@ -512,6 +510,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_E:
+                if (!_myAvatar.getDriveKeys(UP)) {
+                    _myAvatar.jump();
+                }
                 _myAvatar.setDriveKeys(UP, 1);
                 break;
                 
@@ -722,6 +723,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (event->button() == Qt::LeftButton) {
             _mouseX = event->x();
             _mouseY = event->y();
+            _mouseDragStartedX = _mouseX;
+            _mouseDragStartedY = _mouseY;
+            _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
             maybeEditVoxelUnderCursor();
             
@@ -1018,6 +1022,12 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
+const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
+    return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
+                     (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
+                     (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
+}
+
 void Application::decreaseVoxelSize() {
     _mouseVoxelScale /= 2;
 }
@@ -1227,7 +1237,7 @@ void Application::initMenu() {
     (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(false);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
-    _mouseLook->setChecked(false);
+    _mouseLook->setChecked(true);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
@@ -1251,7 +1261,6 @@ void Application::initMenu() {
     _renderAtmosphereOn->setShortcut(Qt::SHIFT | Qt::Key_A);
     (_renderGroundPlaneOn = renderMenu->addAction("Ground Plane"))->setCheckable(true);
     _renderGroundPlaneOn->setChecked(true);
-    _renderGroundPlaneOn->setShortcut(Qt::SHIFT | Qt::Key_G);
     (_renderAvatarsOn = renderMenu->addAction("Avatars"))->setCheckable(true);
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
@@ -1446,6 +1455,26 @@ void Application::update(float deltaTime) {
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
+    //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
+    const float VOXEL_GRAB_THRUST = 5.0f;
+    if (_mousePressed && (_mouseVoxel.s != 0)) {
+        glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
+        glm::quat orientation = _myAvatar.getOrientation();
+        glm::vec3 front = orientation * IDENTITY_FRONT;
+        glm::vec3 up = orientation * IDENTITY_UP;
+        glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
+                                - _myAvatar.getCameraPosition();
+        towardVoxel = front * glm::length(towardVoxel);
+        glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
+        _voxelThrust = glm::vec3(0, 0, 0);
+        _voxelThrust += towardVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.y;
+        _voxelThrust += lateralToVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.x;
+        
+        //  Add thrust from voxel grabbing to the avatar 
+        _myAvatar.addThrust(_voxelThrust);
+
+    }
+    
     _mouseVoxel.s = 0.0f;
     if (checkedVoxelModeAction() != 0 &&
         (fabs(_myAvatar.getVelocity().x) +
@@ -1574,30 +1603,27 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
-    if (TESTING_AVATAR_TOUCH) {
-        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
-        }
-    } else {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
             if (_manualFirstPerson->isChecked()) {
                 if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                     _myCamera.setModeShiftRate(1.0f);
                 }
-            } else {
-                if (_myAvatar.getIsNearInteractingOther()) {
-                    if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
-                } else {
-                    if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                        _myCamera.setModeShiftRate(1.0f);
-                    }
+        } else {
+            const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
+            const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
+            const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
+            
+            if ((_myAvatar.getElapsedTimeStopped() > TIME_BEFORE_SHIFT_INTO_FIRST_PERSON)
+                && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
+                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                    _myCamera.setModeShiftRate(1.0f);
                 }
+            if ((_myAvatar.getSpeed() > THIRD_PERSON_SHIFT_VELOCITY)
+                && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
+                && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1000.0f);
             }
         }
     }
@@ -2050,6 +2076,10 @@ void Application::displaySide(Camera& whichCamera) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
+    //  Enable to show line from me to the voxel I am touching
+    //renderLineToTouchedVoxel();
+    //renderThrustAtVoxel(_voxelThrust);
+    
     // draw a red sphere  
     float sphereRadius = 0.25f;
     glColor3f(1,0,0);
@@ -2169,9 +2199,8 @@ void Application::displayOverlay() {
     //  Show on-screen msec timer
     if (_renderFrameTimerOn->isChecked()) {
         char frameTimer[10];
-        double mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        mSecsNow = mSecsNow - floor(mSecsNow / 1000.0) * 1000.0;
-        sprintf(frameTimer, "%3.0f\n", mSecsNow);
+        long long mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
     }
@@ -2269,6 +2298,32 @@ void Application::displayStats() {
     // testing....
     renderVirtualOccluders();
 
+}
+
+void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
+    if (_mousePressed) {
+        glColor3f(1, 0, 0);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
+        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
+        glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
+        glEnd();
+    }
+    
+}
+void Application::renderLineToTouchedVoxel() {
+    //  Draw a teal line to the voxel I am currently dragging on
+    if (_mousePressed) {
+        glColor3f(0, 1, 1);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
+        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
+        glm::vec3 headPosition = _myAvatar.getHeadJointPosition();
+        glVertex3fv(&headPosition.x);
+        glEnd();
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -2547,6 +2602,8 @@ void Application::resetSensors() {
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
+    _myAvatar.setVelocity(glm::vec3(0,0,0));
+    _myAvatar.setThrust(glm::vec3(0,0,0));
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {

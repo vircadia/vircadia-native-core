@@ -244,7 +244,6 @@ static void renderMovingBug() {
 }
 
 
-
 float intensity = 0.5f;
 float intensityIncrement = 0.1f;
 const float MAX_INTENSITY = 1.0f;
@@ -644,14 +643,14 @@ void* animateVoxels(void* args) {
             sendDanceFloor();
         }
         
-        double end = usecTimestampNow();
-        double elapsedSeconds = (end - ::start) / 1000000.0;
+        long long end = usecTimestampNow();
+        long long elapsedSeconds = (end - ::start) / 1000000;
         if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
                 (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        long long usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);

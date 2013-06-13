@@ -85,6 +85,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
+    void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
@@ -96,6 +97,7 @@ public:
     void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
     void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
+    void setVelocity               (const glm::vec3 velocity         ) { _velocity = velocity; };
     void setLeanScale              (float     scale                  ) { _leanScale = scale;}
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
@@ -117,6 +119,9 @@ public:
     float            getHeight                 ()                const { return _height;}
     AvatarMode       getMode                   ()                const { return _mode;}
     float            getLeanScale              ()                const { return _leanScale;}
+    float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
+    float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
+    float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
@@ -130,6 +135,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
+    void jump() { _shouldJump = true; };
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -182,6 +188,7 @@ private:
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
     glm::vec3   _thrust;
+    bool        _shouldJump;
     float       _speed;
     float       _maxArmLength;
     float       _leanScale;
@@ -192,13 +199,16 @@ private:
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
-    float       _distanceToNearestAvatar; //  How close is the nearest avatar?
+    float       _distanceToNearestAvatar;       //  How close is the nearest avatar?
     glm::vec3   _gravity;
     glm::vec3   _worldUpDirection;
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
     Avatar*     _interactingOther;
     bool        _isMouseTurningRight;
+    float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
+    float       _elapsedTimeStopped;
+    float       _elapsedTimeSinceCollision;
     
     AvatarVoxelSystem _voxels;
     
@@ -218,7 +228,7 @@ private:
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
     void updateCollisionWithEnvironment();
     void updateCollisionWithVoxels();
-    void applyCollisionWithScene(const glm::vec3& penetration);
+    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
     void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);

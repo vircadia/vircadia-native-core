@@ -22,14 +22,14 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-double usecTimestamp(timeval *time) {
-    return (time->tv_sec * 1000000.0 + time->tv_usec);
+long long usecTimestamp(timeval *time) {
+    return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
-double usecTimestampNow() {
+long long usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000.0 + now.tv_usec);
+    return (now.tv_sec * 1000000 + now.tv_usec);
 }
 
 float randFloat () {
