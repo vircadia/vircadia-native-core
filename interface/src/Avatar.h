@@ -96,6 +96,7 @@ public:
     void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
     void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
+    void setLeanScale              (float     scale                  ) { _leanScale = scale;}
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
@@ -115,6 +116,7 @@ public:
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
     AvatarMode       getMode                   ()                const { return _mode;}
+    float            getLeanScale              ()                const { return _leanScale;}
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
@@ -177,13 +179,12 @@ private:
     glm::vec3   _movedHandOffset;
     AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode  _mode;
-    glm::vec3   _cameraPosition;
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
     glm::vec3   _thrust;
     float       _speed;
     float       _maxArmLength;
-    glm::quat   _righting;
+    float       _leanScale;
     int         _driveKeys[MAX_DRIVE_KEYS];
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
@@ -202,7 +203,7 @@ private:
     AvatarVoxelSystem _voxels;
     
     // private methods...
-    glm::vec3 caclulateAverageEyePosition() { return _head.caclulateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
+    glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     float getBallRenderAlpha(int ball, bool lookingInMirror) const;
     void renderBody(bool lookingInMirror, bool renderAvatarBalls);

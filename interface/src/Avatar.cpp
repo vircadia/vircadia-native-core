@@ -74,12 +74,12 @@ Avatar::Avatar(Agent* owningAgent) :
     _bodyRollDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
-    _cameraPosition(0.0f, 0.0f, 0.0f),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
     _speed(0.0f),
     _maxArmLength(0.0f),
+    _leanScale(0.5f),
     _pelvisStandingHeight(0.0f),
     _pelvisFloatingHeight(0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -287,7 +287,7 @@ void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterfa
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
     //  Update torso lean distance based on accelerometer data
-    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition();
+    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition() * _leanScale;
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
     _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
@@ -584,7 +584,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // set head lookat position
     if (!_owningAgent) {
         if (_interactingOther) {
-            _head.setLookAtPosition(_interactingOther->caclulateAverageEyePosition());
+            _head.setLookAtPosition(_interactingOther->calculateAverageEyePosition());
         } else {
             _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
         }
@@ -914,9 +914,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
 }
 
 void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
-    
-    _cameraPosition = Application::getInstance()->getCamera()->getPosition();
-    
+
     if (!_owningAgent && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
@@ -935,7 +933,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     
     // if this is my avatar, then render my interactions with the other avatar
     if (!_owningAgent) {
-        _avatarTouch.render(getCameraPosition());
+        _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
     }
     
     //  Render the balls
@@ -1134,16 +1132,14 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
-    const float RENDER_OPAQUE_BEYOND = 1.0f;        //  Meters beyond which body is shown opaque
-    const float RENDER_TRANSLUCENT_BEYOND = 0.5f;
-    float distanceToCamera = glm::length(_cameraPosition - _bodyBall[ball].position);
+    const float RENDER_OPAQUE_OUTSIDE = 1.25f; // render opaque if greater than this distance
+    const float DO_NOT_RENDER_INSIDE = 0.75f; // do not render if less than this distance
+    float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
     return (lookingInMirror || _owningAgent) ? 1.0f : glm::clamp(
-        (distanceToCamera - RENDER_TRANSLUCENT_BEYOND) / (RENDER_OPAQUE_BEYOND - RENDER_TRANSLUCENT_BEYOND), 0.f, 1.f);
+        (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
 }
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
-    
-    
     
     //  Render the body as balls and cones
     if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
@@ -1153,7 +1149,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(lookingInMirror, _cameraPosition, alpha);
+                    _head.render(lookingInMirror, alpha);
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
@@ -1228,6 +1224,8 @@ void Avatar::loadData(QSettings* settings) {
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     
+    _leanScale = loadSetting(settings, "leanScale", 0.5f);
+    
     settings->endGroup();
 }
 
@@ -1248,6 +1246,8 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("position_z", _position.z);
     
     set->setValue("voxelURL", _voxels.getVoxelURL());
+    
+    set->setValue("leanScale", _leanScale);
     
     set->endGroup();
 }

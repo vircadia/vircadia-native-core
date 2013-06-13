@@ -146,7 +146,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustumOffsetDistance(25.0),
         _viewFrustumOffsetUp(0.0),
         _audioScope(256, 200, true),
-        _manualFirstPerson(false),
         _mouseX(0),
         _mouseY(0),
         _mousePressed(false),
@@ -172,7 +171,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
     
-    unsigned int listenPort = AGENT_SOCKET_LISTEN_PORT;
+    unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     if (portStr) {
@@ -829,6 +828,7 @@ void Application::terminate() {
 
 static void sendAvatarVoxelURLMessage(const QUrl& url) {
     uint16_t ownerID = AgentList::getInstance()->getOwnerID();
+    
     if (ownerID == UNKNOWN_AGENT_ID) {
         return; // we don't yet know who we are
     }
@@ -882,6 +882,10 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
     
+    QDoubleSpinBox* leanScale = new QDoubleSpinBox();
+    leanScale->setValue(_myAvatar.getLeanScale());
+    form->addRow("Lean Scale:", leanScale);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -895,6 +899,7 @@ void Application::editPreferences() {
     sendAvatarVoxelURLMessage(url);
     
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
+    _myAvatar.setLeanScale(leanScale->value());
 }
 
 void Application::pair() {
@@ -905,6 +910,8 @@ void Application::setHead(bool head) {
     if (head) {
         _myCamera.setMode(CAMERA_MODE_MIRROR);
         _myCamera.setModeShiftRate(100.0f);
+        _manualFirstPerson->setChecked(false);
+        
     } else {
         _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
         _myCamera.setModeShiftRate(1.0f);
@@ -922,7 +929,9 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    _manualFirstPerson = firstPerson;    
+    if (firstPerson && _lookingInMirror->isChecked()) {
+        _lookingInMirror->trigger();
+    }
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1251,8 +1260,8 @@ void Application::initMenu() {
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
-    
-    renderMenu->addAction("First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P)->setCheckable(true);
+    (_manualFirstPerson = renderMenu->addAction(
+        "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
@@ -1572,7 +1581,7 @@ void Application::update(float deltaTime) {
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-            if (_manualFirstPerson) {
+            if (_manualFirstPerson->isChecked()) {
                 if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
                     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                     _myCamera.setModeShiftRate(1.0f);
