@@ -318,7 +318,7 @@ int main(int argc, const char* argv[]) {
             }
         }
         
-        double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        long long usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);

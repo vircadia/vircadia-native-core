@@ -37,11 +37,11 @@ public:
     uint16_t getAgentID() const { return _agentID; }
     void setAgentID(uint16_t agentID) { _agentID = agentID;}
     
-    double getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(double wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    long long getWakeMicrostamp() const { return _wakeMicrostamp; }
+    void setWakeMicrostamp(long long wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
     
-    double getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(double lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
+    long long getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(long long lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket() const { return _publicSocket; }
     void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
@@ -71,8 +71,8 @@ private:
     
     char _type;
     uint16_t _agentID;
-    double _wakeMicrostamp;
-    double _lastHeardMicrostamp;
+    long long _wakeMicrostamp;
+    long long _lastHeardMicrostamp;
     sockaddr* _publicSocket;
     sockaddr* _localSocket;
     sockaddr* _activeSocket;

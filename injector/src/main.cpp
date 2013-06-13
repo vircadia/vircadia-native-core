@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
             unsigned char broadcastPacket = PACKET_HEADER_INJECT_AUDIO;
             
             timeval thisSend;
-            double numMicrosecondsSleep = 0;
+            long long numMicrosecondsSleep = 0;
             
             timeval lastDomainServerCheckIn = {};
             
