@@ -29,7 +29,7 @@ private:
 #endif
     glBufferIndex _glBufferIndex;
     bool _isDirty;
-    double _lastChanged;
+    long long _lastChanged;
     bool _shouldRender;
     bool _isStagedForDeletion;
     AABox _box;
@@ -80,7 +80,7 @@ public:
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
-    bool hasChangedSince(double time) const { return (_lastChanged > time);  };
+    bool hasChangedSince(long long time) const { return (_lastChanged > time);  };
     void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
     void handleSubtreeChanged(VoxelTree* myTree);
     
