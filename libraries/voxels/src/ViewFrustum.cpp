@@ -426,7 +426,7 @@ void ViewFrustum::printDebugDetails() const {
 }
 
 
-glm::vec2 ViewFrustum::projectPoint(glm::vec3 point) const {
+glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
     // Projection matrix : Field of View, ratio, display range : near to far
     glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
@@ -437,7 +437,19 @@ glm::vec2 ViewFrustum::projectPoint(glm::vec3 point) const {
     
     glm::vec4 pointVec4 = glm::vec4(point,1);
     glm::vec4 projectedPointVec4 = VP * pointVec4;
-    glm::vec2 projectedPoint(projectedPointVec4.x / projectedPointVec4.w, projectedPointVec4.y / projectedPointVec4.w);
+    pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
+    
+    // what happens with w is 0???
+    float x = projectedPointVec4.x / projectedPointVec4.w;
+    float y = projectedPointVec4.y / projectedPointVec4.w;
+    glm::vec2 projectedPoint(x,y);
+    
+    // if the point is out of view we also need to flip the signs of x and y
+    if (!pointInView) {
+        projectedPoint.x = -x;
+        projectedPoint.y = -y;
+    }
+
     return projectedPoint;
 }
 
@@ -505,16 +517,24 @@ VoxelProjectedShadow ViewFrustum::getProjectedShadow(const AABox& box) const {
 
     VoxelProjectedShadow shadow(vertexCount);
     
+    bool pointInView = true;
+    bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
+    bool anyPointsInView = false; // assume the worst!
     if (vertexCount) {
+        allPointsInView = true; // assume the best!
         for(int i = 0; i < vertexCount; i++) {
             int vertexNum = hullVertexLookup[lookUp][i+1];
             glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
-            glm::vec2 projectedPoint = projectPoint(point);
+            glm::vec2 projectedPoint = projectPoint(point, pointInView);
+            allPointsInView = allPointsInView && pointInView;
+            anyPointsInView = anyPointsInView || pointInView;
             shadow.setVertex(i, projectedPoint);
         }
     }
     // set the distance from our camera position, to the closest vertex
     float distance = glm::distance(getPosition(), box.getCenter());
     shadow.setDistance(distance);
+    shadow.setAnyInView(anyPointsInView);
+    shadow.setAllInView(allPointsInView);
     return shadow;
 }

@@ -43,6 +43,11 @@ public:
     float getDistance() const { return _distance; }
     void  setDistance(float distance) { _distance = distance; }
 
+    bool getAnyInView() const { return _anyInView; };
+    void setAnyInView(bool anyInView) { _anyInView = anyInView; };
+    bool getAllInView() const { return _allInView; };
+    void setAllInView(bool allInView) { _allInView = allInView; };
+
     bool occludes(const VoxelProjectedShadow& occludee) const;
     bool pointInside(const glm::vec2& point) const;
     
@@ -65,6 +70,8 @@ private:
     float _minX;
     float _minY;
     float _distance;
+    bool _anyInView; // if any points are in view
+    bool _allInView; // if all points are in view
 };
 
 

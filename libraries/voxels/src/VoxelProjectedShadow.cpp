@@ -50,6 +50,16 @@ void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) {
 
 bool VoxelProjectedShadow::occludes(const VoxelProjectedShadow& occludee) const {
     
+    // if we are completely out of view, then we definitely don't occlude!
+    // if the occludee is completely out of view, then we also don't occlude it
+    //
+    // this is true, but unfortunately, we're not quite handling projects in the
+    // case when SOME points are in view and others are not. So, we will not consider
+    // occlusion for any shadows that are partially in view.
+    if (!getAllInView() || !occludee.getAllInView() ) {
+        return false;
+    }
+
     // first check the bounding boxes, the occludee mush be fully within the boounding box of this shadow
     if ((occludee.getMaxX() > getMaxX()) ||
         (occludee.getMaxY() > getMaxY()) ||

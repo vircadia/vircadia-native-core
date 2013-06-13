@@ -88,7 +88,7 @@ public:
 
     void printDebugDetails() const;
     
-    glm::vec2 projectPoint(glm::vec3 point) const;
+    glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     VoxelProjectedShadow getProjectedShadow(const AABox& box) const;
 
 private:
