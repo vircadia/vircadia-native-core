@@ -271,6 +271,7 @@ Avatar::~Avatar() {
 }
 
 void Avatar::init() {
+    _head.init();
     _voxels.init();
     _initialized = true;
 }
