@@ -510,6 +510,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_E:
+                if (!_myAvatar.getDriveKeys(UP)) {
+                    _myAvatar.jump();
+                }
                 _myAvatar.setDriveKeys(UP, 1);
                 break;
                 
@@ -1450,12 +1453,11 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 10.0f;
+    const float VOXEL_GRAB_THRUST = 5.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
         glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
         glm::quat orientation = _myAvatar.getOrientation();
         glm::vec3 front = orientation * IDENTITY_FRONT;
-        glm::vec3 right = orientation * IDENTITY_RIGHT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
                                 - _myAvatar.getCameraPosition();

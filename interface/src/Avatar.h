@@ -131,6 +131,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
+    void jump() { _shouldJump = true; };
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -183,6 +184,7 @@ private:
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
     glm::vec3   _thrust;
+    bool        _shouldJump;
     float       _speed;
     float       _maxArmLength;
     float       _leanScale;

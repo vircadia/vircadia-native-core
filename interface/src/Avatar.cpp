@@ -77,6 +77,7 @@ Avatar::Avatar(Agent* owningAgent) :
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
+    _shouldJump(false),
     _speed(0.0f),
     _maxArmLength(0.0f),
     _leanScale(0.5f),
@@ -412,28 +413,38 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 up = orientation * IDENTITY_UP;
     
     // driving the avatar around should only apply if this is my avatar (as opposed to an avatar being driven remotely)
-    const float THRUST_MAG = 600.0f;
+    const float THRUST_MAG_UP = 800.0f;
+    const float THRUST_MAG_DOWN = 200.f;
+    const float THRUST_MAG_FWD = 300.f;
+    const float THRUST_MAG_BACK = 150.f;
+    const float THRUST_MAG_LATERAL = 200.f;
+    const float THRUST_JUMP = 100.f;
     
     if (!_owningAgent) {
                 
         //  Add Thrusts from keyboard
-        if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG * deltaTime * front;}
-        if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG * deltaTime * front;}
-        if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG * deltaTime * right;}
-        if (_driveKeys[LEFT     ]) {_thrust       -= THRUST_MAG * deltaTime * right;}
-        if (_driveKeys[UP       ]) {_thrust       += THRUST_MAG * deltaTime * up;}
-        if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG * deltaTime * up;}
+        if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG_FWD * deltaTime * front;}
+        if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG_BACK * deltaTime * front;}
+        if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG_LATERAL * deltaTime * right;}
+        if (_driveKeys[LEFT     ]) {_thrust       -= THRUST_MAG_LATERAL * deltaTime * right;}
+        if (_driveKeys[UP       ]) {_thrust       += THRUST_MAG_UP * deltaTime * up;}
+        if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG_DOWN * deltaTime * up;}
         if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG    * deltaTime;}
         if (_driveKeys[ROT_LEFT ]) {_bodyYawDelta += YAW_MAG    * deltaTime;}
         
+        if (_shouldJump) {
+            _thrust += THRUST_JUMP * up;
+            _shouldJump = false;
+        }
         //  Add thrusts from Transmitter
         if (transmitter) {
             transmitter->checkForLostTransmitter();
             glm::vec3 rotation = transmitter->getEstimatedRotation();
             const float TRANSMITTER_MIN_RATE = 1.f;
             const float TRANSMITTER_MIN_YAW_RATE = 4.f;
-            const float TRANSMITTER_LATERAL_FORCE_SCALE = 25.f;
-            const float TRANSMITTER_FWD_FORCE_SCALE = 100.f;
+            const float TRANSMITTER_LATERAL_FORCE_SCALE = 5.f;
+            const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
+            const float TRANSMITTER_UP_FORCE_SCALE = 100.f;
             const float TRANSMITTER_YAW_SCALE = 10.0f;
             const float TRANSMITTER_LIFT_SCALE = 3.f;
             const float TOUCH_POSITION_RANGE_HALF = 32767.f;
@@ -447,7 +458,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                 _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
             }
             if (transmitter->getTouchState()->state == 'D') {
-                _thrust += THRUST_MAG *
+                _thrust += TRANSMITTER_UP_FORCE_SCALE *
                 (float)(transmitter->getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
                 TRANSMITTER_LIFT_SCALE *
                 deltaTime *
@@ -469,9 +480,31 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         // add thrust to velocity
         _velocity += _thrust * deltaTime;
         
-        // Zero thrust out now that we've added it to velocity in this frame  
-        _thrust = glm::vec3(0, 0, 0);
+        // Decay velocity.  If velocity is really low, increase decay to simulate static friction
+        const float VELOCITY_DECAY_UNDER_THRUST = 0.0;
+        const float VELOCITY_FAST_DECAY = 0.8;
+        const float VELOCITY_SLOW_DECAY = 8.0;
+        const float VELOCITY_HALT_DECAY = 100.0;
+        const float VELOCITY_FAST_THRESHOLD = 2.0f;
+        const float VELOCITY_HALT_THRESHOLD = 0.15f;
+        float decayConstant, decay;
+        if (glm::length(_thrust) > 0.f) {
+            decayConstant = VELOCITY_DECAY_UNDER_THRUST;
+        } else if (glm::length(_velocity) > VELOCITY_FAST_THRESHOLD) {
+            decayConstant = VELOCITY_FAST_DECAY;
+        } else if (glm::length(_velocity) > VELOCITY_HALT_THRESHOLD) {
+            decayConstant = VELOCITY_SLOW_DECAY;
+        } else {
+            decayConstant = VELOCITY_HALT_DECAY;
+        }
+            
+        decay = glm::clamp(1.0f - decayConstant * deltaTime, 0.0f, 1.0f);
+        _velocity *= decay;
+        
 
+        // update position by velocity
+        _position += _velocity * deltaTime;
+        
         // calculate speed
         _speed = glm::length(_velocity);
         
@@ -494,27 +527,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         //the following will be used to make the avatar upright no matter what gravity is
         setOrientation(computeRotationFromBodyToWorldUp(tiltDecay) * orientation);
         
-        // update position by velocity
-        _position += _velocity * deltaTime;
-        
-        // decay velocity
-        const float VELOCITY_DECAY = 0.9;
-        float decay = 1.0 - VELOCITY_DECAY * deltaTime;
-        if ( decay < 0.0 ) {
-            _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
-        } else {
-            _velocity *= decay;
-        }
-        
         // If another avatar is near, dampen velocity as a function of closeness
         if (_distanceToNearestAvatar < PERIPERSONAL_RADIUS) {
             float closeness = 1.0f - (_distanceToNearestAvatar / PERIPERSONAL_RADIUS);
-            float drag = 1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime;
-            if ( drag > 0.0f ) {
-                _velocity *= drag;
-            } else {
-                _velocity = glm::vec3( 0.0f, 0.0f, 0.0f );
-            }
+            float avatarDrag = glm::clamp(1.0f - closeness * AVATAR_BRAKING_STRENGTH * deltaTime, 0.0f, 1.0f);
+            _velocity *= avatarDrag;
         }
         
         //  Compute instantaneous acceleration
@@ -577,6 +594,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // set head lookat position
     if (!_owningAgent) {
+        //if (_camera)
         if (_interactingOther) {
             _head.setLookAtPosition(_interactingOther->calculateAverageEyePosition());
         } else {
@@ -596,6 +614,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     } else {
         _mode = AVATAR_MODE_INTERACTING;
     }
+    
+    // Zero thrust out now that we've added it to velocity in this frame
+    _thrust = glm::vec3(0, 0, 0);
+
 }
 
 void Avatar::checkForMouseRayTouching() {
@@ -798,20 +820,14 @@ void Avatar::updateCollisionWithVoxels() {
 
 void Avatar::applyCollisionWithScene(const glm::vec3& penetration) {
     _position -= penetration;
-    static float STATIC_FRICTION_VELOCITY = 0.15f;
-    static float STATIC_FRICTION_DAMPING = 0.0f;
     static float KINETIC_FRICTION_DAMPING = 0.95f;
-    
+    static float ELASTIC_COLLISION_FACTOR = 1.4f;      //  1.0 = inelastic, > 2.0 = pinball bumper!
     // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= glm::dot(_velocity, direction) * direction;
+        _velocity -= glm::dot(_velocity, direction) * direction * ELASTIC_COLLISION_FACTOR;
         _velocity *= KINETIC_FRICTION_DAMPING;
-        //  If velocity is quite low, apply static friction that takes away energy
-        if (glm::length(_velocity) < STATIC_FRICTION_VELOCITY) {
-            _velocity *= STATIC_FRICTION_DAMPING;
-        }
     }
 }
 
