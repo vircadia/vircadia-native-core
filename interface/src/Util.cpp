@@ -267,6 +267,11 @@ double diffclock(timeval *clock1,timeval *clock2)
 	return diffms;
 }
 
+//  Return a random vector of average length 1
+const glm::vec3 randVector() {
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
+}
+
 static TextRenderer* textRenderer(int mono) {
     static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY);
     static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT);
