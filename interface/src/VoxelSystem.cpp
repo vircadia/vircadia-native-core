@@ -1219,9 +1219,9 @@ void VoxelSystem::falseColorizeOccluded() {
     AABox box(glm::vec3(0.0125,0,0.025), 0.0125);
     box.scale(TREE_SCALE);
     args.occluder = args.viewFrustum->getProjectedShadow(box);
+    glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
 
-    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, 
-                args.viewFrustum->getPosition(), (void*)&args);
+    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
     setupNewVoxelsForDrawing();
 }
 
