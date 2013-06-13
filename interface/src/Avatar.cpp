@@ -617,7 +617,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // set head lookat position
     if (!_owningAgent) {
-        //if (_camera)
         if (_interactingOther) {
             _head.setLookAtPosition(_interactingOther->calculateAverageEyePosition());
         } else {

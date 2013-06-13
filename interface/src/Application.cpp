@@ -1016,7 +1016,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     }
 }
 
-const glm::vec3 Application::getMouseVoxelWorldCoordinates(VoxelDetail _mouseVoxel) {
+const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
@@ -2206,7 +2206,7 @@ void Application::displayStats() {
     }
 }
 
-void Application::renderThrustAtVoxel(glm::vec3 thrust) {
+void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
     if (_mousePressed) {
         glColor3f(1, 0, 0);
         glLineWidth(2.0f);

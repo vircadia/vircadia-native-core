@@ -67,7 +67,7 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
-    const glm::vec3 getMouseVoxelWorldCoordinates(VoxelDetail _mouseVoxel);
+    const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
@@ -95,7 +95,7 @@ private slots:
     
     void setRenderFirstPerson(bool firstPerson);
     
-    void renderThrustAtVoxel(glm::vec3 thrust);
+    void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
     
     void setFrustumOffset(bool frustumOffset);
