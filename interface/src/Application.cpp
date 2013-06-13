@@ -1943,11 +1943,6 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     return screenPoint;
 }
 
-glm::vec2 Application::getScreenPoint(glm::vec3 voxelPoint) {
-    glm::vec2 projectedPoint = _viewFrustum.projectPoint(voxelPoint * (float)TREE_SCALE);
-    return getScaledScreenPoint(projectedPoint);
-}
-
 void Application::renderVirtualOccluders() {
 
     if (_debugShowVirtualOccluders->isChecked()) {

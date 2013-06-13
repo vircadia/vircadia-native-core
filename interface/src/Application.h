@@ -148,7 +148,6 @@ private:
 
     // Couple of debug routines for use in debuggin/developing Occlusion Culling. Will be removed eventually
     void renderVirtualOccluders();
-    glm::vec2 getScreenPoint(glm::vec3 voxelPoint);
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     
     void renderViewFrustum(ViewFrustum& viewFrustum);
