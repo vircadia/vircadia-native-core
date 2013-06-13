@@ -67,6 +67,8 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
+    const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
+    
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -92,6 +94,9 @@ private slots:
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
+    
+    void renderThrustAtVoxel(const glm::vec3& thrust);
+    void renderLineToTouchedVoxel();
     
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
@@ -141,7 +146,7 @@ private:
     void displayStats();
     
     void renderViewFrustum(ViewFrustum& viewFrustum);
-    
+        
     void setupPaintingVoxel();
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
@@ -256,7 +261,12 @@ private:
     
     int _mouseX;
     int _mouseY;
+    int _mouseDragStartedX;
+    int _mouseDragStartedY;
+    VoxelDetail _mouseVoxelDragging;
+    glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
+
     
     VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
     float _mouseVoxelScale;       // the scale for adding/removing voxels

@@ -103,8 +103,8 @@ public:
     void setColor(const nodeColor& color);
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _currentColor; };
-    void setDensity(const float density) { _density = density; };
-    const float getDensity() const { return _density; };
+    void setDensity(float density) { _density = density; };
+    float getDensity() const { return _density; };
 #else
     void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
     void setFalseColored(bool isFalseColored) { /* no op */ };

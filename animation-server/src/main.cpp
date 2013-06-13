@@ -244,7 +244,6 @@ static void renderMovingBug() {
 }
 
 
-
 float intensity = 0.5f;
 float intensityIncrement = 0.1f;
 const float MAX_INTENSITY = 1.0f;
