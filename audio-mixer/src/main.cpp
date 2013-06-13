@@ -381,8 +381,8 @@ int main(int argc, const char* argv[]) {
             // calculate the percentage value for time elapsed for this send (of the max allowable time)
             gettimeofday(&endSendTime, NULL);
             
-            float percentageOfMaxElapsed = (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
-                / BUFFER_SEND_INTERVAL_USECS * 100.0f;
+            float percentageOfMaxElapsed = ((float) (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
+                / BUFFER_SEND_INTERVAL_USECS) * 100.0f;
             
             if (percentageOfMaxElapsed > 0) {
                 sumFrameTimePercentages += percentageOfMaxElapsed;
