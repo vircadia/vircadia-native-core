@@ -16,7 +16,7 @@ CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygo
     _isRoot(isRoot), _myBoundingBox(boundingBox), _managePolygons(managePolygons) { 
     _mapCount++;
     init(); 
-    printLog("CoverageMap created... _mapCount=%d\n",_mapCount);
+    //printLog("CoverageMap created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMap::~CoverageMap() {
@@ -33,12 +33,12 @@ CoverageMap::~CoverageMap() {
             delete _childMaps[i];
         }
     }
-    
+
     if (_isRoot) {
         printLog("CoverageMap last to be deleted...\n");
-         printLog("_mapCount=%d\n",_mapCount);
-         printLog("_maxPolygonsUsed=%d\n",_maxPolygonsUsed);
-         printLog("_totalPolygons=%d\n",_totalPolygons);
+        printLog("_mapCount=%d\n",_mapCount);
+        printLog("_maxPolygonsUsed=%d\n",_maxPolygonsUsed);
+        printLog("_totalPolygons=%d\n",_totalPolygons);
 
         _maxPolygonsUsed = 0;
         _totalPolygons = 0;
@@ -89,7 +89,7 @@ void CoverageMap::growPolygonArray() {
     _polygons = newPolygons;
     _polygonDistances = newDistances;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
-//printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
+    //printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
 
 int CoverageMap::_maxPolygonsUsed = 0;
@@ -100,9 +100,6 @@ int CoverageMap::_totalPolygons = 0;
 void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 
     _totalPolygons++;
-
-//printLog("CoverageMap::storeInArray()...");
-//polygon->printDebugDetails();
 
     if (_polygonArraySize < _polygonCount + 1) {
         growPolygonArray();
@@ -118,8 +115,8 @@ void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 
     if (_polygonCount > _maxPolygonsUsed) {
         _maxPolygonsUsed = _polygonCount;
-        printLog("CoverageMap new _maxPolygonsUsed reached=%d\n",_maxPolygonsUsed);
-        _myBoundingBox.printDebugDetails("map._myBoundingBox");
+        //printLog("CoverageMap new _maxPolygonsUsed reached=%d\n",_maxPolygonsUsed);
+        //_myBoundingBox.printDebugDetails("map._myBoundingBox");
     }
 }
 
@@ -149,38 +146,16 @@ void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 //      end
 //      return DOESNT_FIT
 CoverageMap::StorageResult CoverageMap::storeInMap(VoxelProjectedShadow* polygon) {
-
-//printLog("CoverageMap::storeInMap()...");
-//polygon->printDebugDetails();
-
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
-
-/**
-if (_isRoot) {
-    printLog("CoverageMap::storeInMap()... this map _isRoot, so all polygons are contained....\n");
-} else {
-    printLog("CoverageMap::storeInMap()... _myBoundingBox.contains(polygon)....\n");
-    _myBoundingBox.printDebugDetails("_myBoundingBox");
-    polygon->getBoundingBox().printDebugDetails("polygon->getBoundingBox()");
-}
-**/
-
         // check to make sure this polygon isn't occluded by something at this level
         for (int i = 0; i < _polygonCount; i++) {
             VoxelProjectedShadow* polygonAtThisLevel = _polygons[i];
-
-//printLog("CoverageMap::storeInMap()... polygonAtThisLevel = _polygons[%d] =",i);
-//polygonAtThisLevel->printDebugDetails();
-            
             // Check to make sure that the polygon in question is "behind" the polygon in the list
             // otherwise, we don't need to test it's occlusion (although, it means we've potentially
             // added an item previously that may be occluded??? Is that possible? Maybe not, because two
             // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
             // each other.
             if (polygonAtThisLevel->occludes(*polygon)) {
-
-//printLog("CoverageMap::storeInMap()... polygonAtThisLevel->occludes(*polygon)...\n",i);
-
                 // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
                 // want to report our inserted one as occluded, but we do want to add our inserted one.
                 if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
@@ -211,4 +186,3 @@ if (_isRoot) {
     }
     return DOESNT_FIT;
 }
-
