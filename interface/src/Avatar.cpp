@@ -353,7 +353,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_MAG_FWD = 300.f;
     const float THRUST_MAG_BACK = 150.f;
     const float THRUST_MAG_LATERAL = 200.f;
-    const float THRUST_JUMP = 65.f;
+    const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
     if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG_FWD * deltaTime * front;}
