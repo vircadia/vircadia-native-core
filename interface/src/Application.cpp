@@ -1449,6 +1449,10 @@ void Application::update(float deltaTime) {
 
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
+    
+    // Set where I am looking based on my mouse ray (so that other people can see)
+    glm::vec3 myLookAtFromMouse(mouseRayOrigin - mouseRayDirection);
+    _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 5.0f;
@@ -2045,9 +2049,7 @@ void Application::displaySide(Camera& whichCamera) {
         // Render my own Avatar
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-        } else {
-            _myAvatar.getHead().setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-        }
+        } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }
