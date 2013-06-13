@@ -26,11 +26,13 @@ enum eyeContactTargets
 const int NUM_HAIR_TUFTS    = 4;
 
 class Avatar;
+class ProgramObject;
 
 class Head : public HeadData {
 public:
     Head(Avatar* owningAvatar);
     
+    void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror, float alpha);
@@ -104,6 +106,9 @@ private:
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
     glm::vec3   _saccadeTarget;
+    
+    static ProgramObject* _irisProgram;
+    static GLuint _irisTextureID;
     
     // private methods
     void createMohawk();
