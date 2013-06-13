@@ -22,14 +22,14 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-double usecTimestamp(timeval *time) {
-    return (time->tv_sec * 1000000.0 + time->tv_usec);
+long long usecTimestamp(timeval *time) {
+    return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
-double usecTimestampNow() {
+long long usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000.0 + now.tv_usec);
+    return (now.tv_sec * 1000000 + now.tv_usec);
 }
 
 float randFloat () {
@@ -102,12 +102,12 @@ void setAtBit(unsigned char& byte, int bitIndex) {
 }
 
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
-    return (byte >> (7 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
+    return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
-    byte += ((value & 3) << (7 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
+    byte += ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
 bool isInEnvironment(const char* environment) {

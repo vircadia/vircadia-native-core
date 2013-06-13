@@ -165,15 +165,15 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
     PerformanceWarning warn(_renderWarningsOn, "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
-    double start = usecTimestampNow();
-    double sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000.0;
+    long long start = usecTimestampNow();
+    long long sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (!iAmDebugging && sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    double sinceLastViewCulling = (start - _lastViewCulling) / 1000.0;
+    long long sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) 
             && !isViewChanging() && hasViewChanged()) {
@@ -189,8 +189,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
         cleanupRemovedVoxels();
 
-        double endViewCulling = usecTimestampNow();
-        _lastViewCullingElapsed = (endViewCulling - start) / 1000.0;
+        long long endViewCulling = usecTimestampNow();
+        _lastViewCullingElapsed = (endViewCulling - start) / 1000;
     }    
     
     bool didWriteFullVBO = _writeRenderFullVBO;
@@ -226,8 +226,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     pthread_mutex_unlock(&_bufferWriteLock);
 
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start) / 1000.0;
+    long long end = usecTimestampNow();
+    long long elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }

@@ -62,7 +62,6 @@ AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _agentTypesOfInterest(NULL),
-    _socketListenPort(newSocketListenPort),
     _ownerID(UNKNOWN_AGENT_ID),
     _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
@@ -206,6 +205,7 @@ void AgentList::sendDomainServerCheckIn() {
     
     // construct the DS check in packet if we need to
     static unsigned char* checkInPacket = NULL;
+    static int checkInPacketSize;
 
     if (!checkInPacket) {
         int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : 0;
@@ -224,7 +224,7 @@ void AgentList::sendDomainServerCheckIn() {
         
         packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
                                      getLocalAddress(),
-                                     htons(_socketListenPort));
+                                     htons(_agentSocket.getListeningPort()));
         
         // add the number of bytes for agent types of interest
         *(packetPosition++) = numBytesAgentsOfInterest;
@@ -237,10 +237,10 @@ void AgentList::sendDomainServerCheckIn() {
             packetPosition += numBytesAgentsOfInterest;
         }
         
-        *packetPosition = '\0';
+        checkInPacketSize = packetPosition - checkInPacket;
     }
     
-    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, strlen((char*) checkInPacket));
+    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
@@ -393,7 +393,7 @@ void *pingUnknownAgents(void *args) {
             }
         }
         
-        double usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        long long usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -414,7 +414,7 @@ void AgentList::stopPingUnknownAgentsThread() {
 
 void *removeSilentAgents(void *args) {
     AgentList* agentList = (AgentList*) args;
-    double checkTimeUSecs, sleepTime;
+    long long checkTimeUSecs, sleepTime;
     
     while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
@@ -423,7 +423,7 @@ void *removeSilentAgents(void *args) {
             
             if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
             	&& agent->getType() != AGENT_TYPE_VOXEL_SERVER) {
-                
+            
                 printLog("Killed ");
                 Agent::printLog(*agent);
                 
