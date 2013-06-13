@@ -491,32 +491,15 @@ void Head::renderEyeBalls() {
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
-        
         glPushMatrix();
-        
-            if (1) {
-
-                //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);                 glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-                glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
-            } else {
-
-                //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
-                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
-
-                //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT);            
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
-                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
-                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
-            }
-             
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
+            //rotate the eyeball to aim towards the lookat position
+            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);
+            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
+            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
         glPopMatrix();
     }
@@ -525,34 +508,16 @@ void Head::renderEyeBalls() {
     // render right iris
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
-
         glPushMatrix();
-        
-            if (1) {
-            
-                //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-                glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
 
-            } else {
-
-                //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
-                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
-
-                //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT); 
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
-                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
-                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
-            }
-            
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
+            //rotate the eyeball to aim towards the lookat position
+            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
+            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
+            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
         glPopMatrix();
     }
