@@ -59,7 +59,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
     _browAudioLift(0.0f),
-    _lookingAtSomething(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _averageLoudness(0.0f),
@@ -69,7 +68,9 @@ Head::Head(Avatar* owningAvatar) :
     _lookingInMirror(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-     _mohawkColors(NULL)
+     _mohawkColors(NULL),
+    _saccade(0.0f, 0.0f, 0.0f),
+    _saccadeTarget(0.0f, 0.0f, 0.0f)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -124,32 +125,19 @@ void Head::resetHairPhysics() {
 
 
 void Head::simulate(float deltaTime, bool isMine) {
-
-    const float HEAD_MOTION_DECAY = 0.00;
     
-    /*
-    //  Decay head back to center if turned on
-    if (isMine && _returnHeadToCenter) {
+    // Update eye saccades
+    const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
+    const float AVERAGE_SACCADE_INTERVAL = 4.0f;
+    const float MICROSACCADE_MAGNITUDE = 0.002f;
+    const float SACCADE_MAGNITUDE = 0.04;
     
-        //  Decay rotation back toward center
-        _pitch *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
-        _yaw   *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
-        _roll  *= (1.0f - HEAD_MOTION_DECAY * _returnSpringScale * deltaTime);
+    if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+        _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+    } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+        _saccadeTarget = SACCADE_MAGNITUDE * randVector();
     }
-    
-    //  For invensense gyro, decay only slightly when near center (until we add fusion)
-    if (isMine) {
-        const float RETURN_RANGE = 15.0;
-        const float RETURN_STRENGTH = 0.5;
-        if (fabs(_pitch) < RETURN_RANGE) { _pitch *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_yaw  ) < RETURN_RANGE) { _yaw   *= (1.0f - RETURN_STRENGTH * deltaTime); }
-        if (fabs(_roll ) < RETURN_RANGE) { _roll  *= (1.0f - RETURN_STRENGTH * deltaTime); }
-    }
-     */
-
-    // decay lean
-    _leanForward  *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
-    _leanSideways *= (1.f - HEAD_MOTION_DECAY * 30 * deltaTime);
+    _saccade += (_saccadeTarget - _saccade) * 0.50f;
                 
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05;
@@ -170,28 +158,11 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     _browAudioLift *= 0.7f;      
 
-    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.  
-    determineIfLookingAtSomething();   
-    
+    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
     }
     
-}
-
-void Head::determineIfLookingAtSomething() { 
-
-    if ( fabs(_lookAtPosition.x + _lookAtPosition.y + _lookAtPosition.z) == 0.0 ) { // a lookatPosition of 0,0,0 signifies NOT looking
-        _lookingAtSomething = false;
-    } else {
-        glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - calculateAverageEyePosition());
-        float dot = glm::dot(targetLookatAxis, getFrontDirection());
-        if (dot < MINIMUM_EYE_ROTATION_DOT) { // too far off from center for the eyes to rotate 
-            _lookingAtSomething = false;
-        } else {
-            _lookingAtSomething = true;
-        }
-    }
 }
 
 void Head::calculateGeometry() {
@@ -240,9 +211,9 @@ void Head::render(bool lookingInMirror, float alpha) {
     renderEyeBalls();    
     renderEars();
     renderMouth();    
-    renderEyeBrows();    
+    renderEyeBrows();
         
-    if (_renderLookatVectors && _lookingAtSomething) {
+    if (_renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
@@ -520,33 +491,15 @@ void Head::renderEyeBalls() {
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
-        
         glPushMatrix();
-        
-            if (_lookingAtSomething) {
-
-                //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _leftEyePosition); // the lookat direction
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-                glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
-            } else {
-
-                //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
-                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
-
-                //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT);            
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
-                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
-                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
-            }
-             
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
+            //rotate the eyeball to aim towards the lookat position
+            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);
+            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
+            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
         glPopMatrix();
     }
@@ -555,34 +508,16 @@ void Head::renderEyeBalls() {
     // render right iris
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
-
         glPushMatrix();
-        
-            if (_lookingAtSomething) {
-            
-                //rotate the eyeball to aim towards the lookat position
-                glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition - _rightEyePosition);
-                glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-                float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-                glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-                glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
 
-            } else {
-
-                //rotate the eyeball to aim straight ahead
-                glm::vec3 rotationAxisToHeadFront = glm::cross(front, IDENTITY_UP);            
-                float angleToHeadFront = 180.0f - angleBetween(front, IDENTITY_UP);            
-                glRotatef(angleToHeadFront, rotationAxisToHeadFront.x, rotationAxisToHeadFront.y, rotationAxisToHeadFront.z);
-
-                //set the amount of roll (for correction after previous rotations)
-                float rollRotation = angleBetween(front, IDENTITY_FRONT); 
-                float dot = glm::dot(front, -IDENTITY_RIGHT);
-                if ( dot < 0.0f ) { rollRotation = -rollRotation; }
-                glRotatef(rollRotation, 0.0f, 1.0f, 0.0f); //roll the iris or correct roll about the lookat vector
-            }
-            
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);//push the iris out a bit (otherwise - inside of eyeball!) 
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris 
+            //rotate the eyeball to aim towards the lookat position
+            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
+            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
+            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
+            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
+            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
         glPopMatrix();
     }

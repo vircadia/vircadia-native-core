@@ -93,7 +93,6 @@ private:
     glm::vec3   _mouthPosition; 
     float       _scale;
     float       _browAudioLift;
-    bool        _lookingAtSomething;
     glm::vec3   _gravity;
     float       _lastLoudness;
     float       _averageLoudness;
@@ -105,6 +104,8 @@ private:
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
+    glm::vec3   _saccade;
+    glm::vec3   _saccadeTarget;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
@@ -118,7 +119,6 @@ private:
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry();
-    void determineIfLookingAtSomething();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 };
