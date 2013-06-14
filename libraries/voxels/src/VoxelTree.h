@@ -30,29 +30,30 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
 class EncodeBitstreamParams {
 public:
-    int maxEncodeLevel;
-    const ViewFrustum* viewFrustum;
-    bool includeColor;
-    bool includeExistsBits;
-    int chopLevels;
-    bool deltaViewFrustum;
-    const ViewFrustum* lastViewFrustum;
+    int                 maxEncodeLevel;
+    const ViewFrustum*  viewFrustum;
+    bool                includeColor;
+    bool                includeExistsBits;
+    int                 chopLevels;
+    bool                deltaViewFrustum;
+    const ViewFrustum*  lastViewFrustum;
     
     EncodeBitstreamParams(
-        int maxEncodeLevel = INT_MAX, 
-        const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM, 
-        bool includeColor = WANT_COLOR, 
-        bool includeExistsBits = WANT_EXISTS_BITS,
-        int chopLevels = 0, 
-        bool deltaViewFrustum = false, 
-        const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM) :
-            maxEncodeLevel(maxEncodeLevel),
-            viewFrustum(viewFrustum),
-            includeColor(includeColor),
-            includeExistsBits(includeExistsBits),
-            chopLevels(chopLevels),
-            deltaViewFrustum(deltaViewFrustum),
-            lastViewFrustum(lastViewFrustum)
+        int                 maxEncodeLevel      = INT_MAX, 
+        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM, 
+        bool                includeColor        = WANT_COLOR, 
+        bool                includeExistsBits   = WANT_EXISTS_BITS,
+        int                 chopLevels          = 0, 
+        bool                deltaViewFrustum    = false, 
+        const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM) :
+        
+            maxEncodeLevel      (maxEncodeLevel),
+            viewFrustum         (viewFrustum),
+            includeColor        (includeColor),
+            includeExistsBits   (includeExistsBits),
+            chopLevels          (chopLevels),
+            deltaViewFrustum    (deltaViewFrustum),
+            lastViewFrustum     (lastViewFrustum)
     {}
 };
 
