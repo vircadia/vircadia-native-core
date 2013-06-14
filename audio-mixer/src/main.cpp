@@ -130,9 +130,9 @@ int main(int argc, const char* argv[]) {
                 char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
                 
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                int packetBytes = sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
-                agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, MIXER_LOGSTASH_PACKET_BYTES);
+                agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, packetBytes);
                 
                 sumFrameTimePercentages = 0.0f;
                 numStatCollections = 0;
