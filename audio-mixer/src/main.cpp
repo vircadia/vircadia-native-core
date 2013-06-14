@@ -116,6 +116,8 @@ int main(int argc, const char* argv[]) {
     float sumFrameTimePercentages = 0.0f;
     int numStatCollections = 0;
     
+    timeval twoPoleStart, twoPoleEnd;
+    
     // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
     if (Logstash::shouldSendStats()) {
         Logstash::socket();
@@ -257,6 +259,8 @@ int main(int argc, const char* argv[]) {
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 
+                                gettimeofday(&twoPoleStart, NULL);                                
+                                
                                 // grab the TwoPole object for this source, add it if it doesn't exist
                                 TwoPoleAgentMap& agentTwoPoles = agentRingBuffer->getTwoPoles();
                                 TwoPoleAgentMap::iterator twoPoleIterator = agentTwoPoles.find(otherAgent->getAgentID());
@@ -276,6 +280,10 @@ int main(int argc, const char* argv[]) {
                                                                 TWO_POLE_MAX_FILTER_STRENGTH
                                                                 * fabsf(bearingRelativeAngleToSource) / 180.0f,
                                                                 true);
+                                
+                                gettimeofday(&twoPoleEnd, NULL);
+                                
+                                printf("TPP: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
                             }
                         }
                         
@@ -302,7 +310,14 @@ int main(int argc, const char* argv[]) {
                             }
                             
                             if (otherAgentTwoPole) {
+                                
+                                gettimeofday(&twoPoleStart, NULL);
+                                
                                 otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
+                                
+                                gettimeofday(&twoPoleEnd, NULL);
+                                
+                                printf("TPC: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
                             }
                             
                             int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
