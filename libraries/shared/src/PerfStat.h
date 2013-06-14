@@ -84,7 +84,7 @@ typedef std::map<std::string,PerfStatHistory,std::less<std::string> >::iterator 
 
 class PerformanceWarning {
 private:
-	double _start;
+	long long _start;
 	const char* _message;
 	bool _renderWarningsOn;
 	bool _alwaysDisplay;

@@ -117,7 +117,7 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
-UDPSocket::UDPSocket(int listeningPort) : blocking(true) {
+UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking(true) {
     init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -138,6 +138,13 @@ UDPSocket::UDPSocket(int listeningPort) : blocking(true) {
     if (bind(handle, (const sockaddr*) &bind_address, sizeof(sockaddr_in)) < 0) {
         printLog("Failed to bind socket to port %d.\n", listeningPort);
         return;
+    }
+    
+    // if we requested an ephemeral port, get the actual port
+    if (listeningPort == 0) {
+        socklen_t addressLength = sizeof(sockaddr_in);
+        getsockname(handle, (sockaddr*) &bind_address, &addressLength);
+        listeningPort = ntohs(bind_address.sin_port);
     }
     
     // set timeout on socket recieve to 0.5 seconds

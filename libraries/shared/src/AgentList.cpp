@@ -26,7 +26,7 @@
 const char SOLO_AGENT_TYPES[3] = {
     AGENT_TYPE_AVATAR_MIXER,
     AGENT_TYPE_AUDIO_MIXER,
-    AGENT_TYPE_VOXEL
+    AGENT_TYPE_VOXEL_SERVER
 };
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
@@ -34,7 +34,6 @@ char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 bool silentAgentThreadStopFlag = false;
-bool domainServerCheckinStopFlag = false;
 bool pingUnknownAgentThreadStopFlag = false;
 
 AgentList* AgentList::_sharedInstance = NULL;
@@ -60,25 +59,22 @@ AgentList* AgentList::getInstance() {
 AgentList::AgentList(char newOwnerType, unsigned int newSocketListenPort) :
     _agentBuckets(),
     _numAgents(0),
-    agentSocket(newSocketListenPort),
+    _agentSocket(newSocketListenPort),
     _ownerType(newOwnerType),
-    socketListenPort(newSocketListenPort),
+    _agentTypesOfInterest(NULL),
     _ownerID(UNKNOWN_AGENT_ID),
     _lastAgentID(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
 AgentList::~AgentList() {
+    delete _agentTypesOfInterest;
+    
     // stop the spawned threads, if they were started
     stopSilentAgentRemovalThread();
-    stopDomainServerCheckInThread();
     stopPingUnknownAgentsThread();
     
     pthread_mutex_destroy(&mutex);
-}
-
-unsigned int AgentList::getSocketListenPort() {
-    return socketListenPort;
 }
 
 void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -88,7 +84,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
         case PACKET_HEADER_PING: {
-            agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
+            _agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
@@ -181,6 +177,72 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     return NULL;
 }
 
+void AgentList::setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest) {
+    delete _agentTypesOfInterest;
+    
+    _agentTypesOfInterest = new char[numAgentTypesOfInterest + sizeof(char)];
+    memcpy(_agentTypesOfInterest, agentTypesOfInterest, numAgentTypesOfInterest);
+    _agentTypesOfInterest[numAgentTypesOfInterest] = '\0';
+}
+
+void AgentList::sendDomainServerCheckIn() {
+    static bool printedDomainServerIP = false;
+    //  Lookup the IP address of the domain server if we need to
+    if (atoi(DOMAIN_IP) == 0) {
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
+            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
+        } else {
+            printLog("Failed domain server lookup\n");
+        }
+    } else if (!printedDomainServerIP) {
+        printLog("Domain Server IP: %s\n", DOMAIN_IP);
+        printedDomainServerIP = true;
+    }
+    
+    // construct the DS check in packet if we need to
+    static unsigned char* checkInPacket = NULL;
+    static int checkInPacketSize;
+
+    if (!checkInPacket) {
+        int numBytesAgentsOfInterest = _agentTypesOfInterest ? strlen((char*) _agentTypesOfInterest) : 0;
+        
+        // check in packet has header, agent type, port, IP, agent types of interest, null termination
+        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
+            numBytesAgentsOfInterest + sizeof(unsigned char);
+        
+        checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char* packetPosition = checkInPacket;
+        
+        *(packetPosition++) = (memchr(SOLO_AGENT_TYPES, _ownerType, sizeof(SOLO_AGENT_TYPES)))
+                ? PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
+                : PACKET_HEADER_DOMAIN_LIST_REQUEST;
+        *(packetPosition++) = _ownerType;
+        
+        packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
+                                     getLocalAddress(),
+                                     htons(_agentSocket.getListeningPort()));
+        
+        // add the number of bytes for agent types of interest
+        *(packetPosition++) = numBytesAgentsOfInterest;
+                
+        // copy over the bytes for agent types of interest, if required
+        if (numBytesAgentsOfInterest > 0) {
+            memcpy(packetPosition,
+                   _agentTypesOfInterest,
+                   numBytesAgentsOfInterest);
+            packetPosition += numBytesAgentsOfInterest;
+        }
+        
+        checkInPacketSize = packetPosition - checkInPacket;
+    }
+    
+    _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+}
+
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 
@@ -233,7 +295,7 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
             newAgent->activatePublicSocket();
         }
    
-        if (newAgent->getType() == AGENT_TYPE_VOXEL ||
+        if (newAgent->getType() == AGENT_TYPE_VOXEL_SERVER ||
             newAgent->getType() == AGENT_TYPE_AVATAR_MIXER ||
             newAgent->getType() == AGENT_TYPE_AUDIO_MIXER) {
             // this is currently the cheat we use to talk directly to our test servers on EC2
@@ -247,9 +309,7 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
     } else {
         
         if (agent->getType() == AGENT_TYPE_AUDIO_MIXER ||
-            agent->getType() == AGENT_TYPE_VOXEL ||
-            agent->getType() == AGENT_TYPE_ANIMATION_SERVER ||
-            agent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
+            agent->getType() == AGENT_TYPE_VOXEL_SERVER) {
             // until the Audio class also uses our agentList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             agent->setLastHeardMicrostamp(usecTimestampNow());
@@ -281,7 +341,7 @@ void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes
         // only send to the AgentTypes we are asked to send to.
         if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
-            agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
+            _agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
         }
     }
 }
@@ -333,7 +393,7 @@ void *pingUnknownAgents(void *args) {
             }
         }
         
-        double usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        long long usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -354,7 +414,7 @@ void AgentList::stopPingUnknownAgentsThread() {
 
 void *removeSilentAgents(void *args) {
     AgentList* agentList = (AgentList*) args;
-    double checkTimeUSecs, sleepTime;
+    long long checkTimeUSecs, sleepTime;
     
     while (!silentAgentThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();
@@ -362,8 +422,8 @@ void *removeSilentAgents(void *args) {
         for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); ++agent) {
             
             if ((checkTimeUSecs - agent->getLastHeardMicrostamp()) > AGENT_SILENCE_THRESHOLD_USECS
-            	&& agent->getType() != AGENT_TYPE_VOXEL) {
-                
+            	&& agent->getType() != AGENT_TYPE_VOXEL_SERVER) {
+            
                 printLog("Killed ");
                 Agent::printLog(*agent);
                 
@@ -390,62 +450,6 @@ void AgentList::startSilentAgentRemovalThread() {
 void AgentList::stopSilentAgentRemovalThread() {
     silentAgentThreadStopFlag = true;
     pthread_join(removeSilentAgentsThread, NULL);
-}
-
-void *checkInWithDomainServer(void *args) {
-    
-    const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
-    
-    //  Lookup the IP address of the domain server if we need to
-    if (atoi(DOMAIN_IP) == 0) {
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
-            
-        } else {
-            printLog("Failed lookup domainserver\n");
-        }
-    } else printLog("Domain Server IP: %s\n", DOMAIN_IP);
-    
-    AgentList* parentAgentList = (AgentList*) args;
-    
-    timeval lastSend;
-    in_addr_t localAddress = getLocalAddress();
-    unsigned char packet[8];
-    
-    packet[0] = PACKET_HEADER_DOMAIN_RFD;
-    packet[1] = parentAgentList->getOwnerType();    
-    
-    while (!domainServerCheckinStopFlag) {
-        gettimeofday(&lastSend, NULL);
-        
-        packSocket(packet + 2, localAddress, htons(parentAgentList->getSocketListenPort()));
-        
-        parentAgentList->getAgentSocket()->send(DOMAIN_IP, DOMAINSERVER_PORT, packet, sizeof(packet));
-        
-        packet[0] = PACKET_HEADER_DOMAIN_LIST_REQUEST;
-        
-        double usecToSleep = DOMAIN_SERVER_CHECK_IN_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-    }
-    
-    pthread_exit(0);
-    return NULL;
-}
-
-void AgentList::startDomainServerCheckInThread() {
-    pthread_create(&checkInWithDomainServerThread, NULL, checkInWithDomainServer, (void*) this);
-}
-
-void AgentList::stopDomainServerCheckInThread() {
-    domainServerCheckinStopFlag = true;
-    pthread_join(checkInWithDomainServerThread, NULL);
 }
 
 AgentList::iterator AgentList::begin() const {

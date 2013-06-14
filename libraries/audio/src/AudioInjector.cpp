@@ -115,7 +115,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
             
-            double usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
+            long long usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }

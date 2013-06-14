@@ -59,7 +59,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
             printf("sending packet of size=%d\n",sizeOut);
         }
 
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -168,7 +168,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 
@@ -238,11 +238,10 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
-
 
 
 float intensity = 0.5f;
@@ -345,7 +344,7 @@ static void sendBlinkingStringOfLights() {
                 if (::shouldShowPacketsPerSecond) {
                     printf("sending packet of size=%d\n",sizeOut);
                 }
-                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                 delete[] bufferOut;
             }
 
@@ -387,7 +386,7 @@ static void sendBlinkingStringOfLights() {
             if (::shouldShowPacketsPerSecond) {
                 printf("sending packet of size=%d\n",sizeOut);
             }
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
             delete[] bufferOut;
         }
     }
@@ -510,7 +509,7 @@ void sendDanceFloor() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -607,7 +606,7 @@ static void sendBillboard() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -644,14 +643,14 @@ void* animateVoxels(void* args) {
             sendDanceFloor();
         }
         
-        double end = usecTimestampNow();
-        double elapsedSeconds = (end - ::start) / 1000000.0;
+        long long end = usecTimestampNow();
+        long long elapsedSeconds = (end - ::start) / 1000000;
         if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
                 (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        long long usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -702,7 +701,6 @@ int main(int argc, const char * argv[])
 
     agentList->linkedDataCreateCallback = NULL; // do we need a callback?
     agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
 
@@ -713,16 +711,21 @@ int main(int argc, const char * argv[])
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
+    
+    timeval lastDomainServerCheckIn = {};
+    AgentList::getInstance()->setAgentTypesOfInterest(&AGENT_TYPE_VOXEL_SERVER, 1);
 
     // loop to send to agents requesting data
     while (true) {
-        // Agents sending messages to us...    
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
+        // Agents sending messages to us...
         if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-            switch (packetData[0]) {
-                default: {
-                    AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
-                } break;
-            }
+            AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
         }
     }
     
