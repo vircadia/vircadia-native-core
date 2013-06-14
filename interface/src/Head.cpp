@@ -87,12 +87,14 @@ void Head::init() {
     
         _irisProgram->setUniformValue("texture", 0);
         
-        QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_RGB888);
+        QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
         glGenTextures(1, &_irisTextureID);
         glBindTexture(GL_TEXTURE_2D, _irisTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1, GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 }
@@ -462,24 +464,18 @@ void Head::renderEyeBrows() {
 
 void Head::renderEyeBalls() {                                 
     
-    // setup the texture to be used on each iris
-    GLUquadric* irisQuadric = gluNewQuadric();
-    gluQuadricTexture(irisQuadric, GL_TRUE);
-    
-    gluQuadricOrientation(irisQuadric, GLU_OUTSIDE);
-
     // render white ball of left eyeball
     glPushMatrix();
         glColor3fv(EYEBALL_COLOR);
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
-        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
+        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
     
     //render white ball of right eyeball
     glPushMatrix();
         glColor3fv(EYEBALL_COLOR);
-        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);        
-        gluSphere(irisQuadric, EYEBALL_RADIUS, 30, 30);
+        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);
+        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
     _irisProgram->bind();
@@ -492,44 +488,36 @@ void Head::renderEyeBalls() {
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
-        glPushMatrix();
-            //rotate the eyeball to aim towards the lookat position
-            glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
-            glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-            glm::vec3 rotationAxis = glm::axis(rotation);           
-            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glRotatef(90.0, 1.0f, 0.0f, 0.0f); // rotate to face Z-
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
-            gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
-        glPopMatrix();
+        
+        //rotate the eyeball to aim towards the lookat position
+        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
+        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(rotation);           
+        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        glutSolidSphere(0.5f, 15, 15);
     }
     glPopMatrix();
 
     // render right iris
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
-        glPushMatrix();
-
-            //rotate the eyeball to aim towards the lookat position
-            glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
-            glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-            glm::vec3 rotationAxis = glm::axis(rotation);        
-            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glRotatef(90.0f, 1.0f, 0.0f, 0.0f); // rotate to face Z-
-            glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
-            glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
-            gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
-        glPopMatrix();
+        
+        //rotate the eyeball to aim towards the lookat position
+        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
+        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(rotation);        
+        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        glutSolidSphere(0.5f, 15, 15);
     }
+    glPopMatrix();
     
     _irisProgram->release();
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
-    
-    // delete the iris quadric now that we're done with it
-    gluDeleteQuadric(irisQuadric);
-    glPopMatrix();
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
