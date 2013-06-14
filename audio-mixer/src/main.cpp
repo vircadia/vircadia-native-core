@@ -70,10 +70,6 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
-struct SharedAudioFactors {
-    float distanceCoefficient;
-    float effectMix;
-};
 bool wantLocalDomain = false;
 
 int main(int argc, const char* argv[]) {
