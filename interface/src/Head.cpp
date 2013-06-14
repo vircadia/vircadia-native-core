@@ -486,18 +486,19 @@ void Head::renderEyeBalls() {
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
     
-    glm::vec3 front = getFrontDirection();
+    glm::quat orientation = getOrientation();
+    glm::vec3 front = orientation * IDENTITY_FRONT;
     
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         glPushMatrix();
             //rotate the eyeball to aim towards the lookat position
-            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _leftEyePosition);
-            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glRotatef(180.0, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
+            glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
+            glm::vec3 rotationAxis = glm::axis(rotation);           
+            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(90.0, 1.0f, 0.0f, 0.0f); // rotate to face Z-
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
@@ -511,11 +512,11 @@ void Head::renderEyeBalls() {
         glPushMatrix();
 
             //rotate the eyeball to aim towards the lookat position
-            glm::vec3 targetLookatAxis = glm::normalize(_lookAtPosition + _saccade - _rightEyePosition);
-            glm::vec3 rotationAxis = glm::cross(targetLookatAxis, IDENTITY_UP);
-            float angle = 180.0f - angleBetween(targetLookatAxis, IDENTITY_UP);            
-            glRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-            glRotatef(180.0f, 0.0f, 1.0f, 0.0f); //adjust roll to correct after previous rotations
+            glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
+            glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
+            glm::vec3 rotationAxis = glm::axis(rotation);        
+            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(90.0f, 1.0f, 0.0f, 0.0f); // rotate to face Z-
             glTranslatef( 0.0f, -IRIS_PROTRUSION, 0.0f);
             glScalef( 1.0f, 0.5f, 1.0f); // flatten the iris
             gluSphere(irisQuadric, IRIS_RADIUS, 15, 15);
