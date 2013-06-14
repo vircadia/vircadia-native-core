@@ -110,6 +110,15 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     byte += ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
+bool isInEnvironment(const char* environment) {
+    char* environmentString = getenv("HIFI_ENVIRONMENT");
+    
+    if (environmentString && strcmp(environmentString, environment) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 void switchToResourcesParentIfRequired() {
 #ifdef __APPLE__

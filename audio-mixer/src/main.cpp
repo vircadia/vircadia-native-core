@@ -24,6 +24,7 @@
 #include <AgentTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <Logstash.h>
 
 #include "InjectedAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
@@ -46,7 +47,7 @@ const unsigned short MIXER_LISTEN_PORT = 55443;
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const float BUFFER_SEND_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
+const long long BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -57,7 +58,7 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     long normalizedSample = std::min(MAX_SAMPLE_VALUE, sumSample);
     normalizedSample = std::max(MIN_SAMPLE_VALUE, sumSample);
     
-    mixSample = normalizedSample;    
+    mixSample = normalizedSample;
 }
 
 void attachNewBufferToAgent(Agent *newAgent) {
@@ -70,8 +71,19 @@ void attachNewBufferToAgent(Agent *newAgent) {
     }
 }
 
+bool wantLocalDomain = false;
+
 int main(int argc, const char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
+    
+    // Handle Local Domain testing with the --local command line
+    const char* local = "--local";
+    ::wantLocalDomain = cmdOptionExists(argc, argv,local);
+    if (::wantLocalDomain) {
+        printf("Local Domain MODE!\n");
+        int ip = getLocalAddress();
+        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    }
     
     AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     
@@ -100,12 +112,42 @@ int main(int argc, const char* argv[]) {
     
     timeval lastDomainServerCheckIn = {};
     
+    timeval beginSendTime, endSendTime;
+    float sumFrameTimePercentages = 0.0f;
+    int numStatCollections = 0;
+    
+    // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
+    if (Logstash::shouldSendStats()) {
+        Logstash::socket();
+    }
+    
     while (true) {
+        if (Logstash::shouldSendStats()) {
+            gettimeofday(&beginSendTime, NULL);
+        }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
             AgentList::getInstance()->sendDomainServerCheckIn();
+            
+            if (Logstash::shouldSendStats() && numStatCollections > 0) {
+                // if we should be sending stats to Logstash send the appropriate average now
+                const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
+                
+                // we're sending a floating point percentage with two mandatory numbers after decimal point
+                // that could be up to 6 bytes
+                const int MIXER_LOGSTASH_PACKET_BYTES = strlen(MIXER_LOGSTASH_METRIC_NAME) + 7;
+                char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
+                
+                float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
+                int packetBytes = sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                
+                agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, packetBytes);
+                
+                sumFrameTimePercentages = 0.0f;
+                numStatCollections = 0;
+            }
         }
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
@@ -135,6 +177,8 @@ int main(int argc, const char* argv[]) {
                         float attenuationCoefficient = 1.0f;
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.0f;
+                        
+                        stk::TwoPole* otherAgentTwoPole = NULL;
                         
                         if (otherAgent != agent) {
                             
@@ -212,6 +256,26 @@ int main(int argc, const char* argv[]) {
                                 float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                                
+                                // grab the TwoPole object for this source, add it if it doesn't exist
+                                TwoPoleAgentMap& agentTwoPoles = agentRingBuffer->getTwoPoles();
+                                TwoPoleAgentMap::iterator twoPoleIterator = agentTwoPoles.find(otherAgent->getAgentID());
+                                
+                                if (twoPoleIterator == agentTwoPoles.end()) {
+                                    // setup the freeVerb effect for this source for this client
+                                    otherAgentTwoPole = agentTwoPoles[otherAgent->getAgentID()] = new stk::TwoPole;
+                                } else {
+                                    otherAgentTwoPole = twoPoleIterator->second;
+                                }
+                                
+                                // calculate the reasonance for this TwoPole based on angle to source
+                                float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
+                                float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
+                                
+                                otherAgentTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
+                                                                TWO_POLE_MAX_FILTER_STRENGTH
+                                                                * fabsf(bearingRelativeAngleToSource) / 180.0f,
+                                                                true);
                             }
                         }
                         
@@ -235,6 +299,10 @@ int main(int argc, const char* argv[]) {
                                     * weakChannelAmplitudeRatio;
                                 
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                            }
+                            
+                            if (otherAgentTwoPole) {
+                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
                             }
                             
                             int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
@@ -316,6 +384,22 @@ int main(int argc, const char* argv[]) {
                 // give the new audio data to the matching injector agent
                 agentList->updateAgentWithData(matchingInjector, packetData, receivedBytes);
             }
+        }
+        
+        if (Logstash::shouldSendStats()) {
+            // send a packet to our logstash instance
+            
+            // calculate the percentage value for time elapsed for this send (of the max allowable time)
+            gettimeofday(&endSendTime, NULL);
+            
+            float percentageOfMaxElapsed = ((float) (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
+                / BUFFER_SEND_INTERVAL_USECS) * 100.0f;
+            
+            if (percentageOfMaxElapsed > 0) {
+                sumFrameTimePercentages += percentageOfMaxElapsed;
+            }
+            
+            numStatCollections++;
         }
         
         long long usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
