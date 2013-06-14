@@ -259,8 +259,6 @@ int main(int argc, const char* argv[]) {
                                 numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 
-                                gettimeofday(&twoPoleStart, NULL);                                
-                                
                                 // grab the TwoPole object for this source, add it if it doesn't exist
                                 TwoPoleAgentMap& agentTwoPoles = agentRingBuffer->getTwoPoles();
                                 TwoPoleAgentMap::iterator twoPoleIterator = agentTwoPoles.find(otherAgent->getAgentID());
@@ -280,10 +278,6 @@ int main(int argc, const char* argv[]) {
                                                                 TWO_POLE_MAX_FILTER_STRENGTH
                                                                 * fabsf(bearingRelativeAngleToSource) / 180.0f,
                                                                 true);
-                                
-                                gettimeofday(&twoPoleEnd, NULL);
-                                
-                                printf("TPP: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
                             }
                         }
                         
@@ -298,6 +292,17 @@ int main(int argc, const char* argv[]) {
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
                             : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                         
+                        gettimeofday(&twoPoleStart, NULL);
+                        
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                            if (otherAgentTwoPole) {
+                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
+                            }
+                        }
+                        
+                        gettimeofday(&twoPoleEnd, NULL);
+                        
+                        printf("TPC: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             if (s < numSamplesDelay) {
@@ -309,16 +314,9 @@ int main(int argc, const char* argv[]) {
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                             }
                             
-                            if (otherAgentTwoPole) {
-                                
-                                gettimeofday(&twoPoleStart, NULL);
-                                
-                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
-                                
-                                gettimeofday(&twoPoleEnd, NULL);
-                                
-                                printf("TPC: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
-                            }
+//                            if (otherAgentTwoPole) {
+//                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
+//                            }
                             
                             int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
                             
