@@ -8,6 +8,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+// the location of the eye in model space
+uniform vec3 eyePosition;
+
 // the interpolated normal
 varying vec4 normal;
 
@@ -24,7 +27,7 @@ void main(void) {
         gl_LightSource[0].diffuse.rgb * max(0.0, dot(normal, gl_LightSource[0].position))), gl_Color.a);
     
     // compute the texture coordinate based on where refracted vector hits z=0 in model space
-    vec4 incidence = normalize(gl_Vertex - gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0));
+    vec4 incidence = normalize(gl_Vertex - vec4(eyePosition, 1.0));
     vec4 refracted = refract(incidence, normalize(vec4(gl_Normal, 0.0)), refractionEta);
     gl_TexCoord[0] = (gl_Vertex - (gl_Vertex.z / refracted.z) * refracted) + vec4(0.5, 0.5, 0.0, 0.0);
     

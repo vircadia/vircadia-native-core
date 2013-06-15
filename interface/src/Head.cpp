@@ -41,6 +41,7 @@ const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
 ProgramObject* Head::_irisProgram = 0;
 GLuint Head::_irisTextureID;
+int Head::_eyePositionLocation;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
@@ -86,6 +87,7 @@ void Head::init() {
         _irisProgram->link();
     
         _irisProgram->setUniformValue("texture", 0);
+        _eyePositionLocation = _irisProgram->uniformLocation("eyePosition");
         
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
@@ -496,6 +498,13 @@ void Head::renderEyeBalls() {
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
         glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        
+        // this ugliness is simply to invert the model transform and get the eye position in model space
+        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+            (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
+                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
+                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+        
         glutSolidSphere(0.5f, 15, 15);
     }
     glPopMatrix();
@@ -511,6 +520,13 @@ void Head::renderEyeBalls() {
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
         glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        
+        // this ugliness is simply to invert the model transform and get the eye position in model space
+        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+            (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
+                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
+                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+        
         glutSolidSphere(0.5f, 15, 15);
     }
     glPopMatrix();
