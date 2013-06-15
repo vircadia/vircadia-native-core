@@ -57,6 +57,7 @@ void setAtBit(unsigned char& byte, int bitIndex);
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
 
+bool isInEnvironment(const char* environment);
 
 void switchToResourcesParentIfRequired();
 

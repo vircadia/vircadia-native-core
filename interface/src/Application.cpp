@@ -305,6 +305,8 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    float headCameraScale = _serialHeadSensor.active ? _headCameraPitchYawScale : 1.0f;
+    
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -320,11 +322,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(_headCameraPitchYawScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
     }
     
     // Update camera position
@@ -1454,6 +1456,10 @@ void Application::update(float deltaTime) {
 
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
+    
+    // Set where I am looking based on my mouse ray (so that other people can see)
+    glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
+    _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 5.0f;
@@ -2123,11 +2129,15 @@ void Application::displaySide(Camera& whichCamera) {
                     avatar->init();
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
+                avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
             }
         }
         agentList->unlock();
         
-        // Render my own Avatar 
+        // Render my own Avatar
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+        } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
     }

@@ -16,7 +16,3 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
-
-# link the threads library
-find_package(Threads REQUIRED)
-target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})

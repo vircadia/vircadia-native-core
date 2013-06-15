@@ -167,10 +167,12 @@ void resInVoxelDistributor(AgentList* agentList,
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = serverTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
-                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor(), WANT_EXISTS_BITS);
+
+                EncodeBitstreamParams params(agentData->getMaxSearchLevel(), &viewFrustum, 
+                                             agentData->getWantColor(), WANT_EXISTS_BITS);
+
+                bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
+                                                              agentData->nodeBag, params);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -310,12 +312,13 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = serverTree.encodeTreeBitstream(INT_MAX, subTree,
-                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), WANT_EXISTS_BITS,
-                                                              wantDelta, lastViewFrustum);
+                
+                EncodeBitstreamParams params(INT_MAX, &agentData->getCurrentViewFrustum(), agentData->getWantColor(), 
+                                             WANT_EXISTS_BITS, wantDelta, lastViewFrustum);
 
+                bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
+                                                              agentData->nodeBag, params);
+                
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {

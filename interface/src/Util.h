@@ -32,6 +32,8 @@ float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 
 float randFloat();
+const glm::vec3 randVector();
+
 void render_world_box();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);

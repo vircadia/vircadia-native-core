@@ -271,6 +271,7 @@ Avatar::~Avatar() {
 }
 
 void Avatar::init() {
+    _head.init();
     _voxels.init();
     _initialized = true;
 }
@@ -612,15 +613,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].position += headLean * 0.2f;
             _bodyBall[ BODY_BALL_RIGHT_WRIST      ].position += headLean * 0.1f;
             _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].position += headLean * 0.0f;
-        }
-    }
-    
-    // set head lookat position
-    if (!_owningAgent) {
-        if (_interactingOther) {
-            _head.setLookAtPosition(_interactingOther->calculateAverageEyePosition());
-        } else {
-            _head.setLookAtPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // 0,0,0 represents NOT looking at anything
         }
     }
     
