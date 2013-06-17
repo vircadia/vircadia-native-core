@@ -5,6 +5,8 @@
 //  Created by Andrzej Kapolka on 6/17/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <QtDebug>
+
 #include <opencv2/opencv.hpp>
 
 #include <Log.h>
@@ -17,19 +19,20 @@ Webcam::Webcam() {
         return;
     }
     
-    // bump up the capture property
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_FPS, 60);
-    
-    // get the dimensions of the frames
+    // get the dimensions, fps of the frames
     _frameWidth = cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH);
     _frameHeight = cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT);
-    
+    int fps = cvGetCaptureProperty(_capture, CV_CAP_PROP_FPS);
+    printLog("Opened camera [width=%d, height=%d, fps=%d].", _frameWidth, _frameHeight, fps);    
+}
+
+void Webcam::init() {
     // initialize the texture that will contain the grabbed frames
     glGenTextures(1, &_frameTextureID);
     glBindTexture(GL_TEXTURE_2D, _frameTextureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth, _frameHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);   
 }
 
 Webcam::~Webcam() {
@@ -43,7 +46,6 @@ void Webcam::grabFrame() {
     if (image == 0) {
         return;
     }
-    glBindTexture(GL_TEXTURE_2D, _frameTextureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
     glBindTexture(GL_TEXTURE_2D, 0);
 }

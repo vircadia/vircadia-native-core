@@ -19,6 +19,8 @@ public:
     Webcam();
     ~Webcam();
 
+    void init();
+
     int getFrameWidth() const { return _frameWidth; }
     int getFrameHeight() const { return _frameHeight; }
     float getFrameAspectRatio() const { return _frameWidth / (float)_frameHeight; }

@@ -1416,6 +1416,8 @@ void Application::init() {
         QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
     }
     
+    _webcam.init();
+    
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
 
@@ -2152,8 +2154,9 @@ void Application::displayOverlay() {
     }
     
     // render the webcam input frame
-    glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _webcam.getFrameTextureID());
+    glEnable(GL_TEXTURE_2D);
+    glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_QUADS);
         const int FRAME_PREVIEW_HEIGHT = 200;
         int framePreviewWidth = _webcam.getFrameAspectRatio() * FRAME_PREVIEW_HEIGHT;
