@@ -86,6 +86,7 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(OpenCV)
+find_package(ZLIB)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -102,7 +103,7 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES} ${ZLIB_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
@@ -117,7 +118,6 @@ if (APPLE)
     find_library(OpenGL OpenGL)
     find_library(IOKit IOKit)
     find_library(QTKit QTKit)
-    find_library(ZLIB_LIBRARY zlib)
     
     target_link_libraries(
         ${TARGET_NAME}
@@ -132,7 +132,6 @@ if (APPLE)
         ${OpenGL}
         ${IOKit}
         ${QTKit}
-        ${ZLIB_LIBRARY}
         ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
