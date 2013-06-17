@@ -8,9 +8,9 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
+set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -84,8 +84,8 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(GLM REQUIRED)
-find_package(LodePNG REQUIRED)
 find_package(LibOVR)
+find_package(OpenCV)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -98,11 +98,11 @@ include_directories(
 include_directories(
   SYSTEM
   ${GLM_INCLUDE_DIRS} 
-  ${LODEPNG_INCLUDE_DIRS}
   ${LIBOVR_INCLUDE_DIRS}
+  ${OPENCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
@@ -141,12 +141,9 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
         wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARIES})
-
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})

@@ -31,6 +31,7 @@
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
+#include "Webcam.h"
 #include "ui/ChatEntry.h"
 
 class QAction;
@@ -248,6 +249,8 @@ private:
     Avatar _myAvatar;                  // The rendered avatar of oneself
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
+    
+    Webcam _webcam;                    // The webcam interface
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
