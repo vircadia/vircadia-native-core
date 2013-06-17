@@ -106,25 +106,33 @@ target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
+    find_library(AppKit AppKit)
     find_library(AudioToolbox AudioToolbox)
     find_library(AudioUnit AudioUnit)
     find_library(CoreAudio CoreAudio)
     find_library(CoreServices CoreServices)
     find_library(Carbon Carbon)
+    find_library(Foundation Foundation)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
     find_library(IOKit IOKit)
+    find_library(QTKit QTKit)
+    find_library(ZLIB_LIBRARY zlib)
     
     target_link_libraries(
-        ${TARGET_NAME} 
+        ${TARGET_NAME}
+        ${AppKit}
         ${AudioToolbox} 
         ${AudioUnit} 
         ${CoreAudio} 
         ${CoreServices} 
-        ${Carbon} 
+        ${Carbon}
+        ${Foundation} 
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
+        ${QTKit}
+        ${ZLIB_LIBRARY}
         ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
