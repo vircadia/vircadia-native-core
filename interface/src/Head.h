@@ -26,15 +26,17 @@ enum eyeContactTargets
 const int NUM_HAIR_TUFTS    = 4;
 
 class Avatar;
+class ProgramObject;
 
 class Head : public HeadData {
 public:
     Head(Avatar* owningAvatar);
     
+    void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror, glm::vec3 cameraPosition, float alpha);
-    void renderMohawk(glm::vec3 cameraPosition);
+    void render(bool lookingInMirror, float alpha);
+    void renderMohawk();
 
     void setScale          (float     scale             ) { _scale              = scale;              }
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
@@ -55,7 +57,7 @@ public:
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
-    glm::vec3 caclulateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
     float noise;
@@ -91,7 +93,6 @@ private:
     glm::vec3   _mouthPosition; 
     float       _scale;
     float       _browAudioLift;
-    bool        _lookingAtSomething;
     glm::vec3   _gravity;
     float       _lastLoudness;
     float       _averageLoudness;
@@ -103,6 +104,12 @@ private:
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
+    glm::vec3   _saccade;
+    glm::vec3   _saccadeTarget;
+    
+    static ProgramObject* _irisProgram;
+    static GLuint _irisTextureID;
+    static int _eyePositionLocation;
     
     // private methods
     void createMohawk();
@@ -113,7 +120,6 @@ private:
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry();
-    void determineIfLookingAtSomething();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 };

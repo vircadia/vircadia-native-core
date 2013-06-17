@@ -32,18 +32,27 @@ public:
                         _estimatedPosition(0, 0, 0),
                         _estimatedVelocity(0, 0, 0),
                         _lastAcceleration(0, 0, 0),
-                        _lastRotationRates(0, 0, 0)
+                        _lastRotationRates(0, 0, 0),
+                        _angularVelocityToLinearAccel( // experimentally derived initial values
+                            0.003f, -0.001f, -0.006f, 
+                            -0.005f, -0.001f, -0.006f,
+                            0.010f, 0.004f, 0.007f),
+                        _angularAccelToLinearAccel( // experimentally derived initial values
+                            0.0f, 0.0f, 0.002f,
+                            0.0f, 0.0f, 0.001f,
+                            -0.002f, -0.002f, 0.0f)
                     {}
     
     void pair();
     void readData(float deltaTime);
-    const float getLastPitchRate() const { return _lastRotationRates[0] - _averageRotationRates[0]; }
-    const float getLastYawRate() const { return _lastRotationRates[1] - _averageRotationRates[1]; }
-    const float getLastRollRate() const { return _lastRotationRates[2] - _averageRotationRates[2]; }
+    const float getLastPitchRate() const { return _lastRotationRates[0]; }
+    const float getLastYawRate() const { return _lastRotationRates[1]; }
+    const float getLastRollRate() const { return _lastRotationRates[2]; }
     const glm::vec3& getLastRotationRates() const { return _lastRotationRates; };
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; };
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; };
     const glm::vec3& getEstimatedVelocity() const { return _estimatedVelocity; };
+    const glm::vec3& getEstimatedAcceleration() const { return _estimatedAcceleration; };
     const glm::vec3& getLastAcceleration() const { return _lastAcceleration; };
     const glm::vec3& getGravity() const { return _gravity; };
     
@@ -64,8 +73,12 @@ private:
     glm::vec3 _estimatedRotation;
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedVelocity;
+    glm::vec3 _estimatedAcceleration;
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
+    
+    glm::mat3 _angularVelocityToLinearAccel;
+    glm::mat3 _angularAccelToLinearAccel;
 };
 
 #endif

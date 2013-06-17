@@ -70,9 +70,7 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
 
         //  Update estimated absolute position from rotation rates
         _estimatedRotation += _lastRotationRate * DELTA_TIME;
-        
-        printf("The accel %f, %f, %f\n", _lastAcceleration.x, _lastAcceleration.y, _lastAcceleration.z);
-    
+            
         // Sensor Fusion!  Slowly adjust estimated rotation to be relative to gravity (average acceleration)
         const float GRAVITY_FOLLOW_RATE = 1.f;
         float rollAngle = angleBetween(glm::vec3(_lastAcceleration.x, _lastAcceleration.y, 0.f), glm::vec3(0,-1,0)) *

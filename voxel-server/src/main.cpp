@@ -32,7 +32,7 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
-const double VOXEL_PERSIST_INTERVAL = 1000.0 * 30; // every 30 seconds
+const long long VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -118,7 +118,7 @@ void resInVoxelDistributor(AgentList* agentList,
     bool searchReset = false;
     int  searchLoops = 0;
     int  searchLevelWas = agentData->getMaxSearchLevel();
-    double start = usecTimestampNow();
+    long long start = usecTimestampNow();
     while (!searchReset && agentData->nodeBag.isEmpty()) {
         searchLoops++;
 
@@ -137,19 +137,19 @@ void resInVoxelDistributor(AgentList* agentList,
             }
         }
     }
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
+    long long end = usecTimestampNow();
+    int elapsedmsec = (end - start)/1000;
     if (elapsedmsec > 100) {
         if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printf("WARNING! searchForColoredNodes() took %lf seconds to identify %d nodes at level %d in %d loops\n",
+            int elapsedsec = (end - start)/1000000;
+            printf("WARNING! searchForColoredNodes() took %d seconds to identify %d nodes at level %d in %d loops\n",
                 elapsedsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
         } else {
-            printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+            printf("WARNING! searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d in %d loops\n",
                 elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
         }
     } else if (::debugVoxelSending) {
-        printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d in %d loops\n",
+        printf("searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d in %d loops\n",
                 elapsedmsec, agentData->nodeBag.count(), searchLevelWas, searchLoops);
     }
 
@@ -161,16 +161,18 @@ void resInVoxelDistributor(AgentList* agentList,
         int packetsSentThisInterval = 0;
         int truePacketsSent = 0;
         int trueBytesSent = 0;
-        double start = usecTimestampNow();
+        long long start = usecTimestampNow();
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = serverTree.encodeTreeBitstream(agentData->getMaxSearchLevel(), subTree,
-                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &viewFrustum,
-                                                              agentData->getWantColor(), WANT_EXISTS_BITS);
+
+                EncodeBitstreamParams params(agentData->getMaxSearchLevel(), &viewFrustum, 
+                                             agentData->getWantColor(), WANT_EXISTS_BITS);
+
+                bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
+                                                              agentData->nodeBag, params);
 
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
@@ -206,19 +208,19 @@ void resInVoxelDistributor(AgentList* agentList,
             trueBytesSent += envPacketLength;
             truePacketsSent++;
         }
-        double end = usecTimestampNow();
-        double elapsedmsec = (end - start)/1000.0;
+        long long end = usecTimestampNow();
+        int elapsedmsec = (end - start)/1000;
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
-                double elapsedsec = (end - start)/1000000.0;
-                printf("WARNING! packetLoop() took %lf seconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                int elapsedsec = (end - start)/1000000;
+                printf("WARNING! packetLoop() took %d seconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
                         elapsedsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
             } else {
-                printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+                printf("WARNING! packetLoop() took %d milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
                         elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
             }
         } else if (::debugVoxelSending) {
-            printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
+            printf("packetLoop() took %d milliseconds to generate %d bytes in %d packets at level %d, %d nodes still to send\n",
                     elapsedmsec, trueBytesSent, truePacketsSent, searchLevelWas, agentData->nodeBag.count());
         }
 
@@ -245,7 +247,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     pthread_mutex_lock(&::treeLock);
 
     int maxLevelReached = 0;
-    double start = usecTimestampNow();
+    long long start = usecTimestampNow();
 
     // FOR NOW... agent tells us if it wants to receive only view frustum deltas
     bool wantDelta = agentData->getWantDelta();
@@ -281,19 +283,19 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         }
 
     }
-    double end = usecTimestampNow();
-    double elapsedmsec = (end - start)/1000.0;
+    long long end = usecTimestampNow();
+    int elapsedmsec = (end - start)/1000;
     if (elapsedmsec > 100) {
         if (elapsedmsec > 1000) {
-            double elapsedsec = (end - start)/1000000.0;
-            printf("WARNING! searchForColoredNodes() took %lf seconds to identify %d nodes at level %d\n",
+            int elapsedsec = (end - start)/1000000;
+            printf("WARNING! searchForColoredNodes() took %d seconds to identify %d nodes at level %d\n",
                 elapsedsec, agentData->nodeBag.count(), maxLevelReached);
         } else {
-            printf("WARNING! searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d\n",
+            printf("WARNING! searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d\n",
                 elapsedmsec, agentData->nodeBag.count(), maxLevelReached);
         }
     } else if (::debugVoxelSending) {
-        printf("searchForColoredNodes() took %lf milliseconds to identify %d nodes at level %d\n",
+        printf("searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d\n",
                 elapsedmsec, agentData->nodeBag.count(), maxLevelReached);
     }
 
@@ -304,18 +306,19 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         int packetsSentThisInterval = 0;
         int truePacketsSent = 0;
         int trueBytesSent = 0;
-        double start = usecTimestampNow();
+        long long start = usecTimestampNow();
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
-                bytesWritten = serverTree.encodeTreeBitstream(INT_MAX, subTree,
-                                                              &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, 
-                                                              agentData->nodeBag, &agentData->getCurrentViewFrustum(),
-                                                              agentData->getWantColor(), WANT_EXISTS_BITS,
-                                                              wantDelta, lastViewFrustum);
+                
+                EncodeBitstreamParams params(INT_MAX, &agentData->getCurrentViewFrustum(), agentData->getWantColor(), 
+                                             WANT_EXISTS_BITS, wantDelta, lastViewFrustum);
 
+                bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
+                                                              agentData->nodeBag, params);
+                
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
@@ -351,19 +354,19 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
             truePacketsSent++;
         }
         
-        double end = usecTimestampNow();
-        double elapsedmsec = (end - start)/1000.0;
+        long long end = usecTimestampNow();
+        int elapsedmsec = (end - start)/1000;
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
-                double elapsedsec = (end - start)/1000000.0;
-                printf("WARNING! packetLoop() took %lf seconds to generate %d bytes in %d packets %d nodes still to send\n",
+                int elapsedsec = (end - start)/1000000;
+                printf("WARNING! packetLoop() took %d seconds to generate %d bytes in %d packets %d nodes still to send\n",
                         elapsedsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
             } else {
-                printf("WARNING! packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
+                printf("WARNING! packetLoop() took %d milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
                         elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
             }
         } else if (::debugVoxelSending) {
-            printf("packetLoop() took %lf milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
+            printf("packetLoop() took %d milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, trueBytesSent, truePacketsSent, agentData->nodeBag.count());
         }
         
@@ -380,10 +383,10 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     pthread_mutex_unlock(&::treeLock);
 }
 
-double lastPersistVoxels = 0;
+long long lastPersistVoxels = 0;
 void persistVoxelsWhenDirty() {
-    double now = usecTimestampNow();
-    double sinceLastTime = (now - ::lastPersistVoxels) / 1000.0;
+    long long now = usecTimestampNow();
+    long long sinceLastTime = (now - ::lastPersistVoxels) / 1000;
 
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::serverTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
@@ -428,7 +431,7 @@ void *distributeVoxelsToListeners(void *args) {
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
-        double usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        long long usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -450,7 +453,7 @@ int main(int argc, const char * argv[]) {
 
     pthread_mutex_init(&::treeLock, NULL);
 
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL, VOXEL_LISTEN_PORT);
+    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -464,7 +467,6 @@ int main(int argc, const char * argv[]) {
 
     agentList->linkedDataCreateCallback = &attachVoxelAgentDataToAgent;
     agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
     
     srand((unsigned)time(0));
 
@@ -576,10 +578,19 @@ int main(int argc, const char * argv[]) {
     
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
+    
+    timeval lastDomainServerCheckIn = {};
 
     // loop to send to agents requesting data
-    while (true) {
     
+    while (true) {
+
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            AgentList::getInstance()->sendDomainServerCheckIn();
+        }
+        
         // check to see if we need to persist our voxel state
         persistVoxelsWhenDirty();
     

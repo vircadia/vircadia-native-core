@@ -85,7 +85,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     if (isnan(angle) || angle < EPSILON) {
         return glm::quat();
     }
-    glm::vec3 axis = glm::cross(v1, v2);
+    glm::vec3 axis;
     if (angle > 179.99f) { // 180 degree rotation; must use another axis
         axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
         float axisLength = glm::length(axis);
@@ -265,6 +265,11 @@ double diffclock(timeval *clock1,timeval *clock2)
     diffms += (clock2->tv_usec - clock1->tv_usec) / 1000.0;   // us to ms
     
 	return diffms;
+}
+
+//  Return a random vector of average length 1
+const glm::vec3 randVector() {
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
 }
 
 static TextRenderer* textRenderer(int mono) {
@@ -498,7 +503,7 @@ void runTimingTests() {
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
-    float value = settings->value(name, 0.0f).toFloat();
+    float value = settings->value(name, defaultValue).toFloat();
     if (isnan(value)) {
         value = defaultValue;
     }

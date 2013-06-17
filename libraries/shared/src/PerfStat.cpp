@@ -104,7 +104,7 @@ int PerfStat::DumpStats(char** array) {
 
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
-    double end = usecTimestampNow();
+    long long end = usecTimestampNow();
     double elapsedmsec = (end - _start) / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
