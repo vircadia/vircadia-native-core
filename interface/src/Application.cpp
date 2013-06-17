@@ -27,6 +27,7 @@
 #include <QDialogButtonBox>
 #include <QDesktopWidget>
 #include <QDoubleSpinBox>
+#include <QCheckBox>
 #include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -207,10 +208,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
     #endif
+    
+    // tell the AgentList instance who to tell the domain server we care about
+    const char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
+    AgentList::getInstance()->setAgentTypesOfInterest(agentTypesOfInterest, sizeof(agentTypesOfInterest));
 
     // start the agentList threads
     AgentList::getInstance()->startSilentAgentRemovalThread();
-    AgentList::getInstance()->startDomainServerCheckInThread();
     AgentList::getInstance()->startPingUnknownAgentsThread();
     
     _window->setCentralWidget(_glWidget);
@@ -424,7 +428,7 @@ static void sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL, 1);
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -500,9 +504,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Semicolon:
-                _audio.startEchoTest();
+                _audio.testPing();
                 break;
-                
+            case Qt::Key_Apostrophe:
+                _audioScope.inputPaused = !_audioScope.inputPaused;
+                break; 
             case Qt::Key_L:
                 _displayLevels = !_displayLevels;
                 break;
@@ -767,6 +773,9 @@ void Application::timer() {
     if (!_serialHeadSensor.active) {
         _serialHeadSensor.pair();
     }
+    
+    // ask the agent list to check in with the domain server
+    AgentList::getInstance()->sendDomainServerCheckIn();
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -873,6 +882,10 @@ void Application::editPreferences() {
     QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+
+    QCheckBox* audioEchoCancellation = new QCheckBox();
+    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
+    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -885,7 +898,7 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    
+    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
 }
 
@@ -992,7 +1005,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -1061,7 +1074,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL, 1);
+            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1125,7 +1138,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1177,7 +1190,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL, 1);
+        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1586,6 +1599,7 @@ void Application::update(float deltaTime) {
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
+    _audio.eventuallyCalibrateEchoCancellation();
     #endif
 }
 
@@ -1664,7 +1678,7 @@ void Application::updateAvatar(float deltaTime) {
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
-        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL, AGENT_TYPE_AVATAR_MIXER};
+        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AVATAR_MIXER};
         AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
         
         // once in a while, send my voxel url
@@ -2588,6 +2602,9 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
     settings->endGroup();
+    settings->beginGroup("Audio Echo Cancellation");
+    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
+    settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
     getAvatar()->loadData(settings);    
@@ -2606,6 +2623,9 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
+    settings->endGroup();
+    settings->beginGroup("Audio");
+    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);
