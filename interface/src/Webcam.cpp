@@ -65,13 +65,19 @@ void Webcam::setFrame(void* image) {
     IplImage* img = static_cast<IplImage*>(image);
     GLint internalFormat;
     GLenum format;
-    if (img->nChannels == 3) {
+    int bytesPerPixel = img->widthStep / img->width;
+    if (bytesPerPixel == 3) {
         internalFormat = GL_RGB;
         format = GL_BGR;
         
     } else {
         internalFormat = GL_RGBA;
         format = GL_BGRA;
+    
+        // set the alpha values
+        for (quint32* pixel = (quint32*)img->imageData, *end = pixel + img->imageSize / 4; pixel != end; pixel++) {
+            *pixel |= 0xFF000000;
+        }
     }
     if (_frameTextureID == 0) {
         glGenTextures(1, &_frameTextureID);
@@ -110,7 +116,8 @@ void FrameGrabber::grabFrame() {
         return;
     }
     // make sure it's in the format we expect
-    if ((image->nChannels != 3 && image->nChannels != 4) || image->depth != IPL_DEPTH_8U ||
+    int bytesPerPixel = image->widthStep / image->width;
+    if ((bytesPerPixel != 3 && bytesPerPixel != 4) || image->depth != IPL_DEPTH_8U ||
             image->dataOrder != IPL_DATA_ORDER_PIXEL || image->origin != 0) {
         printLog("Invalid webcam image format.\n");
         return;
