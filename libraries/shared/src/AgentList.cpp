@@ -295,7 +295,7 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
             printf("Activating the public socket for agent with type %c\n", agentType);
             newAgent->activatePublicSocket();
         } else {
-            printf("No match for agent with type %c\n", agentType);
+            printf("No match for agent with type %c\n", agentType); 
         }
    
         if (newAgent->getType() == AGENT_TYPE_VOXEL_SERVER ||
