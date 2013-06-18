@@ -13,20 +13,25 @@
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
+#include "CoverageMap.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
-#define NO_EXISTS_BITS      false
-#define WANT_EXISTS_BITS    true
-#define NO_COLOR            false
-#define WANT_COLOR          true
-#define IGNORE_VIEW_FRUSTUM NULL
-#define JUST_STAGE_DELETION true
-#define ACTUALLY_DELETE     false
-#define COLLAPSE_EMPTY_TREE true
-#define DONT_COLLAPSE       false
+#define NO_EXISTS_BITS         false
+#define WANT_EXISTS_BITS       true
+#define NO_COLOR               false
+#define WANT_COLOR             true
+#define IGNORE_VIEW_FRUSTUM    NULL
+#define JUST_STAGE_DELETION    true
+#define ACTUALLY_DELETE        false
+#define COLLAPSE_EMPTY_TREE    true
+#define DONT_COLLAPSE          false
+#define NO_OCCLUSION_CULLING   false
+#define WANT_OCCLUSION_CULLING true
+#define IGNORE_COVERAGE_MAP    NULL
+#define DONT_CHOP              0
 
 class EncodeBitstreamParams {
 public:
@@ -37,6 +42,8 @@ public:
     int                 chopLevels;
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
+    bool                wantOcclusionCulling;
+    CoverageMap*        map;
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
@@ -45,7 +52,9 @@ public:
         bool                includeExistsBits   = WANT_EXISTS_BITS,
         int                 chopLevels          = 0, 
         bool                deltaViewFrustum    = false, 
-        const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM) :
+        const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
+        bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
+        CoverageMap*        map                 = IGNORE_COVERAGE_MAP) :
         
             maxEncodeLevel      (maxEncodeLevel),
             viewFrustum         (viewFrustum),
@@ -53,7 +62,9 @@ public:
             includeExistsBits   (includeExistsBits),
             chopLevels          (chopLevels),
             deltaViewFrustum    (deltaViewFrustum),
-            lastViewFrustum     (lastViewFrustum)
+            lastViewFrustum     (lastViewFrustum),
+            wantOcclusionCulling(wantOcclusionCulling),
+            map                 (map)
     {}
 };
 
