@@ -10,11 +10,12 @@
 #include <opencv2/opencv.hpp>
 
 #include <Log.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() : _frameTextureID(0) {
+Webcam::Webcam() : _frameTextureID(0), _frameCount(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -23,6 +24,9 @@ Webcam::Webcam() : _frameTextureID(0) {
 void Webcam::init() {
     // start the grabber thread
     _grabberThread.start();
+    
+    // remember when we started
+    _startTimestamp = usecTimestampNow();
     
     // let the grabber know we're ready for the first frame
     QMetaObject::invokeMethod(_grabber, "grabFrame");
@@ -36,20 +40,24 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         glBegin(GL_QUADS);
             const int PREVIEW_HEIGHT = 200;
             int previewWidth = _frameWidth * PREVIEW_HEIGHT / _frameHeight;
-            int bottom = screenHeight - 400;
-            int left = screenWidth - previewWidth - 400;
+            int top = screenHeight - 600;
+            int left = screenWidth - previewWidth - 10;
             
             glTexCoord2f(0, 0);
-            glVertex2f(left, bottom);
+            glVertex2f(left, top);
             glTexCoord2f(1, 0);
-            glVertex2f(left + previewWidth, bottom);
+            glVertex2f(left + previewWidth, top);
             glTexCoord2f(1, 1);
-            glVertex2f(left + previewWidth, bottom + PREVIEW_HEIGHT);
+            glVertex2f(left + previewWidth, top + PREVIEW_HEIGHT);
             glTexCoord2f(0, 1);
-            glVertex2f(left, bottom + PREVIEW_HEIGHT);
+            glVertex2f(left, top + PREVIEW_HEIGHT);
         glEnd();
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
+        
+        char fps[20];
+        sprintf(fps, "FPS: %.4g", _frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp));
+        drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
     }
 }
 
@@ -78,6 +86,9 @@ void Webcam::setFrame(void* image) {
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // update our frame count for fps computation
+    _frameCount++;
     
     // let the grabber know we're ready for the next frame
     QMetaObject::invokeMethod(_grabber, "grabFrame");

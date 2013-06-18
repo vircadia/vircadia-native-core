@@ -43,6 +43,9 @@ private:
     int _frameWidth;
     int _frameHeight;
     GLuint _frameTextureID;
+    
+    long long _startTimestamp;
+    int _frameCount;
 };
 
 class FrameGrabber : public QObject {
