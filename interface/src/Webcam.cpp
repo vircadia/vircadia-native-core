@@ -13,6 +13,10 @@
 #include <Log.h>
 #include <SharedUtil.h>
 
+#ifdef __APPLE__
+#include <UVCCameraControl.hpp>
+#endif
+
 #include "Application.h"
 #include "Webcam.h"
 
@@ -119,6 +123,10 @@ void FrameGrabber::grabFrame() {
         const int IDEAL_FRAME_HEIGHT = 240;
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
+        
+#ifdef __APPLE__
+        configureCamera();            
+#endif
     }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
