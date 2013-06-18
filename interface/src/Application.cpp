@@ -60,8 +60,6 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 
-#include <CoverageMap.h>
-
 using namespace std;
 
 //  Starfield information
@@ -2063,7 +2061,6 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
 }
 
 void Application::displayOverlay() {
