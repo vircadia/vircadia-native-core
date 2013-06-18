@@ -103,6 +103,8 @@ int main(int argc, const char * argv[])
             int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
                                               (sockaddr*) &agentLocalAddress);
             
+            sockaddr* destinationSocket = (sockaddr*) &agentPublicAddress;
+            
             // check the agent public address
             // if it matches our local address we're on the same box
             // so hardcode the EC2 public address for now
@@ -111,6 +113,7 @@ int main(int argc, const char * argv[])
             	// with the EC2 IP. Otherwise, we use our normal public IP
             	if (!isLocalMode) {
 	                agentPublicAddress.sin_addr.s_addr = 895283510; // local IP in this format...
+                    destinationSocket = (sockaddr*) &agentLocalAddress;
 	            }
             }
             
@@ -176,8 +179,6 @@ int main(int argc, const char * argv[])
             
             // add the agent ID to the end of the pointer
             currentBufferPos += packAgentId(currentBufferPos, newAgent->getAgentID());
-            
-            sockaddr* destinationSocket = (sockaddr*) (isLocalMode ? &agentPublicAddress : &agentLocalAddress);
             
             // send the constructed list back to this agent
             agentList->getAgentSocket()->send(destinationSocket,
