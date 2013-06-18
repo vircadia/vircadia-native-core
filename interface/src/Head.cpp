@@ -485,9 +485,7 @@ void Head::renderEyeBalls() {
     _irisProgram->bind();
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
-    
-    glm::vec3 front = getFrontDirection();
-    
+        
     // render left iris
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position

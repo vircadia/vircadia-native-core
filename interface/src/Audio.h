@@ -19,7 +19,7 @@
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope* scope);
+    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
     ~Audio();
 
     void render(int screenWidth, int screenHeight);
@@ -29,10 +29,11 @@ public:
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
     
-    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
-    void analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples);
-
+    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; };
     
+    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void lowPassFilter(int16_t* inputBuffer);
+    void analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamples);
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
     
     void startEchoTest();
@@ -46,8 +47,7 @@ private:
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
-    float _jitterBufferLengthMsecs;
-    short _jitterBufferSamples;
+    int16_t _jitterBufferSamples;
     int _wasStarved;
     float _lastInputLoudness;
     glm::vec3 _lastVelocity;

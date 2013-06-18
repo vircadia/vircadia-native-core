@@ -76,6 +76,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
+    bool shouldLowPassFilter() { return _shouldLowPassFilter->isChecked(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
@@ -176,6 +177,7 @@ private:
     
     QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
     QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
+    QAction* _shouldLowPassFilter;   // Use test lowpass filter
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
@@ -256,6 +258,8 @@ private:
     
     int _headMouseX, _headMouseY;
     float _headCameraPitchYawScale;
+    
+    int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     
     HandControl _handControl;
     
