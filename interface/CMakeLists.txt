@@ -120,6 +120,8 @@ if (APPLE)
     find_library(QTKit QTKit)
     find_library(QuartzCore QuartzCore)
     
+    include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl/include)
+    
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
@@ -134,6 +136,7 @@ if (APPLE)
         ${IOKit}
         ${QTKit}
         ${QuartzCore}
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl/lib/libUVCCameraControl.a
         ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
