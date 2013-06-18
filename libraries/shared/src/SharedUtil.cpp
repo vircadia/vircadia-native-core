@@ -404,7 +404,6 @@ void printVoxelCode(unsigned char* voxelCode) {
     }
 #endif
 
-
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
