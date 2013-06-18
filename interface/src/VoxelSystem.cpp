@@ -1263,7 +1263,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
 }
 void VoxelSystem::falseColorizeOccluded() {
     PerformanceWarning warn(true, "falseColorizeOccluded()",true);
-    CoverageMap map(BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f)), true);
+    CoverageMap map;
     FalseColorizeOccludedArgs args;
     args.viewFrustum = Application::getInstance()->getViewFrustum();
     args.map = &map; 
