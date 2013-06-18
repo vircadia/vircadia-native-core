@@ -1237,7 +1237,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                 // If the user also asked for occlusion culling, check if this node is occluded
                 if (params.wantOcclusionCulling && childNode->isLeaf()) {
-//printLog("params.wantOcclusionCulling... in childNode section...\n");
                     // Don't check occlusion here, just add them to our distance ordered array...
 
                     AABox voxelBox = childNode->getAABox();
@@ -1247,8 +1246,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
                     // culling and proceed as normal
                     if (voxelShadow->getAllInView()) {
-//childNode->printDebugDetails("voxelShadow->getAllInView() childNode=");
-                    
                         CoverageMap::StorageResult result = params.map->checkMap(voxelShadow, true);
                 
                         // In all cases where the shadow wasn't stored, we need to free our own memory.
@@ -1257,23 +1254,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                             delete voxelShadow;
                         }
 
-                        if (result == CoverageMap::STORED) {
-//childNode->printDebugDetails("Leaf is stored!! childNode=");
-                        }
-
-                        if (result == CoverageMap::DOESNT_FIT) {
-//printLog(">>>> Leaf DOESNT_FIT!! That's not expected!!! \n");
-                        }
-                
-                
                         // If while attempting to add this voxel's shadow, we determined it was occluded, then
                         // we don't need to process it further and we can exit early.
                         if (result == CoverageMap::OCCLUDED) {
-//childNode->printDebugDetails("Leaf is occluded!! childNode=");
                             childIsOccluded = true;
                         }
                     } else {
-//childNode->printDebugDetails("Not all in view, cleanup... childNode=");
                         delete voxelShadow;
                     }
                 } // wants occlusion culling & isLeaf()
