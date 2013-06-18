@@ -410,12 +410,7 @@ int main(int argc, const char* argv[]) {
             float percentageOfMaxElapsed = ((float) (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
                 / BUFFER_SEND_INTERVAL_USECS) * 100.0f;
             
-            if (percentageOfMaxElapsed > 0) {
-                sumFrameTimePercentages += percentageOfMaxElapsed;
-            } else {
-                // a negative value suggests that we've taken 100% of the allowable time
-                sumFrameTimePercentages += 100;
-            }
+            sumFrameTimePercentages += percentageOfMaxElapsed;
             
             numStatCollections++;
         }
