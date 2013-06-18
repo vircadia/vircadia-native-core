@@ -29,15 +29,11 @@ public:
     ~Webcam();
 
     void init();
-
-    int getFrameWidth() const { return _frameWidth; }
-    int getFrameHeight() const { return _frameHeight; }
-    float getFrameAspectRatio() const { return _frameWidth / (float)_frameHeight; }
-    GLuint getFrameTextureID() const { return _frameTextureID; }
+    void renderPreview(int screenWidth, int screenHeight);
 
 public slots:
     
-    void setFrame(const QImage& image);
+    void setFrame(void* image);
     
 private:
     
@@ -47,6 +43,23 @@ private:
     int _frameWidth;
     int _frameHeight;
     GLuint _frameTextureID;
+};
+
+class FrameGrabber : public QObject {
+    Q_OBJECT
+    
+public:
+    
+    FrameGrabber() : _capture(0) { }
+    virtual ~FrameGrabber();
+
+public slots:
+    
+    void grabFrame();
+    
+private:
+    
+    CvCapture* _capture;
 };
 
 #endif /* defined(__interface__Webcam__) */

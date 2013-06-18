@@ -2151,28 +2151,7 @@ void Application::displayOverlay() {
     }
     
     // render the webcam input frame
-    if (_webcam.getFrameTextureID() != 0) {
-        glBindTexture(GL_TEXTURE_2D, _webcam.getFrameTextureID());
-        glEnable(GL_TEXTURE_2D);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            const int FRAME_PREVIEW_HEIGHT = 200;
-            int framePreviewWidth = _webcam.getFrameAspectRatio() * FRAME_PREVIEW_HEIGHT;
-            int bottom = _glWidget->height() - 400;
-            int left = _glWidget->width() - framePreviewWidth - 400;
-            
-            glTexCoord2f(0, 0);
-            glVertex2f(left, bottom);
-            glTexCoord2f(1, 0);
-            glVertex2f(left + framePreviewWidth, bottom);
-            glTexCoord2f(1, 1);
-            glVertex2f(left + framePreviewWidth, bottom + FRAME_PREVIEW_HEIGHT);
-            glTexCoord2f(0, 1);
-            glVertex2f(left, bottom + FRAME_PREVIEW_HEIGHT);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_TEXTURE_2D);
-    }
+    _webcam.renderPreview(_glWidget->width(), _glWidget->height());
     
     glPopMatrix();
 }
