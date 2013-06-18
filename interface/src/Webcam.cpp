@@ -11,41 +11,83 @@
 
 #include <Log.h>
 
+#include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() {
-    if ((_capture = cvCaptureFromCAM(-1)) == 0) {
-        printLog("Failed to open webcam.\n");
-        return;
-    }
+class FrameGrabber : public QObject {
+public:
     
-    // get the dimensions, fps of the frames
-    _frameWidth = cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH);
-    _frameHeight = cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT);
-    int fps = cvGetCaptureProperty(_capture, CV_CAP_PROP_FPS);
-    printLog("Opened camera [width=%d, height=%d, fps=%d].", _frameWidth, _frameHeight, fps);    
-}
+    FrameGrabber() : _capture(0) { }
+    virtual ~FrameGrabber();
 
-void Webcam::init() {
-    // initialize the texture that will contain the grabbed frames
-    glGenTextures(1, &_frameTextureID);
-    glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth, _frameHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);   
-}
+protected:
+    
+    virtual void timerEvent(QTimerEvent* event);
+    
+private:
+    
+    CvCapture* _capture;
+};
 
-Webcam::~Webcam() {
+FrameGrabber::~FrameGrabber() {
     if (_capture != 0) {
         cvReleaseCapture(&_capture);
     }
 }
 
-void Webcam::grabFrame() {
+void FrameGrabber::timerEvent(QTimerEvent* event) {
+    if (_capture == 0) {
+        if ((_capture = cvCaptureFromCAM(-1)) == 0) {
+            printLog("Failed to open webcam.\n");
+            return;
+        }
+    }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
         return;
     }
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
+    // make sure it's in the format we expect
+    if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
+            image->origin != 0 || image->widthStep != image->width * 3) {
+        printLog("Invalid webcam image format.\n");
+        return;
+    }
+    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
+        Q_ARG(QImage, QImage((uchar*)image->imageData, image->width, image->height, QImage::Format_RGB888)));
+}
+
+Webcam::Webcam() : _frameTextureID(0) {
+    // the grabber simply runs as fast as possible
+    _grabber = new FrameGrabber();
+    _grabber->startTimer(0);
+    _grabber->moveToThread(&_grabberThread);
+}
+
+void Webcam::init() {
+    // start the grabber thread
+    _grabberThread.start();
+}
+
+Webcam::~Webcam() {
+    // stop the grabber thread
+    _grabberThread.quit();
+    _grabberThread.wait();
+    
+    delete _grabber;
+}
+
+void Webcam::setFrame(const QImage& image) {
+    if (_frameTextureID == 0) {
+        glGenTextures(1, &_frameTextureID);
+        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width(), _frameHeight = image.height(), 0, GL_BGR,
+            GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, image.constBits());    
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+

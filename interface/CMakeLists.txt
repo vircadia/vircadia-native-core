@@ -68,7 +68,7 @@ include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h)
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})

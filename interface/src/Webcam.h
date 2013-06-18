@@ -9,11 +9,20 @@
 #ifndef __interface__Webcam__
 #define __interface__Webcam__
 
+#include <QObject>
+#include <QThread>
+
 #include "InterfaceConfig.h"
+
+class QImage;
 
 struct CvCapture;
 
-class Webcam {
+class FrameGrabber;
+
+class Webcam : public QObject {
+    Q_OBJECT
+    
 public:
     
     Webcam();
@@ -26,11 +35,14 @@ public:
     float getFrameAspectRatio() const { return _frameWidth / (float)_frameHeight; }
     GLuint getFrameTextureID() const { return _frameTextureID; }
 
-    void grabFrame();
-
+public slots:
+    
+    void setFrame(const QImage& image);
+    
 private:
     
-    CvCapture* _capture;
+    QThread _grabberThread;
+    FrameGrabber* _grabber;
     
     int _frameWidth;
     int _frameHeight;
