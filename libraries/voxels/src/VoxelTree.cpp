@@ -1125,7 +1125,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             //node->printDebugDetails("upper section, params.wantOcclusionCulling...  node=");
             AABox voxelBox = node->getAABox();
             voxelBox.scale(TREE_SCALE);
-            VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(params.viewFrustum->getProjectedShadow(voxelBox));
+            VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
 
             // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
             // culling and proceed as normal
@@ -1241,7 +1241,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                     AABox voxelBox = childNode->getAABox();
                     voxelBox.scale(TREE_SCALE);
-                    VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(params.viewFrustum->getProjectedShadow(voxelBox));
+                    VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
                 
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
                     // culling and proceed as normal

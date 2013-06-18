@@ -1,11 +1,11 @@
 //
-//  VoxelProjectedShadow.cpp - The projected shadow (on the 2D view plane) for a voxel
+//  VoxelProjectedPolygon.cpp - The projected shadow (on the 2D view plane) for a voxel
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
 //
 
-#include "VoxelProjectedShadow.h"
+#include "VoxelProjectedPolygon.h"
 #include "GeometryUtil.h"
 #include "Log.h"
 
@@ -29,7 +29,7 @@ void BoundingBox::printDebugDetails(const char* label) const {
 }
 
 
-void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) { 
+void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) { 
     _vertices[vertex] = point;
     
     // keep track of our bounding box
@@ -48,7 +48,7 @@ void VoxelProjectedShadow::setVertex(int vertex, const glm::vec2& point) {
     
 };
 
-bool VoxelProjectedShadow::occludes(const VoxelProjectedShadow& occludee) const {
+bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee) const {
     
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
@@ -80,7 +80,7 @@ bool VoxelProjectedShadow::occludes(const VoxelProjectedShadow& occludee) const 
     return true;
 }
 
-bool VoxelProjectedShadow::pointInside(const glm::vec2& point) const {
+bool VoxelProjectedPolygon::pointInside(const glm::vec2& point) const {
     // first check the bounding boxes, the point mush be fully within the boounding box of this shadow
     if ((point.x > getMaxX()) ||
         (point.y > getMaxY()) ||
@@ -113,8 +113,8 @@ bool VoxelProjectedShadow::pointInside(const glm::vec2& point) const {
     return ((intersections & 1) == 1);
 }
 
-void VoxelProjectedShadow::printDebugDetails() const {
-    printf("VoxelProjectedShadow...");
+void VoxelProjectedPolygon::printDebugDetails() const {
+    printf("VoxelProjectedPolygon...");
     printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
     printf("    vertex count=%d distance=%f\n", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {

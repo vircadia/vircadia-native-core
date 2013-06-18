@@ -96,12 +96,12 @@ BoundingBox CoverageMap::getChildBoundingBox(int childIndex) {
 
 
 void CoverageMap::growPolygonArray() {
-    VoxelProjectedShadow** newPolygons  = new VoxelProjectedShadow*[_polygonArraySize + DEFAULT_GROW_SIZE];
+    VoxelProjectedPolygon** newPolygons  = new VoxelProjectedPolygon*[_polygonArraySize + DEFAULT_GROW_SIZE];
     float*                 newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
 
 
     if (_polygons) {
-        memcpy(newPolygons, _polygons, sizeof(VoxelProjectedShadow*) * _polygonCount);
+        memcpy(newPolygons, _polygons, sizeof(VoxelProjectedPolygon*) * _polygonCount);
         delete[] _polygons;
         memcpy(newDistances, _polygonDistances, sizeof(float) * _polygonCount);
         delete[] _polygonDistances;
@@ -117,7 +117,7 @@ int CoverageMap::_totalPolygons = 0;
 
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
-void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
+void CoverageMap::storeInArray(VoxelProjectedPolygon* polygon) {
 
     _totalPolygons++;
 
@@ -142,11 +142,11 @@ void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 
 
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
-CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedShadow* polygon, bool storeIt) {
+CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, bool storeIt) {
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
         // check to make sure this polygon isn't occluded by something at this level
         for (int i = 0; i < _polygonCount; i++) {
-            VoxelProjectedShadow* polygonAtThisLevel = _polygons[i];
+            VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
             // Check to make sure that the polygon in question is "behind" the polygon in the list
             // otherwise, we don't need to test it's occlusion (although, it means we've potentially
             // added an item previously that may be occluded??? Is that possible? Maybe not, because two

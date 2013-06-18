@@ -1,5 +1,5 @@
 //
-//  VoxelProjectedShadow.h - The projected shadow (on the 2D view plane) for a voxel
+//  VoxelProjectedPolygon.h - The projected shadow (on the 2D view plane) for a voxel
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -24,16 +24,16 @@ public:
     void printDebugDetails(const char* label=NULL) const;
 };
 
-class VoxelProjectedShadow {
+class VoxelProjectedPolygon {
 
 public:
-    VoxelProjectedShadow(int vertexCount = 0) : 
+    VoxelProjectedPolygon(int vertexCount = 0) : 
         _vertexCount(vertexCount), 
         _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
         _distance(0)
         { };
         
-    ~VoxelProjectedShadow() { };
+    ~VoxelProjectedPolygon() { };
     const ShadowVertices& getVerices() const { return _vertices; };
     const glm::vec2& getVertex(int i) const { return _vertices[i]; };
     void setVertex(int vertex, const glm::vec2& point);
@@ -48,7 +48,7 @@ public:
     bool getAllInView() const { return _allInView; };
     void setAllInView(bool allInView) { _allInView = allInView; };
 
-    bool occludes(const VoxelProjectedShadow& occludee) const;
+    bool occludes(const VoxelProjectedPolygon& occludee) const;
     bool pointInside(const glm::vec2& point) const;
     
     float getMaxX() const { return _maxX; }

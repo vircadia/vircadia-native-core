@@ -1202,7 +1202,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
 
         AABox voxelBox = node->getAABox();
         voxelBox.scale(TREE_SCALE);
-        VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(args->viewFrustum->getProjectedShadow(voxelBox));
+        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
 
         // If we're not all in view, then ignore it, and just return. But keep searching...
         if (!voxelShadow->getAllInView()) {
@@ -1239,7 +1239,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
 
         AABox voxelBox = node->getAABox();
         voxelBox.scale(TREE_SCALE);
-        VoxelProjectedShadow* voxelShadow = new VoxelProjectedShadow(args->viewFrustum->getProjectedShadow(voxelBox));
+        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
 
         // If we're not all in view, then ignore it, and just return. But keep searching...
         if (!voxelShadow->getAllInView()) {

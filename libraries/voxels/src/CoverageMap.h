@@ -1,5 +1,5 @@
 //
-//  CoverageMap.h - 2D CoverageMap Quad tree for storage of VoxelProjectedShadows
+//  CoverageMap.h - 2D CoverageMap Quad tree for storage of VoxelProjectedPolygons
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -9,7 +9,7 @@
 #define _COVERAGE_MAP_
 
 #include <glm/glm.hpp>
-#include "VoxelProjectedShadow.h"
+#include "VoxelProjectedPolygon.h"
 
 class CoverageMap {
 
@@ -23,7 +23,7 @@ public:
     ~CoverageMap();
     
     typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} StorageResult;
-    StorageResult checkMap(VoxelProjectedShadow* polygon, bool storeIt = true);
+    StorageResult checkMap(VoxelProjectedPolygon* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
     
@@ -32,14 +32,14 @@ public:
 private:
     void init();
     void growPolygonArray();
-    void storeInArray(VoxelProjectedShadow* polygon);
+    void storeInArray(VoxelProjectedPolygon* polygon);
 
     bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
     BoundingBox             _myBoundingBox;
     bool                    _managePolygons; // will the coverage map delete the polygons on destruct
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
-    VoxelProjectedShadow**  _polygons;
+    VoxelProjectedPolygon**  _polygons;
     float*                  _polygonDistances;
     CoverageMap*            _childMaps[NUMBER_OF_CHILDREN];
 
