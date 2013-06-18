@@ -298,8 +298,6 @@ int main(int argc, const char* argv[]) {
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
                             : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                         
-                        gettimeofday(&twoPoleStart, NULL);
-                        
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             // load up the stkFrameBuffer with this source's samples
                             stkFrameBuffer[s] = (stk::StkFloat) sourceBuffer[s];
@@ -309,10 +307,6 @@ int main(int argc, const char* argv[]) {
                         if (otherAgentTwoPole) {
                             otherAgentTwoPole->tick(stkFrameBuffer);
                         }
-                        
-                        gettimeofday(&twoPoleEnd, NULL);
-                        
-                        printf("Time taken for TP: %lld\n", usecTimestamp(&twoPoleEnd) - usecTimestamp(&twoPoleStart));
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             if (s < numSamplesDelay) {
