@@ -105,6 +105,8 @@ void FrameGrabber::grabFrame() {
     }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
+        // try again later
+        QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
         return;
     }
     // make sure it's in the format we expect
