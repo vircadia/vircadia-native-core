@@ -35,6 +35,7 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _wantResIn(false),
     _wantColor(true),
     _wantDelta(false),
+    _wantOcclusionCulling(false),
     _headData(NULL)
 {
     
@@ -106,9 +107,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantResIn) { setAtBit(bitItems,WANT_RESIN_AT_BIT); }
-    if (_wantColor) { setAtBit(bitItems,WANT_COLOR_AT_BIT); }
-    if (_wantDelta) { setAtBit(bitItems,WANT_DELTA_AT_BIT); }
+    if (_wantResIn) { setAtBit(bitItems, WANT_RESIN_AT_BIT); }
+    if (_wantColor) { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
+    if (_wantDelta) { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
+    if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
 
     // key state
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
@@ -192,9 +194,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(bitItems,WANT_RESIN_AT_BIT);
-    _wantColor = oneAtBit(bitItems,WANT_COLOR_AT_BIT);
-    _wantDelta = oneAtBit(bitItems,WANT_DELTA_AT_BIT);
+    _wantResIn = oneAtBit(bitItems, WANT_RESIN_AT_BIT);
+    _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
+    _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
+    _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
 
     // key state, stored as a semi-nibble in the bitItems
     _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
