@@ -1,4 +1,4 @@
-/*def targets = [
+def targets = [
     'animation-server',
     'audio-mixer',
     'avatar-mixer',
@@ -8,9 +8,7 @@
     'pairing-server',
     'space-server',
     'voxel-server'
-]*/
-
-def targets = ['space-server']
+]
 
 def JENKINS_URL = 'https://jenkins.below92.com/'
 def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
