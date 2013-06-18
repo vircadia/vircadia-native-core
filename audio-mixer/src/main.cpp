@@ -118,8 +118,6 @@ int main(int argc, const char* argv[]) {
     
     stk::StkFrames stkFrameBuffer(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 1);
     
-    timeval twoPoleStart, twoPoleEnd;
-    
     // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
     if (Logstash::shouldSendStats()) {
         Logstash::socket();
