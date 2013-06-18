@@ -1005,6 +1005,10 @@ void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
 
+void Application::setWantsOcclusionCulling(bool wantsOcclusionCulling) {
+    _myAvatar.setWantOcclusionCulling(wantsOcclusionCulling);
+}
+
 void Application::updateVoxelModeActions() {
     // only the sender can be checked
     foreach (QAction* action, _voxelModeActions->actions()) {
@@ -1346,6 +1350,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+    debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);

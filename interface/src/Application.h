@@ -114,6 +114,7 @@ private slots:
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
+    void setWantsOcclusionCulling(bool wantsOcclusionCulling);
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
