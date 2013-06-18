@@ -39,7 +39,7 @@ targets.each {
                 }      
                 'hudson.plugins.buildblocker.BuildBlockerProperty' {
                     useBuildBlocker true
-                    blockingJobs 'hifi-dsl-seed'
+                    blockingJobs 'hifi-seed'
                 }         
             }
             
