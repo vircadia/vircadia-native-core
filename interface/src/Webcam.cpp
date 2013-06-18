@@ -70,6 +70,7 @@ void Webcam::setFrame(void* image) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = img->width, _frameHeight = img->height, 0, GL_BGR,
             GL_UNSIGNED_BYTE, img->imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        printLog("Capturing webcam at %dx%d.\n", _frameWidth, _frameHeight);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
@@ -94,6 +95,12 @@ void FrameGrabber::grabFrame() {
             printLog("Failed to open webcam.\n");
             return;
         }
+        const int IDEAL_FRAME_WIDTH = 320;
+        const int IDEAL_FRAME_HEIGHT = 240;
+        const int IDEAL_FPS = 60;
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_FPS, IDEAL_FPS);
     }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
