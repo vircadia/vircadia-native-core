@@ -60,7 +60,7 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee) cons
         return false;
     }
 
-    // first check the bounding boxes, the occludee mush be fully within the boounding box of this shadow
+    // first check the bounding boxes, the occludee must be fully within the boounding box of this shadow
     if ((occludee.getMaxX() > getMaxX()) ||
         (occludee.getMaxY() > getMaxY()) ||
         (occludee.getMinX() < getMinX()) ||
@@ -81,7 +81,7 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee) cons
 }
 
 bool VoxelProjectedPolygon::pointInside(const glm::vec2& point) const {
-    // first check the bounding boxes, the point mush be fully within the boounding box of this shadow
+    // first check the bounding boxes, the point must be fully within the boounding box of this shadow
     if ((point.x > getMaxX()) ||
         (point.y > getMaxY()) ||
         (point.x < getMinX()) ||
