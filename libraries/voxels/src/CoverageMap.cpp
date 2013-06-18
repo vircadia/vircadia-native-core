@@ -141,30 +141,7 @@ void CoverageMap::storeInArray(VoxelProjectedShadow* polygon) {
 }
 
 
-// possible results = STORED, OCCLUDED, DOESNT_FIT
-// storeInMap(poly)
-//      if (poly->BB inside myBB)
-//          -- at this point, we can check polygons at this level
-//          -- to see if they occlude the polygon being inserted
-//          -- since the polygons at this level are big relative to
-//          -- lower levels, there's a higher chance for them to occlude
-//          -- Note: list should be "depth" sorted
-//          for each polygon at this level
-//              if (levelpolygon.occludes(poly))
-//                  return OCCLUDED
-//          end
-//          for each child
-//              childResult = child->storeInMap(poly)
-//              if (childResult == STORED || childResult == OCCLUDED)
-//                  return childResult
-//              end
-//          end
-//          -- if we got here, then the polygon didn't fit in any of the children and
-//          -- wasn't already occluded, so store it here
-//          insert into local list (poly, poly.depth)
-//          return STORED
-//      end
-//      return DOESNT_FIT
+// possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
 CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedShadow* polygon, bool storeIt) {
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
         // check to make sure this polygon isn't occluded by something at this level
