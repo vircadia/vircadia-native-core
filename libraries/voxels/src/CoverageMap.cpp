@@ -11,6 +11,7 @@
 #include "Log.h"
 
 int CoverageMap::_mapCount = 0;
+const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f));
 
 CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygons) : 
     _isRoot(isRoot), _myBoundingBox(boundingBox), _managePolygons(managePolygons) { 
@@ -20,20 +21,37 @@ CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygo
 };
 
 CoverageMap::~CoverageMap() {
+    erase();
+};
+
+void CoverageMap::erase() {
+    // If we're in charge of managing the polygons, then clean them up first
     if (_managePolygons) {
         for (int i = 0; i < _polygonCount; i++) {
             delete _polygons[i];
+            _polygons[i] = NULL; // do we need to do this?
         }
     }
+    
+    // Now, clean up our local storage
+    _polygonCount = 0;
+    _polygonArraySize = 0;
     if (_polygons) {
         delete[] _polygons;
+        _polygons = NULL;
+    }
+    if (_polygonDistances) {
+        delete[] _polygonDistances;
+        _polygonDistances = NULL;
     }
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         if (_childMaps[i]) {
             delete _childMaps[i];
+            _childMaps[i] = NULL;
         }
     }
 
+/**
     if (_isRoot) {
         printLog("CoverageMap last to be deleted...\n");
         printLog("_mapCount=%d\n",_mapCount);
@@ -44,13 +62,15 @@ CoverageMap::~CoverageMap() {
         _totalPolygons = 0;
         _mapCount = 0;
     }
-};
+**/
 
+}
 
 void CoverageMap::init() {
     _polygonCount = 0;
     _polygonArraySize = 0;
     _polygons = NULL;
+    _polygonDistances = NULL;
     memset(_childMaps,0,sizeof(_childMaps));
 }
 

@@ -48,14 +48,17 @@ public:
     static const int NUMBER_OF_CHILDREN = 4;
     static const bool NOT_ROOT=false;
     static const bool IS_ROOT=true;
+    static const BoundingBox ROOT_BOUNDING_BOX;
 
-    CoverageMap(BoundingBox boundingBox, bool isRoot = IS_ROOT, bool managePolygons = false);
+    CoverageMap(BoundingBox boundingBox = ROOT_BOUNDING_BOX, bool isRoot = IS_ROOT, bool managePolygons = true);
     ~CoverageMap();
     
     typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} StorageResult;
     StorageResult checkMap(VoxelProjectedShadow* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
+    
+    void erase(); // erase the coverage map
 
 private:
     void init();
