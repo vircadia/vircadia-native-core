@@ -1345,7 +1345,6 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
-    (_debugShowVirtualOccluders = renderDebugMenu->addAction("Show Virtual Occluders"))->setCheckable(true);
 
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
@@ -1928,94 +1927,6 @@ void Application::displayOculus(Camera& whichCamera) {
     glPopMatrix();
 }
 
-glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->width() / 2.0f;
-    float verticalScale   = _glWidget->height() / 2.0f;
-    
-    // -1,-1 is 0,windowHeight 
-    // 1,1 is windowWidth,0
-    
-    // -1,1                    1,1
-    // +-----------------------+ 
-    // |           |           |
-    // |           |           |
-    // | -1,0      |           |
-    // |-----------+-----------|
-    // |          0,0          |
-    // |           |           |
-    // |           |           |
-    // |           |           |
-    // +-----------------------+
-    // -1,-1                   1,-1
-    
-    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale, 
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
-        
-    return screenPoint;
-}
-
-void Application::renderVirtualOccluders() {
-
-    if (_debugShowVirtualOccluders->isChecked()) {
-        CoverageMap map(BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f))); // screen coverage
-        
-    
-        glLineWidth(2.0);
-        glBegin(GL_LINES);
-        glColor3f(0,0,1);
-
-        AABox boxA(glm::vec3(0,0,0), 0.0125);
-        boxA.scale(TREE_SCALE);
-        VoxelProjectedShadow shadowA = _viewFrustum.getProjectedShadow(boxA);
-        
-
-        AABox boxB(glm::vec3(0.0125,0,0.025), 0.0125);
-        boxB.scale(TREE_SCALE);
-        VoxelProjectedShadow shadowB = _viewFrustum.getProjectedShadow(boxB);
-
-        bool shadowAoccludesB = shadowA.occludes(shadowB);
-        bool shadowBoccludesA = shadowB.occludes(shadowA);
-    
-        if (shadowA.getVertexCount()) {
-            if (shadowBoccludesA) {
-                glColor3f(1,0,0);
-            } else {
-                glColor3f(0,0,1);
-            }
-            glm::vec2 firstPoint = getScaledScreenPoint(shadowA.getVertex(0));
-            glm::vec2 lastPoint(firstPoint);
-            for (int i = 1; i < shadowA.getVertexCount(); i++) {
-                glm::vec2 thisPoint = getScaledScreenPoint(shadowA.getVertex(i));
-                glVertex2f(lastPoint.x, lastPoint.y);
-                glVertex2f(thisPoint.x, thisPoint.y);
-                lastPoint = thisPoint;
-            }
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(firstPoint.x, firstPoint.y);
-        }
-
-        if (shadowB.getVertexCount()) {
-            if (shadowAoccludesB) {
-                glColor3f(0,1,0);
-            } else {
-                glColor3f(1,0,0);
-            }
-            glm::vec2 firstPoint = getScaledScreenPoint(shadowB.getVertex(0));
-            glm::vec2 lastPoint(firstPoint);
-            for (int i = 1; i < shadowB.getVertexCount(); i++) {
-                glm::vec2 thisPoint = getScaledScreenPoint(shadowB.getVertex(i));
-                glVertex2f(lastPoint.x, lastPoint.y);
-                glVertex2f(thisPoint.x, thisPoint.y);
-                lastPoint = thisPoint;
-            }
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(firstPoint.x, firstPoint.y);
-        }
-    
-        glEnd();
-    }
-}
-        
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
@@ -2304,10 +2215,6 @@ void Application::displayStats() {
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
     }
-
-    // testing....
-    renderVirtualOccluders();
-
 }
 
 void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
