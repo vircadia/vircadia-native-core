@@ -11,37 +11,6 @@
 #include <glm/glm.hpp>
 #include "VoxelProjectedShadow.h"
 
-
-// 
-// depth of polygon is distance from camera to closest point on 3d voxel
-//    this works because voxels are axis aligned and therefore other voxels
-//    can only be as close as that if they are on the same axis
-//
-// scanning octree in "closest" order...
-// for each node
-//      polygon = getShadow(node)
-//      isOccluded = coverageMap->isOccluded(polygon)
-//      if (!isOccluded)
-//          coverageMap->add(polygon)
-//          sendList->add(node)
-//      else
-//          don't need to send or remember
-// end each
-
-// adding to coverage map....
-//
-// at each level of quadtree
-//      store a list of polygons whose bounding box fit in the bb of the quad but not a smaller quad
-//      also store 4 smaller quad trees
-//
-// is it true, that only polygons from higher in the quad tree can occlude a polygon?
-//      YES - I believe so, because polygon that occluded all the points of the potential occludee
-//            would have a bounding box that couldn't fit in a lower level of the quad tree
-//
-//
-
-
-
 class CoverageMap {
 
 public:

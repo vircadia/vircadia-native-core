@@ -130,8 +130,6 @@ bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm
          (d4 == 0 && isOnSegment(r1p1.x, r1p1.y, r1p2.x, r1p2.y, r2p2.x, r2p2.y));
 }
 
-
-// I want these to be inlined for performance
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk)  {
   return (xi <= xk || xj <= xk) && (xk <= xi || xk <= xj) &&
          (yi <= yk || yj <= yk) && (yk <= yi || yk <= yj);
