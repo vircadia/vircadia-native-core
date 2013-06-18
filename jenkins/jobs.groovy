@@ -38,7 +38,11 @@ targets.each {
                 
                 'jenkins.plugins.hipchat.HipChatNotifier_-HipChatJobProperty' {
                     room HIPCHAT_ROOM
-                }               
+                }      
+                'hudson.plugins.buildblocker.BuildBlockerProperty' {
+                    useBuildBlocker true
+                    blockingJobs 'hifi-dsl-seed'
+                }         
             }
             
             project / 'scm' << {
@@ -49,35 +53,52 @@ targets.each {
                 spec ''
             }
             
+            project / 'builders' << 'hudson.plugins.cmake.CmakeBuilder' {
+                sourceDir targetName
+                buildDir 'build'
+                installDir ''
+                buildType 'RelWithDebInfo'
+                generator 'Unix Makefiles'
+                makeCommand 'make'
+                installCommand 'make install'
+                preloadScript ''
+                cmakeArgs ''
+                projectCmakePath '/usr/bin/cmake'
+                cleanBuild 'false'
+                cleanInstallDir 'false'
+                builderImpl ''
+            }
+        }
+        
+        publishers {            
+            publishScp(ARTIFACT_DESTINATION) {
+                entry("**/build/${targetName}", "deploy/${targetName}")
+            }
+        }
+        
+        configure { project ->
             project / 'publishers' << {
+                'hudson.plugins.postbuildtask.PostbuildTask' {
+                    'tasks' {
+                        'hudson.plugins.postbuildtask.TaskProperties' {
+                            logTexts {
+                                'hudson.plugins.postbuildtask.LogProperties' {
+                                    logText '.'
+                                    operator 'AND'
+                                }
+                            }
+                            EscalateStatus true
+                            RunIfJobSuccessful true
+                            script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://a-tower.below92.com"
+                        }
+                    }
+                }
+                
                 'jenkins.plugins.hipchat.HipChatNotifier' {
                     jenkinsUrl JENKINS_URL
                     authToken HIPCHAT_AUTH_TOKEN
                     room HIPCHAT_ROOM
                 }
-                
-                'jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin' {
-                    consolePrefix 'SSH: '
-                    
-                }
-            }
-            
-            project / 'builders' << 'hudson.plugins.cmake.CmakeBuilder' {
-                sourceDir targetName
-                buildDir 'build'
-                buildType 'Release'
-                generator 'Unix Makefiles'
-                makeCommand 'make'
-                installCommand 'make install'
-                projectCmakePath '/usr/bin/cmake'
-                cleanBuild 'false'
-                cleanInstallDir 'false'
-            } 
-        }
-        
-        publishers {
-            publishScp(ARTIFACT_DESTINATION) {
-                entry('**/build/$TARGET', '/deploy/$TARGET')
             }
         }
     }
