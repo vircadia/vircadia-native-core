@@ -1057,7 +1057,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
             *outputBuffer = 0; // root
         }
     } else {
-        codeLength = bytesRequiredForCodeLength(*node->getOctalCode());
+        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
         memcpy(outputBuffer, node->getOctalCode(), codeLength);
     }
     
