@@ -116,6 +116,8 @@ int main(int argc, const char* argv[]) {
     float sumFrameTimePercentages = 0.0f;
     int numStatCollections = 0;
     
+    stk::StkFrames stkFrameBuffer(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 1);
+    
     // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
     if (Logstash::shouldSendStats()) {
         Logstash::socket();
@@ -161,6 +163,9 @@ int main(int argc, const char* argv[]) {
         }
         
         for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+            
+            const int PHASE_DELAY_AT_90 = 20;
+            
             if (agent->getType() == AGENT_TYPE_AVATAR) {
                 AvatarAudioRingBuffer* agentRingBuffer = (AvatarAudioRingBuffer*) agent->getLinkedData();
                 
@@ -248,7 +253,6 @@ int main(int argc, const char* argv[]) {
                                                                                   glm::normalize(rotatedSourcePosition),
                                                                                   glm::vec3(0.0f, 1.0f, 0.0f));
                                 
-                                const int PHASE_DELAY_AT_90 = 20;
                                 const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
                                 
                                 // figure out the number of samples of delay and the ratio of the amplitude
@@ -279,6 +283,8 @@ int main(int argc, const char* argv[]) {
                             }
                         }
                         
+                        int16_t* sourceBuffer = otherAgentBuffer->getNextOutput();
+                        
                         int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
                             ? clientSamples
                             : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
@@ -290,28 +296,37 @@ int main(int argc, const char* argv[]) {
                             ? otherAgentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
                             : otherAgentBuffer->getNextOutput() - numSamplesDelay;
                         
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                            // load up the stkFrameBuffer with this source's samples
+                            stkFrameBuffer[s] = (stk::StkFloat) sourceBuffer[s];
+                        }
+                        
+                        // perform the TwoPole effect on the stkFrameBuffer
+                        if (otherAgentTwoPole) {
+                            otherAgentTwoPole->tick(stkFrameBuffer);
+                        }
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             if (s < numSamplesDelay) {
                                 // pull the earlier sample for the delayed channel
-                                int earlierSample = delaySamplePointer[s]
-                                    * attenuationCoefficient
-                                    * weakChannelAmplitudeRatio;
+                                int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
                                 
                                 plateauAdditionOfSamples(delayedChannel[s], earlierSample);
                             }
                             
-                            if (otherAgentTwoPole) {
-                                otherAgentBuffer->getNextOutput()[s] = otherAgentTwoPole->tick(otherAgentBuffer->getNextOutput()[s]);
-                            }
-                            
-                            int16_t currentSample = otherAgentBuffer->getNextOutput()[s] * attenuationCoefficient;
+                            int16_t currentSample = stkFrameBuffer[s] * attenuationCoefficient;
                             
                             plateauAdditionOfSamples(goodChannel[s], currentSample);
                             
                             if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
                                 plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
                                                          currentSample * weakChannelAmplitudeRatio);
+                            }
+                            
+                            if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
+                                // this could be a delayed sample on the next pass
+                                // so store the affected back in the ARB
+                                otherAgentBuffer->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
                             }
                         }
                     }
