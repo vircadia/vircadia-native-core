@@ -109,6 +109,7 @@ private:
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
+    static int _eyePositionLocation;
     
     // private methods
     void createMohawk();

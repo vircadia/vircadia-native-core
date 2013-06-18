@@ -85,7 +85,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     if (isnan(angle) || angle < EPSILON) {
         return glm::quat();
     }
-    glm::vec3 axis = glm::cross(v1, v2);
+    glm::vec3 axis;
     if (angle > 179.99f) { // 180 degree rotation; must use another axis
         axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
         float axisLength = glm::length(axis);

@@ -183,14 +183,15 @@ int audioCallback (const void* inputBuffer,
             ::numStarves++;
             parentAudio->_packetsReceivedThisPlayback = 0;
             
-            // printLog("Starved #%d\n", starve_counter);
+            printLog("Starved!\n");
             parentAudio->_wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                //printLog("starting playback %3.1f msecs delayed, jitter buffer = %d \n",
-                //         (usecTimestampNow() - usecTimestamp(&parentAudio->_firstPlaybackTime))/1000.0,
-                //         parentAudio->_jitterBufferSamples);
+                printLog("starting playback %3.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                         (usecTimestampNow() - usecTimestamp(&parentAudio->_firstPacketReceivedTime))/1000.0,
+                         parentAudio->_jitterBufferSamples,
+                         parentAudio->_packetsReceivedThisPlayback);
             } else {
                 // printLog("pushing buffer\n");
             }
@@ -306,7 +307,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),
-    _firstPlaybackTime(),
+    _firstPacketReceivedTime(),
     _packetsReceivedThisPlayback(0),
     _shouldStartEcho(false),
     _isSendingEchoPing(false),
@@ -319,8 +320,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     //         number of frames per buffer explicitly versus setting this value to zero.
     //         Possible source of latency that we need to investigate further.
     // 
-    unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    //unsigned long FRAMES_PER_BUFFER = 0;
+    //unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    unsigned long FRAMES_PER_BUFFER = 0;
     
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
                                               2,
@@ -333,6 +334,9 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
+    
+    const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
+    printLog("Audio started with Input latency: %f, Output Latency: %f\n", streamInfo->inputLatency, streamInfo->outputLatency);
     
     _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
     _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
@@ -454,9 +458,10 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     }
     
     if (_packetsReceivedThisPlayback == 1) {
-        gettimeofday(&_firstPlaybackTime, NULL);
+        gettimeofday(&_firstPacketReceivedTime, NULL);
     }
     
+    //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;

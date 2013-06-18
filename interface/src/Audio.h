@@ -53,7 +53,7 @@ private:
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
-    timeval _firstPlaybackTime;
+    timeval _firstPacketReceivedTime;
     int _packetsReceivedThisPlayback;
     // Echo Analysis
     bool _shouldStartEcho;
