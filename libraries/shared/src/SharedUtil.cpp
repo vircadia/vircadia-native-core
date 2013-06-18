@@ -423,10 +423,10 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
-                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                memmove(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memmove(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
                 if (originalIndexArray) {
-                    memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                    memmove(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
                 }
             }
         }
