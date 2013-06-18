@@ -7,7 +7,7 @@
 
 #include "CoverageMap.h"
 #include <SharedUtil.h>
-#include <string>
+#include <cstring>
 #include "Log.h"
 
 int CoverageMap::_mapCount = 0;
