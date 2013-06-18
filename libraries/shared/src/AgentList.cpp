@@ -292,7 +292,10 @@ Agent* AgentList::addOrUpdateAgent(sockaddr* publicSocket, sockaddr* localSocket
         if (socketMatch(publicSocket, localSocket)) {
             // likely debugging scenario with two agents on local network
             // set the agent active right away
+            printf("Activating the public socket for agent with type %c\n", agentType);
             newAgent->activatePublicSocket();
+        } else {
+            printf("No match for agent with type %c\n", agentType);
         }
    
         if (newAgent->getType() == AGENT_TYPE_VOXEL_SERVER ||
