@@ -16,7 +16,7 @@
 #include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() : _frameTextureID(0), _frameCount(0), _startTimestamp(0) {
+Webcam::Webcam() : _frameTextureID(0), _startTimestamp(0), _frameCount(0)  {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
