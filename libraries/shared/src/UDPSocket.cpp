@@ -39,9 +39,6 @@ bool socketMatch(const sockaddr* first, const sockaddr* second) {
             const sockaddr_in *firstIn = (const sockaddr_in *) first;
             const sockaddr_in *secondIn = (const sockaddr_in *) second;
             
-            printf("First - %s, %d\n", inet_ntoa(firstIn->sin_addr), ntohs(firstIn->sin_port));
-            printf("Second - %s, %d\n", inet_ntoa(secondIn->sin_addr), ntohs(secondIn->sin_port));
-            
             return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
             && firstIn->sin_port == secondIn->sin_port;
         } else {
