@@ -40,7 +40,7 @@ bool hasInjectedAudioOnce = false;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
-const char *allowedParameters = ":sb::t::c::a::f::d::r:";
+const char *allowedParameters = ":sc::a::f::t::r:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 float triggerDistance = 0.0f;
@@ -52,7 +52,7 @@ void usage(void) {
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
-    std::cout << "   -d FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
+    std::cout << "   -t FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
     std::cout << "   -r FLOAT                       Radius for spherical source. If not specified injected audio is point source" << std::endl;
 }
 
@@ -88,7 +88,7 @@ bool processParameters(int parameterCount, char* parameterData[]) {
                 ::volume = atoi(optarg);
                 std::cout << "[DEBUG] Attenuation modifier: " << optarg << std::endl;
                 break;
-            case 'd':
+            case 't':
                 ::triggerDistance = atof(optarg);
                 std::cout << "[DEBUG] Trigger distance: " << optarg << std::endl;
                 break;
