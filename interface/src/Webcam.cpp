@@ -47,13 +47,14 @@ void FrameGrabber::timerEvent(QTimerEvent* event) {
         return;
     }
     // make sure it's in the format we expect
-    if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
-            image->origin != 0 || image->widthStep != image->width * 3) {
+    if ((image->nChannels != 3 && image->nChannels != 4) || image->depth != IPL_DEPTH_8U ||
+            image->dataOrder != IPL_DATA_ORDER_PIXEL || image->origin != 0) {
         printLog("Invalid webcam image format.\n");
         return;
     }
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(QImage, QImage((uchar*)image->imageData, image->width, image->height, QImage::Format_RGB888)));
+        Q_ARG(QImage, QImage((uchar*)image->imageData, image->width, image->height, image->widthStep,
+            image->nChannels == 3 ? QImage::Format_RGB888 : QImage::Format_ARGB32).copy(0, 0, image->width, image->height)));
 }
 
 Webcam::Webcam() : _frameTextureID(0) {
@@ -77,16 +78,17 @@ Webcam::~Webcam() {
 }
 
 void Webcam::setFrame(const QImage& image) {
+    GLenum format = (image.format() == QImage::Format_RGB888) ? GL_BGR : GL_BGRA;
     if (_frameTextureID == 0) {
         glGenTextures(1, &_frameTextureID);
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width(), _frameHeight = image.height(), 0, GL_BGR,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width(), _frameHeight = image.height(), 0, format,
             GL_UNSIGNED_BYTE, image.constBits());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, image.constBits());    
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, format, GL_UNSIGNED_BYTE, image.constBits());    
     }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
