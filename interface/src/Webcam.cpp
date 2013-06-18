@@ -16,7 +16,7 @@
 #include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() : _frameTextureID(0), _frameCount(0) {
+Webcam::Webcam() : _frameTextureID(0), _frameCount(0), _startTimestamp(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -25,9 +25,6 @@ Webcam::Webcam() : _frameTextureID(0), _frameCount(0) {
 void Webcam::init() {
     // start the grabber thread
     _grabberThread.start();
-    
-    // remember when we started
-    _startTimestamp = _lastFrameTimestamp = usecTimestampNow();
     
     // let the grabber know we're ready for the first frame
     QMetaObject::invokeMethod(_grabber, "grabFrame");
@@ -94,7 +91,12 @@ void Webcam::setFrame(void* image) {
     const int MAX_FPS = 60;
     const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
     long long now = usecTimestampNow();
-    long long remaining = MIN_FRAME_DELAY - (now - _lastFrameTimestamp);
+    long long remaining = MIN_FRAME_DELAY;
+    if (_startTimestamp == 0) {
+        _startTimestamp = now;
+    } else {
+        remaining -= (now - _lastFrameTimestamp);
+    }
     _lastFrameTimestamp = now;
     
     // let the grabber know we're ready for the next frame
