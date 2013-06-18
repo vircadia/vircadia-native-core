@@ -5,6 +5,7 @@
 //  Created by Andrzej Kapolka on 6/17/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <QTimer>
 #include <QtDebug>
 
 #include <opencv2/opencv.hpp>
@@ -26,7 +27,7 @@ void Webcam::init() {
     _grabberThread.start();
     
     // remember when we started
-    _startTimestamp = usecTimestampNow();
+    _startTimestamp = _lastFrameTimestamp = usecTimestampNow();
     
     // let the grabber know we're ready for the first frame
     QMetaObject::invokeMethod(_grabber, "grabFrame");
@@ -78,7 +79,7 @@ void Webcam::setFrame(void* image) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = img->width, _frameHeight = img->height, 0, GL_BGR,
             GL_UNSIGNED_BYTE, img->imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        printLog("Capturing webcam at %dx%dx%d.\n", _frameWidth, _frameHeight, _grabber->getFramesPerSecond());
+        printLog("Capturing webcam at %dx%d.\n", _frameWidth, _frameHeight);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
@@ -90,8 +91,14 @@ void Webcam::setFrame(void* image) {
     // update our frame count for fps computation
     _frameCount++;
     
+    const int MAX_FPS = 60;
+    const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
+    long long now = usecTimestampNow();
+    long long remaining = MIN_FRAME_DELAY - (now - _lastFrameTimestamp);
+    _lastFrameTimestamp = now;
+    
     // let the grabber know we're ready for the next frame
-    QMetaObject::invokeMethod(_grabber, "grabFrame");
+    QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -108,11 +115,8 @@ void FrameGrabber::grabFrame() {
         }
         const int IDEAL_FRAME_WIDTH = 320;
         const int IDEAL_FRAME_HEIGHT = 240;
-        const int IDEAL_FPS = 60;
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_FPS, IDEAL_FPS);
-        _framesPerSecond = cvGetCaptureProperty(_capture, CV_CAP_PROP_FPS);
     }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {

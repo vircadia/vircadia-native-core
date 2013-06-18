@@ -46,6 +46,8 @@ private:
     
     long long _startTimestamp;
     int _frameCount;
+    
+    long long _lastFrameTimestamp;
 };
 
 class FrameGrabber : public QObject {
@@ -56,8 +58,6 @@ public:
     FrameGrabber() : _capture(0) { }
     virtual ~FrameGrabber();
 
-    int getFramesPerSecond() const { return _framesPerSecond; }
-
 public slots:
     
     void grabFrame();
@@ -65,7 +65,6 @@ public slots:
 private:
     
     CvCapture* _capture;
-    int _framesPerSecond;
 };
 
 #endif /* defined(__interface__Webcam__) */
