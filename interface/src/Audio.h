@@ -11,6 +11,9 @@
 
 #include <portaudio.h>
 
+#include <speex/speex_echo.h>
+#include <speex/speex_preprocess.h>
+
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
@@ -49,6 +52,9 @@ public:
 
 private:    
     PaStream* _stream;
+    SpeexEchoState* _speexEchoState;
+    SpeexPreprocessState* _speexPreprocessState;
+    int16_t* _speexTmpBuf;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
     StDev _stdev;
@@ -73,9 +79,9 @@ private:
     int _echoPingRetries;
     unsigned _echoWritePos;
     unsigned _echoDelay;
-    int _echoAmplitude;
     int _echoInputFramesToRecord;
-    int16_t* _echoInputSamples;
+    int16_t* _echoSamplesLeft;
+    int16_t* _echoSamplesRight;
     // Flange effect
     int _samplesLeftForFlange;
     int _lastYawMeasuredMaximum;

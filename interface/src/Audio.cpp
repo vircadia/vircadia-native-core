@@ -52,18 +52,24 @@ static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANN
 
 static const int AGENT_LOOPBACK_MODIFIER = 307;
 
+static const int AEC_N_CHANNELS_MIC = 1;                                        // Number of microphone channels
+static const int AEC_N_CHANNELS_PLAY = 2;                                       // Number of speaker channels
+static const int AEC_FILTER_LENGTH = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 10;    // Width of the filter
+static const int AEC_BUFFERED_FRAMES = 6;                                       // Maximum number of frames to buffer
+static const int AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
+static const int AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY; 
+static const int AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                    // Temporary space for processing a
+        AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
 
-static const int ECHO_INPUT_FRAMES = 6;                                         // Frames to buffer for echo cancellation
-static const int ECHO_PING_RETRY = 3;                                           // Number of retries for EC calibration
 static const float ECHO_PING_PITCH = 16.f;                                      // Ping wavelength, # samples / radian
-static const float ECHO_PING_VOLUME = 32000.f;                                  // Signal peak amplitude
+static const float ECHO_PING_VOLUME = 32000.f;                                  // Ping peak amplitude
+static const int ECHO_PING_RETRY = 3;                                           // Number of retries for EC calibration
 static const int ECHO_PING_MIN_AMPLI = 225;                                     // Minimum amplitude for EC calibration 
 static const int ECHO_PING_MAX_PERIOD_DIFFERENCE = 15;                          // Maximum # samples from expected period
-static const int ECHO_CANCEL_ADJUST = -9;                                       // Some samples to fine-tune delay
 static const int ECHO_PING_PERIOD = int(Radians::twicePi() * ECHO_PING_PITCH);  // Sine period based on the given pitch
 static const int ECHO_PING_HALF_PERIOD = int(Radians::pi() * ECHO_PING_PITCH);  // Distance between extrema
-static const int ECHO_PING_BUFFER_OFFSET = PACKET_LENGTH_SAMPLES_PER_CHANNEL - ECHO_PING_PERIOD * 2.0f; // Signal start
-static const int ECHO_INPUT_LENGTH_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL * ECHO_INPUT_FRAMES; // Total buffer size
+static const int ECHO_PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - ECHO_PING_PERIOD * 2.0f; // Signal start
+
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
 
@@ -74,7 +80,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     eventuallyCancelEcho(inputLeft);
  
     // Add Procedural effects to input samples
-    //addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     if (agentList && inputLeft) {
         
@@ -234,8 +240,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
 
     // add output (@speakers) data just written to the scope
 #ifndef DEBUG_ECHO_CANCELLATION
-    _scope->addSamples(1, outputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
-    _scope->addSamples(2, outputRight, PACKET_LENGTH_SAMPLES_PER_CHANNEL);
+    _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 
     gettimeofday(&_lastCallbackTime, NULL);
@@ -272,6 +278,8 @@ static void outputPortAudioError(PaError error) {
 
 Audio::Audio(Oscilloscope* scope) :
     _stream(NULL),
+    _speexEchoState(NULL),
+    _speexPreprocessState(NULL),
     _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
@@ -306,13 +314,36 @@ Audio::Audio(Oscilloscope* scope) :
                                               BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                                               audioCallback,
                                               (void*) this));
-    
+
+    if (! _stream) {
+        return;
+    }
+ 
+    _echoSamplesLeft = new int16_t[AEC_BUFFERED_SAMPLES + AEC_TMP_BUFFER_SIZE];
+    if (! _echoSamplesLeft) {
+        return;
+    }
+    memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
+    _echoSamplesRight = _echoSamplesLeft + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
+    _speexTmpBuf = _echoSamplesRight + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
+
+    _speexPreprocessState = speex_preprocess_state_init(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, SAMPLE_RATE);
+    if (_speexPreprocessState) {
+        _speexEchoState = speex_echo_state_init_mc(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 
+                                                   AEC_FILTER_LENGTH, AEC_N_CHANNELS_MIC, AEC_N_CHANNELS_PLAY);
+        if (_speexEchoState) {
+            int sampleRate = SAMPLE_RATE;
+            speex_echo_ctl(_speexEchoState, SPEEX_ECHO_SET_SAMPLING_RATE, &sampleRate);
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_STATE, _speexEchoState);
+        } else {
+            speex_preprocess_state_destroy(_speexPreprocessState);
+            _speexPreprocessState = NULL;
+        }
+    }
+
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
-    
-    _echoInputSamples = new int16_t[ECHO_INPUT_LENGTH_SAMPLES];
-    memset(_echoInputSamples, 0, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int));
-    
+
     gettimeofday(&_lastReceiveTime, NULL);
 }
 
@@ -321,6 +352,11 @@ Audio::~Audio() {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());
     }
+    if (_speexEchoState) {
+        speex_preprocess_state_destroy(_speexPreprocessState);
+        speex_echo_state_destroy(_speexEchoState);
+    }
+    delete[] _echoSamplesLeft;
 }
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
@@ -479,32 +515,36 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
         return;
     }
 
-    // Determine echo buffer range
-    unsigned n = PACKET_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
-    unsigned readPos = (_echoWritePos + ECHO_INPUT_LENGTH_SAMPLES - _echoDelay) % ECHO_INPUT_LENGTH_SAMPLES;
+    // Construct an artificial frame from the captured playback
+    // that contains the appropriately delayed output to cancel
+    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
+    unsigned readPos = (_echoWritePos + AEC_BUFFERED_SAMPLES_PER_CHANNEL - _echoDelay) % AEC_BUFFERED_SAMPLES_PER_CHANNEL;
     unsigned readEnd = readPos + n;
-    if (readEnd >= ECHO_INPUT_LENGTH_SAMPLES) {
-        n2 = (readEnd -= ECHO_INPUT_LENGTH_SAMPLES);
+    if (readEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
+        n2 = (readEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
         n -= n2;
     }
+    // Use two subsequent buffers for the two stereo channels
+    int16_t* playBufferLeft = _speexTmpBuf + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    memcpy(playBufferLeft, _echoSamplesLeft + readPos, n * sizeof(int16_t));
+    memcpy(playBufferLeft + n, _echoSamplesLeft, n2 * sizeof(int16_t));
+    int16_t* playBufferRight = playBufferLeft + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    memcpy(playBufferRight, _echoSamplesRight + readPos, n * sizeof(int16_t));
+    memcpy(playBufferRight + n, _echoSamplesLeft, n2 * sizeof(int16_t));
 
 #ifdef DEBUG_ECHO_CANCELLATION
-    // Visualization
-    static short dbgBuf[BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
-    memset(dbgBuf, 0, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-    subScaled(dbgBuf, _echoInputSamples + readPos, n, _echoAmplitude);
-    subScaled(dbgBuf + n, _echoInputSamples, n2, _echoAmplitude);
-
+    // Visualize the input
     _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    _scope->addSamples(1, playBufferLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 
-    // Subtract echo from input
-    subScaled(inputLeft, _echoInputSamples + readPos, n, _echoAmplitude);
-    subScaled(inputLeft + n, _echoInputSamples, n2, _echoAmplitude);
+    // Have Speex perform echo cancellation
+    speex_echo_cancellation(_speexEchoState, inputLeft, playBufferLeft, _speexTmpBuf);
+    memcpy(inputLeft, _speexTmpBuf, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    speex_preprocess_run(_speexPreprocessState, inputLeft); 
 
 #ifdef DEBUG_ECHO_CANCELLATION
-    // Visualization
-    _scope->addSamples(1, dbgBuf, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    // Visualization the result
     _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 }
@@ -514,15 +554,17 @@ inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRigh
         return;
     }
 
-    // Copy data to circular buffer
-    unsigned n = PACKET_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
+    // Copy playback data to circular buffers
+    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
     unsigned writeEnd = _echoWritePos + n;
-    if (writeEnd >= ECHO_INPUT_LENGTH_SAMPLES) {
-        n2 = (writeEnd -= ECHO_INPUT_LENGTH_SAMPLES);
+    if (writeEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
+        n2 = (writeEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
         n -= n2;
     }
-    memcpy(_echoInputSamples + _echoWritePos, outputLeft, n * sizeof(int16_t));
-    memcpy(_echoInputSamples, outputLeft + n, n2 * sizeof(int16_t));
+    memcpy(_echoSamplesLeft + _echoWritePos, outputLeft, n * sizeof(int16_t));
+    memcpy(_echoSamplesLeft, outputLeft + n, n2 * sizeof(int16_t));
+    memcpy(_echoSamplesRight + _echoWritePos, outputRight, n * sizeof(int16_t));
+    memcpy(_echoSamplesRight, outputRight + n, n2 * sizeof(int16_t));
 
     _echoWritePos = writeEnd;
 }
@@ -535,7 +577,7 @@ void Audio::setIsCancellingEcho(bool enabled) {
 
         // Request recalibration
         _echoPingRetries = ECHO_PING_RETRY;
-        _echoInputFramesToRecord = ECHO_INPUT_FRAMES;
+        _echoInputFramesToRecord = AEC_BUFFERED_FRAMES;
         _isSendingEchoPing = true;
 
         // _scope->setDownsampleRatio(8); // DEBUG
@@ -555,13 +597,13 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
     if (Application::getInstance()->shouldEchoAudio()) {
 
         enum { bufs = 32 };
-        static int16_t buf[bufs][PACKET_LENGTH_SAMPLES_PER_CHANNEL];
+        static int16_t buf[bufs][BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
         static int bufIdx = 0;
 
         int wBuf = bufIdx;
         bufIdx = (bufIdx + 1) % bufs;
-        memcpy(buf[wBuf], inputLeft, PACKET_LENGTH_BYTES_PER_CHANNEL);
-        subScaled(outputLeft, buf[bufIdx], PACKET_LENGTH_SAMPLES_PER_CHANNEL, -0x7000);
+        memcpy(buf[wBuf], inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        subScaled(outputLeft, buf[bufIdx], BUFFER_LENGTH_SAMPLES_PER_CHANNEL, -0x7000);
     }
 */
     // Calibration of echo cancellation
@@ -582,21 +624,21 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
 
         // As of the next frame, we'll be recoding _echoInputFramesToRecord from the mic
         _isSendingEchoPing = false;
-        printLog("Send echo ping\n");
+        printLog("Send audio ping\n");
 
     } else if (_echoInputFramesToRecord > 0) {
 
         // Store input samples
-        int offset = PACKET_LENGTH_SAMPLES_PER_CHANNEL * (
-                ECHO_INPUT_FRAMES - _echoInputFramesToRecord);
-        memcpy(_echoInputSamples + offset, 
-               inputLeft, PACKET_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+        int offset = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (
+                AEC_BUFFERED_FRAMES - _echoInputFramesToRecord);
+        memcpy(_echoSamplesLeft + offset, 
+               inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
 
         --_echoInputFramesToRecord;
 
         if (_echoInputFramesToRecord == 0) {
             _echoAnalysisPending = true;
-            printLog("got input\n");
+            printLog("Received ping echo\n");
         }
     }
 }
@@ -618,50 +660,45 @@ static int findExtremum(int16_t const* samples, int length, int sign) {
 bool Audio::calibrateEchoCancellation() {
 
     // Analyze received signal
-    int botAt = findExtremum(_echoInputSamples, ECHO_INPUT_LENGTH_SAMPLES, -1);
+    int botAt = findExtremum(_echoSamplesLeft, AEC_BUFFERED_SAMPLES_PER_CHANNEL, -1);
     if (botAt == -1) {
-        printLog("Minimum not found.\n");
+        printLog("AEC: Minimum not found.\n");
         return false;
     }
-    int topAt = findExtremum(_echoInputSamples, ECHO_INPUT_LENGTH_SAMPLES, 1);
+    int topAt = findExtremum(_echoSamplesLeft, AEC_BUFFERED_SAMPLES_PER_CHANNEL, 1);
     if (topAt == -1) {
-        printLog("Maximum not found.\n");
+        printLog("AEC: Maximum not found.\n");
         return false;
     }
 
     // Determine peak amplitude
-    int ampli = (_echoInputSamples[topAt] - _echoInputSamples[botAt]) / 2;
+    int ampli = (_echoSamplesLeft[topAt] - _echoSamplesLeft[botAt]) / 2;
     if (ampli < ECHO_PING_MIN_AMPLI) {
         // We can't reliably calibrate and probably won't hear it, anyways.
-        printLog("Low amplitude %d.\n", ampli);
+        printLog("AEC: Amplitude too low %d.\n", ampli);
         return false;
     }
 
     // Determine period
     int halfPeriod = topAt - botAt;
     if (halfPeriod < 0) {
-        printLog("Min/max inverted.\n");
+        printLog("AEC: Min/max inverted.\n");
         halfPeriod = -halfPeriod;
         topAt -= ECHO_PING_PERIOD;
         ampli = -ampli;
     }
     if (abs(halfPeriod-ECHO_PING_HALF_PERIOD) > ECHO_PING_MAX_PERIOD_DIFFERENCE) {
         // Probably not our signal
-        printLog("Unexpected period %d vs. %d\n", halfPeriod, ECHO_PING_HALF_PERIOD);
+        printLog("AEC: Unexpected period %d vs. %d\n", halfPeriod, ECHO_PING_HALF_PERIOD);
         return false;
     }
 
     // Determine delay based on the characteristic center of the signal we found
-    int delay = (botAt + topAt) / 2 + PACKET_LENGTH_SAMPLES_PER_CHANNEL - ECHO_PING_PERIOD + ECHO_CANCEL_ADJUST;
+    // (this value is too small by one packet minus ping length and it's good that
+    // way as the initial movement will be before the peak)
+    _echoDelay = (botAt + topAt) / 2;
 
-    // Scale amplitude to fraction in 16-bit fixpoint, relative to the volume of the original signal
-    ampli = (ampli << 16) / ECHO_PING_VOLUME;
-
-    // Set state 
-    _echoDelay = delay;
-    _echoAmplitude = ampli;
-
-    printLog("delay = %d\namp = %d\ntopAt = %d\nbotAt = %d\n", delay, ampli, topAt, botAt);    
+    printLog("AEC:\ndelay = %d\namp = %d\ntopAt = %d\nbotAt = %d\n", _echoDelay, ampli, topAt, botAt); 
     return true;
 }
 
@@ -676,21 +713,18 @@ bool Audio::eventuallyCalibrateEchoCancellation() {
     if (calibrateEchoCancellation()) {
         // Success! Enable echo cancellation.
         _echoWritePos = 0;
-        memset(_echoInputSamples, 0, ECHO_INPUT_LENGTH_SAMPLES * sizeof(int16_t));
+        memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
         _isCancellingEcho = true;
     }
     else if (--_echoPingRetries >= 0) {
         // Retry - better luck next time.
         _isSendingEchoPing = true;
-        _echoInputFramesToRecord = ECHO_INPUT_FRAMES;
+        _echoInputFramesToRecord = AEC_BUFFERED_FRAMES;
         // _scope->inputPaused = false; // DEBUG
         return false;
     }
     // _scope->inputPaused = true; // DEBUG
     return true;
 }
-
-
-
 
 #endif

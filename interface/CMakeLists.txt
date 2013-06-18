@@ -86,6 +86,7 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 find_package(GLM REQUIRED)
 find_package(LodePNG REQUIRED)
 find_package(LibOVR)
+find_package(SpeexDSP REQUIRED)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -102,7 +103,7 @@ include_directories(
   ${LIBOVR_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${SPEEXDSP_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
