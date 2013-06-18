@@ -1,24 +1,10 @@
-def targets = [
-    'animation-server',
-    'audio-mixer',
-    'avatar-mixer',
-    'domain-server',
-    'eve',
-    'interface',
-    'pairing-server',
-    'space-server',
-    'voxel-server'
-]
-
-def JENKINS_URL = 'https://jenkins.below92.com/'
-def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
-def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
-def HIPCHAT_AUTH_TOKEN = '4ad6553471db605629852ff3265408'
-def HIPCHAT_ROOM = 'High Fidelity'
-def ARTIFACT_DESTINATION = 'a-tower.below92.com'
-
-targets.each {
-    def targetName = it
+def hifiJob(String targetName, Boolean deploy) {
+    def JENKINS_URL = 'https://jenkins.below92.com/'
+    def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
+    def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
+    def HIPCHAT_AUTH_TOKEN = '4ad6553471db605629852ff3265408'
+    def HIPCHAT_ROOM = 'High Fidelity'
+    def ARTIFACT_DESTINATION = 'a-tower.below92.com'
     
     job {
         name "hifi-${targetName}"
@@ -68,26 +54,31 @@ targets.each {
             }
         }
         
-        publishers {            
-            publishScp(ARTIFACT_DESTINATION) {
-                entry("**/build/${targetName}", "deploy/${targetName}")
+        if (deploy) {
+            publishers {            
+                publishScp(ARTIFACT_DESTINATION) {
+                    entry("**/build/${targetName}", "deploy/${targetName}")
+                }
             }
         }
         
         configure { project ->
+            
             project / 'publishers' << {
-                'hudson.plugins.postbuildtask.PostbuildTask' {
-                    'tasks' {
-                        'hudson.plugins.postbuildtask.TaskProperties' {
-                            logTexts {
-                                'hudson.plugins.postbuildtask.LogProperties' {
-                                    logText '.'
-                                    operator 'AND'
+                if (deploy) {
+                    'hudson.plugins.postbuildtask.PostbuildTask' {
+                        'tasks' {
+                            'hudson.plugins.postbuildtask.TaskProperties' {
+                                logTexts {
+                                    'hudson.plugins.postbuildtask.LogProperties' {
+                                        logText '.'
+                                        operator 'AND'
+                                    }
                                 }
+                                EscalateStatus true
+                                RunIfJobSuccessful true
+                                script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://a-tower.below92.com"
                             }
-                            EscalateStatus true
-                            RunIfJobSuccessful true
-                            script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://a-tower.below92.com"
                         }
                     }
                 }
@@ -101,3 +92,20 @@ targets.each {
         }
     }
 }
+
+def deployTargets = [
+    'animation-server',
+    'audio-mixer',
+    'avatar-mixer',
+    'domain-server',
+    'eve',
+    'pairing-server',
+    'space-server',
+    'voxel-server'
+]
+
+deployTargets.each {
+    hifiJob(it, true)
+}
+
+hifiJob('interface', false)
