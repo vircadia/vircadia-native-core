@@ -45,47 +45,44 @@
 #  SPEEXDSP_FOUND        - True if SPEEXDSP found.
 #
 
-if (SPEEXDSP_INCLUDE_DIRS)
-  # Already in cache, be silent
-  set(SPEEXDSP_FIND_QUIETLY TRUE)
+if (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARIES)
+  set(SPEEXDSP_FOUND TRUE)
+else (SPEEXDSP_INCLUDE_DIRS)
+
+    find_path(SPEEXDSP_INCLUDE_DIRS speex/speex.h
+      /usr/include
+      /usr/local/include
+      ${SPEEX_ROOT_DIR}/include
+    )
+
+    set(SPEEXDSP_NAMES speexdsp)
+    find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS /usr/lib usr/local/lib)
+    if (NOT SPEEXDSP_LIBRARY AND APPLE)
+        find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS ${SPEEX_ROOT_DIR}/lib/MacOS)
+    elseif (WIN32)
+        find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS ${SPEEX_ROOT_DIR}/lib/Win32)
+    endif ()
+
+    if (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
+       set(SPEEXDSP_FOUND TRUE)
+       set(SPEEXDSP_LIBRARIES ${SPEEXDSP_LIBRARY})
+    else (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
+       set(SPEEXDSP_FOUND FALSE)
+       set(SPEEXDSP_LIBRARIES)
+    endif (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
+
+    if (SPEEXDSP_FOUND)
+      message(STATUS "Found SpeexDSP: ${SPEEXDSP_LIBRARY}")
+    else (SPEEXDSP_FOUND)
+       if (SPEEXDSP_FIND_REQUIRED)
+          message(STATUS "Looked for SpeexDSP libraries named ${SPEEXDSP_NAMES}.")
+          message(STATUS "Include file detected: [${SPEEXDSP_INCLUDE_DIRS}].")
+          message(STATUS "Lib file detected: [${SPEEXDSP_LIBRARY}].")
+          message(FATAL_ERROR "=========> Could NOT find SpeexDSP library")
+       endif (SPEEXDSP_FIND_REQUIRED)
+    endif (SPEEXDSP_FOUND)
+
+    mark_as_advanced(SPEEXDSP_INCLUDE_DIRS SPEEXDSP_LIBRARIES)
+
 endif (SPEEXDSP_INCLUDE_DIRS)
 
-find_path(SPEEXDSP_INCLUDE_DIRS speex/speex.h
-  /usr/include
-  /usr/local/include
-  ${SPEEX_ROOT_DIR}/include
-)
-
-set(SPEEXDSP_NAMES speexdsp)
-find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS /usr/lib usr/local/lib)
-if (NOT SPEEXDSP_LIBRARY AND APPLE)
-    find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS ${SPEEX_ROOT_DIR}/lib/MacOS)
-elseif (WIN32)
-    find_library(SPEEXDSP_LIBRARY NAMES ${SPEEXDSP_NAMES} PATHS ${SPEEX_ROOT_DIR}/lib/Win32)
-endif ()
-
-if (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
-   set(SPEEXDSP_FOUND TRUE)
-   set( SPEEXDSP_LIBRARIES ${SPEEXDSP_LIBRARY} )
-else (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
-   set(SPEEXDSP_FOUND FALSE)
-   set(SPEEXDSP_LIBRARIES)
-endif (SPEEXDSP_INCLUDE_DIRS AND SPEEXDSP_LIBRARY)
-
-if (SPEEXDSP_FOUND)
-   if (NOT SPEEXDSP_FIND_QUIETLY)
-      message(STATUS "Found SpeexDSP: ${SPEEXDSP_LIBRARY}")
-   endif (NOT SPEEXDSP_FIND_QUIETLY)
-else (SPEEXDSP_FOUND)
-   if (SPEEXDSP_FIND_REQUIRED)
-      message(STATUS "Looked for SpeexDSP libraries named ${SPEEXDSP_NAMES}.")
-      message(STATUS "Include file detected: [${SPEEXDSP_INCLUDE_DIRS}].")
-      message(STATUS "Lib file detected: [${SPEEXDSP_LIBRARY}].")
-      message(FATAL_ERROR "=========> Could NOT find SpeexDSP library")
-   endif (SPEEXDSP_FIND_REQUIRED)
-endif (SPEEXDSP_FOUND)
-
-mark_as_advanced(
-  SPEEXDSP_LIBRARY
-  SPEEXDSP_INCLUDE_DIRS
-  )

@@ -503,7 +503,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Semicolon:
-                _audio.testPing();
+                _audio.ping();
                 break;
             case Qt::Key_Apostrophe:
                 _audioScope.inputPaused = !_audioScope.inputPaused;
@@ -1647,7 +1647,7 @@ void Application::update(float deltaTime) {
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
-    _audio.eventuallyCalibrateEchoCancellation();
+    _audio.eventuallyAnalyzePing();
     #endif
 }
 

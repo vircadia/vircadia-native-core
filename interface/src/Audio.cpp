@@ -26,7 +26,7 @@
 #include "Util.h"
 #include "Log.h"
 
-#define DEBUG_ECHO_CANCELLATION
+#define VISUALIZE_ECHO_CANCELLATION
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -73,15 +73,16 @@ static const int   AEC_AGC_MAX_INC = 6;                                         
 static const int   AEC_AGC_MAX_DEC = 40;                                        // Max decrease in db/s
 static const bool  AEC_USE_VAD = false;                                         // Voice activity determination
 
-// Delay test (performed before using speex)
-static const float AEC_PING_PITCH = 16.f;                                       // Ping wavelength, # samples / radian
-static const float AEC_PING_VOLUME = 32000.f;                                   // Ping peak amplitude
-static const int   AEC_PING_RETRY = 3;                                          // Number of retries for EC calibration
-static const int   AEC_PING_MIN_AMPLI = 225;                                    // Minimum amplitude for EC calibration
-static const int   AEC_PING_MAX_PERIOD_DIFFERENCE = 15;                         // Maximum # samples from expected period
-static const int   AEC_PING_PERIOD = int(Radians::twicePi() * AEC_PING_PITCH);  // Sine period based on the given pitch
-static const int   AEC_PING_HALF_PERIOD = int(Radians::pi() * AEC_PING_PITCH);  // Distance between extrema
-static const int   AEC_PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - AEC_PING_PERIOD * 2.0f; // Signal start
+// Ping test configuration 
+static const float PING_PITCH = 16.f;                                           // Ping wavelength, # samples / radian
+static const float PING_VOLUME = 32000.f;                                       // Ping peak amplitude
+static const int   PING_MIN_AMPLI = 225;                                        // Minimum amplitude 
+static const int   PING_MAX_PERIOD_DIFFERENCE = 15;                             // Maximum # samples from expected period
+static const int   PING_PERIOD = int(Radians::twicePi() * PING_PITCH);          // Sine period based on the given pitch
+static const int   PING_HALF_PERIOD = int(Radians::pi() * PING_PITCH);          // Distance between extrema
+static const int   PING_FRAMES_TO_RECORD = AEC_BUFFERED_FRAMES;                 // Frames to record for analysis
+static const int   PING_SAMPLES_TO_ANALYZE = AEC_BUFFERED_SAMPLES_PER_CHANNEL;  // Samples to analyze (reusing AEC buffer)
+static const int   PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PING_PERIOD * 2.0f; // Signal start
 
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
@@ -107,9 +108,14 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         _lastInputLoudness = loudness;
         
         // add input (@microphone) data to the scope
-#ifndef DEBUG_ECHO_CANCELLATION
-        _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+#ifdef VISUALIZE_ECHO_CANCELLATION
+            if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
 #endif
+        _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+#ifdef VISUALIZE_ECHO_CANCELLATION
+            }
+#endif
+
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
@@ -252,9 +258,13 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
 
 
     // add output (@speakers) data just written to the scope
-#ifndef DEBUG_ECHO_CANCELLATION
+#ifdef VISUALIZE_ECHO_CANCELLATION
+        if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
+#endif
     _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+#ifdef VISUALIZE_ECHO_CANCELLATION
+        }
 #endif
 
     gettimeofday(&_lastCallbackTime, NULL);
@@ -291,8 +301,6 @@ static void outputPortAudioError(PaError error) {
 
 Audio::Audio(Oscilloscope* scope) :
     _stream(NULL),
-    _speexEchoState(NULL),
-    _speexPreprocessState(NULL),
     _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
@@ -309,9 +317,13 @@ Audio::Audio(Oscilloscope* scope) :
     _firstPlaybackTime(),
     _packetsReceivedThisPlayback(0),
     _isCancellingEcho(false),
+    _echoDelay(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2),
+    _echoSamplesLeft(0l),
+    _speexEchoState(NULL),
+    _speexPreprocessState(NULL),
     _isSendingEchoPing(false),
-    _echoAnalysisPending(false),
-    _echoInputFramesToRecord(0),
+    _pingAnalysisPending(false),
+    _pingFramesToRecord(0),
     _samplesLeftForFlange(0),
     _lastYawMeasuredMaximum(0),
     _flangeIntensity(0.0f),
@@ -528,15 +540,12 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     }
 }
 
-static inline void subScaled(int16_t* dst, const int16_t* src, unsigned n, int scale16fixpt) {
-
-    for (int16_t* dstEnd = dst + n; dst != dstEnd; ++src, ++dst) {
-        *dst -= int16_t((*src * scale16fixpt) >> 16);
-    } 
-}
+// -----------------------------
+// Speex-based echo cancellation
+// -----------------------------
 
 inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
-    if (! _isCancellingEcho) {
+    if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
         return;
     }
 
@@ -557,7 +566,7 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
     memcpy(playBufferRight, _echoSamplesRight + readPos, n * sizeof(int16_t));
     memcpy(playBufferRight + n, _echoSamplesLeft, n2 * sizeof(int16_t));
 
-#ifdef DEBUG_ECHO_CANCELLATION
+#ifdef VISUALIZE_ECHO_CANCELLATION
     // Visualize the input
     _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(1, playBufferLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -568,14 +577,14 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
     memcpy(inputLeft, _speexTmpBuf, BUFFER_LENGTH_BYTES_PER_CHANNEL);
     speex_preprocess_run(_speexPreprocessState, inputLeft); 
 
-#ifdef DEBUG_ECHO_CANCELLATION
+#ifdef VISUALIZE_ECHO_CANCELLATION
     // Visualize the result
     _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 }
 
 inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight) {
-    if (! _isCancellingEcho) {
+    if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
         return;
     }
 
@@ -594,75 +603,65 @@ inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRigh
     _echoWritePos = writeEnd;
 }
 
-void Audio::setIsCancellingEcho(bool enabled) {
+// -----------------------------------------------------------
+// Accoustic ping (audio system round trip time determination)
+// -----------------------------------------------------------
 
-    _isCancellingEcho = false;
+void Audio::ping() {
 
-    if (enabled) {
-
-        // Request recalibration
-        _echoPingRetries = AEC_PING_RETRY;
-        _echoInputFramesToRecord = AEC_BUFFERED_FRAMES;
-        _isSendingEchoPing = true;
-
-        // _scope->setDownsampleRatio(8); // DEBUG
-        // _scope->inputPaused = false; // DEBUG
-    }
-}
-
-void Audio::testPing() {
-
-    _echoInputFramesToRecord = 0;
+    _pingFramesToRecord = PING_FRAMES_TO_RECORD;
     _isSendingEchoPing = true;
+    _scope->setDownsampleRatio(8); 
+    _scope->inputPaused = false; 
 }
 
 inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
-/*
-    // Artificial, local echo hack
-    if (Application::getInstance()->shouldEchoAudio()) {
 
-        enum { bufs = 32 };
-        static int16_t buf[bufs][BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
-        static int bufIdx = 0;
-
-        int wBuf = bufIdx;
-        bufIdx = (bufIdx + 1) % bufs;
-        memcpy(buf[wBuf], inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-        subScaled(outputLeft, buf[bufIdx], BUFFER_LENGTH_SAMPLES_PER_CHANNEL, -0x7000);
-    }
-*/
-    // Calibration of echo cancellation
     if (_isSendingEchoPing) {
 
-        // Overwrite output with ping signal
-        memset(outputLeft, 0, AEC_PING_BUFFER_OFFSET * sizeof(int16_t));
-        outputLeft += AEC_PING_BUFFER_OFFSET;
-        memset(outputRight, 0, AEC_PING_BUFFER_OFFSET * sizeof(int16_t));
-        outputRight += AEC_PING_BUFFER_OFFSET;
-        for (int s = -AEC_PING_PERIOD; s < AEC_PING_PERIOD; ++s) {
-            float t = float(s) / AEC_PING_PITCH;
-            // Use signed variant of sinc 
-            // speaker-reproducible with a unique characteristic point in time
-            *outputLeft++ = *outputRight++ = int16_t(AEC_PING_VOLUME * 
+        // Overwrite output with ping signal.
+        //
+        // Using a signed variant of sinc because it's speaker-reproducible
+        // with a unique, characteristic point in time (its center), aligned
+        // to the right of the output buffer.
+        //        
+        //                       |  
+        //                   |   |  
+        // ...--- t --------+-+-+-+-+------->
+        //                     |   | :
+        //                     |     :
+        // buffer                    :<- start of next buffer
+        //                   : : :
+        //                   :---: sine period
+        //                   :-:   half sine period
+        //
+        memset(outputLeft, 0, PING_BUFFER_OFFSET * sizeof(int16_t));
+        outputLeft += PING_BUFFER_OFFSET;
+        memset(outputRight, 0, PING_BUFFER_OFFSET * sizeof(int16_t));
+        outputRight += PING_BUFFER_OFFSET;
+        for (int s = -PING_PERIOD; s < PING_PERIOD; ++s) {
+            float t = float(s) / PING_PITCH;
+            *outputLeft++ = *outputRight++ = int16_t(PING_VOLUME * 
                     sinf(t) / fmaxf(1.0f, pow((abs(t)-1.5f) / 1.5f, 1.2f)));
         }
 
-        // As of the next frame, we'll be recoding _echoInputFramesToRecord from the mic
+        // As of the next frame, we'll be recoding PING_FRAMES_TO_RECORD from 
+        // the mic (pointless to start now as we can't record unsent audio).
         _isSendingEchoPing = false;
         printLog("Send audio ping\n");
 
-    } else if (_echoInputFramesToRecord > 0) {
+    } else if (_pingFramesToRecord > 0) {
 
         // Store input samples
         int offset = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (
-                AEC_BUFFERED_FRAMES - _echoInputFramesToRecord);
+                PING_FRAMES_TO_RECORD - _pingFramesToRecord);
         memcpy(_echoSamplesLeft + offset, 
                inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
 
-        --_echoInputFramesToRecord;
+        --_pingFramesToRecord;
 
-        if (_echoInputFramesToRecord == 0) {
-            _echoAnalysisPending = true;
+        if (_pingFramesToRecord == 0) {
+            _pingAnalysisPending = true;
             printLog("Received ping echo\n");
         }
     }
@@ -671,7 +670,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
 static int findExtremum(int16_t const* samples, int length, int sign) {
 
     int x0 = -1;
-    int y0 = -AEC_PING_VOLUME;
+    int y0 = -PING_VOLUME;
     for (int x = 0; x < length; ++samples, ++x) {
         int y = *samples * sign;
         if (y > y0) {
@@ -682,73 +681,85 @@ static int findExtremum(int16_t const* samples, int length, int sign) {
     return x0;
 }
 
-bool Audio::calibrateEchoCancellation() {
+inline void Audio::analyzePing() {
 
-    // Analyze received signal
-    int botAt = findExtremum(_echoSamplesLeft, AEC_BUFFERED_SAMPLES_PER_CHANNEL, -1);
+    // Determine extrema
+    int botAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, -1);
     if (botAt == -1) {
-        printLog("AEC: Minimum not found.\n");
-        return false;
+        printLog("Audio Ping: Minimum not found.\n");
+        return;
     }
-    int topAt = findExtremum(_echoSamplesLeft, AEC_BUFFERED_SAMPLES_PER_CHANNEL, 1);
+    int topAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, 1);
     if (topAt == -1) {
-        printLog("AEC: Maximum not found.\n");
-        return false;
+        printLog("Audio Ping: Maximum not found.\n");
+        return;
     }
 
-    // Determine peak amplitude
+    // Determine peak amplitude - warn if low
     int ampli = (_echoSamplesLeft[topAt] - _echoSamplesLeft[botAt]) / 2;
-    if (ampli < AEC_PING_MIN_AMPLI) {
-        // We can't reliably calibrate and probably won't hear it, anyways.
-        printLog("AEC: Amplitude too low %d.\n", ampli);
-        return false;
+    if (ampli < PING_MIN_AMPLI) {
+        printLog("Audio Ping unreliable - low amplitude %d.\n", ampli);
     }
 
-    // Determine period
+    // Determine period - warn if doesn't look like our signal
     int halfPeriod = topAt - botAt;
-    if (halfPeriod < 0) {
-        printLog("AEC: Min/max inverted.\n");
-        halfPeriod = -halfPeriod;
-        topAt -= AEC_PING_PERIOD;
-        ampli = -ampli;
-    }
-    if (abs(halfPeriod-AEC_PING_HALF_PERIOD) > AEC_PING_MAX_PERIOD_DIFFERENCE) {
-        // Probably not our signal
-        printLog("AEC: Unexpected period %d vs. %d\n", halfPeriod, AEC_PING_HALF_PERIOD);
-        return false;
+    if (abs(halfPeriod-PING_HALF_PERIOD) > PING_MAX_PERIOD_DIFFERENCE) {
+        printLog("Audio Ping unreliable - peak distance %d vs. %d\n", halfPeriod, PING_HALF_PERIOD);
     }
 
-    // Determine delay based on the characteristic center of the signal we found
-    // (this value is too small by one packet minus ping length and it's good that
-    // way as the initial movement will be before the peak)
-    _echoDelay = (botAt + topAt) / 2;
+    // Ping is sent:
+    //
+    // ---[ record ]--[  play  ]--- audio in space/time --->
+    //    :        :           :
+    //    :        : ping: ->X<-
+    //    :        :         :
+    //    :        :         |+| (buffer end - signal center = t1-t0)
+    //    :      |<----------+
+    //    :      : :         :
+    //    :    ->X<- (corresponding input buffer position t0)
+    //    :      : :         :
+    //    :      : :         :
+    //    :      : :         :
+    // Next frame (we're recording from now on):
+    //    :      : :
+    //    : -  - --[ record ]--[  play  ]------------------>
+    //    :      : :         :
+    //    :      : |<-- (start of recording t1)
+    //    :      : :
+    //    :      : :
+    // At some frame, the signal is picked up:
+    //    :      : :         :
+    //    :      : :         : 
+    //    :      : :         V
+    //    :      : : -  - --[ record ]--[  play  ]---------->
+    //    :      V :         :
+    //    :      |<--------->|
+    //           |+|<------->|  period + measured samples
+    //
+    // If we could pick up the signal at t0 we'd have zero round trip
+    // time - in this case we had recorded the output buffer instantly
+    // in its entirety (we can't - but there's the proper reference
+    // point). We know the number of samples from t1 and, knowing that
+    // data is streaming continuously, we know that t1-t0 is the distance
+    // of the characterisic point from the end of the buffer.
 
-    printLog("AEC:\ndelay = %d\namp = %d\ntopAt = %d\nbotAt = %d\n", _echoDelay, ampli, topAt, botAt); 
-    return true;
+    int delay = (botAt + topAt) / 2 + PING_PERIOD;
+
+    printLog("| Audio Ping results:\n"
+             "+----- ---- --- - -  -   -   -\n"
+             "\n"
+             " Delay = %d samples (%d ms)\n"
+             " Peak amplitude = %d\n\n", delay, delay * 1000 / SAMPLE_RATE, ampli);
 }
 
-bool Audio::eventuallyCalibrateEchoCancellation() {
+bool Audio::eventuallyAnalyzePing() {
 
-    // Pending request -> process it
-    if (! _echoAnalysisPending) {
+    if (! _pingAnalysisPending) {
         return false;
     }
-    _echoAnalysisPending = false;
 
-    if (calibrateEchoCancellation()) {
-        // Success! Enable echo cancellation.
-        _echoWritePos = 0;
-        memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
-        _isCancellingEcho = true;
-    }
-    else if (--_echoPingRetries >= 0) {
-        // Retry - better luck next time.
-        _isSendingEchoPing = true;
-        _echoInputFramesToRecord = AEC_BUFFERED_FRAMES;
-        // _scope->inputPaused = false; // DEBUG
-        return false;
-    }
-    // _scope->inputPaused = true; // DEBUG
+    _scope->inputPaused = true;
+    analyzePing();
     return true;
 }
 

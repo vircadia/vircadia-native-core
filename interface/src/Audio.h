@@ -35,26 +35,18 @@ public:
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
 
-    // Enable/disable audio echo cancellation.
-    // Will request calibration when called with an argument of 'true'.
-    // Echo cancellation will be enabled when it can be calibrated successfully.
-    void setIsCancellingEcho(bool enabled);
-
+    void setIsCancellingEcho(bool enabled) { _isCancellingEcho = enabled; }
     bool isCancellingEcho() const { return _isCancellingEcho; }
 
-    // Call periodically to eventually recalibrate audio echo cancellation.
-    // A return value of 'true' indicates that a calibration request has been processed.
-    // In this case a subsequent call to 'isCancellingEcho' will report whether the 
-    // calibration was successful.
-    bool eventuallyCalibrateEchoCancellation();
+    void ping();
 
-    void testPing();
+    // Call periodically to eventually perform round trip time analysis,
+    // in which case 'true' is returned - otherwise the return value is 'false'.
+    // The results of the analysis are written to the log.
+    bool eventuallyAnalyzePing();
 
 private:    
     PaStream* _stream;
-    SpeexEchoState* _speexEchoState;
-    SpeexPreprocessState* _speexPreprocessState;
-    int16_t* _speexTmpBuf;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
     StDev _stdev;
@@ -72,16 +64,19 @@ private:
     int _totalPacketsReceived;
     timeval _firstPlaybackTime;
     int _packetsReceivedThisPlayback;
-    // Echo Analysis
+    // Echo cancellation
     volatile bool _isCancellingEcho;
-    volatile bool _isSendingEchoPing;
-    volatile bool _echoAnalysisPending;
-    int _echoPingRetries;
     unsigned _echoWritePos;
     unsigned _echoDelay;
-    int _echoInputFramesToRecord;
     int16_t* _echoSamplesLeft;
     int16_t* _echoSamplesRight;
+    int16_t* _speexTmpBuf;
+    SpeexEchoState* _speexEchoState;
+    SpeexPreprocessState* _speexPreprocessState;
+    // Ping analysis
+    volatile bool _isSendingEchoPing;
+    volatile bool _pingAnalysisPending;
+    int _pingFramesToRecord;
     // Flange effect
     int _samplesLeftForFlange;
     int _lastYawMeasuredMaximum;
@@ -98,11 +93,13 @@ private:
     // When EC is enabled, record output samples.
     // Called from 'performIO' after the output has been generated.
     inline void eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight);
-    // When requested, performs sends/receives a signal for EC calibration.
+
+    // When requested, sends/receives a signal for round trip time determination.
+    // Called from 'performIO'.
     inline void eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-    // Analyses the calibration signal and determines delay/amplitude for EC.
-    // Called from (public) 'eventuallyCalibrateEchoCancellation'.
-    inline bool calibrateEchoCancellation();
+
+    // Determines round trip time of the audio system. Called from 'eventuallyAnalyzePing'.
+    inline void analyzePing();
 
     void addProceduralSounds(int16_t* inputBuffer, int numSamples);
 
