@@ -3,8 +3,9 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/18/13.
-//  Replaces Brad Hefta-Gaub's CounterStats class (RIP)
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
+//  Replaces Brad Hefta-Gaub's CounterStats class (RIP)
 //
 
 #ifndef __hifi__Stats__

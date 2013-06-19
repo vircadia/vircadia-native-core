@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 2/22/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #include <cstdlib>
@@ -404,7 +404,6 @@ void printVoxelCode(unsigned char* voxelCode) {
     }
 #endif
 
-
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
@@ -423,10 +422,10 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
-                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                memmove(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memmove(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
                 if (originalIndexArray) {
-                    memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                    memmove(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
                 }
             }
         }

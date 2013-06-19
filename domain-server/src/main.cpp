@@ -65,8 +65,8 @@ int main(int argc, const char * argv[])
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the
 	// domain server
-	bool useLocal = cmdOptionExists(argc, argv, "--local");
-	if (useLocal) {
+	bool isLocalMode = cmdOptionExists(argc, argv, "--local");
+	if (isLocalMode) {
 		printf("NOTE: Running in Local Mode!\n");
 	} else {
 		printf("--------------------------------------------------\n");
@@ -103,14 +103,17 @@ int main(int argc, const char * argv[])
             int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(AGENT_TYPE),
                                               (sockaddr*) &agentLocalAddress);
             
+            sockaddr* destinationSocket = (sockaddr*) &agentPublicAddress;
+            
             // check the agent public address
             // if it matches our local address we're on the same box
             // so hardcode the EC2 public address for now
             if (agentPublicAddress.sin_addr.s_addr == serverLocalAddress) {
             	// If we're not running "local" then we do replace the IP
             	// with the EC2 IP. Otherwise, we use our normal public IP
-            	if (!useLocal) {
+            	if (!isLocalMode) {
 	                agentPublicAddress.sin_addr.s_addr = 895283510; // local IP in this format...
+                    destinationSocket = (sockaddr*) &agentLocalAddress;
 	            }
             }
             
@@ -178,9 +181,9 @@ int main(int argc, const char * argv[])
             currentBufferPos += packAgentId(currentBufferPos, newAgent->getAgentID());
             
             // send the constructed list back to this agent
-            agentList->getAgentSocket()->send((sockaddr*) &agentPublicAddress,
-                                             broadcastPacket,
-                                             (currentBufferPos - startPointer) + 1);
+            agentList->getAgentSocket()->send(destinationSocket,
+                                              broadcastPacket,
+                                              (currentBufferPos - startPointer) + 1);
         }
     }
 
