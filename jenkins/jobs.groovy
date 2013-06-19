@@ -11,7 +11,9 @@ def hifiJob(String targetName, Boolean deploy) {
         logRotator(7, -1, -1, -1)
         
         scm {
-            git(GIT_REPO_URL)
+            git(GIT_REPO_URL, 'master') { node -> 
+                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
+            }
         }
        
         configure { project ->
@@ -27,10 +29,6 @@ def hifiJob(String targetName, Boolean deploy) {
                     useBuildBlocker true
                     blockingJobs 'hifi-seed'
                 }         
-            }
-            
-            project / 'scm' << {
-                includedRegions "${targetName}/.*\nlibraries/.*"
             }
             
             project / 'triggers' << 'com.cloudbees.jenkins.GitHubPushTrigger' {
@@ -104,8 +102,30 @@ def deployTargets = [
     'voxel-server'
 ]
 
+/* setup all of the deploys jobs that use the above template */
+
 deployTargets.each {
     hifiJob(it, true)
 }
 
+/* setup the interface job, doesn't deploy */
+
 hifiJob('interface', false)
+
+/* setup the parametrized-build job for builds from jenkins */
+
+parametrizedJob = hifiJob('$TARGET', true)
+parametrizedJob.with {
+    name 'hifi-branch-deploy'
+    parameters {
+        stringParam('GITHUB_USER', '', "Specifies the name of the GitHub user that we're building from.")
+        stringParam('GIT_BRANCH', '', "Specifies the specific branch to build and deploy.")
+        stringParam('HOSTNAME', 'devel.highfidelity.io', "Specifies the hostname to deploy against.")
+        stringParam('TARGET', '', "What server to build specifically")
+    }   
+    scm {
+        git('git@github.com:/$GITHUB_USER/hifi.git', '$GIT_BRANCH') { node ->
+            node / 'wipeOutWorkspace' << true
+        }
+    } 
+}
