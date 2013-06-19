@@ -1249,8 +1249,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
-
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
+    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
@@ -2147,6 +2147,9 @@ void Application::displayOverlay() {
         drawtext(_glWidget->width() - 350, 50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
     }
     
+    // render the webcam input frame
+    _webcam.renderPreview(_glWidget->width(), _glWidget->height());
+    
     glPopMatrix();
 }
 
@@ -2647,7 +2650,9 @@ void Application::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings*
 }
 
 void Application::loadAction(QSettings* set, QAction* action) {
-    action->setChecked(set->value(action->text(),  action->isChecked()).toBool());
+    if (action->isChecked() != set->value(action->text(), action->isChecked()).toBool()) {
+        action->trigger();
+    }
 }
 
 void Application::saveAction(QSettings* set, QAction* action) {
