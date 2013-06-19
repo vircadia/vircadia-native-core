@@ -9,8 +9,8 @@ def hifiJob(String targetName, Boolean deploy) {
         logRotator(7, -1, -1, -1)
         
         scm {
-            git(GIT_REPO_URL, 'master') { node -> 
-                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
+            git(GIT_REPO_URL, 'master') { node ->
+                 node << includedRegions << "${targetName}/.*\nlibraries/.*"
             }
         }
        
@@ -22,11 +22,7 @@ def hifiJob(String targetName, Boolean deploy) {
                 
                 'jenkins.plugins.hipchat.HipChatNotifier_-HipChatJobProperty' {
                     room HIPCHAT_ROOM
-                }      
-                'hudson.plugins.buildblocker.BuildBlockerProperty' {
-                    useBuildBlocker true
-                    blockingJobs 'hifi-seed'
-                }         
+                }        
             }
             
             project / 'triggers' << 'com.cloudbees.jenkins.GitHubPushTrigger' {
