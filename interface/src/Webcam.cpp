@@ -101,7 +101,7 @@ void Webcam::setFrame(void* image) {
     // update our frame count for fps computation
     _frameCount++;
     
-    const int MAX_FPS = 30;
+    const int MAX_FPS = 60;
     const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
     long long now = usecTimestampNow();
     long long remaining = MIN_FRAME_DELAY;
