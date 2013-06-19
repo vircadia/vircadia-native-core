@@ -20,22 +20,31 @@
 #include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() : _frameTextureID(0), _startTimestamp(0), _frameCount(0)  {
+Webcam::Webcam() : _enabled(false), _frameTextureID(0)  {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
 }
 
-void Webcam::init() {
-    // start the grabber thread
-    _grabberThread.start();
+void Webcam::setEnabled(bool enabled) {
+    if (_enabled == enabled) {
+        return;
+    }
+    if (_enabled = enabled) {
+        _grabberThread.start();
+        _startTimestamp = 0;
+        _frameCount = 0;
+        
+        // let the grabber know we're ready for the first frame
+        QMetaObject::invokeMethod(_grabber, "grabFrame");
     
-    // let the grabber know we're ready for the first frame
-    QMetaObject::invokeMethod(_grabber, "grabFrame");
+    } else {
+        _grabberThread.quit();
+    }
 }
 
 void Webcam::renderPreview(int screenWidth, int screenHeight) {
-    if (_frameTextureID != 0) {
+    if (_enabled && _frameTextureID != 0) {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
@@ -125,7 +134,7 @@ void FrameGrabber::grabFrame() {
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
         
 #ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, 0, 0.9, 0.5, 0.5, 0.5, 1, 0.5);
+        configureCamera(0x5ac, 0x8510, true, 0.5, 0.5, 0.5, 0.5, false, 0.5);
 #endif
     }
     IplImage* image = cvQueryFrame(_capture);

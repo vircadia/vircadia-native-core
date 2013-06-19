@@ -1241,8 +1241,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
-
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
+    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
@@ -1415,8 +1415,6 @@ void Application::init() {
     if (OculusManager::isConnected()) {
         QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
     }
-    
-    _webcam.init();
     
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);

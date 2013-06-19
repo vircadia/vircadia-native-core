@@ -28,11 +28,11 @@ public:
     Webcam();
     ~Webcam();
 
-    void init();
     void renderPreview(int screenWidth, int screenHeight);
 
 public slots:
     
+    void setEnabled(bool enabled);
     void setFrame(void* image);
     
 private:
@@ -40,6 +40,7 @@ private:
     QThread _grabberThread;
     FrameGrabber* _grabber;
     
+    bool _enabled;
     int _frameWidth;
     int _frameHeight;
     GLuint _frameTextureID;
