@@ -1,3 +1,12 @@
+//
+// This code was written by Dominic Szablewski: http://phoboslab.org/log/2009/07/uvc-camera-control-for-mac-os-x
+//
+// It is in the public domain:
+//
+// "Consider this as public domain. Do whatever you want with it. I'm not responsible if your camera explodes or
+// for any other damages this software might cause!"
+//
+
 #import "UVCCameraControl.h"
 #import "UVCCameraControl.hpp"
 
