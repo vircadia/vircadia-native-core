@@ -134,7 +134,7 @@ void FrameGrabber::grabFrame() {
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
         
 #ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, true, 0.5, 0.5, 0.5, 0.5, true, 0.5);
+        configureCamera(0x5ac, 0x8510, false, 0.99, 0.5, 0.5, 0.5, true, 0.5);
 #endif
     }
     IplImage* image = cvQueryFrame(_capture);
