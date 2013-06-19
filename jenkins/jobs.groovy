@@ -1,7 +1,6 @@
 def hifiJob(String targetName, Boolean deploy) {
     def JENKINS_URL = 'https://jenkins.below92.com/'
     def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
-    def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
     def HIPCHAT_ROOM = 'High Fidelity'
     
     job {
@@ -9,7 +8,7 @@ def hifiJob(String targetName, Boolean deploy) {
         logRotator(7, -1, -1, -1)
         
         scm {
-            git(GIT_REPO_URL, 'master') { node ->
+            git(GITHUB_HOOK_URL, 'master') { node ->
                  node << includedRegions << "${targetName}/.*\nlibraries/.*"
             }
         }
@@ -26,7 +25,7 @@ def hifiJob(String targetName, Boolean deploy) {
                 
                 'hudson.plugins.buildblocker.BuildBlockerProperty' {
                     useBuildBlocker true
-                    blockingJobs 'hifi - seed'
+                    blockingJobs 'hifi--seed'
                 }         
             }
             
