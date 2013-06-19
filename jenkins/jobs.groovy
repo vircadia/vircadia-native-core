@@ -1,6 +1,7 @@
 def hifiJob(String targetName, Boolean deploy) {
     def JENKINS_URL = 'https://jenkins.below92.com/'
     def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
+    def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
     def HIPCHAT_ROOM = 'High Fidelity'
     
     job {
@@ -8,8 +9,10 @@ def hifiJob(String targetName, Boolean deploy) {
         logRotator(7, -1, -1, -1)
         
         scm {
-            git(GITHUB_HOOK_URL, 'master') { node ->
-                 node << includedRegions << "${targetName}/.*\nlibraries/.*"
+            git(GIT_REPO_URL, 'master') { node ->
+                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
+                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'name' << ''
+                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'refspec' << ''
             }
         }
        
@@ -89,24 +92,23 @@ def hifiJob(String targetName, Boolean deploy) {
     }
 }
 
-def deployTargets = [
-    'animation-server',
-    'audio-mixer',
-    'avatar-mixer',
-    'domain-server',
-    'eve',
-    'pairing-server',
-    'space-server',
-    'voxel-server'
+def targets = [
+    'animation-server':true,
+    'audio-mixer':true,
+    'avatar-mixer':true,
+    'domain-server':true,
+    'eve':true,
+    'pairing-server':true,
+    'space-server':true,
+    'voxel-server':true,
+    'interface':false,
+    'dummy-job':false
 ]
 
-/* setup all of the deploys jobs that use the above template */
-deployTargets.each {
-    hifiJob(it, true)
+/* setup all of the target jobs to use the above template */
+for (target in targets) {
+    queue hifiJob(target.key, target.value)
 }
-
-/* setup the interface job, doesn't deploy */
-hifiJob('interface', false)
 
 /* setup the parametrized-build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
