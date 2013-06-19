@@ -10,7 +10,8 @@
 #import "UVCCameraControl.h"
 #import "UVCCameraControl.hpp"
 
-void configureCamera(int vendorID, int productID, int autoExposure, float exposure, float contrast, float saturation, float sharpness, int autoWhiteBalance, float whiteBalance) {
+void configureCamera(int vendorID, int productID, int autoExposure, float exposure, float contrast,
+        float saturation, float sharpness, int autoWhiteBalance, float whiteBalance) {
     UVCCameraControl* cameraControl = [[UVCCameraControl alloc] initWithVendorID:0x05ac productID:0x8510];
     [cameraControl setAutoExposure:autoExposure];
     [cameraControl setExposure:exposure];
