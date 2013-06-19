@@ -52,23 +52,36 @@ static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANN
 
 static const int AGENT_LOOPBACK_MODIFIER = 307;
 
-static const int AEC_N_CHANNELS_MIC = 1;                                        // Number of microphone channels
-static const int AEC_N_CHANNELS_PLAY = 2;                                       // Number of speaker channels
-static const int AEC_FILTER_LENGTH = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 10;    // Width of the filter
-static const int AEC_BUFFERED_FRAMES = 6;                                       // Maximum number of frames to buffer
-static const int AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
-static const int AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY; 
-static const int AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                    // Temporary space for processing a
+// Speex preprocessor and echo canceller adaption
+static const int   AEC_N_CHANNELS_MIC = 1;                                      // Number of microphone channels
+static const int   AEC_N_CHANNELS_PLAY = 2;                                     // Number of speaker channels
+static const int   AEC_FILTER_LENGTH = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 8;   // Width of the filter
+static const int   AEC_BUFFERED_FRAMES = 6;                                     // Maximum number of frames to buffer
+static const int   AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
+static const int   AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY;
+static const int   AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                  // Temporary space for processing a
         AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
 
-static const float ECHO_PING_PITCH = 16.f;                                      // Ping wavelength, # samples / radian
-static const float ECHO_PING_VOLUME = 32000.f;                                  // Ping peak amplitude
-static const int ECHO_PING_RETRY = 3;                                           // Number of retries for EC calibration
-static const int ECHO_PING_MIN_AMPLI = 225;                                     // Minimum amplitude for EC calibration 
-static const int ECHO_PING_MAX_PERIOD_DIFFERENCE = 15;                          // Maximum # samples from expected period
-static const int ECHO_PING_PERIOD = int(Radians::twicePi() * ECHO_PING_PITCH);  // Sine period based on the given pitch
-static const int ECHO_PING_HALF_PERIOD = int(Radians::pi() * ECHO_PING_PITCH);  // Distance between extrema
-static const int ECHO_PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - ECHO_PING_PERIOD * 2.0f; // Signal start
+// Speex preprocessor and echo canceller configuration
+static const int   AEC_NOISE_REDUCTION = -400;                                  // Noise reduction (important)
+static const int   AEC_RESIDUAL_ECHO_REDUCTION = -60;                           // Residual echo reduction
+static const int   AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE = -40;                    //  ~on active side
+static const bool  AEC_USE_AGC = true;                                          // Automatic gain control
+static const int   AEC_AGC_MAX_GAIN = -12;                                      // Gain in db
+static const int   AEC_AGC_TARGET_LEVEL = 20000;                                // Target reference level
+static const int   AEC_AGC_MAX_INC = 6;                                         // Max increase in db/s
+static const int   AEC_AGC_MAX_DEC = 40;                                        // Max decrease in db/s
+static const bool  AEC_USE_VAD = false;                                         // Voice activity determination
+
+// Delay test (performed before using speex)
+static const float AEC_PING_PITCH = 16.f;                                       // Ping wavelength, # samples / radian
+static const float AEC_PING_VOLUME = 32000.f;                                   // Ping peak amplitude
+static const int   AEC_PING_RETRY = 3;                                          // Number of retries for EC calibration
+static const int   AEC_PING_MIN_AMPLI = 225;                                    // Minimum amplitude for EC calibration
+static const int   AEC_PING_MAX_PERIOD_DIFFERENCE = 15;                         // Maximum # samples from expected period
+static const int   AEC_PING_PERIOD = int(Radians::twicePi() * AEC_PING_PITCH);  // Sine period based on the given pitch
+static const int   AEC_PING_HALF_PERIOD = int(Radians::pi() * AEC_PING_PITCH);  // Distance between extrema
+static const int   AEC_PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - AEC_PING_PERIOD * 2.0f; // Signal start
 
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
@@ -332,9 +345,21 @@ Audio::Audio(Oscilloscope* scope) :
         _speexEchoState = speex_echo_state_init_mc(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 
                                                    AEC_FILTER_LENGTH, AEC_N_CHANNELS_MIC, AEC_N_CHANNELS_PLAY);
         if (_speexEchoState) {
-            int sampleRate = SAMPLE_RATE;
-            speex_echo_ctl(_speexEchoState, SPEEX_ECHO_SET_SAMPLING_RATE, &sampleRate);
             speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_STATE, _speexEchoState);
+            int tmp;
+            speex_echo_ctl(_speexEchoState, SPEEX_ECHO_SET_SAMPLING_RATE, &(tmp = SAMPLE_RATE));
+            tmp = AEC_NOISE_REDUCTION;
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &tmp);
+            tmp = AEC_RESIDUAL_ECHO_REDUCTION;
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &tmp);
+            tmp = AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE;
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &tmp);
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC, &(tmp = int(AEC_USE_AGC)));
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &(tmp = AEC_AGC_MAX_GAIN));
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_TARGET, &(tmp = AEC_AGC_TARGET_LEVEL));
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &(tmp = AEC_AGC_MAX_INC));
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &(tmp = AEC_AGC_MAX_DEC));
+            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_VAD, &(tmp = int(AEC_USE_VAD)));
         } else {
             speex_preprocess_state_destroy(_speexPreprocessState);
             _speexPreprocessState = NULL;
@@ -544,7 +569,7 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
     speex_preprocess_run(_speexPreprocessState, inputLeft); 
 
 #ifdef DEBUG_ECHO_CANCELLATION
-    // Visualization the result
+    // Visualize the result
     _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 }
@@ -576,7 +601,7 @@ void Audio::setIsCancellingEcho(bool enabled) {
     if (enabled) {
 
         // Request recalibration
-        _echoPingRetries = ECHO_PING_RETRY;
+        _echoPingRetries = AEC_PING_RETRY;
         _echoInputFramesToRecord = AEC_BUFFERED_FRAMES;
         _isSendingEchoPing = true;
 
@@ -610,15 +635,15 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
     if (_isSendingEchoPing) {
 
         // Overwrite output with ping signal
-        memset(outputLeft, 0, ECHO_PING_BUFFER_OFFSET * sizeof(int16_t));
-        outputLeft += ECHO_PING_BUFFER_OFFSET;
-        memset(outputRight, 0, ECHO_PING_BUFFER_OFFSET * sizeof(int16_t));
-        outputRight += ECHO_PING_BUFFER_OFFSET;
-        for (int s = -ECHO_PING_PERIOD; s < ECHO_PING_PERIOD; ++s) {
-            float t = float(s) / ECHO_PING_PITCH;
+        memset(outputLeft, 0, AEC_PING_BUFFER_OFFSET * sizeof(int16_t));
+        outputLeft += AEC_PING_BUFFER_OFFSET;
+        memset(outputRight, 0, AEC_PING_BUFFER_OFFSET * sizeof(int16_t));
+        outputRight += AEC_PING_BUFFER_OFFSET;
+        for (int s = -AEC_PING_PERIOD; s < AEC_PING_PERIOD; ++s) {
+            float t = float(s) / AEC_PING_PITCH;
             // Use signed variant of sinc 
             // speaker-reproducible with a unique characteristic point in time
-            *outputLeft++ = *outputRight++ = int16_t(ECHO_PING_VOLUME * 
+            *outputLeft++ = *outputRight++ = int16_t(AEC_PING_VOLUME * 
                     sinf(t) / fmaxf(1.0f, pow((abs(t)-1.5f) / 1.5f, 1.2f)));
         }
 
@@ -646,7 +671,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
 static int findExtremum(int16_t const* samples, int length, int sign) {
 
     int x0 = -1;
-    int y0 = -ECHO_PING_VOLUME;
+    int y0 = -AEC_PING_VOLUME;
     for (int x = 0; x < length; ++samples, ++x) {
         int y = *samples * sign;
         if (y > y0) {
@@ -673,7 +698,7 @@ bool Audio::calibrateEchoCancellation() {
 
     // Determine peak amplitude
     int ampli = (_echoSamplesLeft[topAt] - _echoSamplesLeft[botAt]) / 2;
-    if (ampli < ECHO_PING_MIN_AMPLI) {
+    if (ampli < AEC_PING_MIN_AMPLI) {
         // We can't reliably calibrate and probably won't hear it, anyways.
         printLog("AEC: Amplitude too low %d.\n", ampli);
         return false;
@@ -684,12 +709,12 @@ bool Audio::calibrateEchoCancellation() {
     if (halfPeriod < 0) {
         printLog("AEC: Min/max inverted.\n");
         halfPeriod = -halfPeriod;
-        topAt -= ECHO_PING_PERIOD;
+        topAt -= AEC_PING_PERIOD;
         ampli = -ampli;
     }
-    if (abs(halfPeriod-ECHO_PING_HALF_PERIOD) > ECHO_PING_MAX_PERIOD_DIFFERENCE) {
+    if (abs(halfPeriod-AEC_PING_HALF_PERIOD) > AEC_PING_MAX_PERIOD_DIFFERENCE) {
         // Probably not our signal
-        printLog("AEC: Unexpected period %d vs. %d\n", halfPeriod, ECHO_PING_HALF_PERIOD);
+        printLog("AEC: Unexpected period %d vs. %d\n", halfPeriod, AEC_PING_HALF_PERIOD);
         return false;
     }
 
