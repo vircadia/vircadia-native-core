@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
+set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -87,6 +88,7 @@ find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(OpenCV)
 find_package(ZLIB)
+find_package(UVCCameraControl)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -120,7 +122,7 @@ if (APPLE)
     find_library(QTKit QTKit)
     find_library(QuartzCore QuartzCore)
     
-    include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl/include)
+    include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
     
     target_link_libraries(
         ${TARGET_NAME}
@@ -136,7 +138,7 @@ if (APPLE)
         ${IOKit}
         ${QTKit}
         ${QuartzCore}
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl/lib/libUVCCameraControl.a
+        ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
