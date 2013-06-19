@@ -9,8 +9,11 @@
 #ifndef __interface__Webcam__
 #define __interface__Webcam__
 
+#include <QMetaType>
 #include <QObject>
 #include <QThread>
+
+#include <opencv2/opencv.hpp>
 
 #include "InterfaceConfig.h"
 
@@ -33,7 +36,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(void* image);
+    void setFrame(const cv::Mat& image);
     
 private:
     
@@ -66,6 +69,9 @@ public slots:
 private:
     
     CvCapture* _capture;
+    cv::CascadeClassifier _faceCascade;
 };
+
+Q_DECLARE_METATYPE(cv::Mat)
 
 #endif /* defined(__interface__Webcam__) */

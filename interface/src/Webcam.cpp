@@ -8,8 +8,6 @@
 #include <QTimer>
 #include <QtDebug>
 
-#include <opencv2/opencv.hpp>
-
 #include <Log.h>
 #include <SharedUtil.h>
 
@@ -19,6 +17,11 @@
 
 #include "Application.h"
 #include "Webcam.h"
+
+using namespace cv;
+
+// register OpenCV matrix type with Qt metatype system
+int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 
 Webcam::Webcam() : _enabled(false), _frameTextureID(0)  {
     // the grabber simply runs as fast as possible
@@ -80,20 +83,20 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(void* image) {
-    IplImage* img = static_cast<IplImage*>(image);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, img->widthStep / 3);
+void Webcam::setFrame(const Mat& frame) {
+    IplImage image = frame;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep);
     if (_frameTextureID == 0) {
         glGenTextures(1, &_frameTextureID);
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = img->width, _frameHeight = img->height, 0, GL_BGR,
-            GL_UNSIGNED_BYTE, img->imageData);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _frameWidth = image.width, _frameHeight = image.height, 0, GL_LUMINANCE,
+            GL_UNSIGNED_BYTE, image.imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         printLog("Capturing webcam at %dx%d.\n", _frameWidth, _frameHeight);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, img->imageData);    
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_LUMINANCE, GL_UNSIGNED_BYTE, image.imageData);    
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -142,12 +145,18 @@ void FrameGrabber::grabFrame() {
         // try again later
         QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
         return;
-    }
+    }   
     // make sure it's in the format we expect
     if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
             image->origin != 0) {
         printLog("Invalid webcam image format.\n");
         return;
     }
-    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame", Q_ARG(void*, image));
+    
+    // convert to grayscale and equalize
+    Mat frame = image, grayFrame;
+    cvtColor(frame, grayFrame, CV_BGR2GRAY);
+    equalizeHist(grayFrame, grayFrame);
+    
+    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame", Q_ARG(cv::Mat, grayFrame));
 }
