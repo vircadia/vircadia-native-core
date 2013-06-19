@@ -106,7 +106,7 @@ def targets = [
 
 /* setup all of the target jobs to use the above template */
 for (target in targets) {
-    queue hifiJob(target, target.value)
+    queue hifiJob(target.key, target.value)
 }
 
 /* setup the parametrized-build job for builds from jenkins */
