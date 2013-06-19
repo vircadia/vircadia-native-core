@@ -114,8 +114,8 @@ hifiJob('interface', false)
 
 /* setup the parametrized-build job for builds from jenkins */
 
-parametrizedJob = hifiJob('$TARGET', true)
-parametrizedJob.with {
+parameterizedJob = hifiJob('$TARGET', true)
+parameterizedJob.with {
     name 'hifi-branch-deploy'
     parameters {
         stringParam('GITHUB_USER', '', "Specifies the name of the GitHub user that we're building from.")
