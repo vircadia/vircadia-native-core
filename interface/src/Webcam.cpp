@@ -30,7 +30,7 @@ void Webcam::setEnabled(bool enabled) {
     if (_enabled == enabled) {
         return;
     }
-    if (_enabled = enabled) {
+    if ((_enabled = enabled)) {
         _grabberThread.start();
         _startTimestamp = 0;
         _frameCount = 0;
@@ -101,7 +101,7 @@ void Webcam::setFrame(void* image) {
     // update our frame count for fps computation
     _frameCount++;
     
-    const int MAX_FPS = 60;
+    const int MAX_FPS = 30;
     const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
     long long now = usecTimestampNow();
     long long remaining = MIN_FRAME_DELAY;
@@ -134,7 +134,7 @@ void FrameGrabber::grabFrame() {
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
         
 #ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, true, 0.5, 0.5, 0.5, 0.5, false, 0.5);
+        configureCamera(0x5ac, 0x8510, true, 0.5, 0.5, 0.5, 0.5, true, 0.5);
 #endif
     }
     IplImage* image = cvQueryFrame(_capture);
