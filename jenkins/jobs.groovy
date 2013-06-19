@@ -102,7 +102,6 @@ def targets = [
     'space-server':true,
     'voxel-server':true,
     'interface':false,
-    'dummy-job':false
 ]
 
 /* setup all of the target jobs to use the above template */
