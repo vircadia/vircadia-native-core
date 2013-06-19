@@ -12,9 +12,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void configureCamera();
-
+    
+void configureCamera(int vendorID, int productID, int autoExposure, float exposure, float contrast, float saturation,
+    float sharpness, int autoWhiteBalance, float whiteBalance);
+    
 #ifdef __cplusplus
 }
 #endif
