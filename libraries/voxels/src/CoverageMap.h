@@ -3,6 +3,7 @@
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef _COVERAGE_MAP_
