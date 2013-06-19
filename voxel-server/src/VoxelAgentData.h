@@ -14,6 +14,7 @@
 #include <AvatarData.h>
 #include "VoxelNodeBag.h"
 #include "VoxelConstants.h"
+#include "CoverageMap.h"
 
 class VoxelAgentData : public AvatarData {
 public:
@@ -36,6 +37,7 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     VoxelNodeBag nodeBag;
+    CoverageMap map;
 
     ViewFrustum& getCurrentViewFrustum()     { return _currentViewFrustum; };
     ViewFrustum& getLastKnownViewFrustum()   { return _lastKnownViewFrustum; };

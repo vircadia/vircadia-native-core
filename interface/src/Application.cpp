@@ -987,6 +987,10 @@ void Application::doFalseColorizeInView() {
     _voxels.falseColorizeInView(&_viewFrustum);
 }
 
+void Application::doFalseColorizeOccluded() {
+    _voxels.falseColorizeOccluded();
+}
+
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
 }
@@ -1005,6 +1009,10 @@ void Application::setWantsResIn(bool wantsResIn) {
 
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
+}
+
+void Application::setWantsOcclusionCulling(bool wantsOcclusionCulling) {
+    _myAvatar.setWantOcclusionCulling(wantsOcclusionCulling);
 }
 
 void Application::updateVoxelModeActions() {
@@ -1326,9 +1334,6 @@ void Application::initMenu() {
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     (_viewFrustumFromOffset = frustumMenu->addAction(
         "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
-    (_cameraFrustum = frustumMenu->addAction("Switch Camera"))->setCheckable(true);
-    _cameraFrustum->setChecked(true);
-    _cameraFrustum->setShortcut(Qt::SHIFT | Qt::Key_C);
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
     updateFrustumRenderModeAction();
@@ -1344,13 +1349,14 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
     renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
-    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()));
+    renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
+    renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
-
+    debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
@@ -1763,15 +1769,7 @@ void Application::updateAvatar(float deltaTime) {
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above    
-    glm::vec3 position;
-    
-    // Camera or Head?
-    if (_cameraFrustum->isChecked()) {
-        position = camera.getPosition();
-    } else {
-        position = _myAvatar.getHeadJointPosition();
-    }
-    
+    glm::vec3 position(camera.getPosition());
     float fov         = camera.getFieldOfView();
     float nearClip    = camera.getNearClip();
     float farClip     = camera.getFarClip();
@@ -1938,7 +1936,7 @@ void Application::displayOculus(Camera& whichCamera) {
     
     glPopMatrix();
 }
-        
+
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 

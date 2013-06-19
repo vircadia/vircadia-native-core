@@ -179,16 +179,16 @@ int audioCallback (const void* inputBuffer,
 //                      PACKET_LENGTH_SAMPLES + parentAudio->_jitterBufferSamples);
         } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
             ringBuffer->setStarted(false);
-            
             ::numStarves++;
             parentAudio->_packetsReceivedThisPlayback = 0;
-            
-            printLog("Starved!\n");
+            printLog("Starved, remaining buffer msecs = %.0f\n",
+                     ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS);
+
             parentAudio->_wasStarved = 10;      //   Frames to render the indication that the system was starved.
         } else {
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                printLog("starting playback %3.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
                          (usecTimestampNow() - usecTimestamp(&parentAudio->_firstPacketReceivedTime))/1000.0,
                          parentAudio->_jitterBufferSamples,
                          parentAudio->_packetsReceivedThisPlayback);
@@ -320,8 +320,15 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     //         number of frames per buffer explicitly versus setting this value to zero.
     //         Possible source of latency that we need to investigate further.
     // 
-    //unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    unsigned long FRAMES_PER_BUFFER = 0;
+    unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    
+    /*
+    const PaStreamParameters* inputParameters;
+    const PaStreamParameters* outputParameters;
+    inputParameters->channelCount =
+    
+    outputPortAudioError(Pa_OpenStream(&_stream, <#const PaStreamParameters *inputParameters#>, <#const PaStreamParameters *outputParameters#>, SAMPLE_RATE, FRAMES_PER_BUFFER, <#PaStreamFlags streamFlags#>, audioCallback, (void*) this));
+     */
     
     outputPortAudioError(Pa_OpenDefaultStream(&_stream,
                                               2,
@@ -336,7 +343,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     outputPortAudioError(Pa_StartStream(_stream));
     
     const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
-    printLog("Audio started with Input latency: %f, Output Latency: %f\n", streamInfo->inputLatency, streamInfo->outputLatency);
+    printLog("Audio started, msecs latency In: %.0f, Out: %.0f\n", streamInfo->inputLatency * 1000.f,
+             streamInfo->outputLatency * 1000.f);
     
     _echoInputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
     _echoOutputSamples = new int16_t[BUFFER_LENGTH_BYTES_PER_CHANNEL];
@@ -436,6 +444,7 @@ void Audio::analyzeEcho(int16_t* inputBuffer, int16_t* outputBuffer, int numSamp
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
+    const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
     
     timeval currentReceiveTime;
     gettimeofday(&currentReceiveTime, NULL);
@@ -448,7 +457,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         ::stdev.addValue(timeDiff);
     }
     
-    if (::stdev.getSamples() > 500) {
+    if (::stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
         _measuredJitter = ::stdev.getStDev();
         ::stdev.reset();
     }
@@ -564,14 +573,24 @@ void Audio::render(int screenWidth, int screenHeight) {
 //
 //  Very Simple LowPass filter which works by averaging a bunch of samples with a moving window
 //
+//#define lowpass 1
 void Audio::lowPassFilter(int16_t* inputBuffer) {
     static int16_t outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
     for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2; i++) {
+#ifdef lowpass
         outputBuffer[i] = (int16_t)(0.125f * (float)inputBuffer[i - 2] +
                             0.25f * (float)inputBuffer[i - 1] +
                             0.25f * (float)inputBuffer[i] +
                             0.25f * (float)inputBuffer[i + 1] +
                             0.125f * (float)inputBuffer[i + 2] );
+#else
+        outputBuffer[i] = (int16_t)(0.125f * -(float)inputBuffer[i - 2] +
+                                    0.25f * -(float)inputBuffer[i - 1] +
+                                    1.75f * (float)inputBuffer[i] +
+                                    0.25f * -(float)inputBuffer[i + 1] +
+                                    0.125f * -(float)inputBuffer[i + 2] );
+
+#endif
     }
     outputBuffer[0] = inputBuffer[0];
     outputBuffer[1] = inputBuffer[1];
