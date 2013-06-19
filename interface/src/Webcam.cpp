@@ -67,7 +67,7 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         glDisable(GL_TEXTURE_2D);
         
         char fps[20];
-        sprintf(fps, "FPS: %.4g", _frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp));
+        sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
         drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
     }
 }
