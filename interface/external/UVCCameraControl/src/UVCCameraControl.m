@@ -12,7 +12,7 @@
 
 void configureCamera(int vendorID, int productID, int autoExposure, float exposure, float contrast,
         float saturation, float sharpness, int autoWhiteBalance, float whiteBalance) {
-    UVCCameraControl* cameraControl = [[UVCCameraControl alloc] initWithVendorID:0x05ac productID:0x8510];
+    UVCCameraControl* cameraControl = [[UVCCameraControl alloc] initWithVendorID:vendorID productID:productID];
     [cameraControl setAutoExposure:autoExposure];
     [cameraControl setExposure:exposure];
     [cameraControl setContrast:contrast];
