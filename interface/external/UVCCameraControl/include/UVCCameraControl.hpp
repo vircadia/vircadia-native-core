@@ -9,6 +9,14 @@
 #ifndef UVCCameraControl_UVCCameraControl_hpp
 #define UVCCameraControl_UVCCameraControl_hpp
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void configureCamera();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
