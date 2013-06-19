@@ -3,13 +3,13 @@
 //  hifi
 //
 //  Created by Philip Rosedale on 3/12/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #include "StdDev.h"
 #include <cmath>
 
-const int MAX_STDEV_SAMPLES = 1000;                     //  Don't add more than this number of samples.
+const int MAX_STDEV_SAMPLES = 1000;
 
 StDev::StDev() {
     data = new float[MAX_STDEV_SAMPLES];

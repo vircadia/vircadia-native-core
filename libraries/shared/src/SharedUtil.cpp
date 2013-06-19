@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 2/22/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #include <cstdlib>
@@ -404,11 +404,11 @@ void printVoxelCode(unsigned char* voxelCode) {
     }
 #endif
 
-
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
+// originalIndexArray is optional
 int insertIntoSortedArrays(void* value, float key, int originalIndex, 
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount) {
@@ -422,15 +422,19 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
-                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
-                memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                memmove(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memmove(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                if (originalIndexArray) {
+                    memmove(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                }
             }
         }
         // place new element at i
         valueArray[i] = value;
         keyArray[i] = key;
-        originalIndexArray[i] = originalIndex;
+        if (originalIndexArray) {
+            originalIndexArray[i] = originalIndex;
+        }
         return currentCount + 1;
     }
     return -1; // error case

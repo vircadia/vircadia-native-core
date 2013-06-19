@@ -312,9 +312,13 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
+
+                bool wantOcclusionCulling = agentData->getWantOcclusionCulling();
+                CoverageMap* coverageMap = wantOcclusionCulling ? &agentData->map : IGNORE_COVERAGE_MAP;
                 
                 EncodeBitstreamParams params(INT_MAX, &agentData->getCurrentViewFrustum(), agentData->getWantColor(), 
-                                             WANT_EXISTS_BITS, wantDelta, lastViewFrustum);
+                                             WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
+                                             wantOcclusionCulling, coverageMap);
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               agentData->nodeBag, params);
@@ -375,6 +379,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         if (agentData->nodeBag.isEmpty()) {
             agentData->updateLastKnownViewFrustum();
             agentData->setViewSent(true);
+            agentData->map.erase();
         }
         
         
