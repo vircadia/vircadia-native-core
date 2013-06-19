@@ -63,7 +63,7 @@ private:
     float _averagedLatency;
     float _measuredJitter;
     float _jitterBufferLengthMsecs;
-    short _jitterBufferSamples;
+//    short _jitterBufferSamples; // currently unsused
     int _wasStarved;
     int _numStarves;
     float _lastInputLoudness;

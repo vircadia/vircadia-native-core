@@ -298,8 +298,8 @@ Audio::Audio(Oscilloscope* scope) :
     _averagedLatency(0.0),
     _measuredJitter(0),
     _jitterBufferLengthMsecs(12.0),
-    _jitterBufferSamples(_jitterBufferLengthMsecs *
-                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
+//    _jitterBufferSamples(_jitterBufferLengthMsecs *
+//                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
     _wasStarved(0),
     _numStarves(0),
     _lastInputLoudness(0),
