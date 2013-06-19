@@ -97,17 +97,14 @@ def deployTargets = [
 ]
 
 /* setup all of the deploys jobs that use the above template */
-
 deployTargets.each {
     hifiJob(it, true)
 }
 
 /* setup the interface job, doesn't deploy */
-
 hifiJob('interface', false)
 
 /* setup the parametrized-build job for builds from jenkins */
-
 parameterizedJob = hifiJob('$TARGET', true)
 parameterizedJob.with {
     name 'hifi-branch-deploy'
