@@ -2653,7 +2653,9 @@ void Application::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings*
 }
 
 void Application::loadAction(QSettings* set, QAction* action) {
-    action->setChecked(set->value(action->text(),  action->isChecked()).toBool());
+    if (action->isChecked() != set->value(action->text(), action->isChecked()).toBool()) {
+        action->trigger();
+    }
 }
 
 void Application::saveAction(QSettings* set, QAction* action) {
