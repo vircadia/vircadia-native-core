@@ -73,7 +73,7 @@ def hifiJob(String targetName, Boolean deploy) {
                                 }
                                 EscalateStatus true
                                 RunIfJobSuccessful true
-                                script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://a-tower.below92.com"
+                                script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' ${ARTIFACT_DESTINATION}"
                             }
                         }
                     }
