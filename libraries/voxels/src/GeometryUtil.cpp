@@ -115,3 +115,28 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
     return currentDirection * glm::max(directionalComponent, currentLength) +
         newPenetration - (currentDirection * directionalComponent);
 }
+
+// Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?
+bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2) {
+  int d1 = computeDirection(r2p1.x, r2p1.y, r2p2.x, r2p2.y, r1p1.x, r1p1.y);
+  int d2 = computeDirection(r2p1.x, r2p1.y, r2p2.x, r2p2.y, r1p2.x, r1p2.y);
+  int d3 = computeDirection(r1p1.x, r1p1.y, r1p2.x, r1p2.y, r2p1.x, r2p1.y);
+  int d4 = computeDirection(r1p1.x, r1p1.y, r1p2.x, r1p2.y, r2p2.x, r2p2.y);
+  return (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+          ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) ||
+         (d1 == 0 && isOnSegment(r2p1.x, r2p1.y, r2p2.x, r2p2.y, r1p1.x, r1p1.y)) ||
+         (d2 == 0 && isOnSegment(r2p1.x, r2p1.y, r2p2.x, r2p2.y, r1p2.x, r1p2.y)) ||
+         (d3 == 0 && isOnSegment(r1p1.x, r1p1.y, r1p2.x, r1p2.y, r2p1.x, r2p1.y)) ||
+         (d4 == 0 && isOnSegment(r1p1.x, r1p1.y, r1p2.x, r1p2.y, r2p2.x, r2p2.y));
+}
+
+bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk)  {
+  return (xi <= xk || xj <= xk) && (xk <= xi || xk <= xj) &&
+         (yi <= yk || yj <= yk) && (yk <= yi || yk <= yj);
+}
+
+int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk) {
+  float a = (xk - xi) * (yj - yi);
+  float b = (xj - xi) * (yk - yi);
+  return a < b ? -1 : a > b ? 1 : 0;
+}

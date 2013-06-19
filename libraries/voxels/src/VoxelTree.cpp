@@ -22,6 +22,7 @@
 #include "ViewFrustum.h"
 #include <fstream> // to load voxels from file
 #include "VoxelConstants.h"
+#include "CoverageMap.h"
 
 #include <glm/gtc/noise.hpp>
 
@@ -68,7 +69,51 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
     }
 }
 
-VoxelNode * VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
+// Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
+// stops recursion if operation function returns false.
+void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
+                                                       const glm::vec3& point, void* extraData) {
+    recurseNodeWithOperationDistanceSorted(rootNode, operation, point, extraData);
+}
+
+// Recurses voxel node with an operation function
+void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                                                       const glm::vec3& point, void* extraData) {
+    if (operation(node, extraData)) {
+        // determine the distance sorted order of our children
+        
+        VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
+        float       distancesToChildren[NUMBER_OF_CHILDREN];
+        int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
+        int         currentCount = 0;
+
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            VoxelNode* childNode = node->getChildAtIndex(i);
+            if (childNode) {
+                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
+                float distanceSquared = childNode->distanceSquareToPoint(point); 
+                //printLog("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //childNode->printDebugDetails("");
+                currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
+                                                      (void**)&sortedChildren, (float*)&distancesToChildren, 
+                                                      (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+            }
+        }
+        
+        for (int i = 0; i < currentCount; i++) {
+            VoxelNode* childNode = sortedChildren[i];
+            if (childNode) {
+                //printLog("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
+                //childNode->printDebugDetails("");
+                recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
+            }
+        }
+    }
+}
+
+
+VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode, 
+                                       unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
@@ -1012,7 +1057,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
             *outputBuffer = 0; // root
         }
     } else {
-        codeLength = bytesRequiredForCodeLength(*node->getOctalCode());
+        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
         memcpy(outputBuffer, node->getOctalCode(), codeLength);
     }
     
@@ -1072,6 +1117,39 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         if (!node->isInView(*params.viewFrustum)) {
             return bytesAtThisLevel;
         }
+        
+        
+        // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
+        // leaf occlusion is handled down below when we check child nodes
+        if (params.wantOcclusionCulling && !node->isLeaf()) {
+            //node->printDebugDetails("upper section, params.wantOcclusionCulling...  node=");
+            AABox voxelBox = node->getAABox();
+            voxelBox.scale(TREE_SCALE);
+            VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
+
+            // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
+            // culling and proceed as normal
+            if (voxelShadow->getAllInView()) {
+                //node->printDebugDetails("upper section, voxelShadow->getAllInView() node=");
+
+                CoverageMap::StorageResult result = params.map->checkMap(voxelShadow, false);
+                delete voxelShadow; // cleanup
+                if (result == CoverageMap::OCCLUDED) {
+                    //node->printDebugDetails("upper section, non-Leaf is occluded!! node=");
+                    //args->nonLeavesOccluded++;
+
+                    //args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
+                    //args->totalVoxels += (subArgs.voxelsTouched - 1);
+        
+                    return bytesAtThisLevel;
+                }
+            } else {
+                //node->printDebugDetails("upper section, shadow Not in view node=");
+                // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
+                // we do need to clean up memory and proceed as normal...
+                delete voxelShadow;
+            }
+        }
     }
         
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
@@ -1080,37 +1158,68 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     // is 1 byte for child colors + 3*NUMBER_OF_CHILDREN bytes for the actual colors + 1 byte for child trees. There could be sub trees
     // below this point, which might take many more bytes, but that's ok, because we can always mark our subtrees as
     // not existing and stop the packet at this point, then start up with a new packet for the remaining sub trees.
-    const int CHILD_COLOR_MASK_BYTES = 1;
+    unsigned char childrenExistInTreeBits = 0;
+    unsigned char childrenExistInPacketBits = 0;
+    unsigned char childrenColoredBits = 0;
+
+    const int CHILD_COLOR_MASK_BYTES = sizeof(childrenColoredBits);
     const int BYTES_PER_COLOR = 3;
-    const int CHILD_TREE_EXISTS_BYTES = 1;
+    const int CHILD_TREE_EXISTS_BYTES = sizeof(childrenExistInTreeBits) + sizeof(childrenExistInPacketBits);
     const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + NUMBER_OF_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
     
     // Make our local buffer large enough to handle writing at this level in case we need to.
     unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
     unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
 
-    unsigned char childrenExistInTreeBits = 0;
-    unsigned char childrenExistInPacketBits = 0;
-    unsigned char childrenColoredBits = 0;
     int inViewCount = 0;
     int inViewNotLeafCount = 0;
     int inViewWithColorCount = 0;
 
-    // for each child node, check to see if they exist, are colored, and in view, and if so
-    // add them to our distance ordered array of children
+    VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
+    float       distancesToChildren[NUMBER_OF_CHILDREN];
+    int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
+    int         currentCount = 0;
+
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
-        
+
         // if the caller wants to include childExistsBits, then include them even if not in view
         if (params.includeExistsBits && childNode) {
             childrenExistInTreeBits += (1 << (7 - i));
         }
-        
+
+        if (params.wantOcclusionCulling) {
+            if (childNode) {
+                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
+                //float distanceSquared = childNode->distanceSquareToPoint(point); 
+                //printLog("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //childNode->printDebugDetails("");
+
+                float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
+
+                currentCount = insertIntoSortedArrays((void*)childNode, distance, i,
+                                                      (void**)&sortedChildren, (float*)&distancesToChildren, 
+                                                      (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+            }
+        } else {
+            sortedChildren[i] = childNode;
+            indexOfChildren[i] = i;
+            distancesToChildren[i] = 0.0f;
+            currentCount++;
+        }
+    }
+
+    // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
+    // add them to our distance ordered array of children
+    for (int i = 0; i < currentCount; i++) {
+        VoxelNode* childNode = sortedChildren[i];
+        int originalIndex = indexOfChildren[i];
+
         bool childIsInView  = (childNode && (!params.viewFrustum || childNode->isInView(*params.viewFrustum)));
         
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
-            float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
+            float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
             float boundaryDistance = params.viewFrustum ? boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1) : 1;
 
             if (distance < boundaryDistance) {
@@ -1120,16 +1229,48 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 // we don't care about recursing deeper on them, and we don't consider their
                 // subtree to exist
                 if (!(childNode && childNode->isLeaf())) {
-                    childrenExistInPacketBits += (1 << (7 - i));
+                    childrenExistInPacketBits += (1 << (7 - originalIndex));
                     inViewNotLeafCount++;
                 }
+
+                bool childIsOccluded = false; // assume it's not occluded
+
+                // If the user also asked for occlusion culling, check if this node is occluded
+                if (params.wantOcclusionCulling && childNode->isLeaf()) {
+                    // Don't check occlusion here, just add them to our distance ordered array...
+
+                    AABox voxelBox = childNode->getAABox();
+                    voxelBox.scale(TREE_SCALE);
+                    VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
+                
+                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
+                    // culling and proceed as normal
+                    if (voxelShadow->getAllInView()) {
+                        CoverageMap::StorageResult result = params.map->checkMap(voxelShadow, true);
+                
+                        // In all cases where the shadow wasn't stored, we need to free our own memory.
+                        // In the case where it is stored, the CoverageMap will free memory for us later.
+                        if (result != CoverageMap::STORED) {
+                            delete voxelShadow;
+                        }
+
+                        // If while attempting to add this voxel's shadow, we determined it was occluded, then
+                        // we don't need to process it further and we can exit early.
+                        if (result == CoverageMap::OCCLUDED) {
+                            childIsOccluded = true;
+                        }
+                    } else {
+                        delete voxelShadow;
+                    }
+                } // wants occlusion culling & isLeaf()
+
 
                 bool childWasInView = (childNode && params.deltaViewFrustum &&
                                       (params.lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*params.lastViewFrustum)));
             
                 // track children with actual color, only if the child wasn't previously in view!
-                if (childNode && childNode->isColored() && !childWasInView) {
-                    childrenColoredBits += (1 << (7 - i));
+                if (childNode && childNode->isColored() && !childWasInView && !childIsOccluded) {
+                    childrenColoredBits += (1 << (7 - originalIndex));
                     inViewWithColorCount++;
                 }
             }
@@ -1189,15 +1330,35 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         //
         // we know the last thing we wrote to the outputBuffer was our childrenExistInPacketBits. Let's remember where that was!
         unsigned char* childExistsPlaceHolder = outputBuffer-sizeof(childrenExistInPacketBits);
-
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         
-            if (oneAtBit(childrenExistInPacketBits, i)) {
-                VoxelNode* childNode = node->getChildAtIndex(i);
-                
+        // we are also going to recurse these child trees in "distance" sorted order, but we need to pack them in the
+        // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
+        // and then later reshuffle these sections of our output buffer back into normal order. This allows us to make
+        // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
+        int recursiveSliceSizes[NUMBER_OF_CHILDREN];
+        unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
+        unsigned char* firstRecursiveSlice = outputBuffer;
+        int allSlicesSize = 0;
+
+        // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
+        // add them to our distance ordered array of children
+        for (int indexByDistance = 0; indexByDistance < currentCount; indexByDistance++) {
+            VoxelNode* childNode = sortedChildren[indexByDistance];
+            int originalIndex = indexOfChildren[indexByDistance];
+
+            if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
+               
                 int thisLevel = currentEncodeLevel;
+
+                // remember this for reshuffling          
+                recursiveSliceStarts[originalIndex] = outputBuffer;
+                
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, outputBuffer, availableBytes, bag, 
                                                                      params, thisLevel);
+                                                           
+                // remember this for reshuffling          
+                recursiveSliceSizes[originalIndex] = childTreeBytesOut;
+                allSlicesSize += childTreeBytesOut;
                 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
@@ -1227,15 +1388,40 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 // then we want to remove their bit from the childExistsPlaceHolder bitmask
                 if (childTreeBytesOut == 0) {
                     // remove this child's bit...
-                    childrenExistInPacketBits -= (1 << (7 - i));
+                    childrenExistInPacketBits -= (1 << (7 - originalIndex));
                     // repair the child exists mask
                     *childExistsPlaceHolder = childrenExistInPacketBits;
                     // Note: no need to move the pointer, cause we already stored this
                 } // end if (childTreeBytesOut == 0)
-            } // end if (oneAtBit(childrenExistInPacketBits, i))
+            } // end if (oneAtBit(childrenExistInPacketBits, originalIndex))
         } // end for
-    } // end keepDiggingDeeper
 
+        // reshuffle here...
+        if (params.wantOcclusionCulling) {
+            unsigned char tempReshuffleBuffer[MAX_VOXEL_PACKET_SIZE];
+        
+            unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
+        
+            // iterate through our childrenExistInPacketBits, these will be the sections of the packet that we copied subTree
+            // details into. Unfortunately, they're in distance sorted order, not original index order. we need to put them
+            // back into original distance order
+            for (int originalIndex = 0; originalIndex < NUMBER_OF_CHILDREN; originalIndex++) {
+                if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
+                    int thisSliceSize = recursiveSliceSizes[originalIndex];
+                    unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
+
+                    memcpy(tempBufferTo, thisSliceStarts, thisSliceSize);
+                    tempBufferTo += thisSliceSize;
+                }
+            }
+            
+            // now that all slices are back in the correct order, copy them to the correct output buffer
+            memcpy(firstRecursiveSlice, &tempReshuffleBuffer[0], allSlicesSize);
+        }
+        
+        
+    } // end keepDiggingDeeper
+    
     return bytesAtThisLevel;
 }
 

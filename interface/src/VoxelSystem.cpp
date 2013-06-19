@@ -22,6 +22,7 @@
 #include "Application.h"
 #include "Log.h"
 #include "VoxelConstants.h"
+#include "CoverageMap.h"
 #include "InterfaceConfig.h"
 #include "renderer/ProgramObject.h"
 
@@ -1154,5 +1155,141 @@ void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destin
 
 void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
     _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
+}
+
+struct FalseColorizeOccludedArgs {
+    ViewFrustum* viewFrustum;
+    CoverageMap* map;
+    VoxelTree* tree;
+    long totalVoxels;
+    long coloredVoxels;
+    long occludedVoxels;
+    long notOccludedVoxels;
+    long outOfView;
+    long subtreeVoxelsSkipped;
+    long nonLeaves;
+    long nonLeavesOutOfView;
+    long nonLeavesOccluded;
+    long stagedForDeletion;
+};
+
+struct FalseColorizeSubTreeOperationArgs {
+    unsigned char color[NUMBER_OF_COLORS];
+    long voxelsTouched;
+};
+
+bool VoxelSystem::falseColorizeSubTreeOperation(VoxelNode* node, void* extraData) {
+    FalseColorizeSubTreeOperationArgs* args = (FalseColorizeSubTreeOperationArgs*) extraData;
+    node->setFalseColor(args->color[0], args->color[1], args->color[2]);
+    args->voxelsTouched++;
+    return true;    
+}
+
+bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
+
+    FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
+    args->totalVoxels++;
+
+    // if this node is staged for deletion, then just return
+    if (node->isStagedForDeletion()) {
+        args->stagedForDeletion++;
+        return true;
+    }
+    
+    // If we are a parent, let's see if we're completely occluded.
+    if (!node->isLeaf()) {
+        args->nonLeaves++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelShadow->getAllInView()) {
+            args->nonLeavesOutOfView++;
+            delete voxelShadow;
+            return true;
+        }
+
+        CoverageMap::StorageResult result = args->map->checkMap(voxelShadow, false);
+        if (result == CoverageMap::OCCLUDED) {
+            args->nonLeavesOccluded++;
+            delete voxelShadow;
+            
+            FalseColorizeSubTreeOperationArgs subArgs;
+            subArgs.color[0] = 0;
+            subArgs.color[1] = 255;
+            subArgs.color[2] = 0;
+            subArgs.voxelsTouched = 0;
+            
+            args->tree->recurseNodeWithOperation(node, falseColorizeSubTreeOperation, &subArgs );
+            
+            args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
+            args->totalVoxels += (subArgs.voxelsTouched - 1);
+            
+            return false;
+        }
+
+        delete voxelShadow;
+        return true; // keep looking...
+    }
+
+    if (node->isLeaf() && node->isColored() && node->getShouldRender()) {
+        args->coloredVoxels++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelShadow->getAllInView()) {
+            args->outOfView++;
+            delete voxelShadow;
+            return true;
+        }
+
+        CoverageMap::StorageResult result = args->map->checkMap(voxelShadow, true);
+        if (result == CoverageMap::OCCLUDED) {
+            node->setFalseColor(255, 0, 0);
+            args->occludedVoxels++;
+        } else if (result == CoverageMap::STORED) {
+            args->notOccludedVoxels++;
+            //printLog("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
+        } else if (result == CoverageMap::DOESNT_FIT) {
+            //printLog("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
+        }
+    }
+    return true; // keep going!
+}
+void VoxelSystem::falseColorizeOccluded() {
+    PerformanceWarning warn(true, "falseColorizeOccluded()",true);
+    CoverageMap map;
+    FalseColorizeOccludedArgs args;
+    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    args.map = &map; 
+    args.totalVoxels = 0;
+    args.coloredVoxels = 0;
+    args.occludedVoxels = 0;
+    args.notOccludedVoxels = 0;
+    args.outOfView = 0;
+    args.subtreeVoxelsSkipped = 0;
+    args.nonLeaves = 0;
+    args.stagedForDeletion = 0;
+    args.nonLeavesOutOfView = 0;
+    args.nonLeavesOccluded = 0;
+    args.tree = _tree;
+    
+    glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
+
+    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
+
+    printLog("falseColorizeOccluded()\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n", 
+        args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
+        args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
+        args.stagedForDeletion, 
+        args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded);
+
+
+    setupNewVoxelsForDrawing();
 }
 

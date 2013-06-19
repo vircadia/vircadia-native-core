@@ -15,6 +15,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include "Plane.h"
 #include "AABox.h"
+#include "VoxelProjectedPolygon.h"
 
 const float DEFAULT_KEYHOLE_RADIUS = 2.0f;
 
@@ -87,6 +88,9 @@ public:
 
     void printDebugDetails() const;
     
+    glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
+    VoxelProjectedPolygon getProjectedShadow(const AABox& box) const;
+
 private:
 
     // Used for keyhole calculations

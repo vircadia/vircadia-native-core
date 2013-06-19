@@ -23,6 +23,7 @@ const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
 const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
 const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
+const int WANT_OCCLUSION_CULLING_BIT = 7; // 8th bit
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
@@ -89,9 +90,11 @@ public:
     bool getWantResIn() const { return _wantResIn; }
     bool getWantColor() const { return _wantColor; }
     bool getWantDelta() const { return _wantDelta; }
+    bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
+    void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     
@@ -125,6 +128,7 @@ protected:
     bool _wantResIn;
     bool _wantColor;
     bool _wantDelta;
+    bool _wantOcclusionCulling;
     
     HeadData* _headData;
 private:
