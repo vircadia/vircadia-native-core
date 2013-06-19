@@ -48,7 +48,7 @@ void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
     
 };
 
-bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee) const {
+bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView) const {
     
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
@@ -56,7 +56,7 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee) cons
     // this is true, but unfortunately, we're not quite handling projects in the
     // case when SOME points are in view and others are not. So, we will not consider
     // occlusion for any shadows that are partially in view.
-    if (!getAllInView() || !occludee.getAllInView() ) {
+    if (checkAllInView && (!getAllInView() || !occludee.getAllInView())) {
         return false;
     }
 

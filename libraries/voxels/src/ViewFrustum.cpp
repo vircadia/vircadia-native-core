@@ -115,6 +115,14 @@ void ViewFrustum::calculate() {
     _planes[NEAR_PLANE  ].set3Points(_nearBottomRight,_nearBottomLeft,_nearTopLeft);
     _planes[FAR_PLANE   ].set3Points(_farBottomLeft,_farBottomRight,_farTopRight);
 
+    // Also calculate our projection matrix in case people want to project points...
+    // Projection matrix : Field of View, ratio, display range : near to far
+    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
+    glm::vec3 lookAt     = _position + _direction;
+    glm::mat4 view       = glm::lookAt(_position, lookAt, _up);
+
+    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
+    _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -425,18 +433,10 @@ void ViewFrustum::printDebugDetails() const {
         _eyeOffsetOrientation.w );
 }
 
-
 glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
-    // Projection matrix : Field of View, ratio, display range : near to far
-    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
-    glm::vec3 lookAt     = _position + _direction;
-    glm::mat4 view       = glm::lookAt(_position, lookAt, _up);
-    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
-    glm::mat4 VP         = projection * view; // Remember, matrix multiplication is the other way around
-    
-    glm::vec4 pointVec4 = glm::vec4(point,1);
-    glm::vec4 projectedPointVec4 = VP * pointVec4;
+    glm::vec4 pointVec4 = glm::vec4(point,1)    ;
+    glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
     pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
     
     // what happens with w is 0???

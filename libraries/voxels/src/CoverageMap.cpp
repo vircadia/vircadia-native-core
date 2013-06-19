@@ -13,6 +13,35 @@
 int CoverageMap::_mapCount = 0;
 const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f));
 
+// Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
+//
+//         (0,0)                   (windowWidth, 0)
+//         -1,1                    1,1
+//           +-----------------------+ 
+//           |           |           |
+//           |           |           |
+//           | -1,0      |           |
+//           |-----------+-----------|
+//           |          0,0          |
+//           |           |           |
+//           |           |           |
+//           |           |           |
+//           +-----------------------+
+//           -1,-1                  1,-1
+// (0,windowHeight)                (windowWidth,windowHeight)
+//
+
+// Choosing a minimum sized polygon. Since we know a typical window is approximately 1500 pixels wide
+// then a pixel on our screen will be ~ 2.0/1500 or 0.0013 "units" wide, similarly pixels are typically
+// about that tall as well. If we say that polygons should be at least 10x10 pixels to be considered "big enough"
+// then we can calculate a reasonable polygon area
+const int TYPICAL_SCREEN_WIDTH_IN_PIXELS      = 1500;
+const int MINIMUM_POLYGON_AREA_SIDE_IN_PIXELS = 10;
+const float TYPICAL_SCREEN_PIXEL_WIDTH = (2.0f / TYPICAL_SCREEN_WIDTH_IN_PIXELS);
+const float CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE = (TYPICAL_SCREEN_PIXEL_WIDTH * MINIMUM_POLYGON_AREA_SIDE_IN_PIXELS) *
+                                                         (TYPICAL_SCREEN_PIXEL_WIDTH * MINIMUM_POLYGON_AREA_SIDE_IN_PIXELS);
+
+
 CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygons) : 
     _isRoot(isRoot), _myBoundingBox(boundingBox), _managePolygons(managePolygons) { 
     _mapCount++;
@@ -51,9 +80,10 @@ void CoverageMap::erase() {
         }
     }
 
-/**
+/** Kee this debugging code for now....
     if (_isRoot) {
         printLog("CoverageMap last to be deleted...\n");
+        printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
         printLog("_mapCount=%d\n",_mapCount);
         printLog("_maxPolygonsUsed=%d\n",_maxPolygonsUsed);
         printLog("_totalPolygons=%d\n",_totalPolygons);
@@ -63,7 +93,6 @@ void CoverageMap::erase() {
         _mapCount = 0;
     }
 **/
-
 }
 
 void CoverageMap::init() {
@@ -143,6 +172,13 @@ void CoverageMap::storeInArray(VoxelProjectedPolygon* polygon) {
 
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
 CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, bool storeIt) {
+
+    // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
+    // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
+    if (!polygon->getAllInView()) {
+        return DOESNT_FIT;
+    }
+
     if (_isRoot || _myBoundingBox.contains(polygon->getBoundingBox())) {
         // check to make sure this polygon isn't occluded by something at this level
         for (int i = 0; i < _polygonCount; i++) {
@@ -157,8 +193,13 @@ CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon,
                 // want to report our inserted one as occluded, but we do want to add our inserted one.
                 if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
                     if (storeIt) {
-                        storeInArray(polygon);
-                        return STORED;
+                        if (polygon->getBoundingBox().area() > MINIMUM_POLYGON_AREA_TO_STORE) {
+                            //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
+                            storeInArray(polygon);
+                            return STORED;
+                        } else {
+                            return NOT_STORED;
+                        }
                     } else {
                         return NOT_STORED;
                     }
@@ -183,8 +224,13 @@ CoverageMap::StorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon,
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
-            storeInArray(polygon);
-            return STORED;
+            if (polygon->getBoundingBox().area() > MINIMUM_POLYGON_AREA_TO_STORE) {
+                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
+                storeInArray(polygon);
+                return STORED;
+            } else {
+                return NOT_STORED;
+            }
         } else {
             return NOT_STORED;
         }

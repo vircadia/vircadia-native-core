@@ -137,6 +137,8 @@ private:
     
     const char* debugPlaneName (int plane) const;
     
+    // Used to project points
+    glm::mat4 _ourModelViewProjectionMatrix;
 };
 
 

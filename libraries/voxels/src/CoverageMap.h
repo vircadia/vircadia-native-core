@@ -18,6 +18,7 @@ public:
     static const bool NOT_ROOT=false;
     static const bool IS_ROOT=true;
     static const BoundingBox ROOT_BOUNDING_BOX;
+    static const float MINIMUM_POLYGON_AREA_TO_STORE;
 
     CoverageMap(BoundingBox boundingBox = ROOT_BOUNDING_BOX, bool isRoot = IS_ROOT, bool managePolygons = true);
     ~CoverageMap();

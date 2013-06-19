@@ -20,6 +20,7 @@ public:
     glm::vec2 corner;
     glm::vec2 size;
     bool contains(const BoundingBox& box) const;
+    float area() const { return size.x * size.y; };
     
     void printDebugDetails(const char* label=NULL) const;
 };
@@ -48,7 +49,7 @@ public:
     bool getAllInView() const { return _allInView; };
     void setAllInView(bool allInView) { _allInView = allInView; };
 
-    bool occludes(const VoxelProjectedPolygon& occludee) const;
+    bool occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView = false) const;
     bool pointInside(const glm::vec2& point) const;
     
     float getMaxX() const { return _maxX; }
