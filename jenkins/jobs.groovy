@@ -2,9 +2,7 @@ def hifiJob(String targetName, Boolean deploy) {
     def JENKINS_URL = 'https://jenkins.below92.com/'
     def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
     def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
-    def HIPCHAT_AUTH_TOKEN = '4ad6553471db605629852ff3265408'
     def HIPCHAT_ROOM = 'High Fidelity'
-    def ARTIFACT_DESTINATION = 'a-tower.below92.com'
     
     job {
         name "hifi-${targetName}"
@@ -54,7 +52,7 @@ def hifiJob(String targetName, Boolean deploy) {
         
         if (deploy) {
             publishers {            
-                publishScp(ARTIFACT_DESTINATION) {
+                publishScp("${ARTIFACT_DESTINATION}") {
                     entry("**/build/${targetName}", "deploy/${targetName}")
                 }
             }
@@ -83,7 +81,7 @@ def hifiJob(String targetName, Boolean deploy) {
                 
                 'jenkins.plugins.hipchat.HipChatNotifier' {
                     jenkinsUrl JENKINS_URL
-                    authToken HIPCHAT_AUTH_TOKEN
+                    authToken "${HIPCHAT_AUTH_TOKEN}"
                     room HIPCHAT_ROOM
                 }
             }
