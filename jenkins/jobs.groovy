@@ -92,24 +92,22 @@ def hifiJob(String targetName, Boolean deploy) {
     }
 }
 
-def deployTargets = [
-    'animation-server',
-    'audio-mixer',
-    'avatar-mixer',
-    'domain-server',
-    'eve',
-    'pairing-server',
-    'space-server',
-    'voxel-server'
+def targets = [
+    'animation-server':true,
+    'audio-mixer':true,
+    'avatar-mixer':true,
+    'domain-server':true,
+    'eve':true,
+    'pairing-server':true,
+    'space-server':true,
+    'voxel-server':true,
+    'interface':false
 ]
 
-/* setup all of the deploys jobs that use the above template */
-deployTargets.each {
-    hifiJob(it, true)
+/* setup all of the target jobs to use the above template */
+for (target in targets) {
+    queue hifiJob(target, target.value)
 }
-
-/* setup the interface job, doesn't deploy */
-hifiJob('interface', false)
 
 /* setup the parametrized-build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
