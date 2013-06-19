@@ -101,7 +101,8 @@ def targets = [
     'pairing-server':true,
     'space-server':true,
     'voxel-server':true,
-    'interface':false
+    'interface':false,
+    'dummy-job':false
 ]
 
 /* setup all of the target jobs to use the above template */
