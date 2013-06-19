@@ -1125,15 +1125,15 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             //node->printDebugDetails("upper section, params.wantOcclusionCulling...  node=");
             AABox voxelBox = node->getAABox();
             voxelBox.scale(TREE_SCALE);
-            VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
+            VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
 
             // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
             // culling and proceed as normal
-            if (voxelShadow->getAllInView()) {
-                //node->printDebugDetails("upper section, voxelShadow->getAllInView() node=");
+            if (voxelPolygon->getAllInView()) {
+                //node->printDebugDetails("upper section, voxelPolygon->getAllInView() node=");
 
-                CoverageMap::StorageResult result = params.map->checkMap(voxelShadow, false);
-                delete voxelShadow; // cleanup
+                CoverageMap::StorageResult result = params.map->checkMap(voxelPolygon, false);
+                delete voxelPolygon; // cleanup
                 if (result == CoverageMap::OCCLUDED) {
                     //node->printDebugDetails("upper section, non-Leaf is occluded!! node=");
                     //args->nonLeavesOccluded++;
@@ -1147,7 +1147,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 //node->printDebugDetails("upper section, shadow Not in view node=");
                 // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
                 // we do need to clean up memory and proceed as normal...
-                delete voxelShadow;
+                delete voxelPolygon;
             }
         }
     }
@@ -1241,17 +1241,18 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                     AABox voxelBox = childNode->getAABox();
                     voxelBox.scale(TREE_SCALE);
-                    VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(params.viewFrustum->getProjectedShadow(voxelBox));
+                    VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(
+                                                                        params.viewFrustum->getProjectedPolygon(voxelBox));
                 
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
                     // culling and proceed as normal
-                    if (voxelShadow->getAllInView()) {
-                        CoverageMap::StorageResult result = params.map->checkMap(voxelShadow, true);
+                    if (voxelPolygon->getAllInView()) {
+                        CoverageMap::StorageResult result = params.map->checkMap(voxelPolygon, true);
                 
                         // In all cases where the shadow wasn't stored, we need to free our own memory.
                         // In the case where it is stored, the CoverageMap will free memory for us later.
                         if (result != CoverageMap::STORED) {
-                            delete voxelShadow;
+                            delete voxelPolygon;
                         }
 
                         // If while attempting to add this voxel's shadow, we determined it was occluded, then
@@ -1260,7 +1261,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                             childIsOccluded = true;
                         }
                     } else {
-                        delete voxelShadow;
+                        delete voxelPolygon;
                     }
                 } // wants occlusion culling & isLeaf()
 

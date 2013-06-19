@@ -123,6 +123,10 @@ void ViewFrustum::calculate() {
 
     // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
     _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
+    
+    // Set up our keyhole bounding box...
+    glm::vec3 corner = _position - _keyholeRadius;
+    _keyholeBoundingBox = AABox(corner,(_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -138,14 +142,14 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-ViewFrustum::location ViewFrustum::pointInSphere(const glm::vec3& point, const glm::vec3& center, float radius ) const {
+ViewFrustum::location ViewFrustum::pointInKeyhole(const glm::vec3& point) const {
 
     ViewFrustum::location result = INTERSECT;
     
-    float distance = glm::distance(point, center);
-    if (distance > radius) {
+    float distance = glm::distance(point, _position);
+    if (distance > _keyholeRadius) {
         result = OUTSIDE;
-    } else if (distance < radius) {
+    } else if (distance < _keyholeRadius) {
         result = INSIDE;
     }
     
@@ -155,15 +159,13 @@ ViewFrustum::location ViewFrustum::pointInSphere(const glm::vec3& point, const g
 // To determine if two spheres intersect, simply calculate the distance between the centers of the two spheres.
 // If the distance is greater than the sum of the two sphere radii, they don’t intersect. Otherwise they intersect.
 // If the distance plus the radius of sphere A is less than the radius of sphere B then, sphere A is inside of sphere B
-ViewFrustum::location ViewFrustum::sphereInSphere(const glm::vec3& centerA, float radiusA,
-                                                 const glm::vec3& centerB, float radiusB ) const {
-
+ViewFrustum::location ViewFrustum::sphereInKeyhole(const glm::vec3& center, float radius) const {
     ViewFrustum::location result = INTERSECT;
     
-    float distanceFromAtoB = glm::distance(centerA, centerB);
-    if (distanceFromAtoB > (radiusA + radiusB)) {
+    float distance = glm::distance(center, _position);
+    if (distance > (radius + _keyholeRadius)) {
         result = OUTSIDE;
-    } else if ((distanceFromAtoB + radiusA) < radiusB) {
+    } else if ((distance + radius) < _keyholeRadius) {
         result = INSIDE;
     }
     
@@ -174,9 +176,16 @@ ViewFrustum::location ViewFrustum::sphereInSphere(const glm::vec3& centerA, floa
 // A box is inside a sphere if all of its corners are inside the sphere
 // A box intersects a sphere if any of its edges (as rays) interesect the sphere
 // A box is outside a sphere if none of its edges (as rays) interesect the sphere
-ViewFrustum::location ViewFrustum::boxInSphere(const AABox& box, const glm::vec3& center, float radius) const {
+ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
+
+    // First check to see if the box is in the bounding box for the sphere, if it's not, then we can short circuit
+    // this and not check with sphere penetration which is more expensive
+    if (!_keyholeBoundingBox.contains(box)) {
+        return OUTSIDE;
+    }
+
     glm::vec3 penetration;
-    bool intersects = box.findSpherePenetration(center, radius, penetration);
+    bool intersects = box.findSpherePenetration(_position, _keyholeRadius, penetration);
 
     ViewFrustum::location result = OUTSIDE;
     
@@ -185,31 +194,17 @@ ViewFrustum::location ViewFrustum::boxInSphere(const AABox& box, const glm::vec3
         result = INTERSECT;
 
         // test all the corners, if they are all inside the sphere, the entire box is in the sphere
-        glm::vec3 testPoint = box.getCorner();
-        glm::vec3 size = box.getSize();
-        if (pointInSphere(testPoint, center, radius)) {
-            testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, 0.0f);
-            if (pointInSphere(testPoint, center, radius)) {
-                testPoint = box.getCorner() + glm::vec3(0.0f, 0.0f, size.z);
-                if (pointInSphere(testPoint, center, radius)) {
-                    testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, size.z);
-                    if (pointInSphere(testPoint, center, radius)) {
-                        testPoint = box.getCorner() + glm::vec3(0.0f, size.y, 0.0f);
-                        if (pointInSphere(testPoint, center, radius)) {
-                            testPoint = box.getCorner() + glm::vec3(size.x, size.y, 0.0f);
-                            if (pointInSphere(testPoint, center, radius)) {
-                                testPoint = box.getCorner() + glm::vec3(0.0f, size.y, size.z);
-                                if (pointInSphere(testPoint, center, radius)) {
-                                    testPoint = box.getCorner() + glm::vec3(size.x, size.y, size.z);
-                                    if (pointInSphere(testPoint, center, radius)) {
-                                        result = INSIDE;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        bool allPointsInside = true; // assume the best
+        for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+            glm::vec3 vertex = box.getVertex((BoxVertex)v);
+            if (!pointInKeyhole(vertex)) {
+                allPointsInside = false;
+                break;
             }
+        }
+        
+        if (allPointsInside) {
+            result = INSIDE;
         }
     }
     
@@ -222,7 +217,7 @@ ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const 
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = pointInSphere(point, _position, _keyholeRadius);
+        keyholeResult = pointInKeyhole(point);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -245,7 +240,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = sphereInSphere(center, radius, _position, _keyholeRadius);
+        keyholeResult = sphereInKeyhole(center, radius);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -272,7 +267,7 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = boxInSphere(box, _position, _keyholeRadius);
+        keyholeResult = boxInKeyhole(box);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -503,7 +498,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_SHADOW_VERTEX_COUNT+1]
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-VoxelProjectedPolygon ViewFrustum::getProjectedShadow(const AABox& box) const {
+VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     glm::vec3 bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft      = box.getCorner() + box.getSize();
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit

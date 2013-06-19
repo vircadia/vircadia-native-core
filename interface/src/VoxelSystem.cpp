@@ -1202,19 +1202,19 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
 
         AABox voxelBox = node->getAABox();
         voxelBox.scale(TREE_SCALE);
-        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
 
         // If we're not all in view, then ignore it, and just return. But keep searching...
-        if (!voxelShadow->getAllInView()) {
+        if (!voxelPolygon->getAllInView()) {
             args->nonLeavesOutOfView++;
-            delete voxelShadow;
+            delete voxelPolygon;
             return true;
         }
 
-        CoverageMap::StorageResult result = args->map->checkMap(voxelShadow, false);
+        CoverageMap::StorageResult result = args->map->checkMap(voxelPolygon, false);
         if (result == CoverageMap::OCCLUDED) {
             args->nonLeavesOccluded++;
-            delete voxelShadow;
+            delete voxelPolygon;
             
             FalseColorizeSubTreeOperationArgs subArgs;
             subArgs.color[0] = 0;
@@ -1230,7 +1230,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
             return false;
         }
 
-        delete voxelShadow;
+        delete voxelPolygon;
         return true; // keep looking...
     }
 
@@ -1239,16 +1239,16 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
 
         AABox voxelBox = node->getAABox();
         voxelBox.scale(TREE_SCALE);
-        VoxelProjectedPolygon* voxelShadow = new VoxelProjectedPolygon(args->viewFrustum->getProjectedShadow(voxelBox));
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
 
         // If we're not all in view, then ignore it, and just return. But keep searching...
-        if (!voxelShadow->getAllInView()) {
+        if (!voxelPolygon->getAllInView()) {
             args->outOfView++;
-            delete voxelShadow;
+            delete voxelPolygon;
             return true;
         }
 
-        CoverageMap::StorageResult result = args->map->checkMap(voxelShadow, true);
+        CoverageMap::StorageResult result = args->map->checkMap(voxelPolygon, true);
         if (result == CoverageMap::OCCLUDED) {
             node->setFalseColor(255, 0, 0);
             args->occludedVoxels++;
