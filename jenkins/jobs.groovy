@@ -1,31 +1,17 @@
-def targets = [
-    'animation-server',
-    'audio-mixer',
-    'avatar-mixer',
-    'domain-server',
-    'eve',
-    'interface',
-    'pairing-server',
-    'space-server',
-    'voxel-server'
-]
-
-def JENKINS_URL = 'https://jenkins.below92.com/'
-def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
-def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
-def HIPCHAT_AUTH_TOKEN = '4ad6553471db605629852ff3265408'
-def HIPCHAT_ROOM = 'High Fidelity'
-def ARTIFACT_DESTINATION = 'a-tower.below92.com'
-
-targets.each {
-    def targetName = it
+def hifiJob(String targetName, Boolean deploy) {
+    def JENKINS_URL = 'https://jenkins.below92.com/'
+    def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
+    def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
+    def HIPCHAT_ROOM = 'High Fidelity'
     
     job {
         name "hifi-${targetName}"
         logRotator(7, -1, -1, -1)
         
         scm {
-            git(GIT_REPO_URL)
+            git(GIT_REPO_URL, 'master') { node -> 
+                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
+            }
         }
        
         configure { project ->
@@ -41,10 +27,6 @@ targets.each {
                     useBuildBlocker true
                     blockingJobs 'hifi-seed'
                 }         
-            }
-            
-            project / 'scm' << {
-                includedRegions "${targetName}/.*\nlibraries/.*"
             }
             
             project / 'triggers' << 'com.cloudbees.jenkins.GitHubPushTrigger' {
@@ -68,36 +50,80 @@ targets.each {
             }
         }
         
-        publishers {            
-            publishScp(ARTIFACT_DESTINATION) {
-                entry("**/build/${targetName}", "deploy/${targetName}")
+        if (deploy) {
+            publishers {            
+                publishScp("${ARTIFACT_DESTINATION}") {
+                    entry("**/build/${targetName}", "deploy/${targetName}")
+                }
             }
         }
         
         configure { project ->
+            
             project / 'publishers' << {
-                'hudson.plugins.postbuildtask.PostbuildTask' {
-                    'tasks' {
-                        'hudson.plugins.postbuildtask.TaskProperties' {
-                            logTexts {
-                                'hudson.plugins.postbuildtask.LogProperties' {
-                                    logText '.'
-                                    operator 'AND'
+                if (deploy) {
+                    'hudson.plugins.postbuildtask.PostbuildTask' {
+                        'tasks' {
+                            'hudson.plugins.postbuildtask.TaskProperties' {
+                                logTexts {
+                                    'hudson.plugins.postbuildtask.LogProperties' {
+                                        logText '.'
+                                        operator 'AND'
+                                    }
                                 }
+                                EscalateStatus true
+                                RunIfJobSuccessful true
+                                script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' ${ARTIFACT_DESTINATION}"
                             }
-                            EscalateStatus true
-                            RunIfJobSuccessful true
-                            script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://a-tower.below92.com"
                         }
                     }
                 }
                 
                 'jenkins.plugins.hipchat.HipChatNotifier' {
                     jenkinsUrl JENKINS_URL
-                    authToken HIPCHAT_AUTH_TOKEN
+                    authToken "${HIPCHAT_AUTH_TOKEN}"
                     room HIPCHAT_ROOM
                 }
             }
         }
     }
+}
+
+def deployTargets = [
+    'animation-server',
+    'audio-mixer',
+    'avatar-mixer',
+    'domain-server',
+    'eve',
+    'pairing-server',
+    'space-server',
+    'voxel-server'
+]
+
+/* setup all of the deploys jobs that use the above template */
+
+deployTargets.each {
+    hifiJob(it, true)
+}
+
+/* setup the interface job, doesn't deploy */
+
+hifiJob('interface', false)
+
+/* setup the parametrized-build job for builds from jenkins */
+
+parameterizedJob = hifiJob('$TARGET', true)
+parameterizedJob.with {
+    name 'hifi-branch-deploy'
+    parameters {
+        stringParam('GITHUB_USER', '', "Specifies the name of the GitHub user that we're building from.")
+        stringParam('GIT_BRANCH', '', "Specifies the specific branch to build and deploy.")
+        stringParam('HOSTNAME', 'devel.highfidelity.io', "Specifies the hostname to deploy against.")
+        stringParam('TARGET', '', "What server to build specifically")
+    }   
+    scm {
+        git('git@github.com:/$GITHUB_USER/hifi.git', '$GIT_BRANCH') { node ->
+            node / 'wipeOutWorkspace' << true
+        }
+    } 
 }
