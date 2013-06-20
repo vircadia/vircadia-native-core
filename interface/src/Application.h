@@ -80,6 +80,8 @@ public:
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     bool shouldLowPassFilter() { return _shouldLowPassFilter->isChecked(); }
     
+    bool shouldDynamicallySetJitterBuffer() { return _audioJitterBufferSamples == 0; }
+    
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     
 private slots:

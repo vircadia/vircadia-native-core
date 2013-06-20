@@ -3,6 +3,7 @@
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #ifndef _COVERAGE_MAP_
@@ -11,6 +12,45 @@
 #include <glm/glm.hpp>
 #include "VoxelProjectedPolygon.h"
 
+typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} CoverageMapStorageResult;
+typedef enum {TOP_HALF, BOTTOM_HALF, LEFT_HALF, RIGHT_HALF, REMAINDER} RegionName;
+
+class CoverageRegion {
+
+public:
+    
+    CoverageRegion(BoundingBox boundingBox, bool isRoot, bool managePolygons = true, RegionName regionName = REMAINDER);
+    ~CoverageRegion();
+
+    CoverageMapStorageResult checkRegion(VoxelProjectedPolygon* polygon, const BoundingBox& polygonBox, bool storeIt);
+    void storeInArray(VoxelProjectedPolygon* polygon);
+    
+    bool contains(const BoundingBox& box) const { return _myBoundingBox.contains(box); };
+    void erase(); // erase the coverage region
+
+    static int _maxPolygonsUsed;
+    static int _totalPolygons;
+    static int _occlusionTests;
+    static int _outOfOrderPolygon;
+
+
+    const char* getRegionName() const;
+
+private:
+    void init();
+
+    bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
+    BoundingBox             _myBoundingBox;
+    bool                    _managePolygons; // will the coverage map delete the polygons on destruct
+    RegionName              _regionName;
+    int                     _polygonCount; // how many polygons at this level
+    int                     _polygonArraySize; // how much room is there to store polygons at this level
+    VoxelProjectedPolygon**  _polygons;
+    float*                  _polygonDistances;
+    void growPolygonArray();
+    static const int DEFAULT_GROW_SIZE = 100;
+};
+
 class CoverageMap {
 
 public:
@@ -18,36 +58,37 @@ public:
     static const bool NOT_ROOT=false;
     static const bool IS_ROOT=true;
     static const BoundingBox ROOT_BOUNDING_BOX;
+    static const float MINIMUM_POLYGON_AREA_TO_STORE;
 
     CoverageMap(BoundingBox boundingBox = ROOT_BOUNDING_BOX, bool isRoot = IS_ROOT, bool managePolygons = true);
     ~CoverageMap();
     
-    typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} StorageResult;
-    StorageResult checkMap(VoxelProjectedPolygon* polygon, bool storeIt = true);
+    CoverageMapStorageResult checkMap(VoxelProjectedPolygon* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
     
     void erase(); // erase the coverage map
 
+    static bool wantDebugging;
+
 private:
     void init();
-    void growPolygonArray();
-    void storeInArray(VoxelProjectedPolygon* polygon);
 
     bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
     BoundingBox             _myBoundingBox;
-    bool                    _managePolygons; // will the coverage map delete the polygons on destruct
-    int                     _polygonCount; // how many polygons at this level
-    int                     _polygonArraySize; // how much room is there to store polygons at this level
-    VoxelProjectedPolygon**  _polygons;
-    float*                  _polygonDistances;
     CoverageMap*            _childMaps[NUMBER_OF_CHILDREN];
+    bool                    _managePolygons; // will the coverage map delete the polygons on destruct
+    
+    // We divide the map into 5 regions representing each possible half of the map, and the whole map
+    // this allows us to keep the list of polygons shorter
+    CoverageRegion          _topHalf;
+    CoverageRegion          _bottomHalf;
+    CoverageRegion          _leftHalf;
+    CoverageRegion          _rightHalf;
+    CoverageRegion          _remainder;
 
-    static const int DEFAULT_GROW_SIZE = 100;
-    static int _mapCount;
-    static int _maxPolygonsUsed;
-    static int _totalPolygons;
-
+    static int  _mapCount;
+    static int  _checkMapRootCalls;
 };
 
 

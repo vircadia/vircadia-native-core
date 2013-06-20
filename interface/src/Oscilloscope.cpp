@@ -54,6 +54,10 @@ Oscilloscope::Oscilloscope(int w, int h, bool isEnabled) :
     for (unsigned ch = 0; ch < MAX_CHANNELS; ++ch) {
         _writePos[ch] = MAX_SAMPLES_PER_CHANNEL * ch;
     }
+
+    _colors[0] = 0xffffff;
+    _colors[1] = 0x00ffff;
+    _colors[2] = 0x00ffff;
 }
 
 Oscilloscope::~Oscilloscope() {
@@ -138,17 +142,22 @@ void Oscilloscope::render(int x, int y) {
     glScaled(1.0f, _height / 32767.0f, 1.0f);
     glVertexPointer(2, GL_SHORT, 0, _vertices);
     glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
     // render channel 0
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor3ub(GLubyte(_colors[0] >> 16), GLubyte((_colors[0] >> 8) & 0xff), GLubyte(_colors[0] & 0xff));
     glDrawArrays(GL_LINES, MAX_SAMPLES_PER_CHANNEL * 0, usedWidth);
 
     // render channel 1
     glColor3f(0.0f, 1.0f ,1.0f);
+    glColor3ub(GLubyte(_colors[1] >> 16), GLubyte((_colors[1] >> 8) & 0xff), GLubyte(_colors[1] & 0xff));
     glDrawArrays(GL_LINES, MAX_SAMPLES_PER_CHANNEL * 1, usedWidth);
 
     // render channel 2
-    glColor3f(0.0f, 1.0f ,1.0f);
+    glColor3ub(GLubyte(_colors[2] >> 16), GLubyte((_colors[2] >> 8) & 0xff), GLubyte(_colors[2] & 0xff));
     glDrawArrays(GL_LINES, MAX_SAMPLES_PER_CHANNEL * 2, usedWidth);
 
     // reset rendering state

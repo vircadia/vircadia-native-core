@@ -105,6 +105,17 @@ bool AABox::contains(const glm::vec3& point) const {
         isWithin(point.z, _corner.z, _size.z);
 }
 
+bool AABox::contains(const AABox& otherBox) const {
+    for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+        glm::vec3 vertex = otherBox.getVertex((BoxVertex)v);
+        if (!contains(vertex)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 // determines whether a value is within the expanded extents
 static bool isWithinExpanded(float value, float corner, float size, float expansion) {
     return value >= corner - expansion && value <= corner + size + expansion;
