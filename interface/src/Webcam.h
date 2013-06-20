@@ -36,7 +36,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& image);
+    void setFrame(const cv::Mat& image, const cv::RotatedRect& faceRect);
     
 private:
     
@@ -47,6 +47,7 @@ private:
     int _frameWidth;
     int _frameHeight;
     GLuint _frameTextureID;
+    cv::RotatedRect _faceRect;
     
     long long _startTimestamp;
     int _frameCount;
@@ -59,7 +60,7 @@ class FrameGrabber : public QObject {
     
 public:
     
-    FrameGrabber() : _capture(0) { }
+    FrameGrabber();
     virtual ~FrameGrabber();
 
 public slots:
@@ -68,10 +69,18 @@ public slots:
     
 private:
     
+    void updateHSVFrame(const cv::Mat& frame);
+    
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
+    cv::Mat _hsvFrame;
+    cv::Mat _mask;
+    cv::SparseMat _histogram;
+    cv::Mat _backProject;
+    cv::Rect _searchWindow;
 };
 
 Q_DECLARE_METATYPE(cv::Mat)
+Q_DECLARE_METATYPE(cv::RotatedRect)
 
 #endif /* defined(__interface__Webcam__) */
