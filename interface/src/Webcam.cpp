@@ -148,8 +148,8 @@ void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
     } else if (roll > 90.0f) {
         roll -= 180.0f;
     }
-    const float ROTATION_SMOOTHING = 0.5f;
-    _estimatedRotation.z = glm::mix(_estimatedRotation.z, roll, ROTATION_SMOOTHING);
+    const float ROTATION_SMOOTHING = 0.95f;
+    _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
     
     // determine position based on translation and scaling of the face rect
     if (_initialFaceRect.size.area() == 0) {
@@ -165,8 +165,8 @@ void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
             (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
             (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
             z);
-        const float POSITION_SMOOTHING = 0.5f;
-        _estimatedPosition = glm::mix(_estimatedPosition, position, POSITION_SMOOTHING);
+        const float POSITION_SMOOTHING = 0.95f;
+        _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
     }
     
     // note that we have data
