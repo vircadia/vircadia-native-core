@@ -10,6 +10,30 @@
 #include "Log.h"
 
 
+BoundingBox BoundingBox::topHalf() const {
+    float halfY = size.y/2.0f;
+    BoundingBox result(glm::vec2(corner.x,corner.y + halfY), glm::vec2(size.x, halfY));
+    return result;
+}
+
+BoundingBox BoundingBox::bottomHalf() const {
+    float halfY = size.y/2.0f;
+    BoundingBox result(corner, glm::vec2(size.x, halfY));
+    return result;
+}
+
+BoundingBox BoundingBox::leftHalf() const {
+    float halfX = size.x/2.0f;
+    BoundingBox result(corner, glm::vec2(halfX, size.y));
+    return result;
+}
+
+BoundingBox BoundingBox::rightHalf() const {
+    float halfX = size.x/2.0f;
+    BoundingBox result(glm::vec2(corner.x + halfX , corner.y), glm::vec2(halfX, size.y));
+    return result;
+}
+
 bool BoundingBox::contains(const BoundingBox& box) const {
     return (
                 (box.corner.x >= corner.x) &&

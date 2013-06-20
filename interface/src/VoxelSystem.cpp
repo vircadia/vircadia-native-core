@@ -1211,8 +1211,8 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
             return true;
         }
 
-        CoverageMap::StorageResult result = args->map->checkMap(voxelPolygon, false);
-        if (result == CoverageMap::OCCLUDED) {
+        CoverageMapStorageResult result = args->map->checkMap(voxelPolygon, false);
+        if (result == OCCLUDED) {
             args->nonLeavesOccluded++;
             delete voxelPolygon;
             
@@ -1248,14 +1248,14 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
             return true;
         }
 
-        CoverageMap::StorageResult result = args->map->checkMap(voxelPolygon, true);
-        if (result == CoverageMap::OCCLUDED) {
+        CoverageMapStorageResult result = args->map->checkMap(voxelPolygon, true);
+        if (result == OCCLUDED) {
             node->setFalseColor(255, 0, 0);
             args->occludedVoxels++;
-        } else if (result == CoverageMap::STORED) {
+        } else if (result == STORED) {
             args->notOccludedVoxels++;
             //printLog("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
-        } else if (result == CoverageMap::DOESNT_FIT) {
+        } else if (result == DOESNT_FIT) {
             //printLog("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
         }
     }

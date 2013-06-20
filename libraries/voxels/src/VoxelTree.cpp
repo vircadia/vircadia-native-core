@@ -1132,9 +1132,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (voxelPolygon->getAllInView()) {
                 //node->printDebugDetails("upper section, voxelPolygon->getAllInView() node=");
 
-                CoverageMap::StorageResult result = params.map->checkMap(voxelPolygon, false);
+                CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
                 delete voxelPolygon; // cleanup
-                if (result == CoverageMap::OCCLUDED) {
+                if (result == OCCLUDED) {
                     //node->printDebugDetails("upper section, non-Leaf is occluded!! node=");
                     //args->nonLeavesOccluded++;
 
@@ -1247,17 +1247,17 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
                     // culling and proceed as normal
                     if (voxelPolygon->getAllInView()) {
-                        CoverageMap::StorageResult result = params.map->checkMap(voxelPolygon, true);
+                        CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
                 
                         // In all cases where the shadow wasn't stored, we need to free our own memory.
                         // In the case where it is stored, the CoverageMap will free memory for us later.
-                        if (result != CoverageMap::STORED) {
+                        if (result != STORED) {
                             delete voxelPolygon;
                         }
 
                         // If while attempting to add this voxel's shadow, we determined it was occluded, then
                         // we don't need to process it further and we can exit early.
-                        if (result == CoverageMap::OCCLUDED) {
+                        if (result == OCCLUDED) {
                             childIsOccluded = true;
                         }
                     } else {
