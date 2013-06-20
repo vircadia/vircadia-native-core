@@ -25,7 +25,7 @@ using namespace std;
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
-Webcam::Webcam() : _enabled(false), _frameTextureID(0)  {
+Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -46,10 +46,13 @@ void Webcam::setEnabled(bool enabled) {
     
     } else {
         _grabberThread.quit();
+        _active = false;
     }
 }
 
 void Webcam::reset() {
+    _initialFaceRect = RotatedRect();
+    
     if (_enabled) {
         // send a message to the grabber
         QMetaObject::invokeMethod(_grabber, "reset");
@@ -137,6 +140,38 @@ void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
     }
     _lastFrameTimestamp = now;
     
+    // roll is just the angle of the face rect (correcting for 180 degree rotations)
+    float roll = faceRect.angle;
+    if (roll < -90.0f) {
+        roll += 180.0f;
+        
+    } else if (roll > 90.0f) {
+        roll -= 180.0f;
+    }
+    const float ROTATION_SMOOTHING = 0.5f;
+    _estimatedRotation.z = glm::mix(_estimatedRotation.z, roll, ROTATION_SMOOTHING);
+    
+    // determine position based on translation and scaling of the face rect
+    if (_initialFaceRect.size.area() == 0) {
+        _initialFaceRect = faceRect;
+        _estimatedPosition = glm::vec3();
+    
+    } else {
+        float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
+        const float DISTANCE_TO_CAMERA = 0.333f;
+        const float POSITION_SCALE = 0.5f;
+        float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
+        glm::vec3 position = glm::vec3(
+            (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
+            (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
+            z);
+        const float POSITION_SMOOTHING = 0.5f;
+        _estimatedPosition = glm::mix(_estimatedPosition, position, POSITION_SMOOTHING);
+    }
+    
+    // note that we have data
+    _active = true;
+    
     // let the grabber know we're ready for the next frame
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
@@ -166,7 +201,7 @@ void FrameGrabber::grabFrame() {
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
         
 #ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, false, 0.99, 0.5, 0.5, 0.5, true, 0.5);
+        configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
 #else
         cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
         cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);

@@ -103,7 +103,7 @@ void SerialInterface::initializePort(char* portname) {
     printLog("Connected.\n");
     resetSerial();
     
-    active = true;
+    _active = true;
  #endif
 }
 
@@ -359,7 +359,7 @@ void SerialInterface::resetAverages() {
 void SerialInterface::resetSerial() {
 #ifdef __APPLE__
     resetAverages();
-    active = false;
+    _active = false;
     gettimeofday(&lastGoodRead, NULL);
 #endif
 }

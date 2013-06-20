@@ -86,7 +86,7 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateHeadFromGyros(float frametime, SerialInterface * serialInterface);
+    void updateHeadFromGyrosAndOrWebcam();
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror, bool renderAvatarBalls);
