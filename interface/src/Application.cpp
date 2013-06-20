@@ -27,6 +27,7 @@
 #include <QDialogButtonBox>
 #include <QDesktopWidget>
 #include <QDoubleSpinBox>
+#include <QCheckBox>
 #include <QFormLayout>
 #include <QGLWidget>
 #include <QKeyEvent>
@@ -502,9 +503,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Semicolon:
-                _audio.startEchoTest();
+                _audio.ping();
                 break;
-                
+            case Qt::Key_Apostrophe:
+                _audioScope.inputPaused = !_audioScope.inputPaused;
+                break; 
             case Qt::Key_L:
                 _displayLevels = !_displayLevels;
                 break;
@@ -885,6 +888,10 @@ void Application::editPreferences() {
     QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+
+    QCheckBox* audioEchoCancellation = new QCheckBox();
+    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
+    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
     
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
@@ -901,7 +908,7 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    
+    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
 }
@@ -980,6 +987,7 @@ void Application::doFalseColorizeInView() {
 }
 
 void Application::doFalseColorizeOccluded() {
+    CoverageMap::wantDebugging = true;
     _voxels.falseColorizeOccluded();
 }
 
@@ -1640,6 +1648,7 @@ void Application::update(float deltaTime) {
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
+    _audio.eventuallyAnalyzePing();
     #endif
 }
 
@@ -2674,6 +2683,9 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
     settings->endGroup();
+    settings->beginGroup("Audio Echo Cancellation");
+    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
+    settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
     getAvatar()->loadData(settings);    
@@ -2692,6 +2704,9 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
+    settings->endGroup();
+    settings->beginGroup("Audio");
+    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);
