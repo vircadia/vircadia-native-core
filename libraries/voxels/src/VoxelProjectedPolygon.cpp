@@ -35,13 +35,47 @@ BoundingBox BoundingBox::rightHalf() const {
 }
 
 bool BoundingBox::contains(const BoundingBox& box) const {
-    return (
+    return ( _set && 
                 (box.corner.x >= corner.x) &&
                 (box.corner.y >= corner.y) &&
                 (box.corner.x + box.size.x <= corner.x + size.x) &&
                 (box.corner.y + box.size.y <= corner.y + size.y)
             );
 };
+
+void BoundingBox::explandToInclude(const BoundingBox& box) {
+    if (!_set) {
+        corner = box.corner;
+        size = box.size;
+        _set = true;
+    } else {
+        // example:
+        // original bounding [c:1,1 s:1,1] => [1,1]->[2,2]
+        // expand to include [c:0.5,0.5 s:2,2] => [0.5,0.5]->[2.5,2.5]
+        // new bounding      [0.5,0.5]->[2.5,2.5] or [c:0.5,0.5 s:2,2]
+    
+
+        if (box.corner.x < corner.x) {
+            corner.x = box.corner.x;
+            size.x += (corner.x - box.corner.x);
+        }
+        // new state... [c:0.5,1 s:1.5,1]
+        if (box.corner.y < corner.y) {
+            corner.y = box.corner.y;
+            size.y += (corner.y - box.corner.y);
+        }
+        // new state... [c:0.5,0.5 s:1.5,1.5]
+        if ((box.corner.x + box.size.x) > (corner.x + size.x)) {
+            size.x += ((box.corner.x + box.size.x) - (corner.x + size.x));
+        }
+        // new state... [c:0.5,0.5 s:2,1.5]
+        if ((box.corner.y + box.size.y) > (corner.y + size.y)) {
+            size.y += ((box.corner.y + box.size.y) - (corner.y + size.y));
+        }
+        // new state... [c:0.5,0.5 s:2,2]
+    }
+}
+
 
 void BoundingBox::printDebugDetails(const char* label) const {
     if (label) {

@@ -16,10 +16,13 @@ typedef glm::vec2 ShadowVertices[MAX_SHADOW_VERTEX_COUNT];
 
 class BoundingBox {
 public:
-    BoundingBox(glm::vec2 corner, glm::vec2 size) : corner(corner), size(size) {};
+    BoundingBox(glm::vec2 corner, glm::vec2 size) : corner(corner), size(size), _set(true) {};
+    BoundingBox() : _set(false) {};
     glm::vec2 corner;
     glm::vec2 size;
     bool contains(const BoundingBox& box) const;
+    void explandToInclude(const BoundingBox& box);
+
     float area() const { return size.x * size.y; };
 
     BoundingBox topHalf() const;
@@ -28,6 +31,8 @@ public:
     BoundingBox rightHalf() const;
     
     void printDebugDetails(const char* label=NULL) const;
+private:
+    bool _set;
 };
 
 class VoxelProjectedPolygon {

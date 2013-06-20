@@ -13,6 +13,7 @@
 
 int CoverageMap::_mapCount = 0;
 int CoverageMap::_checkMapRootCalls = 0;
+int CoverageMap::_notAllInView = 0;
 bool CoverageMap::wantDebugging = false;
 
 const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f));
@@ -84,16 +85,22 @@ void CoverageMap::erase() {
         printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
         printLog("_mapCount=%d\n",_mapCount);
         printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
+        printLog("_notAllInView=%d\n",_notAllInView);
         printLog("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
         printLog("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
         printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
+        printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
+        printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
         printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
         CoverageRegion::_maxPolygonsUsed = 0;
         CoverageRegion::_totalPolygons = 0;
         CoverageRegion::_occlusionTests = 0;
+        CoverageRegion::_regionSkips = 0;
+        CoverageRegion::_tooSmallSkips = 0;
         CoverageRegion::_outOfOrderPolygon = 0;
         _mapCount = 0;
         _checkMapRootCalls = 0;
+        _notAllInView = 0;
     }
 }
 
@@ -131,6 +138,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
     // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
+        _notAllInView++;
         return DOESNT_FIT;
     }
 
@@ -195,6 +203,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
                 storeIn->storeInArray(polygon);
                 return STORED;
             } else {
+                CoverageRegion::_tooSmallSkips++;
                 return NOT_STORED;
             }
         } else {
@@ -297,6 +306,8 @@ const char* CoverageRegion::getRegionName() const {
 int CoverageRegion::_maxPolygonsUsed = 0;
 int CoverageRegion::_totalPolygons = 0;
 int CoverageRegion::_occlusionTests = 0;
+int CoverageRegion::_regionSkips = 0;
+int CoverageRegion::_tooSmallSkips = 0;
 int CoverageRegion::_outOfOrderPolygon = 0;
 
 // just handles storage in the array, doesn't test for occlusion or
@@ -304,6 +315,8 @@ int CoverageRegion::_outOfOrderPolygon = 0;
 void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
 
     _totalPolygons++;
+
+    _currentCoveredBounds.explandToInclude(polygon->getBoundingBox());
 
     if (_polygonArraySize < _polygonCount + 1) {
         growPolygonArray();
@@ -316,7 +329,7 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
     _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
                                            (void**)_polygons, _polygonDistances, IGNORED,
                                            _polygonCount, _polygonArraySize);
-
+                                           
     // Debugging and Optimization Tuning code.
     if (_polygonCount > _maxPolygonsUsed) {
         _maxPolygonsUsed = _polygonCount;
@@ -335,37 +348,43 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
 
     if (_isRoot || _myBoundingBox.contains(polygonBox)) {
         result = NOT_STORED; // if we got here, then we DO fit...
-
-        // check to make sure this polygon isn't occluded by something at this level
-        for (int i = 0; i < _polygonCount; i++) {
-            VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
-            // Check to make sure that the polygon in question is "behind" the polygon in the list
-            // otherwise, we don't need to test it's occlusion (although, it means we've potentially
-            // added an item previously that may be occluded??? Is that possible? Maybe not, because two
-            // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
-            // each other.
+        
+        // only actually check the polygons if this polygon is in the covered bounds for this region
+        if (!_currentCoveredBounds.contains(polygonBox)) {
+            _regionSkips += _polygonCount;
+        } else {
+            // check to make sure this polygon isn't occluded by something at this level
+            for (int i = 0; i < _polygonCount; i++) {
+                VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
+                // Check to make sure that the polygon in question is "behind" the polygon in the list
+                // otherwise, we don't need to test it's occlusion (although, it means we've potentially
+                // added an item previously that may be occluded??? Is that possible? Maybe not, because two
+                // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
+                // each other.
         
         
-            _occlusionTests++;
-            if (polygonAtThisLevel->occludes(*polygon)) {
-                // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
-                // want to report our inserted one as occluded, but we do want to add our inserted one.
-                if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
-                    _outOfOrderPolygon++;
-                    if (storeIt) {
-                        if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                            //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
-                            storeInArray(polygon);
-                            return STORED;
+                _occlusionTests++;
+                if (polygonAtThisLevel->occludes(*polygon)) {
+                    // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
+                    // want to report our inserted one as occluded, but we do want to add our inserted one.
+                    if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
+                        _outOfOrderPolygon++;
+                        if (storeIt) {
+                            if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
+                                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
+                                storeInArray(polygon);
+                                return STORED;
+                            } else {
+                                _tooSmallSkips++;
+                                return NOT_STORED;
+                            }
                         } else {
                             return NOT_STORED;
                         }
-                    } else {
-                        return NOT_STORED;
                     }
+                    // this polygon is occluded by a closer polygon, so don't store it, and let the caller know
+                    return OCCLUDED;
                 }
-                // this polygon is occluded by a closer polygon, so don't store it, and let the caller know
-                return OCCLUDED;
             }
         }
     }

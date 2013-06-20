@@ -31,6 +31,8 @@ public:
     static int _maxPolygonsUsed;
     static int _totalPolygons;
     static int _occlusionTests;
+    static int _regionSkips;
+    static int _tooSmallSkips;
     static int _outOfOrderPolygon;
 
 
@@ -41,6 +43,7 @@ private:
 
     bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
     BoundingBox             _myBoundingBox;
+    BoundingBox             _currentCoveredBounds; // area in this region currently covered by some polygon
     bool                    _managePolygons; // will the coverage map delete the polygons on destruct
     RegionName              _regionName;
     int                     _polygonCount; // how many polygons at this level
@@ -89,6 +92,7 @@ private:
 
     static int  _mapCount;
     static int  _checkMapRootCalls;
+    static int  _notAllInView;
 };
 
 
