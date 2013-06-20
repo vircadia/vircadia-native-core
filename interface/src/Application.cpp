@@ -980,6 +980,7 @@ void Application::doFalseColorizeInView() {
 }
 
 void Application::doFalseColorizeOccluded() {
+    CoverageMap::wantDebugging = true;
     _voxels.falseColorizeOccluded();
 }
 
