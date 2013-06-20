@@ -5,17 +5,22 @@
 //  Read interface data from the gyros/accelerometer Invensense board using the SerialUSB
 //
 
-#include "SerialInterface.h"
-#include "SharedUtil.h"
-#include "Util.h"
-#include <glm/gtx/vector_angle.hpp>
-#include <math.h>
-
 #ifdef __APPLE__
 #include <regex.h>
 #include <sys/time.h>
 #include <string>
 #endif
+
+#include <math.h>
+
+#include <glm/gtx/vector_angle.hpp>
+
+#include <SharedUtil.h>
+
+#include "Application.h"
+#include "SerialInterface.h"
+#include "Util.h"
+#include "Webcam.h"
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
