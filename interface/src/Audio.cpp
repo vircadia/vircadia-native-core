@@ -55,7 +55,7 @@ static const int AGENT_LOOPBACK_MODIFIER = 307;
 // Speex preprocessor and echo canceller adaption
 static const int   AEC_N_CHANNELS_MIC = 1;                                      // Number of microphone channels
 static const int   AEC_N_CHANNELS_PLAY = 2;                                     // Number of speaker channels
-static const int   AEC_FILTER_LENGTH = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 8;   // Width of the filter
+static const int   AEC_FILTER_LENGTH = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 20;  // Width of the filter
 static const int   AEC_BUFFERED_FRAMES = 6;                                     // Maximum number of frames to buffer
 static const int   AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
 static const int   AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY;
@@ -63,14 +63,14 @@ static const int   AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                  
         AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
 
 // Speex preprocessor and echo canceller configuration
-static const int   AEC_NOISE_REDUCTION = -400;                                  // Noise reduction (important)
+static const int   AEC_NOISE_REDUCTION = -80;                                   // Noise reduction (important)
 static const int   AEC_RESIDUAL_ECHO_REDUCTION = -60;                           // Residual echo reduction
-static const int   AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE = -40;                    //  ~on active side
+static const int   AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE = -45;                    //  ~on active side
 static const bool  AEC_USE_AGC = true;                                          // Automatic gain control
-static const int   AEC_AGC_MAX_GAIN = -12;                                      // Gain in db
-static const int   AEC_AGC_TARGET_LEVEL = 20000;                                // Target reference level
+static const int   AEC_AGC_MAX_GAIN = -30;                                      // Gain in db
+static const int   AEC_AGC_TARGET_LEVEL = 9000;                                 // Target reference level
 static const int   AEC_AGC_MAX_INC = 6;                                         // Max increase in db/s
-static const int   AEC_AGC_MAX_DEC = 40;                                        // Max decrease in db/s
+static const int   AEC_AGC_MAX_DEC = 200;                                       // Max decrease in db/s
 static const bool  AEC_USE_VAD = false;                                         // Voice activity determination
 
 // Ping test configuration 
@@ -305,7 +305,7 @@ Audio::Audio(Oscilloscope* scope) :
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
-    _jitterBufferLengthMsecs(12.0),
+//    _jitterBufferLengthMsecs(12.0),
 //    _jitterBufferSamples(_jitterBufferLengthMsecs *
 //                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
     _wasStarved(0),
@@ -317,7 +317,7 @@ Audio::Audio(Oscilloscope* scope) :
     _firstPlaybackTime(),
     _packetsReceivedThisPlayback(0),
     _isCancellingEcho(false),
-    _echoDelay(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2),
+    _echoDelay(0),
     _echoSamplesLeft(0l),
     _speexEchoState(NULL),
     _speexPreprocessState(NULL),
@@ -544,8 +544,21 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
 // Speex-based echo cancellation
 // -----------------------------
 
+bool Audio::isCancellingEcho() const {
+    return _isCancellingEcho && ! (_pingFramesToRecord != 0 || _pingAnalysisPending || ! _speexPreprocessState);
+}
+
+void Audio::setIsCancellingEcho(bool enable) {
+    if (enable) {
+        speex_echo_state_reset(_speexEchoState);
+        _echoWritePos = 0;
+        memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
+    }
+    _isCancellingEcho = enable;
+}
+
 inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
-    if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
+    if (! isCancellingEcho()) {
         return;
     }
 
@@ -584,7 +597,7 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
 }
 
 inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight) {
-    if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
+    if (! isCancellingEcho()) {
         return;
     }
 
@@ -702,7 +715,7 @@ inline void Audio::analyzePing() {
     }
 
     // Determine period - warn if doesn't look like our signal
-    int halfPeriod = topAt - botAt;
+    int halfPeriod = abs(topAt - botAt);
     if (abs(halfPeriod-PING_HALF_PERIOD) > PING_MAX_PERIOD_DIFFERENCE) {
         printLog("Audio Ping unreliable - peak distance %d vs. %d\n", halfPeriod, PING_HALF_PERIOD);
     }
@@ -745,11 +758,9 @@ inline void Audio::analyzePing() {
 
     int delay = (botAt + topAt) / 2 + PING_PERIOD;
 
-    printLog("| Audio Ping results:\n"
-             "+----- ---- --- - -  -   -   -\n"
-             "\n"
-             " Delay = %d samples (%d ms)\n"
-             " Peak amplitude = %d\n\n", delay, delay * 1000 / SAMPLE_RATE, ampli);
+    printLog("\n| Audio Ping results:\n+----- ---- --- - -  -   -   -\n\n"
+             "Delay = %d samples (%d ms)\nPeak amplitude = %d\n\n",
+             delay, (delay * 1000) / int(SAMPLE_RATE), ampli);
 }
 
 bool Audio::eventuallyAnalyzePing() {
@@ -757,9 +768,10 @@ bool Audio::eventuallyAnalyzePing() {
     if (! _pingAnalysisPending) {
         return false;
     }
-
     _scope->inputPaused = true;
     analyzePing();
+    setIsCancellingEcho(_isCancellingEcho);
+    _pingAnalysisPending = false;
     return true;
 }
 

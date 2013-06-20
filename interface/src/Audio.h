@@ -35,8 +35,8 @@ public:
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
 
-    void setIsCancellingEcho(bool enabled) { _isCancellingEcho = enabled; }
-    bool isCancellingEcho() const { return _isCancellingEcho; }
+    void setIsCancellingEcho(bool enabled);
+    bool isCancellingEcho() const;
 
     void ping();
 
@@ -54,7 +54,7 @@ private:
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
-    float _jitterBufferLengthMsecs;
+//    float _jitterBufferLengthMsecs; // currently unused
 //    short _jitterBufferSamples; // currently unsused
     int _wasStarved;
     int _numStarves;
