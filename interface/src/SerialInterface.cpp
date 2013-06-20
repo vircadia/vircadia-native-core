@@ -310,8 +310,8 @@ void SerialInterface::readData(float deltaTime) {
         //  Attempt to fuse gyro position with webcam position
         Webcam* webcam = Application::getInstance()->getWebcam();
         if (webcam->isActive()) {
-            _estimatedPosition = glm::mix(_estimatedPosition, webcam->getEstimatedPosition(),
-                1.0f / SENSOR_FUSION_SAMPLES);
+            const float WEBCAM_POSITION_FUSION = 0.5f;
+            _estimatedPosition = glm::mix(_estimatedPosition, webcam->getEstimatedPosition(), WEBCAM_POSITION_FUSION);
                
         } else {
             _estimatedPosition *= DECAY_POSITION;
