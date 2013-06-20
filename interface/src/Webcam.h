@@ -31,6 +31,7 @@ public:
     Webcam();
     ~Webcam();
 
+    void reset();
     void renderPreview(int screenWidth, int screenHeight);
 
 public slots:
@@ -65,6 +66,7 @@ public:
 
 public slots:
     
+    void reset();
     void grabFrame();
     
 private:

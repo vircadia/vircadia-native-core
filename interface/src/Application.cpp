@@ -2525,6 +2525,7 @@ void Application::resetSensors() {
     if (_serialHeadSensor.active) {
         _serialHeadSensor.resetAverages();
     }
+    _webcam.reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

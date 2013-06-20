@@ -41,10 +41,18 @@ void Webcam::setEnabled(bool enabled) {
         _frameCount = 0;
         
         // let the grabber know we're ready for the first frame
+        QMetaObject::invokeMethod(_grabber, "reset");
         QMetaObject::invokeMethod(_grabber, "grabFrame");
     
     } else {
         _grabberThread.quit();
+    }
+}
+
+void Webcam::reset() {
+    if (_enabled) {
+        // send a message to the grabber
+        QMetaObject::invokeMethod(_grabber, "reset");
     }
 }
 
@@ -142,6 +150,10 @@ FrameGrabber::~FrameGrabber() {
     }
 }
 
+void FrameGrabber::reset() {
+    _searchWindow = Rect(0, 0, 0, 0);
+}
+
 void FrameGrabber::grabFrame() {
     if (_capture == 0) {
         if ((_capture = cvCaptureFromCAM(-1)) == 0) {
@@ -155,6 +167,13 @@ void FrameGrabber::grabFrame() {
         
 #ifdef __APPLE__
         configureCamera(0x5ac, 0x8510, false, 0.99, 0.5, 0.5, 0.5, true, 0.5);
+#else
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
 
         switchToResourcesParentIfRequired();
