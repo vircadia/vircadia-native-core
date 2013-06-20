@@ -10,7 +10,7 @@ def hifiJob(String targetName, Boolean deploy) {
         
         scm {
             git(GIT_REPO_URL, 'master') { node ->
-                 node << includedRegions << "${targetName}/.*\nlibraries/.*"
+                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
                  node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'name' << ''
                  node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'refspec' << ''
             }
