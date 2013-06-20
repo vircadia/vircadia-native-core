@@ -357,16 +357,13 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     inputParameters.channelCount = 2;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
-    //inputParameters.suggestedLatency = 0.0116;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = 2;                    //  Stereo output
     outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
-    //outputParameters.suggestedLatency = 0.0116;
     outputParameters.hostApiSpecificStreamInfo = NULL;
-    
     
     outputPortAudioError(Pa_OpenStream(&_stream, 
                                        &inputParameters,
@@ -376,18 +373,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
                                        paNoFlag,
                                        audioCallback,
                                        (void*) this));
-    
-    /*
-    outputPortAudioError(Pa_OpenDefaultStream(&_stream,
-                                              2,
-                                              2,
-                                              (paInt16 | paNonInterleaved),
-                                              SAMPLE_RATE,
-                                              FRAMES_PER_BUFFER,
-                                              audioCallback,
-                                              (void*) this));
-     */
-    
+        
     if (! _stream) {
         return;
     }
@@ -428,14 +414,15 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
 
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
-    printLog("Default low input, output latency (secs): %0.4f, %0.4f\n",
-             Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
-             Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
+    
+    // Uncomment these lines to see the system-reported latency
+    //printLog("Default low input, output latency (secs): %0.4f, %0.4f\n",
+    //         Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
+    //         Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
     
     const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
-    printLog("Audio started, msecs latency In: %.0f, Out: %.0f\n", streamInfo->inputLatency * 1000.f,
+    printLog("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
              streamInfo->outputLatency * 1000.f);
-
 
     gettimeofday(&_lastReceiveTime, NULL);
 }
