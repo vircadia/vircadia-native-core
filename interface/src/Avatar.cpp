@@ -9,7 +9,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <vector>
-#include <lodepng.h>
 #include <SharedUtil.h>
 #include "world.h"
 #include "Application.h"

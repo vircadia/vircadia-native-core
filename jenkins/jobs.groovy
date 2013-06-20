@@ -1,16 +1,18 @@
+JENKINS_URL = 'https://jenkins.below92.com/'
+GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
+GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
+HIPCHAT_ROOM = 'High Fidelity'
+
 def hifiJob(String targetName, Boolean deploy) {
-    def JENKINS_URL = 'https://jenkins.below92.com/'
-    def GITHUB_HOOK_URL = 'https://github.com/worklist/hifi/'
-    def GIT_REPO_URL = 'git@github.com:worklist/hifi.git'
-    def HIPCHAT_ROOM = 'High Fidelity'
-    
     job {
         name "hifi-${targetName}"
         logRotator(7, -1, -1, -1)
         
         scm {
             git(GIT_REPO_URL, 'master') { node ->
-                 node << includedRegions << "${targetName}/.*\nlibraries/.*"
+                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
+                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'name' << ''
+                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'refspec' << ''
             }
         }
        
@@ -22,29 +24,20 @@ def hifiJob(String targetName, Boolean deploy) {
                 
                 'jenkins.plugins.hipchat.HipChatNotifier_-HipChatJobProperty' {
                     room HIPCHAT_ROOM
-                }        
+                } 
+                
+                'hudson.plugins.buildblocker.BuildBlockerProperty' {
+                    useBuildBlocker true
+                    blockingJobs 'hifi--seed'
+                }         
             }
             
             project / 'triggers' << 'com.cloudbees.jenkins.GitHubPushTrigger' {
                 spec ''
             }
-            
-            project / 'builders' << 'hudson.plugins.cmake.CmakeBuilder' {
-                sourceDir targetName
-                buildDir 'build'
-                installDir ''
-                buildType 'RelWithDebInfo'
-                generator 'Unix Makefiles'
-                makeCommand 'make'
-                installCommand 'make install'
-                preloadScript ''
-                cmakeArgs ''
-                projectCmakePath '/usr/bin/cmake'
-                cleanBuild 'false'
-                cleanInstallDir 'false'
-                builderImpl ''
-            }
-        }
+        } 
+        
+        configure cmakeBuild(targetName, 'make install')
         
         if (deploy) {
             publishers {            
@@ -85,26 +78,44 @@ def hifiJob(String targetName, Boolean deploy) {
     }
 }
 
-def deployTargets = [
-    'animation-server',
-    'audio-mixer',
-    'avatar-mixer',
-    'domain-server',
-    'eve',
-    'pairing-server',
-    'space-server',
-    'voxel-server'
-]
-
-/* setup all of the deploys jobs that use the above template */
-deployTargets.each {
-    hifiJob(it, true)
+static Closure cmakeBuild(srcDir, instCommand) {
+    return { project ->
+        project / 'builders' / 'hudson.plugins.cmake.CmakeBuilder' {
+            sourceDir srcDir
+            buildDir 'build'
+            installDir ''
+            buildType 'RelWithDebInfo'
+            generator 'Unix Makefiles'
+            makeCommand 'make'
+            installCommand instCommand
+            preloadScript ''
+            cmakeArgs ''
+            projectCmakePath '/usr/bin/cmake'
+            cleanBuild 'false'
+            cleanInstallDir 'false'
+            builderImpl ''
+        }
+    }
 }
 
-/* setup the interface job, doesn't deploy */
-hifiJob('interface', false)
+def targets = [
+    'animation-server':true,
+    'audio-mixer':true,
+    'avatar-mixer':true,
+    'domain-server':true,
+    'eve':true,
+    'pairing-server':true,
+    'space-server':true,
+    'voxel-server':true,
+    'interface':false,
+]
 
-/* setup the parametrized-build job for builds from jenkins */
+/* setup all of the target jobs to use the above template */
+for (target in targets) {
+    queue hifiJob(target.key, target.value)
+}
+
+/* setup the parametrized build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
 parameterizedJob.with {
     name 'hifi-branch-deploy'
