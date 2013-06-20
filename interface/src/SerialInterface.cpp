@@ -301,8 +301,17 @@ void SerialInterface::readData(float deltaTime) {
         _estimatedVelocity += deltaTime * _estimatedAcceleration;
         _estimatedPosition += deltaTime * _estimatedVelocity;
         _estimatedVelocity *= DECAY_VELOCITY;
-        _estimatedPosition *= DECAY_POSITION;
-                
+        
+        //  Attempt to fuse gyro position with webcam position
+        Webcam* webcam = Application::getInstance()->getWebcam();
+        if (webcam->isActive()) {
+            _estimatedPosition = glm::mix(_estimatedPosition, webcam->getEstimatedPosition(),
+                1.0f / SENSOR_FUSION_SAMPLES);
+               
+        } else {
+            _estimatedPosition *= DECAY_POSITION;
+        }
+            
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
             _gravity = _lastAcceleration;
@@ -326,6 +335,12 @@ void SerialInterface::readData(float deltaTime) {
         }
         
         _estimatedRotation = safeEulerAngles(estimatedRotation); 
+        
+        //  Fuse gyro roll with webcam roll
+        if (webcam->isActive()) {
+            _estimatedRotation.z = glm::mix(_estimatedRotation.z, webcam->getEstimatedRotation().z,
+                1.0f / SENSOR_FUSION_SAMPLES);
+        }
         
         totalSamples++;
     } 
