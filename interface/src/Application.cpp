@@ -72,6 +72,10 @@ const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begin
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
 
+const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
+                                                 //  Startup optimistically with small jitter buffer that 
+                                                 //  will start playback on the second received audio packet.
+
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
 protected:
@@ -155,7 +159,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
-        _audio(&_audioScope, 0),
+        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
         _packetCount(0),

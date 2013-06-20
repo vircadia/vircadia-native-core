@@ -16,6 +16,13 @@
 #include "Oscilloscope.h"
 #include "Avatar.h"
 
+const int NUM_AUDIO_CHANNELS = 2;
+
+const int PACKET_LENGTH_BYTES = 1024;
+const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
+const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
+const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
+
 class Audio {
 public:
     // initializes audio I/O
