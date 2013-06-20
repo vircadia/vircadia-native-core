@@ -109,7 +109,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         
         // add input (@microphone) data to the scope
 #ifdef VISUALIZE_ECHO_CANCELLATION
-            if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
+            if (! isCancellingEcho()) {
 #endif
         _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #ifdef VISUALIZE_ECHO_CANCELLATION
@@ -259,7 +259,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
 
     // add output (@speakers) data just written to the scope
 #ifdef VISUALIZE_ECHO_CANCELLATION
-        if (! _isCancellingEcho || _pingFramesToRecord != 0 || ! _speexPreprocessState) {
+        if (! isCancellingEcho()) {
+    _scope->setColor(2, 0x00ffff);
 #endif
     _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -549,7 +550,7 @@ bool Audio::isCancellingEcho() const {
 }
 
 void Audio::setIsCancellingEcho(bool enable) {
-    if (enable) {
+    if (enable && _speexPreprocessState) {
         speex_echo_state_reset(_speexEchoState);
         _echoWritePos = 0;
         memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
@@ -592,6 +593,7 @@ inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
 
 #ifdef VISUALIZE_ECHO_CANCELLATION
     // Visualize the result
+    _scope->setColor(2, 0x00ff00);
     _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 #endif
 }
