@@ -370,13 +370,13 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     inputParameters.device = Pa_GetDefaultInputDevice(); 
     inputParameters.channelCount = 2;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = 2;                    //  Stereo output
     outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
-    outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
     
     outputPortAudioError(Pa_OpenStream(&_stream, 
