@@ -28,7 +28,7 @@
 
 //  Uncomment the following definition to test audio device latency by copying output to input
 //#define TEST_AUDIO_LOOPBACK
-
+//#define SHOW_AUDIO_DEBUG
 
 #define VISUALIZE_ECHO_CANCELLATION
 
@@ -152,41 +152,50 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
-    // if we've been reset, and there isn't any new packets yet
-    // just play some silence
+    // if there is anything in the ring buffer, decide what to do:
     
     if (ringBuffer->getEndOfLastWrite()) {
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < (PACKET_LENGTH_SAMPLES + _jitterBufferSamples)) {
+        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
             //
             //  If not enough audio has arrived to start playback, keep waiting
             //
-            //printLog("Held back, buffer has %d of %d samples required.\n",
-            //         ringBuffer->diffLastWriteNextOutput(),
-            //         PACKET_LENGTH_SAMPLES + parentAudio->_jitterBufferSamples);
-        } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("%i,%i,%i,%i\n",
+                     _packetsReceivedThisPlayback,
+                     ringBuffer->diffLastWriteNextOutput(),
+                     PACKET_LENGTH_SAMPLES,
+                     _jitterBufferSamples);
+#endif
+        } else if (ringBuffer->isStarted() && (ringBuffer->diffLastWriteNextOutput()
+                                               < PACKET_LENGTH_SAMPLES * (ringBuffer->isStereo() ? 2 : 1))) {
             //
-            //  If we have run out of audio to send to the audio device, we have starved,
-            //  so reset the ring buffer and packet counters.
+            //  If we have started and now have run out of audio to send to the audio device, 
+            //  this means we've starved and should restart.  
             //  
             ringBuffer->setStarted(false);
             
             _numStarves++;
             _packetsReceivedThisPlayback = 0;
-            
-            //printLog("Starved, remaining buffer msecs = %.0f\n",
-            //         ringBuffer->diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS);
-            _wasStarved = 10;      //   Frames to render the indication that the system was starved.
+            _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("Starved, remaining samples = %.0f\n",
+                     ringBuffer->diffLastWriteNextOutput());
+#endif
+
         } else {
             //
             //  We are either already playing back, or we have enough audio to start playing back.
             // 
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                //printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
-                //         (usecTimestampNow() - usecTimestamp(&parentAudio->_firstPacketReceivedTime))/1000.0,
-                //         parentAudio->_jitterBufferSamples,
-                //         parentAudio->_packetsReceivedThisPlayback);
+#ifdef SHOW_AUDIO_DEBUG
+                printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                         (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
+                         _jitterBufferSamples,
+                         _packetsReceivedThisPlayback);
+#endif
             }
+
             //
             // play whatever we have in the audio buffer
             //
@@ -311,6 +320,11 @@ static void outputPortAudioError(PaError error) {
         printLog("-- portaudio termination error --\n");
         printLog("PortAudio error (%d): %s\n", error, Pa_GetErrorText(error));
     }
+}
+
+void Audio::reset() {
+    _packetsReceivedThisPlayback = 0;
+    _ringBuffer.reset();
 }
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :

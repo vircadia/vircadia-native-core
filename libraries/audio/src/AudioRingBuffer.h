@@ -30,6 +30,7 @@ public:
     AudioRingBuffer(bool isStereo);
     ~AudioRingBuffer();
 
+    void reset();
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
     int parseAudioSamples(unsigned char* sourceBuffer, int numBytes);
@@ -44,8 +45,11 @@ public:
     
     bool isStarted() const { return _isStarted; }
     void setStarted(bool isStarted) { _isStarted = isStarted; }
-
+    
     int diffLastWriteNextOutput() const;
+    
+    bool isStereo() const { return _isStereo; }
+    
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);

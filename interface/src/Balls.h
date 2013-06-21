@@ -9,12 +9,6 @@
 #ifndef hifi_Balls_h
 #define hifi_Balls_h
 
-#include <glm/glm.hpp>
-#include "Util.h"
-#include "world.h"
-#include "InterfaceConfig.h"
-
-
 const int NUMBER_SPRINGS = 4;
 
 class Balls {
@@ -24,14 +18,19 @@ public:
     void simulate(float deltaTime);
     void render();
     
+    void setColor(const glm::vec3& c) { _color = c; };
+    void moveOrigin(const glm::vec3& newOrigin);
+    
 private:
     struct Ball {
-        glm::vec3   position, velocity;
+        glm::vec3   position, targetPosition, velocity;
         int         links[NUMBER_SPRINGS];
         float       springLength[NUMBER_SPRINGS];
         float       radius;
     } *_balls;
     int _numberOfBalls;
+    glm::vec3 _origin;
+    glm::vec3 _color;
 };
 
 #endif

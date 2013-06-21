@@ -33,6 +33,7 @@ public:
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
     ~Audio();
 
+    void reset(); 
     void render(int screenWidth, int screenHeight);
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);

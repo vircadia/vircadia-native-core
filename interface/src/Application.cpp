@@ -537,6 +537,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Space:
                 resetSensors();
+                _audio.reset();
                 break;
                 
             case Qt::Key_G:
