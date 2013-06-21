@@ -83,18 +83,13 @@ public:
     bool bindVoxelsTogether;
     int maxBonesPerBind;
     bool includeBonesOutsideBindRadius;
-    bool ignoreOrientations;
 };
 
 const Mode MODES[] = {
-    { false, BONE_ELEMENTS_PER_VERTEX, false, false }, // original
-    { false, 1, true, false }, // one bone per vertex
-    { true, 1, true, false }, // one bone per voxel
-    { true, BONE_ELEMENTS_PER_VERTEX, false, false }, // four bones per voxel
-    { false, BONE_ELEMENTS_PER_VERTEX, false, true }, // no orientations
-    { false, 1, true, true }, // no orientations, one bone per vertex
-    { true, 1, true, true }, // no orientations, one bone per voxel
-    { true, BONE_ELEMENTS_PER_VERTEX, false, true } }; // no orientations, four bones per voxel
+    { false, BONE_ELEMENTS_PER_VERTEX, false }, // original
+    { false, 1, true }, // one bone per vertex
+    { true, 1, true }, // one bone per voxel
+    { true, BONE_ELEMENTS_PER_VERTEX, false } }; // four bones per voxel
 
 void AvatarVoxelSystem::cycleMode() {
     _mode = (_mode + 1) % (sizeof(MODES) / sizeof(MODES[0]));
@@ -221,11 +216,7 @@ void AvatarVoxelSystem::applyScaleAndBindProgram(bool texture) {
         glm::quat orientation;
         _avatar->getBodyBallTransform((AvatarJointID)i, position, orientation);
         boneMatrices[i].translate(position.x, position.y, position.z);
-        if (MODES[_mode].ignoreOrientations) {
-            orientation = _avatar->getOrientation();
-        } else {
-            orientation = orientation * glm::inverse(_avatar->getSkeleton().joint[i].absoluteBindPoseRotation);
-        }
+        orientation = orientation * glm::inverse(_avatar->getSkeleton().joint[i].absoluteBindPoseRotation);
         boneMatrices[i].rotate(QQuaternion(orientation.w, orientation.x, orientation.y, orientation.z));
         const glm::vec3& bindPosition = _avatar->getSkeleton().joint[i].absoluteBindPosePosition;
         boneMatrices[i].translate(-bindPosition.x, -bindPosition.y, -bindPosition.z);
