@@ -10,9 +10,10 @@
 
 #include <glm/glm.hpp>
 
-const int MAX_SHADOW_VERTEX_COUNT = 6;
-
-typedef glm::vec2 ShadowVertices[MAX_SHADOW_VERTEX_COUNT];
+// there's a max of 6 vertices of a project polygon, and a max of twice that when clipped to the screen
+const int MAX_PROJECTED_POLYGON_VERTEX_COUNT = 6; 
+const int MAX_CLIPPED_PROJECTED_POLYGON_VERTEX_COUNT = MAX_PROJECTED_POLYGON_VERTEX_COUNT * 2; 
+typedef glm::vec2 ProjectedVertices[MAX_CLIPPED_PROJECTED_POLYGON_VERTEX_COUNT];
 
 class BoundingBox {
 public:
@@ -45,7 +46,7 @@ public:
         { };
         
     ~VoxelProjectedPolygon() { };
-    const ShadowVertices& getVerices() const { return _vertices; };
+    const ProjectedVertices& getVertices() const { return _vertices; };
     const glm::vec2& getVertex(int i) const { return _vertices[i]; };
     void setVertex(int vertex, const glm::vec2& point);
     int getVertexCount() const { return _vertexCount; };
@@ -75,7 +76,7 @@ public:
 
 private:
     int _vertexCount;
-    ShadowVertices _vertices;
+    ProjectedVertices _vertices;
     float _maxX;
     float _maxY;
     float _minX;

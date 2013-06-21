@@ -12,10 +12,14 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include "ViewFrustum.h"
-#include "VoxelConstants.h"
 #include "SharedUtil.h"
 #include "Log.h"
+
+#include "CoverageMap.h"
+#include "GeometryUtil.h"
+#include "ViewFrustum.h"
+#include "VoxelConstants.h"
+
 
 using namespace std;
 
@@ -451,7 +455,7 @@ glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
 const int MAX_POSSIBLE_COMBINATIONS = 43;
 
-const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_SHADOW_VERTEX_COUNT+1] = {
+const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
     // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AABox
     {0}, // inside
     {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
@@ -510,7 +514,7 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
 
-    VoxelProjectedPolygon shadow(vertexCount);
+    VoxelProjectedPolygon projectedPolygon(vertexCount);
     
     bool pointInView = true;
     bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
@@ -523,13 +527,37 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
             glm::vec2 projectedPoint = projectPoint(point, pointInView);
             allPointsInView = allPointsInView && pointInView;
             anyPointsInView = anyPointsInView || pointInView;
-            shadow.setVertex(i, projectedPoint);
+            projectedPolygon.setVertex(i, projectedPoint);
         }
+        
+        /***
+        // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
+        // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
+        // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
+        if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
+             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
+             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
+             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
+             
+            CoverageRegion::_clippedPolygons++;
+             
+            glm::vec2* clippedVertices;
+            int        clippedVertexCount;
+            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
+            
+            // Now reset the vertices of our projectedPolygon object
+            projectedPolygon.setVertexCount(clippedVertexCount);
+            for(int i = 0; i < clippedVertexCount; i++) {
+                projectedPolygon.setVertex(i, clippedVertices[i]);
+            }
+            delete[] clippedVertices;
+        }
+        ***/
     }
     // set the distance from our camera position, to the closest vertex
     float distance = glm::distance(getPosition(), box.getCenter());
-    shadow.setDistance(distance);
-    shadow.setAnyInView(anyPointsInView);
-    shadow.setAllInView(allPointsInView);
-    return shadow;
+    projectedPolygon.setDistance(distance);
+    projectedPolygon.setAnyInView(anyPointsInView);
+    projectedPolygon.setAllInView(allPointsInView);
+    return projectedPolygon;
 }

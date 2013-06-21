@@ -5,9 +5,11 @@
 //  Added by Brad Hefta-Gaub on 06/11/13.
 //
 
+#include <algorithm>
 #include "VoxelProjectedPolygon.h"
 #include "GeometryUtil.h"
 #include "Log.h"
+#include "SharedUtil.h"
 
 
 BoundingBox BoundingBox::topHalf() const {
@@ -35,7 +37,7 @@ BoundingBox BoundingBox::rightHalf() const {
 }
 
 bool BoundingBox::contains(const BoundingBox& box) const {
-    return ( _set && 
+    return ( _set &&
                 (box.corner.x >= corner.x) &&
                 (box.corner.y >= corner.y) &&
                 (box.corner.x + box.size.x <= corner.x + size.x) &&
@@ -49,30 +51,14 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
         size = box.size;
         _set = true;
     } else {
-        // example:
-        // original bounding [c:1,1 s:1,1] => [1,1]->[2,2]
-        // expand to include [c:0.5,0.5 s:2,2] => [0.5,0.5]->[2.5,2.5]
-        // new bounding      [0.5,0.5]->[2.5,2.5] or [c:0.5,0.5 s:2,2]
-    
-
-        if (box.corner.x < corner.x) {
-            corner.x = box.corner.x;
-            size.x += (corner.x - box.corner.x);
-        }
-        // new state... [c:0.5,1 s:1.5,1]
-        if (box.corner.y < corner.y) {
-            corner.y = box.corner.y;
-            size.y += (corner.y - box.corner.y);
-        }
-        // new state... [c:0.5,0.5 s:1.5,1.5]
-        if ((box.corner.x + box.size.x) > (corner.x + size.x)) {
-            size.x += ((box.corner.x + box.size.x) - (corner.x + size.x));
-        }
-        // new state... [c:0.5,0.5 s:2,1.5]
-        if ((box.corner.y + box.size.y) > (corner.y + size.y)) {
-            size.y += ((box.corner.y + box.size.y) - (corner.y + size.y));
-        }
-        // new state... [c:0.5,0.5 s:2,2]
+        float minX = std::min(box.corner.x, corner.x);
+        float minY = std::min(box.corner.y, corner.y);
+        float maxX = std::max(box.corner.x + box.size.x, corner.x + size.x);
+        float maxY = std::max(box.corner.y + box.size.y, corner.y + size.y);
+        corner.x = minX;
+        corner.y = minY;
+        size.x = maxX - minX;
+        size.y = maxY - minY;
     }
 }
 
@@ -83,7 +69,8 @@ void BoundingBox::printDebugDetails(const char* label) const {
     } else {
         printLog("BoundingBox");
     }
-    printLog("\n    corner=%f,%f size=%f,%f\n", corner.x, corner.y, size.x, size.y);
+    printLog("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]\n", 
+        debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
 }
 
 

@@ -34,6 +34,7 @@ public:
     static int _regionSkips;
     static int _tooSmallSkips;
     static int _outOfOrderPolygon;
+    static int _clippedPolygons;
 
 
     const char* getRegionName() const;

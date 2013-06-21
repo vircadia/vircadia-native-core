@@ -1283,7 +1283,8 @@ void VoxelSystem::falseColorizeOccluded() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
 
-    printLog("falseColorizeOccluded()\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n", 
+    printLog("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n", 
+        position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
         args.stagedForDeletion, 

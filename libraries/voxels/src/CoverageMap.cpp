@@ -16,7 +16,7 @@ int CoverageMap::_checkMapRootCalls = 0;
 int CoverageMap::_notAllInView = 0;
 bool CoverageMap::wantDebugging = false;
 
-const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f));
+const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
 //
@@ -92,12 +92,15 @@ void CoverageMap::erase() {
         printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
         printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
         printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
+        printLog("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
+        
         CoverageRegion::_maxPolygonsUsed = 0;
         CoverageRegion::_totalPolygons = 0;
         CoverageRegion::_occlusionTests = 0;
         CoverageRegion::_regionSkips = 0;
         CoverageRegion::_tooSmallSkips = 0;
         CoverageRegion::_outOfOrderPolygon = 0;
+        CoverageRegion::_clippedPolygons = 0;
         _mapCount = 0;
         _checkMapRootCalls = 0;
         _notAllInView = 0;
@@ -237,7 +240,7 @@ void CoverageRegion::init() {
 
 void CoverageRegion::erase() {
 
-/*
+/**/
     if (_polygonCount) {
         printLog("CoverageRegion::erase()...\n");
         printLog("_polygonCount=%d\n",_polygonCount);
@@ -247,7 +250,7 @@ void CoverageRegion::erase() {
         //    _polygons[i]->getBoundingBox().printDebugDetails();
         //}
     }
-*/
+/**/
     // If we're in charge of managing the polygons, then clean them up first
     if (_managePolygons) {
         for (int i = 0; i < _polygonCount; i++) {
@@ -309,6 +312,7 @@ int CoverageRegion::_occlusionTests = 0;
 int CoverageRegion::_regionSkips = 0;
 int CoverageRegion::_tooSmallSkips = 0;
 int CoverageRegion::_outOfOrderPolygon = 0;
+int CoverageRegion::_clippedPolygons = 0;
 
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
