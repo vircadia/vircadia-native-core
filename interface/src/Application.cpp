@@ -74,6 +74,10 @@ const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begin
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
 
+const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
+                                                 //  Startup optimistically with small jitter buffer that 
+                                                 //  will start playback on the second received audio packet.
+
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
 protected:
@@ -182,7 +186,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
-        _audio(&_audioScope),
+        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
         _packetCount(0),
@@ -564,6 +568,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Space:
                 resetSensors();
+                _audio.reset();
                 break;
                 
             case Qt::Key_G:
@@ -961,7 +966,13 @@ void Application::editPreferences() {
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
-    
+
+    QSpinBox* audioJitterBufferSamples = new QSpinBox();
+    audioJitterBufferSamples->setMaximum(10000);
+    audioJitterBufferSamples->setMinimum(-10000);
+    audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
+    form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
+
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -976,6 +987,10 @@ void Application::editPreferences() {
     _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
+    _audioJitterBufferSamples = audioJitterBufferSamples->value();
+    if (!shouldDynamicallySetJitterBuffer()) {
+        _audio.setJitterBufferSamples(_audioJitterBufferSamples);
+    }
 }
 
 void Application::pair() {
@@ -1428,6 +1443,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+    (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
     debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
@@ -1508,6 +1524,12 @@ void Application::init() {
     gettimeofday(&_lastTimeIdle, NULL);
 
     loadSettings();
+    if (!shouldDynamicallySetJitterBuffer()) {
+        _audio.setJitterBufferSamples(_audioJitterBufferSamples);
+    }
+    
+    printLog("Loaded settings.\n");
+
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 }
@@ -2763,7 +2785,7 @@ void Application::loadSettings(QSettings* settings) {
     }
 
     _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
-
+    _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
@@ -2787,6 +2809,7 @@ void Application::saveSettings(QSettings* settings) {
     }
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
+    settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
