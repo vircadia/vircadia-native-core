@@ -22,7 +22,7 @@ const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXE
 
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :
     VoxelSystem(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR),
-    _avatar(avatar), _voxelReply(0) {
+    _mode(0), _avatar(avatar), _voxelReply(0) {
 
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -77,6 +77,35 @@ void AvatarVoxelSystem::removeOutOfView() {
     // no-op for now
 }
 
+class Mode {
+public:
+    
+    bool bindVoxelsTogether;
+    int maxBonesPerBind;
+    bool includeBonesOutsideBindRadius;
+    bool ignoreOrientations;
+};
+
+const Mode MODES[] = {
+    { false, BONE_ELEMENTS_PER_VERTEX, false, false }, // original
+    { false, 1, true, false }, // one bone per vertex
+    { true, 1, true, false }, // one bone per voxel
+    { true, BONE_ELEMENTS_PER_VERTEX, false, false }, // four bones per voxel
+    { false, BONE_ELEMENTS_PER_VERTEX, false, true }, // no orientations
+    { false, 1, true, true }, // no orientations, one bone per vertex
+    { true, 1, true, true }, // no orientations, one bone per voxel
+    { true, BONE_ELEMENTS_PER_VERTEX, false, true } }; // no orientations, four bones per voxel
+
+void AvatarVoxelSystem::cycleMode() {
+    _mode = (_mode + 1) % (sizeof(MODES) / sizeof(MODES[0]));
+    printLog("Voxeltar bind mode %d.\n", _mode);
+    
+    // rebind
+    QUrl url = _voxelURL;
+    setVoxelURL(QUrl());
+    setVoxelURL(url);
+}
+
 void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
     // don't restart the download if it's the same URL
     if (_voxelURL == url) {
@@ -117,14 +146,28 @@ void AvatarVoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::v
     VoxelSystem::updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
     
     GLubyte* writeBoneIndicesAt = _writeBoneIndicesArray + (nodeIndex * BONE_ELEMENTS_PER_VOXEL);
-    GLfloat* writeBoneWeightsAt = _writeBoneWeightsArray + (nodeIndex * BONE_ELEMENTS_PER_VOXEL);  
-    for (int i = 0; i < VERTICES_PER_VOXEL; i++) {
+    GLfloat* writeBoneWeightsAt = _writeBoneWeightsArray + (nodeIndex * BONE_ELEMENTS_PER_VOXEL);
+    
+    if (MODES[_mode].bindVoxelsTogether) {
         BoneIndices boneIndices;
         glm::vec4 boneWeights;
-        computeBoneIndicesAndWeights(computeVoxelVertex(startVertex, voxelScale, i), boneIndices, boneWeights);
-        for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
-            *(writeBoneIndicesAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneIndices[j];
-            *(writeBoneWeightsAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneWeights[j];
+        computeBoneIndicesAndWeights(startVertex + glm::vec3(voxelScale, voxelScale, voxelScale) * 0.5f,
+            boneIndices, boneWeights);
+        for (int i = 0; i < VERTICES_PER_VOXEL; i++) {
+            for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
+                *(writeBoneIndicesAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneIndices[j];
+                *(writeBoneWeightsAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneWeights[j];
+            }
+        }
+    } else {
+        for (int i = 0; i < VERTICES_PER_VOXEL; i++) {
+            BoneIndices boneIndices;
+            glm::vec4 boneWeights;
+            computeBoneIndicesAndWeights(computeVoxelVertex(startVertex, voxelScale, i), boneIndices, boneWeights);
+            for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
+                *(writeBoneIndicesAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneIndices[j];
+                *(writeBoneWeightsAt + i * BONE_ELEMENTS_PER_VERTEX + j) = boneWeights[j];
+            }
         }
     }
 }
@@ -177,8 +220,12 @@ void AvatarVoxelSystem::applyScaleAndBindProgram(bool texture) {
         glm::vec3 position;
         glm::quat orientation;
         _avatar->getBodyBallTransform((AvatarJointID)i, position, orientation);
-        boneMatrices[i].translate(position.x, position.y, position.z);  
-        orientation = orientation * glm::inverse(_avatar->getSkeleton().joint[i].absoluteBindPoseRotation);
+        boneMatrices[i].translate(position.x, position.y, position.z);
+        if (MODES[_mode].ignoreOrientations) {
+            orientation = _avatar->getOrientation();
+        } else {
+            orientation = orientation * glm::inverse(_avatar->getSkeleton().joint[i].absoluteBindPoseRotation);
+        }
         boneMatrices[i].rotate(QQuaternion(orientation.w, orientation.x, orientation.y, orientation.z));
         const glm::vec3& bindPosition = _avatar->getSkeleton().joint[i].absoluteBindPosePosition;
         boneMatrices[i].translate(-bindPosition.x, -bindPosition.y, -bindPosition.z);
@@ -244,7 +291,7 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
         float distance = glm::length(computeVectorFromPointToSegment(jointVertex,
             skeleton.joint[parent == AVATAR_JOINT_NULL ? i : parent].absoluteBindPosePosition,
             skeleton.joint[i].absoluteBindPosePosition));
-        if (distance > skeleton.joint[i].bindRadius) {
+        if (!MODES[_mode].includeBonesOutsideBindRadius && distance > skeleton.joint[i].bindRadius) {
             continue;
         }
         for (int j = 0; j < BONE_ELEMENTS_PER_VERTEX; j++) {
@@ -261,7 +308,7 @@ void AvatarVoxelSystem::computeBoneIndicesAndWeights(const glm::vec3& vertex, Bo
     
     // compute the weights based on inverse distance
     float totalWeight = 0.0f;
-    for (int i = 0; i < BONE_ELEMENTS_PER_VERTEX; i++) {
+    for (int i = 0; i < MODES[_mode].maxBonesPerBind; i++) {
         indices[i] = nearest[i].index;
         if (nearest[i].distance != FLT_MAX) {
             weights[i] = 1.0f / glm::max(nearest[i].distance, EPSILON);

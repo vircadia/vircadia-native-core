@@ -25,7 +25,7 @@ class AvatarVoxelSystem : public QObject, public VoxelSystem {
     Q_OBJECT
 
 public:
-        
+    
     AvatarVoxelSystem(Avatar* avatar);
     virtual ~AvatarVoxelSystem();
     
@@ -35,6 +35,10 @@ public:
     
     Q_INVOKABLE void setVoxelURL(const QUrl& url);
     const QUrl& getVoxelURL() const { return _voxelURL; }
+
+public slots:
+    
+    void cycleMode();    
     
 protected:
     
@@ -53,6 +57,8 @@ private slots:
 private:
     
     void computeBoneIndicesAndWeights(const glm::vec3& vertex, BoneIndices& indices, glm::vec4& weights) const;
+    
+    int _mode;
     
     Avatar* _avatar;
     
