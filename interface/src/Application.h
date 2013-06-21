@@ -76,6 +76,7 @@ public:
     VoxelSystem* getVoxels() { return &_voxels; }
     QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
+    SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     bool shouldLowPassFilter() { return _shouldLowPassFilter->isChecked(); }

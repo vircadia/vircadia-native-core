@@ -44,14 +44,15 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
-#include <PairingHandler.h>
 
 #include <AgentTypes.h>
-#include <PacketHeaders.h>
-#include <PerfStat.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
+#include <Logstash.h>
 #include <OctalCode.h>
+#include <PacketHeaders.h>
+#include <PairingHandler.h>
+#include <PerfStat.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -290,12 +291,17 @@ void Application::initializeGL() {
     idleTimer->start(0);
     
     if (_justStarted) {
-        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
+        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
         _justStarted = false;
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         printLog("%s", title);
         _window->setWindowTitle(title);
+        
+        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
+        
+        // ask the Logstash class to record the startup time
+        Logstash::stashValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render
@@ -308,7 +314,7 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    float headCameraScale = _serialHeadSensor.active ? _headCameraPitchYawScale : 1.0f;
+    float headCameraScale = _serialHeadSensor.isActive() ? _headCameraPitchYawScale : 1.0f;
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
@@ -780,7 +786,7 @@ void Application::timer() {
     gettimeofday(&_timerStart, NULL);
     
     // if we haven't detected gyros, check for them now
-    if (!_serialHeadSensor.active) {
+    if (!_serialHeadSensor.isActive()) {
         _serialHeadSensor.pair();
     }
     
@@ -1598,7 +1604,7 @@ void Application::update(float deltaTime) {
     }
    
     //  Read serial port interface devices
-    if (_serialHeadSensor.active) {
+    if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
     
@@ -1676,8 +1682,10 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    
-    if (_serialHeadSensor.active) {
+    // Update my avatar's head position from gyros and/or webcam
+    _myAvatar.updateHeadFromGyrosAndOrWebcam();
+        
+    if (_serialHeadSensor.isActive()) {
       
         // Update avatar head translation
         if (_gyroLook->isChecked()) {
@@ -1686,10 +1694,7 @@ void Application::updateAvatar(float deltaTime) {
             headPosition *= HEAD_OFFSET_SCALING;
             _myCamera.setEyeOffsetPosition(headPosition);
         }
-        
-        // Update my avatar's head position from gyros
-        _myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
-        
+
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
@@ -2544,9 +2549,10 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
-    if (_serialHeadSensor.active) {
+    if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.resetAverages();
     }
+    _webcam.reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

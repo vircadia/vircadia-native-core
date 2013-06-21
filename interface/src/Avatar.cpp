@@ -280,22 +280,33 @@ void Avatar::reset() {
 }
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface) {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
+void Avatar::updateHeadFromGyrosAndOrWebcam() {
+    const float AMPLIFY_PITCH = 1.f;
+    const float AMPLIFY_YAW = 1.f;
+    const float AMPLIFY_ROLL = 1.f;
 
-    glm::vec3 estimatedRotation = serialInterface->getEstimatedRotation();
+    SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
+    Webcam* webcam = Application::getInstance()->getWebcam();
+    glm::vec3 estimatedPosition, estimatedRotation;
+    if (gyros->isActive()) {
+        estimatedPosition = gyros->getEstimatedPosition();
+        estimatedRotation = gyros->getEstimatedRotation();
+        
+    } else if (webcam->isActive()) {
+        estimatedPosition = webcam->getEstimatedPosition();
+        estimatedRotation = webcam->getEstimatedRotation();
+    }
     _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
     _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
     //  Update torso lean distance based on accelerometer data
-    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition() * _leanScale;
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
-    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+        -MAX_LEAN, MAX_LEAN));
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
+        -MAX_LEAN, MAX_LEAN));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
