@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 2/22/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__SharedUtil__
@@ -36,8 +36,8 @@ static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
 
-double usecTimestamp(timeval *time);
-double usecTimestampNow();
+long long usecTimestamp(timeval *time);
+long long usecTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);
@@ -57,6 +57,7 @@ void setAtBit(unsigned char& byte, int bitIndex);
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
 
+bool isInEnvironment(const char* environment);
 
 void switchToResourcesParentIfRequired();
 

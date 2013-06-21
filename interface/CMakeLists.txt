@@ -8,9 +8,11 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
+set(SPEEX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Speex)
+set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
+set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -68,7 +70,7 @@ include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h)
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -84,8 +86,11 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(GLM REQUIRED)
-find_package(LodePNG REQUIRED)
 find_package(LibOVR)
+find_package(SpeexDSP REQUIRED)
+find_package(OpenCV)
+find_package(ZLIB)
+find_package(UVCCameraControl)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -98,33 +103,45 @@ include_directories(
 include_directories(
   SYSTEM
   ${GLM_INCLUDE_DIRS} 
-  ${LODEPNG_INCLUDE_DIRS}
   ${LIBOVR_INCLUDE_DIRS}
+  ${OPENCV_INCLUDE_DIRS}
+  ${SPEEXDSP_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES} ${ZLIB_LIBRARIES} ${SPEEXDSP_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
+    find_library(AppKit AppKit)
     find_library(AudioToolbox AudioToolbox)
     find_library(AudioUnit AudioUnit)
     find_library(CoreAudio CoreAudio)
     find_library(CoreServices CoreServices)
     find_library(Carbon Carbon)
+    find_library(Foundation Foundation)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
     find_library(IOKit IOKit)
+    find_library(QTKit QTKit)
+    find_library(QuartzCore QuartzCore)
+    
+    include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
     
     target_link_libraries(
-        ${TARGET_NAME} 
+        ${TARGET_NAME}
+        ${AppKit}
         ${AudioToolbox} 
         ${AudioUnit} 
         ${CoreAudio} 
         ${CoreServices} 
-        ${Carbon} 
+        ${Carbon}
+        ${Foundation} 
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
+        ${QTKit}
+        ${QuartzCore}
+        ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
     )
 else (APPLE)
@@ -141,12 +158,9 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
         wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARIES})
-
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})

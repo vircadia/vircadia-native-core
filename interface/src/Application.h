@@ -31,6 +31,7 @@
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
+#include "Webcam.h"
 #include "ui/ChatEntry.h"
 
 class QAction;
@@ -67,12 +68,15 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
+    const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
+    
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
+    Webcam* getWebcam() { return &_webcam; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
@@ -93,6 +97,9 @@ private slots:
     
     void setRenderFirstPerson(bool firstPerson);
     
+    void renderThrustAtVoxel(const glm::vec3& thrust);
+    void renderLineToTouchedVoxel();
+    
     void setFrustumOffset(bool frustumOffset);
     void cycleFrustumRenderMode();
     
@@ -102,12 +109,14 @@ private slots:
     void doFalseRandomizeVoxelColors();
     void doFalseRandomizeEveryOtherVoxelColors();
     void doFalseColorizeByDistance();
+    void doFalseColorizeOccluded();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
     void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
+    void setWantsOcclusionCulling(bool wantsOcclusionCulling);
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
@@ -139,9 +148,8 @@ private:
     void displaySide(Camera& whichCamera);
     void displayOverlay();
     void displayStats();
-    
     void renderViewFrustum(ViewFrustum& viewFrustum);
-    
+        
     void setupPaintingVoxel();
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
@@ -176,14 +184,17 @@ private:
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
+    QAction* _gravityUse;            // Whether gravity is on or not
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
     QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
+    QAction* _renderGroundPlaneOn;   // Whether to display the ground plane
     QAction* _renderAvatarsOn;       // Whether to render avatars
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
+    QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -195,7 +206,6 @@ private:
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
     QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
-    QAction* _cameraFrustum;         // which frustum to look at
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
@@ -241,20 +251,26 @@ private:
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     
+    Webcam _webcam;                    // The webcam interface
+    
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    bool _manualFirstPerson;
     float _headCameraPitchYawScale;
     
     HandControl _handControl;
     
     int _mouseX;
     int _mouseY;
+    int _mouseDragStartedX;
+    int _mouseDragStartedY;
+    VoxelDetail _mouseVoxelDragging;
+    glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
+
     
     VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
     float _mouseVoxelScale;       // the scale for adding/removing voxels

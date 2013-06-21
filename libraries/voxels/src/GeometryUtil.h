@@ -39,4 +39,8 @@ bool findCapsulePlanePenetration(const glm::vec3& penetratorStart, const glm::ve
 
 glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& newPenetration);
 
+bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
+bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
+int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);
+
 #endif /* defined(__interface__GeometryUtil__) */

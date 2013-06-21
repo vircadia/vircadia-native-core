@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 2/22/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #include <cstdlib>
@@ -22,14 +22,14 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-double usecTimestamp(timeval *time) {
-    return (time->tv_sec * 1000000.0 + time->tv_usec);
+long long usecTimestamp(timeval *time) {
+    return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
-double usecTimestampNow() {
+long long usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000.0 + now.tv_usec);
+    return (now.tv_sec * 1000000 + now.tv_usec);
 }
 
 float randFloat () {
@@ -102,14 +102,23 @@ void setAtBit(unsigned char& byte, int bitIndex) {
 }
 
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
-    return (byte >> (7 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
+    return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
-    byte += ((value & 3) << (7 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
+    byte += ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
+bool isInEnvironment(const char* environment) {
+    char* environmentString = getenv("HIFI_ENVIRONMENT");
+    
+    if (environmentString && strcmp(environmentString, environment) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 void switchToResourcesParentIfRequired() {
 #ifdef __APPLE__
@@ -395,11 +404,11 @@ void printVoxelCode(unsigned char* voxelCode) {
     }
 #endif
 
-
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
+// originalIndexArray is optional
 int insertIntoSortedArrays(void* value, float key, int originalIndex, 
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount) {
@@ -413,15 +422,19 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
-                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
-                memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                memmove(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memmove(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                if (originalIndexArray) {
+                    memmove(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                }
             }
         }
         // place new element at i
         valueArray[i] = value;
         keyArray[i] = key;
-        originalIndexArray[i] = originalIndex;
+        if (originalIndexArray) {
+            originalIndexArray[i] = originalIndex;
+        }
         return currentCount + 1;
     }
     return -1; // error case

@@ -17,7 +17,7 @@
 #include "renderer/ProgramObject.h"
 
 const float AVATAR_TREE_SCALE = 1.0f;
-const int MAX_VOXELS_PER_AVATAR = 2000;
+const int MAX_VOXELS_PER_AVATAR = 10000;
 const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXEL;
 
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :

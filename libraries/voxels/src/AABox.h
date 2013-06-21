@@ -22,9 +22,21 @@ enum BoxFace {
     MAX_Z_FACE
 };
 
+
+enum BoxVertex {
+    BOTTOM_LEFT_NEAR   = 0,
+    BOTTOM_RIGHT_NEAR  = 1,
+    TOP_RIGHT_NEAR     = 2,
+    TOP_LEFT_NEAR      = 3,
+    BOTTOM_LEFT_FAR    = 4,
+    BOTTOM_RIGHT_FAR   = 5,
+    TOP_RIGHT_FAR      = 6,
+    TOP_LEFT_FAR       = 7
+};
+
 const int FACE_COUNT = 6;
 
-    class AABox 
+class AABox 
 {
 
 public:
@@ -48,7 +60,10 @@ public:
     const glm::vec3& getSize() const { return _size; };
     const glm::vec3& getCenter() const { return _center; };
 
+    glm::vec3 getVertex(BoxVertex vertex) const;
+
     bool contains(const glm::vec3& point) const;
+    bool contains(const AABox& otherBox) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
