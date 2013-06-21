@@ -13,8 +13,8 @@
 
 #include <SharedUtil.h>
 
-#include "InterfaceConfig.h"
 #include "Balls.h"
+#include "InterfaceConfig.h"
 #include "Util.h"
 #include "world.h"
 
