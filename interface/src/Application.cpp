@@ -923,8 +923,8 @@ void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setRenderMirrored(bool head) {
-    if (head) {
+void Application::setRenderMirrored(bool mirrored) {
+    if (mirrored) {
         _manualFirstPerson->setChecked(false);
         _manualThirdPerson->setChecked(false);
     }
