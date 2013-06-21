@@ -137,15 +137,8 @@ int main(int argc, const char* argv[]) {
                 // if we should be sending stats to Logstash send the appropriate average now
                 const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
                 
-                // we're sending a floating point percentage with two mandatory numbers after decimal point
-                // that could be up to 6 bytes
-                const int MIXER_LOGSTASH_PACKET_BYTES = strlen(MIXER_LOGSTASH_METRIC_NAME) + 7;
-                char logstashPacket[MIXER_LOGSTASH_PACKET_BYTES];
-                
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                int packetBytes = sprintf(logstashPacket, "%s %.2f", MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
-                
-                agentList->getAgentSocket()->send(Logstash::socket(), logstashPacket, packetBytes);
+                Logstash::stashValue(MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
                 sumFrameTimePercentages = 0.0f;
                 numStatCollections = 0;
