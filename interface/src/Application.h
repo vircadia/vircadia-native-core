@@ -97,11 +97,12 @@ private slots:
     
     void pair();
     
-    void setHead(bool head);
+    void setRenderMirrored(bool mirrored);
     void setNoise(bool noise);
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
+    void setRenderThirdPerson(bool thirdPerson);
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -202,6 +203,7 @@ private:
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
     QAction* _manualFirstPerson;     // Whether to force first-person mode
+    QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled

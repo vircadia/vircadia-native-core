@@ -982,15 +982,10 @@ void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setHead(bool head) {    
-    if (head) {
-        _myCamera.setMode(CAMERA_MODE_MIRROR);
-        _myCamera.setModeShiftRate(100.0f);
+void Application::setRenderMirrored(bool mirrored) {
+    if (mirrored) {
         _manualFirstPerson->setChecked(false);
-        
-    } else {
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-        _myCamera.setModeShiftRate(1.0f);
+        _manualThirdPerson->setChecked(false);
     }
 }
 
@@ -1005,8 +1000,16 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    if (firstPerson && _lookingInMirror->isChecked()) {
-        _lookingInMirror->trigger();
+    if (firstPerson) {
+        _lookingInMirror->setChecked(false);
+        _manualThirdPerson->setChecked(false);
+    }
+}
+
+void Application::setRenderThirdPerson(bool thirdPerson) {
+    if (thirdPerson) {
+        _lookingInMirror->setChecked(false);
+        _manualFirstPerson->setChecked(false);
     }
 }
 
@@ -1307,7 +1310,7 @@ void Application::initMenu() {
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
-    (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
+    (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
     (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
@@ -1344,12 +1347,15 @@ void Application::initMenu() {
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
+    renderMenu->addAction("Cycle Voxeltar Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
+    (_manualThirdPerson = renderMenu->addAction(
+        "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
@@ -1487,7 +1493,7 @@ void Application::init() {
   
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
@@ -1692,25 +1698,35 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-            if (_manualFirstPerson->isChecked()) {
-                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
+    if (!OculusManager::isConnected()) {        
+        if (_lookingInMirror->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+                _myCamera.setMode(CAMERA_MODE_MIRROR);
+                _myCamera.setModeShiftRate(100.0f);
+            }
+        } else if (_manualFirstPerson->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
+        } else if (_manualThirdPerson->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
         } else {
             const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
             const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
             const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
             
             if ((_myAvatar.getElapsedTimeStopped() > TIME_BEFORE_SHIFT_INTO_FIRST_PERSON)
-                && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
+                    && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
+                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
             if ((_myAvatar.getSpeed() > THIRD_PERSON_SHIFT_VELOCITY)
-                && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
-                && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
+                    && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
+                    && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
                 _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
                 _myCamera.setModeShiftRate(1000.0f);
             }
