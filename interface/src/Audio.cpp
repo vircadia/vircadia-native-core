@@ -26,18 +26,14 @@
 #include "Util.h"
 #include "Log.h"
 
+//  Uncomment the following definition to test audio device latency by copying output to input
+//#define TEST_AUDIO_LOOPBACK
+//#define SHOW_AUDIO_DEBUG
+
 #define VISUALIZE_ECHO_CANCELLATION
-
-static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int PACKET_LENGTH_BYTES = 1024;
-static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
-static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
-static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
 static const int PHASE_DELAY_AT_90 = 20;
 static const float AMPLITUDE_RATIO_AT_90 = 0.5;
-
 static const int MIN_FLANGE_EFFECT_THRESHOLD = 600;
 static const int MAX_FLANGE_EFFECT_THRESHOLD = 1500;
 static const float FLANGE_BASE_RATE = 4;
@@ -156,31 +152,53 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
-    // if we've been reset, and there isn't any new packets yet
-    // just play some silence
+    // if there is anything in the ring buffer, decide what to do:
     
     if (ringBuffer->getEndOfLastWrite()) {
-        
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-//            printLog("Held back, buffer has %d of %d samples required.\n",
-//                     ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
-        } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
+        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
+            //
+            //  If not enough audio has arrived to start playback, keep waiting
+            //
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("%i,%i,%i,%i\n",
+                     _packetsReceivedThisPlayback,
+                     ringBuffer->diffLastWriteNextOutput(),
+                     PACKET_LENGTH_SAMPLES,
+                     _jitterBufferSamples);
+#endif
+        } else if (ringBuffer->isStarted() && (ringBuffer->diffLastWriteNextOutput()
+                                               < PACKET_LENGTH_SAMPLES * (ringBuffer->isStereo() ? 2 : 1))) {
+            //
+            //  If we have started and now have run out of audio to send to the audio device, 
+            //  this means we've starved and should restart.  
+            //  
             ringBuffer->setStarted(false);
             
             _numStarves++;
             _packetsReceivedThisPlayback = 0;
-            
-            // printLog("Starved #%d\n", starve_counter);
-            _wasStarved = 10;      //   Frames to render the indication that the system was starved.
+            _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("Starved, remaining samples = %.0f\n",
+                     ringBuffer->diffLastWriteNextOutput());
+#endif
+
         } else {
+            //
+            //  We are either already playing back, or we have enough audio to start playing back.
+            // 
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                // printLog("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
-            } else {
-                // printLog("pushing buffer\n");
+#ifdef SHOW_AUDIO_DEBUG
+                printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                         (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
+                         _jitterBufferSamples,
+                         _packetsReceivedThisPlayback);
+#endif
             }
+
+            //
             // play whatever we have in the audio buffer
-            
+            //
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
@@ -241,9 +259,13 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                         }
                     }
                 }
-                
+#ifndef TEST_AUDIO_LOOPBACK
                 outputLeft[s] = leftSample;
                 outputRight[s] = rightSample;
+#else 
+                outputLeft[s] = inputLeft[s];
+                outputRight[s] = inputLeft[s];                    
+#endif
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
@@ -300,22 +322,25 @@ static void outputPortAudioError(PaError error) {
     }
 }
 
-Audio::Audio(Oscilloscope* scope) :
+void Audio::reset() {
+    _packetsReceivedThisPlayback = 0;
+    _ringBuffer.reset();
+}
+
+Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _stream(NULL),
     _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
-//    _jitterBufferLengthMsecs(12.0),
-//    _jitterBufferSamples(_jitterBufferLengthMsecs *
-//                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
+    _jitterBufferSamples(initialJitterBufferSamples),
     _wasStarved(0),
     _numStarves(0),
     _lastInputLoudness(0),
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),
-    _firstPlaybackTime(),
+    _firstPacketReceivedTime(),
     _packetsReceivedThisPlayback(0),
     _isCancellingEcho(false),
     _echoDelay(0),
@@ -332,15 +357,37 @@ Audio::Audio(Oscilloscope* scope) :
     _flangeWeight(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
-    outputPortAudioError(Pa_OpenDefaultStream(&_stream,
-                                              2,
-                                              2,
-                                              (paInt16 | paNonInterleaved),
-                                              SAMPLE_RATE,
-                                              BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                                              audioCallback,
-                                              (void*) this));
+    
+    //  NOTE:  Portaudio documentation is unclear as to whether it is safe to specify the
+    //         number of frames per buffer explicitly versus setting this value to zero.
+    //         Possible source of latency that we need to investigate further.
+    // 
+    unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    
+    //  Manually initialize the portaudio stream to ask for minimum latency
+    PaStreamParameters inputParameters, outputParameters;
+    
+    inputParameters.device = Pa_GetDefaultInputDevice(); 
+    inputParameters.channelCount = 2;                    //  Stereo input
+    inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
 
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.channelCount = 2;                    //  Stereo output
+    outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+    
+    outputPortAudioError(Pa_OpenStream(&_stream, 
+                                       &inputParameters,
+                                       &outputParameters,
+                                       SAMPLE_RATE,
+                                       FRAMES_PER_BUFFER,
+                                       paNoFlag,
+                                       audioCallback,
+                                       (void*) this));
+        
     if (! _stream) {
         return;
     }
@@ -381,6 +428,15 @@ Audio::Audio(Oscilloscope* scope) :
 
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
+    
+    // Uncomment these lines to see the system-reported latency
+    //printLog("Default low input, output latency (secs): %0.4f, %0.4f\n",
+    //         Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
+    //         Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
+    
+    const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
+    printLog("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
+             streamInfo->outputLatency * 1000.f);
 
     gettimeofday(&_lastReceiveTime, NULL);
 }
@@ -399,6 +455,7 @@ Audio::~Audio() {
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
+    const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
     
     timeval currentReceiveTime;
     gettimeofday(&currentReceiveTime, NULL);
@@ -411,9 +468,18 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         _stdev.addValue(timeDiff);
     }
     
-    if (_stdev.getSamples() > 500) {
+    if (_stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
         _measuredJitter = _stdev.getStDev();
         _stdev.reset();
+        //  Set jitter buffer to be a multiple of the measured standard deviation
+        const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
+        const float NUM_STANDARD_DEVIATIONS = 3.f;
+        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
+                                            / 1000.f
+                                            * SAMPLE_RATE;
+            setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
+        }
     }
     
     if (!_ringBuffer.isStarted()) {
@@ -421,9 +487,10 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     }
     
     if (_packetsReceivedThisPlayback == 1) {
-        gettimeofday(&_firstPlaybackTime, NULL);
+        gettimeofday(&_firstPacketReceivedTime, NULL);
     }
     
+    //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;
@@ -447,7 +514,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
+        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES / 2; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;
@@ -500,27 +567,58 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         char out[40];
         sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 10, 0.10, 0, 1, 0, out, 1,1,0);
-        //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10, 0, 1, 0, out, 1,1,0);
         
-        //  Show a Cyan bar with the most recently measured jitter stdev
+        //  Show a red bar with the 'start' point of one frame plus the jitter buffer
         
-        int jitterPels = _measuredJitter / ((1000.0f * PACKET_LENGTH_SAMPLES / SAMPLE_RATE)) * frameWidth;
-        
-        glColor3f(0,1,1);
+        glColor3f(1, 0, 0);
+        int jitterBufferPels = (1.f + (float)getJitterBufferSamples() / (float)PACKET_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
+        sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
+        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
+        sprintf(out, "j %.1f\n", _measuredJitter);
+        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+        } else {
+            drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+        }
+    
         glBegin(GL_QUADS);
-        glVertex2f(startX + jitterPels - 2, topY - 2);
-        glVertex2f(startX + jitterPels + 2, topY - 2);
-        glVertex2f(startX + jitterPels + 2, bottomY + 2);
-        glVertex2f(startX + jitterPels - 2, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 2, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 2, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 2, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 2, bottomY + 2);
         glEnd();
-        
-        sprintf(out,"%3.1f\n", _measuredJitter);
-        drawtext(startX + jitterPels - 5, topY-10, 0.10, 0, 1, 0, out, 0,1,1);
-        
-        sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
-        drawtext(startX - 10, bottomY + 15, 0.1, 0, 1, 0, out, 1, 0, 0);
+
     }
+}
+
+//
+//  Very Simple LowPass filter which works by averaging a bunch of samples with a moving window
+//
+//#define lowpass 1
+void Audio::lowPassFilter(int16_t* inputBuffer) {
+    static int16_t outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2; i++) {
+#ifdef lowpass
+        outputBuffer[i] = (int16_t)(0.125f * (float)inputBuffer[i - 2] +
+                            0.25f * (float)inputBuffer[i - 1] +
+                            0.25f * (float)inputBuffer[i] +
+                            0.25f * (float)inputBuffer[i + 1] +
+                            0.125f * (float)inputBuffer[i + 2] );
+#else
+        outputBuffer[i] = (int16_t)(0.125f * -(float)inputBuffer[i - 2] +
+                                    0.25f * -(float)inputBuffer[i - 1] +
+                                    1.75f * (float)inputBuffer[i] +
+                                    0.25f * -(float)inputBuffer[i + 1] +
+                                    0.125f * -(float)inputBuffer[i + 2] );
+
+#endif
+    }
+    outputBuffer[0] = inputBuffer[0];
+    outputBuffer[1] = inputBuffer[1];
+    outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2] = inputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2];
+    outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 1] = inputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 1];
+    memcpy(inputBuffer, outputBuffer, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds

@@ -462,7 +462,16 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     // update balls
-    if (_balls) { _balls->simulate(deltaTime); }
+    if (_balls) {
+        _balls->moveOrigin(_position);
+        glm::vec3 lookAt = _head.getLookAtPosition();
+        if (glm::length(lookAt) > EPSILON) {
+            _balls->moveOrigin(lookAt);
+        } else {
+            _balls->moveOrigin(_position);
+        }
+        _balls->simulate(deltaTime);
+    }
     
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
@@ -997,7 +1006,6 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     //  Render the balls
     if (_balls) {
         glPushMatrix();
-        glTranslatef(_position.x, _position.y, _position.z);
         _balls->render();
         glPopMatrix();
     }
