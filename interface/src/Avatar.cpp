@@ -295,6 +295,9 @@ void Avatar::updateHeadFromGyrosAndOrWebcam() {
     } else if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
         estimatedRotation = webcam->getEstimatedRotation();
+    
+    } else {
+        return;
     }
     _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
     _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
