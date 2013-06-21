@@ -10,8 +10,10 @@
 //
 
 #include <glm/glm.hpp>
-#include "Util.h"
-#include "sharedUtil.h"
+
+#include <SharedUtil.h>
+#include <Util.h>
+
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "Balls.h"
