@@ -44,14 +44,15 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
-#include <PairingHandler.h>
 
 #include <AgentTypes.h>
-#include <PacketHeaders.h>
-#include <PerfStat.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
+#include <Logstash.h>
 #include <OctalCode.h>
+#include <PacketHeaders.h>
+#include <PairingHandler.h>
+#include <PerfStat.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -286,12 +287,17 @@ void Application::initializeGL() {
     idleTimer->start(0);
     
     if (_justStarted) {
-        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
+        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
         _justStarted = false;
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         printLog("%s", title);
         _window->setWindowTitle(title);
+        
+        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
+        
+        // ask the Logstash class to record the startup time
+        Logstash::stashValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render

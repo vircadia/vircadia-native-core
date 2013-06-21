@@ -18,6 +18,7 @@ class Logstash {
 public:
     static sockaddr* socket();
     static bool shouldSendStats();
+    static void stashValue(const char* key, float value);
 private:
     static sockaddr_in logstashSocket;
 };
