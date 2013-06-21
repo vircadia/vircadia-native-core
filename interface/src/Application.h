@@ -16,6 +16,7 @@
 #include <QApplication>
 #include <QAction>
 #include <QSettings>
+#include <QTouchEvent>
 #include <QList>
 
 #include <AgentList.h>
@@ -66,6 +67,10 @@ public:
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
 
+    void touchBeginEvent(QTouchEvent* event);
+    void touchEndEvent(QTouchEvent* event);
+    void touchUpdateEvent(QTouchEvent* event);
+    
     void wheelEvent(QWheelEvent* event);
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
@@ -95,11 +100,12 @@ private slots:
     
     void pair();
     
-    void setHead(bool head);
+    void setRenderMirrored(bool mirrored);
     void setNoise(bool noise);
     void setFullscreen(bool fullscreen);
     
     void setRenderFirstPerson(bool firstPerson);
+    void setRenderThirdPerson(bool thirdPerson);
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -187,6 +193,7 @@ private:
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
     QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
+    QAction* _touchLook;             // Whether a 2-finger touch may be used to control look direction
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _gravityUse;            // Whether gravity is on or not
@@ -200,6 +207,7 @@ private:
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
     QAction* _manualFirstPerson;     // Whether to force first-person mode
+    QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -274,6 +282,13 @@ private:
     int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
+
+    float _touchAvgX;
+    float _touchAvgY;
+    float _touchDragStartedAvgX;
+    float _touchDragStartedAvgY;
+    bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
+    
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)

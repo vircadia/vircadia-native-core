@@ -350,6 +350,14 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
     }
 }
 
+void  Avatar::updateFromTouch(float touchAvgDistX, float touchAvgDistY) {
+    const float TOUCH_ROTATE_SPEED = 0.01f;
+    const float TOUCH_PITCH_SPEED = 0.02f;
+    
+    _head.addYaw(-touchAvgDistX * TOUCH_ROTATE_SPEED);
+    _head.addPitch(-touchAvgDistY * TOUCH_PITCH_SPEED);
+}
+
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 

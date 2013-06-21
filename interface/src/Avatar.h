@@ -88,6 +88,7 @@ public:
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHeadFromGyrosAndOrWebcam();
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
+    void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
