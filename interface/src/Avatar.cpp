@@ -280,22 +280,36 @@ void Avatar::reset() {
 }
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyros(float deltaTime, SerialInterface* serialInterface) {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
+void Avatar::updateHeadFromGyrosAndOrWebcam() {
+    const float AMPLIFY_PITCH = 1.f;
+    const float AMPLIFY_YAW = 1.f;
+    const float AMPLIFY_ROLL = 1.f;
 
-    glm::vec3 estimatedRotation = serialInterface->getEstimatedRotation();
+    SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
+    Webcam* webcam = Application::getInstance()->getWebcam();
+    glm::vec3 estimatedPosition, estimatedRotation;
+    if (gyros->isActive()) {
+        estimatedPosition = gyros->getEstimatedPosition();
+        estimatedRotation = gyros->getEstimatedRotation();
+        
+    } else if (webcam->isActive()) {
+        estimatedPosition = webcam->getEstimatedPosition();
+        estimatedRotation = webcam->getEstimatedRotation();
+    
+    } else {
+        return;
+    }
     _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
     _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
     _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
         
     //  Update torso lean distance based on accelerometer data
-    glm::vec3 estimatedPosition = serialInterface->getEstimatedPosition() * _leanScale;
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
-    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z / TORSO_LENGTH)), -MAX_LEAN, MAX_LEAN));
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+        -MAX_LEAN, MAX_LEAN));
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
+        -MAX_LEAN, MAX_LEAN));
 }
 
 float Avatar::getAbsoluteHeadYaw() const {
@@ -337,6 +351,14 @@ void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int scree
             _head.addPitch(-mouseVector.y * MOUSE_PITCH_SPEED);
         }
     }
+}
+
+void  Avatar::updateFromTouch(float touchAvgDistX, float touchAvgDistY) {
+    const float TOUCH_ROTATE_SPEED = 0.01f;
+    const float TOUCH_PITCH_SPEED = 0.02f;
+    
+    _head.addYaw(-touchAvgDistX * TOUCH_ROTATE_SPEED);
+    _head.addPitch(-touchAvgDistY * TOUCH_PITCH_SPEED);
 }
 
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
@@ -443,7 +465,16 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     // update balls
-    if (_balls) { _balls->simulate(deltaTime); }
+    if (_balls) {
+        _balls->moveOrigin(_position);
+        glm::vec3 lookAt = _head.getLookAtPosition();
+        if (glm::length(lookAt) > EPSILON) {
+            _balls->moveOrigin(lookAt);
+        } else {
+            _balls->moveOrigin(_position);
+        }
+        _balls->simulate(deltaTime);
+    }
     
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
@@ -978,7 +1009,6 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     //  Render the balls
     if (_balls) {
         glPushMatrix();
-        glTranslatef(_position.x, _position.y, _position.z);
         _balls->render();
         glPopMatrix();
     }
