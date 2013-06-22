@@ -27,7 +27,8 @@ const float EAR_RIGHT_OFFSET         =  1.0;
 const float MOUTH_UP_OFFSET          = -0.3f;
 const float HEAD_MOTION_DECAY        =  0.1;
 const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
-const float EYEBALL_RADIUS           =  0.017; 
+const float EYEBALL_RADIUS           =  0.017;
+const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
 const float HAIR_SPRING_FORCE        =  10.0f;
 const float HAIR_TORQUE_FORCE        =  0.1f;
@@ -71,7 +72,11 @@ Head::Head(Avatar* owningAvatar) :
     _mohawkTriangleFan(NULL),
      _mohawkColors(NULL),
     _saccade(0.0f, 0.0f, 0.0f),
-    _saccadeTarget(0.0f, 0.0f, 0.0f)
+    _saccadeTarget(0.0f, 0.0f, 0.0f),
+    _leftEyeBlink(0.0f),
+    _rightEyeBlink(0.0f),
+    _leftEyeBlinkVelocity(0.0f),
+    _rightEyeBlinkVelocity(0.0f)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -161,6 +166,31 @@ void Head::simulate(float deltaTime, bool isMine) {
         if (_browAudioLift > clamp) { _browAudioLift = clamp; }
     
     _browAudioLift *= 0.7f;      
+
+    // update eyelid blinking
+    if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
+        const float BLINK_INTERVAL = 4.0f;
+        if (shouldDo(BLINK_INTERVAL, deltaTime)) {
+            _leftEyeBlinkVelocity = 5.0f;
+            _rightEyeBlinkVelocity = 5.0f;
+        }    
+    } else {
+        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
+        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
+        
+        if (_leftEyeBlink == 1.0f) {
+            _leftEyeBlinkVelocity = -5.0f;
+        
+        } else if (_leftEyeBlink == 0.0f) {
+            _leftEyeBlinkVelocity = 0.0f;
+        }
+        if (_rightEyeBlink == 1.0f) {
+            _rightEyeBlinkVelocity = -5.0f;
+        
+        } else if (_rightEyeBlink == 0.0f) {
+            _rightEyeBlinkVelocity = 0.0f;
+        }
+    }
 
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
@@ -534,6 +564,37 @@ void Head::renderEyeBalls() {
     _irisProgram->release();
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
+    
+    glEnable(GL_RESCALE_NORMAL);
+    glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
+    
+    // left eyelid
+    glPushMatrix(); {
+        glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);  //translate to eyeball position
+        glm::vec3 rotationAxis = glm::axis(orientation);
+        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
+        glRotatef(-90 * _leftEyeBlink, 1, 0, 0);
+        Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
+        glRotatef(180 * _leftEyeBlink, 1, 0, 0);
+        Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
+    }
+    glPopMatrix();
+    
+    // right eyelid
+    glPushMatrix(); {
+        glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position
+        glm::vec3 rotationAxis = glm::axis(orientation);
+        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
+        glRotatef(-90 * _rightEyeBlink, 1, 0, 0);
+        Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
+        glRotatef(180 * _rightEyeBlink, 1, 0, 0);
+        Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
+    }
+    glPopMatrix();
+    
+    glDisable(GL_RESCALE_NORMAL);
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
