@@ -33,9 +33,8 @@ namespace { // .cpp-local
 
     float const CHANNEL_SPACING = 0.125f;            // (b) fractional in respect to total channel height
     float const STREAM_SPACING = 0.0625f;            // (c) fractional in respect to total channel height
-    float const LABEL_CHAR_WIDTH = 0.30f;            // (e) fractional in respect to total channel height
+    float const LABEL_CHAR_WIDTH = 0.28f;            // (e) fractional in respect to total channel height
     float const LABEL_HORIZ_SPACING = 0.25f;         // (f) fractional in respect to total channel height
-    float const LABEL_VERT_PADDING = 0.035f;         // fractional in respect to total channel height / 2 
 
     unsigned const FRAME_COLOR = 0xe0e0e0b0;
     unsigned const INDICATOR_COLOR = 0xc0c0c0b0;
@@ -45,9 +44,9 @@ namespace { // .cpp-local
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
-    { "Audio"   , "Mbps", 1024.0 * 1024.0,  2.5, 0x40ff40d0 },
-    { "Avatars" , "KBps",    1.0 * 1024.0, 20.0, 0xffef40c0 },
-    { "Voxels"  , "Mbps", 1024.0 * 1024.0,  0.5, 0xd0d0d0a0 }
+    { "Audio"   , "Kbps",    1.0 * 1024.0,  80.5, 0x40ff40d0 },
+    { "Avatars" , "KBps",    1.0 * 1024.0,  20.0, 0xffef40c0 },
+    { "Voxels"  , "Mbps", 1024.0 * 1024.0,   0.5, 0xd0d0d0a0 }
 };
 
 // ---
@@ -115,11 +114,10 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
     int labelRenderHeight = fontMetrics.lineSpacing();
     float labelCharWSpaces = float(labelRenderWidth) / float(fontMetrics.width("M"));
     float labelWidth = channelTotalHeight * LABEL_CHAR_WIDTH * labelCharWSpaces;
-    float labelHeight = channelTotalHeight * (1.0f - LABEL_VERT_PADDING);
-    float labelTextHeight = labelHeight * 0.5f;
+    float labelHeight = (channelHeight - streamSpacing) * 0.5f;
 
     float labelScaleX = labelWidth / float(labelRenderWidth);
-    float labelScaleY = labelTextHeight / float(labelRenderHeight);
+    float labelScaleY = labelHeight / float(labelRenderHeight);
     float labelHorizSpacing = channelTotalHeight * LABEL_HORIZ_SPACING;
 
 
@@ -187,7 +185,7 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
             glScalef(labelScaleX, labelScaleY, 1.0f);
 
             sprintf(fmtBuf, "%0.2f in", unitsIn);
-            _textRenderer.draw(glm::max(int(barPosIn) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
+            _textRenderer.draw(glm::max(int(barPosIn / labelScaleX) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
         glPopMatrix();
 
         // Advance to next stream
@@ -204,7 +202,7 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
             glScalef(labelScaleX, labelScaleY, 1.0f);
 
             sprintf(fmtBuf, "%0.2f out", unitsOut);
-            _textRenderer.draw(glm::max(int(barPosOut) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
+            _textRenderer.draw(glm::max(int(barPosOut / labelScaleX) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
         glPopMatrix();
 
         // Advance to next channel
