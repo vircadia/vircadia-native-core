@@ -20,6 +20,9 @@
 
 #include <AgentList.h>
 
+#include "BandwidthMeter.h"
+#include "ui/BandwidthDialog.h"
+
 #ifndef _WIN32
 #include "Audio.h"
 #endif
@@ -31,6 +34,7 @@
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
+#include "PacketHeaders.h"
 #include "Webcam.h"
 #include "ui/ChatEntry.h"
 
@@ -77,6 +81,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
     Webcam* getWebcam() { return &_webcam; }
+    BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
@@ -86,8 +91,10 @@ private slots:
     void timer();
     void idle();
     void terminate();
-    
+
+    void bandwidthDetails();
     void editPreferences();
+    void bandwidthDetailsClosed();
     
     void pair();
     
@@ -133,7 +140,12 @@ private slots:
     void runTests();
 private:
 
+    static void broadcastToAgents(unsigned char* data, size_t bytes, const char type);
+    static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
+    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -210,6 +222,9 @@ private:
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     
+    BandwidthMeter _bandwidthMeter;
+    BandwidthDialog* _bandwidthDialog;
+
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -224,7 +239,7 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeIdle;
     bool _justStarted;
-    
+
     Stars _stars;
     
     VoxelSystem _voxels;

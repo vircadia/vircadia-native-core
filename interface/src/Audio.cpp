@@ -143,10 +143,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            
             agentList->getAgentSocket()->send(audioMixer->getActiveSocket(),
                                               dataPacket,
                                               BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+
+            interface->getBandwidthMeter()->outputStream(0)
+                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
         
     }
@@ -423,9 +425,12 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     if (_packetsReceivedThisPlayback == 1) {
         gettimeofday(&_firstPlaybackTime, NULL);
     }
-    
+
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
-    
+   
+    Application::getInstance()->getBandwidthMeter()->inputStream(0)
+            .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
+ 
     _lastReceiveTime = currentReceiveTime;
 }
 

@@ -336,14 +336,17 @@ void AgentList::addAgentToList(Agent* newAgent) {
     Agent::printLog(*newAgent);
 }
 
-void AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes) {
+unsigned AgentList::broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes) {
+    unsigned n = 0;
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         // only send to the AgentTypes we are asked to send to.
         if (agent->getActiveSocket() != NULL && memchr(agentTypes, agent->getType(), numAgentTypes)) {
             // we know which socket is good for this agent, send there
             _agentSocket.send(agent->getActiveSocket(), broadcastData, dataBytes);
+            ++n;
         }
     }
+    return n;
 }
 
 void AgentList::handlePingReply(sockaddr *agentAddress) {

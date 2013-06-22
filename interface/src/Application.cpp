@@ -131,6 +131,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _bandwidthDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -423,11 +424,30 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-static void sendVoxelServerAddScene() {
+void Application::broadcastToAgents(unsigned char* data, size_t bytes, const char type) {
+
+    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, &type, 1);
+
+    unsigned channel;
+    switch (type) {
+    case AGENT_TYPE_AVATAR:
+    case AGENT_TYPE_AVATAR_MIXER:
+        channel = 1;
+        break;
+    case AGENT_TYPE_VOXEL_SERVER:
+        channel = 2;
+        break;
+    default:
+        return;
+    }
+    getInstance()->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
+}
+
+void Application::sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL_SERVER, 1);
+    broadcastToAgents((unsigned char*)message, messageSize, AGENT_TYPE_VOXEL_SERVER);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -833,7 +853,7 @@ void Application::terminate() {
     }
 }
 
-static void sendAvatarVoxelURLMessage(const QUrl& url) {
+void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     uint16_t ownerID = AgentList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_AGENT_ID) {
@@ -844,10 +864,10 @@ static void sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message.data(), message.size(), &AGENT_TYPE_AVATAR_MIXER, 1);
+    broadcastToAgents((unsigned char*)message.data(), message.size(), AGENT_TYPE_AVATAR_MIXER);
 }
 
-static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
     // skip the header
     packetData++;
     dataBytes--;
@@ -870,6 +890,24 @@ static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataB
     
     // invoke the set URL function on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+}
+
+void Application::bandwidthDetails() {
+
+    if (! _bandwidthDialog) {
+        _bandwidthDialog = new BandwidthDialog(_glWidget, getBandwidthMeter());
+        _bandwidthDialog->show();
+    } 
+    _bandwidthDialog->raise();
+
+    connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
+}
+
+void Application::bandwidthDetailsClosed() {
+
+    QDialog* dlg = _bandwidthDialog;
+    _bandwidthDialog = NULL;
+    delete dlg;
 }
 
 void Application::editPreferences() {
@@ -1024,12 +1062,12 @@ void Application::updateVoxelModeActions() {
     } 
 }
 
-static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+        Application::broadcastToAgents(bufferOut, sizeOut, AGENT_TYPE_VOXEL_SERVER);
         delete[] bufferOut;
     }
 }
@@ -1104,7 +1142,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+            broadcastToAgents(args->messageBuffer, args->bufferInUse, AGENT_TYPE_VOXEL_SERVER);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1168,7 +1206,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1220,7 +1258,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1290,7 +1328,9 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
-    
+    toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
+
+ 
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
@@ -1643,7 +1683,12 @@ void Application::update(float deltaTime) {
             }
         }
     }
-    
+   
+    // Update bandwidth dialog, if any
+    if (_bandwidthDialog) {
+        _bandwidthDialog->update();
+    }
+ 
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -1727,8 +1772,8 @@ void Application::updateAvatar(float deltaTime) {
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
-        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AVATAR_MIXER};
-        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
+        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_VOXEL_SERVER);
+        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_AVATAR_MIXER);
         
         // once in a while, send my voxel url
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
@@ -2116,6 +2161,8 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
+
+    _bandwidthMeter.render(_glWidget->width() - 400, 40, 380, 42 * BandwidthMeter::N_CHANNELS);
     if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
 
     //  Show chat entry field
@@ -2612,6 +2659,7 @@ void* Application::networkReceive(void* args) {
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
+                    getInstance()->_bandwidthMeter.inputStream(1).updateValue(bytesReceived);
                     break;
                 case PACKET_HEADER_AVATAR_VOXEL_URL:
                     processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
