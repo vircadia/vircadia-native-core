@@ -44,7 +44,7 @@ namespace { // .cpp-local
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
-    { "Audio"   , "Kbps",    1.0 * 1024.0,  80.5, 0x40ff40d0 },
+    { "Audio"   , "Kbps",    1.0 * 1024.0,  85.0, 0x40ff40d0 },
     { "Avatars" , "KBps",    1.0 * 1024.0,  20.0, 0xffef40c0 },
     { "Voxels"  , "Mbps", 1024.0 * 1024.0,   0.5, 0xd0d0d0a0 }
 };
@@ -158,11 +158,12 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
 
         // Render scale indicators
         setColorRGBA(INDICATOR_COLOR);
-        for (float meas = scaleStep; meas < c.unitsMax - 0.01f; meas += scaleStep) {
-            float pixX = xMax * meas / c.unitsMax;
+        for (int j = int((c.unitsMax + scaleStep - 1) / scaleStep); --j > 0;) {
+            float xPix = xMax * float(j) * scaleStep / c.unitsMax;
+
             glBegin(GL_LINES);
-            glVertex2f(pixX, 0);
-            glVertex2f(pixX, channelHeight);
+            glVertex2f(xPix, 0);
+            glVertex2f(xPix, channelHeight);
             glEnd();
         }
 
