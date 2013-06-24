@@ -168,24 +168,25 @@ void Head::simulate(float deltaTime, bool isMine) {
     _browAudioLift *= 0.7f;      
 
     // update eyelid blinking
+    const float BLINK_SPEED = 5.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
         const float BLINK_INTERVAL = 4.0f;
         if (shouldDo(BLINK_INTERVAL, deltaTime)) {
-            _leftEyeBlinkVelocity = 5.0f;
-            _rightEyeBlinkVelocity = 5.0f;
+            _leftEyeBlinkVelocity = BLINK_SPEED;
+            _rightEyeBlinkVelocity = BLINK_SPEED;
         }    
     } else {
         _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
         _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
         
         if (_leftEyeBlink == 1.0f) {
-            _leftEyeBlinkVelocity = -5.0f;
+            _leftEyeBlinkVelocity = -BLINK_SPEED;
         
         } else if (_leftEyeBlink == 0.0f) {
             _leftEyeBlinkVelocity = 0.0f;
         }
         if (_rightEyeBlink == 1.0f) {
-            _rightEyeBlinkVelocity = -5.0f;
+            _rightEyeBlinkVelocity = -BLINK_SPEED;
         
         } else if (_rightEyeBlink == 0.0f) {
             _rightEyeBlinkVelocity = 0.0f;
