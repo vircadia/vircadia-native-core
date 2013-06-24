@@ -86,7 +86,7 @@ void Swatch::render(int screenWidth, int screenHeight) {
         glVertex2f(_margin, i*(_height - _margin) + _margin);
         glEnd();
 
-        if (_colors[i].lightness() < 100) {
+        if (_colors[i].lightness() < 50) {
             glBegin(GL_LINES);
             glColor3f(1.0f, 1.0f, 1.0f);
             glVertex2f(_margin, (i + 1)*(_height - _margin));
