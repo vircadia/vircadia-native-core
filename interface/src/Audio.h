@@ -20,12 +20,20 @@
 #include "Oscilloscope.h"
 #include "Avatar.h"
 
+static const int NUM_AUDIO_CHANNELS = 2;
+
+static const int PACKET_LENGTH_BYTES = 1024;
+static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
+static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
+static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
+
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope* scope);
+    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
     ~Audio();
 
+    void reset(); 
     void render(int screenWidth, int screenHeight);
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
@@ -34,7 +42,14 @@ public:
     
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
-
+    
+    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; };
+    int getJitterBufferSamples() { return _jitterBufferSamples; };
+    
+    void lowPassFilter(int16_t* inputBuffer);
+    
+    void startEchoTest();
+    void renderEchoCompare();
     void setIsCancellingEcho(bool enabled);
     bool isCancellingEcho() const;
 
@@ -45,6 +60,7 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
+
 private:    
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
@@ -54,15 +70,14 @@ private:
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
-//    float _jitterBufferLengthMsecs; // currently unused
-//    short _jitterBufferSamples; // currently unsused
+    int16_t _jitterBufferSamples;
     int _wasStarved;
     int _numStarves;
     float _lastInputLoudness;
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
-    timeval _firstPlaybackTime;
+    timeval _firstPacketReceivedTime;
     int _packetsReceivedThisPlayback;
     // Echo cancellation
     volatile bool _isCancellingEcho;
@@ -101,6 +116,7 @@ private:
     // Determines round trip time of the audio system. Called from 'eventuallyAnalyzePing'.
     inline void analyzePing();
 
+    // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* inputBuffer, int numSamples);
 
 
