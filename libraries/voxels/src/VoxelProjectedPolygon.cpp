@@ -121,6 +121,9 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool
         }
     }
     
+    // If we are a concave polygon, then it's not good enough to know that all of the occludee's points are
+    // inside us, we also need to make sure than none of the occludee's edges intersect any of our edges.
+    
     // if we got this far, then indeed the occludee is fully occluded by us
     return true;
 }
