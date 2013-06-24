@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <stdlib.h>
+#include <cmath>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -60,6 +61,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "Swatch.h"
 
 using namespace std;
 
@@ -636,7 +638,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     deleteVoxelUnderCursor();
                 }
                 break;
-                
+            case Qt::Key_1:
+            case Qt::Key_2:
+            case Qt::Key_3:
+            case Qt::Key_4:
+            case Qt::Key_5:
+            case Qt::Key_6:
+            case Qt::Key_7:
+            case Qt::Key_8:
+                _swatch->handleEvent(event->key(), _eyedropperMode->isChecked());
+                break;
             default:
                 event->ignore();
                 break;
@@ -1296,10 +1307,10 @@ void Application::initMenu() {
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
 
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_A))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_V))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_D))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_R))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
         "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::CTRL | Qt::Key_B))->setCheckable(true);
@@ -1310,7 +1321,7 @@ void Application::initMenu() {
     (_eyedropperMode = voxelMenu->addAction(
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
-    
+
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
     
@@ -1437,6 +1448,15 @@ void Application::init() {
     loadSettings();
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+
+
+    _swatch = new Swatch(_voxelPaintColor);
+    _palette.init();
+    _palette.addAction(_addVoxelMode, 0, 0);
+    _palette.addAction(_deleteVoxelMode, 0, 1);
+    _palette.addTool(_swatch);
+    _palette.addAction(_colorVoxelMode, 0, 2);
+    _palette.addAction(_eyedropperMode, 0, 3);
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
@@ -1643,7 +1663,7 @@ void Application::update(float deltaTime) {
             }
         }
     }
-    
+
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -2158,7 +2178,50 @@ void Application::displayOverlay() {
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
-    
+
+    _palette.render(_glWidget->width(), _glWidget->height());
+
+    if (_eyedropperMode->isChecked()) {
+        QColor color(_voxelPaintColor->data().value<QColor>());
+        TextRenderer textRenderer(SANS_FONT_FAMILY, -1, 100);
+        const char* line1("Assign this color to a swatch");
+        const char* line2("by choosing a key from 1 to 8.");
+        double step(0.05f);
+        int left(_glWidget->width()/100.0f);
+        int top(_glWidget->height()*7.0f/10.0f);
+        double margin(10.0f);
+
+        glBegin(GL_POLYGON);
+        glColor3f(0.0f, 0.0f, 0.0f);
+        for (double a(M_PI); a < 1.5f*M_PI; a += step) {
+            glVertex2f(left + margin*cos(a), top + margin*sin(a));
+        }
+        for (double a(1.5f*M_PI); a < 2.0f*M_PI; a += step) {
+            glVertex2f(left + 300 + margin*cos(a), top + margin*sin(a));
+        }
+        for (double a(0.0f); a < 0.5f*M_PI; a += step) {
+            glVertex2f(left + 300 + margin*cos(a), top + 30 + margin*sin(a));
+        }
+        for (double a(0.5f*M_PI); a < 1.0f*M_PI; a += step) {
+            glVertex2f(left + margin*cos(a), top + 30 + margin*sin(a));
+        }
+        glEnd();
+
+        glBegin(GL_QUADS);
+        glColor3f(color.redF(),
+                  color.greenF(),
+                  color.blueF());
+        glVertex2f(left, top);
+        glVertex2f(left + 64, top);
+        glVertex2f(left + 64, top + 30);
+        glVertex2f(left, top + 30);
+        glEnd();
+
+        glColor3f(1.0f, 1.0f, 1.0f);
+        textRenderer.draw(left + 74, top + 10, line1);
+        textRenderer.draw(left + 74, top + 30, line2);
+    }
+
     glPopMatrix();
 }
 

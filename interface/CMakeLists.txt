@@ -65,7 +65,7 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL)
+find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtSvg)
 include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 

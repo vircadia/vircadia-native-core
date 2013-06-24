@@ -33,6 +33,8 @@
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "ui/ChatEntry.h"
+#include "ToolsPalette.h"
+#include "Swatch.h"
 
 class QAction;
 class QActionGroup;
@@ -309,6 +311,9 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+
+    ToolsPalette _palette;
+    Swatch* _swatch;
 };
 
 #endif /* defined(__interface__Application__) */
