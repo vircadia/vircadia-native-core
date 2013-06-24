@@ -169,6 +169,8 @@ void Head::simulate(float deltaTime, bool isMine) {
 
     // update eyelid blinking
     const float BLINK_SPEED = 5.0f;
+    const float FULLY_OPEN = 0.0f;
+    const float FULLY_CLOSED = 1.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
         const float BLINK_INTERVAL = 4.0f;
         if (shouldDo(BLINK_INTERVAL, deltaTime)) {
@@ -176,19 +178,19 @@ void Head::simulate(float deltaTime, bool isMine) {
             _rightEyeBlinkVelocity = BLINK_SPEED;
         }    
     } else {
-        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
-        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, 0.0f, 1.0f);
+        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
         
-        if (_leftEyeBlink == 1.0f) {
+        if (_leftEyeBlink == FULLY_CLOSED) {
             _leftEyeBlinkVelocity = -BLINK_SPEED;
         
-        } else if (_leftEyeBlink == 0.0f) {
+        } else if (_leftEyeBlink == FULLY_OPEN) {
             _leftEyeBlinkVelocity = 0.0f;
         }
-        if (_rightEyeBlink == 1.0f) {
+        if (_rightEyeBlink == FULLY_CLOSED) {
             _rightEyeBlinkVelocity = -BLINK_SPEED;
         
-        } else if (_rightEyeBlink == 0.0f) {
+        } else if (_rightEyeBlink == FULLY_OPEN) {
             _rightEyeBlinkVelocity = 0.0f;
         }
     }
