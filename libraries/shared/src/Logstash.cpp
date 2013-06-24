@@ -11,6 +11,7 @@
 #include <netdb.h>
 
 #include "SharedUtil.h"
+#include "AgentList.h"
 
 #include "Logstash.h"
 
@@ -42,4 +43,18 @@ sockaddr* Logstash::socket() {
 bool Logstash::shouldSendStats() {
     static bool shouldSendStats = isInEnvironment("production");
     return shouldSendStats;
+}
+
+void Logstash::stashValue(const char* key, float value) {
+    static char logstashPacket[MAX_PACKET_SIZE];
+    
+    // load up the logstash packet with the key and the passed float value
+    // send it to 4 decimal places
+    int numPacketBytes = sprintf(logstashPacket, "%s %.4f", key, value);
+    
+    AgentList *agentList = AgentList::getInstance();
+    
+    if (agentList) {
+        agentList->getAgentSocket()->send(socket(), logstashPacket, numPacketBytes);
+    }
 }

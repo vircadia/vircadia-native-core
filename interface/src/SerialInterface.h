@@ -24,7 +24,7 @@ extern const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
-    SerialInterface() : active(false),
+    SerialInterface() : _active(false),
                         _gravity(0, 0, 0),
                         _averageRotationRates(0, 0, 0),
                         _averageAcceleration(0, 0, 0),
@@ -58,12 +58,13 @@ public:
     
     void renderLevels(int width, int height);
     void resetAverages();
-    bool active;
+    bool isActive() const { return _active; }
     
 private:
     void initializePort(char* portname);
     void resetSerial();
 
+    bool _active;
     int _serialDescriptor;
     int totalSamples;
     timeval lastGoodRead;
