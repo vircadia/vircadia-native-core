@@ -33,6 +33,7 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
 
 class QAction;
@@ -89,6 +90,7 @@ public:
     bool shouldDynamicallySetJitterBuffer() { return _audioJitterBufferSamples == 0; }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
+    GeometryCache* getGeometryCache() { return &_geometryCache; }
     
 private slots:
     
@@ -317,6 +319,8 @@ private:
     int _scaleLocation;
     int _scaleInLocation;
     int _hmdWarpParamLocation;
+    
+    GeometryCache _geometryCache;
     
     #ifndef _WIN32
     Audio _audio;

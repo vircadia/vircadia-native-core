@@ -106,6 +106,10 @@ private:
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
     glm::vec3   _saccadeTarget;
+    float       _leftEyeBlink;
+    float       _rightEyeBlink;
+    float       _leftEyeBlinkVelocity;
+    float       _rightEyeBlinkVelocity;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
