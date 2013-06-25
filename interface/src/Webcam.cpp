@@ -176,11 +176,15 @@ void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0) {
+FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0), _freenectContext(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
-    if (_capture != 0) {
+    if (_freenectContext != 0) {
+        freenect_close_device(_freenectDevice);
+        freenect_shutdown(_freenectContext);
+        
+    } else if (_capture != 0) {
         cvReleaseCapture(&_capture);
     }
 }
@@ -190,32 +194,14 @@ void FrameGrabber::reset() {
 }
 
 void FrameGrabber::grabFrame() {
-    if (_capture == 0) {
-        if ((_capture = cvCaptureFromCAM(-1)) == 0) {
-            printLog("Failed to open webcam.\n");
-            return;
-        }
-        const int IDEAL_FRAME_WIDTH = 320;
-        const int IDEAL_FRAME_HEIGHT = 240;
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
-        
-#ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
-#else
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
-        cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
-#endif
-
-        switchToResourcesParentIfRequired();
-        if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
-            printLog("Failed to load Haar cascade for face tracking.\n");
-        }
+    if (_capture == 0 && _freenectContext == 0 && !init()) {
+        return;
     }
+    if (_freenectContext != 0) {
+        
+        return;
+    }
+    
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
         // try again later
@@ -262,6 +248,47 @@ void FrameGrabber::grabFrame() {
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, frame), Q_ARG(cv::RotatedRect, faceRect));
+}
+
+bool FrameGrabber::init() {
+    // first try for a Kinect
+    if (freenect_init(&_freenectContext, 0) >= 0) {
+        if (freenect_num_devices(_freenectContext) > 0) {
+            if (freenect_open_device(_freenectContext, &_freenectDevice, 0) >= 0) {
+                return true;
+            }
+        }
+        freenect_shutdown(_freenectContext);
+        _freenectContext = 0;
+    }
+
+    // next, an ordinary webcam
+    if ((_capture = cvCaptureFromCAM(-1)) == 0) {
+        printLog("Failed to open webcam.\n");
+        return false;
+    }
+    const int IDEAL_FRAME_WIDTH = 320;
+    const int IDEAL_FRAME_HEIGHT = 240;
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
+    
+#ifdef __APPLE__
+    configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
+#else
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
+#endif
+
+    switchToResourcesParentIfRequired();
+    if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+        printLog("Failed to load Haar cascade for face tracking.\n");
+        return false;
+    }
+    return true;
 }
 
 void FrameGrabber::updateHSVFrame(const Mat& frame) {

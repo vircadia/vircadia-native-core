@@ -15,6 +15,8 @@
 
 #include <glm/glm.hpp>
 
+#include <libfreenect.h>
+
 #include <opencv2/opencv.hpp>
 
 #include "InterfaceConfig.h"
@@ -82,6 +84,7 @@ public slots:
     
 private:
     
+    bool init();
     void updateHSVFrame(const cv::Mat& frame);
     
     CvCapture* _capture;
@@ -91,6 +94,9 @@ private:
     cv::SparseMat _histogram;
     cv::Mat _backProject;
     cv::Rect _searchWindow;
+    
+    freenect_context* _freenectContext;
+    freenect_device* _freenectDevice;
 };
 
 Q_DECLARE_METATYPE(cv::Mat)
